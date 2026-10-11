@@ -44,6 +44,8 @@ Working convention:
 - **Library and its lists, in the new look.** The Library opens on three coloured shelves — Tags, Threads and Trash — each saying how much it holds, above the storage card; the lists of tags, threads, deleted notes and requests that left the device are drawn as rounded cards, each tag on a tile in its own colour; Recurring's three counts each have their own colour; Speed and reliability sits on cards.
 - **Tidier settings pages.** Home screen widget and About Nex are grouped into cards like the rest of Settings.
 - **Fixes.** "Persian" is shown in Persian letters on the language cards, longer choice names wrap instead of being cut off, and a photo whose file has gone no longer logs an error.
+- **Receipts stay with their Recurring item.** A receipt photo added to a Recurring item no longer appears among your notes on the home screen, and deleting a note no longer takes a receipt off its item: receipts are the item's own, shown as thumbnails you tap to see full screen. Ones added before this update are still linked notes.
+- **A colour you pick shows as that colour.** On every palette but Nex, a chosen accent was muted to fit the palette — a red came out brown — and on Graphite it was ignored altogether. It now keeps its own colour, and on Graphite it is the one colour among the greys.
 
 ## v1.99.20
 

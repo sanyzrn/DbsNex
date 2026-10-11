@@ -17,13 +17,20 @@ import '../screens/vault_screen.dart';
 import 'feature_label.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
+import 'photo_viewer.dart';
 
 /// What a Recurring item carries with it: receipts and related notes, and
 /// optionally one bank card from the private vault (W5.4).
 ///
-/// Receipts are ordinary photo notes, so they are searchable (their text is
-/// read like any photo's) and stay in the library if the item goes. Only
-/// note ids and a vault id are kept on the item. A linked card is shown only
+/// Receipts belong to the item, not the library. They were ordinary photo
+/// notes once, so every receipt also landed on the timeline, and deleting it
+/// there took it off the item too. Now each is a file of the item's own in
+/// `recurring/` under the media folder — inside what a full backup copies,
+/// and out of the reach of the media sweep, which only ever looks at the
+/// folder's top level — kept on the item by its path relative to that
+/// folder, so a backup restored on another phone still finds it. Linked
+/// notes stay references to notes, as before. Only those paths, note ids and
+/// a vault id are kept on the item. A linked card is shown only
 /// after the vault's own unlock, and nothing about it is ever part of what
 /// the assistant or the brief can read — the item's details never are.
 class RecurringAttachments extends StatefulWidget {
@@ -43,6 +50,13 @@ class RecurringAttachments extends StatefulWidget {
 
   static String? vaultCardOf(Map<String, dynamic> details) =>
       details['vaultCardId'] as String?;
+
+  /// The item's receipt photos, as paths relative to the media folder.
+  static List<String> receiptsOf(Map<String, dynamic> details) =>
+      (details['receipts'] as List? ?? const []).whereType<String>().toList();
+
+  /// Where the receipts live, under the media folder.
+  static const receiptFolder = 'recurring';
 
   @override
   State<RecurringAttachments> createState() => _RecurringAttachmentsState();
@@ -117,17 +131,20 @@ class _RecurringAttachmentsState extends State<RecurringAttachments> {
       final extension = p.extension(picked.path).isEmpty
           ? '.jpg'
           : p.extension(picked.path);
-      final dest = p.join(
-        widget.services.mediaDir,
+      final relative = p.join(
+        RecurringAttachments.receiptFolder,
         'receipt-${DateTime.now().microsecondsSinceEpoch}$extension',
       );
-      await File(dest).writeAsBytes(bytes, flush: true);
-      final note = await widget.services.capturePhoto(
-        mediaUri: dest,
-        mediaHash: sha256OfBytes(bytes),
-      );
-      widget.services.scheduleEnrichment(note.id);
-      _setNotes([..._ids, note.id]);
+      final dest = File(p.join(widget.services.mediaDir, relative));
+      await dest.parent.create(recursive: true);
+      await dest.writeAsBytes(bytes, flush: true);
+      widget.onChanged({
+        ...widget.details,
+        'receipts': [
+          ...RecurringAttachments.receiptsOf(widget.details),
+          relative,
+        ],
+      });
     } catch (_) {
       if (mounted) {
         nexShowBanner(
@@ -182,6 +199,7 @@ class _RecurringAttachmentsState extends State<RecurringAttachments> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final card = RecurringAttachments.vaultCardOf(widget.details);
+    final receipts = RecurringAttachments.receiptsOf(widget.details);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -190,6 +208,30 @@ class _RecurringAttachmentsState extends State<RecurringAttachments> {
           style: theme.textTheme.titleSmall,
         ),
         const SizedBox(height: NexSpacing.xs),
+        // Receipts as the pictures they are: tap to look, × to take one off
+        // the item. Taken off, the file goes with the next media sweep.
+        if (receipts.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: NexSpacing.xs),
+            child: Wrap(
+              spacing: NexSpacing.sm,
+              runSpacing: NexSpacing.sm,
+              children: [
+                for (final relative in receipts)
+                  _ReceiptThumb(
+                    key: ValueKey('receipt-$relative'),
+                    path: p.join(widget.services.mediaDir, relative),
+                    onRemove: () => widget.onChanged({
+                      ...widget.details,
+                      'receipts': [
+                        for (final other in receipts)
+                          if (other != relative) other,
+                      ],
+                    }),
+                  ),
+              ],
+            ),
+          ),
         Wrap(
           spacing: NexSpacing.xs,
           runSpacing: NexSpacing.xs,
@@ -356,6 +398,74 @@ class _NoteSearchState extends State<_NoteSearch> {
                     onTap: () => Navigator.pop(context, note),
                   ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One receipt: a rounded thumbnail that opens full screen, with a small ×.
+class _ReceiptThumb extends StatelessWidget {
+  const _ReceiptThumb({super.key, required this.path, required this.onRemove});
+
+  final String path;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 72,
+      height: 72,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: Material(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(NexRadius.md),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => Navigator.of(context).push(
+                  NexPageRoute<void>(
+                    builder: (_) => NexPhotoViewer.file(path),
+                    swipeBackEnabled: false,
+                  ),
+                ),
+                child: Image.file(
+                  File(path),
+                  fit: BoxFit.cover,
+                  cacheWidth: 216,
+                  semanticLabel: nexLabel(context, 'Receipt', 'رسید'),
+                  errorBuilder: (_, _, _) => Icon(
+                    Icons.receipt_long_outlined,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          PositionedDirectional(
+            top: -6,
+            end: -6,
+            child: Material(
+              color: scheme.surface,
+              shape: const CircleBorder(),
+              elevation: 1,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onRemove,
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    semanticLabel: nexLabel(context, 'Remove', 'برداشتن'),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

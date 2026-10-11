@@ -1005,7 +1005,36 @@ class NexServices {
     // because it never got to write a timestamp is how a background chore
     // turns into a launch cost.
     await _preferences.markMediaSwept();
-    return worker.sweepOrphanMedia();
+    final notes = await worker.sweepOrphanMedia();
+    return notes + await _sweepOrphanReceipts();
+  }
+
+  /// Receipt photos no Recurring item lists any more: taken off an item, or
+  /// added in an editor that was then closed without saving. The same hour
+  /// of grace as the note sweep, so one being added right now is left alone.
+  Future<int> _sweepOrphanReceipts() async {
+    final folder = Directory(p.join(mediaDir, 'recurring'));
+    if (!folder.existsSync()) return 0;
+    final kept = <String>{
+      for (final item in await commitments())
+        for (final relative
+            in (item.details['receipts'] as List? ?? const [])
+                .whereType<String>())
+          p.normalize(p.join(mediaDir, relative)),
+    };
+    final cutoff = DateTime.now().subtract(const Duration(hours: 1));
+    var removed = 0;
+    for (final file in folder.listSync().whereType<File>()) {
+      if (kept.contains(p.normalize(file.path))) continue;
+      try {
+        if (file.statSync().modified.isAfter(cutoff)) continue;
+        file.deleteSync();
+        removed++;
+      } catch (_) {
+        // Left for the next pass.
+      }
+    }
+    return removed;
   }
 
   Future<List<TagUsage>> tagUsage() => worker.tagUsage();
