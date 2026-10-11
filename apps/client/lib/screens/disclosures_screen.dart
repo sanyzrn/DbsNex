@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
+import '../widgets/nex_shelf.dart';
 import '../l10n/app_localizations.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/nex_services.dart';
@@ -82,16 +83,18 @@ class _DisclosuresScreenState extends State<DisclosuresScreen> {
       body: entries == null
           ? const SizedBox.shrink()
           : ListView(
-              padding: EdgeInsets.only(
-                top: NexSpacing.sm,
-                bottom: NexSpacing.lg + nexBottomInset(context),
+              padding: EdgeInsets.fromLTRB(
+                NexSpacing.md,
+                NexSpacing.sm,
+                NexSpacing.md,
+                NexSpacing.lg + nexBottomInset(context),
               ),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
-                    NexSpacing.lg,
                     NexSpacing.sm,
-                    NexSpacing.lg,
+                    NexSpacing.sm,
+                    NexSpacing.sm,
                     NexSpacing.md,
                   ),
                   child: Text(
@@ -110,8 +113,13 @@ class _DisclosuresScreenState extends State<DisclosuresScreen> {
                       style: theme.textTheme.bodyLarge,
                     ),
                   ),
-                for (final entry in entries)
-                  _EntryTile(entry: entry, services: widget.services),
+                // One card, a row per request, as the other lists now are.
+                for (final (index, entry) in entries.indexed)
+                  NexGroupedRow(
+                    index: index,
+                    count: entries.length,
+                    child: _EntryTile(entry: entry, services: widget.services),
+                  ),
               ],
             ),
     );
@@ -145,8 +153,8 @@ class _EntryTile extends StatelessWidget {
       ?entry.media,
     ];
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-      leading: Icon(_icon(entry.purpose)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+      leading: NexIconTile(_icon(entry.purpose)),
       title: Text(purposeLabel(l10n, entry.purpose)),
       subtitle: Text('$when\n${details.join('\n')}'),
       isThreeLine: true,

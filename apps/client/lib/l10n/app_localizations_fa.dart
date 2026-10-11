@@ -9,6 +9,83 @@ class AppLocalizationsFa extends AppLocalizations {
   AppLocalizationsFa([String locale = 'fa']) : super(locale);
 
   @override
+  String get libraryTagsHint => 'نام و رنگ برای آنچه دسته می‌کنید';
+
+  @override
+  String get libraryTrashHint => '۳۰ روز نگه داشته می‌شود';
+
+  @override
+  String libraryTagCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString برچسب',
+      zero: 'هنوز برچسبی نیست',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryThreadCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString رشته',
+      zero: 'هنوز رشته‌ای نیست',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryTrashCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString یادداشت · ۳۰ روز نگه داشته می‌شود',
+      zero: 'خالی',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get toolsSectionPrivate => 'خصوصی';
+
+  @override
+  String get toolsSectionEveryday => 'روزمره';
+
+  @override
+  String intelligenceStateOn(String provider) {
+    return 'روشن — $provider';
+  }
+
+  @override
+  String intelligenceAbilitiesOn(String count, String total) {
+    return '$count از $total قابلیت فعال';
+  }
+
+  @override
+  String get intelligenceStateOffShort => 'هیچ چیز از این گوشی بیرون نمی‌رود';
+
+  @override
+  String get languagePreviewTitle => 'این‌طور دیده می‌شود';
+
+  @override
+  String get languagePreviewNote =>
+      'قبل از جمعه با صاحبخانه دربارهٔ شوفاژ تماس بگیرم';
+
+  @override
   String get calendar => 'تقویم';
 
   @override

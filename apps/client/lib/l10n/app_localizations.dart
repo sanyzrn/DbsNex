@@ -98,6 +98,78 @@ abstract class AppLocalizations {
     Locale('fa'),
   ];
 
+  /// No description provided for @libraryTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour and name what you file'**
+  String get libraryTagsHint;
+
+  /// No description provided for @libraryTrashHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept for 30 days'**
+  String get libraryTrashHint;
+
+  /// No description provided for @libraryTagCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No tags yet} =1{1 tag} other{{count} tags}}'**
+  String libraryTagCount(int count);
+
+  /// No description provided for @libraryThreadCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No threads yet} =1{1 thread} other{{count} threads}}'**
+  String libraryThreadCount(int count);
+
+  /// No description provided for @libraryTrashCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Empty} =1{1 note · kept 30 days} other{{count} notes · kept 30 days}}'**
+  String libraryTrashCount(int count);
+
+  /// No description provided for @toolsSectionPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get toolsSectionPrivate;
+
+  /// No description provided for @toolsSectionEveryday.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyday'**
+  String get toolsSectionEveryday;
+
+  /// No description provided for @intelligenceStateOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On · {provider}'**
+  String intelligenceStateOn(String provider);
+
+  /// No description provided for @intelligenceAbilitiesOn.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} abilities working'**
+  String intelligenceAbilitiesOn(String count, String total);
+
+  /// No description provided for @intelligenceStateOffShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing leaves this phone'**
+  String get intelligenceStateOffShort;
+
+  /// No description provided for @languagePreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How it will look'**
+  String get languagePreviewTitle;
+
+  /// No description provided for @languagePreviewNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Call the landlord about the heating before Friday'**
+  String get languagePreviewNote;
+
   /// No description provided for @calendar.
   ///
   /// In en, this message translates to:

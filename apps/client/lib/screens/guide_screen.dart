@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -47,9 +49,16 @@ class _GuideScreenState extends State<GuideScreen> {
     if (code == _loadedFor) return;
     _loadedFor = code;
     final folder = widget.privacy ? 'privacy' : 'guide';
-    _guide = rootBundle.loadString(
-      code == 'fa' ? 'assets/$folder/fa.md' : 'assets/$folder/en.md',
-    );
+    // Decoded here rather than by `loadString`, which hands any file over
+    // 50 KB to a background isolate — the Persian guide is past that, and a
+    // few dozen kilobytes of UTF-8 is nothing to decode in place.
+    _guide = rootBundle
+        .load(code == 'fa' ? 'assets/$folder/fa.md' : 'assets/$folder/en.md')
+        .then(
+          (data) => utf8.decode(
+            data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+          ),
+        );
   }
 
   @override

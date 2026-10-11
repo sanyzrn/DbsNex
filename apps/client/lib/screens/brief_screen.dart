@@ -285,7 +285,7 @@ class _BriefScreenState extends State<BriefScreen> {
                     NexChoice(
                       value: AiOutputLanguage.persian,
                       label: l10n.aiOutputLanguagePersian,
-                      preview: const NexScriptSample(sample: 'اَ'),
+                      preview: const NexScriptSample(sample: 'فا'),
                     ),
                   ],
                 ),

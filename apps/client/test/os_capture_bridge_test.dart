@@ -485,6 +485,59 @@ void main() {
     expect(await lost.timeline(limit: 5), hasLength(1));
   });
 
+  test('a leftover share failing again does not fail the new one', () async {
+    // An old share whose file can no longer be read stays in the inbox. It
+    // used to be retried under every new share and turn each one's toast into
+    // "could not be stored" while its note sat in the timeline.
+    native.pending = {
+      'type': 'shared_file',
+      'uri': 'content://gone/file',
+      'requestId': 'old',
+      'attempts': '1',
+    };
+    native.pending = {
+      'type': 'shared_text',
+      'text': 'the new one',
+      'requestId': 'new',
+    };
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+    expect(bridge.shareFailed, isFalse);
+    expect(bridge.handledLaunchShare, isTrue);
+    expect(await db.timeline(), hasLength(1));
+  });
+
+  test('a share long in the inbox counts as a leftover too', () async {
+    final hourAgo = DateTime.now()
+        .subtract(const Duration(hours: 1))
+        .millisecondsSinceEpoch;
+    native.pending = {
+      'type': 'shared_file',
+      'uri': 'content://gone/file',
+      'receivedAt': '$hourAgo',
+    };
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+    expect(bridge.shareFailed, isFalse);
+    expect(native.calls, contains('deferPending'));
+  });
+
+  test('a share that keeps failing is let go', () async {
+    native.pending = {
+      'type': 'shared_file',
+      'uri': 'content://gone/file',
+      'attempts': '${OsCaptureBridge.maxAttempts - 1}',
+    };
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+    expect(native.calls, contains('ackPending'));
+    expect(native.calls, isNot(contains('deferPending')));
+    expect(native.queue, isEmpty);
+  });
+
   test('a share that never committed is still reported as failed', () async {
     native.pending = {'type': 'shared_file', 'uri': 'content://missing/file'};
     final bridge = OsCaptureBridge(services);

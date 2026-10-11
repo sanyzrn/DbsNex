@@ -174,16 +174,39 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
     (p) => p.id == id,
     orElse: () => nexThemePresets.first,
   );
-  final colors = ColorScheme.fromSeed(
-    seedColor: accent ?? p.seed,
+  // An accent somebody picked, as opposed to the palette's own. The palette's
+  // seed is laid out tonal-spot, muted to sit with its surfaces; a picked one
+  // was turned brown by the same treatment — a red came out #904A45 — and
+  // read as not applied at all. A picked accent keeps its own colour.
+  final picked = accent != null && accent.toARGB32() != p.seed.toARGB32();
+  final surface = base.brightness == Brightness.light ? p.light : p.dark;
+  var colors = ColorScheme.fromSeed(
+    seedColor: picked ? accent : p.seed,
     brightness: base.brightness,
     // Graphite is the one palette that is about having no colour: its tones
     // are taken without chroma, so nothing turns faintly blue.
     dynamicSchemeVariant: id == 'graphite'
         ? DynamicSchemeVariant.monochrome
+        : picked
+        ? DynamicSchemeVariant.fidelity
         : DynamicSchemeVariant.tonalSpot,
-    surface: base.brightness == Brightness.light ? p.light : p.dark,
+    surface: surface,
   );
+  if (picked && id == 'graphite') {
+    // Grey everywhere but the accent: a colour picked on Graphite is the one
+    // colour on the screen, rather than one Graphite quietly ignores.
+    final tint = ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: base.brightness,
+      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+    );
+    colors = colors.copyWith(
+      primary: tint.primary,
+      onPrimary: tint.onPrimary,
+      primaryContainer: tint.primaryContainer,
+      onPrimaryContainer: tint.onPrimaryContainer,
+    );
+  }
   final visual = base.extension<NexVisualStyle>();
   return base.copyWith(
     colorScheme: colors,

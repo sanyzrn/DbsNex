@@ -65,7 +65,14 @@ class _Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    // Each its own colour, as the shelves in Tools and the Library are: a
+    // number read from its colour before its label.
+    final hues = {
+      'today': NexHue.amber.of(theme.brightness),
+      'week': NexHue.sky.of(theme.brightness),
+    };
     return Row(
       children: [
         for (final (id, en, fa, icon, urgent) in [
@@ -81,9 +88,9 @@ class _Summary extends StatelessWidget {
               label: nexLabel(context, en, fa),
               value: nexDigits('${counts[id] ?? 0}', persian: persian),
               selected: view == id,
-              color: urgent && (counts[id] ?? 0) > 0
-                  ? scheme.error
-                  : scheme.primary,
+              color: urgent
+                  ? ((counts[id] ?? 0) > 0 ? scheme.error : scheme.outline)
+                  : hues[id]!,
               onTap: () => onView(id),
             ),
           ),
@@ -119,17 +126,15 @@ class _Stat extends StatelessWidget {
       button: true,
       selected: selected,
       child: Material(
-        color: selected
-            ? Color.alphaBlend(
-                color.withValues(alpha: 0.14),
-                scheme.surfaceContainerLowest,
-              )
-            : scheme.surfaceContainerLowest,
+        color: Color.alphaBlend(
+          color.withValues(alpha: selected ? 0.2 : 0.08),
+          scheme.surfaceContainerHighest,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(NexRadius.lg),
           side: BorderSide(
-            color: selected ? color : scheme.outlineVariant,
-            width: selected ? 1.5 : 1,
+            color: selected ? color : Colors.transparent,
+            width: 1.5,
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -140,7 +145,15 @@ class _Stat extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 20, color: color),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 18, color: color),
+                ),
                 const SizedBox(height: NexSpacing.xs),
                 Text(
                   value,

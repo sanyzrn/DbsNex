@@ -9,6 +9,86 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get libraryTagsHint => 'Colour and name what you file';
+
+  @override
+  String get libraryTrashHint => 'Kept for 30 days';
+
+  @override
+  String libraryTagCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString tags',
+      one: '1 tag',
+      zero: 'No tags yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryThreadCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString threads',
+      one: '1 thread',
+      zero: 'No threads yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryTrashCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString notes · kept 30 days',
+      one: '1 note · kept 30 days',
+      zero: 'Empty',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get toolsSectionPrivate => 'Private';
+
+  @override
+  String get toolsSectionEveryday => 'Everyday';
+
+  @override
+  String intelligenceStateOn(String provider) {
+    return 'On · $provider';
+  }
+
+  @override
+  String intelligenceAbilitiesOn(String count, String total) {
+    return '$count of $total abilities working';
+  }
+
+  @override
+  String get intelligenceStateOffShort => 'Nothing leaves this phone';
+
+  @override
+  String get languagePreviewTitle => 'How it will look';
+
+  @override
+  String get languagePreviewNote =>
+      'Call the landlord about the heating before Friday';
+
+  @override
   String get calendar => 'Calendar';
 
   @override

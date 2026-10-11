@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
+import 'nex_shelf.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/relative_span.dart';
 import '../platform/nex_services.dart';

@@ -70,6 +70,9 @@ class _ProfileCardState extends State<_ProfileCard> {
                           image: DecorationImage(
                             image: FileImage(photo),
                             fit: BoxFit.cover,
+                            // A picture just replaced: the old file is gone
+                            // a frame before this card learns the new one.
+                            onError: (_, _) {},
                           ),
                         )
                       : null,

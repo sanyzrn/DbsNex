@@ -460,7 +460,7 @@ class _SetupPage extends StatelessWidget {
                 const NexChoice(
                   value: 'fa',
                   label: 'فارسی',
-                  preview: NexScriptSample(sample: 'اَ'),
+                  preview: NexScriptSample(sample: 'فا'),
                 ),
               ],
             ),

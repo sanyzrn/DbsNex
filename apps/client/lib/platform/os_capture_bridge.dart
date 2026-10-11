@@ -336,6 +336,7 @@ class OsCaptureBridge {
         final payload = Map<Object?, Object?>.from(pending);
         final id = payload['requestId'] as String;
         final share = _isShare(payload['type'] as String?);
+        final retry = _isRetry(payload);
         bool saved;
         try {
           saved = await handle(payload);
@@ -345,14 +346,22 @@ class OsCaptureBridge {
           // video that was sitting in the timeline.
           saved = share && await _committed(id);
           if (!saved) {
-            shareFailed = true;
+            // Only this window's own share is this window's to report. An
+            // older one left in the inbox — a file whose provider no longer
+            // lets Nex read it — used to fail again under every new share,
+            // so each share said "could not be stored" while its note sat in
+            // the timeline.
+            if (!retry) shareFailed = true;
+            final giveUp = _exhausted(payload);
             // Keep the request for the next launch, but do not retry forever
             // on a full disk or an expired provider permission.
-            await _channel.invokeMethod<void>('deferPending', {
-              'requestId': id,
-            });
+            await _channel.invokeMethod<void>(
+              giveUp ? 'ackPending' : 'deferPending',
+              {'requestId': id},
+            );
             await NexServices.noteDiagnostic(
-              'shared capture failed: ${error.runtimeType}'
+              '${giveUp ? 'shared capture abandoned' : 'shared capture failed'}'
+              ': ${error.runtimeType}'
               '${error is StateError ? ' (${error.message})' : ''}',
             );
             continue;
@@ -360,7 +369,7 @@ class OsCaptureBridge {
         }
         if (share) {
           _handledLaunchShare |= saved;
-          if (!saved && _rejection == null) shareFailed = true;
+          if (!saved && _rejection == null && !retry) shareFailed = true;
         }
         try {
           await _channel.invokeMethod<void>('ackPending', {'requestId': id});
@@ -377,6 +386,37 @@ class OsCaptureBridge {
       // Desktop has no Android share inbox.
     }
   }
+
+  /// How many times a share is tried before it is let go.
+  static const maxAttempts = 3;
+
+  /// Past this, a share still in the inbox is a leftover rather than the one
+  /// that opened this window.
+  static const _retryAfter = Duration(minutes: 10);
+
+  /// And past this, nothing is going to bring its file back.
+  static const _abandonAfter = Duration(days: 7);
+
+  static int _attempts(Map<Object?, Object?> payload) =>
+      int.tryParse('${payload['attempts'] ?? ''}') ?? 0;
+
+  static Duration? _age(Map<Object?, Object?> payload) {
+    final received = int.tryParse('${payload['receivedAt'] ?? ''}');
+    if (received == null) return null;
+    return DateTime.now().difference(
+      DateTime.fromMillisecondsSinceEpoch(received),
+    );
+  }
+
+  /// A request tried before, or one that has sat in the inbox since well
+  /// before this window opened: not the share the person just made.
+  static bool _isRetry(Map<Object?, Object?> payload) =>
+      _attempts(payload) > 0 || (_age(payload) ?? Duration.zero) > _retryAfter;
+
+  /// Whether this failure is the last one this request gets.
+  static bool _exhausted(Map<Object?, Object?> payload) =>
+      _attempts(payload) + 1 >= maxAttempts ||
+      (_age(payload) ?? Duration.zero) > _abandonAfter;
 
   /// Whether share [requestId] already has its note in the library.
   Future<bool> _committed(String requestId) async {

@@ -231,7 +231,20 @@ open class MainActivity : FlutterFragmentActivity() {
             "deferPending" -> {
                 call.argument<String>("requestId")?.let {
                     deferred.add(it)
-                    synchronized(inboxClaimLock) { claimed.remove(it) }
+                    synchronized(inboxClaimLock) {
+                        claimed.remove(it)
+                        // Counted, so a share that can never be read again
+                        // is let go after a few tries instead of failing
+                        // under every later share.
+                        inbox.getString(it, null)?.let { raw ->
+                            runCatching {
+                                val json = JSONObject(raw)
+                                val tries = json.optString("attempts").toIntOrNull() ?: 0
+                                json.put("attempts", (tries + 1).toString())
+                                inbox.edit().putString(it, json.toString()).commit()
+                            }
+                        }
+                    }
                 }
                 result.success(null)
             }

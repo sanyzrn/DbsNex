@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
+import '../widgets/nex_shelf.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/metrics.dart';
 import '../platform/nex_preferences.dart';
@@ -46,26 +47,39 @@ class _MetricsScreenState extends State<MetricsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.metricsTitle)),
       body: ListView(
-        padding: EdgeInsets.only(
-          top: NexSpacing.sm,
-          bottom: NexSpacing.lg + nexBottomInset(context),
+        padding: EdgeInsets.fromLTRB(
+          NexSpacing.md,
+          NexSpacing.sm,
+          NexSpacing.md,
+          NexSpacing.lg + nexBottomInset(context),
         ),
         children: [
-          SwitchListTile(
-            secondary: const Icon(Icons.speed_outlined),
-            title: Text(l10n.metricsSwitch),
-            value: on,
-            onChanged: (value) => unawaited(_toggle(value)),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.lg,
-              NexSpacing.xs,
-              NexSpacing.lg,
-              NexSpacing.md,
+          // The switch and what it means, on one card, as every settings
+          // page now draws them.
+          NexPanel(
+            padding: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SwitchListTile(
+                  secondary: const NexIconTile(Icons.speed_outlined),
+                  title: Text(l10n.metricsSwitch),
+                  value: on,
+                  onChanged: (value) => unawaited(_toggle(value)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    NexSpacing.md,
+                    0,
+                    NexSpacing.md,
+                    NexSpacing.md,
+                  ),
+                  child: Text(l10n.metricsIntro, style: muted),
+                ),
+              ],
             ),
-            child: Text(l10n.metricsIntro, style: muted),
           ),
+          const SizedBox(height: NexSpacing.md),
           if (on && _metrics.isEmpty)
             Padding(
               padding: const EdgeInsets.all(NexSpacing.xl),
@@ -76,38 +90,44 @@ class _MetricsScreenState extends State<MetricsScreen> {
               ),
             )
           else if (on) ...[
-            const Divider(height: 1),
-            _MetricTile(
-              icon: Icons.folder_open_outlined,
-              title: l10n.metricsLaunch,
-              stats: _metrics.stats(NexMetric.launch),
-            ),
-            _MetricTile(
-              icon: Icons.view_agenda_outlined,
-              title: l10n.metricsTimeline,
-              hint: l10n.metricsTimelineHint,
-              stats: _metrics.stats(NexMetric.timeline),
-            ),
-            _MetricTile(
-              icon: Icons.edit_note_outlined,
-              title: l10n.metricsCapture,
-              stats: _metrics.stats(NexMetric.capture),
-            ),
-            _MetricTile(
-              icon: Icons.search,
-              title: l10n.metricsSearch,
-              stats: _metrics.stats(NexMetric.searchToOpen),
-            ),
-            ListTile(
-              leading: const Icon(Icons.verified_outlined),
-              title: Text(l10n.metricsSessions),
-              subtitle: Text(
-                sessions.withCapture == 0
-                    ? l10n.metricsNoData
-                    : l10n.metricsSessionsValue(
-                        _digits(context, '${sessions.clean}'),
-                        _digits(context, '${sessions.withCapture}'),
-                      ),
+            NexPanel(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _MetricTile(
+                    icon: Icons.folder_open_outlined,
+                    title: l10n.metricsLaunch,
+                    stats: _metrics.stats(NexMetric.launch),
+                  ),
+                  _MetricTile(
+                    icon: Icons.view_agenda_outlined,
+                    title: l10n.metricsTimeline,
+                    hint: l10n.metricsTimelineHint,
+                    stats: _metrics.stats(NexMetric.timeline),
+                  ),
+                  _MetricTile(
+                    icon: Icons.edit_note_outlined,
+                    title: l10n.metricsCapture,
+                    stats: _metrics.stats(NexMetric.capture),
+                  ),
+                  _MetricTile(
+                    icon: Icons.search,
+                    title: l10n.metricsSearch,
+                    stats: _metrics.stats(NexMetric.searchToOpen),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.verified_outlined),
+                    title: Text(l10n.metricsSessions),
+                    subtitle: Text(
+                      sessions.withCapture == 0
+                          ? l10n.metricsNoData
+                          : l10n.metricsSessionsValue(
+                              _digits(context, '${sessions.clean}'),
+                              _digits(context, '${sessions.withCapture}'),
+                            ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(

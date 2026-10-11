@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
+import '../widgets/nex_shelf.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -79,37 +80,43 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
               ),
             )
           : ListView(
-              padding: EdgeInsets.only(
-                top: NexSpacing.sm,
-                bottom: NexSpacing.sm + nexBottomInset(context),
+              padding: EdgeInsets.fromLTRB(
+                NexSpacing.md,
+                NexSpacing.sm,
+                NexSpacing.md,
+                NexSpacing.sm + nexBottomInset(context),
               ),
               children: [
-                for (final thread in threads)
-                  ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: NexSpacing.lg,
-                    ),
-                    leading: const Icon(Icons.timeline_outlined),
-                    title: Text(
-                      thread.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(l10n.threadNoteCount(thread.noteCount)),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        NexPageRoute<void>(
-                          builder: (_) => ThreadScreen(
-                            services: widget.services,
-                            preferences: widget.preferences,
-                            thread: thread,
+                for (final (index, thread) in threads.indexed)
+                  NexGroupedRow(
+                    index: index,
+                    count: threads.length,
+                    child: ListTile(
+                      leading: NexIconTile(
+                        Icons.timeline_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      title: Text(
+                        thread.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(l10n.threadNoteCount(thread.noteCount)),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          NexPageRoute<void>(
+                            builder: (_) => ThreadScreen(
+                              services: widget.services,
+                              preferences: widget.preferences,
+                              thread: thread,
+                            ),
                           ),
-                        ),
-                      );
-                      await _reload();
-                    },
+                        );
+                        await _reload();
+                      },
+                    ),
                   ),
               ],
             ),
