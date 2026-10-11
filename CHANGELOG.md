@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.30
+
+- **Sharing no longer says "could not be stored" over a share that was saved.** An older share whose file could no longer be read stayed waiting in Nex and was tried again under every new share, so each one reported a failure while its note was already in the timeline. Only the share you just made is reported now, and one that keeps failing is let go after a few tries.
+- **The assistant's light leaves the way it came.** When the assistant closes, its border no longer vanishes at once: the ring of light runs back down both sides of the screen to the + button and goes out there in a soft pulse.
+
 ## v1.99.20
 
 - **Settings is a page.** It opens like Tools and the Library instead of rising from the bottom, so a pull at its top can no longer close it by accident; the search box at its top now has the same rounded shape as everything under it.

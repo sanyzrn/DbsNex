@@ -201,7 +201,101 @@ class NexAmbientEdgeGlow extends StatefulWidget {
   State<NexAmbientEdgeGlow> createState() => _NexAmbientEdgeGlowState();
 }
 
-class _NexAmbientEdgeGlowState extends State<NexAmbientEdgeGlow>
+class _NexAmbientEdgeGlowState extends State<NexAmbientEdgeGlow> {
+  /// Set when the assistant starts to go — the sheet sliding away, or this
+  /// widget leaving the tree — and cleared if a half-dismissed sheet comes
+  /// back up.
+  final _closing = ValueNotifier<bool>(false);
+
+  OverlayEntry? _glow;
+  Animation<double>? _route;
+  bool _asked = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_asked) return;
+    _asked = true;
+    // The route's own animation says when the sheet begins to leave, so the
+    // border starts its exit with the sheet rather than vanishing after it.
+    _route = ModalRoute.of(context)?.animation?..addStatusListener(_onRoute);
+    // After the frame, not during it. This runs while the tree is being
+    // built, and inserting an overlay entry marks the Overlay itself dirty —
+    // which is a "setState called during build" the moment the route this
+    // sits in is the thing currently building.
+    final still = MediaQuery.disableAnimationsOf(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      late final OverlayEntry entry;
+      entry = OverlayEntry(
+        builder: (context) => _AmbientBorder(
+          colors: widget.colors,
+          width: widget.width,
+          period: widget.period,
+          still: still,
+          closing: _closing,
+          // The entry outlives this widget by the length of its exit, and
+          // takes itself down once that has played.
+          onGone: () {
+            if (entry.mounted) entry.remove();
+            if (identical(_glow, entry)) _glow = null;
+          },
+        ),
+      );
+      Overlay.of(context, rootOverlay: true).insert(entry);
+      _glow = entry;
+    });
+  }
+
+  void _onRoute(AnimationStatus status) {
+    _closing.value =
+        status == AnimationStatus.reverse ||
+        status == AnimationStatus.dismissed;
+  }
+
+  @override
+  void dispose() {
+    _route?.removeStatusListener(_onRoute);
+    // Not removed here: the border plays its way out on its own, and removes
+    // its entry when it is done.
+    _closing.value = true;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// The border itself, living in the overlay so it can finish leaving after
+/// the assistant has gone.
+///
+/// Its exit is the opening run backwards. The assistant is summoned by
+/// holding the capture button, and its light rises from there; when it
+/// closes, the ring of light runs back down both sides of the screen, its two
+/// ends meeting at the bottom centre — where the button is — and a last soft
+/// pulse there is the light going home.
+class _AmbientBorder extends StatefulWidget {
+  const _AmbientBorder({
+    required this.colors,
+    required this.width,
+    required this.period,
+    required this.still,
+    required this.closing,
+    required this.onGone,
+  });
+
+  final List<Color> colors;
+  final double width;
+  final Duration period;
+  final bool still;
+  final ValueListenable<bool> closing;
+  final VoidCallback onGone;
+
+  @override
+  State<_AmbientBorder> createState() => _AmbientBorderState();
+}
+
+class _AmbientBorderState extends State<_AmbientBorder>
     with TickerProviderStateMixin {
   late final AnimationController _fade = AnimationController(
     vsync: this,
@@ -211,66 +305,67 @@ class _NexAmbientEdgeGlowState extends State<NexAmbientEdgeGlow>
     vsync: this,
     duration: widget.period,
   );
-
-  OverlayEntry? _glow;
-  bool _asked = false;
+  late final AnimationController _exit =
+      AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: widget.still ? 200 : 720),
+      )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) widget.onGone();
+      });
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_asked) return;
-    _asked = true;
-    // After the frame, not during it. This runs while the tree is being
-    // built, and inserting an overlay entry marks the Overlay itself dirty —
-    // which is a "setState called during build" the moment the route this
-    // sits in is the thing currently building.
-    final still = MediaQuery.disableAnimationsOf(context);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final entry = OverlayEntry(
-        builder: (context) => Positioned.fill(
-          child: IgnorePointer(
-            child: RepaintBoundary(
-              child: AnimatedBuilder(
-                animation: Listenable.merge([_fade, _turn]),
-                builder: (context, _) => CustomPaint(
-                  size: Size.infinite,
-                  painter: _AmbientBorderPainter(
-                    opacity: _fade.value,
-                    turn: _turn.value,
-                    width: widget.width,
-                    colors: widget.colors,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      Overlay.of(context, rootOverlay: true).insert(entry);
-      _glow = entry;
-      if (still) {
-        _fade.value = 1;
-      } else {
-        _fade.forward();
-        if (NexAmbientEdgeGlow.turns) _turn.repeat();
-      }
-    });
+  void initState() {
+    super.initState();
+    if (widget.still) {
+      _fade.value = 1;
+    } else {
+      _fade.forward();
+      if (NexAmbientEdgeGlow.turns) _turn.repeat();
+    }
+    widget.closing.addListener(_onClosing);
+    _onClosing();
+  }
+
+  void _onClosing() {
+    if (widget.closing.value) {
+      _exit.forward();
+    } else if (_exit.value > 0) {
+      _exit.reverse();
+    }
   }
 
   @override
   void dispose() {
-    // Before the controllers, for the reason [NexLongPressGlowState]
-    // documents: the overlay's builder reads them every frame.
-    _glow?.remove();
-    _glow = null;
+    widget.closing.removeListener(_onClosing);
     _fade.dispose();
     _turn.dispose();
+    _exit.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) => Positioned.fill(
+    child: IgnorePointer(
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_fade, _turn, _exit]),
+          builder: (context, _) => CustomPaint(
+            size: Size.infinite,
+            painter: _AmbientBorderPainter(
+              opacity: _fade.value,
+              turn: _turn.value,
+              width: widget.width,
+              colors: widget.colors,
+              exit: widget.still
+                  ? 0
+                  : Curves.easeInOutCubic.transform(_exit.value),
+              fadeOut: widget.still ? _exit.value : 0,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _AmbientBorderPainter extends CustomPainter {
@@ -279,6 +374,8 @@ class _AmbientBorderPainter extends CustomPainter {
     required this.turn,
     required this.width,
     required this.colors,
+    this.exit = 0,
+    this.fadeOut = 0,
   });
 
   final double opacity;
@@ -286,37 +383,106 @@ class _AmbientBorderPainter extends CustomPainter {
   final double width;
   final List<Color> colors;
 
+  /// How far the ring has drawn back into the bottom centre, 0 to 1.
+  final double exit;
+
+  /// Reduce-motion's exit: a plain fade, 0 to 1.
+  final double fadeOut;
+
+  static const _radius = 44.0;
+
+  /// The screen's edge as one line that starts and ends at the bottom
+  /// centre, so drawing back from both ends collapses it onto that point.
+  static Path _edge(Rect r) {
+    const c = _radius;
+    return Path()
+      ..moveTo(r.center.dx, r.bottom)
+      ..lineTo(r.left + c, r.bottom)
+      ..arcToPoint(
+        Offset(r.left, r.bottom - c),
+        radius: const Radius.circular(c),
+      )
+      ..lineTo(r.left, r.top + c)
+      ..arcToPoint(Offset(r.left + c, r.top), radius: const Radius.circular(c))
+      ..lineTo(r.right - c, r.top)
+      ..arcToPoint(Offset(r.right, r.top + c), radius: const Radius.circular(c))
+      ..lineTo(r.right, r.bottom - c)
+      ..arcToPoint(
+        Offset(r.right - c, r.bottom),
+        radius: const Radius.circular(c),
+      )
+      ..close();
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    if (opacity <= 0) return;
+    final alpha = opacity * (1 - fadeOut);
+    if (alpha <= 0) return;
     final rect = Offset.zero & size;
-    // The same generous corner as the bloom, for the same reason.
-    final rrect = RRect.fromRectAndRadius(
-      rect.deflate(width / 2),
-      const Radius.circular(44),
-    );
+    final inner = rect.deflate(width / 2);
     final sweep = SweepGradient(
       transform: GradientRotation(math.pi / 2 + turn * 2 * math.pi),
       colors: [...colors, colors.first],
     ).createShader(rect);
+
+    Path line;
+    if (exit <= 0) {
+      // The same generous corner as the bloom, for the same reason.
+      line = Path()
+        ..addRRect(
+          RRect.fromRectAndRadius(inner, const Radius.circular(_radius)),
+        );
+    } else {
+      final metric = _edge(inner).computeMetrics().first;
+      final half = metric.length / 2 * (1 - exit);
+      line = Path()
+        ..addPath(metric.extractPath(0, half), Offset.zero)
+        ..addPath(
+          metric.extractPath(metric.length - half, metric.length),
+          Offset.zero,
+        );
+    }
+    // A little brighter as it gathers, the way light concentrates.
+    final glow = (0.45 + 0.35 * exit) * alpha;
     canvas
-      ..drawRRect(
-        rrect,
+      ..drawPath(
+        line,
         Paint()
           ..shader = sweep
           ..style = PaintingStyle.stroke
-          ..strokeWidth = width * 3
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = width * (3 + exit)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 2)
-          ..color = Colors.white.withValues(alpha: 0.45 * opacity),
+          ..color = Colors.white.withValues(alpha: glow),
       )
-      ..drawRRect(
-        rrect,
+      ..drawPath(
+        line,
         Paint()
           ..shader = sweep
           ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
           ..strokeWidth = width
-          ..color = Colors.white.withValues(alpha: opacity),
+          ..color = Colors.white.withValues(alpha: alpha),
       );
+    // The last of it: one soft pulse where the two ends meet, swelling and
+    // fading as the line runs out.
+    if (exit > 0.7) {
+      final t = (exit - 0.7) / 0.3;
+      final centre = Offset(rect.center.dx, rect.bottom);
+      final radius = 18 + 46 * t;
+      canvas.drawCircle(
+        centre,
+        radius,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              colors[(colors.length ~/ 2).clamp(0, colors.length - 1)]
+                  .withValues(alpha: 0.55 * (1 - t) * alpha),
+              colors.first.withValues(alpha: 0),
+            ],
+          ).createShader(Rect.fromCircle(center: centre, radius: radius)),
+      );
+    }
   }
 
   @override
@@ -324,7 +490,9 @@ class _AmbientBorderPainter extends CustomPainter {
       old.opacity != opacity ||
       old.turn != turn ||
       old.width != width ||
-      old.colors != colors;
+      old.colors != colors ||
+      old.exit != exit ||
+      old.fadeOut != fadeOut;
 }
 
 /// Drives a [NexEdgeGlow] from a long press, and reports when it completes.

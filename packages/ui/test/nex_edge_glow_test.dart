@@ -46,4 +46,38 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(tester.binding.hasScheduledFrame, isFalse);
   });
+
+  testWidgets('closing, the border runs back to the bottom and then goes', (
+    tester,
+  ) async {
+    final open = ValueNotifier(true);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ValueListenableBuilder<bool>(
+            valueListenable: open,
+            builder: (context, shown, _) => shown
+                ? const NexAmbientEdgeGlow(
+                    colors: nexAssistantSpectrum,
+                    child: Text('assistant'),
+                  )
+                : const SizedBox(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(border(), findsOneWidget);
+
+    open.value = false;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    // The assistant is gone; its light is still on its way out.
+    expect(find.text('assistant'), findsNothing);
+    expect(border(), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 1));
+    expect(border(), findsNothing);
+  });
 }
