@@ -1067,11 +1067,13 @@ void main() {
     expect(theme.colorScheme.primary, isNot(NexColors.defaultAccent.light));
   });
 
-  testWidgets('each swipe edge picks from a list of its own', (tester) async {
-    // The picker was a grid of preview cards, one grid per edge. That was
-    // legible at two actions and a wall at seven, so each edge became a row
-    // that opens its own list. The thing being asserted is unchanged: two
-    // independent choices, and setting one leaves the other alone.
+  testWidgets('each swipe edge is picked with one tap on its own row', (
+    tester,
+  ) async {
+    // The picker was a grid of preview cards, then a row per edge that opened
+    // a list in a sheet. Now every action is a chip under its edge, on the
+    // page itself. The thing being asserted is unchanged: two independent
+    // choices, and setting one leaves the other alone.
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -1082,26 +1084,25 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     await openSettingsCategory(tester, 'gestures');
-    await tester.tap(find.text('Swipe actions'));
-    await tester.pumpAndSettle();
 
     expect(find.byType(PopupMenuButton<SwipeAction>), findsNothing);
     expect(preferences.leadingAction, SwipeAction.addTag);
 
-    // One row per edge, each naming what it currently does.
-    await tester.tap(find.text('Swipe from the leading edge'));
-    await tester.pumpAndSettle();
+    // The whole set is offered under each edge, including the ones that
+    // arrived after the gesture stopped being a pair.
+    for (final edge in ['leading', 'trailing']) {
+      for (final action in SwipeAction.values) {
+        expect(
+          find.byKey(ValueKey('swipe-$edge-${action.name}')),
+          findsOneWidget,
+        );
+      }
+    }
 
-    // The whole set is offered, including the ones that arrived after the
-    // gesture stopped being a pair.
-    expect(find.text('Pin'), findsOneWidget);
-    expect(find.text('Remind'), findsOneWidget);
-
-    await tester.tap(find.text('Nothing').last);
+    await tester.tap(find.byKey(const ValueKey('swipe-leading-none')));
     await tester.pumpAndSettle();
     expect(preferences.leadingAction, SwipeAction.none);
-    // The other edge is untouched — one edge's list does not leak into the
-    // other's selection.
+    // The other edge is untouched.
     expect(preferences.trailingAction, SwipeAction.delete);
   });
 
@@ -1129,10 +1130,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     await openSettingsCategory(tester, 'gestures');
-    await tester.tap(find.text('کشیدن انگشت'));
-    await tester.pumpAndSettle();
 
-    // Sanity: the sheet really is right-to-left, or the rest proves nothing.
+    // Sanity: the page really is right-to-left, or the rest proves nothing.
     expect(
       Directionality.of(tester.element(find.text('کشیدن از لبهٔ آغاز'))),
       TextDirection.rtl,
@@ -1288,28 +1287,6 @@ void main() {
     await right.up();
     await tester.pumpAndSettle();
     expect(zoom.value.getMaxScaleOnAxis(), greaterThan(1.2));
-  });
-
-  testWidgets('dragging down over the settings content closes the sheet', (
-    tester,
-  ) async {
-    // Reported symptom: swiping down closed Settings only when the drag
-    // started on the empty header row above the scroll view — starting it
-    // over the settings themselves, already scrolled to the top, did
-    // nothing, since a plain SingleChildScrollView wins that vertical drag
-    // outright whether or not it has anywhere left to scroll.
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
-    // The first category, at the top of the scroll view.
-    expect(find.text('Appearance'), findsOneWidget);
-
-    await tester.drag(find.text('Appearance'), const Offset(0, 400));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Appearance'), findsNothing);
   });
 
   testWidgets('the language picker shows every language in its own script', (

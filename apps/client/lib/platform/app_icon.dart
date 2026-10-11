@@ -7,9 +7,11 @@ import 'package:flutter/services.dart';
 /// Android only: the icon is switched by enabling one of six manifest aliases
 /// (see `NexAppIcon.kt`). Everywhere else the choice is simply not offered.
 abstract final class NexAppIcons {
-  /// In display order. `default` is the app's own icon; the others are built
-  /// from `apps/client/app_icons/` by `tools/generate_app_icons.py`.
-  static const ids = ['default', 'alt1', 'alt2', 'alt3', 'alt4', 'alt5'];
+  /// In display order: the three dark icons, then their three light
+  /// counterparts under them, each in the same column. `default` is the
+  /// app's own icon; the others are built from `apps/client/app_icons/` by
+  /// `tools/generate_app_icons.py`.
+  static const ids = ['default', 'alt3', 'alt5', 'alt4', 'alt1', 'alt2'];
 
   static const _channel = MethodChannel('nex/os_capture');
 

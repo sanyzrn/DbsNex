@@ -88,7 +88,7 @@ All four combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode
 | **Voice Recorder Bar** | Active recording state | Live waveform and elapsed time; the stop action is the single largest control on screen |
 | **Empty State** | Shown only when the Timeline has zero notes | A single, quiet prompt pointing at the `+` button — never a tutorial carousel |
 | **Swipe Action Reveal** | Quick Delete / Add Tag from the Timeline | See [Swipe Actions](#swipe-actions) below |
-| **Settings Sheet** | Holds every v1 preference, grouped — see [Settings](./02-product-specification.md#navigation) | Reached in one tap from the Timeline; a single scrolling sheet, not a nested settings app. Preferences are grouped into labelled cards (`bg-elevated`, `card-radius`, 1px `border`) with a header row per group, because a flat run of twenty-odd tiles is not scannable. Opens with a drag handle and clear of the status bar |
+| **Settings** | Holds every v1 preference, grouped — see [Settings](./02-product-specification.md#navigation) | Reached in one tap from the Timeline. A page of its own since 1.99.20, pushed like Tools and the Library (it began as a sheet, which a pull at its top could close while someone was finding their way between categories): a search field, the profile, then one row per category, each opening its own page of labelled cards (`bg-elevated`, `card-radius`) |
 
 ---
 

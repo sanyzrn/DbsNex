@@ -418,7 +418,11 @@ class _AppIconTile extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                child: AspectRatio(
+                // A little inside the tile: a preview the full width of a
+                // third of the screen read as a poster, not an icon.
+                child: Padding(
+                  padding: const EdgeInsets.all(NexSpacing.sm),
+                  child: AspectRatio(
                   aspectRatio: 1,
                   child: ClipOval(
                     child: Image.asset(
@@ -429,6 +433,7 @@ class _AppIconTile extends StatelessWidget {
                           ColoredBox(color: scheme.surfaceContainerHigh),
                     ),
                   ),
+                ),
                 ),
               ),
               const SizedBox(height: 6),

@@ -224,7 +224,7 @@ flowchart LR
     A -->|tap Search| C[Search]
     A -->|tap a card| D[Note Detail]
     A -->|swipe a card| E[Quick Action: Delete / Add Tag]
-    A -->|tap avatar| F[Settings sheet]
+    A -->|tap avatar| F[Settings page]
     D -->|edit tags| D
     D -->|back| A
     C -->|tap a result| D

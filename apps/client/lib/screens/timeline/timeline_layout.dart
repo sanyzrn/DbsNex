@@ -524,12 +524,14 @@ extension _TimelineLayout on TimelineScreenState {
               // just added would look broken to whoever just added it.
               onPressed: () async {
                 if (_claimedByOverlay()) return;
-                await nexShowSheet<void>(
-                  context: context,
-                  builder: (_) => SettingsSheet(
-                    services: widget.services,
-                    preferences: widget.preferences,
-                    updates: widget.updates,
+                await Navigator.push<void>(
+                  context,
+                  NexPageRoute<void>(
+                    builder: (_) => SettingsSheet(
+                      services: widget.services,
+                      preferences: widget.preferences,
+                      updates: widget.updates,
+                    ),
                   ),
                 );
                 await _model.loadCommitments();
