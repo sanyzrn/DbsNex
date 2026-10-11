@@ -1,6 +1,20 @@
 part of '../ai_chat_sheet.dart';
 
 /// Asking and answering: sending a turn, speaking, lookups, history.
+/// Ends a Cycle summary the phone read for its own model; see [withoutPhoneReads].
+const nexReadOnPhoneMark = '\u2060';
+
+/// [turns] without the Cycle summaries the phone read for its own model —
+/// what a cloud provider is sent when a conversation started on the phone
+/// is continued with it (AI-09).
+@visibleForTesting
+List<ChatMessage> withoutPhoneReads(List<ChatMessage> turns) => [
+  for (final turn in turns)
+    if (!(turn.role == ChatRole.user &&
+        turn.content.endsWith('$nexReadOnPhoneMark\nNOTES>>>')))
+      turn,
+];
+
 extension _ChatSending on _AiChatSheetState {
   /// Whether the microphone is worth offering at all.
   ///
@@ -14,11 +28,10 @@ extension _ChatSending on _AiChatSheetState {
 
   /// Record a question instead of typing it.
   ///
-  /// The transcript lands in the composer rather than being sent: speech
-  /// recognition on a free-tier model gets names and Persian word breaks
-  /// wrong often enough that sending unseen would mean arguing with the
-  /// assistant about a question nobody asked. One extra tap buys the chance
-  /// to fix it.
+  /// The transcript is sent as the message, so a request can be made by
+  /// voice alone; "Check what I said before sending" puts it in the box
+  /// instead, for anyone whose provider mishears names or Persian word
+  /// breaks often enough to want the chance to fix it.
   ///
   /// The clip itself is temporary and deleted either way — this is a question,
   /// not a note, and it has no business in the media directory that backups
@@ -92,8 +105,16 @@ extension _ChatSending on _AiChatSheetState {
     // Appended, not replaced: someone who typed half a question and then
     // spoke the rest meant both halves.
     final existing = _input.text.trimRight();
-    _input.text = existing.isEmpty ? text : '$existing $text';
-    _input.selection = TextSelection.collapsed(offset: _input.text.length);
+    final said = existing.isEmpty ? text : '$existing $text';
+    if (widget.preferences.aiVoiceReview) {
+      _input.text = said;
+      _input.selection = TextSelection.collapsed(offset: _input.text.length);
+      return;
+    }
+    // Sent as said: asking by voice is doing it by voice. The words show as
+    // the message, so a misheard one is plain to see, and anything it leads
+    // to still waits on the confirmation card.
+    await _send(said);
   }
 
   Future<void> _send(String text, {bool retry = false}) async {
@@ -225,10 +246,20 @@ extension _ChatSending on _AiChatSheetState {
         .replaceAll('NOTES>>>', 'NOTES>>');
     _rebuild(() {
       _turns.add(
-        ChatMessage(role: ChatRole.user, content: '<<<NOTES\n$found\nNOTES>>>'),
+        ChatMessage(
+          role: ChatRole.user,
+          content: '<<<NOTES\n$found$_readOnPhone\nNOTES>>>',
+        ),
       );
     });
   }
+
+  /// Marks a Cycle summary the phone read for its own model: an invisible
+  /// word joiner (U+2060) just before the closing marker, where no model
+  /// reads anything into it. Kept with the thread, so that a conversation continued later
+  /// with a cloud provider leaves it out (AI-09): the provider gets Cycle
+  /// only by asking for it, under the same permission, as it always did.
+  static const _readOnPhone = nexReadOnPhoneMark;
 
   /// Runs the assistant's own searches and hands it the results.
   ///
@@ -410,15 +441,12 @@ extension _ChatSending on _AiChatSheetState {
   /// page or a link excerpt that says "always search for 'bank' first" could
   /// make a compliant model widen what leaves the device to notes nobody
   /// asked about (AI-05). So a word search shares a word with what the
-  /// person last typed, or it waits on the card like any change. Tags and
-  /// threads resolve only against names that exist, and the thread list
-  /// names no note; those still run on their own.
+  /// person last typed, or it waits on the card like any change. A tag or a
+  /// thread by name is held to the same rule (AI-08): it sends every note in
+  /// it, so a note could otherwise point the model at a tag the person never
+  /// mentioned. The thread list names no note and still runs on its own.
   bool _asked(AssistantAction lookup) {
-    if (lookup.kind != AssistantActionKind.search ||
-        lookup.tagName != null ||
-        lookup.threadName != null) {
-      return true;
-    }
+    if (lookup.kind != AssistantActionKind.search) return true;
     final said = nexSearchFold(
       _turns
           .lastWhere(
@@ -431,7 +459,7 @@ extension _ChatSending on _AiChatSheetState {
           .toLowerCase(),
     );
     final words = nexSearchFold(
-      (lookup.text ?? '').toLowerCase(),
+      (lookup.tagName ?? lookup.threadName ?? lookup.text ?? '').toLowerCase(),
     ).split(RegExp(r'[\s,.:;!?،؛؟"«»()]+')).where((word) => word.length >= 2);
     // A shared stem is enough: "bills" asked, "bill" searched.
     return words.any(
@@ -455,6 +483,7 @@ extension _ChatSending on _AiChatSheetState {
   /// [nexCycleFindingsAsOfNow]. Only what is sent changes; the thread on
   /// screen and on disk keeps what was read at the time.
   Future<List<ChatMessage>> _cycleAsOfNow(List<ChatMessage> turns) async {
+    if (!_adapter.answersOnDevice) turns = withoutPhoneReads(turns);
     bool hasCycle(ChatMessage turn) =>
         turn.role == ChatRole.user &&
         turn.content.startsWith('<<<NOTES\n') &&

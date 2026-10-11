@@ -168,6 +168,34 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+  testWidgets('a private message can carry a file, shown by name and size', (
+    tester,
+  ) async {
+    await VaultStore().save(
+      VaultEntry(
+        id: 'with-file',
+        kind: VaultKind.message,
+        fields: {
+          'text': 'the contract',
+          'file': '00000000-0000-4000-8000-000000000000',
+          'fileKind': 'file',
+          'fileName': 'contract.pdf',
+          'fileSize': '2048',
+        },
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+    await tester.pumpWidget(app(kind: VaultKind.message));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unlock vault'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Attach'), findsOneWidget);
+    expect(find.text('contract.pdf'), findsOneWidget);
+    expect(find.text('2.0 KB'), findsOneWidget);
+    expect(find.text('the contract'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   test(
     'concurrent saves, draft recovery and delete retain other records',
     () async {

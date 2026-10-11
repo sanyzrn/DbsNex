@@ -20,6 +20,29 @@ String? checklistContextLine(Note note) {
   ].join('. ');
 }
 
+/// A note's reminder as words a model reads, or null when it has none still
+/// to come. Without it the assistant could not tell a note with a reminder
+/// from one without, and offered to set one that was already set.
+///
+/// Local time in the same `YYYY-MM-DDTHH:MM` shape the `remind` action takes,
+/// so changing it is a matter of copying it. A one-off reminder that has
+/// already gone off is nothing to wait on and is left out.
+@visibleForTesting
+String? reminderContextLabel(Note note, DateTime now) {
+  final due = note.dueAt;
+  if (due == null) return null;
+  final repeats = note.dueRepeat != NoteRepeat.once;
+  if (!repeats && !due.isAfter(now)) return null;
+  final local = due.toLocal();
+  String two(int value) => value.toString().padLeft(2, '0');
+  final at =
+      '${local.year}-${two(local.month)}-${two(local.day)}'
+      'T${two(local.hour)}:${two(local.minute)}';
+  return repeats
+      ? 'reminder set: $at, repeats ${note.dueRepeat.wireName}'
+      : 'reminder set: $at';
+}
+
 extension _ChatContext on _AiChatSheetState {
   /// Reads the recent notes the assistant is allowed to see.
   ///
@@ -139,7 +162,11 @@ extension _ChatContext on _AiChatSheetState {
     // Its tags, so "the ones tagged work" can be answered from what is
     // already in front of the model, and acted on without a search.
     final tags = [for (final tag in note.tags) '#${tag.name}'].join(' ');
-    return '[${note.id}] ${note.type.wireName}${tags.isEmpty ? '' : ' $tags'}: $clipped';
+    // Its reminder, so "remind me about it" is not offered for a note that
+    // already has one, and "when is it?" is answered rather than guessed.
+    final reminder = reminderContextLabel(note, DateTime.now());
+    return '[${note.id}] ${note.type.wireName}${tags.isEmpty ? '' : ' $tags'}'
+        '${reminder == null ? '' : ' ($reminder)'}: $clipped';
   }
 
   /// The text of the file attached to [note], for the kinds Nex can read.

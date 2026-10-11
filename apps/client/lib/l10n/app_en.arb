@@ -2956,5 +2956,15 @@
   "settingsLanguageAndCalendar": "Language and calendar",
   "settingsGesturesAndMenus": "Gestures and menus",
   "settingsSecurityAndPrivacy": "Security and privacy",
-  "settingsRemindersAndNotifications": "Reminders and notifications"
+  "settingsRemindersAndNotifications": "Reminders and notifications",
+  "vaultAttach": "Attach",
+  "vaultAttachVoice": "Voice message",
+  "vaultAttachPhoto": "Photo",
+  "vaultAttachFile": "File",
+  "vaultAttachTooLarge": "That is larger than 25 MB, too large to keep in private messages.",
+  "vaultAttachUnreadable": "This attachment could not be opened on this phone.",
+  "vaultAttachPlay": "Play",
+  "vaultAttachPause": "Pause",
+  "assistantVoiceReview": "Check what I said before sending",
+  "assistantVoiceReviewSubtitle": "A spoken request is put in the box to edit instead of being sent straight away."
 }

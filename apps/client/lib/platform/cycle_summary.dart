@@ -160,7 +160,8 @@ String nexCycleFindingsAsOfNow(String findings, String current) {
       line.startsWith('Threads:') ||
       line.startsWith('Notes with ') ||
       line.startsWith('Results for "') ||
-      line == 'NOTES>>>';
+      // With or without the mark a summary read on the phone carries after.
+      line.startsWith('NOTES>>>');
   final out = <String>[];
   var inCycle = false;
   for (final line in findings.split('\n')) {

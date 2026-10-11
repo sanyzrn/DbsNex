@@ -7267,6 +7267,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reminders and notifications'**
   String get settingsRemindersAndNotifications;
+
+  /// No description provided for @vaultAttach.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach'**
+  String get vaultAttach;
+
+  /// No description provided for @vaultAttachVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get vaultAttachVoice;
+
+  /// No description provided for @vaultAttachPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get vaultAttachPhoto;
+
+  /// No description provided for @vaultAttachFile.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get vaultAttachFile;
+
+  /// No description provided for @vaultAttachTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'That is larger than 25 MB, too large to keep in private messages.'**
+  String get vaultAttachTooLarge;
+
+  /// No description provided for @vaultAttachUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'This attachment could not be opened on this phone.'**
+  String get vaultAttachUnreadable;
+
+  /// No description provided for @vaultAttachPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get vaultAttachPlay;
+
+  /// No description provided for @vaultAttachPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get vaultAttachPause;
+
+  /// No description provided for @assistantVoiceReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Check what I said before sending'**
+  String get assistantVoiceReview;
+
+  /// No description provided for @assistantVoiceReviewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A spoken request is put in the box to edit instead of being sent straight away.'**
+  String get assistantVoiceReviewSubtitle;
 }
 
 class _AppLocalizationsDelegate

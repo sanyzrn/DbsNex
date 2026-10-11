@@ -1,4 +1,16 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:file_selector/file_selector.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:path/path.dart' as p;
+import 'package:record/record.dart';
+import 'package:uuid/uuid.dart';
+import '../platform/file_opener.dart';
+import '../platform/vault_files.dart';
+import '../widgets/recording_sheet.dart';
+import '../widgets/nex_dialog.dart';
 import '../widgets/feature_label.dart';
 import '../widgets/nex_text_field.dart';
 import '../platform/password_csv.dart';
@@ -19,6 +31,7 @@ import 'vault_editor.dart';
 import '../widgets/nex_banner.dart';
 part 'vault/vault_items.dart';
 part 'vault/vault_pages.dart';
+part 'vault/vault_attachments.dart';
 
 class VaultScreen extends StatefulWidget {
   const VaultScreen({
@@ -59,6 +72,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   String? error, copiedField;
   Timer? idle, draftTimer, copiedTimer;
   final messageInput = TextEditingController();
+  late final _vaultFiles = VaultFiles();
   int generation = 0;
 
   /// Whether the editor was open when the app went to the background, so a
@@ -172,6 +186,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   /// Ends the unlock for every private tool.
   void _lock() {
     session.close();
+    // Plain copies made to play or open an attachment go with the unlock.
+    unawaited(VaultFiles.clearOpenCopies());
     idle?.cancel();
     messageInput.clear();
     search.clear();

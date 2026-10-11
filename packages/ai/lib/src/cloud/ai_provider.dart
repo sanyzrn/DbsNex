@@ -1166,7 +1166,7 @@ class CloudAIAdapter implements AIAdapter {
   /// and then carried on in the language they were in.
   static const _briefLabelsRule =
       'The labels in those lines — DUE, overdue, in, ago, today, text, '
-      'checklist, left, done, every — are markers for you, not words to '
+      'checklist, left, done, every, reminder — are markers for you, not words to '
       'copy: never write them, and say what they mean in the language of '
       'your reply.';
 
@@ -1278,7 +1278,10 @@ class CloudAIAdapter implements AIAdapter {
       // guess at is one it will eventually guess wrong.
       'Each line you are given is one note, written as `when | kind | text`. '
       'A line starting DUE carries a reminder — "DUE in 6h", "DUE overdue '
-      '2d" — and those lines come first; the rest are newest first. On a '
+      '2d" — and those lines come first; the rest are newest first. A line '
+      'whose first column says "reminder in 9d" already has a reminder set '
+      'for later. Never suggest setting a reminder for a line that has '
+      'one. On a '
       'checklist, "3/5 left" means three of its five items are still '
       'unticked. A middle column reading "every month", "every 2h" and so on '
       'is a standing commitment rather than a note — a bill, a renewal, a '
@@ -1425,7 +1428,9 @@ class CloudAIAdapter implements AIAdapter {
       // handed over are the same lines.
       'Each line you are given is one note or one standing commitment, '
       'written as `when | kind | text`. A line starting DUE carries a '
-      'reminder — "DUE in 6h", "DUE overdue 2d". On a checklist, "3/5 left" '
+      'reminder — "DUE in 6h", "DUE overdue 2d" — and one whose first '
+      'column says "reminder in 9d" has one set for later; never suggest a '
+      'reminder for either. On a checklist, "3/5 left" '
       'means three of its five items are still unticked. '
       '$_briefTagsKey '
       '$_briefLabelsRule '

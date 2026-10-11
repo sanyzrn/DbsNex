@@ -249,6 +249,16 @@ mixin _AiPreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// Whether what was said to the assistant is put in the box to check
+  /// rather than sent. Off by default: speaking a request is how it is done
+  /// by voice, and any change it leads to still waits on a card.
+  bool get aiVoiceReview => _prefs.getBool('ai.voiceReview') ?? false;
+
+  Future<void> setAiVoiceReview(bool value) async {
+    await _prefs.setBool('ai.voiceReview', value);
+    notifyListeners();
+  }
+
   String get aiInstruction => _prefs.getString('ai.instruction') ?? '';
 
   Future<void> setAiInstruction(String value) async {

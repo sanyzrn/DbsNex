@@ -4431,4 +4431,36 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get settingsRemindersAndNotifications => 'یادآورها و اعلان‌ها';
+
+  @override
+  String get vaultAttach => 'پیوست';
+
+  @override
+  String get vaultAttachVoice => 'پیام صوتی';
+
+  @override
+  String get vaultAttachPhoto => 'عکس';
+
+  @override
+  String get vaultAttachFile => 'فایل';
+
+  @override
+  String get vaultAttachTooLarge =>
+      'حجم این مورد بیشتر از ۲۵ مگابایت است و برای پیام‌های خصوصی زیاد است.';
+
+  @override
+  String get vaultAttachUnreadable => 'این پیوست روی این گوشی باز نشد.';
+
+  @override
+  String get vaultAttachPlay => 'پخش';
+
+  @override
+  String get vaultAttachPause => 'توقف';
+
+  @override
+  String get assistantVoiceReview => 'بررسی گفته‌ها پیش از ارسال';
+
+  @override
+  String get assistantVoiceReviewSubtitle =>
+      'درخواستی که با صدا می‌گویید، به جای ارسال فوری، برای ویرایش در کادر نوشتن قرار می‌گیرد.';
 }

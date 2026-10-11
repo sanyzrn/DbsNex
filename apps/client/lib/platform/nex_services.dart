@@ -20,6 +20,7 @@ import 'backup_policy.dart';
 import 'install_source.dart';
 import 'full_backup.dart';
 import 'vault_store.dart';
+import 'vault_files.dart';
 import 'editor_drafts.dart';
 import 'capture_journal.dart';
 import 'voice_spool.dart';
@@ -252,6 +253,9 @@ class NexServices {
             .then(cleanExportCache)
             .catchError((Object _) {}),
       );
+      // Plain copies of private attachments left by a vault that never got
+      // to lock (the app was killed while one was open).
+      unawaited(VaultFiles.clearOpenCopies());
     }
     unawaited(services.refreshTimeline());
     unawaited(services._maybeBackupInBackground());

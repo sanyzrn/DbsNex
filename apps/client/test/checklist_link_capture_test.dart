@@ -112,6 +112,50 @@ void main() {
     expect(find.text('example.com'), findsOneWidget);
   });
 
+  testWidgets('closing the sheet keeps a complete link (UX-03)', (
+    tester,
+  ) async {
+    // "Close keeps" is what text and checklists teach; a link asked
+    // "Discard?" instead.
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Link'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).last, 'example.com/kept');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+
+    final notes = await services.timeline(limit: 5);
+    expect(notes.single.linkUrl, 'https://example.com/kept');
+  });
+
+  testWidgets('closing on something that is not a link still asks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Link'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).last, 'not a link');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discard'), findsOneWidget);
+    expect(await services.timeline(limit: 5), isEmpty);
+  });
+
   testWidgets('a link that is not a link cannot be captured', (tester) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),

@@ -234,6 +234,17 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet>
   bool get hasUnsavedChanges => _text.text.isNotEmpty;
   final TextEditingController _text = TextEditingController();
 
+  /// Closing keeps a link the way it keeps a typed note (UX-03): a swipe
+  /// down, back or × with a complete address saves it, as every other
+  /// capture here does. Only something that is not yet an address asks
+  /// whether to throw it away.
+  @override
+  Future<void> requestDiscard() async {
+    final url = normaliseUrl(_text.text.trim());
+    if (url == null) return super.requestDiscard();
+    Navigator.of(context).pop(url);
+  }
+
   @override
   void initState() {
     super.initState();

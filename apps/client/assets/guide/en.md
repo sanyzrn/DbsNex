@@ -6,7 +6,7 @@ Nex is the fastest way to put something down and find it again: a thought, a pho
 
 Tap **+** at the centre of the bottom bar and choose text, checklist, voice, photo, file or link. Quick text and new checklists have no Save button: they are kept when you close their sheet, and clearing the box before you close it removes what you started.
 
-To have a note arrive later — a letter to yourself, a thought for next month — **hold** the send button instead of tapping it and choose when: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is not in your notes, search or widgets; at its time it lands on the timeline with a notification. **Tools → Scheduled** shows what is on its way, where you can deliver one now, change its time or discard it. Links and the other editors have a **Save** or **Confirm** button. A checklist uses one item per line; a link needs a complete address.
+To have a note arrive later — a letter to yourself, a thought for next month — **hold** the send button instead of tapping it and choose when: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is not in your notes, search or widgets; at its time it lands on the timeline with a notification. **Tools → Scheduled** shows what is on its way, where you can deliver one now, change its time or discard it. A link is kept the same way when you close its sheet, as long as it is a complete address; anything that is not yet one asks before it is thrown away. The other editors have a **Save** or **Confirm** button. A checklist uses one item per line.
 
 Without opening Nex first: add the **Nex capture** tile to your Quick Settings (pull the shade down twice, then edit the tiles), or turn on **Settings → Capture → Capture from notifications** for a silent row with **Note**, **Voice** and **Photo** buttons.
 
@@ -86,6 +86,8 @@ Tap the smart summary to open or fold it and pull down to refresh it. Hold the g
 
 When an answer uses your notes, they appear under it as chips; tap one to open that note. With **Stay in my notes** off, an answer that comes from general knowledge instead says so.
 
+With Gemini or OpenAI as your provider, the **microphone** beside the message box lets you ask by voice: say what you want and it is sent as your message — "remind me tomorrow at nine to call the bank" — and anything it would change still waits for your confirmation. To check the words before they are sent, turn on **Check what I said before sending** in the assistant's settings.
+
 ![The assistant opening](assistant.webp)
 
 ## Tools and private vault
@@ -94,7 +96,7 @@ When an answer uses your notes, they appear under it as chips; tap one to open t
 
 Everything is shown on the list itself: each password with its login, password, website and notes, and each card as a card with every detail underneath. Tap any field, or its copy icon, to copy it. Use the **⋮** menu on an item to edit it, favourite it or delete it. Each bank card can have its own colour, chosen with the same picker as tags, and its CVV2 is shown on the card beside the expiry. In Passwords, **Import Chrome CSV** adds passwords exported from Chrome or Google Password Manager, skipping exact duplicates. A row that cannot be read — one with no password, for example — does not stop the rest: everything else is imported, and the rows left out are listed by line with the reason. Delete the exported file afterwards, as it is not encrypted. The **⋮** menu at the top of each page can delete every password, card or message on that page at once, after a confirmation.
 
-The vault uses the phone's secure storage and never enters notes, widgets, search or AI. Unfinished edits are kept as encrypted drafts. Copied values are marked sensitive, and the clipboard is cleared after 30 seconds, even if Nex was closed in the meantime. On Android 10 and later the system does not let an app in the background look at the clipboard, so if you have left Nex the copy is cleared the moment you come back to it. The vault is included in a backup only when you choose **Include private vault** in a complete backup.
+In **Private saved messages**, the **+** beside the box attaches a voice message, a photo or a file (up to 25 MB), with whatever you typed as its caption. Attachments are encrypted on this phone and are not part of any backup. The vault uses the phone's secure storage and never enters notes, widgets, search or AI. Unfinished edits are kept as encrypted drafts. Copied values are marked sensitive, and the clipboard is cleared after 30 seconds, even if Nex was closed in the meantime. On Android 10 and later the system does not let an app in the background look at the clipboard, so if you have left Nex the copy is cleared the moment you come back to it. The vault is included in a backup only when you choose **Include private vault** in a complete backup.
 
 ![Tools](tools.webp)
 
