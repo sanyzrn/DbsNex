@@ -108,6 +108,8 @@ In **Private saved messages**, the **+** beside the box attaches a voice message
 
 The large button says **Period started** or **Period ended**; **On another day?** sets either on a date in the past. The ring shows the day of your cycle, the period in rose and the likely fertile days in teal. Under it is when the next period is likely — as a range, because nobody's cycle is exact — and how sure that is. **Log today** notes flow, mood, energy, symptoms, pain relief, intimacy, the pill and a few words; tap any past day on the calendar to do the same for it. Past periods are listed with their lengths; tap one to correct or delete it.
 
+Touch the ring to look at any day of the cycle — its date, its day and its stage (period, follicular, fertile window or luteal) — and touch the middle to come back to today. **For today** has a short, gentle word for where you are in the cycle, a different one each day. Under **Log today**, a row of faces logs your mood in one tap. If a period has stayed open longer than yours usually last, Cycle asks whether it has ended, so a forgotten end does not leave the page saying "period, day 12".
+
 If something looks unusual — a period much later than expected, or one lasting more than eight days — a short note says so and suggests a doctor; it is never a diagnosis. The settings button at the top sets the reminders (two days before a period, each evening of a period, a daily pill), which only ever say "Nex reminder", and holds **Delete all cycle data**.
 
 **Modes**, in the same settings, fit Cycle to where you are:

@@ -2899,6 +2899,111 @@ class AppLocalizationsEn extends AppLocalizations {
       'Discard this note? It never reached your notes, so it cannot be restored.';
 
   @override
+  String get cycleStagePeriod => 'Period';
+
+  @override
+  String get cycleStageFollicular => 'Follicular phase';
+
+  @override
+  String get cycleStageFertile => 'Fertile window';
+
+  @override
+  String get cycleStageLuteal => 'Luteal phase';
+
+  @override
+  String cycleStageAbout(String stage, String day) {
+    return '$stage · day $day';
+  }
+
+  @override
+  String get cycleRingHint =>
+      'Touch the ring to look at any day; touch the middle to come back to today.';
+
+  @override
+  String get cycleRingBack => 'Back to today';
+
+  @override
+  String get cycleTipTitle => 'For today';
+
+  @override
+  String get cycleTipPeriod1 =>
+      'Warmth helps: a hot-water bottle on your lower belly or back can ease cramps.';
+
+  @override
+  String get cycleTipPeriod2 =>
+      'Drink a little more water than usual and go easy on salt — it helps with bloating.';
+
+  @override
+  String get cycleTipPeriod3 =>
+      'Iron-rich food — lentils, spinach, dates — makes up for what the period takes.';
+
+  @override
+  String get cycleTipPeriod4 =>
+      'Rest is not a luxury these days. A slower day is a fine day.';
+
+  @override
+  String get cycleTipFollicular1 =>
+      'Energy often climbs now — a good time to start something new.';
+
+  @override
+  String get cycleTipFollicular2 =>
+      'Many feel sharper and more social in these days. Plan the busy things now.';
+
+  @override
+  String get cycleTipFollicular3 =>
+      'A harder workout tends to feel easier in this phase.';
+
+  @override
+  String get cycleTipFollicular4 =>
+      'Fresh vegetables and protein help the body build up again after the period.';
+
+  @override
+  String get cycleTipFertile1 =>
+      'This is the most fertile part of the cycle, by the estimate.';
+
+  @override
+  String get cycleTipFertile2 =>
+      'Some notice clearer, stretchy discharge or a slight ache on one side — both are common now.';
+
+  @override
+  String get cycleTipFertile3 =>
+      'Confidence and energy often peak around ovulation. Enjoy it.';
+
+  @override
+  String get cycleTipFertile4 =>
+      'Trying to conceive? These are the days that count most.';
+
+  @override
+  String get cycleTipLuteal1 =>
+      'Cravings are common now. Complex carbs and a little dark chocolate are fine friends.';
+
+  @override
+  String get cycleTipLuteal2 =>
+      'Feeling more sensitive is normal in these days. Be kind to yourself.';
+
+  @override
+  String get cycleTipLuteal3 =>
+      'Magnesium-rich food — nuts, seeds, bananas — may ease tension before the period.';
+
+  @override
+  String get cycleTipLuteal4 =>
+      'Lighter exercise — a walk, stretching, yoga — often feels best now.';
+
+  @override
+  String cycleEndCheck(String days) {
+    return 'Has your period ended? It started $days days ago.';
+  }
+
+  @override
+  String get cycleEndCheckYes => 'Yes, it ended';
+
+  @override
+  String get cycleEndCheckNo => 'Still going';
+
+  @override
+  String get cycleQuickMood => 'How do you feel today?';
+
+  @override
   String get cycleTitle => 'Cycle';
 
   @override

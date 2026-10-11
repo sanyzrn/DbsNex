@@ -4622,6 +4622,174 @@ abstract class AppLocalizations {
   /// **'Discard this note? It never reached your notes, so it cannot be restored.'**
   String get scheduledDiscardConfirm;
 
+  /// No description provided for @cycleStagePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get cycleStagePeriod;
+
+  /// No description provided for @cycleStageFollicular.
+  ///
+  /// In en, this message translates to:
+  /// **'Follicular phase'**
+  String get cycleStageFollicular;
+
+  /// No description provided for @cycleStageFertile.
+  ///
+  /// In en, this message translates to:
+  /// **'Fertile window'**
+  String get cycleStageFertile;
+
+  /// No description provided for @cycleStageLuteal.
+  ///
+  /// In en, this message translates to:
+  /// **'Luteal phase'**
+  String get cycleStageLuteal;
+
+  /// No description provided for @cycleStageAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'{stage} · day {day}'**
+  String cycleStageAbout(String stage, String day);
+
+  /// No description provided for @cycleRingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch the ring to look at any day; touch the middle to come back to today.'**
+  String get cycleRingHint;
+
+  /// No description provided for @cycleRingBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to today'**
+  String get cycleRingBack;
+
+  /// No description provided for @cycleTipTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'For today'**
+  String get cycleTipTitle;
+
+  /// No description provided for @cycleTipPeriod1.
+  ///
+  /// In en, this message translates to:
+  /// **'Warmth helps: a hot-water bottle on your lower belly or back can ease cramps.'**
+  String get cycleTipPeriod1;
+
+  /// No description provided for @cycleTipPeriod2.
+  ///
+  /// In en, this message translates to:
+  /// **'Drink a little more water than usual and go easy on salt — it helps with bloating.'**
+  String get cycleTipPeriod2;
+
+  /// No description provided for @cycleTipPeriod3.
+  ///
+  /// In en, this message translates to:
+  /// **'Iron-rich food — lentils, spinach, dates — makes up for what the period takes.'**
+  String get cycleTipPeriod3;
+
+  /// No description provided for @cycleTipPeriod4.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest is not a luxury these days. A slower day is a fine day.'**
+  String get cycleTipPeriod4;
+
+  /// No description provided for @cycleTipFollicular1.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy often climbs now — a good time to start something new.'**
+  String get cycleTipFollicular1;
+
+  /// No description provided for @cycleTipFollicular2.
+  ///
+  /// In en, this message translates to:
+  /// **'Many feel sharper and more social in these days. Plan the busy things now.'**
+  String get cycleTipFollicular2;
+
+  /// No description provided for @cycleTipFollicular3.
+  ///
+  /// In en, this message translates to:
+  /// **'A harder workout tends to feel easier in this phase.'**
+  String get cycleTipFollicular3;
+
+  /// No description provided for @cycleTipFollicular4.
+  ///
+  /// In en, this message translates to:
+  /// **'Fresh vegetables and protein help the body build up again after the period.'**
+  String get cycleTipFollicular4;
+
+  /// No description provided for @cycleTipFertile1.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the most fertile part of the cycle, by the estimate.'**
+  String get cycleTipFertile1;
+
+  /// No description provided for @cycleTipFertile2.
+  ///
+  /// In en, this message translates to:
+  /// **'Some notice clearer, stretchy discharge or a slight ache on one side — both are common now.'**
+  String get cycleTipFertile2;
+
+  /// No description provided for @cycleTipFertile3.
+  ///
+  /// In en, this message translates to:
+  /// **'Confidence and energy often peak around ovulation. Enjoy it.'**
+  String get cycleTipFertile3;
+
+  /// No description provided for @cycleTipFertile4.
+  ///
+  /// In en, this message translates to:
+  /// **'Trying to conceive? These are the days that count most.'**
+  String get cycleTipFertile4;
+
+  /// No description provided for @cycleTipLuteal1.
+  ///
+  /// In en, this message translates to:
+  /// **'Cravings are common now. Complex carbs and a little dark chocolate are fine friends.'**
+  String get cycleTipLuteal1;
+
+  /// No description provided for @cycleTipLuteal2.
+  ///
+  /// In en, this message translates to:
+  /// **'Feeling more sensitive is normal in these days. Be kind to yourself.'**
+  String get cycleTipLuteal2;
+
+  /// No description provided for @cycleTipLuteal3.
+  ///
+  /// In en, this message translates to:
+  /// **'Magnesium-rich food — nuts, seeds, bananas — may ease tension before the period.'**
+  String get cycleTipLuteal3;
+
+  /// No description provided for @cycleTipLuteal4.
+  ///
+  /// In en, this message translates to:
+  /// **'Lighter exercise — a walk, stretching, yoga — often feels best now.'**
+  String get cycleTipLuteal4;
+
+  /// No description provided for @cycleEndCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Has your period ended? It started {days} days ago.'**
+  String cycleEndCheck(String days);
+
+  /// No description provided for @cycleEndCheckYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, it ended'**
+  String get cycleEndCheckYes;
+
+  /// No description provided for @cycleEndCheckNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Still going'**
+  String get cycleEndCheckNo;
+
+  /// No description provided for @cycleQuickMood.
+  ///
+  /// In en, this message translates to:
+  /// **'How do you feel today?'**
+  String get cycleQuickMood;
+
   /// No description provided for @cycleTitle.
   ///
   /// In en, this message translates to:

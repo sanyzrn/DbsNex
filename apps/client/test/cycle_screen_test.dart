@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/reminders.dart';
+import 'package:nex_client/screens/cycle/cycle_calendar.dart';
 import 'package:nex_client/screens/cycle/cycle_report_screen.dart';
 import 'package:nex_client/screens/cycle/cycle_ring.dart';
 import 'package:nex_client/screens/cycle_screen.dart';
@@ -119,6 +120,7 @@ void main() {
     await reopen(tester);
 
     final days = find.bySemanticsLabel(RegExp(r', today, Period$'));
+    await scrollTo(tester, find.byType(CycleCalendar));
     await scrollTo(tester, days.first);
     final node = tester.getSemantics(days.first);
     expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
@@ -130,6 +132,7 @@ void main() {
       tester,
       preferences: {'cycle.set_up': true},
     );
+    await scrollTo(tester, find.byKey(const ValueKey('cycle-log-today')));
     await tester.tap(find.byKey(const ValueKey('cycle-log-today')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Heavy'));
@@ -249,6 +252,7 @@ void main() {
       );
       await history(harness, daysAgo: 6);
       await reopen(tester);
+      await scrollTo(tester, find.byKey(const ValueKey('cycle-log-today')));
       await tester.tap(find.byKey(const ValueKey('cycle-log-today')));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Fertility signs'));
@@ -270,6 +274,17 @@ void main() {
       expect(log.temperature, 36.65);
       expect(log.ovulationTest, CycleOvulationTest.positive);
       expect(log.mucus, CycleMucus.eggWhite);
+      // Back up to the top of the page, where the test is reported.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('cycle-positive-test')),
+        -300,
+        scrollable: find
+            .descendant(
+              of: find.byType(CycleScreen),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       expect(find.byKey(const ValueKey('cycle-positive-test')), findsOneWidget);
     });
 
@@ -277,6 +292,7 @@ void main() {
       tester,
     ) async {
       await openCycle(tester, preferences: {'cycle.set_up': true});
+      await scrollTo(tester, find.byKey(const ValueKey('cycle-log-today')));
       await tester.tap(find.byKey(const ValueKey('cycle-log-today')));
       await tester.pumpAndSettle();
       expect(find.text('Fertility signs'), findsNothing);
@@ -375,5 +391,88 @@ void main() {
     expect(find.text('Recent periods'), findsOneWidget);
     expect(find.byKey(const ValueKey('cycle-report-save')), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  // Reported in review: a period could be started but never ended in the
+  // modes that predict nothing.
+  testWidgets('a period can be ended in breastfeeding mode too', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true, 'cycle.mode': 'breastfeeding'},
+    );
+    await harness.services.cycleStartPeriod(
+      today().subtract(const Duration(days: 1)),
+    );
+    await reopen(tester);
+    expect(find.text('Period ended'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('cycle-primary')));
+    await tester.pumpAndSettle();
+    expect((await harness.services.cyclePeriods()).single.isOpen, isFalse);
+  });
+
+  testWidgets('a period left open longer than usual is asked about', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    await harness.services.cycleStartPeriod(
+      today().subtract(const Duration(days: 7)),
+    );
+    await reopen(tester);
+    expect(find.byKey(const ValueKey('cycle-end-check')), findsOneWidget);
+    await tester.tap(find.text('Still going'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('cycle-end-check')), findsNothing);
+  });
+
+  testWidgets('the day has a tip, and the mood is one tap', (tester) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    final start = today().subtract(const Duration(days: 10));
+    final p = await harness.services.cycleStartPeriod(start);
+    await harness.services.cycleEndPeriod(
+      p.id,
+      start.add(const Duration(days: 4)),
+    );
+    await reopen(tester);
+    await scrollTo(tester, find.byKey(const ValueKey('cycle-tip')));
+    expect(find.textContaining('For today'), findsOneWidget);
+    await scrollTo(tester, find.byKey(const ValueKey('cycle-quick-mood-good')));
+    await tester.tap(find.byKey(const ValueKey('cycle-quick-mood-good')));
+    await tester.pumpAndSettle();
+    final log = (await harness.services.cycleDays(today(), today())).single;
+    expect(log.mood, CycleMood.good);
+  });
+
+  testWidgets('touching the ring shows that day, the middle comes back', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    final start = today().subtract(const Duration(days: 10));
+    final p = await harness.services.cycleStartPeriod(start);
+    await harness.services.cycleEndPeriod(
+      p.id,
+      start.add(const Duration(days: 4)),
+    );
+    await reopen(tester);
+    final ring = find.byType(CycleRing);
+    final box = tester.getRect(ring);
+    // The top of the ring: the first day of the cycle.
+    await tester.tapAt(Offset(box.center.dx + 2, box.top + box.height * 0.08));
+    await tester.pumpAndSettle();
+    expect(find.text('Back to today'), findsOneWidget);
+    expect(find.textContaining('Period · day 1'), findsOneWidget);
+    await tester.tapAt(box.center);
+    await tester.pumpAndSettle();
+    expect(find.text('Back to today'), findsNothing);
   });
 }

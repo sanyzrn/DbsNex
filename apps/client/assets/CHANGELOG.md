@@ -43,6 +43,10 @@ Working convention:
 - **Everything about a bank card, on the card.** The number, name, CVV2 and expiry on its face, and the IBAN, account number, bank and notes beneath it on the same card — each copied with a tap, nothing listed twice.
 - **Nex's own camera in more places.** A receipt for a Recurring item and a photo in Private saved messages are now taken with the same camera panel as a photo note — and in private messages the photo goes straight into the vault, never into your notes.
 - **No sponsor card in your first days.** A new install sees none until it is ten days old or holds five notes, whichever comes first.
+- **Cycle: a ring you can touch.** Touch the ring to see any day of the cycle — its date, its day and its stage — and the middle to come back to today. Today's stage (period, follicular, fertile window or luteal) is named under the ring.
+- **Cycle: a word for today and one-tap mood.** A short, gentle tip for where you are in the cycle, different each day, and a row of faces to log your mood without opening the day.
+- **Cycle asks when a period seems forgotten.** A period left open longer than yours usually last brings a gentle "Has it ended?" instead of the page going on with "period, day 12".
+- **Cycle fixes.** A period can now be ended in Breastfeeding and Menopause modes, where only "Period started" appeared; a late period no longer leaves predicted days in the past on the calendar; and a month you forgot to log is no longer flagged as a long cycle.
 
 ## v1.99.9
 

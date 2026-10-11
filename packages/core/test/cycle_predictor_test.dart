@@ -147,4 +147,49 @@ void main() {
     )!;
     expect(p.lastStart, d(2026, 10, 1));
   });
+
+  test('a late period is still to come on the calendar', () {
+    final p = CyclePredictor.predict(
+      periods: history(d(2026, 6, 1), [28, 28, 28]),
+      today: d(2026, 10, 1),
+    )!;
+    // Due 2026-09-21, ten days ago.
+    expect(p.daysUntilNext, -10);
+    // Counted on from today, not marking days already gone.
+    expect(p.upcoming.first.period.start, d(2026, 10, 1));
+  });
+
+  test('a missed log is not a long cycle to worry about', () {
+    // 28, 28, 28, then 56: one period was never logged.
+    final p = CyclePredictor.predict(
+      periods: history(d(2026, 3, 1), [28, 28, 28, 56]),
+      today: d(2026, 7, 28),
+    )!;
+    expect(p.alerts, isNot(contains(CycleAlert.longCycle)));
+  });
+
+  test('each day has its stage', () {
+    final p = CyclePredictor.predict(
+      periods: history(d(2026, 6, 1), [28, 28, 28]),
+      today: d(2026, 8, 26),
+    )!;
+    // Cycle began 2026-08-24, 28 days, ovulation about day 15.
+    expect(p.lastStart, d(2026, 8, 24));
+    expect(p.stage, CycleStage.period);
+    expect(p.stageOn(d(2026, 8, 31)), CycleStage.follicular);
+    expect(p.stageOn(p.ovulation), CycleStage.fertile);
+    expect(p.stageOn(p.nextStart.addDays(-2)), CycleStage.luteal);
+  });
+
+  test('today ended early is no longer the period stage', () {
+    final p = CyclePredictor.predict(
+      periods: [
+        ...history(d(2026, 6, 1), [28, 28]),
+        period(d(2026, 7, 27), 2),
+      ],
+      today: d(2026, 7, 29),
+    )!;
+    expect(p.inPeriod, isFalse);
+    expect(p.stage, CycleStage.follicular);
+  });
 }

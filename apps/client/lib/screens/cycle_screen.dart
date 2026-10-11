@@ -17,6 +17,9 @@ import 'cycle/cycle_report_screen.dart';
 import 'cycle/cycle_ring.dart';
 import 'cycle/cycle_settings_sheet.dart';
 import 'cycle/cycle_space.dart';
+import 'cycle/cycle_today.dart';
+
+part 'cycle/cycle_welcome.dart';
 
 /// «Cycle» — the menstrual cycle assistant.
 ///
@@ -53,6 +56,10 @@ class _CycleScreenState extends State<CycleScreen> {
   /// The latest positive ovulation test in the current cycle, if any.
   CycleDate? _positiveTest;
   late (DateTime, DateTime) _month;
+
+  /// The day "Still going" was answered for a period left open, so the
+  /// question is not asked again until tomorrow.
+  DateTime? _stillGoingOn;
 
   NexServices get _services => widget.services;
   DateTime get _today => DateUtils.dateOnly(widget.today ?? DateTime.now());
@@ -146,6 +153,24 @@ class _CycleScreenState extends State<CycleScreen> {
       fertility: widget.preferences.cycleMode == CycleMode.conceive,
     );
     if (saved) await _changed();
+  }
+
+  /// Today's mood from the quick row, kept with whatever else today holds.
+  Future<void> _quickMood(CycleMood? mood) async {
+    final log = _todayLog ?? CycleDayLog(day: CycleDate.of(_today));
+    await _services.cycleSaveDay(log.copyWith(mood: () => mood));
+    await _changed();
+  }
+
+  /// "Yes, it ended": on the day it would usually have ended, unless a
+  /// different one is picked.
+  Future<void> _confirmEnded(CyclePeriod open, int usual) async {
+    final guess = open.start.addDays(usual - 1).local;
+    final picked = await _pickPastDay(
+      initial: guess.isAfter(_today) ? _today : guess,
+      first: open.start.local,
+    );
+    if (picked != null) await _endOn(picked);
   }
 
   Future<void> _switchMode(CycleMode mode) async {
@@ -319,6 +344,17 @@ class _CycleScreenState extends State<CycleScreen> {
           )
         : null;
     final open = _open;
+    // From the log itself, not from the prediction: the modes that predict
+    // nothing (breastfeeding, menopause) still log periods, and could start
+    // one but never end it.
+    final bleeding = open != null && (_prediction?.inPeriod ?? false);
+    final usualPeriod =
+        _prediction?.averagePeriod ?? widget.preferences.cycleTypicalPeriod;
+    final openFor = open == null
+        ? 0
+        : CycleDate.of(_today).daysSince(open.start) + 1;
+    final askEnded =
+        bleeding && openFor > usualPeriod + 1 && _stillGoingOn != _today;
     String digits(Object v) => cycleDigits(context, v);
     String day(CycleDate d) => cycleDayMonth(context, d.local, solar: _solar);
 
@@ -475,6 +511,7 @@ class _CycleScreenState extends State<CycleScreen> {
                   prediction: p,
                   headline: headline,
                   caption: caption,
+                  solar: _solar,
                 ),
               ),
             )
@@ -538,32 +575,25 @@ class _CycleScreenState extends State<CycleScreen> {
             const SizedBox(height: NexSpacing.md),
             CycleBloomButton(
               key: const ValueKey('cycle-primary'),
-              onPressed: () => unawaited(
-                open != null && (p?.inPeriod ?? false)
-                    ? _endOn(_today)
-                    : _startOn(_today),
-              ),
+              onPressed: () =>
+                  unawaited(bleeding ? _endOn(_today) : _startOn(_today)),
               icon: Icon(
-                open != null && (p?.inPeriod ?? false)
+                bleeding
                     ? Icons.check_circle_outline
                     : Icons.water_drop_outlined,
               ),
               label: Text(
-                open != null && (p?.inPeriod ?? false)
-                    ? l10n.cyclePeriodEnded
-                    : l10n.cyclePeriodStarted,
+                bleeding ? l10n.cyclePeriodEnded : l10n.cyclePeriodStarted,
               ),
             ),
             Center(
               child: TextButton(
                 onPressed: () async {
                   final picked = await _pickPastDay(
-                    first: open != null && (p?.inPeriod ?? false)
-                        ? open.start.local
-                        : null,
+                    first: bleeding ? open.start.local : null,
                   );
                   if (picked == null) return;
-                  if (open != null && (p?.inPeriod ?? false)) {
+                  if (bleeding) {
                     await _endOn(picked);
                   } else {
                     await _startOn(picked);
@@ -573,6 +603,13 @@ class _CycleScreenState extends State<CycleScreen> {
               ),
             ),
           ],
+          if (askEnded)
+            CycleEndCheck(
+              days: openFor,
+              onEnded: () => unawaited(_confirmEnded(open, usualPeriod)),
+              onStill: () => setState(() => _stillGoingOn = _today),
+            ),
+          if (p != null) CycleTipCard(stage: p.stage, today: p.today),
           for (final alert in p?.alerts ?? const <CycleAlert>{})
             CycleCard(
               margin: const EdgeInsets.only(bottom: NexSpacing.sm),
@@ -594,23 +631,41 @@ class _CycleScreenState extends State<CycleScreen> {
           const SizedBox(height: NexSpacing.sm),
           CycleCard(
             padding: EdgeInsets.zero,
-            child: ListTile(
-              key: const ValueKey('cycle-log-today'),
-              contentPadding: const EdgeInsetsDirectional.only(
-                start: NexSpacing.md,
-                end: NexSpacing.sm,
-                top: NexSpacing.xs,
-                bottom: NexSpacing.xs,
-              ),
-              leading: const _Bud(icon: Icons.edit_calendar_outlined),
-              title: Text(l10n.cycleLogToday),
-              subtitle: Text(
-                todaySummary.isEmpty ? l10n.cycleNothingLogged : todaySummary,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _openDay(_today),
+            child: Column(
+              children: [
+                ListTile(
+                  key: const ValueKey('cycle-log-today'),
+                  contentPadding: const EdgeInsetsDirectional.only(
+                    start: NexSpacing.md,
+                    end: NexSpacing.sm,
+                    top: NexSpacing.xs,
+                    bottom: NexSpacing.xs,
+                  ),
+                  leading: const _Bud(icon: Icons.edit_calendar_outlined),
+                  title: Text(l10n.cycleLogToday),
+                  subtitle: Text(
+                    todaySummary.isEmpty
+                        ? l10n.cycleNothingLogged
+                        : todaySummary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openDay(_today),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    NexSpacing.md,
+                    0,
+                    NexSpacing.md,
+                    NexSpacing.sm,
+                  ),
+                  child: CycleQuickMood(
+                    mood: _todayLog?.mood,
+                    onPick: (mood) => unawaited(_quickMood(mood)),
+                  ),
+                ),
+              ],
             ),
           ),
           CycleCard(
@@ -902,145 +957,6 @@ class _Footnote extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// The three opening questions, each with "I don't know".
-class _Welcome extends StatefulWidget {
-  const _Welcome({
-    required this.today,
-    required this.solar,
-    required this.onDone,
-  });
-
-  final DateTime today;
-  final bool solar;
-  final Future<void> Function(DateTime? lastStart, int? period, int? cycle)
-  onDone;
-
-  @override
-  State<_Welcome> createState() => _WelcomeState();
-}
-
-class _WelcomeState extends State<_Welcome> {
-  DateTime? _lastStart;
-  int _period = 5;
-  int _cycle = 28;
-  bool _periodKnown = true;
-  bool _cycleKnown = true;
-  bool _busy = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    Widget question(String text) => Padding(
-      padding: const EdgeInsets.only(top: NexSpacing.lg, bottom: NexSpacing.xs),
-      child: Text(text, style: theme.textTheme.titleSmall),
-    );
-    Widget dontKnow(bool selected, ValueChanged<bool> onChanged) => FilterChip(
-      label: Text(l10n.cycleDontKnow),
-      selected: selected,
-      onSelected: onChanged,
-    );
-    return ListView(
-      padding: const EdgeInsets.all(NexSpacing.lg),
-      children: [
-        const CycleRise(
-          child: Center(child: _Bud(icon: Icons.water_drop_outlined, size: 88)),
-        ),
-        const SizedBox(height: NexSpacing.md),
-        Text(
-          l10n.cycleWelcome,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        Text(
-          l10n.cycleWelcomeBody,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        question(l10n.cycleAskLastStart),
-        Wrap(
-          spacing: NexSpacing.sm,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            OutlinedButton.icon(
-              key: const ValueKey('cycle-welcome-date'),
-              icon: const Icon(Icons.event_outlined),
-              label: Text(
-                _lastStart == null
-                    ? l10n.cyclePickDate
-                    : cycleDayMonth(context, _lastStart!, solar: widget.solar),
-              ),
-              onPressed: () async {
-                final picked = await nexPickDate(
-                  context,
-                  initial: _lastStart ?? widget.today,
-                  first: widget.today.subtract(const Duration(days: 120)),
-                  last: widget.today,
-                  solar: widget.solar,
-                );
-                if (picked != null) setState(() => _lastStart = picked);
-              },
-            ),
-            dontKnow(
-              _lastStart == null,
-              (_) => setState(() => _lastStart = null),
-            ),
-          ],
-        ),
-        question(l10n.cycleAskPeriodLength),
-        if (_periodKnown)
-          CycleStepper(
-            label: '',
-            value: _period,
-            min: 1,
-            max: 15,
-            onChanged: (v) => setState(() => _period = v),
-          ),
-        dontKnow(!_periodKnown, (on) => setState(() => _periodKnown = !on)),
-        question(l10n.cycleAskCycleLength),
-        if (_cycleKnown)
-          CycleStepper(
-            label: '',
-            value: _cycle,
-            min: 15,
-            max: 60,
-            onChanged: (v) => setState(() => _cycle = v),
-          ),
-        dontKnow(!_cycleKnown, (on) => setState(() => _cycleKnown = !on)),
-        const SizedBox(height: NexSpacing.xl),
-        CycleBloomButton(
-          key: const ValueKey('cycle-welcome-begin'),
-          onPressed: _busy
-              ? null
-              : () async {
-                  setState(() => _busy = true);
-                  await widget.onDone(
-                    _lastStart,
-                    _periodKnown ? _period : null,
-                    _cycleKnown ? _cycle : null,
-                  );
-                  if (mounted) setState(() => _busy = false);
-                },
-          label: Text(l10n.cycleBegin),
-        ),
-        const SizedBox(height: NexSpacing.md),
-        Text(
-          l10n.cycleDisclaimer,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
     );
   }
 }
