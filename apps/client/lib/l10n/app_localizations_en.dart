@@ -4656,7 +4656,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vaultAttachVoice => 'Voice message';
 
   @override
-  String get vaultAttachPhoto => 'Photo';
+  String get vaultAttachCamera => 'Take a photo';
+
+  @override
+  String get vaultAttachPhoto => 'Photo from the gallery';
 
   @override
   String get vaultAttachFile => 'File';

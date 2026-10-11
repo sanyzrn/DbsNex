@@ -6,9 +6,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
+import '../platform/export_cache.dart';
 import '../platform/nex_services.dart';
 import '../platform/vault_store.dart';
+import '../screens/camera_sheet.dart';
 import '../screens/note_detail_sheet.dart';
 import '../screens/vault_screen.dart';
 import 'feature_label.dart';
@@ -96,11 +99,21 @@ class _RecurringAttachmentsState extends State<RecurringAttachments> {
         ),
       ),
     );
-    if (source == null) return;
+    if (source == null || !mounted) return;
     try {
-      final picked = await ImagePicker().pickImage(source: source);
+      // Nex's own camera, as on the timeline.
+      final taking = source == ImageSource.camera
+          ? nexTakePhoto(context)
+          : ImagePicker().pickImage(source: source);
+      final picked = await taking;
       if (picked == null) return;
       final bytes = await picked.readAsBytes();
+      // The camera's or the picker's own copy, now that it is read.
+      unawaited(
+        getTemporaryDirectory().then(
+          (cache) => discardPickedCopy(picked.path, cache),
+        ),
+      );
       final extension = p.extension(picked.path).isEmpty
           ? '.jpg'
           : p.extension(picked.path);

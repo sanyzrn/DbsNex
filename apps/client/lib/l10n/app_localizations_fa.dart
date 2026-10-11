@@ -4529,7 +4529,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get vaultAttachVoice => 'پیام صوتی';
 
   @override
-  String get vaultAttachPhoto => 'عکس';
+  String get vaultAttachCamera => 'گرفتن عکس با دوربین';
+
+  @override
+  String get vaultAttachPhoto => 'عکس از گالری';
 
   @override
   String get vaultAttachFile => 'فایل';

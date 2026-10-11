@@ -11,6 +11,7 @@ import '../platform/file_opener.dart';
 import '../platform/vault_files.dart';
 import '../platform/sharing.dart';
 import '../widgets/photo_viewer.dart';
+import 'camera_sheet.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/feature_label.dart';

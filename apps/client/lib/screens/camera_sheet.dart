@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart' show ImagePicker, ImageSource;
 
 import '../l10n/app_localizations.dart';
 
@@ -58,6 +60,24 @@ Future<XFile?> showNexCamera(
 }
 
 const _useSystemCamera = #useSystemCamera;
+
+/// A photo from the camera, the way Nex takes one everywhere: its own panel
+/// on a phone, the system camera when the panel cannot open one (or on a
+/// desktop). Null when nothing was taken.
+///
+/// The one door for a photo from the camera — the timeline, a Recurring
+/// item's receipt and a private message all come through here, so all three
+/// look and behave the same.
+Future<XFile?> nexTakePhoto(BuildContext context) async {
+  if (Platform.isAndroid || Platform.isIOS) {
+    try {
+      return await showNexCamera(context);
+    } on NexCameraUnavailable {
+      if (!context.mounted) return null;
+    }
+  }
+  return ImagePicker().pickImage(source: ImageSource.camera);
+}
 
 const _openTimeout = Duration(seconds: 8);
 

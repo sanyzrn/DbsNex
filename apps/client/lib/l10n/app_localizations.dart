@@ -7424,10 +7424,16 @@ abstract class AppLocalizations {
   /// **'Voice message'**
   String get vaultAttachVoice;
 
+  /// No description provided for @vaultAttachCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get vaultAttachCamera;
+
   /// No description provided for @vaultAttachPhoto.
   ///
   /// In en, this message translates to:
-  /// **'Photo'**
+  /// **'Photo from the gallery'**
   String get vaultAttachPhoto;
 
   /// No description provided for @vaultAttachFile.

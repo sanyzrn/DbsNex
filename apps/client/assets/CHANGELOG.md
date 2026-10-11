@@ -41,6 +41,7 @@ Working convention:
 - **Automatic backups no longer wait for a restart.** They ran only when Nex was started from scratch, and Android often keeps it running in the background for days — so a day could pass with no backup. They now also run whenever you come back to Nex. The daily folder copy no longer adds a second restore point on the phone, which pushed older ones out.
 - **Private saved messages, redesigned.** Messages have room between them, are grouped by day and show their time, and the box and its buttons no longer touch. A photo opens full screen with zoom, as on the home screen; a file opens with a tap or goes to another app with its share icon; a voice message shows how far it has played. Tap a message for copy, open, share or delete.
 - **Everything about a bank card, on the card.** The number, name, CVV2 and expiry on its face, and the IBAN, account number, bank and notes beneath it on the same card — each copied with a tap, nothing listed twice.
+- **Nex's own camera in more places.** A receipt for a Recurring item and a photo in Private saved messages are now taken with the same camera panel as a photo note — and in private messages the photo goes straight into the vault, never into your notes.
 
 ## v1.99.9
 

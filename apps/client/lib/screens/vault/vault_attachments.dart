@@ -30,6 +30,11 @@ extension _VaultAttachments on _VaultScreenState {
             onTap: () => Navigator.pop(sheet, 'voice'),
           ),
           ListTile(
+            leading: const Icon(Icons.photo_camera_outlined),
+            title: Text(l.vaultAttachCamera),
+            onTap: () => Navigator.pop(sheet, 'camera'),
+          ),
+          ListTile(
             leading: const Icon(Icons.photo_outlined),
             title: Text(l.vaultAttachPhoto),
             onTap: () => Navigator.pop(sheet, 'photo'),
@@ -49,6 +54,7 @@ extension _VaultAttachments on _VaultScreenState {
     try {
       picked = switch (kind) {
         'voice' => await _recordVoice(),
+        'camera' => await _takePhoto(),
         'photo' => await _pickPhoto(),
         _ => await _pickFile(),
       };
@@ -134,6 +140,24 @@ extension _VaultAttachments on _VaultScreenState {
       }
     } finally {
       await recorder.dispose();
+    }
+  }
+
+  /// A photo straight from Nex's own camera — the same panel the timeline
+  /// uses — sealed into the vault without ever becoming a note.
+  Future<_Picked?> _takePhoto() async {
+    final shot = await nexTakePhoto(context);
+    if (shot == null) return null;
+    try {
+      return (
+        bytes: await shot.readAsBytes(),
+        kind: 'photo',
+        name: 'photo.jpg',
+        mime: 'image/jpeg',
+        durationMs: null,
+      );
+    } finally {
+      await discardPickedCopy(shot.path, await getTemporaryDirectory());
     }
   }
 
