@@ -145,12 +145,11 @@ With Cycle on, two more are in the launcher's list. **Cycle** shows the ring, wh
 
 ## Backups and restoring
 
-**Settings → Data & backup** offers three separate things:
+**Settings → Data & backup → Backup & restore** starts with whether you are backed up: when the last backup was, how the folder copy went, and **Back up now**, which makes a restore point on this phone and, if a folder is set, copies it there too.
 
-- **Export / Import** moves library content in and out. Importing adds to the current library, including exports from Google Keep and Takeout.
-- **Library backup / Restore** keeps or replaces the whole library with its attachments. Automatic local copies stay on this phone; share a copy somewhere else to survive losing the phone.
-- **Complete backup** adds settings and service keys, the private vault if you choose it, and optionally the downloaded offline model (about 2.6 GB). Settings, keys and vault are encrypted with a generated recovery code — keep it separately, because it cannot be recovered from the backup. Tap the code, or its copy icon, to copy it.
-- **Automatic copy to a folder** puts a complete backup — without the private vault — into a folder you choose once a day while Nex is open, and keeps the newest three. The folder can be on the phone or one Google Drive, Nextcloud or Syncthing offers in the picker, so your notes survive losing the phone without a server. The settings and keys in it are locked with a recovery code shown when you choose the folder (and again under **Recovery code**); the notes are not encrypted, so pick a folder you trust. If a copy cannot be written, the page says why — the folder was removed, access was withdrawn, or the provider refused the file — so you know whether to choose the folder again. Restore it like any complete backup.
+- **Automatic.** A restore point is made on this phone every 12 hours while you use Nex, and the last five are kept. **Automatic copy to a folder** adds, once a day, a complete backup — without the private vault — in a folder you choose: on the phone, or one that Google Drive, Nextcloud or Syncthing offers in the picker, so your notes survive losing the phone. Both run when Nex opens and whenever you come back to it. Tap the folder row to copy now, see its **Recovery code**, change the folder or stop. The settings and keys in a copy are locked with that code; the notes are not encrypted, so pick a folder you trust. If a copy cannot be written, the page says why.
+- **Restore points on this phone.** Tap one to restore it, share it, or delete it. One saved just before a restore says so.
+- **Keep a copy or move to a new phone.** A **complete backup** is one file with settings and service keys too, the private vault if you choose it, and optionally the offline model (about 2.6 GB); its settings, keys and vault are encrypted with a recovery code shown once — keep it somewhere else. **Export notes** gives a ZIP of Markdown and JSON readable without Nex. **Restore or import from a file** takes any of these: a complete backup or a backup replaces the library, a Nex export adds to it. Notes from Google Keep or a folder of Markdown files come in through **Import notes**, next to it in Data & backup.
 
 Restoring replaces the library and restarts Nex. If a restore is interrupted, the next launch puts everything back as it was.
 

@@ -37,6 +37,8 @@ Working convention:
 ## v1.99.10
 
 - **Speaking to the assistant happens in the message bar.** The microphone no longer opens the voice-note sheet over the assistant: the message bar itself becomes the recording, with the conversation still in view — **✕** cancels, the time and your voice as it is heard in the middle, **↑** sends. The microphone and send share one button: the microphone while the box is empty.
+- **Backup & restore, simpler.** The page (formerly "Taking it with you") now starts with whether you are backed up and one **Back up now**; then what happens automatically, the restore points on this phone (tap one to restore, share or delete it), and three plain choices: a complete backup, an export of your notes, and one **Restore or import from a file** for every kind of file.
+- **Automatic backups no longer wait for a restart.** They ran only when Nex was started from scratch, and Android often keeps it running in the background for days — so a day could pass with no backup. They now also run whenever you come back to Nex. The daily folder copy no longer adds a second restore point on the phone, which pushed older ones out.
 
 ## v1.99.9
 

@@ -1376,7 +1376,71 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get exportTitle => 'خروجی گرفتن';
+  String get backupStatusNone => 'هنوز پشتیبانی گرفته نشده';
+
+  @override
+  String backupStatusLast(String when) {
+    return 'آخرین پشتیبان: $when';
+  }
+
+  @override
+  String get backupAutoGroup => 'خودکار';
+
+  @override
+  String get backupOnPhone => 'روی همین گوشی';
+
+  @override
+  String backupOnPhoneSub(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'هر ۱۲ ساعت هنگام استفاده از نکس · $countString نسخهٔ آخر نگه داشته می‌شود';
+  }
+
+  @override
+  String get backupFolderOff =>
+      'خاموش · نسخه‌ای که با گم شدن گوشی از بین نمی‌رود';
+
+  @override
+  String get backupFolderChange => 'تغییر پوشه';
+
+  @override
+  String get backupPointsGroup => 'نقطه‌های بازیابی روی این گوشی';
+
+  @override
+  String get backupBeforeRestore => 'ذخیره‌شده درست پیش از یک بازیابی';
+
+  @override
+  String backupShowAll(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'نمایش همه ($countString)';
+  }
+
+  @override
+  String get backupManualGroup => 'نگه‌داشتن نسخه یا انتقال به گوشی جدید';
+
+  @override
+  String get fullBackupSub =>
+      'یک فایل رمزگذاری‌شده همراه تنظیمات و کلیدها — برای گوشی جدید';
+
+  @override
+  String get exportNotes => 'خروجی گرفتن از یادداشت‌ها';
+
+  @override
+  String get exportSub => 'فایل ZIP شامل Markdown و JSON، خواندنی بدون نکس';
+
+  @override
+  String get restoreFromFile => 'بازیابی یا وارد کردن از فایل';
+
+  @override
+  String get restoreFromFileSub => 'پشتیبان کامل، پشتیبان، یا خروجی ZIP نکس';
+
+  @override
+  String get exportTitle => 'پشتیبان‌گیری و بازیابی';
 
   @override
   String get exportExplained =>

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/backup_folder.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/backup_screen.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
@@ -117,6 +118,25 @@ void main() {
     },
   );
 
+  // Reported: automatic backup did not happen. It ran only at a cold start,
+  // and Android keeps a process alive for days; it now runs on every return
+  // to the app too, through this one call.
+  test('both automatic backups run from one call, once at a time', () async {
+    await chooseFolder();
+    await harness.services.captureText('a note');
+    await Future.wait([
+      harness.services.backupWhenDue(),
+      harness.services.backupWhenDue(),
+    ]);
+    expect(await harness.services.listBackups(), hasLength(1));
+    expect(folder.copies, hasLength(1));
+
+    // Due again only when each interval has passed.
+    await harness.services.backupWhenDue();
+    expect(await harness.services.listBackups(), hasLength(1));
+    expect(folder.copies, hasLength(1));
+  });
+
   test('a folder that went away is a failure Settings can show', () async {
     await chooseFolder();
     await harness.services.captureText('a note');
@@ -166,12 +186,15 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Automatic copy to a folder'), findsOneWidget);
-    expect(find.text('Drive · no copy yet'), findsOneWidget);
+    // Under the status at the top, and on the folder's own row.
+    expect(find.text('Drive · no copy yet'), findsNWidgets(2));
 
+    // The folder's actions are in its sheet, not three buttons on the page.
+    await tester.tap(find.text('Automatic copy to a folder'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Stop copying'));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
-    expect(find.text('Stop copying'), findsNWidgets(3));
     await tester.tap(find.widgetWithText(TextButton, 'Stop copying').last);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),

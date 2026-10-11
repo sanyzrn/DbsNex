@@ -1407,7 +1407,71 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exportTitle => 'Taking it with you';
+  String get backupStatusNone => 'No backup yet';
+
+  @override
+  String backupStatusLast(String when) {
+    return 'Last backup $when';
+  }
+
+  @override
+  String get backupAutoGroup => 'Automatic';
+
+  @override
+  String get backupOnPhone => 'On this phone';
+
+  @override
+  String backupOnPhoneSub(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'Every 12 hours while you use Nex · the last $countString are kept';
+  }
+
+  @override
+  String get backupFolderOff => 'Off · a copy that survives losing the phone';
+
+  @override
+  String get backupFolderChange => 'Change folder';
+
+  @override
+  String get backupPointsGroup => 'Restore points on this phone';
+
+  @override
+  String get backupBeforeRestore => 'Saved just before a restore';
+
+  @override
+  String backupShowAll(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'Show all ($countString)';
+  }
+
+  @override
+  String get backupManualGroup => 'Keep a copy or move to a new phone';
+
+  @override
+  String get fullBackupSub =>
+      'One encrypted file with your settings and keys — for a new phone';
+
+  @override
+  String get exportNotes => 'Export notes';
+
+  @override
+  String get exportSub => 'A ZIP of Markdown and JSON, readable without Nex';
+
+  @override
+  String get restoreFromFile => 'Restore or import from a file';
+
+  @override
+  String get restoreFromFileSub =>
+      'A complete backup, a backup, or a Nex export (.zip)';
+
+  @override
+  String get exportTitle => 'Backup & restore';
 
   @override
   String get exportExplained =>
