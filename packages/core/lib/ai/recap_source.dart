@@ -217,7 +217,14 @@ String _when(Note note, DateTime at, {required bool due}) {
     return 'DUE in ${_span(away)}';
   }
   final age = at.difference(note.updatedAt.toUtc());
-  return age.inHours < 24 ? 'today' : '${_span(age)} ago';
+  final written = age.inHours < 24 ? 'today' : '${_span(age)} ago';
+  // A reminder past the horizon is still a reminder. Without this the brief
+  // saw an important date with nothing set for it and advised setting a
+  // reminder that was already there, a week ahead.
+  if (moment != null && moment.isAfter(at)) {
+    return '$written · reminder in ${_span(moment.difference(at))}';
+  }
+  return written;
 }
 
 /// Whole units only. A recap does not need to know something is due in four

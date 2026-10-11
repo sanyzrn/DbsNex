@@ -426,6 +426,16 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 - **Alternatives Considered:** App-wide with marked exceptions — tried in 1.91.0 and withdrawn (History). Flutter's `TapRegion.consumeOutsideTaps` — rejected: it only wins the gesture arena, so raw pointer listeners still received the touch.
 - **Status:** Accepted at v1.91.0; narrowed to the settings search after it.
 
+
+---
+
+## ADR-039 — A power cut may lose the last few seconds of captures; an app crash never does
+
+- **Context:** The library runs SQLite in write-ahead mode with `synchronous = NORMAL` (`packages/data/lib/schema/database.dart`). A commit is safe the moment it returns against anything that kills the process — Android reclaiming memory, a crash, a force stop — but not against the whole phone losing power before the operating system has written the log out. The 1.99.6 review (DATA-07) pointed out that the automatic backup, the recovery path for that case, runs at most every 12 hours.
+- **Decision:** Keep `NORMAL`. A sudden power loss — a battery that dies mid-write, a phone pulled from a dying charger — can lose captures from the last moments before it; nothing else can.
+- **Rationale:** Process death is the abnormal ending Android phones actually meet, many times a day, and it loses nothing. `FULL` would add a flush to the storage on every commit, on the capture path that ADR-002 keeps free of waiting, on exactly the slow phones where a flush is felt. The window `NORMAL` leaves open is the operating system's own write-back delay, not the 12 hours between backups: the backup is the recovery for a corrupt or lost library, not for the last few seconds.
+- **Alternatives Considered:** `FULL` everywhere — rejected for the cost above. `FULL` only while the capture sheet is open — possible, and the cheapest closing of the gap; not taken for now because it protects only the sheet and not shares, the widget or the assistant's writes, which would make the guarantee harder to state than the one above.
+- **Status:** Accepted at v1.99.9, at the owner's decision after the 1.99.6 review.
 ---
 
 ## Decision-Making Heuristic

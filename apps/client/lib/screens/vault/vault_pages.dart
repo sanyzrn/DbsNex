@@ -187,7 +187,10 @@ extension _VaultPages on _VaultScreenState {
       ),
     );
     if (yes == true && mounted && unlocked) {
-      await _operate(() => store.deleteAll(kind));
+      await _operate(() async {
+        await store.deleteAll(kind);
+        if (kind == VaultKind.message) await _vaultFiles.deleteAll();
+      });
     }
   }
 
@@ -228,25 +231,36 @@ extension _VaultPages on _VaultScreenState {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            e.value('text'),
-                            textDirection:
-                                RegExp('[ا-ی]').hasMatch(e.value('text'))
-                                ? TextDirection.rtl
-                                : TextDirection.ltr,
-                          ),
+                          if (e.value('file').isNotEmpty) ...[
+                            _VaultAttachmentView(
+                              key: ValueKey(e.value('file')),
+                              entry: e,
+                              files: _vaultFiles,
+                            ),
+                            if (e.value('text').isNotEmpty)
+                              const SizedBox(height: NexSpacing.sm),
+                          ],
+                          if (e.value('text').isNotEmpty)
+                            Text(
+                              e.value('text'),
+                              textDirection:
+                                  RegExp('[ا-ی]').hasMatch(e.value('text'))
+                                  ? TextDirection.rtl
+                                  : TextDirection.ltr,
+                            ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(
-                                tooltip: l.copy,
-                                onPressed: () => _copy(e.id, e.value('text')),
-                                icon: Icon(
-                                  copiedField == e.id
-                                      ? Icons.check
-                                      : Icons.copy_outlined,
+                              if (e.value('text').isNotEmpty)
+                                IconButton(
+                                  tooltip: l.copy,
+                                  onPressed: () => _copy(e.id, e.value('text')),
+                                  icon: Icon(
+                                    copiedField == e.id
+                                        ? Icons.check
+                                        : Icons.copy_outlined,
+                                  ),
                                 ),
-                              ),
                               IconButton(
                                 tooltip: l.delete,
                                 onPressed: busy
@@ -274,7 +288,7 @@ extension _VaultPages on _VaultScreenState {
                                             mounted &&
                                             unlocked) {
                                           await _operate(
-                                            () => store.delete(e.id),
+                                            () => _deleteMessage(e),
                                           );
                                         }
                                       },
@@ -295,6 +309,11 @@ extension _VaultPages on _VaultScreenState {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              IconButton(
+                tooltip: l.vaultAttach,
+                onPressed: busy ? null : () => unawaited(_attach()),
+                icon: const Icon(Icons.add_circle_outline),
+              ),
               Expanded(
                 child: NexTextField(
                   controller: messageInput,

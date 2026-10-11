@@ -4558,4 +4558,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsRemindersAndNotifications => 'Reminders and notifications';
+
+  @override
+  String get vaultAttach => 'Attach';
+
+  @override
+  String get vaultAttachVoice => 'Voice message';
+
+  @override
+  String get vaultAttachPhoto => 'Photo';
+
+  @override
+  String get vaultAttachFile => 'File';
+
+  @override
+  String get vaultAttachTooLarge =>
+      'That is larger than 25 MB, too large to keep in private messages.';
+
+  @override
+  String get vaultAttachUnreadable =>
+      'This attachment could not be opened on this phone.';
+
+  @override
+  String get vaultAttachPlay => 'Play';
+
+  @override
+  String get vaultAttachPause => 'Pause';
+
+  @override
+  String get assistantVoiceReview => 'Check what I said before sending';
+
+  @override
+  String get assistantVoiceReviewSubtitle =>
+      'A spoken request is put in the box to edit instead of being sent straight away.';
 }

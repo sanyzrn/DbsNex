@@ -330,6 +330,16 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                 title: Text(l10n.assistantScope),
                 subtitle: Text(l10n.assistantScopeSubtitle),
               ),
+              // Only where the assistant can hear: the provider takes audio.
+              if (preferences.aiProvider.provider.hearsAudio)
+                NexSwitchTile(
+                  secondary: const Icon(Icons.record_voice_over_outlined),
+                  value: preferences.aiVoiceReview,
+                  onChanged: (value) =>
+                      unawaited(preferences.setAiVoiceReview(value)),
+                  title: Text(l10n.assistantVoiceReview),
+                  subtitle: Text(l10n.assistantVoiceReviewSubtitle),
+                ),
             ],
           ),
         ],

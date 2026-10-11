@@ -1039,9 +1039,37 @@ Sure, here you go:
       final last = model.asked.single.last;
       expect(last.role, ChatRole.user);
       expect(last.content, startsWith('<<<NOTES\nCycle'));
+      expect(last.content, endsWith('\nNOTES>>>'));
       expect(find.text('Read your Cycle summary'), findsOneWidget);
       expect(find.text('حدود ۱۱ روز دیگه.'), findsOneWidget);
     });
+
+    test(
+      'a summary the phone read is not sent to a cloud provider (AI-09)',
+      () {
+        final turns = [
+          const ChatMessage(role: ChatRole.user, content: 'when is my period?'),
+          const ChatMessage(
+            role: ChatRole.user,
+            content:
+                '<<<NOTES\nCycle (normal): day 12$nexReadOnPhoneMark\nNOTES>>>',
+          ),
+          const ChatMessage(role: ChatRole.assistant, content: 'In 16 days.'),
+          // One a provider asked for itself, under the same permission.
+          const ChatMessage(
+            role: ChatRole.user,
+            content: '<<<NOTES\nCycle (normal): day 12\nNOTES>>>',
+          ),
+        ];
+        final sent = withoutPhoneReads(turns);
+        expect(sent, hasLength(3));
+        expect(
+          sent.any((t) => t.content.contains(nexReadOnPhoneMark)),
+          isFalse,
+        );
+        expect(sent.last.content, startsWith('<<<NOTES\nCycle'));
+      },
+    );
 
     testWidgets('with a provider, Cycle is read only when the model asks', (
       tester,
@@ -1402,6 +1430,36 @@ Sure, here you go:
       await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
       await tester.pumpAndSettle();
       expect(calls, 2);
+    });
+
+    testWidgets('a tag the question did not name waits for the button too '
+        '(AI-08)', (tester) async {
+      var calls = 0;
+      final client = MockClient((request) async {
+        calls++;
+        final content = calls == 1
+            ? '```nex\n{"action":"search","tag":"bank"}\n```'
+            : 'Done looking.';
+        return http.Response.bytes(
+          utf8.encode(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': content},
+                },
+              ],
+            }),
+          ),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      });
+      await openSheet(tester, client: client);
+      await ask(tester, 'what did I write about the cooler?');
+
+      // A tag sends every note in it; a note cannot point the model at one.
+      expect(calls, 1);
+      expect(find.text('Search your notes for this?'), findsOneWidget);
     });
 
     testWidgets('a note and its reminder, in one request', (tester) async {

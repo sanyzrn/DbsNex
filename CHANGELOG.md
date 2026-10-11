@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.9
+
+- **Talk to the assistant.** With Gemini or OpenAI as your provider, the microphone in the assistant now sends what you say as your message, so you can ask and get things done by voice; anything it would change still waits for your confirmation. To see the words first, turn on **Check what I said before sending** in the assistant's settings.
+- **Voice, photos and files in private messages.** The **+** beside the box in Private saved messages attaches a voice message, a photo or a file, with what you typed as its caption. Attachments are encrypted on this phone and are not part of backups.
+- **The smart summary sees your reminders.** A reminder set more than a week ahead was invisible to it, so it could advise setting a reminder you had already set. It now knows about every reminder.
+- **A link is kept when you close its sheet,** as text and checklists are, as long as it is a complete address.
+- **The assistant asks before reading a tag or a thread you did not mention.** It already asked before searching for words you had not used; a note could otherwise point it at a whole tag of notes to send to the provider.
+- **A Cycle summary read on the phone stays on the phone.** If a conversation the phone's model had about your cycle is continued with a cloud provider, that summary is no longer sent along; the provider gets Cycle only by asking for it, with your permission, as before.
+
 ## v1.99.8
 
 - **A recording survives the app closing.** If Nex was closed in the middle of a voice memo — the phone ran short of memory, or the app crashed — the recording was lost, and the file left behind could not even be played. Recordings are now saved as they are made, and the next time you open Nex the interrupted one appears as a voice note, up to the moment it stopped.

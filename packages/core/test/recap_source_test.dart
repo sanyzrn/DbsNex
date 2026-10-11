@@ -102,7 +102,9 @@ void main() {
     // prompt tells the model every DUE line comes first, so a DUE line that
     // is not first would be the source contradicting its own instructions.
     expect(lines.first, 'today | text | the boiler man is coming');
-    expect(lines[1], '3d ago | text | renew the passport');
+    // Not DUE, but the reminder is said: without it the brief advised
+    // setting one that was already set.
+    expect(lines[1], '3d ago · reminder in 90d | text | renew the passport');
   });
 
   test('an unfinished checklist says how much of it is left', () {

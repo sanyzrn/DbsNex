@@ -7,6 +7,7 @@ import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_client/widgets/assistant_settings.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:nex_ai/cloud.dart';
 
 /// The chat had no way to reach the settings that decide what its next answer
 /// looks like — the one place where you notice one needs changing.
@@ -78,5 +79,34 @@ void main() {
     await tester.tap(find.widgetWithText(NexSwitchTile, 'Stay in my notes'));
     await tester.pumpAndSettle();
     expect(preferences.aiNotesOnly, isFalse);
+  });
+
+  testWidgets('voice review is offered only where the assistant can hear', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Future<void> show() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(body: AssistantSettingsBody(preferences: preferences)),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await show();
+    expect(find.text('Check what I said before sending'), findsNothing);
+
+    await preferences.setAiProvider(
+      const AiProviderConfig(provider: AiProvider.openai, apiKey: 'k'),
+    );
+    await show();
+    expect(find.text('Check what I said before sending'), findsOneWidget);
+    expect(preferences.aiVoiceReview, isFalse);
   });
 }

@@ -1652,5 +1652,15 @@
   "settingsLanguageAndCalendar": "زبان و تقویم",
   "settingsGesturesAndMenus": "اشاره‌ها و منوها",
   "settingsSecurityAndPrivacy": "امنیت و حریم خصوصی",
-  "settingsRemindersAndNotifications": "یادآورها و اعلان‌ها"
+  "settingsRemindersAndNotifications": "یادآورها و اعلان‌ها",
+  "vaultAttach": "پیوست",
+  "vaultAttachVoice": "پیام صوتی",
+  "vaultAttachPhoto": "عکس",
+  "vaultAttachFile": "فایل",
+  "vaultAttachTooLarge": "حجم این مورد بیشتر از ۲۵ مگابایت است و برای پیام‌های خصوصی زیاد است.",
+  "vaultAttachUnreadable": "این پیوست روی این گوشی باز نشد.",
+  "vaultAttachPlay": "پخش",
+  "vaultAttachPause": "توقف",
+  "assistantVoiceReview": "بررسی گفته‌ها پیش از ارسال",
+  "assistantVoiceReviewSubtitle": "درخواستی که با صدا می‌گویید، به جای ارسال فوری، برای ویرایش در کادر نوشتن قرار می‌گیرد."
 }
