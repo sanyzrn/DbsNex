@@ -28,12 +28,21 @@ String? checklistContextLine(Note note) {
 /// reminder, the day it was written. The assistant offered to pin what was
 /// pinned and could not answer "what did I write last week".
 @visibleForTesting
-String noteContextMarks(Note note, DateTime now) {
+String noteContextMarks(
+  Note note,
+  DateTime now, {
+  List<String> threads = const [],
+}) {
   final written = note.createdAt.toLocal();
   String two(int value) => value.toString().padLeft(2, '0');
+  // Only for a note that is in one, and only its name: a mark every line
+  // carried would be noise the model has to read past.
+  final named = [for (final name in threads.take(3)) '"$name"'].join(', ');
   return [
     if (note.pinnedAt != null) 'pinned',
     ?reminderContextLabel(note, now),
+    if (threads.isNotEmpty)
+      threads.length == 1 ? 'in thread $named' : 'in threads $named',
     'written ${written.year}-${two(written.month)}-${two(written.day)}',
   ].join('; ');
 }
@@ -92,6 +101,7 @@ extension _ChatContext on _AiChatSheetState {
       // the subject: somebody opened the assistant on it to ask about it, and
       // four hundred characters of a document is a paragraph of an answer
       // about a page nobody read.
+      await _knowThreads([focused]);
       final line = _contextLine(
         focused,
         limit: 6000,
@@ -113,6 +123,7 @@ extension _ChatContext on _AiChatSheetState {
     // said what the question is about.
     if (widget.scope case final scoped?) {
       _remember(scoped);
+      await _knowThreads(scoped);
       final lines = <String>[
         for (final note in scoped)
           if (_contextLine(note) case final line?) line,
@@ -129,6 +140,7 @@ extension _ChatContext on _AiChatSheetState {
       return;
     }
     _remember(notes);
+    await _knowThreads(notes);
     final lines = <String>[
       for (final note in notes)
         if (_contextLine(note) case final line?) line,
@@ -201,9 +213,29 @@ extension _ChatContext on _AiChatSheetState {
     // Pinned, its reminder and its date, so "remind me about it" is not
     // offered for a note that already has one and "when is it?" is answered
     // rather than guessed.
-    final marks = noteContextMarks(note, DateTime.now());
+    final marks = noteContextMarks(
+      note,
+      DateTime.now(),
+      threads: _threadsOf[note.id] ?? const [],
+    );
     return '[${note.id}] ${note.type.wireName}${tags.isEmpty ? '' : ' $tags'}'
         ' ($marks): $clipped';
+  }
+
+  /// Which threads each of [notes] is in, by name, for [_contextLine] —
+  /// asked once per note and kept for the conversation.
+  Future<void> _knowThreads(Iterable<Note> notes) async {
+    for (final note in notes) {
+      if (_threadsOf.containsKey(note.id)) continue;
+      try {
+        _threadsOf[note.id] = [
+          for (final thread in await widget.services.threadsForNote(note.id))
+            thread.name,
+        ];
+      } catch (_) {
+        _threadsOf[note.id] = const [];
+      }
+    }
   }
 
   /// The text of the file attached to [note], for the kinds Nex can read.
@@ -362,6 +394,7 @@ extension _ChatContext on _AiChatSheetState {
     } catch (_) {
       found = const [];
     }
+    await _knowThreads(found.take(_AiChatSheetState._retrievedCount));
     final lines = <String>[
       for (final note in found.take(_AiChatSheetState._retrievedCount))
         if (_contextLine(note) case final line?) line,

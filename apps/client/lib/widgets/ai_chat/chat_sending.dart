@@ -339,6 +339,7 @@ extension _ChatSending on _AiChatSheetState {
         try {
           final gone = await widget.services.deletedNotes(limit: 30);
           if (gone.isEmpty) findings.writeln('(empty)');
+          await _knowThreads(gone);
           for (final note in gone) {
             if (_contextLine(note) case final line?) findings.writeln(line);
           }
@@ -368,6 +369,7 @@ extension _ChatSending on _AiChatSheetState {
           );
         } else {
           _remember(found.take(30));
+          await _knowThreads(found.take(30));
           for (final note in found.take(30)) {
             final line = _contextLine(note, limit: 1200);
             if (line != null) findings.writeln(line);
@@ -394,6 +396,7 @@ extension _ChatSending on _AiChatSheetState {
         findings.writeln('(nothing found)');
       } else {
         _remember(found.take(10));
+        await _knowThreads(found.take(10));
         for (final note in found.take(10)) {
           final line = _contextLine(note);
           if (line != null) findings.writeln(line);

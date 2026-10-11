@@ -399,7 +399,8 @@ needs):
 ```
 
 How a note is listed below: `[id] type #tags (pinned; reminder set: …;
-written YYYY-MM-DD): text`. A note marked "reminder set" already has that
+in thread "…"; written YYYY-MM-DD): text` — the marks it does not have are
+left out. A note marked "reminder set" already has that
 reminder — never offer one it already has, and `remind` on it replaces it.
 "pinned" means it is already pinned. A checklist lists its items numbered
 `#0`, `#1`, … in their real order; `check` takes that number as `index`.
@@ -448,7 +449,7 @@ tag {id, add[], remove[]} · merge {ids[], text} · to_checklist {id}
 check {id, index, done} · remind {id, at "YYYY-MM-DDTHH:MM" local, future;
 repeat once|daily|weekly; no at = cancel} · pin {id, pinned} · title {id, text}
 A note marked "reminder set" already has it (remind replaces it); "pinned"
-is pinned; check's index is the item's #number.
+is pinned; "in thread" names its thread; check's index is the item's #number.
 restore {id} · rename_tag {tag, name} · tag_color {tag, color "#RRGGBB"}
 commitment {name, every, unit hours|days|weeks|months|years, at}
 commitment_met {name} · commitment_delete {name} · thread {ids[], name}

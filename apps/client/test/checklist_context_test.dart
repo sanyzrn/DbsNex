@@ -103,6 +103,17 @@ void main() {
       );
     });
 
+    test('the thread a note is in, by name', () {
+      expect(
+        noteContextMarks(note(), now, threads: ['Trip']),
+        'in thread "Trip"; written 2026-10-03',
+      );
+      expect(
+        noteContextMarks(note(), now, threads: ['Trip', 'Kitchen']),
+        'in threads "Trip", "Kitchen"; written 2026-10-03',
+      );
+    });
+
     test('an ordinary note says only when it was written', () {
       expect(noteContextMarks(note(), now), 'written 2026-10-03');
     });

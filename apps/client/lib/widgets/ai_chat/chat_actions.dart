@@ -136,6 +136,7 @@ extension _ChatActions on _AiChatSheetState {
             }
           case AssistantActionKind.thread:
             await _addToThread(action);
+            _threadsOf.clear();
           case AssistantActionKind.search ||
               AssistantActionKind.threads ||
               AssistantActionKind.cycle ||
