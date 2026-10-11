@@ -8,6 +8,10 @@ class _Composer extends StatelessWidget {
     required this.transcribing,
     required this.onSend,
     required this.onSpeak,
+    required this.recorder,
+    required this.onVoiceDone,
+    required this.onVoiceCancel,
+    required this.voiceReview,
   });
 
   final TextEditingController controller;
@@ -28,6 +32,16 @@ class _Composer extends StatelessWidget {
   /// is nothing the user could do to enable it from here.
   final VoidCallback? onSpeak;
 
+  /// The recording under way, or null. While there is one the composer *is*
+  /// the recording: the conversation stays in view above it, the way every
+  /// messenger and assistant does it, instead of a second sheet over this one.
+  final AudioRecorder? recorder;
+  final VoidCallback onVoiceDone;
+  final VoidCallback onVoiceCancel;
+
+  /// What finishing a recording does: sends it, or puts the words in the box.
+  final bool voiceReview;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -42,27 +56,20 @@ class _Composer extends StatelessWidget {
       MediaQuery.viewInsetsOf(context).bottom,
       nexBottomInset(context),
     );
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        NexSpacing.md,
-        NexSpacing.sm,
-        NexSpacing.md,
-        NexSpacing.md + bottom,
-      ),
-      child: Row(
+    final listening = recorder != null;
+    final Widget row;
+    if (listening || transcribing) {
+      row = _VoiceBar(
+        key: const ValueKey('voice'),
+        recorder: recorder,
+        review: voiceReview,
+        onDone: onVoiceDone,
+        onCancel: onVoiceCancel,
+      );
+    } else {
+      row = Row(
+        key: const ValueKey('text'),
         children: [
-          if (onSpeak != null)
-            IconButton(
-              onPressed: sending || transcribing ? null : onSpeak,
-              tooltip: l10n.chatSpeak,
-              icon: transcribing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.mic_none),
-            ),
           Expanded(
             // A Persian sentence with an English word in it used to scramble
             // as it was typed and read back correctly the moment it was sent:
@@ -72,13 +79,12 @@ class _Composer extends StatelessWidget {
             child: NexTextField(
               controller: controller,
               focusNode: focusNode,
-              enabled: !transcribing,
               minLines: 1,
               maxLines: 5,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => onSend(),
               decoration: InputDecoration(
-                hintText: transcribing ? l10n.chatTranscribing : l10n.chatHint,
+                hintText: l10n.chatHint,
                 filled: true,
                 fillColor: theme.colorScheme.surfaceContainerHighest,
                 border: const OutlineInputBorder(
@@ -93,13 +99,180 @@ class _Composer extends StatelessWidget {
             ),
           ),
           const SizedBox(width: NexSpacing.sm),
-          IconButton.filled(
-            onPressed: sending || transcribing ? null : onSend,
-            tooltip: l10n.chatSend,
-            icon: const Icon(Icons.arrow_upward),
+          // One button, two jobs: the microphone while the box is empty, send
+          // once there is something in it — so speaking is the first thing
+          // offered, and never sits beside a send button it could be
+          // mistaken for.
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) {
+              final speak = onSpeak != null && value.text.trim().isEmpty;
+              return AnimatedSwitcher(
+                duration: NexMotion.standard,
+                transitionBuilder: (child, animation) =>
+                    ScaleTransition(scale: animation, child: child),
+                child: speak
+                    ? IconButton.filled(
+                        key: const ValueKey('mic'),
+                        onPressed: sending ? null : onSpeak,
+                        tooltip: l10n.chatSpeak,
+                        icon: const Icon(Icons.mic_none),
+                      )
+                    : IconButton.filled(
+                        key: const ValueKey('send'),
+                        onPressed: sending ? null : onSend,
+                        tooltip: l10n.chatSend,
+                        icon: const Icon(Icons.arrow_upward),
+                      ),
+              );
+            },
           ),
         ],
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        NexSpacing.md,
+        NexSpacing.sm,
+        NexSpacing.md,
+        NexSpacing.md + bottom,
       ),
+      child: AnimatedSwitcher(duration: NexMotion.standard, child: row),
+    );
+  }
+}
+
+/// The composer while the assistant is being spoken to: cancel, the voice
+/// as it is heard with the time, and done. Then, in the same place, the
+/// words being read off the recording.
+class _VoiceBar extends StatefulWidget {
+  const _VoiceBar({
+    super.key,
+    required this.recorder,
+    required this.review,
+    required this.onDone,
+    required this.onCancel,
+  });
+
+  /// Null once the recording has stopped and is being read.
+  final AudioRecorder? recorder;
+  final bool review;
+  final VoidCallback onDone;
+  final VoidCallback onCancel;
+
+  @override
+  State<_VoiceBar> createState() => _VoiceBarState();
+}
+
+class _VoiceBarState extends State<_VoiceBar> {
+  final _watch = Stopwatch()..start();
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (mounted && widget.recorder != null) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final recorder = widget.recorder;
+    final persian = Localizations.localeOf(context).languageCode == 'fa';
+    final seconds = _watch.elapsed.inSeconds;
+    final elapsed = nexDigits(
+      '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
+      persian: persian,
+    );
+    return Row(
+      children: [
+        IconButton(
+          onPressed: recorder == null ? null : widget.onCancel,
+          tooltip: l10n.cancel,
+          icon: const Icon(Icons.close),
+        ),
+        const SizedBox(width: NexSpacing.xs),
+        Expanded(
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(NexRadius.xl),
+            ),
+            child: recorder == null
+                ? Row(
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.chatTranscribing,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: NexColors.swipeDelete,
+                        ),
+                      ),
+                      const SizedBox(width: NexSpacing.sm),
+                      Semantics(
+                        liveRegion: true,
+                        label: l10n.recordingElapsed(elapsed),
+                        child: Text(
+                          elapsed,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: NexSpacing.md),
+                      Expanded(
+                        child: SizedBox(
+                          height: 28,
+                          child: NexLiveWaveform(
+                            recorder: recorder,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(width: NexSpacing.sm),
+        IconButton.filled(
+          onPressed: recorder == null ? null : widget.onDone,
+          tooltip: widget.review ? l10n.chatVoiceDone : l10n.chatSend,
+          icon: Icon(widget.review ? Icons.check : Icons.arrow_upward),
+        ),
+      ],
     );
   }
 }

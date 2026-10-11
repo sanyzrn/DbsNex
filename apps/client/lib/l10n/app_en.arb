@@ -1799,6 +1799,7 @@
     "description": "Tooltip on the chat's microphone button"
   },
   "chatTranscribing": "Reading your recording…",
+  "chatVoiceDone": "Done",
   "@chatTranscribing": {
     "description": "Shown while a chat recording is being turned into text"
   },

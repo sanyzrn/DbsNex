@@ -3596,6 +3596,12 @@ abstract class AppLocalizations {
   /// **'Reading your recording…'**
   String get chatTranscribing;
 
+  /// No description provided for @chatVoiceDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get chatVoiceDone;
+
   /// Shown when a chat recording produced no text
   ///
   /// In en, this message translates to:

@@ -998,6 +998,7 @@
   "translateSaved": "به‌عنوان یادداشت تازه ذخیره شد.",
   "chatSpeak": "گفتن",
   "chatTranscribing": "دارم صدایت را می‌خوانم…",
+  "chatVoiceDone": "تمام",
   "chatTranscribeFailed": "از آن ضبط چیزی درنیامد.",
   "chatSend": "فرستادن",
   "@chatSend": {

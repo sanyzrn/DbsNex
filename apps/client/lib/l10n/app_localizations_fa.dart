@@ -2124,6 +2124,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chatTranscribing => 'دارم صدایت را می‌خوانم…';
 
   @override
+  String get chatVoiceDone => 'تمام';
+
+  @override
   String get chatTranscribeFailed => 'از آن ضبط چیزی درنیامد.';
 
   @override

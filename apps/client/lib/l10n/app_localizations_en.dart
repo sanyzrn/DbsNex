@@ -2175,6 +2175,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatTranscribing => 'Reading your recording…';
 
   @override
+  String get chatVoiceDone => 'Done';
+
+  @override
   String get chatTranscribeFailed => 'Nothing came back from that recording.';
 
   @override

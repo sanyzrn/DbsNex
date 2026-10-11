@@ -188,6 +188,12 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// the line it puts on screen says so.
   bool _transcribing = false;
 
+  /// The question being spoken, while it is — see `_speak`. The composer is
+  /// the recording for as long as this is set.
+  AudioRecorder? _voice;
+  File? _voiceFile;
+  Timer? _voiceLimit;
+
   /// The identity of this conversation in [ChatHistory]. Fixed for the life
   /// of the sheet, so every save replaces the same thread rather than filling
   /// the list with one entry per exchange.
@@ -300,6 +306,11 @@ class _AiChatSheetState extends State<AiChatSheet> {
 
   @override
   void dispose() {
+    _voiceLimit?.cancel();
+    // Closed mid-sentence: the microphone is let go and the clip deleted.
+    if (_voice case final recorder?) {
+      unawaited(_ChatSending._dropVoice(recorder, _voiceFile));
+    }
     _composerFocus.removeListener(_growWhenTyping);
     _composerFocus.dispose();
     _sheet.dispose();
@@ -523,6 +534,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
                   transcribing: _transcribing,
                   onSend: () => unawaited(_send(_input.text)),
                   onSpeak: _canSpeak ? () => unawaited(_speak()) : null,
+                  recorder: _voice,
+                  onVoiceDone: () => unawaited(_finishSpeaking()),
+                  onVoiceCancel: () => unawaited(_cancelSpeaking()),
+                  voiceReview: widget.preferences.aiVoiceReview,
                 ),
               ],
             ),

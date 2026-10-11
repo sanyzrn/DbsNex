@@ -28,16 +28,16 @@ extension _ChatSending on _AiChatSheetState {
 
   /// Record a question instead of typing it.
   ///
-  /// The transcript is sent as the message, so a request can be made by
-  /// voice alone; "Check what I said before sending" puts it in the box
-  /// instead, for anyone whose provider mishears names or Persian word
-  /// breaks often enough to want the chance to fix it.
+  /// The recording happens in the composer itself ([_VoiceBar]): the
+  /// conversation stays in view, cancel is on one side and done on the other.
+  /// It used to open the voice-note sheet over this one — a second sheet with
+  /// a "Stop recording" button, for what is one sentence to the assistant.
   ///
   /// The clip itself is temporary and deleted either way — this is a question,
   /// not a note, and it has no business in the media directory that backups
   /// and the library read from.
   Future<void> _speak() async {
-    if (_sending || _transcribing) return;
+    if (_sending || _transcribing || _voice != null) return;
     final recorder = AudioRecorder();
     // The same silence as voice capture had, in the same words — see
     // `captureVoice`. Dictation is the only way to ask the assistant without
@@ -59,30 +59,82 @@ extension _ChatSending on _AiChatSheetState {
         'nex-ask-${DateTime.now().millisecondsSinceEpoch}.m4a',
       ),
     );
-    await recorder.start(const RecordConfig(), path: file.path);
-    if (!mounted) {
-      await recorder.stop();
+    try {
+      await recorder.start(const RecordConfig(), path: file.path);
+    } catch (_) {
       await recorder.dispose();
       return;
     }
-    final keep = await nexShowSheet<bool>(
-      context: context,
-      dismissible: false,
-      builder: (_) => RecordingSheet(recorder: recorder),
-    );
-    final recorded = await recorder.stop();
-    await recorder.dispose();
-    if (keep != true || recorded == null) {
-      if (file.existsSync()) file.deleteSync();
+    if (!mounted) {
+      await _dropVoice(recorder, file);
       return;
     }
-    if (mounted) _rebuild(() => _transcribing = true);
+    _composerFocus.unfocus();
+    nexBump();
+    _rebuild(() {
+      _voice = recorder;
+      _voiceFile = file;
+    });
+    // A question, not a dictation: a recording left running is one the
+    // person forgot, and it is sent as it stands rather than growing.
+    _voiceLimit = Timer(const Duration(minutes: 2), () {
+      if (_voice == recorder) unawaited(_finishSpeaking());
+    });
+  }
+
+  /// Cancel on the voice bar: nothing is sent and the clip is gone.
+  Future<void> _cancelSpeaking() async {
+    final recorder = _voice;
+    final file = _voiceFile;
+    if (recorder == null) return;
+    _voiceLimit?.cancel();
+    _rebuild(() {
+      _voice = null;
+      _voiceFile = null;
+    });
+    await _dropVoice(recorder, file);
+  }
+
+  static Future<void> _dropVoice(AudioRecorder recorder, File? file) async {
+    try {
+      await recorder.stop();
+    } catch (_) {}
+    await recorder.dispose();
+    try {
+      if (file != null && file.existsSync()) file.deleteSync();
+    } catch (_) {}
+  }
+
+  /// Done on the voice bar: the words are read off the recording and sent —
+  /// or, with "Check what I said before sending", put in the box.
+  Future<void> _finishSpeaking() async {
+    final recorder = _voice;
+    final file = _voiceFile;
+    if (recorder == null || file == null) return;
+    _voiceLimit?.cancel();
+    _rebuild(() {
+      _voice = null;
+      _voiceFile = null;
+      _transcribing = true;
+    });
+    String? recorded;
+    try {
+      recorded = await recorder.stop();
+    } catch (_) {
+      recorded = null;
+    }
+    await recorder.dispose();
     String text = '';
     try {
-      final transcript = await _adapter.transcribe(
-        AudioRef(mediaUri: recorded, bytes: await File(recorded).readAsBytes()),
-      );
-      text = transcript?.text.trim() ?? '';
+      if (recorded != null) {
+        final transcript = await _adapter.transcribe(
+          AudioRef(
+            mediaUri: recorded,
+            bytes: await File(recorded).readAsBytes(),
+          ),
+        );
+        text = transcript?.text.trim() ?? '';
+      }
     } catch (_) {
       text = '';
     } finally {

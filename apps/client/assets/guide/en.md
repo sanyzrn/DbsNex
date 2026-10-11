@@ -86,7 +86,7 @@ Tap the smart summary to open or fold it and pull down to refresh it. Hold the g
 
 When an answer uses your notes, they appear under it as chips; tap one to open that note. With **Stay in my notes** off, an answer that comes from general knowledge instead says so.
 
-With Gemini or OpenAI as your provider, the **microphone** beside the message box lets you ask by voice: say what you want and it is sent as your message — "remind me tomorrow at nine to call the bank" — and anything it would change still waits for your confirmation. To check the words before they are sent, turn on **Check what I said before sending** in the assistant's settings.
+With Gemini or OpenAI as your provider, the **microphone** in the message bar (it shows while the box is empty) lets you ask by voice. The bar turns into a recording with the time and your voice as it is heard — **✕** cancels, **↑** sends. Say what you want and it is sent as your message — "remind me tomorrow at nine to call the bank" — and anything it would change still waits for your confirmation. To check the words before they are sent, turn on **Check what I said before sending** in the assistant's settings.
 
 ![The assistant opening](assistant.webp)
 
