@@ -5582,6 +5582,24 @@ abstract class AppLocalizations {
   /// **'Read the notes asked about'**
   String get chatLookedNotes;
 
+  /// No description provided for @chatLookedTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Looked at your tags'**
+  String get chatLookedTags;
+
+  /// No description provided for @chatLookedCommitments.
+  ///
+  /// In en, this message translates to:
+  /// **'Looked at your recurring items'**
+  String get chatLookedCommitments;
+
+  /// No description provided for @chatLookedDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Looked in Recently Deleted'**
+  String get chatLookedDeleted;
+
   /// Title of the on-device search model screen and its row in the intelligence settings.
   ///
   /// In en, this message translates to:

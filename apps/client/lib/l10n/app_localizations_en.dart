@@ -3458,6 +3458,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatLookedNotes => 'Read the notes asked about';
 
   @override
+  String get chatLookedTags => 'Looked at your tags';
+
+  @override
+  String get chatLookedCommitments => 'Looked at your recurring items';
+
+  @override
+  String get chatLookedDeleted => 'Looked in Recently Deleted';
+
+  @override
   String get searchModelTitle => 'On-device search';
 
   @override

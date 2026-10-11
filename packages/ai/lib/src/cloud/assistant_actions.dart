@@ -77,6 +77,19 @@ enum AssistantActionKind {
   /// only when the person has allowed the assistant to read it, and
   /// otherwise with a line saying it is not shared.
   cycle,
+
+  /// Reads: every tag, with how many notes wear it — so "tag it like the
+  /// others" or "which tags do I have" is answered from the real list.
+  tags,
+
+  /// Reads: the recurring items, each with how often and when it is next
+  /// due. The assistant could create, tick off and delete them, and had no
+  /// way to see them.
+  commitments,
+
+  /// Reads: what is in Recently Deleted, with ids, which is what `restore`
+  /// needs and could not be given.
+  deleted,
 }
 
 /// One thing the assistant has asked to do, already parsed and validated.
@@ -183,7 +196,10 @@ class AssistantAction {
   bool get isRead =>
       kind == AssistantActionKind.search ||
       kind == AssistantActionKind.threads ||
-      kind == AssistantActionKind.cycle;
+      kind == AssistantActionKind.cycle ||
+      kind == AssistantActionKind.tags ||
+      kind == AssistantActionKind.commitments ||
+      kind == AssistantActionKind.deleted;
 }
 
 /// The settings the assistant is allowed to change.
@@ -365,11 +381,29 @@ answer from what comes back:
 {"action": "search", "thread": "Trip"}
 ```
 
-To see which threads exist:
+To see which threads exist, which tags there are, the recurring items with
+when each is next due, or what is in Recently Deleted (the ids `restore`
+needs):
 
 ```nex
 {"action": "threads"}
 ```
+```nex
+{"action": "tags"}
+```
+```nex
+{"action": "commitments"}
+```
+```nex
+{"action": "deleted"}
+```
+
+How a note is listed below: `[id] type #tags (pinned; reminder set: …;
+in thread "…"; written YYYY-MM-DD): text` — the marks it does not have are
+left out. A note marked "reminder set" already has that
+reminder — never offer one it already has, and `remind` on it replaces it.
+"pinned" means it is already pinned. A checklist lists its items numbered
+`#0`, `#1`, … in their real order; `check` takes that number as `index`.
 
 When the user asks about their period or menstrual cycle, read their Cycle
 summary first and answer from it — it may say they have not shared it, in
@@ -379,8 +413,8 @@ which case tell them it can be allowed in Cycle's settings:
 {"action": "cycle"}
 ```
 
-Searches, the thread list and the Cycle summary are carried out at once and
-need no confirmation; everything else waits for the user.
+Searches and these lookups are carried out at once and need no
+confirmation; everything else waits for the user.
 
 Rules: nothing outside the block — no words, no emoji, no leading bullet,
 not even "Sure:". The app shows the user what you asked for and waits for
@@ -414,8 +448,8 @@ create {text | items[], at?, repeat?} · edit {id, text} · delete {id}
 tag {id, add[], remove[]} · merge {ids[], text} · to_checklist {id}
 check {id, index, done} · remind {id, at "YYYY-MM-DDTHH:MM" local, future;
 repeat once|daily|weekly; no at = cancel} · pin {id, pinned} · title {id, text}
-A note line marked "(reminder set: …)" already has that reminder: never
-offer to set one it already has, and `remind` on it replaces it.
+A note marked "reminder set" already has it (remind replaces it); "pinned"
+is pinned; "in thread" names its thread; check's index is the item's #number.
 restore {id} · rename_tag {tag, name} · tag_color {tag, color "#RRGGBB"}
 commitment {name, every, unit hours|days|weeks|months|years, at}
 commitment_met {name} · commitment_delete {name} · thread {ids[], name}
@@ -426,7 +460,7 @@ show_search|show_tags on|off, daily_nudge on|off, daily_nudge_time "HH:MM".
 delete, tag, pin, remind, restore, to_checklist and title take `ids` for
 several notes.
 Look things up first, and wait for the result: search {query} | {tag} |
-{thread}; threads {}.
+{thread}; threads {}; tags {}; commitments {}; deleted {}.
 For any question about their period, cycle, ovulation or pregnancy, send
 only this, unless their Cycle summary is already below:
 ```nex
@@ -667,6 +701,11 @@ AssistantAction? _action(Map<Object?, Object?> decoded) {
       ),
     'threads' => const AssistantAction(kind: AssistantActionKind.threads),
     'cycle' => const AssistantAction(kind: AssistantActionKind.cycle),
+    'tags' => const AssistantAction(kind: AssistantActionKind.tags),
+    'commitments' => const AssistantAction(
+      kind: AssistantActionKind.commitments,
+    ),
+    'deleted' => const AssistantAction(kind: AssistantActionKind.deleted),
     'thread'
         when _strings(decoded['ids']).isNotEmpty &&
             _string(decoded['name']) != null =>

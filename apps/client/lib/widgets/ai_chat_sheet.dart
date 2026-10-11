@@ -214,6 +214,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// cited, by id — what turns a cited id back into a chip with a name.
   final Map<String, Note> _notes = {};
 
+  /// The threads each note shown to the assistant is in, by name — see
+  /// `_knowThreads`. Cleared when the assistant adds notes to one.
+  final Map<String, List<String>> _threadsOf = {};
+
   /// The actions the assistant last asked for, waiting on the user.
   List<AssistantAction> _pending = const [];
 

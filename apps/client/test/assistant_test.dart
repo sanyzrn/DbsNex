@@ -61,6 +61,18 @@ void main() {
       expect(threads?.isRead, isTrue);
     });
 
+    test('the tags, the recurring items and Recently Deleted are reads', () {
+      for (final (wire, kind) in [
+        ('tags', AssistantActionKind.tags),
+        ('commitments', AssistantActionKind.commitments),
+        ('deleted', AssistantActionKind.deleted),
+      ]) {
+        final action = parseAssistantAction('{"action": "$wire"}');
+        expect(action?.kind, kind);
+        expect(action?.isRead, isTrue);
+      }
+    });
+
     test('reads a fenced action block', () {
       final action = parseAssistantAction('''
 ```nex
@@ -610,6 +622,23 @@ Sure, here you go:
           AiChatOptions(now: DateTime(2026, 3, 12, 14, 5)),
         ),
         isNot(contains('2026-03-12')),
+      );
+    });
+
+    test('the settings it may change are given as they are', () {
+      const settings = AiChatOptions(
+        canAct: true,
+        currentSettings: 'theme dark, text_size large',
+      );
+      expect(
+        adapter().chatSystemPrompt(settings),
+        contains('now: theme dark, text_size large.'),
+      );
+      expect(
+        adapter().chatSystemPrompt(
+          const AiChatOptions(currentSettings: 'theme dark'),
+        ),
+        isNot(contains('theme dark')),
       );
     });
 

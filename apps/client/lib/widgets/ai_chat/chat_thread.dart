@@ -387,6 +387,12 @@ class _LookupLine extends StatelessWidget {
         (Icons.forum_outlined, l10n.chatLookedThreads),
       if (findings.contains('Notes with '))
         (Icons.sticky_note_2_outlined, l10n.chatLookedNotes),
+      if (findings.contains('\nTags:\n'))
+        (Icons.label_outline, l10n.chatLookedTags),
+      if (findings.contains('\nRecurring:\n'))
+        (Icons.event_repeat, l10n.chatLookedCommitments),
+      if (findings.contains('\nRecently Deleted:\n'))
+        (Icons.delete_outline, l10n.chatLookedDeleted),
     ];
     if (what.isEmpty) what.add((Icons.search, l10n.chatLookedSearch));
     final color = theme.colorScheme.onSurfaceVariant;
