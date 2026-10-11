@@ -35,7 +35,16 @@ class NexSponsor {
     this.starts,
     this.ends,
     this.locales = const [],
+    this.minDays,
+    this.minNotes,
   });
+
+  /// How many days after Nex was first opened the card may appear, and how
+  /// many notes make it appear sooner — `minDaysInstalled` and `minNotes` in
+  /// the file. Whichever comes first. Null means the defaults in
+  /// [NexSponsorService]; 0 means no wait.
+  final int? minDays;
+  final int? minNotes;
 
   /// Stable across edits to the same campaign, because it is what a dismissal
   /// remembers. Changing it brings the card back for everyone who hid it,
@@ -97,11 +106,18 @@ class NexSponsor {
           for (final value in (root['locales'] as List<Object?>? ?? const []))
             if (value is String) value.toLowerCase(),
         ],
+        minDays: _count(root['minDaysInstalled']),
+        minNotes: _count(root['minNotes']),
       );
     } catch (_) {
       return null;
     }
   }
+
+  /// A whole number of zero or more, or null for anything else — a missing
+  /// field and a nonsense one both mean "the default".
+  static int? _count(Object? value) =>
+      value is int && value >= 0 ? value : null;
 
   /// Whether this card belongs on screen right now.
   ///
@@ -285,8 +301,37 @@ class NexSponsorService {
     return at != null && _now().difference(at) < maxAge;
   }
 
+  /// The days and notes a new install waits for, unless the file says
+  /// otherwise ([NexSponsor.minDays], [NexSponsor.minNotes]).
+  static const defaultMinDays = 10;
+  static const defaultMinNotes = 5;
+
+  /// Whether this phone has earned the card: [NexSponsor.minDays] since Nex
+  /// was first opened, *or* [NexSponsor.minNotes] notes — whichever comes
+  /// first. A new person's first days are for finding out what the app is,
+  /// not for being shown someone else's.
+  ///
+  /// Once earned it stays earned, so the card does not come and go as notes
+  /// are deleted, and deleting notes is not a way to hide it.
+  bool earned(NexSponsor sponsor, {required int notes}) {
+    if (preferences.sponsorEarned) return true;
+    var first = preferences.firstOpenedAt;
+    if (first == null) {
+      first = _now();
+      unawaited(preferences.markFirstOpened(first));
+    }
+    final days = sponsor.minDays ?? defaultMinDays;
+    final enough =
+        notes >= (sponsor.minNotes ?? defaultMinNotes) ||
+        _now().difference(first) >= Duration(days: days);
+    if (enough) unawaited(preferences.markSponsorEarned());
+    return enough;
+  }
+
   /// The card to draw, or null. The only method the timeline needs.
-  NexSponsor? visible({required String languageCode}) {
+  ///
+  /// [notes] is how many notes the library holds, for [earned].
+  NexSponsor? visible({required String languageCode, int notes = 0}) {
     // Stale is the same as absent. See [maxAge].
     if (!_fresh) return null;
     final sponsor = cached;
@@ -297,6 +342,7 @@ class NexSponsorService {
     // required and always says what it is. Only the first moments after
     // launch wait, while yesterday's picture is still being found on disk.
     if (sponsor.image != null && _image == null && !_imageSettled) return null;
+    if (!earned(sponsor, notes: notes)) return null;
     return sponsor.visibleAt(
           now: _now(),
           languageCode: languageCode,

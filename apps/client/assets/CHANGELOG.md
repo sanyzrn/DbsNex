@@ -42,6 +42,7 @@ Working convention:
 - **Private saved messages, redesigned.** Messages have room between them, are grouped by day and show their time, and the box and its buttons no longer touch. A photo opens full screen with zoom, as on the home screen; a file opens with a tap or goes to another app with its share icon; a voice message shows how far it has played. Tap a message for copy, open, share or delete.
 - **Everything about a bank card, on the card.** The number, name, CVV2 and expiry on its face, and the IBAN, account number, bank and notes beneath it on the same card — each copied with a tap, nothing listed twice.
 - **Nex's own camera in more places.** A receipt for a Recurring item and a photo in Private saved messages are now taken with the same camera panel as a photo note — and in private messages the photo goes straight into the vault, never into your notes.
+- **No sponsor card in your first days.** A new install sees none until it is ten days old or holds five notes, whichever comes first.
 
 ## v1.99.9
 

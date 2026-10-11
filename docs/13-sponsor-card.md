@@ -37,7 +37,9 @@ releases repository and used the same fallback.)
   "url": "https://nexahr.example",
   "starts": "2026-09-01T00:00:00Z",
   "ends": "2026-12-31T00:00:00Z",
-  "locales": ["fa"]
+  "locales": ["fa"],
+  "minDaysInstalled": 10,
+  "minNotes": 5
 }
 ```
 
@@ -51,6 +53,7 @@ releases repository and used the same fallback.)
 | `url` | no | Opened on tap. `https` and `http` only — anything else is ignored. A card with no link is still a card. |
 | `starts` / `ends` | no | ISO-8601. Outside the window, nothing appears. |
 | `locales` | no | Language codes, e.g. `["fa"]`. Empty or absent means everyone. A card written in Persian has no business appearing for an English reader. |
+| `minDaysInstalled` / `minNotes` | no | A new install sees no card until **either** this many days have passed since the timeline was first shown **or** it holds this many notes — whichever comes first. Absent means 10 and 5; `0` means no wait. Once a phone has earned the card it keeps it: deleting notes does not hide it again. Clearing the app's data starts the count over, along with the library. |
 
 ## Pictures
 

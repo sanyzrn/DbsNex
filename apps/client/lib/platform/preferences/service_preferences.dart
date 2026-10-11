@@ -9,6 +9,27 @@ mixin _ServicePreferences on _PreferencesStore {
   Future<void> setMetricsEnabled(bool value) =>
       _setBool('metrics.enabled', value);
 
+  static const _kFirstOpenedAt = 'app.first_opened_at';
+
+  /// When the timeline was first shown on this phone — in practice, the day
+  /// Nex was installed. Recorded by the sponsor card's first check rather
+  /// than at launch: a key written before onboarding would make a fresh
+  /// install look like an existing one. Clearing the app's data starts it
+  /// again, along with everything else.
+  DateTime? get firstOpenedAt {
+    final value = _prefs.getInt(_kFirstOpenedAt);
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
+  }
+
+  Future<void> markFirstOpened(DateTime at) =>
+      _prefs.setInt(_kFirstOpenedAt, at.millisecondsSinceEpoch);
+
+  /// Whether the sponsor card has been earned: once shown, it stays — deleting
+  /// notes does not take it away again (see NexSponsorService.earned).
+  bool get sponsorEarned => _prefs.getBool('sponsor.earned') ?? false;
+
+  Future<void> markSponsorEarned() => _setBool('sponsor.earned', true);
+
   /// The sponsor card's raw JSON as last fetched, or null for none.
   ///
   /// Stored as the file rather than as parsed fields: the parser is the one

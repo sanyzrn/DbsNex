@@ -179,7 +179,10 @@ void main() {
     late NexPreferences preferences;
 
     setUp(() async {
-      SharedPreferences.setMockInitialValues({});
+      SharedPreferences.setMockInitialValues({
+        // Past the new-install wait, which has its own group below.
+        'sponsor.earned': true,
+      });
       preferences = await NexPreferences.load();
     });
 
@@ -550,7 +553,10 @@ void main() {
     late NexPreferences preferences;
 
     setUp(() async {
-      SharedPreferences.setMockInitialValues({});
+      SharedPreferences.setMockInitialValues({
+        // Past the new-install wait, which has its own group below.
+        'sponsor.earned': true,
+      });
       preferences = await NexPreferences.load();
       final tmp = Directory.systemTemp.createTempSync('nex_sponsor_');
       addTearDown(() {
@@ -717,7 +723,10 @@ void main() {
     late NexPreferences preferences;
 
     setUp(() async {
-      SharedPreferences.setMockInitialValues({});
+      SharedPreferences.setMockInitialValues({
+        // Past the new-install wait, which has its own group below.
+        'sponsor.earned': true,
+      });
       preferences = await NexPreferences.load();
     });
 
@@ -756,6 +765,81 @@ void main() {
         now: () => now,
       );
       expect(s.visible(languageCode: 'en'), isNull);
+    });
+  });
+
+  // A new install sees no card for its first days, unless it already has a
+  // library: ten days, or five notes, whichever comes first.
+  group('earning the card', () {
+    late NexPreferences preferences;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      preferences = await NexPreferences.load();
+    });
+
+    NexSponsorService at(DateTime when) => NexSponsorService(
+      preferences: preferences,
+      client: MockClient((_) async => http.Response(card(), 200)),
+      now: () => when,
+    );
+
+    test('a new install with few notes waits', () async {
+      final service = at(now);
+      await service.refresh();
+      expect(service.visible(languageCode: 'en', notes: 4), isNull);
+      expect(preferences.firstOpenedAt?.isAtSameMomentAs(now), isTrue);
+      // Nine days on, still not.
+      expect(
+        at(
+          now.add(const Duration(days: 9)),
+        ).earned(NexSponsor.parse(card())!, notes: 0),
+        isFalse,
+      );
+    });
+
+    test('five notes earn it on the third day', () async {
+      final service = at(now);
+      await service.refresh();
+      expect(service.visible(languageCode: 'en', notes: 5)?.id, 'c1');
+    });
+
+    test('ten days earn it with no notes at all', () async {
+      await preferences.markFirstOpened(now);
+      final later = at(now.add(const Duration(days: 10)));
+      expect(later.earned(NexSponsor.parse(card())!, notes: 0), isTrue);
+    });
+
+    test('once earned, deleting notes does not take it away', () async {
+      final service = at(now);
+      await service.refresh();
+      expect(service.visible(languageCode: 'en', notes: 6), isNotNull);
+      await Future<void>.delayed(Duration.zero);
+      expect(preferences.sponsorEarned, isTrue);
+      expect(service.visible(languageCode: 'en', notes: 0), isNotNull);
+    });
+
+    test('the file can change both numbers', () async {
+      final sponsor = NexSponsor.parse(
+        jsonEncode({
+          ...jsonDecode(card()) as Map<String, Object?>,
+          'minDaysInstalled': 0,
+          'minNotes': 50,
+        }),
+      )!;
+      expect(sponsor.minDays, 0);
+      expect(sponsor.minNotes, 50);
+      expect(at(now).earned(sponsor, notes: 0), isTrue);
+      // Nonsense falls back to the defaults.
+      final odd = NexSponsor.parse(
+        jsonEncode({
+          ...jsonDecode(card()) as Map<String, Object?>,
+          'minDaysInstalled': -3,
+          'minNotes': 'five',
+        }),
+      )!;
+      expect(odd.minDays, isNull);
+      expect(odd.minNotes, isNull);
     });
   });
 }
