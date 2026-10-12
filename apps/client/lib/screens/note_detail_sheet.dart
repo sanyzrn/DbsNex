@@ -17,6 +17,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../documents/docx_markdown.dart';
 import '../documents/text_import.dart';
 import '../platform/hold_menu.dart';
+import '../platform/display_date.dart' show nexReadableDate;
 import '../l10n/app_localizations.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/dismiss_on_overscroll.dart';
@@ -65,10 +66,20 @@ class NoteDetailSheet extends StatefulWidget {
     this.focusAddTag = false,
     this.editOnOpen = false,
     this.runOnOpen,
+    this.initialNote,
   });
 
   final NexServices services;
   final String noteId;
+
+  /// The note as the card that opened this already had it, drawn on the
+  /// first frame while the fresh read happens underneath.
+  ///
+  /// Without it the sheet rose with a one-line skeleton in it, waited for
+  /// three reads from the database worker, and only then grew to the note's
+  /// height — a second movement after the first, and most of what made
+  /// opening a note feel slow.
+  final Note? initialNote;
 
   /// Optional, and only for the Ask action.
   ///
@@ -126,6 +137,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialNote case final note? when note.id == widget.noteId) {
+      _note = note;
+    }
     _reload();
     if (widget.editOnOpen) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -197,9 +211,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   }
 
   Future<void> _reload() async {
-    final loaded = await widget.services.getById(widget.noteId);
-    final pinnedNoteCount = await widget.services.pinnedNoteCount();
-    final threads = await widget.services.threadsForNote(widget.noteId);
+    // Together rather than one after another: three round trips to the
+    // database worker, none of which needs another's answer.
+    final (loaded, pinnedNoteCount, threads) = await (
+      widget.services.getById(widget.noteId),
+      widget.services.pinnedNoteCount(),
+      widget.services.threadsForNote(widget.noteId),
+    ).wait;
     if (!mounted) return;
     setState(() {
       _note = loaded;
@@ -317,21 +335,24 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     //
                     // A wrap, so at the largest text sizes the time moves under
                     // the type instead of running off the edge.
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      spacing: NexSpacing.md,
-                      children: [
-                        Text(
-                          l10n.noteType(note.type.wireName),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        Text(
-                          _formatTimestamp(note.createdAt),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+                    //
+                    // The type is a chip in its own colour — the colour its
+                    // card's square wears on the timeline, so the sheet reads
+                    // as that card opened — and the date has its month in
+                    // words and stops at the minute; the seconds are in
+                    // Details for whoever needs them.
+                    _DetailHeading(
+                      note: note,
+                      when: nexReadableDate(
+                        note.createdAt,
+                        solar: widget.services.solarCalendar,
+                        persian:
+                            Localizations.localeOf(context).languageCode ==
+                            'fa',
+                        time: true,
+                      ),
                     ),
-                    const SizedBox(height: NexSpacing.sm),
+                    const SizedBox(height: NexSpacing.md),
                     if (note.type == NoteType.checklist)
                       // The one place a checklist is interactive. On the card it
                       // is a picture of a list; here it is the list.

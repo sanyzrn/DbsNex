@@ -309,8 +309,13 @@ void main() {
     expect(find.text('now'), findsNothing);
     await tester.tap(find.text('brand new'));
     await tester.pumpAndSettle();
+    // At the top of the sheet: the day with its month in words, and the
+    // minute. The seconds are in Details, for whoever needs them.
     expect(
-      find.textContaining(RegExp(r'^\d{4}/\d{2}/\d{2}  \d{2}:\d{2}:\d{2}$')),
+      find.textContaining(
+        RegExp(r'\d{1,2} [A-Za-z]+ \d{4} · \d{2}:\d{2}$'),
+        findRichText: true,
+      ),
       findsOneWidget,
     );
   });

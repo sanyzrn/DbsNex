@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.50
+
+- **Notes open faster.** A note's sheet now opens with the note already in it — it used to rise with a placeholder and wait for the library before growing to fit — and it rises in about a third less time.
+- **A clearer top to every note.** The sheet opens on its type in the colour its card wears, and the date with the month in words and the time to the minute; the exact time to the second is still under Details.
+- **Days fold like a fan.** Folding a day — by tapping its heading or pinching the timeline — now moves its notes one after another: opening, they fan out from the heading and settle into place; closing, the lowest go first and the rest fold up after them.
+
 ## v1.99.40
 
 - **A first run that shows instead of tells.** The welcome pages are new: the octopus catches the pieces of a day as they drift in, notes land on a small timeline with nothing to save, a search finds «کتاب» even when it is typed with Arabic letters, and a lock closes round all of it. Each picture plays once and holds still while you read. Six pages became four, with a bar showing how far along you are.

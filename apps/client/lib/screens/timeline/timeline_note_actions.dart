@@ -391,6 +391,7 @@ extension _TimelineNoteActions on TimelineScreenState {
         services: widget.services,
         preferences: widget.preferences,
         noteId: note.id,
+        initialNote: note,
       ),
     );
     if (result == DetailResult.deleted) await deleteWithUndo(note);

@@ -208,3 +208,81 @@ class _DetailAction extends StatelessWidget {
     );
   }
 }
+
+/// The top of a note: what kind it is, in its colour, and when it was made.
+class _DetailHeading extends StatelessWidget {
+  const _DetailHeading({required this.note, required this.when});
+
+  final Note note;
+  final String when;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final type = note.type.wireName;
+    final tint = nexNoteTypeTint(type, scheme);
+    // A wrap, so at the largest text sizes the time moves under the type
+    // instead of running off the edge.
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: NexSpacing.md,
+      runSpacing: NexSpacing.xs,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: nexNoteTypeWash(type, scheme),
+            borderRadius: BorderRadius.circular(NexRadius.pill),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(nexNoteTypeIcon(type), size: 16, color: tint),
+                const SizedBox(width: 6),
+                // The word in the page's ink; the colour is the glyph's and
+                // the wash's. The accent itself on its own wash is under
+                // 3:1 for text.
+                Flexible(
+                  child: Text(
+                    l10n.noteType(type),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+                if (note.pinnedAt != null) ...[
+                  const SizedBox(width: 6),
+                  Icon(Icons.push_pin, size: 13, color: tint),
+                ],
+              ],
+            ),
+          ),
+        ),
+        // One run of text with the clock inside it, so at the largest sizes
+        // it wraps rather than running off the sheet.
+        Text.rich(
+          TextSpan(
+            children: [
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: Icon(
+                  Icons.schedule,
+                  size: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              TextSpan(text: ' $when'),
+            ],
+          ),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}

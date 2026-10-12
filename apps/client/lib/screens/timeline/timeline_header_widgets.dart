@@ -108,51 +108,6 @@ class _TodayLine extends StatelessWidget {
     'Sunday',
   ];
 
-  static const _faGregorianMonths = [
-    'ژانویه',
-    'فوریه',
-    'مارس',
-    'آوریل',
-    'مه',
-    'ژوئن',
-    'ژوئیه',
-    'اوت',
-    'سپتامبر',
-    'اکتبر',
-    'نوامبر',
-    'دسامبر',
-  ];
-  static const _enGregorianMonths = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
-  /// "20 Mehr 1405" or "12 October 2026" — the month in words, which reads at
-  /// a glance where "1405/07/20" has to be worked out.
-  String _date(DateTime day, {required bool persian}) {
-    if (solar) {
-      final d = nexPersianDate(day);
-      final month = persian
-          ? nexPersianMonthNames[d.month - 1]
-          : nexPersianMonthNamesLatin[d.month - 1];
-      return nexDigits('${d.day} $month ${d.year}', persian: persian);
-    }
-    final month = persian
-        ? _faGregorianMonths[day.month - 1]
-        : _enGregorianMonths[day.month - 1];
-    return nexDigits('${day.day} $month ${day.year}', persian: persian);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -160,8 +115,8 @@ class _TodayLine extends StatelessWidget {
     final persian = Localizations.localeOf(context).languageCode == 'fa';
     final now = DateTime.now();
     final text = persian
-        ? '${_faDays[now.weekday - 1]}، ${_date(now, persian: true)}'
-        : '${_enDays[now.weekday - 1]}, ${_date(now, persian: false)}';
+        ? '${_faDays[now.weekday - 1]}، ${nexReadableDate(now, solar: solar, persian: true)}'
+        : '${_enDays[now.weekday - 1]}, ${nexReadableDate(now, solar: solar, persian: false)}';
     return Row(
       children: [
         Container(

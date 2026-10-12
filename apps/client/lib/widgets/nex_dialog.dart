@@ -28,13 +28,16 @@ class NexDialogBody extends StatelessWidget {
   }
 }
 
-/// How a note and the assistant rise into view: the ordinary sheet, a touch
-/// slower and softer than Flutter's default, so it reads as one smooth
-/// movement rather than a snap. In 1.90 a note grew out of its card instead;
-/// the owner preferred this.
+/// How a note and the assistant rise into view: the ordinary sheet on a soft
+/// ease-out, so it reads as one smooth movement rather than a snap. In 1.90 a
+/// note grew out of its card instead; the owner preferred this.
+///
+/// 300ms, down from 460. The curve does the softening — most of the travel is
+/// in the first third — so the extra 160ms bought no smoothness, only a wait
+/// between the tap and the words, which is the part people notice.
 const nexSheetRise = AnimationStyle(
-  duration: Duration(milliseconds: 460),
-  reverseDuration: Duration(milliseconds: 260),
+  duration: Duration(milliseconds: 300),
+  reverseDuration: Duration(milliseconds: 220),
   curve: Curves.easeOutCubic,
 );
 
