@@ -16,6 +16,13 @@ import 'package:path/path.dart' as p;
 import 'support/nex_harness.dart';
 
 /// Several files on one note — `docs/14-attachments.md`, as seen in the app.
+/// A hold let go where it was: the tile flies home, then its menu opens.
+Future<void> settleHold(WidgetTester tester) async {
+  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 300));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   late NexTestHarness harness;
 
@@ -98,7 +105,7 @@ void main() {
     await openNote(tester, note.id);
 
     await tester.longPress(find.byKey(ValueKey('attachment-${attachment.id}')));
-    await tester.pumpAndSettle();
+    await settleHold(tester);
     await tester.tap(find.byKey(const ValueKey('attachment-remove')));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),
@@ -168,7 +175,7 @@ void main() {
 
     // Held and let go where it was: the menu, with a step to the end.
     await tester.longPress(find.byKey(ValueKey('attachment-${made[1].id}')));
-    await tester.pumpAndSettle();
+    await settleHold(tester);
     expect(find.byKey(const ValueKey('attachment-earlier')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('attachment-later')));
     await tester.runAsync(
@@ -227,7 +234,7 @@ void main() {
     await openNote(tester, note.id);
 
     await tester.longPress(find.byKey(ValueKey('attachment-${file.id}')));
-    await tester.pumpAndSettle();
+    await settleHold(tester);
     for (final action in ['share', 'save', 'rename', 'detach']) {
       expect(find.byKey(ValueKey('attachment-$action')), findsOneWidget);
     }

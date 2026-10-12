@@ -7,6 +7,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'nex_dialog.dart';
+import 'steady_position.dart';
 
 /// A voice clip attached to a note, played where it is: a sheet with one
 /// large play button, how far along it is, its caption and, once it has been
@@ -30,6 +31,8 @@ class VoiceClipSheet extends StatefulWidget {
 
 class _VoiceClipSheetState extends State<VoiceClipSheet> {
   final _player = AudioPlayer();
+  late final _steady = NexSteadyPosition(_player);
+  StreamSubscription<PlayerState>? _ended;
   Duration _total = Duration.zero;
   bool _failed = false;
 
@@ -37,6 +40,12 @@ class _VoiceClipSheetState extends State<VoiceClipSheet> {
   void initState() {
     super.initState();
     _total = Duration(milliseconds: widget.attachment.durationMs ?? 0);
+    // At the end: back to the start, with Play on the button.
+    _ended = _player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed && state.playing) {
+        unawaited(_steady.rewind());
+      }
+    });
     unawaited(_load());
   }
 
@@ -55,6 +64,7 @@ class _VoiceClipSheetState extends State<VoiceClipSheet> {
 
   @override
   void dispose() {
+    unawaited(_ended?.cancel());
     unawaited(_player.dispose());
     super.dispose();
   }
@@ -99,9 +109,9 @@ class _VoiceClipSheetState extends State<VoiceClipSheet> {
               StreamBuilder<PlayerState>(
                 stream: _player.playerStateStream,
                 builder: (context, state) {
-                  final playing = state.data?.playing ?? false;
-                  final done =
-                      state.data?.processingState == ProcessingState.completed;
+                  final playing =
+                      (state.data?.playing ?? false) &&
+                      state.data?.processingState != ProcessingState.completed;
                   return Row(
                     children: [
                       IconButton.filled(
@@ -111,23 +121,22 @@ class _VoiceClipSheetState extends State<VoiceClipSheet> {
                             ? l10n.vaultAttachPause
                             : l10n.vaultAttachPlay,
                         onPressed: () async {
-                          if (playing && !done) {
+                          if (playing) {
                             await _player.pause();
                           } else {
-                            if (done) await _player.seek(Duration.zero);
-                            await _player.play();
+                            await _steady.play();
                           }
                         },
-                        icon: Icon(
-                          playing && !done ? Icons.pause : Icons.play_arrow,
-                        ),
+                        icon: Icon(playing ? Icons.pause : Icons.play_arrow),
                       ),
                       const SizedBox(width: NexSpacing.md),
                       Expanded(
                         child: StreamBuilder<Duration>(
                           stream: _player.positionStream,
                           builder: (context, position) {
-                            final at = position.data ?? Duration.zero;
+                            final at = _steady.of(
+                              position.data ?? Duration.zero,
+                            );
                             final whole = _total.inMilliseconds;
                             final fraction = whole <= 0
                                 ? 0.0

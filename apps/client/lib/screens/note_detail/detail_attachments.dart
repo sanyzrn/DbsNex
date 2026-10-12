@@ -307,6 +307,10 @@ class _AttachmentStrip extends StatefulWidget {
 
   static const _side = 88.0;
 
+  /// How long a dropped tile takes to fly back into its place — Flutter's
+  /// own drop animation, plus a frame.
+  static const _settle = Duration(milliseconds: 270);
+
   @override
   State<_AttachmentStrip> createState() => _AttachmentStripState();
 }
@@ -347,11 +351,20 @@ class _AttachmentStripState extends State<_AttachmentStrip> {
         },
         // Told the slot it was dropped in, before the move itself: the slot
         // it was picked up from means it never went anywhere.
+        //
+        // The menu waits for the lifted tile to settle back: it flies home in
+        // the list's own overlay, and a sheet opened at once had the tile
+        // pass over it on the way.
         onReorderEnd: (slot) {
           final from = _pickedFrom;
           _pickedFrom = null;
           if (from == null || slot != from) return;
-          widget.onHold(attachments[from]);
+          final held = attachments[from];
+          unawaited(
+            Future<void>.delayed(_AttachmentStrip._settle, () {
+              if (mounted) widget.onHold(held);
+            }),
+          );
         },
         proxyDecorator: (child, index, animation) => AnimatedBuilder(
           animation: animation,

@@ -108,6 +108,43 @@ void main() {
     );
   });
 
+  test('when nothing stands out, only the plainly close few come back', () {
+    // A library like a real one: every note leans the same way, and none
+    // of them is about the query more than the others.
+    final rnd = Random(3);
+    const dims = 32;
+    for (var i = 0; i < 40; i++) {
+      addNote('n$i');
+      repo.setEmbedding('n$i', [
+        for (var d = 0; d < dims; d++)
+          (d == 0 ? 1.0 : 0.0) + (rnd.nextDouble() * 2 - 1) * 0.3,
+      ]);
+    }
+    final query = [
+      for (var d = 0; d < dims; d++) d == 0 ? 0.8 : (d == 1 ? 0.6 : 0.0),
+    ];
+    final found = repo.nearestEmbeddings(
+      query,
+      limit: 20,
+      minScore: 0.5,
+      standout: true,
+    );
+    expect(found, isNotEmpty, reason: 'meaning search does not go silent');
+    expect(found.length, lessThanOrEqualTo(3));
+    for (final hit in found) {
+      expect(hit.score, greaterThanOrEqualTo(0.6));
+    }
+    // A query nothing is close to still finds nothing.
+    expect(
+      repo.nearestEmbeddings(
+        [for (var d = 0; d < dims; d++) d == 2 ? 1.0 : 0.0],
+        minScore: 0.5,
+        standout: true,
+      ),
+      isEmpty,
+    );
+  });
+
   test('re-embedding and edits keep the index in step', () {
     addNote('a');
     addNote('b');

@@ -26,6 +26,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/relative_span.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/dismiss_on_overscroll.dart';
+import '../widgets/steady_position.dart';
 import '../widgets/ai_chat_sheet.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/file_opener.dart';
@@ -147,8 +148,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   AudioPlayer? _player;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  NexSteadyPosition? _steady;
+  bool _playerLoading = false;
   StreamSubscription<Duration>? _posSub;
   StreamSubscription<Duration?>? _durSub;
+  StreamSubscription<PlayerState>? _stateSub;
 
   @override
   void initState() {
@@ -222,6 +226,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   void dispose() {
     _posSub?.cancel();
     _durSub?.cancel();
+    _stateSub?.cancel();
     _player?.dispose();
     super.dispose();
   }
@@ -247,7 +252,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     // A voice note, and now a music file someone shared in as well. Both are a
     // path to something the bundled player already decodes, and there was
     // never a reason for the second to be a filename and a byte count.
-    if (note != null && note.mediaUri != null && _player == null) {
+    if (note != null &&
+        note.mediaUri != null &&
+        _player == null &&
+        !_playerLoading) {
       final playable =
           note.type == NoteType.voice ||
           (note.type == NoteType.file &&
@@ -257,21 +265,41 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     }
   }
 
+  /// One player per sheet. A note just recorded reloads several times while
+  /// it is read and transcribed, and each reload used to start loading
+  /// another player before the first had finished — the bar then followed
+  /// one while the button drove the other.
   Future<void> _initPlayer(String uri) async {
     if (!File(uri).existsSync()) return;
+    _playerLoading = true;
     final player = AudioPlayer();
     try {
       await player.setFilePath(uri);
+      if (!mounted) {
+        await player.dispose();
+        return;
+      }
+      final steady = NexSteadyPosition(player);
       _player = player;
+      _steady = steady;
       _posSub = player.positionStream.listen((p) {
-        if (mounted) setState(() => _position = p);
+        if (mounted) setState(() => _position = steady.of(p));
       });
       _durSub = player.durationStream.listen((d) {
         if (mounted && d != null) setState(() => _duration = d);
       });
-      if (mounted) setState(() {});
+      // At the end: back to the start, with Play on the button.
+      _stateSub = player.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed &&
+            state.playing) {
+          unawaited(steady.rewind());
+        }
+      });
+      setState(() {});
     } catch (_) {
       await player.dispose();
+    } finally {
+      _playerLoading = false;
     }
   }
 

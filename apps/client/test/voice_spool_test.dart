@@ -41,6 +41,26 @@ void main() {
     expect(NexVoiceSpool.adtsDurationMs(Uint8List(0)), 0);
   });
 
+  test('the encoder\'s setup frame is told apart from audio', () {
+    // What the recorder sends first: the two-byte AudioSpecificConfig in an
+    // ADTS frame of its own, which as audio no decoder can play.
+    expect(
+      NexVoiceSpool.isSetupFrame(Uint8List.fromList(adtsFrame(payload: 2))),
+      isTrue,
+    );
+    expect(
+      NexVoiceSpool.isSetupFrame(Uint8List.fromList(adtsFrame())),
+      isFalse,
+    );
+    // A short frame of real audio — near silence — is still audio.
+    expect(
+      NexVoiceSpool.isSetupFrame(Uint8List.fromList(adtsFrame(payload: 6))),
+      isFalse,
+    );
+    // Not ADTS at all.
+    expect(NexVoiceSpool.isSetupFrame(Uint8List.fromList([1, 2, 3])), isFalse);
+  });
+
   group('on the next launch', () {
     late Directory tmp;
     late InProcessDb db;

@@ -186,7 +186,7 @@ class _FileBody extends StatelessWidget {
   ///
   /// Owned by the sheet rather than created here: the player outlives any one
   /// rebuild, and a second one on the same note would play the file twice.
-  final AudioPlayer? player;
+  final NexSteadyPosition? player;
   final Duration position;
   final Duration duration;
 
@@ -211,7 +211,7 @@ class _FileBody extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.only(top: NexSpacing.sm),
         child: _VoicePlayerControls(
-          player: player!,
+          steady: player!,
           position: position,
           duration: duration,
         ),

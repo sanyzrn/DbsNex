@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'keyboard_dismisser.dart';
 
 /// How tall the search field's sliver is: the field itself plus its padding.
 const nexSearchHeaderExtent = nexMinTapTarget + NexSpacing.xs + NexSpacing.sm;
@@ -85,50 +86,61 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   ) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    return ClipRect(
-      child: TapRegion(
-        // A tap anywhere outside the field closes search the same way the X
-        // button does — the X was the only way out, so leaving search meant
-        // aiming for one small target instead of just tapping whatever you
-        // meant to look at. A result card shares [nexSearchTapGroup] with
-        // this region precisely so tapping *it* does not count as "outside":
-        // that tap fires on pointer-down, before the card's own onTap would
-        // resolve, so without the group the card never got a chance to open
-        // — search silently closed back to the timeline instead.
-        groupId: nexSearchTapGroup,
-        onTapOutside: (_) {
-          if (searching) onClear();
-        },
-        // No backing behind the row. The tag row below this one needs one,
-        // because it is pinned and the list genuinely runs beneath it; this
-        // header is not pinned and never has anything behind it — it scrolls
-        // away with the list like any other item. Painted anyway, it was a
-        // band of flat colour drawn straight across whatever background the
-        // reader had chosen, which is the same thing that was wrong with the
-        // tag row's and is more obvious here because this strip is taller.
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            NexSpacing.md,
-            NexSpacing.xs,
-            NexSpacing.md,
-            NexSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Expanded(child: _pill(context, l10n, scheme)),
-              // Gives its room to the field as search opens, rather than
-              // vanishing on the frame the field is tapped.
-              if (trailing case final trailing?)
-                _Reveal(
-                  shown: !searching,
-                  child: Padding(
-                    padding: const EdgeInsetsDirectional.only(
-                      start: NexSpacing.sm,
+    // While typing, the first touch outside the field only puts the
+    // keyboard away (ADR-038) — on a result, on the empty screen, anywhere:
+    // the results are under the reader's thumb, and a touch meant to close
+    // the keyboard opened a note or closed the search instead. With the
+    // keyboard down, a result opens and anywhere else leaves.
+    return NexGuardedField(
+      focusNode: focusNode,
+      child: ClipRect(
+        child: TapRegion(
+          // A tap anywhere outside the field closes search the same way the X
+          // button does — the X was the only way out, so leaving search meant
+          // aiming for one small target instead of just tapping whatever you
+          // meant to look at. A result card shares [nexSearchTapGroup] with
+          // this region precisely so tapping *it* does not count as "outside":
+          // that tap fires on pointer-down, before the card's own onTap would
+          // resolve, so without the group the card never got a chance to open
+          // — search silently closed back to the timeline instead.
+          groupId: nexSearchTapGroup,
+          onTapOutside: (_) {
+            // The touch that closed the keyboard is not also the one that
+            // leaves: the keyboard is still on its way down when it arrives.
+            if (View.of(context).viewInsets.bottom > 0) return;
+            if (searching) onClear();
+          },
+          // No backing behind the row. The tag row below this one needs one,
+          // because it is pinned and the list genuinely runs beneath it; this
+          // header is not pinned and never has anything behind it — it scrolls
+          // away with the list like any other item. Painted anyway, it was a
+          // band of flat colour drawn straight across whatever background the
+          // reader had chosen, which is the same thing that was wrong with the
+          // tag row's and is more obvious here because this strip is taller.
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.md,
+              NexSpacing.xs,
+              NexSpacing.md,
+              NexSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                Expanded(child: _pill(context, l10n, scheme)),
+                // Gives its room to the field as search opens, rather than
+                // vanishing on the frame the field is tapped.
+                if (trailing case final trailing?)
+                  _Reveal(
+                    shown: !searching,
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        start: NexSpacing.sm,
+                      ),
+                      child: trailing,
                     ),
-                    child: trailing,
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -268,42 +280,46 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                   ),
                   _Reveal(
                     shown: searching,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          tooltip: l10n.showFilters,
-                          iconSize: 20,
-                          visualDensity: VisualDensity.compact,
-                          onPressed: onShowFilters,
-                          icon: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              const Icon(Icons.tune),
-                              if (filterCount > 0)
-                                PositionedDirectional(
-                                  end: -2,
-                                  top: -2,
-                                  child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: scheme.primary,
-                                      shape: BoxShape.circle,
+                    // Part of the field, for the keyboard's sake: filters and
+                    // the way out answer the first touch, typing or not.
+                    child: TextFieldTapRegion(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: l10n.showFilters,
+                            iconSize: 20,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: onShowFilters,
+                            icon: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                const Icon(Icons.tune),
+                                if (filterCount > 0)
+                                  PositionedDirectional(
+                                    end: -2,
+                                    top: -2,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: scheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          tooltip: l10n.clear,
-                          iconSize: 20,
-                          visualDensity: VisualDensity.compact,
-                          onPressed: onClear,
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
+                          IconButton(
+                            tooltip: l10n.clear,
+                            iconSize: 20,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: onClear,
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

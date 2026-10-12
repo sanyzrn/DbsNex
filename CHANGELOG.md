@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.91
+
+- **Meaning search speaks again.** Since 1.99.82 it could find nothing at all. When no note stands out for a search, the few notes plainly close to it are shown again — still only those, and still after the notes with your words.
+- **Search waits for the keyboard.** While you type in the search, the first touch outside the field only closes the keyboard — it no longer opens a result or closes the search by accident. Then a result opens with a tap, the field brings the keyboard back, and a touch anywhere else leaves the search.
+- **Save to device works for every item again.** A photo — a note's own or an attached one — and a note of words (saved as Markdown) said "Couldn't save"; they now go wherever you choose, as files and recordings already did.
+- **Voice notes play.** A voice note just recorded could play nothing at all: its first moment was the recorder's setup, written as if it were sound. New recordings start with the sound itself. At the end of a recording the button turns back to Play and the next tap starts from the beginning.
+- **The progress bar stays put.** Playing a voice note or an attached recording, the bar no longer runs ahead for a moment and snaps back to the start.
+- **Holding an attachment.** The held tile settles back into its place before its menu opens, instead of passing over the menu.
+- **Nex's diagnostics can be shared to Nex.** Sending the diagnostics file from **About** to Nex itself makes a note of it, instead of a warning.
+- A photo whose file is missing shows as missing in the viewer, instead of being logged as an error.
+
 ## v1.99.90
 
 - **Attachments, grown up.** Photos open in one gallery with every photo of the note — swipe between them, with each caption at the bottom and where you are at the top. Tiles show what each file is: a PDF by its first page, a video by a frame, a voice clip by its length, any other file by its kind and extension, and a photo's caption along its bottom. The **Attached** row says how many files there are and how much room they take.

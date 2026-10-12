@@ -43,6 +43,9 @@ class NexVoiceSpool {
   final _done = Completer<void>();
   DateTime _flushed = DateTime.now();
 
+  /// Whether a frame of real audio has been written yet.
+  bool _heard = false;
+
   /// Starts [recorder] writing into [mediaDir].
   static Future<NexVoiceSpool> start(
     AudioRecorder recorder,
@@ -71,6 +74,13 @@ class NexVoiceSpool {
 
   void _write(Uint8List frame) {
     final file = _file!;
+    if (!_heard) {
+      // The first frame the recorder sends is the encoder's setup, framed
+      // as audio. Written down, it opened every voice note with a frame no
+      // decoder can play, and some players then played nothing at all.
+      if (isSetupFrame(frame)) return;
+      _heard = true;
+    }
     try {
       file.writeFromSync(frame);
       // To the disk about once a second: what a dying process can lose is
@@ -151,6 +161,18 @@ class NexVoiceSpool {
     final aac = '$base.aac';
     source.renameSync(aac);
     return aac;
+  }
+
+  /// Whether [frame] is an ADTS frame carrying no audio — two bytes or
+  /// fewer after its header, which is the encoder's setup block.
+  static bool isSetupFrame(Uint8List frame) {
+    if (frame.length < 7) return false;
+    if (frame[0] != 0xFF || (frame[1] & 0xF0) != 0xF0) return false;
+    // No CRC when the protection-absent bit is set: a 7-byte header, else 9.
+    final header = (frame[1] & 0x01) == 1 ? 7 : 9;
+    final length =
+        ((frame[3] & 0x03) << 11) | (frame[4] << 3) | (frame[5] >> 5);
+    return length - header <= 2;
   }
 
   /// How long the ADTS stream in [bytes] plays, from its frame headers.

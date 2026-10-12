@@ -3,13 +3,13 @@ part of '../note_detail_sheet.dart';
 class _VoicePlayerControls extends StatelessWidget {
   const _VoicePlayerControls({
     this.path,
-    required this.player,
+    required this.steady,
     required this.position,
     required this.duration,
   });
 
   final String? path;
-  final AudioPlayer player;
+  final NexSteadyPosition steady;
   final Duration position;
   final Duration duration;
 
@@ -32,18 +32,22 @@ class _VoicePlayerControls extends StatelessWidget {
         Row(
           children: [
             StreamBuilder<PlayerState>(
-              stream: player.playerStateStream,
+              stream: steady.player.playerStateStream,
               builder: (context, snap) {
-                final playing = snap.data?.playing ?? false;
+                // A clip played to its end is not playing, whatever the
+                // player's own flag says until it is rewound.
+                final playing =
+                    (snap.data?.playing ?? false) &&
+                    snap.data?.processingState != ProcessingState.completed;
                 return IconButton.filled(
                   tooltip: playing
                       ? AppLocalizations.of(context).pauseAudio
                       : AppLocalizations.of(context).playAudio,
                   onPressed: () {
                     if (playing) {
-                      player.pause();
+                      unawaited(steady.player.pause());
                     } else {
-                      player.play();
+                      unawaited(steady.play());
                     }
                   },
                   icon: Icon(playing ? Icons.pause : Icons.play_arrow),
@@ -57,7 +61,7 @@ class _VoicePlayerControls extends StatelessWidget {
                 value: position.inMilliseconds.clamp(0, totalMs).toDouble(),
                 max: totalMs.toDouble(),
                 onChanged: (v) =>
-                    player.seek(Duration(milliseconds: v.round())),
+                    unawaited(steady.seek(Duration(milliseconds: v.round()))),
               ),
             ),
             Text(
