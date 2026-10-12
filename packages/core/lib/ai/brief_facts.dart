@@ -154,7 +154,11 @@ NexBriefFacts nexBriefFacts(
       final left = items.where((item) => !item.done).length;
       if (left > 0) {
         unfinished.add(
-          NexBriefEntry(title: title, remaining: left, total: items.length),
+          NexBriefEntry(
+            title: title,
+            remaining: left,
+            total: items.length,
+          ),
         );
       }
     }
