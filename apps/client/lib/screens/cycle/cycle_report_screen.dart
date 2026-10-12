@@ -97,7 +97,7 @@ class _CycleReportScreenState extends State<CycleReportScreen> {
     );
     final jpeg = img.encodeJpg(picture, quality: 88);
     final pdf = nexImagePdf([(jpeg: jpeg, width: width, height: height)]);
-    final folder = await Directory.systemTemp.createTemp('nex-report-');
+    final folder = await nexStagingFolder('nex-report-');
     final file = File('${folder.path}${Platform.pathSeparator}report.pdf');
     await file.writeAsBytes(pdf, flush: true);
     return file;

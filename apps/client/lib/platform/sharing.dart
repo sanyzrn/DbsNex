@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'photo_metadata.dart';
@@ -236,7 +237,7 @@ Future<XFile> _shareable(
     final bytes = await File(path).readAsBytes();
     final clean = jpegWithoutMetadata(bytes);
     if (identical(clean, bytes)) return original;
-    final folder = await Directory.systemTemp.createTemp('nex-share-');
+    final folder = await nexStagingFolder('nex-share-');
     staged.add(folder);
     final copy = File(
       '${folder.path}${Platform.pathSeparator}'
@@ -247,6 +248,24 @@ Future<XFile> _shareable(
   } catch (_) {
     return original;
   }
+}
+
+/// A fresh folder for a copy on its way out of the app — a photo stripped of
+/// where it was taken, a note written out as Markdown.
+///
+/// In the app's own cache, which the save channel accepts as the app's
+/// storage. Dart's temporary folder on Android is `code_cache`, and the
+/// channel refused it: "Save to device" failed for every photo and every
+/// note of words. The system temporary folder is only the fallback, for a
+/// platform without path_provider (tests).
+Future<Directory> nexStagingFolder(String prefix) async {
+  Directory base;
+  try {
+    base = await getTemporaryDirectory();
+  } catch (_) {
+    base = Directory.systemTemp;
+  }
+  return base.createTemp(prefix);
 }
 
 void _cleanUp(List<Directory> staged) {
@@ -388,7 +407,7 @@ Future<SaveOutcome?> nexSaveNoteToDevice(Note note) async {
         staged: staged,
       )).path;
     } else {
-      final folder = await Directory.systemTemp.createTemp('nex-save-');
+      final folder = await nexStagingFolder('nex-save-');
       staged.add(folder);
       final file = File(
         '${folder.path}${Platform.pathSeparator}${target.name}',
