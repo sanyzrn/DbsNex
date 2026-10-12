@@ -1992,33 +1992,18 @@ class AppLocalizationsFa extends AppLocalizations {
   String get onboardingStart => 'شروع کنیم';
 
   @override
-  String get onboardingWelcomeTitle => 'جایی برای زمین گذاشتن';
+  String get onboardingWelcomeTitle => 'به نکس خوش آمدید';
 
   @override
   String get onboardingWelcomeBody =>
-      'هر چیزی در Nex بگذارید، می‌ماند. چیز دیگری از شما خواسته نمی‌شود — نه حسابی، نه صندوقی که باید خالیش کنید.';
+      'یک جای آرام برای هر چه در ذهن دارید — نوشته، گفته، عکس، یا چیزی که از هر اپی می‌فرستید. بدون حساب کاربری، و بدون هیچ کاری پیش از شروع.';
 
   @override
   String get onboardingCaptureTitle => 'دکمهٔ ذخیره‌ای در کار نیست';
 
   @override
   String get onboardingCaptureBody =>
-      'بنویسید، بگویید یا عکس بگیرید. یادداشت همان لحظه که می‌سازید مال شماست و بالای همان یک فهرست می‌نشیند — لازم نیست اول جایی برایش دسته‌بندی کنید.';
-
-  @override
-  String get onboardingIntelligenceTitle =>
-      'می‌تواند آنچه ثبت می‌کنید را بخواند';
-
-  @override
-  String get onboardingIntelligenceBody =>
-      'صدا متن می‌شود، متن داخل عکس‌ها درمی‌آید و برچسب‌ها خودشان پیشنهاد می‌شوند. تا وقتی در تنظیمات سرویسی اضافه نکنید خاموش است — بقیهٔ اپ بدون آن هم کار می‌کند.';
-
-  @override
-  String get onboardingSilenceTitle => 'هیچ‌وقت مزاحمتان نمی‌شود';
-
-  @override
-  String get onboardingSilenceBody =>
-      'یادآورها اختیاری‌اند. پیامی برای تشویق شما به بازگشت نمی‌فرستیم. هوش مصنوعی ابری و همگام‌سازی تنها پس از تنظیم و استفادهٔ شما اطلاعات را ارسال می‌کنند.';
+      'بنویسید، بگویید، عکس بگیرید یا از اپ دیگری بفرستید. یادداشت همان لحظه که چیزی در آن هست وجود دارد و بالای یک خط زمانی می‌نشیند — لازم نیست اول پوشه‌ای انتخاب کنید.';
 
   @override
   String get onboardingSetupTitle => 'چند انتخاب کوتاه';
@@ -2026,9 +2011,6 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get onboardingSetupBody =>
       'همهٔ این‌ها بعداً در تنظیمات هستند و هیچ‌کدام همیشگی نیست.';
-
-  @override
-  String get onboardingNameRequired => 'Nex باید بداند شما را چه صدا کند.';
 
   @override
   String get checklist => 'چک‌لیست';
@@ -3897,18 +3879,11 @@ class AppLocalizationsFa extends AppLocalizations {
   String get guideUnavailable => 'راهنما باز نشد.';
 
   @override
-  String get onboardingFilesTitle => 'هرچه بهش بدهی';
-
-  @override
-  String get onboardingFilesBody =>
-      'یک سند، یک پی‌دی‌اف، یک آهنگ یا یک عکس را به نکس بفرستید — خودِ آن چیز را نشانتان می‌دهد، نه فقط اسم فایل را.';
-
-  @override
   String get onboardingYoursTitle => 'مال خودتان می‌ماند';
 
   @override
   String get onboardingYoursBody =>
-      'نه حساب کاربری، نه سرور، و با اینترنتِ قطع هم کار می‌کند. اگر خواستید پشت اثر انگشتتان قفلش کنید، و هر وقت خواستید همه‌اش را بیرون ببرید.';
+      'نه حساب کاربری، نه سرور: یادداشت‌ها روی همین گوشی می‌مانند و بی‌اینترنت هم کار می‌کنند. اپ را با اثر انگشت قفل کنید، رمزها و کارت‌ها را در صندوق خصوصی نگه دارید و از همه‌چیز نسخهٔ پشتیبانِ رمزگذاری‌شده در پوشه‌ای که خودتان انتخاب می‌کنید بگیرید. بدون امتیاز و یادآوری‌های مزاحم.';
 
   @override
   String get onboardingGuideTitle => 'نمی‌دانید چیزی کجاست؟';
@@ -3919,6 +3894,49 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get onboardingGuideOpen => 'راهنما را بخوان';
+
+  @override
+  String get onboardingFindTitle => 'دوباره پیدایش کنید';
+
+  @override
+  String get onboardingFindBody =>
+      'جست‌وجو فارسی را همان‌طور که نوشته می‌شود می‌خواند — ی یا ي، نیم‌فاصله، عدد فارسی یا لاتین — و وقتی چیزی دقیقاً پیدا نشود، نزدیک‌ترین یادداشت را پیشنهاد می‌دهد. برچسب، رشته و سنجاق هم برای بعد هست، اگر خواستید.';
+
+  @override
+  String get onboardingFindQuery => 'كتاب';
+
+  @override
+  String get onboardingFindMatch => 'کتاب';
+
+  @override
+  String get onboardingFindResultA =>
+      'کتاب «صد سال تنهایی» را از کتابخانه بگیرم';
+
+  @override
+  String get onboardingFindResultB => 'فهرست کتاب‌های امسال';
+
+  @override
+  String get onboardingFindAi => 'هوش مصنوعی اختیاری و خاموش است';
+
+  @override
+  String get onboardingYoursOffline => 'بی‌اینترنت';
+
+  @override
+  String get onboardingYoursLock => 'قفل اثر انگشت';
+
+  @override
+  String get onboardingYoursVault => 'صندوق خصوصی';
+
+  @override
+  String get onboardingYoursBackup => 'پشتیبانِ رمزگذاری‌شده';
+
+  @override
+  String get onboardingSetupPreview => 'نکس این‌طور به شما سلام می‌کند';
+
+  @override
+  String onboardingStep(int step, int total) {
+    return 'قدم $step از $total';
+  }
 
   @override
   String get addLink => 'افزودن پیوند';

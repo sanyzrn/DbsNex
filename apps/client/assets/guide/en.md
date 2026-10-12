@@ -2,6 +2,8 @@
 
 Nex is the fastest way to put something down and find it again: a thought, a photo, a recording, a file or a link, all in one stream. Everything stays on this phone unless you choose otherwise, and the library works completely without AI.
 
+The first time you open Nex, four short pages show what it does, and a last one asks for your name, theme and language — with the greeting your name buys drawn above them as you type. Nothing there is required: **Skip** goes straight to the timeline, and every choice is in **Settings** later.
+
 ## Capture something
 
 Tap **+** at the centre of the bottom bar and choose text, checklist, voice, photo, file or link. Quick text and new checklists have no Save button: they are kept when you close their sheet, and clearing the box before you close it removes what you started.
@@ -16,7 +18,7 @@ Without opening Nex first: add the **Nex capture** tile to your Quick Settings (
 
 ## The home timeline
 
-Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again. Once you scroll down, the day of the notes you are passing stays named under the filters. Tap a card and it opens into the note; **Settings → Appearance → Card size** makes cards compact, standard or easier to read.
+Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again. Once you scroll down, the day of the notes you are passing stays named under the filters. Each card's square takes its note type's colour — text in your theme's accent, voice violet, checklists teal, links amber, photos rose and files grey — and the notes of one day are joined by a thin thread down their squares. Tap a card and it opens into the note; **Settings → Appearance → Card size** makes cards compact, standard or easier to read.
 
 Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Delete** by default. **Settings → Gestures and menus** can add any action from a note's details — Share, Add tag, Translate and the rest — to the hold menu, or take some away, with one tap on each. Up to five notes can be pinned to the top. Swipe a card from either edge for the actions you chose on the same page: tap an action under each edge, and the small card above shows what each swipe will uncover. The bottom bar holds, from left to right: **Tools**, **Recurring**, **+**, **Library** and **Settings**.
 

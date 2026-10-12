@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.40
+
+- **A first run that shows instead of tells.** The welcome pages are new: the octopus catches the pieces of a day as they drift in, notes land on a small timeline with nothing to save, a search finds «کتاب» even when it is typed with Arabic letters, and a lock closes round all of it. Each picture plays once and holds still while you read. Six pages became four, with a bar showing how far along you are.
+- **Your greeting, before you start.** The last welcome page draws the top of the timeline live: type your name and Nex greets you by it, in the theme and language you are picking, so you can see what each answer changes.
+- **Each kind of note has its colour.** On every card the square beside the note takes its type's colour — text in your theme's accent, voice violet, checklists teal, links amber, photos rose, files grey — so a day's voice notes and lists stand out at a glance. The empty timeline's three ways in wear the same colours.
+- **A day reads as one strand.** The notes under each date are joined by a thin thread down their squares, and the date headings are bolder and easier to scan.
+
 ## v1.99.30
 
 - **Sharing no longer says "could not be stored" over a share that was saved.** An older share whose file could no longer be read stayed waiting in Nex and was tried again under every new share, so each one reported a failure while its note was already in the timeline. Only the share you just made is reported now, and one that keeps failing is let go after a few tries.

@@ -3311,13 +3311,13 @@ abstract class AppLocalizations {
   /// Onboarding page 1 heading
   ///
   /// In en, this message translates to:
-  /// **'Somewhere to put it down'**
+  /// **'Welcome to Nex'**
   String get onboardingWelcomeTitle;
 
   /// Onboarding page 1 body
   ///
   /// In en, this message translates to:
-  /// **'Anything you put in Nex is kept. Nothing else is asked of you — no account, no inbox to clear, nothing to keep up with.'**
+  /// **'One calm place for everything on your mind — written, spoken, photographed or shared from any app. No account, and nothing to set up first.'**
   String get onboardingWelcomeBody;
 
   /// Onboarding page 2 heading
@@ -3329,32 +3329,8 @@ abstract class AppLocalizations {
   /// Onboarding page 2 body
   ///
   /// In en, this message translates to:
-  /// **'Type it, say it, or photograph it. A note is yours the moment you make it, and it goes to the top of one list — no folders to file it into first.'**
+  /// **'Type it, say it, photograph it or share it from another app. A note exists the moment it has something in it, and it lands at the top of one timeline — no folders to choose first.'**
   String get onboardingCaptureBody;
-
-  /// Onboarding page 3 heading
-  ///
-  /// In en, this message translates to:
-  /// **'It can read what you capture'**
-  String get onboardingIntelligenceTitle;
-
-  /// Onboarding page 3 body
-  ///
-  /// In en, this message translates to:
-  /// **'Voice becomes text, photos give up their words, and tags suggest themselves. This part is off until you add a provider in Settings — everything else works without it.'**
-  String get onboardingIntelligenceBody;
-
-  /// Onboarding page 4 heading
-  ///
-  /// In en, this message translates to:
-  /// **'It will never interrupt you'**
-  String get onboardingSilenceTitle;
-
-  /// Onboarding page 4 body
-  ///
-  /// In en, this message translates to:
-  /// **'Reminders are optional. No engagement prompts or streaks. Cloud AI and syncing send data only when you configure and use them.'**
-  String get onboardingSilenceBody;
 
   /// Onboarding page 5 heading
   ///
@@ -3367,12 +3343,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All of these live in Settings afterwards, and none of them are permanent.'**
   String get onboardingSetupBody;
-
-  /// Validation message under the required name field on the last onboarding page
-  ///
-  /// In en, this message translates to:
-  /// **'Nex needs something to call you.'**
-  String get onboardingNameRequired;
 
   /// Capture type: a list of tickable items
   ///
@@ -6368,18 +6338,6 @@ abstract class AppLocalizations {
   /// **'The guide could not be opened.'**
   String get guideUnavailable;
 
-  /// Onboarding page title about files
-  ///
-  /// In en, this message translates to:
-  /// **'Whatever you throw at it'**
-  String get onboardingFilesTitle;
-
-  /// Onboarding page body about files
-  ///
-  /// In en, this message translates to:
-  /// **'Share a document, a PDF, a song or a picture into Nex and it shows you the thing itself — not just a filename.'**
-  String get onboardingFilesBody;
-
   /// Onboarding page title about privacy
   ///
   /// In en, this message translates to:
@@ -6389,7 +6347,7 @@ abstract class AppLocalizations {
   /// Onboarding page body about privacy
   ///
   /// In en, this message translates to:
-  /// **'No account, no server, and it works with the plane on. Lock it behind your fingerprint if you like, and export the lot whenever you want.'**
+  /// **'No account and no server: your notes live on this phone and work offline. Lock the app with your fingerprint, keep passwords and cards in a private vault, and back up — encrypted — to a folder you choose. No streaks, no nagging.'**
   String get onboardingYoursBody;
 
   /// Heading above the guide link on the last onboarding step
@@ -6409,6 +6367,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read the guide'**
   String get onboardingGuideOpen;
+
+  /// Onboarding page heading about search
+  ///
+  /// In en, this message translates to:
+  /// **'Find it again'**
+  String get onboardingFindTitle;
+
+  /// Onboarding page body about search
+  ///
+  /// In en, this message translates to:
+  /// **'Search reads Persian the way it is typed — either form of a letter, the half-space, Persian or Latin digits — and offers the closest note when nothing matches. Tags, threads and pins are there for later, if you want them.'**
+  String get onboardingFindBody;
+
+  /// What the search field types in the onboarding illustration. Persian uses the Arabic spelling on purpose, to show it still matches.
+  ///
+  /// In en, this message translates to:
+  /// **'book'**
+  String get onboardingFindQuery;
+
+  /// The word highlighted in the onboarding illustration results; must appear in both results.
+  ///
+  /// In en, this message translates to:
+  /// **'book'**
+  String get onboardingFindMatch;
+
+  /// First search result in the onboarding illustration
+  ///
+  /// In en, this message translates to:
+  /// **'Borrow a book from the library on Saturday'**
+  String get onboardingFindResultA;
+
+  /// Second search result in the onboarding illustration
+  ///
+  /// In en, this message translates to:
+  /// **'Books to read this year'**
+  String get onboardingFindResultB;
+
+  /// Chip under the search illustration in onboarding
+  ///
+  /// In en, this message translates to:
+  /// **'AI is optional, and off by default'**
+  String get onboardingFindAi;
+
+  /// Point on the onboarding privacy page
+  ///
+  /// In en, this message translates to:
+  /// **'Works offline'**
+  String get onboardingYoursOffline;
+
+  /// Point on the onboarding privacy page
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint lock'**
+  String get onboardingYoursLock;
+
+  /// Point on the onboarding privacy page
+  ///
+  /// In en, this message translates to:
+  /// **'Private vault'**
+  String get onboardingYoursVault;
+
+  /// Point on the onboarding privacy page
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted backup'**
+  String get onboardingYoursBackup;
+
+  /// Caption over the live greeting preview on the last onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'How Nex will greet you'**
+  String get onboardingSetupPreview;
+
+  /// Screen-reader label for the onboarding progress bar
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step} of {total}'**
+  String onboardingStep(int step, int total);
 
   /// Title of the dialog asking where a link should point
   ///

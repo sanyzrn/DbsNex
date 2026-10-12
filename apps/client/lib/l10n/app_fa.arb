@@ -864,11 +864,11 @@
   "@onboardingStart": {
     "description": "Onboarding button on the last page that finishes setup"
   },
-  "onboardingWelcomeTitle": "جایی برای زمین گذاشتن",
+  "onboardingWelcomeTitle": "به نکس خوش آمدید",
   "@onboardingWelcomeTitle": {
     "description": "Onboarding page 1 heading"
   },
-  "onboardingWelcomeBody": "هر چیزی در Nex بگذارید، می‌ماند. چیز دیگری از شما خواسته نمی‌شود — نه حسابی، نه صندوقی که باید خالیش کنید.",
+  "onboardingWelcomeBody": "یک جای آرام برای هر چه در ذهن دارید — نوشته، گفته، عکس، یا چیزی که از هر اپی می‌فرستید. بدون حساب کاربری، و بدون هیچ کاری پیش از شروع.",
   "@onboardingWelcomeBody": {
     "description": "Onboarding page 1 body"
   },
@@ -876,25 +876,9 @@
   "@onboardingCaptureTitle": {
     "description": "Onboarding page 2 heading"
   },
-  "onboardingCaptureBody": "بنویسید، بگویید یا عکس بگیرید. یادداشت همان لحظه که می‌سازید مال شماست و بالای همان یک فهرست می‌نشیند — لازم نیست اول جایی برایش دسته‌بندی کنید.",
+  "onboardingCaptureBody": "بنویسید، بگویید، عکس بگیرید یا از اپ دیگری بفرستید. یادداشت همان لحظه که چیزی در آن هست وجود دارد و بالای یک خط زمانی می‌نشیند — لازم نیست اول پوشه‌ای انتخاب کنید.",
   "@onboardingCaptureBody": {
     "description": "Onboarding page 2 body"
-  },
-  "onboardingIntelligenceTitle": "می‌تواند آنچه ثبت می‌کنید را بخواند",
-  "@onboardingIntelligenceTitle": {
-    "description": "Onboarding page 3 heading"
-  },
-  "onboardingIntelligenceBody": "صدا متن می‌شود، متن داخل عکس‌ها درمی‌آید و برچسب‌ها خودشان پیشنهاد می‌شوند. تا وقتی در تنظیمات سرویسی اضافه نکنید خاموش است — بقیهٔ اپ بدون آن هم کار می‌کند.",
-  "@onboardingIntelligenceBody": {
-    "description": "Onboarding page 3 body"
-  },
-  "onboardingSilenceTitle": "هیچ‌وقت مزاحمتان نمی‌شود",
-  "@onboardingSilenceTitle": {
-    "description": "Onboarding page 4 heading"
-  },
-  "onboardingSilenceBody": "یادآورها اختیاری‌اند. پیامی برای تشویق شما به بازگشت نمی‌فرستیم. هوش مصنوعی ابری و همگام‌سازی تنها پس از تنظیم و استفادهٔ شما اطلاعات را ارسال می‌کنند.",
-  "@onboardingSilenceBody": {
-    "description": "Onboarding page 4 body"
   },
   "onboardingSetupTitle": "چند انتخاب کوتاه",
   "@onboardingSetupTitle": {
@@ -903,10 +887,6 @@
   "onboardingSetupBody": "همهٔ این‌ها بعداً در تنظیمات هستند و هیچ‌کدام همیشگی نیست.",
   "@onboardingSetupBody": {
     "description": "Onboarding page 5 body"
-  },
-  "onboardingNameRequired": "Nex باید بداند شما را چه صدا کند.",
-  "@onboardingNameRequired": {
-    "description": "Validation message under the required name field on the last onboarding page"
   },
   "checklist": "چک‌لیست",
   "@checklist": {
@@ -1479,13 +1459,37 @@
   "guideTitle": "نکس چطور کار می‌کند",
   "guideSubtitle": "هرچه اپ انجام می‌دهد، یک‌جا",
   "guideUnavailable": "راهنما باز نشد.",
-  "onboardingFilesTitle": "هرچه بهش بدهی",
-  "onboardingFilesBody": "یک سند، یک پی‌دی‌اف، یک آهنگ یا یک عکس را به نکس بفرستید — خودِ آن چیز را نشانتان می‌دهد، نه فقط اسم فایل را.",
   "onboardingYoursTitle": "مال خودتان می‌ماند",
-  "onboardingYoursBody": "نه حساب کاربری، نه سرور، و با اینترنتِ قطع هم کار می‌کند. اگر خواستید پشت اثر انگشتتان قفلش کنید، و هر وقت خواستید همه‌اش را بیرون ببرید.",
+  "onboardingYoursBody": "نه حساب کاربری، نه سرور: یادداشت‌ها روی همین گوشی می‌مانند و بی‌اینترنت هم کار می‌کنند. اپ را با اثر انگشت قفل کنید، رمزها و کارت‌ها را در صندوق خصوصی نگه دارید و از همه‌چیز نسخهٔ پشتیبانِ رمزگذاری‌شده در پوشه‌ای که خودتان انتخاب می‌کنید بگیرید. بدون امتیاز و یادآوری‌های مزاحم.",
   "onboardingGuideTitle": "نمی‌دانید چیزی کجاست؟",
   "onboardingGuideBody": "راهنما همه‌چیز را قدم‌به‌قدم می‌گوید، و همیشه در تنظیمات هست.",
   "onboardingGuideOpen": "راهنما را بخوان",
+  "onboardingFindTitle": "دوباره پیدایش کنید",
+  "@onboardingFindTitle": {"description": "Onboarding page heading about search"},
+  "onboardingFindBody": "جست‌وجو فارسی را همان‌طور که نوشته می‌شود می‌خواند — ی یا ي، نیم‌فاصله، عدد فارسی یا لاتین — و وقتی چیزی دقیقاً پیدا نشود، نزدیک‌ترین یادداشت را پیشنهاد می‌دهد. برچسب، رشته و سنجاق هم برای بعد هست، اگر خواستید.",
+  "@onboardingFindBody": {"description": "Onboarding page body about search"},
+  "onboardingFindQuery": "كتاب",
+  "@onboardingFindQuery": {"description": "What the search field types in the onboarding illustration. Persian uses the Arabic spelling on purpose, to show it still matches."},
+  "onboardingFindMatch": "کتاب",
+  "@onboardingFindMatch": {"description": "The word highlighted in the onboarding illustration results; must appear in both results."},
+  "onboardingFindResultA": "کتاب «صد سال تنهایی» را از کتابخانه بگیرم",
+  "@onboardingFindResultA": {"description": "First search result in the onboarding illustration"},
+  "onboardingFindResultB": "فهرست کتاب‌های امسال",
+  "@onboardingFindResultB": {"description": "Second search result in the onboarding illustration"},
+  "onboardingFindAi": "هوش مصنوعی اختیاری و خاموش است",
+  "@onboardingFindAi": {"description": "Chip under the search illustration in onboarding"},
+  "onboardingYoursOffline": "بی‌اینترنت",
+  "@onboardingYoursOffline": {"description": "Point on the onboarding privacy page"},
+  "onboardingYoursLock": "قفل اثر انگشت",
+  "@onboardingYoursLock": {"description": "Point on the onboarding privacy page"},
+  "onboardingYoursVault": "صندوق خصوصی",
+  "@onboardingYoursVault": {"description": "Point on the onboarding privacy page"},
+  "onboardingYoursBackup": "پشتیبانِ رمزگذاری‌شده",
+  "@onboardingYoursBackup": {"description": "Point on the onboarding privacy page"},
+  "onboardingSetupPreview": "نکس این‌طور به شما سلام می‌کند",
+  "@onboardingSetupPreview": {"description": "Caption over the live greeting preview on the last onboarding step"},
+  "onboardingStep": "قدم {step} از {total}",
+  "@onboardingStep": {"description": "Screen-reader label for the onboarding progress bar", "placeholders": {"step": {"type": "int"}, "total": {"type": "int"}}},
   "addLink": "افزودن پیوند",
   "linkAddress": "نشانی",
   "remindSetIn": "یادآور تنظیم شد — {when} دیگر",

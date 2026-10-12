@@ -1185,6 +1185,41 @@ IconData nexNoteTypeIcon(String? wireName) => switch (wireName) {
   _ => Icons.all_inclusive_outlined,
 };
 
+/// The colour for a note type, and the only place one is chosen.
+///
+/// Every card's leading square used to be the same grey with the same grey
+/// glyph, so a timeline of ten notes was ten identical marks and the type —
+/// the thing the square is there to say — had to be read glyph by glyph. A
+/// colour per type says it before the glyph is read: the voice notes, the
+/// lists, the links pick themselves out of a day at a glance.
+///
+/// Text, the type most of a timeline is, takes the palette's own accent, so
+/// a timeline still looks like the theme that was chosen; the rest have
+/// fixed hues — the same six the Tools and Settings shelves use — in a
+/// lighter tone on the dark theme.
+Color nexNoteTypeTint(String? wireName, ColorScheme scheme) {
+  final dark = scheme.brightness == Brightness.dark;
+  Color hue(int light, int night) => Color(dark ? night : light);
+  return switch (wireName) {
+    'voice' => hue(0xFF6B4FC8, 0xFFB7A4F4),
+    'photo' => hue(0xFFC2456A, 0xFFF29AB3),
+    'file' => hue(0xFF55606E, 0xFFB4BDC8),
+    'checklist' => hue(0xFF1F8A7A, 0xFF6FD3C2),
+    'link' => hue(0xFFB7791F, 0xFFF2C46D),
+    _ => scheme.primary,
+  };
+}
+
+/// The fill behind a type's glyph: a wash of its colour over the card's
+/// usual square.
+Color nexNoteTypeWash(String? wireName, ColorScheme scheme) => Color.alphaBlend(
+  nexNoteTypeTint(
+    wireName,
+    scheme,
+  ).withValues(alpha: scheme.brightness == Brightness.dark ? 0.2 : 0.13),
+  scheme.surfaceContainerHighest,
+);
+
 double nexContrastRatio(Color a, Color b) {
   final high = math.max(a.computeLuminance(), b.computeLuminance());
   final low = math.min(a.computeLuminance(), b.computeLuminance());

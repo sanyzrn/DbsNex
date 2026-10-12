@@ -63,15 +63,11 @@ class EmptyTimeline extends StatelessWidget {
                 // The note type's own glyph, not a capture verb's: these are
                 // previews of cards, and the card a text note arrives as
                 // carries the text glyph.
-                _Ghost(nexNoteTypeIcon('text'), l10n.emptyType, onWrite),
+                _Ghost('text', l10n.emptyType, onWrite),
                 const SizedBox(height: NexSpacing.sm),
-                _Ghost(nexNoteTypeIcon('voice'), l10n.emptySpeak, onSpeak),
+                _Ghost('voice', l10n.emptySpeak, onSpeak),
                 const SizedBox(height: NexSpacing.sm),
-                _Ghost(
-                  nexNoteTypeIcon('photo'),
-                  l10n.emptyPhotograph,
-                  onPhotograph,
-                ),
+                _Ghost('photo', l10n.emptyPhotograph, onPhotograph),
                 const SizedBox(height: NexSpacing.md),
                 Text(l10n.emptyNoSave, style: theme.textTheme.bodySmall),
                 const SizedBox(height: NexSpacing.xs),
@@ -97,9 +93,14 @@ class EmptyTimeline extends StatelessWidget {
 /// same inset, the same leading square at the same corner. It was drawn a
 /// couple of points off on every one of those, so the shape the empty screen
 /// promised was not quite the shape the first note arrived in.
+///
+/// In the type's own colour, as the card it becomes is — see
+/// [nexNoteTypeTint].
 class _Ghost extends StatelessWidget {
-  const _Ghost(this.icon, this.label, this.onTap);
-  final IconData icon;
+  const _Ghost(this.type, this.label, this.onTap);
+
+  /// The note type's wire name.
+  final String type;
   final String label;
   final VoidCallback? onTap;
   @override
@@ -128,7 +129,9 @@ class _Ghost extends StatelessWidget {
       padding: const EdgeInsets.all(NexSpacing.sm),
       decoration: BoxDecoration(
         border: Border.all(
-          color: onTap == null ? scheme.outline : scheme.primary,
+          color: onTap == null
+              ? scheme.outline
+              : nexNoteTypeTint(type, scheme).withValues(alpha: 0.6),
         ),
         borderRadius: radius,
       ),
@@ -138,15 +141,21 @@ class _Ghost extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest,
+              color: nexNoteTypeWash(type, scheme),
               // Matches the real leading icon box — NexRadius.cardLeading.
               borderRadius: BorderRadius.circular(NexRadius.cardLeading),
             ),
-            child: Icon(icon),
+            child: Icon(
+              nexNoteTypeIcon(type),
+              size: 18,
+              color: nexNoteTypeTint(type, scheme),
+            ),
           ),
           const SizedBox(width: NexSpacing.contentGap),
           Expanded(
-            child: Divider(color: scheme.secondary.withValues(alpha: 0.3)),
+            child: Divider(
+              color: nexNoteTypeTint(type, scheme).withValues(alpha: 0.3),
+            ),
           ),
           const SizedBox(width: NexSpacing.contentGap),
           Text(label, style: Theme.of(context).textTheme.bodySmall),
