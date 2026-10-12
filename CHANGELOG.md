@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.81
+
+- **Search keeps what you typed on top.** Notes that contain your words now always come first, in the order they first appear, and no longer move when the search by meaning answers a moment later. Notes found only by meaning follow them — only the few closest, marked as before. Before, a note that merely resembled the query could sit above the notes that held the words, and a long tail of unrelated notes was listed as found by meaning.
+- **Search by meaning, stricter.** It now keeps only matches close to its best one, and the on-device search model needs a closer match than before, so a query with nothing related in your notes is no longer answered with unrelated ones.
+- **Opening search, visible.** The field now lights up with a soft glow in your accent colour, and the results rise into place one after another.
+
 ## v1.99.80
 
 - **Share several files into Nex at once.** Choose several photos or files in your gallery or file manager and share them to Nex: they become one note — the first is the note, the rest are attached to it. Before, Nex was not even offered for more than one file.

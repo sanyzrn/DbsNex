@@ -18,14 +18,25 @@ class FusionFacts {
 /// One ranked list from the two ways Nex finds a note (W2.2).
 ///
 /// Keyword search (FTS5, best match first) and meaning search (embeddings,
-/// most similar first) used to be two separate answers: the second only
-/// appeared when the first found nothing. They are now fused with
-/// reciprocal-rank fusion — each list gives a note `1 / (k + rank)`, and a
-/// note both lists found gets both — which needs no calibration between a
-/// BM25 score and a cosine, only their orders.
+/// most similar first) give one list in two tiers:
 ///
-/// Two small nudges follow, each worth a few places near the top and never
-/// enough to lift a weak match over a strong one:
+/// 1. **The notes that contain the words**, in the keyword order. A note
+///    that has what was typed is the surest answer there is, and it stays
+///    where the first, instant results put it: the list no longer jumps when
+///    the meaning search answers a moment later.
+/// 2. **Then the notes found only by meaning**, best first, and only a few
+///    of them ([meaningOnlyWithWords] under keyword results,
+///    [meaningOnlyAlone] when the words found nothing).
+///
+/// This replaced reciprocal-rank fusion of the two lists. RRF scores a
+/// list's first place the same whichever list it is in, so a note that
+/// merely resembled the query sat level with the best keyword match and
+/// above every keyword match after it — and a meaning search answers for
+/// every query, near or not, so the notes that actually held the words were
+/// pushed down the list by ones that did not (the owner's report, 1.99.80).
+///
+/// Within a tier, two small nudges settle near-ties, each worth a place or
+/// two and never more:
 ///
 /// - **Recency.** Of two equally good matches, the newer is more likely the
 ///   one being looked for; the nudge halves every [recencyHalfLife].
@@ -35,14 +46,24 @@ class FusionFacts {
 class FusedRanking {
   const FusedRanking._();
 
-  /// The standard RRF constant: large enough that rank 1 and rank 2 are not
-  /// worlds apart, small enough that the top of a list still leads.
+  /// The rank constant: large enough that rank 1 and rank 2 are not worlds
+  /// apart, so the nudges below can settle a near-tie between them.
   static const k = 60;
 
-  static const recencyWeight = 0.004;
+  /// Sized against the gap between neighbouring places at the top
+  /// (1/61 − 1/62 ≈ 0.00026): a few places at most. It used to be 0.004,
+  /// worth ten places, and a newer note with one passing mention climbed
+  /// over older notes that were about the query.
+  static const recencyWeight = 0.0008;
   static const recencyHalfLife = Duration(days: 60);
   static const typeWeight = 0.003;
-  static const pinnedWeight = 0.002;
+  static const pinnedWeight = 0.0005;
+
+  /// How many notes found only by meaning follow the keyword results.
+  static const meaningOnlyWithWords = 5;
+
+  /// And how many make the list when the words found nothing.
+  static const meaningOnlyAlone = 12;
 
   static const _typeWords = <NoteType, List<String>>{
     NoteType.photo: ['photo', 'photos', 'picture', 'image', 'عکس', 'تصویر'],
@@ -75,43 +96,42 @@ class FusedRanking {
     required DateTime now,
     String query = '',
   }) {
-    final scores = <String, double>{};
-    // Where each note first appeared, keyword list first: the last word on a
-    // tie, so equal scores keep the order the lists gave them rather than
-    // whatever an unstable sort leaves.
-    final seen = <String, int>{};
-    void add(List<String> ranked) {
-      for (var i = 0; i < ranked.length; i++) {
-        final id = ranked[i];
-        if (!facts.containsKey(id)) continue;
-        scores[id] = (scores[id] ?? 0) + 1 / (k + i + 1);
-        seen.putIfAbsent(id, () => seen.length);
-      }
-    }
-
-    add(keyword);
-    add(semantic);
     final named = typesNamedIn(query);
     final halfLifeDays = recencyHalfLife.inHours / 24;
-    for (final id in scores.keys.toList()) {
-      final fact = facts[id]!;
-      final ageDays = now.difference(fact.createdAt).inHours / 24;
-      var score = scores[id]!;
-      score +=
-          recencyWeight *
-          math.pow(0.5, ageDays < 0 ? 0 : ageDays / halfLifeDays);
-      if (named.contains(fact.type)) score += typeWeight;
-      if (fact.pinned) score += pinnedWeight;
-      scores[id] = score;
-    }
-    final ordered = scores.keys.toList()
-      ..sort((a, b) {
+
+    // One tier: its own order, nudged.
+    List<String> rank(List<String> ids) {
+      final scores = <String, double>{};
+      final seen = <String, int>{};
+      for (var i = 0; i < ids.length; i++) {
+        final id = ids[i];
+        if (!facts.containsKey(id) || scores.containsKey(id)) continue;
+        final fact = facts[id]!;
+        final ageDays = now.difference(fact.createdAt).inHours / 24;
+        var score = 1 / (k + i + 1);
+        score +=
+            recencyWeight *
+            math.pow(0.5, ageDays < 0 ? 0 : ageDays / halfLifeDays);
+        if (named.contains(fact.type)) score += typeWeight;
+        if (fact.pinned) score += pinnedWeight;
+        scores[id] = score;
+        seen[id] = i;
+      }
+      return scores.keys.toList()..sort((a, b) {
         final byScore = scores[b]!.compareTo(scores[a]!);
         if (byScore != 0) return byScore;
         final byDate = facts[b]!.createdAt.compareTo(facts[a]!.createdAt);
         if (byDate != 0) return byDate;
         return seen[a]!.compareTo(seen[b]!);
       });
-    return ordered;
+    }
+
+    final byWords = rank(keyword);
+    final found = byWords.toSet();
+    final byMeaning = rank([
+      for (final id in semantic)
+        if (!found.contains(id)) id,
+    ]).take(byWords.isEmpty ? meaningOnlyAlone : meaningOnlyWithWords);
+    return [...byWords, ...byMeaning];
   }
 }

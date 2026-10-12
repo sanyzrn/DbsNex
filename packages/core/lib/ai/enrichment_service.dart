@@ -225,6 +225,10 @@ class EnrichmentService {
 
   double get _floor => _embedder?.minSimilarity ?? _minSemanticSimilarity;
 
+  /// How far below the best meaning match another may score and still be
+  /// shown. Cosine similarity, so the same for every model.
+  static const semanticMargin = 0.08;
+
   /// Semantic search by meaning. Results are separate from keyword FTS.
   Future<List<SemanticHit>> semanticSearch(
     String query, {
@@ -236,13 +240,21 @@ class EnrichmentService {
     try {
       final queryVec = await _queryVector(q);
       if (queryVec == null) return const [];
+      final hits = _repo.nearestEmbeddings(
+        queryVec,
+        limit: limit,
+        minScore: _floor,
+      );
+      if (hits.isEmpty) return const [];
+      // Only the hits near the best one. A meaning search answers every
+      // query, related or not, and its scores bunch together: past the
+      // notes that are about the query comes a long tail that is merely
+      // the same language, the same length, the same app.
+      final cut = hits.first.score - semanticMargin;
       return [
-        for (final hit in _repo.nearestEmbeddings(
-          queryVec,
-          limit: limit,
-          minScore: _floor,
-        ))
-          SemanticHit(noteId: hit.noteId, score: hit.score),
+        for (final hit in hits)
+          if (hit.score >= cut)
+            SemanticHit(noteId: hit.noteId, score: hit.score),
       ];
     } catch (_) {
       return const [];

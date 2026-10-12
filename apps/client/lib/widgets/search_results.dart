@@ -185,6 +185,13 @@ List<Widget> searchResultSlivers({
       ),
     SliverList.builder(
       itemCount: search.results.length,
+      // A result that stays in the list as the query grows keeps its place
+      // and its state, rather than playing its entrance again.
+      findChildIndexCallback: (key) {
+        if (key is! ValueKey<String>) return null;
+        final at = search.results.indexWhere((n) => n.id == key.value);
+        return at < 0 ? null : at;
+      },
       itemBuilder: (context, index) {
         final note = search.results[index];
         final card = NoteCard(
@@ -192,7 +199,7 @@ List<Widget> searchResultSlivers({
           strings: nexCardStrings(context),
           onTap: () => onOpen(note),
         );
-        return TapRegion(
+        final result = TapRegion(
           groupId: nexSearchTapGroup,
           // Ranked in with the rest (W2.2), and marked: a note that shares
           // no word with the query needs a reason to be in the list.
@@ -229,7 +236,74 @@ List<Widget> searchResultSlivers({
                 )
               : card,
         );
+        return _Arrive(key: ValueKey(note.id), index: index, child: result);
       },
     ),
   ];
+}
+
+/// A result easing into the list: it fades in and rises a little, a beat
+/// after the one above it, the first time it is shown — so opening search
+/// reads as the results arriving, not as one list swapped for another.
+/// Still when animations are off.
+class _Arrive extends StatefulWidget {
+  const _Arrive({super.key, required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  State<_Arrive> createState() => _ArriveState();
+}
+
+class _ArriveState extends State<_Arrive> with SingleTickerProviderStateMixin {
+  late final AnimationController _in = AnimationController(
+    vsync: this,
+    duration: NexMotion.enter,
+  );
+  Timer? _wait;
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _in.value = 1;
+      return;
+    }
+    // A short cascade down the first screenful; past it, at once.
+    final delay = NexMotion.fast ~/ 3 * widget.index.clamp(0, 8);
+    if (delay == Duration.zero) {
+      unawaited(_in.forward());
+    } else {
+      _wait = Timer(delay, () {
+        if (mounted) unawaited(_in.forward());
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _wait?.cancel();
+    _in.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _in,
+    builder: (context, child) {
+      final t = NexMotion.curve.transform(_in.value);
+      return Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, 14 * (1 - t)),
+          child: child,
+        ),
+      );
+    },
+    child: widget.child,
+  );
 }

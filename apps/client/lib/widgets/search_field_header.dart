@@ -143,9 +143,24 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     ColorScheme scheme,
   ) => TweenAnimationBuilder<double>(
     tween: Tween(end: searching ? 1 : 0),
-    duration: NexMotion.of(context, NexMotion.standard),
+    duration: NexMotion.of(context, NexMotion.enter),
     curve: NexMotion.curve,
-    builder: (context, focus, _) => _pillAt(context, l10n, scheme, focus),
+    // Lit as it opens: a soft halo in the accent, rather than only a hairline
+    // changing colour, which was too slight to read as anything happening.
+    builder: (context, focus, _) => DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(NexRadius.pill),
+        boxShadow: [
+          if (focus > 0)
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.22 * focus),
+              blurRadius: 16 * focus,
+              spreadRadius: 1 * focus,
+            ),
+        ],
+      ),
+      child: _pillAt(context, l10n, scheme, focus),
+    ),
   );
 
   Widget _pillAt(
@@ -170,7 +185,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
           shape: StadiumBorder(
             side: BorderSide(
               color: scheme.primary.withValues(alpha: focus),
-              width: focus,
+              width: 1.4 * focus,
             ),
           ),
           child: Padding(

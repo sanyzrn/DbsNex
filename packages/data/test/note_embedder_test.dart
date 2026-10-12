@@ -89,9 +89,11 @@ void main() {
     final hits = await service.semanticSearch('query');
     expect(hits.map((h) => h.noteId), ['n1']);
 
+    // A looser floor lets the unrelated note past it, and it is still not
+    // listed: at 0.45 against 0.8 it is nowhere near the best match.
     service.updateEmbedder(_FixedScoreEmbedder(floor: 0.3));
     final loose = await service.semanticSearch('query');
-    expect(loose.map((h) => h.noteId).toSet(), {'n1', 'n2'});
+    expect(loose.map((h) => h.noteId), ['n1']);
   });
 
   test('clearing it hands embedding back to the provider', () async {

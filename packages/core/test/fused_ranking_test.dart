@@ -14,15 +14,52 @@ void main() {
     pinned: pinned,
   );
 
-  test('a note both searches found beats one only either found', () {
+  test('the notes with the words come first, in their order, then meaning', () {
     final ranked = FusedRanking.fuse(
       keyword: ['a', 'b'],
       semantic: ['c', 'b'],
       facts: {'a': fact(), 'b': fact(), 'c': fact()},
       now: now,
     );
-    expect(ranked.first, 'b');
-    expect(ranked, containsAll(['a', 'c']));
+    // `c` resembles the query more than `a` does, by the meaning search's
+    // account; `a` has the words, and words win.
+    expect(ranked, ['a', 'b', 'c']);
+  });
+
+  test('only a few notes found by meaning alone join the list', () {
+    final meaning = [for (var i = 0; i < 30; i++) 'm$i'];
+    final facts = {'a': fact(), for (final id in meaning) id: fact()};
+    final withWords = FusedRanking.fuse(
+      keyword: ['a'],
+      semantic: meaning,
+      facts: facts,
+      now: now,
+    );
+    expect(withWords.first, 'a');
+    expect(withWords, hasLength(1 + FusedRanking.meaningOnlyWithWords));
+    expect(withWords.skip(1).take(2), ['m0', 'm1'], reason: 'best first');
+
+    final alone = FusedRanking.fuse(
+      keyword: const [],
+      semantic: meaning,
+      facts: facts,
+      now: now,
+    );
+    expect(alone, hasLength(FusedRanking.meaningOnlyAlone));
+  });
+
+  test('a newer note moves a place or two, never ten', () {
+    final ranked = FusedRanking.fuse(
+      keyword: [for (var i = 0; i < 10; i++) 'x$i', 'new'],
+      semantic: const [],
+      facts: {
+        for (var i = 0; i < 10; i++) 'x$i': fact(daysAgo: 400),
+        'new': fact(),
+      },
+      now: now,
+    );
+    expect(ranked.indexOf('new'), greaterThan(6));
+    expect(ranked.first, 'x0');
   });
 
   test('recency only settles near-ties; it never lifts a weak match', () {

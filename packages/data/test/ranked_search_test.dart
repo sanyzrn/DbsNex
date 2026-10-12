@@ -73,6 +73,25 @@ void main() {
     );
   });
 
+  test('a note with the words stays above every note found by meaning', () {
+    final words = capture.submitTextCapture('boiler service on Friday')!;
+    final alike = [
+      for (var i = 0; i < 8; i++)
+        capture.submitTextCapture('the heating man came round, visit $i')!,
+    ];
+    final ranked = repo.rankedSearch(
+      const SearchFilters(query: 'boiler'),
+      // The meaning search's own order, which puts the words' note last.
+      semantic: [for (final note in alike) note.id, words.id],
+    );
+    expect(ranked.first.id, words.id);
+    expect(
+      ranked.length,
+      1 + FusedRanking.meaningOnlyWithWords,
+      reason: 'only a few by meaning alone',
+    );
+  });
+
   test('filters without a query keep the timeline order', () {
     final a = capture.submitTextCapture('first')!;
     final b = capture.submitTextCapture('second')!;
