@@ -40,8 +40,25 @@ What 1.99.70 has:
   not count as editing the note. An empty result is kept, so a photo with no
   words is not read again.
 
-Still open, and small: transcripts of voice clips as attachments, which
-waits for voice clips to be attachable at all.
+1.99.90 made it complete:
+
+- **Gallery.** Every photo of a note — its own and each attached one — in
+  one pager, with a position count and each photo's caption. A zoomed photo
+  pans instead of turning the page.
+- **Tiles that say what a file is.** A PDF by its first page and a video by
+  a frame (both from the platform, cached), a voice clip by its length,
+  other files by kind and extension; a photo's caption along its bottom.
+  The strip's heading says how many files and how much room they take.
+- **Voice clips.** Recorded with the voice note sheet, attached as
+  `voice`, played in a sheet; transcribed in the background like attached
+  photos are read (`AttachmentTextReader`), and searched with the note.
+- **The menu.** Share or save one file on its own (a photo without its
+  location), rename a file, make an attached photo the photo note's own
+  (`promote`: the two swap, each keeping its caption and words; the note
+  is embedded again), and take one out as a note of its own (`detach`: a
+  photo, voice or file note sharing the same file, with its caption and
+  words).
+- **The card.** The reminder and the paperclip sit together at the end.
 
 ## What is asked
 

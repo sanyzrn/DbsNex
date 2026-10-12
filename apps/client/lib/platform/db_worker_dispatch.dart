@@ -235,6 +235,9 @@ class _Worker {
       _DbCommand.attachmentRestore ||
       _DbCommand.attachmentReorder ||
       _DbCommand.attachmentSetCaption ||
+      _DbCommand.attachmentRename ||
+      _DbCommand.attachmentDetach ||
+      _DbCommand.attachmentPromote ||
       _DbCommand.attachmentSetOcr => _attachmentCommand(
         attachments,
         message.command,

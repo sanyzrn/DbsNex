@@ -49,14 +49,7 @@ extension _DetailTypeBody on _NoteDetailSheetState {
     ] else if (note.type == NoteType.photo) ...[
       if (note.mediaUri != null && File(note.mediaUri!).existsSync()) ...[
         GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              NexPageRoute<void>(
-                builder: (_) => NexPhotoViewer.file(note.mediaUri!),
-                swipeBackEnabled: false,
-              ),
-            );
-          },
+          onTap: () => unawaited(_openGallery(note, at: note.mediaUri!)),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(NexRadius.md),
             child: Image.file(

@@ -204,4 +204,65 @@ void main() {
     }
     expect(found / wanted, greaterThanOrEqualTo(0.95));
   });
+
+  group('standing out', () {
+    // A library shaped like the owner's (1.99.81): every note shares one
+    // strong direction — the language, the app, the length — thirty notes
+    // each lean towards a subject of their own, and five short, generic
+    // ones are almost nothing but the shared direction.
+    const dims = 64;
+    final random = Random(7);
+    List<double> vector(Map<int, double> parts, {double noise = 0.05}) => [
+      for (var i = 0; i < dims; i++)
+        (parts[i] ?? 0) + (random.nextDouble() - 0.5) * 2 * noise,
+    ];
+    Float32List unit(List<double> values) => VectorCodec.unit(values)!;
+
+    late VectorIndex index;
+    setUp(() {
+      index = VectorIndex(dims);
+      for (var k = 1; k <= 30; k++) {
+        final code = VectorCodec.encode(vector({0: 0.7, k: 0.7}))!;
+        index.put('topic$k', code.q8, code.scale);
+      }
+      for (var h = 0; h < 5; h++) {
+        final code = VectorCodec.encode(vector({0: 0.97}))!;
+        index.put('generic$h', code.q8, code.scale);
+      }
+    });
+
+    test('plain similarity lists the generic notes for anything', () {
+      final unrelated = unit(vector({0: 0.8, 50: 0.6}, noise: 0));
+      final plain = index.nearest(unrelated, 5).map((hit) => hit.id);
+      expect(plain.where((id) => id.startsWith('generic')), hasLength(5));
+    });
+
+    test('a related query finds its note, and nothing generic', () {
+      final query = unit(vector({0: 0.75, 3: 0.6}, noise: 0));
+      final found = index.standout(query, 10).map((hit) => hit.id).toList();
+      expect(found.first, 'topic3');
+      expect(found.where((id) => id.startsWith('generic')), isEmpty);
+      expect(found.length, lessThanOrEqualTo(2));
+    });
+
+    test('an unrelated query finds nothing at all', () {
+      final unrelated = unit(vector({0: 0.8, 50: 0.6}, noise: 0));
+      expect(index.standout(unrelated, 10), isEmpty);
+    });
+
+    test('a library too small to measure answers nothing here', () {
+      final small = VectorIndex(dims);
+      final code = VectorCodec.encode(vector({0: 0.7, 1: 0.7}))!;
+      small.put('only', code.q8, code.scale);
+      expect(small.standout(unit(vector({0: 0.7, 1: 0.7})), 5), isEmpty);
+    });
+
+    test('adding a note moves the centre with it', () {
+      final query = unit(vector({0: 0.75, 31: 0.6}, noise: 0));
+      expect(index.standout(query, 10), isEmpty);
+      final code = VectorCodec.encode(vector({0: 0.7, 31: 0.7}))!;
+      index.put('topic31', code.q8, code.scale);
+      expect(index.standout(query, 10).first.id, 'topic31');
+    });
+  });
 }

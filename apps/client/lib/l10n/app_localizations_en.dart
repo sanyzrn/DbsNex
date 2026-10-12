@@ -1103,6 +1103,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attachTakePhoto => 'Take a photo';
 
   @override
+  String get attachRecordVoice => 'Record a voice clip';
+
+  @override
   String get attachChoosePhotos => 'Choose photos';
 
   @override
@@ -1110,6 +1113,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attachRemove => 'Remove from this note';
+
+  @override
+  String get attachMakeMain => 'Make it the note\'s photo';
+
+  @override
+  String get attachMadeMain => 'It is now the note\'s photo';
+
+  @override
+  String get attachDetach => 'Make it a note of its own';
+
+  @override
+  String get attachDetached => 'Now a note of its own';
+
+  @override
+  String get attachVoice => 'Voice clip';
 
   @override
   String get attachMoveEarlier => 'Move earlier';

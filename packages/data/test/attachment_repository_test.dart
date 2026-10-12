@@ -1,7 +1,15 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:nex_core/nex_core.dart'
-    show AiCapabilities, EnrichmentService, ImageRef, NullAIAdapter, OCRText;
+    show
+        AiCapabilities,
+        AudioRef,
+        EnrichmentService,
+        ImageRef,
+        NullAIAdapter,
+        OCRText,
+        Transcript;
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -332,6 +340,55 @@ void main() {
     });
   });
 
+  group('reshaping', () {
+    test('a file can be renamed, and blank gives its own name back', () {
+      final text = note(NoteType.text, content: 'contract');
+      final a = attach(text.id, 'scan.jpg');
+      attachments.rename(a.id, 'Annex B');
+      expect(attachments.byId(a.id)!.name, 'Annex B');
+      attachments.rename(a.id, '  ');
+      expect(attachments.byId(a.id)!.name, isNull);
+    });
+
+    test('one becomes a note of its own, keeping its words', () {
+      final text = note(NoteType.text, content: 'trip');
+      final a = attach(text.id, 'ticket.jpg', caption: 'the return ticket');
+      attachments.setOcrResult(a.id, 'SEAT 14C');
+      final made = attachments.detach(a.id)!;
+      expect(made.type, NoteType.photo);
+      expect(made.mediaUri, a.mediaUri);
+      expect(made.caption, 'the return ticket');
+      expect(made.ocrText, 'SEAT 14C');
+      expect(attachments.forNote(text.id), isEmpty);
+      expect(notes.getById(text.id)!.attachmentCount, 0);
+      expect(ftsOf(made.id), contains('14C'));
+    });
+
+    test('an attached photo can become the note\'s own, and back', () {
+      final own = file('own.jpg', [9, 9]);
+      final photo = note(NoteType.photo, mediaUri: own);
+      db.db.execute('UPDATE notes SET media_hash = ? WHERE id = ?', [
+        sha256OfBytes(File(own).readAsBytesSync()),
+        photo.id,
+      ]);
+      notes.setCaption(photo.id, 'the front');
+      final a = attach(photo.id, 'back.jpg', caption: 'the back');
+      expect(attachments.promote(a.id), isTrue);
+      final now = notes.getById(photo.id)!;
+      expect(now.mediaUri, a.mediaUri);
+      expect(now.caption, 'the back');
+      final swapped = attachments.forNote(photo.id).single;
+      expect(swapped.id, a.id);
+      expect(swapped.mediaUri, own);
+      expect(swapped.caption, 'the front');
+
+      // A text note has no photo of its own to trade.
+      final text = note(NoteType.text, content: 'words');
+      final b = attach(text.id, 'c.jpg');
+      expect(attachments.promote(b.id), isFalse);
+    });
+  });
+
   group('text in attached photos', () {
     test(
       'is read once, found by search, and leaves the note unedited',
@@ -347,7 +404,7 @@ void main() {
         );
         final texts = AttachmentTextReader(attachments, service);
 
-        expect(attachments.needingOcr().map((a) => a.id), [photo.id]);
+        expect(attachments.needingText().map((a) => a.id), [photo.id]);
         expect(await texts.read(photo.id), isTrue);
         expect(attachments.forNote(text.id).single.ocrText, 'SERIAL 4471-B');
         expect(ftsOf(text.id), contains('4471'));
@@ -356,7 +413,7 @@ void main() {
         // Read, so never asked again.
         expect(await texts.read(photo.id), isFalse);
         expect(reader.calls, 1);
-        expect(attachments.needingOcr(), isEmpty);
+        expect(attachments.needingText(), isEmpty);
       },
     );
 
@@ -370,8 +427,27 @@ void main() {
       );
       expect(await AttachmentTextReader(attachments, service).backfill(), 1);
       expect(attachments.forNote(text.id).single.ocrText, '');
-      expect(attachments.needingOcr(), isEmpty);
+      expect(attachments.needingText(), isEmpty);
       expect(photo.ocrText, isNull);
+    });
+
+    test('an attached voice clip is transcribed and searched', () async {
+      final text = note(NoteType.text, content: 'meeting');
+      final clip = attachments.add(
+        text.id,
+        kind: AttachmentKind.voice,
+        mediaUri: file('clip.m4a', [1, 2, 3]),
+        mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
+        durationMs: 4200,
+      )!;
+      final service = EnrichmentService(
+        repo: notes,
+        adapter: _Reader('budget for March'),
+        capabilities: AiCapabilities.allOn,
+      );
+      expect(await AttachmentTextReader(attachments, service).backfill(), 1);
+      expect(attachments.byId(clip.id)!.transcriptText, 'budget for March');
+      expect(ftsOf(text.id), contains('budget'));
     });
 
     test('nothing is read while reading text in photos is off', () async {
@@ -382,7 +458,7 @@ void main() {
       final texts = AttachmentTextReader(attachments, service);
       expect(await texts.backfill(), 0);
       expect(reader.calls, 0);
-      expect(attachments.needingOcr(), hasLength(1));
+      expect(attachments.needingText(), hasLength(1));
     });
   });
 }
@@ -398,5 +474,11 @@ class _Reader extends NullAIAdapter {
   Future<OCRText>? ocr(ImageRef image) {
     calls++;
     return Future.value(OCRText(text: text));
+  }
+
+  @override
+  Future<Transcript>? transcribe(AudioRef audio) {
+    calls++;
+    return Future.value(Transcript(text: text));
   }
 }

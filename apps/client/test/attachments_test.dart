@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
@@ -8,7 +9,9 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/widgets/card_strings.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:nex_client/widgets/photo_viewer.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:path/path.dart' as p;
 
 import 'support/nex_harness.dart';
 
@@ -173,6 +176,107 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(await order(), [made[2].id, made[1].id, made[0].id]);
+  });
+
+  testWidgets('photos open as a gallery that says where you are', (
+    tester,
+  ) async {
+    final services = harness.services;
+    late Note note;
+    late List<NoteAttachment> made;
+    await tester.runAsync(() async {
+      note = (await services.captureText('three angles'))!;
+      made = [
+        for (var i = 0; i < 3; i++)
+          (await services.attachBytes(
+            note.id,
+            bytes,
+            kind: AttachmentKind.photo,
+            extension: '.jpg',
+          ))!,
+      ];
+    });
+    await openNote(tester, note.id);
+    expect(find.byKey(const ValueKey('attachments-summary')), findsOneWidget);
+
+    await tester.tap(find.byKey(ValueKey('attachment-${made[1].id}')));
+    await tester.pumpAndSettle();
+    expect(find.byType(NexPhotoGallery), findsOneWidget);
+    expect(find.text('2 / 3'), findsOneWidget);
+    await tester.fling(find.byType(PageView), const Offset(-600, 0), 2000);
+    await tester.pumpAndSettle();
+    expect(find.text('3 / 3'), findsOneWidget);
+  });
+
+  testWidgets('one becomes a note of its own from its menu', (tester) async {
+    final services = harness.services;
+    late Note note;
+    late NoteAttachment file;
+    await tester.runAsync(() async {
+      note = (await services.captureText('contract'))!;
+      final source = File(p.join(harness.mediaDir, 'annex.pdf'));
+      await source.writeAsBytes(bytes);
+      file = (await services.attachFile(
+        note.id,
+        source.path,
+        kind: AttachmentKind.file,
+        name: 'annex.pdf',
+        mimeType: 'application/pdf',
+      ))!;
+    });
+    await openNote(tester, note.id);
+
+    await tester.longPress(find.byKey(ValueKey('attachment-${file.id}')));
+    await tester.pumpAndSettle();
+    for (final action in ['share', 'save', 'rename', 'detach']) {
+      expect(find.byKey(ValueKey('attachment-$action')), findsOneWidget);
+    }
+    expect(
+      find.byKey(const ValueKey('attachment-main')),
+      findsNothing,
+      reason: 'only a photo on a photo note can be its photo',
+    );
+    await tester.tap(find.byKey(const ValueKey('attachment-detach')));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('attachment-${file.id}')), findsNothing);
+    late List<Note> all;
+    await tester.runAsync(
+      () async => all = await services.worker.timeline(limit: 10, offset: 0),
+    );
+    expect(all.where((n) => n.type == NoteType.file), hasLength(1));
+    await tester.pump(const Duration(seconds: 7));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('a voice clip shows its length and plays in a sheet', (
+    tester,
+  ) async {
+    final services = harness.services;
+    late Note note;
+    late NoteAttachment clip;
+    await tester.runAsync(() async {
+      note = (await services.captureText('meeting'))!;
+      final source = File(p.join(harness.mediaDir, 'clip.m4a'));
+      await source.writeAsBytes(bytes);
+      clip = (await services.attachFile(
+        note.id,
+        source.path,
+        kind: AttachmentKind.voice,
+        mimeType: 'audio/mp4',
+        durationMs: 65000,
+      ))!;
+    });
+    await openNote(tester, note.id);
+    expect(
+      find.descendant(
+        of: find.byKey(ValueKey('attachment-${clip.id}')),
+        matching: find.text('1:05'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a checklist offers no attachments', (tester) async {

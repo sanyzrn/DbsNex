@@ -101,19 +101,135 @@ class SqliteAttachmentRepository {
     _notes.attachmentTextRead(noteId);
   });
 
+  /// The name a file attachment is shown, shared and saved under. Blank
+  /// goes back to the file's own.
+  void rename(String id, String? name) =>
+      _update(id, 'name', _blankToNull(name));
+
+  /// Takes [id] off its note and makes it a note of its own — a photo, a
+  /// voice note or a file, with its caption and whatever was read from it —
+  /// when it deserves its own tags, reminder or thread. The file is shared,
+  /// not copied: the media sweep counts references in both tables. Null
+  /// when there is no such attachment.
+  Note? detach(String id) => db.together(() {
+    final attachment = byId(id);
+    if (attachment == null || attachment.deletedAt != null) return null;
+    final capture = CaptureService(_notes, deviceId: localDeviceId);
+    final note = switch (attachment.kind) {
+      AttachmentKind.photo => capture.submitPhotoCapture(
+        mediaUri: attachment.mediaUri,
+        mediaHash: attachment.mediaHash,
+      ),
+      AttachmentKind.voice => capture.submitVoiceCapture(
+        mediaUri: attachment.mediaUri,
+        mediaHash: attachment.mediaHash,
+        durationMs: attachment.durationMs ?? 0,
+      ),
+      AttachmentKind.file => capture.submitFileCapture(
+        mediaUri: attachment.mediaUri,
+        mediaHash: attachment.mediaHash,
+        originalFilename: attachment.name,
+        mimeType: attachment.mimeType,
+      ),
+    };
+    if (attachment.caption case final caption?) {
+      _notes.setCaption(note.id, caption);
+    }
+    if (attachment.ocrText case final text?) _notes.setOcrText(note.id, text);
+    if (attachment.transcriptText case final text?) {
+      _notes.setTranscriptText(note.id, text);
+    }
+    remove(id);
+    return _notes.getById(note.id);
+  });
+
+  /// Makes [id], a photo, its photo note's own photo, and the note's photo
+  /// an attachment in its place: the cover of a set of photos is whichever
+  /// one says most. Each photo keeps its own caption and the words read in
+  /// it. False when [id] is not a photo on a photo note.
+  bool promote(String id) => db.together(() {
+    final attachment = byId(id);
+    if (attachment == null ||
+        attachment.deletedAt != null ||
+        attachment.kind != AttachmentKind.photo) {
+      return false;
+    }
+    final rows = db.select(
+      'SELECT type, media_uri, media_hash, mime_type, caption, ocr_text '
+      'FROM notes WHERE id = ? AND deleted_at IS NULL',
+      [attachment.noteId],
+    );
+    if (rows.isEmpty) return false;
+    final own = rows.first;
+    if (own['type'] != 'photo' ||
+        own['media_uri'] == null ||
+        own['media_hash'] == null) {
+      return false;
+    }
+    db.execute(
+      'UPDATE notes SET media_uri = ?, media_hash = ?, mime_type = ?, '
+      'caption = ?, ocr_text = ? WHERE id = ?',
+      [
+        attachment.mediaUri,
+        attachment.mediaHash,
+        attachment.mimeType,
+        attachment.caption,
+        attachment.ocrText,
+        attachment.noteId,
+      ],
+    );
+    db.execute(
+      'UPDATE note_attachments SET media_uri = ?, media_hash = ?, '
+      'mime_type = ?, caption = ?, ocr_text = ?, updated_at = ?, '
+      "rev = rev + 1, device_id = ?, sync_state = 'pending' WHERE id = ?",
+      [
+        own['media_uri'],
+        own['media_hash'],
+        own['mime_type'],
+        own['caption'],
+        own['ocr_text'],
+        DateTime.now().toUtc().toIso8601String(),
+        localDeviceId,
+        id,
+      ],
+    );
+    // What the note means has changed with its picture: read again.
+    _notes.forgetEmbedding(attachment.noteId);
+    _notes.attachmentsChanged(attachment.noteId);
+    return true;
+  });
+
+  /// What transcribing a voice clip found, kept as [setOcrResult] keeps
+  /// what was read in a photo: an empty string means "heard, and nothing
+  /// said", so the clip is not sent again.
+  void setTranscriptResult(String id, String text) => db.together(() {
+    final noteId = _noteOf(id);
+    if (noteId == null) return;
+    db.execute(
+      'UPDATE note_attachments SET transcript_text = ? '
+      'WHERE id = ? AND deleted_at IS NULL',
+      [text.trim(), id],
+    );
+    _notes.attachmentTextRead(noteId);
+  });
+
   NoteAttachment? byId(String id) {
     final rows = db.select('SELECT * FROM note_attachments WHERE id = ?', [id]);
     return rows.isEmpty ? null : NoteAttachment.fromRow(rows.first);
   }
 
-  /// Photos on live notes whose words have not been read yet, newest first:
-  /// what was just attached is what someone is about to search for.
-  List<NoteAttachment> needingOcr({int limit = 25}) => [
+  /// Photos whose words have not been read yet and voice clips not yet
+  /// transcribed, on live notes, newest first: what was just attached is
+  /// what someone is about to search for.
+  List<NoteAttachment> needingText({int limit = 25}) => [
     for (final row in db.select(
       '''
 SELECT a.* FROM note_attachments a
 JOIN notes n ON n.id = a.note_id AND n.deleted_at IS NULL
-WHERE a.deleted_at IS NULL AND a.kind = 'photo' AND a.ocr_text IS NULL
+WHERE a.deleted_at IS NULL AND (
+  (a.kind = 'photo' AND a.ocr_text IS NULL) OR
+  (a.kind = 'voice' AND a.transcript_text IS NULL)
+)
 ORDER BY a.created_at DESC
 LIMIT ?
 ''',

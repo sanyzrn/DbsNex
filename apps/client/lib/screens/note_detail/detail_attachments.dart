@@ -25,9 +25,27 @@ extension _DetailAttachments on _NoteDetailSheetState {
     AppLocalizations l10n,
   ) {
     if (_attachments.isEmpty) return const [];
+    final theme = Theme.of(context);
     return [
       const SizedBox(height: NexSpacing.md),
-      Text(l10n.attachmentsTitle, style: Theme.of(context).textTheme.bodySmall),
+      Row(
+        children: [
+          Text(l10n.attachmentsTitle, style: theme.textTheme.bodySmall),
+          const Spacer(),
+          // How many, and how much room they take: the two things anyone
+          // tidying a phone wants to know about a note's files.
+          Text(
+            nexDigits(
+              '${_attachments.length} · ${nexFormatBytes(_attachmentBytes())}',
+              persian: l10n.localeName == 'fa',
+            ),
+            key: const ValueKey('attachments-summary'),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
       const SizedBox(height: NexSpacing.xs),
       _AttachmentStrip(
         attachments: _attachments,
@@ -62,6 +80,11 @@ extension _DetailAttachments on _NoteDetailSheetState {
     ]);
     await _reloadAttachments();
   }
+
+  int _attachmentBytes() => _attachments.fold(0, (sum, attachment) {
+    final file = File(attachment.mediaUri);
+    return sum + (file.existsSync() ? file.lengthSync() : 0);
+  });
 
   Future<void> _reloadAttachments() async {
     final attachments = await widget.services.attachmentsFor(widget.noteId);
@@ -104,6 +127,12 @@ extension _DetailAttachments on _NoteDetailSheetState {
               onTap: () => Navigator.pop(sheet, 'photos'),
             ),
             ListTile(
+              key: const ValueKey('attach-voice'),
+              leading: const Icon(Icons.mic_none),
+              title: Text(l10n.attachRecordVoice),
+              onTap: () => Navigator.pop(sheet, 'voice'),
+            ),
+            ListTile(
               key: const ValueKey('attach-file'),
               leading: const Icon(Icons.attach_file),
               title: Text(l10n.attachChooseFile),
@@ -121,6 +150,8 @@ extension _DetailAttachments on _NoteDetailSheetState {
           final shot = await nexTakePhoto(context);
           if (shot == null) return;
           await _attachPhoto(note.id, await shot.readAsBytes(), shot.path);
+        case 'voice':
+          await _attachVoice(note.id);
         case 'photos':
           for (final picked in await ImagePicker().pickMultiImage()) {
             await _attachPhoto(
@@ -149,6 +180,47 @@ extension _DetailAttachments on _NoteDetailSheetState {
     await _reloadAttachments();
   }
 
+  /// A spoken aside on a note — what the receipt was for, what was said in
+  /// the meeting the whiteboard is from. Recorded with the same sheet as a
+  /// voice note, and attached once it is kept.
+  Future<void> _attachVoice(String noteId) async {
+    final l10n = AppLocalizations.of(context);
+    final recorder = AudioRecorder();
+    try {
+      if (!await recorder.hasPermission()) {
+        if (mounted) _toast(l10n.micDenied);
+        return;
+      }
+      final folder = await Directory.systemTemp.createTemp('nex-clip-');
+      final path = p.join(folder.path, 'voice.m4a');
+      final started = Stopwatch()..start();
+      await recorder.start(const RecordConfig(), path: path);
+      if (!mounted) return;
+      final keep = await nexShowSheet<bool>(
+        context: context,
+        dismissible: false,
+        builder: (_) => RecordingSheet(recorder: recorder),
+      );
+      final recorded = await recorder.stop();
+      started.stop();
+      try {
+        final file = File(recorded ?? path);
+        if (keep != true || !file.existsSync()) return;
+        await widget.services.attachFile(
+          noteId,
+          file.path,
+          kind: AttachmentKind.voice,
+          mimeType: 'audio/mp4',
+          durationMs: started.elapsedMilliseconds,
+        );
+      } finally {
+        await folder.delete(recursive: true);
+      }
+    } finally {
+      await recorder.dispose();
+    }
+  }
+
   Future<void> _attachPhoto(String noteId, Uint8List bytes, String path) async {
     final extension = p.extension(path).isNotEmpty
         ? p.extension(path)
@@ -169,12 +241,12 @@ extension _DetailAttachments on _NoteDetailSheetState {
       return;
     }
     if (attachment.kind == AttachmentKind.photo) {
-      await Navigator.of(context).push(
-        NexPageRoute<void>(
-          builder: (_) => NexPhotoViewer.file(attachment.mediaUri),
-          swipeBackEnabled: false,
-        ),
-      );
+      final note = _note;
+      if (note != null) await _openGallery(note, at: attachment.mediaUri);
+      return;
+    }
+    if (attachment.kind == AttachmentKind.voice) {
+      await VoiceClipSheet.show(context, attachment: attachment);
       return;
     }
     final result = await nexOpenFile(
@@ -184,99 +256,28 @@ extension _DetailAttachments on _NoteDetailSheetState {
     if (mounted && result != FileOpenOutcome.opened) _toast(l10n.cannotOpen);
   }
 
-  Future<void> _attachmentMenu(NoteAttachment attachment) async {
-    final l10n = AppLocalizations.of(context);
-    final index = _attachments.indexWhere((a) => a.id == attachment.id);
-    final choice = await nexShowSheet<String>(
-      context: context,
-      builder: (sheet) => NexSheetBody(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.open_in_new),
-              title: Text(l10n.attachOpen),
-              onTap: () => Navigator.pop(sheet, 'open'),
-            ),
-            ListTile(
-              key: const ValueKey('attachment-caption'),
-              leading: const Icon(Icons.short_text),
-              title: Text(
-                attachment.caption == null ? l10n.addCaption : l10n.editCaption,
-              ),
-              onTap: () => Navigator.pop(sheet, 'caption'),
-            ),
-            // Dragging is the quick way; these are the way a screen reader
-            // has, and the way for anyone who did not know a tile moves.
-            if (index > 0)
-              ListTile(
-                key: const ValueKey('attachment-earlier'),
-                leading: const Icon(Icons.arrow_back),
-                title: Text(l10n.attachMoveEarlier),
-                onTap: () => Navigator.pop(sheet, 'earlier'),
-              ),
-            if (index >= 0 && index < _attachments.length - 1)
-              ListTile(
-                key: const ValueKey('attachment-later'),
-                leading: const Icon(Icons.arrow_forward),
-                title: Text(l10n.attachMoveLater),
-                onTap: () => Navigator.pop(sheet, 'later'),
-              ),
-            ListTile(
-              key: const ValueKey('attachment-remove'),
-              leading: Icon(
-                Icons.remove_circle_outline,
-                color: Theme.of(sheet).colorScheme.error,
-              ),
-              title: Text(
-                l10n.attachRemove,
-                style: TextStyle(color: Theme.of(sheet).colorScheme.error),
-              ),
-              onTap: () => Navigator.pop(sheet, 'remove'),
-            ),
-            const SizedBox(height: NexSpacing.sm),
-          ],
+  /// Every photo the note holds — its own first, then each attached one in
+  /// order — opened at [at].
+  Future<void> _openGallery(Note note, {required String at}) async {
+    final own = note.type == NoteType.photo ? note.mediaUri : null;
+    final photos = [
+      if (own != null && File(own).existsSync())
+        NexGalleryPhoto(own, caption: note.caption),
+      for (final attachment in _attachments)
+        if (attachment.kind == AttachmentKind.photo &&
+            File(attachment.mediaUri).existsSync())
+          NexGalleryPhoto(attachment.mediaUri, caption: attachment.caption),
+    ];
+    if (photos.isEmpty) return;
+    await Navigator.of(context).push(
+      NexPageRoute<void>(
+        builder: (_) => NexPhotoGallery(
+          photos: photos,
+          initial: math.max(0, photos.indexWhere((p) => p.path == at)),
         ),
+        swipeBackEnabled: false,
       ),
     );
-    if (!mounted) return;
-    switch (choice) {
-      case 'earlier' || 'later':
-        final note = _note;
-        if (note == null || index < 0) return;
-        final order = [..._attachments]..removeAt(index);
-        order.insert(choice == 'earlier' ? index - 1 : index + 1, attachment);
-        await _reorderAttachments(note, order);
-      case 'open':
-        await _openAttachment(attachment);
-      case 'caption':
-        final preferences = widget.preferences;
-        if (preferences == null) return;
-        final caption = await NoteEditorSheet.show(
-          context,
-          initial: attachment.caption ?? '',
-          preferences: preferences,
-          draftKey: 'caption-${attachment.id}',
-          allowEmpty: true,
-        );
-        if (caption == null) return;
-        await widget.services.setAttachmentCaption(attachment.id, caption);
-        preferences.editorDrafts?.clear('caption-${attachment.id}');
-        await _reloadAttachments();
-      case 'remove':
-        await widget.services.removeAttachment(attachment.id);
-        await _reloadAttachments();
-        if (!mounted) return;
-        nexShowBanner(
-          context,
-          message: l10n.attachRemoved,
-          actionLabel: l10n.undo,
-          onAction: () => unawaited(() async {
-            await widget.services.restoreAttachment(attachment.id);
-            await _reloadAttachments();
-          }()),
-        );
-    }
   }
 }
 
@@ -372,7 +373,7 @@ class _AttachmentStripState extends State<_AttachmentStrip> {
             index: index,
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
-              child: _AttachmentTile(
+              child: AttachmentTile(
                 attachment: attachment,
                 side: side,
                 onTap: () => widget.onOpen(attachment),
@@ -409,77 +410,6 @@ class _AttachmentStripState extends State<_AttachmentStrip> {
                 ),
               )
             : null,
-      ),
-    );
-  }
-}
-
-class _AttachmentTile extends StatelessWidget {
-  const _AttachmentTile({
-    required this.attachment,
-    required this.side,
-    required this.onTap,
-  });
-
-  final NoteAttachment attachment;
-  final double side;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final ratio = MediaQuery.devicePixelRatioOf(context);
-    final name =
-        attachment.name ??
-        attachment.caption ??
-        p.basename(attachment.mediaUri);
-    final photo = attachment.kind == AttachmentKind.photo;
-    return Semantics(
-      button: true,
-      label: [
-        photo ? AppLocalizations.of(context).photo : name,
-        ?attachment.caption,
-      ].join('. '),
-      child: Material(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(NexRadius.md),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox(
-            width: side,
-            height: side,
-            child: photo
-                ? Image.file(
-                    File(attachment.mediaUri),
-                    fit: BoxFit.cover,
-                    cacheWidth: (side * ratio).round(),
-                    errorBuilder: (_, _, _) =>
-                        const Icon(Icons.image_not_supported_outlined),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.all(NexSpacing.sm),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.insert_drive_file_outlined,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: NexSpacing.xs),
-                        Text(
-                          name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.labelSmall,
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-        ),
       ),
     );
   }

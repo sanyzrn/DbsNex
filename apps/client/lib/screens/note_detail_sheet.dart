@@ -2,6 +2,7 @@ import '../widgets/folded_note.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show compute;
@@ -14,6 +15,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
+import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../documents/docx_markdown.dart';
@@ -38,7 +40,10 @@ import '../platform/video_preview.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/note_editor_sheet.dart';
 import '../widgets/photo_viewer.dart';
+import '../widgets/attachment_tile.dart';
 import '../widgets/audio_waveform.dart';
+import '../widgets/recording_sheet.dart';
+import '../widgets/voice_clip_sheet.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
@@ -55,6 +60,7 @@ part 'note_detail/detail_actions.dart';
 part 'note_detail/detail_ai_panel.dart';
 part 'note_detail/detail_type_body.dart';
 part 'note_detail/detail_attachments.dart';
+part 'note_detail/detail_attachment_menu.dart';
 part 'note_detail/detail_facts.dart';
 
 /// What the sheet reports back when it closes.

@@ -1085,6 +1085,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get attachTakePhoto => 'گرفتن عکس';
 
   @override
+  String get attachRecordVoice => 'ضبط صدا';
+
+  @override
   String get attachChoosePhotos => 'انتخاب عکس‌ها';
 
   @override
@@ -1092,6 +1095,21 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get attachRemove => 'برداشتن از این یادداشت';
+
+  @override
+  String get attachMakeMain => 'عکس اصلی یادداشت شود';
+
+  @override
+  String get attachMadeMain => 'حالا عکس اصلی یادداشت است';
+
+  @override
+  String get attachDetach => 'یادداشت جداگانه شود';
+
+  @override
+  String get attachDetached => 'حالا یادداشت جداگانه‌ای است';
+
+  @override
+  String get attachVoice => 'صدای ضبط‌شده';
 
   @override
   String get attachMoveEarlier => 'جابه‌جایی به قبل';

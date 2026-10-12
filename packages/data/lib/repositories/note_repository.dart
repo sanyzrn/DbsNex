@@ -1287,6 +1287,10 @@ ON CONFLICT(note_id) DO UPDATE SET
   }
 
   /// Drops one note's vector, and keeps the index in step.
+  /// Drops [noteId]'s vector, so the next backfill embeds it again — for a
+  /// change to what the note means that is not an edit of its words.
+  void forgetEmbedding(String noteId) => _forgetEmbedding(noteId);
+
   void _forgetEmbedding(String noteId) {
     db.execute('DELETE FROM note_embeddings WHERE note_id = ?', [noteId]);
     final index = _vectors;
@@ -1336,15 +1340,20 @@ ON CONFLICT(note_id) DO UPDATE SET
     int limit = 20,
     double minScore = 0,
     String? excludeNoteId,
+    bool standout = false,
   }) {
     final unit = VectorCodec.unit(query);
     if (unit == null || limit <= 0) return const [];
     final index = _freshVectors();
     if (index == null || index.dims != unit.length) return const [];
+    final exclude = excludeNoteId == null ? null : {excludeNoteId};
+    if (standout && index.length >= VectorIndex.standoutMinRows) {
+      return _standoutEmbeddings(index, unit, limit, minScore, exclude);
+    }
     final candidates = index.nearest(
       unit,
       limit > _vectorCandidates ? limit : _vectorCandidates,
-      exclude: excludeNoteId == null ? null : {excludeNoteId},
+      exclude: exclude,
     );
     if (candidates.isEmpty) return const [];
     final placeholders = List.filled(candidates.length, '?').join(',');
@@ -1369,6 +1378,43 @@ WHERE n.deleted_at IS NULL AND e.note_id IN ($placeholders)
     }
     scored.sort((a, b) => b.score.compareTo(a.score));
     return scored.length > limit ? scored.sublist(0, limit) : scored;
+  }
+
+  /// [nearestEmbeddings] for a search: the notes that stand out for the
+  /// query against the rest of the library ([VectorIndex.standout]), still
+  /// held to [minScore] by their plain similarity, best first.
+  List<({String noteId, double score})> _standoutEmbeddings(
+    VectorIndex index,
+    Float32List unit,
+    int limit,
+    double minScore,
+    Set<String>? exclude,
+  ) {
+    final picked = index.standout(unit, limit, exclude: exclude);
+    if (picked.isEmpty) return const [];
+    final placeholders = List.filled(picked.length, '?').join(',');
+    final plain = <String, double>{};
+    for (final row in db.select(
+      '''
+SELECT e.note_id, e.vec FROM note_embeddings e
+JOIN notes n ON n.id = e.note_id
+WHERE n.deleted_at IS NULL AND e.note_id IN ($placeholders)
+''',
+      [for (final p in picked) p.id],
+    )) {
+      final vec = VectorCodec.decode(row['vec']! as Uint8List);
+      if (vec.length != unit.length) continue;
+      var dot = 0.0;
+      for (var i = 0; i < vec.length; i++) {
+        dot += vec[i] * unit[i];
+      }
+      plain[row['note_id']! as String] = dot;
+    }
+    return [
+      for (final p in picked)
+        if ((plain[p.id] ?? double.negativeInfinity) >= minScore)
+          (noteId: p.id, score: p.score),
+    ];
   }
 
   /// Which model's vector space the stored embeddings belong to.

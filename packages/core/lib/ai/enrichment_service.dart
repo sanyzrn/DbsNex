@@ -225,10 +225,6 @@ class EnrichmentService {
 
   double get _floor => _embedder?.minSimilarity ?? _minSemanticSimilarity;
 
-  /// How far below the best meaning match another may score and still be
-  /// shown. Cosine similarity, so the same for every model.
-  static const semanticMargin = 0.08;
-
   /// Semantic search by meaning. Results are separate from keyword FTS.
   Future<List<SemanticHit>> semanticSearch(
     String query, {
@@ -240,21 +236,19 @@ class EnrichmentService {
     try {
       final queryVec = await _queryVector(q);
       if (queryVec == null) return const [];
-      final hits = _repo.nearestEmbeddings(
-        queryVec,
-        limit: limit,
-        minScore: _floor,
-      );
-      if (hits.isEmpty) return const [];
-      // Only the hits near the best one. A meaning search answers every
-      // query, related or not, and its scores bunch together: past the
-      // notes that are about the query comes a long tail that is merely
-      // the same language, the same length, the same app.
-      final cut = hits.first.score - semanticMargin;
+      // Only what stands out for this query against the whole library. A
+      // meaning search answers every query, related or not, and by plain
+      // similarity the same short, generic notes — a list of hashtags, a
+      // two-word reminder — came up for "car", "calendar" and a name alike
+      // (the owner's screenshots, 1.99.81).
       return [
-        for (final hit in hits)
-          if (hit.score >= cut)
-            SemanticHit(noteId: hit.noteId, score: hit.score),
+        for (final hit in _repo.nearestEmbeddings(
+          queryVec,
+          limit: limit,
+          minScore: _floor,
+          standout: true,
+        ))
+          SemanticHit(noteId: hit.noteId, score: hit.score),
       ];
     } catch (_) {
       return const [];
@@ -335,6 +329,27 @@ class EnrichmentService {
     final file = File(mediaUri);
     final call = _adapter.ocr(
       ImageRef(
+        mediaUri: mediaUri,
+        mediaHash: mediaHash,
+        bytes: file.existsSync() ? file.readAsBytesSync() : null,
+      ),
+    );
+    if (call == null) return null;
+    return (await call).text.trim();
+  }
+
+  /// Transcribes a recording that is not a note of its own — a voice clip
+  /// attached to one. Null when transcription is off or nothing here hears
+  /// audio; otherwise the words, or an empty string for none. What the
+  /// adapter throws is thrown, as for [readImage].
+  Future<String?> transcribeAudio({
+    required String mediaUri,
+    String? mediaHash,
+  }) async {
+    if (!_capabilities.transcription) return null;
+    final file = File(mediaUri);
+    final call = _adapter.transcribe(
+      AudioRef(
         mediaUri: mediaUri,
         mediaHash: mediaHash,
         bytes: file.existsSync() ? file.readAsBytesSync() : null,

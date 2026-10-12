@@ -50,6 +50,15 @@ mixin _DbAttachments {
 
   Future<bool> attachmentReadText(String id) =>
       _send<bool>(_DbCommand.attachmentReadText, {'id': id});
+
+  Future<void> attachmentRename(String id, String? name) =>
+      _send<void>(_DbCommand.attachmentRename, {'id': id, 'text': name});
+
+  Future<Note?> attachmentDetach(String id) =>
+      _send<Note?>(_DbCommand.attachmentDetach, {'id': id});
+
+  Future<bool> attachmentPromote(String id) =>
+      _send<bool>(_DbCommand.attachmentPromote, {'id': id});
 }
 
 /// The worker side: one attachment command, answered from [attachments].
@@ -79,6 +88,11 @@ Object? _attachmentCommand(
       (arg('ids')! as List).cast<String>(),
     ),
   ),
+  _DbCommand.attachmentRename => NexDbWorker._voided(
+    () => attachments.rename(arg('id')! as String, arg('text') as String?),
+  ),
+  _DbCommand.attachmentDetach => attachments.detach(arg('id')! as String),
+  _DbCommand.attachmentPromote => attachments.promote(arg('id')! as String),
   _DbCommand.attachmentSetCaption => NexDbWorker._voided(
     () => attachments.setCaption(arg('id')! as String, arg('text') as String?),
   ),
