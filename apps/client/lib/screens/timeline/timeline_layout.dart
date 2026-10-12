@@ -10,6 +10,18 @@ extension _TimelineLayout on TimelineScreenState {
     // exists to rewrite the recap and nothing else.
     final showSummary =
         !_searching && _briefAvailable && widget.preferences.showDaySummary;
+    // The filter button sits beside the search field whenever the field is
+    // there, and the row under it is then only for tags: with none, and no
+    // filter on, a row holding just "All" — always selected, narrowing
+    // nothing — was a whole band of the screen saying nothing.
+    final filterBesideSearch = widget.preferences.showSearchField;
+    final otherFilters = _model.selectedType != null || _model.onlyReminders;
+    final showTagRow =
+        widget.preferences.showTagRow &&
+        (!filterBesideSearch ||
+            _model.filterTags.isNotEmpty ||
+            _model.selectedTagIds.isNotEmpty ||
+            otherFilters);
     return Scaffold(
       appBar: AppBar(
         // Transparent so the blur below has the list to work on rather than a
@@ -202,6 +214,15 @@ extension _TimelineLayout on TimelineScreenState {
                                   onChanged: (_) => _search.schedule(),
                                   onClear: _exitSearch,
                                   filterCount: _search.activeFilterCount,
+                                  trailing: NexTapGuarded(
+                                    controller: _guard,
+                                    child: _FilterButton(
+                                      round: true,
+                                      active: otherFilters,
+                                      onPressed: () =>
+                                          unawaited(_pickFilters()),
+                                    ),
+                                  ),
                                   onShowFilters: () => unawaited(
                                     nexShowSearchFilterSheet(
                                       context,
@@ -212,7 +233,7 @@ extension _TimelineLayout on TimelineScreenState {
                               ),
                             // Without the tag row, a pinned hairline still
                             // carries the sticky day.
-                            if (!widget.preferences.showTagRow)
+                            if (!showTagRow)
                               SliverPersistentHeader(
                                 pinned: true,
                                 delegate: _FilterRowHeader(
@@ -223,7 +244,7 @@ extension _TimelineLayout on TimelineScreenState {
                                   child: const SizedBox.shrink(),
                                 ),
                               ),
-                            if (widget.preferences.showTagRow)
+                            if (showTagRow)
                               SliverPersistentHeader(
                                 key: const ValueKey('filter-header'),
                                 pinned: true,
@@ -240,11 +261,18 @@ extension _TimelineLayout on TimelineScreenState {
                                                 1.5 +
                                             16,
                                       ) +
-                                      NexSpacing.md +
+                                      NexSpacing.sm +
                                       NexSpacing.sm,
                                   child: NexTapGuarded(
                                     controller: _guard,
                                     child: TagFilterRow(
+                                      // Tighter above than the default: the
+                                      // search field's own padding already
+                                      // separates the two.
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: NexSpacing.md,
+                                        vertical: NexSpacing.sm,
+                                      ),
                                       tags: _model.filterTags,
                                       hasOtherFilters:
                                           _model.selectedType != null ||
@@ -264,13 +292,13 @@ extension _TimelineLayout on TimelineScreenState {
                                       selectedTagIds: _model.selectedTagIds,
                                       allLabel: l10n.all,
                                       tagLabel: (tag) => nexTagLabel(tag, l10n),
-                                      leading: _FilterButton(
-                                        active:
-                                            _model.selectedType != null ||
-                                            _model.onlyReminders,
-                                        onPressed: () =>
-                                            unawaited(_pickFilters()),
-                                      ),
+                                      leading: filterBesideSearch
+                                          ? null
+                                          : _FilterButton(
+                                              active: otherFilters,
+                                              onPressed: () =>
+                                                  unawaited(_pickFilters()),
+                                            ),
                                       onSelected: (value) =>
                                           unawaited(_selectTags(value)),
                                     ),

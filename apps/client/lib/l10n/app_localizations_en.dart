@@ -412,6 +412,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityLockManualHint => 'Nex stays open until you tap the lock';
 
   @override
+  String get securityStateOn => 'Nex asks before it opens';
+
+  @override
+  String get securityStateOff => 'Nex opens without asking';
+
+  @override
   String securityLockSeconds(int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);

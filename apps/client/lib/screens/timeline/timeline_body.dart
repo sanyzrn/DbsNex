@@ -145,10 +145,17 @@ extension _TimelineBody on TimelineScreenState {
                 // Midnight code audits taste like stale glue." The model now
                 // writes the greeting itself and the name follows it, so there
                 // is one thought here instead of two.
-                child: _GreetingLine(
-                  text: greeting ?? _aiHeadlineText ?? '',
-                  loading: hasHeadlineSlot && _aiHeadlineLoading,
-                  style: hasHeadlineSlot ? generatedStyle : headlineStyle,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _TodayLine(solar: widget.services.solarCalendar),
+                    const SizedBox(height: NexSpacing.xs),
+                    _GreetingLine(
+                      text: greeting ?? _aiHeadlineText ?? '',
+                      loading: hasHeadlineSlot && _aiHeadlineLoading,
+                      style: hasHeadlineSlot ? generatedStyle : headlineStyle,
+                    ),
+                  ],
                 ),
               ),
             ),

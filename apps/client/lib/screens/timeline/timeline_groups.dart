@@ -29,7 +29,7 @@ const _foldDuration = Duration(milliseconds: 220);
 
 /// The total vertical room a group heading claims, split 60/40 above and
 /// below — see `_GroupHeader`.
-const _headerSpace = NexSpacing.lg + NexSpacing.sm;
+const _headerSpace = NexSpacing.lg;
 
 /// One note row, which grows in when its group opens and shrinks out when it
 /// closes.

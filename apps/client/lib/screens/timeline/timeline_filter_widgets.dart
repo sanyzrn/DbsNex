@@ -77,8 +77,11 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
         // from the text size, and at the largest sizes the row itself stops
         // growing sooner; a header painted shorter than it lays out is an
         // invalid sliver, which took the whole timeline down.
+        // At the start, level with the cards and the greeting above. Centred,
+        // a row holding only "All" and the filter button floated in the
+        // middle of the screen with nothing to line up with.
         child: SizedBox.expand(
-          child: Align(alignment: Alignment.topCenter, child: child),
+          child: Align(alignment: AlignmentDirectional.topStart, child: child),
         ),
       );
 
@@ -118,7 +121,15 @@ class _ReminderChoice extends _FilterChoice {
 /// Carries its selected state whenever anything in the sheet behind it is
 /// filtering, so an active filter is visible without opening it.
 class _FilterButton extends StatelessWidget {
-  const _FilterButton({required this.active, required this.onPressed});
+  const _FilterButton({
+    required this.active,
+    required this.onPressed,
+    this.round = false,
+  });
+
+  /// A circle the search field's height, for its place beside the field;
+  /// otherwise a chip the tag pills' height, for the head of their row.
+  final bool round;
 
   /// Whether anything in the sheet is narrowing the timeline — a content
   /// type, the reminder filter, or both. A bool rather than the selection
@@ -135,27 +146,44 @@ class _FilterButton extends StatelessWidget {
       onTap: onPressed,
       selected: active,
       semanticLabel: AppLocalizations.of(context).filters,
-      shape: const StadiumBorder(),
+      shape: round ? const CircleBorder() : const StadiumBorder(),
       child: Material(
         color: active
             ? scheme.primary.withValues(alpha: 0.12)
             : scheme.surfaceContainerLowest,
-        shape: StadiumBorder(
-          // Only the selected chip is outlined. The rest sat in rings that
-          // did no work the fill was not already doing.
-          side: active ? BorderSide(color: scheme.primary) : BorderSide.none,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: NexSpacing.contentGap - NexSpacing.xs,
-            vertical: NexSpacing.sm,
-          ),
-          child: Icon(
-            Icons.tune,
-            size: 18,
-            color: active ? scheme.primary : scheme.onSurface,
-          ),
-        ),
+        shape: round
+            ? CircleBorder(
+                side: active
+                    ? BorderSide(color: scheme.primary)
+                    : BorderSide.none,
+              )
+            : StadiumBorder(
+                // Only the selected chip is outlined. The rest sat in rings that
+                // did no work the fill was not already doing.
+                side: active
+                    ? BorderSide(color: scheme.primary)
+                    : BorderSide.none,
+              ),
+        child: round
+            ? SizedBox.square(
+                dimension: nexMinTapTarget,
+                child: Icon(
+                  Icons.tune,
+                  size: 20,
+                  color: active ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: NexSpacing.contentGap - NexSpacing.xs,
+                  vertical: NexSpacing.sm,
+                ),
+                child: Icon(
+                  Icons.tune,
+                  size: 18,
+                  color: active ? scheme.primary : scheme.onSurface,
+                ),
+              ),
       ),
     );
   }

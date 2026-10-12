@@ -40,6 +40,9 @@ Working convention:
 - **Your greeting, before you start.** The last welcome page draws the top of the timeline live: type your name and Nex greets you by it, in the theme and language you are picking, so you can see what each answer changes.
 - **Each kind of note has its colour.** On every card the square beside the note takes its type's colour — text in your theme's accent, voice violet, checklists teal, links amber, photos rose, files grey — so a day's voice notes and lists stand out at a glance. The empty timeline's three ways in wear the same colours.
 - **A day reads as one strand.** The notes under each date are joined by a thin thread down their squares, and the date headings are bolder and easier to scan.
+- **A lighter top of the timeline.** Today's date — in your calendar, with the month in words — sits over the greeting, now set at the start of the line; the filter button moved beside the search field, and the row of tag chips appears only once there are tags to pick, so the first notes start well up the screen.
+- **Appearance and Security, chosen in place.** Theme, text size and card size are now the choices themselves on the Theme page — card size drawn as stacks of cards — instead of rows that each opened a sheet. Security opens on whether Nex asks before it opens, and when to lock is three choices with a line each, plus the delay as chips.
+- **A clearer password generator.** The password sits on its own card with a meter for how strong it is, and copy and a fresh one side by side.
 
 ## v1.99.30
 

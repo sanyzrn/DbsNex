@@ -29,36 +29,6 @@ String _widgetFilterSummary(AppLocalizations l10n, NexPreferences preferences) {
   return tags.isEmpty ? kinds : '$kinds · ${tags.join(', ')}';
 }
 
-/// Opens one setting's choices as their own sheet, and applies the pick.
-///
-/// The cards themselves are unchanged — this is the same [NexChoiceCards]
-/// that used to sit inline, previews and all. Only where it lives moved.
-/// Closing on selection rather than offering a Save button: there is one
-/// choice, it takes effect immediately, and a picker that stays open after
-/// you have picked invites a second look for a confirmation that never comes.
-Future<void> _pick<T>({
-  required BuildContext context,
-  required String title,
-  required T selected,
-  required List<NexChoice<T>> choices,
-  required ValueChanged<T> onSelected,
-  String? footnote,
-}) async {
-  final picked = await nexShowSheet<T>(
-    context: context,
-    builder: (sheetContext) => _PickerSheet(
-      title: title,
-      footnote: footnote,
-      child: NexChoiceCards<T>(
-        selected: selected,
-        choices: choices,
-        onSelected: (value) => Navigator.pop(sheetContext, value),
-      ),
-    ),
-  );
-  if (picked != null) onSelected(picked);
-}
-
 /// A setting whose few choices are shown in place, not behind a tap.
 ///
 /// For the settings with two or three options that are each worth seeing
@@ -109,40 +79,6 @@ class _InlineChoice<T> extends StatelessWidget {
       ],
     ),
   );
-}
-
-/// The frame every setting's picker sheet shares.
-class _PickerSheet extends StatelessWidget {
-  const _PickerSheet({required this.title, required this.child, this.footnote});
-
-  final String title;
-  final Widget child;
-  final String? footnote;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return NexSheetBody(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(title, style: theme.textTheme.titleMedium),
-          const SizedBox(height: NexSpacing.md),
-          child,
-          if (footnote != null) ...[
-            const SizedBox(height: NexSpacing.md),
-            Text(
-              footnote!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 }
 
 /// Both row types in this sheet share it, so the rhythm of the whole screen

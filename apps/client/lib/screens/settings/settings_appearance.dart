@@ -91,6 +91,56 @@ class _TextSizePreview extends StatelessWidget {
   );
 }
 
+/// A stack of cards at a density, drawn rather than named: how many fit, and
+/// how much room each takes.
+class _DensityPreview extends StatelessWidget {
+  const _DensityPreview({required this.density});
+
+  final NexCardDensity density;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (count, height, gap) = switch (density) {
+      NexCardDensity.compact => (4, 6.0, 2.5),
+      NexCardDensity.standard => (3, 9.0, 3.5),
+      NexCardDensity.readable => (2, 14.0, 4.0),
+    };
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (var i = 0; i < count; i++) ...[
+            if (i > 0) SizedBox(height: gap),
+            Container(
+              height: height,
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: scheme.outline, width: 1),
+              ),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Container(
+                  width: height - 3,
+                  height: height - 3,
+                  margin: const EdgeInsetsDirectional.only(start: 1.5),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _ThemeScreen extends StatelessWidget {
   const _ThemeScreen({required this.preferences});
   final NexPreferences preferences;
@@ -109,134 +159,84 @@ class _ThemeScreen extends StatelessWidget {
             NexSpacing.lg + nexBottomInset(context),
           ),
           children: [
-            // On a card like every other settings page, rather than floating
-            // loose over the theme's own backdrop.
+            // The three choices here used to be rows that each opened a
+            // sheet to pick from — a tap to see the choices, a tap to make
+            // one, and the result only visible once the sheet was gone. They
+            // are the choices themselves now, in place, the way Language and
+            // calendar shows its own.
+            NexPanel(
+              title: l10n.theme,
+              icon: Icons.contrast,
+              child: NexChoiceCards<ThemeMode>(
+                selected: preferences.themeMode,
+                onSelected: preferences.setThemeMode,
+                choices: [
+                  for (final (mode, label) in [
+                    (ThemeMode.light, l10n.themeLight),
+                    (ThemeMode.dark, l10n.themeDark),
+                    (ThemeMode.system, l10n.themeSystem),
+                  ])
+                    NexChoice(
+                      value: mode,
+                      label: label,
+                      preview: NexThemeSwatch(
+                        mode: mode,
+                        comfort: preferences.comfortMode,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: NexSpacing.md),
+            NexPanel(
+              title: l10n.uiScale,
+              icon: Icons.format_size,
+              // The four steps are unchanged, but the type ramp underneath
+              // them came down a step — so "Large" is roughly what "Default"
+              // used to be, which is where anyone who liked the old size
+              // should land.
+              child: NexChoiceCards<double>(
+                selected: preferences.uiScale,
+                onSelected: preferences.setUiScale,
+                choices: [
+                  for (final (scale, label, size) in [
+                    (0.9, l10n.uiScaleSmall, 13.0),
+                    (1.0, l10n.uiScaleDefault, 17.0),
+                    (1.15, l10n.uiScaleLarge, 21.0),
+                    (1.3, l10n.uiScaleLarger, 25.0),
+                  ])
+                    NexChoice(
+                      value: scale,
+                      label: label,
+                      preview: _TextSizePreview(fontSize: size),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: NexSpacing.md),
+            NexPanel(
+              title: l10n.cardDensity,
+              icon: Icons.view_agenda_outlined,
+              child: NexChoiceCards<NexCardDensity>(
+                selected: preferences.cardDensity,
+                onSelected: preferences.setCardDensity,
+                choices: [
+                  for (final (density, label) in [
+                    (NexCardDensity.compact, l10n.cardDensityCompact),
+                    (NexCardDensity.standard, l10n.cardDensityStandard),
+                    (NexCardDensity.readable, l10n.cardDensityReadable),
+                  ])
+                    NexChoice(
+                      value: density,
+                      label: label,
+                      preview: _DensityPreview(density: density),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: NexSpacing.md),
             _SettingsCard(
-              children: [
-                _Row(
-                  icon: Icons.dark_mode_outlined,
-                  title: l10n.theme,
-                  value: switch (preferences.themeMode) {
-                    ThemeMode.light => l10n.themeLight,
-                    ThemeMode.dark => l10n.themeDark,
-                    ThemeMode.system => l10n.themeSystem,
-                  },
-                  onTap: () => unawaited(
-                    _pick<ThemeMode>(
-                      context: context,
-                      title: l10n.theme,
-                      selected: preferences.themeMode,
-                      onSelected: preferences.setThemeMode,
-                      choices: [
-                        NexChoice(
-                          value: ThemeMode.light,
-                          label: l10n.themeLight,
-                          preview: NexThemeSwatch(
-                            mode: ThemeMode.light,
-                            comfort: preferences.comfortMode,
-                          ),
-                        ),
-                        NexChoice(
-                          value: ThemeMode.dark,
-                          label: l10n.themeDark,
-                          preview: NexThemeSwatch(
-                            mode: ThemeMode.dark,
-                            comfort: preferences.comfortMode,
-                          ),
-                        ),
-                        NexChoice(
-                          value: ThemeMode.system,
-                          label: l10n.themeSystem,
-                          preview: NexThemeSwatch(
-                            mode: ThemeMode.system,
-                            comfort: preferences.comfortMode,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                _Row(
-                  icon: Icons.format_size,
-                  title: l10n.uiScale,
-                  value: switch (preferences.uiScale) {
-                    < 1.0 => l10n.uiScaleSmall,
-                    < 1.1 => l10n.uiScaleDefault,
-                    < 1.25 => l10n.uiScaleLarge,
-                    _ => l10n.uiScaleLarger,
-                  },
-                  // The four steps are unchanged, but the type ramp underneath them
-                  // came down a step — so "Large" is roughly what "Default" used to
-                  // be, which is where anyone who liked the old size should land.
-                  onTap: () => unawaited(
-                    _pick<double>(
-                      context: context,
-                      title: l10n.uiScale,
-                      selected: preferences.uiScale,
-                      onSelected: preferences.setUiScale,
-                      choices: [
-                        NexChoice(
-                          value: 0.9,
-                          label: l10n.uiScaleSmall,
-                          preview: const _TextSizePreview(fontSize: 13),
-                        ),
-                        NexChoice(
-                          value: 1.0,
-                          label: l10n.uiScaleDefault,
-                          preview: const _TextSizePreview(fontSize: 17),
-                        ),
-                        NexChoice(
-                          value: 1.15,
-                          label: l10n.uiScaleLarge,
-                          preview: const _TextSizePreview(fontSize: 21),
-                        ),
-                        NexChoice(
-                          value: 1.3,
-                          label: l10n.uiScaleLarger,
-                          preview: const _TextSizePreview(fontSize: 25),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                _Row(
-                  icon: Icons.view_agenda_outlined,
-                  title: l10n.cardDensity,
-                  keywords:
-                      'density compact card size readable تراکم فشرده خوانا کارت',
-                  value: switch (preferences.cardDensity) {
-                    NexCardDensity.compact => l10n.cardDensityCompact,
-                    NexCardDensity.standard => l10n.cardDensityStandard,
-                    NexCardDensity.readable => l10n.cardDensityReadable,
-                  },
-                  onTap: () => unawaited(
-                    _pick<NexCardDensity>(
-                      context: context,
-                      title: l10n.cardDensity,
-                      selected: preferences.cardDensity,
-                      onSelected: preferences.setCardDensity,
-                      choices: [
-                        NexChoice(
-                          value: NexCardDensity.compact,
-                          label: l10n.cardDensityCompact,
-                          preview: const Icon(Icons.density_small),
-                        ),
-                        NexChoice(
-                          value: NexCardDensity.standard,
-                          label: l10n.cardDensityStandard,
-                          preview: const Icon(Icons.density_medium),
-                        ),
-                        NexChoice(
-                          value: NexCardDensity.readable,
-                          label: l10n.cardDensityReadable,
-                          preview: const Icon(Icons.density_large),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                _AccentColorRow(preferences: preferences),
-              ],
+              children: [_AccentColorRow(preferences: preferences)],
             ),
             const SizedBox(height: NexSpacing.md),
             Text(
