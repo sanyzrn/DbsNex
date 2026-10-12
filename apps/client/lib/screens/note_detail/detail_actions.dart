@@ -192,7 +192,9 @@ extension _DetailActions on _NoteDetailSheetState {
     final note = _note;
     if (note == null) return;
     final l10n = AppLocalizations.of(context);
-    if (!await nexShareNote(note) && mounted) _toast(l10n.nothingToCopy);
+    if (!await nexShareNote(note, attachments: _attachments) && mounted) {
+      _toast(l10n.nothingToCopy);
+    }
   }
 
   /// Saves a copy where the person chooses: the system's own save dialog,

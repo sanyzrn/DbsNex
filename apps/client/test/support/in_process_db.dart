@@ -85,6 +85,8 @@ class InProcessDb implements NexDb {
   late final SqliteScheduledNoteRepository _scheduled;
   late final SqliteCycleRepository _cycle;
   late final SqliteModuleRecordRepository _modules;
+  late final SqliteAttachmentRepository _attachments =
+      SqliteAttachmentRepository(_repo, localDeviceId: 'test-device');
   late final SearchService _search;
   late final LibraryMaintenance _maintenance;
   late final EnrichmentService _enrichment;
@@ -318,6 +320,51 @@ class InProcessDb implements NexDb {
 
   @override
   Future<void> cycleDeleteAll() async => _cycle.deleteAll();
+
+  @override
+  Future<List<NoteAttachment>> attachmentsFor(String noteId) async =>
+      _attachments.forNote(noteId);
+
+  @override
+  Future<NoteAttachment?> attachmentAdd(
+    String noteId, {
+    required AttachmentKind kind,
+    required String mediaUri,
+    required String mediaHash,
+    String? name,
+    String? mimeType,
+    int? durationMs,
+    String? caption,
+  }) async => _attachments.add(
+    noteId,
+    kind: kind,
+    mediaUri: mediaUri,
+    mediaHash: mediaHash,
+    name: name,
+    mimeType: mimeType,
+    durationMs: durationMs,
+    caption: caption,
+  );
+
+  @override
+  Future<void> attachmentRemove(String id) async => _attachments.remove(id);
+
+  @override
+  Future<bool> attachmentRestore(String id) async => _attachments.restore(id);
+
+  @override
+  Future<void> attachmentReorder(
+    String noteId,
+    List<String> orderedIds,
+  ) async => _attachments.reorder(noteId, orderedIds);
+
+  @override
+  Future<void> attachmentSetCaption(String id, String? caption) async =>
+      _attachments.setCaption(id, caption);
+
+  @override
+  Future<void> attachmentSetOcr(String id, String? text) async =>
+      _attachments.setOcrText(id, text);
 
   @override
   Future<List<ModuleRecord>> moduleRecords(String module, String kind) async =>

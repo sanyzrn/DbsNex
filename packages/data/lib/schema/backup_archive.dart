@@ -119,8 +119,12 @@ class NexBackupArchive {
     final snapshot = sqlite3.open(snapshotPath, mode: OpenMode.readOnly);
     final expected = <String, String>{};
     try {
+      // Attachments' files are packed with the notes' own (docs/14), and
+      // a removed attachment's tombstone keeps nothing.
       for (final row in snapshot.select(
-        'SELECT media_uri, media_hash FROM notes WHERE media_uri IS NOT NULL',
+        'SELECT media_uri, media_hash FROM notes WHERE media_uri IS NOT NULL '
+        'UNION ALL SELECT media_uri, media_hash FROM note_attachments '
+        'WHERE deleted_at IS NULL',
       )) {
         final uri = row['media_uri'] as String;
         if (!File(uri).existsSync()) {
@@ -412,10 +416,27 @@ class NexBackupArchive {
     if (!File(liveDbPath).existsSync()) return;
     final db = sqlite3.open(liveDbPath);
     try {
-      final rows = db.select(
-        'SELECT id, media_uri FROM notes WHERE media_uri IS NOT NULL',
-      );
-      for (final row in rows) {
+      // A backup from before attachments has no such table; its notes are
+      // all there is to remap.
+      final hasAttachments = db
+          .select(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'note_attachments'",
+          )
+          .isNotEmpty;
+      final rows = [
+        for (final row in db.select(
+          'SELECT id, media_uri FROM notes WHERE media_uri IS NOT NULL',
+        ))
+          (table: 'notes', row: row),
+        if (hasAttachments)
+          for (final row in db.select(
+            'SELECT id, media_uri FROM note_attachments '
+            'WHERE deleted_at IS NULL',
+          ))
+            (table: 'note_attachments', row: row),
+      ];
+      for (final (:table, :row) in rows) {
         final stored = row['media_uri']! as String;
         if (p.isWithin(mediaDir, stored) && File(stored).existsSync()) continue;
 
@@ -434,7 +455,7 @@ class NexBackupArchive {
           }
         }
         if (candidate != null) {
-          db.execute('UPDATE notes SET media_uri = ? WHERE id = ?', [
+          db.execute('UPDATE $table SET media_uri = ? WHERE id = ?', [
             candidate.path,
             row['id']! as String,
           ]);

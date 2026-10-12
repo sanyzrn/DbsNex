@@ -16,6 +16,7 @@ import 'package:nex_client/platform/theme_presets.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/widgets/nex_banner.dart';
 import 'package:nex_client/widgets/note_context_menu.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;

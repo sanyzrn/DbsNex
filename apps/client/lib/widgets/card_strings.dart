@@ -28,6 +28,10 @@ NexCardStrings nexCardStrings(BuildContext context) {
     // here rather than interpolated raw.
     noteOfType: (type) => l10n.noteOfType(l10n.noteType(type)),
     tagList: l10n.tagListLabel,
+    attachedShort: (count) =>
+        nexDigits('+$count', persian: l10n.localeName == 'fa'),
+    attachedLabel: (count) =>
+        nexDigits(l10n.attachedMore(count), persian: l10n.localeName == 'fa'),
     accentColor: l10n.accentColorLabel,
     relativeTime: (time) => switch (time.unit) {
       NexRelativeUnit.now => l10n.timeNow,

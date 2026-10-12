@@ -56,6 +56,8 @@ A text note can become a Markdown file with **Save as Markdown**: the same item,
 
 The other way round works for any file that is mostly words. Open a file item and tap **Convert to note** to turn it into editable, searchable text. This works for Markdown, plain text and logs, Word (`.docx` and older `.doc`), OpenDocument (`.odt`), Rich Text (`.rtf`), web pages (`.html`), e-books (`.epub`), spreadsheets saved as `.csv` or `.tsv` (they become a table), and source or configuration files (they keep a fixed-width font). Older Persian text files in Windows encoding are read correctly. PDFs stay files: their text has no reliable reading order. Files up to 16 MB are supported, and a failed conversion leaves the original untouched.
 
+A note can carry more than one file. Open a text, photo or file note and tap **Attach** beside **Tag** — or, once it has some, **+** at the end of its **Attached** row — to take a photo, choose several photos from the gallery at once, or choose a file. Choosing several photos while capturing does the same: the first one becomes the note, and the others are attached to it. A card with attachments shows a small paperclip with how many more it holds. Tap one to open it; hold it to open it, give it a caption, or remove it from the note, which **Undo** puts back. Captions are searched with the note, **Share** sends every file together, and attachments go with the note into exports and complete backups.
+
 ![Turning a file into a note](files-to-notes.webp)
 
 ## Recover unfinished work

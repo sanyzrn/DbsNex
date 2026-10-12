@@ -6,6 +6,7 @@ import 'package:nex_client/screens/modules_screen.dart';
 import 'package:nex_client/screens/profile_screen.dart';
 import 'package:nex_client/screens/settings_sheet.dart';
 import 'package:nex_client/screens/tools_screen.dart';
+import 'package:nex_client/platform/nex_services.dart';
 
 import 'support/nex_harness.dart';
 

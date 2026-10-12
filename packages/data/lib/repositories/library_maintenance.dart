@@ -44,8 +44,11 @@ class LibraryMaintenance {
 
   void purgeDeletedBefore(DateTime cutoff) {
     final uris = _mediaUris(
-      'SELECT media_uri FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?',
-      [cutoff.toUtc().toIso8601String()],
+      'SELECT media_uri FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ? '
+      'UNION ALL SELECT a.media_uri FROM note_attachments a '
+      'JOIN notes n ON n.id = a.note_id '
+      'WHERE n.deleted_at IS NOT NULL AND n.deleted_at < ?',
+      [cutoff.toUtc().toIso8601String(), cutoff.toUtc().toIso8601String()],
     );
     repo.db.execute(
       'DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?',
@@ -66,6 +69,12 @@ class LibraryMaintenance {
       [id],
     );
     if (rows.isEmpty) return;
+    // Its attachments go with it (the rows by cascade), and so do their
+    // files, unless another note shares them.
+    final attached = _mediaUris(
+      'SELECT media_uri FROM note_attachments WHERE note_id = ?',
+      [id],
+    );
     repo.db.execute(
       'DELETE FROM notes WHERE id = ? AND deleted_at IS NOT NULL',
       [id],
@@ -73,13 +82,16 @@ class LibraryMaintenance {
     _unlinkMedia([
       for (final row in rows)
         if (row['media_uri'] is String) row['media_uri']! as String,
+      ...attached,
     ]);
   }
 
   /// Empties the trash.
   void purgeAllDeleted() {
     final uris = _mediaUris(
-      'SELECT media_uri FROM notes WHERE deleted_at IS NOT NULL',
+      'SELECT media_uri FROM notes WHERE deleted_at IS NOT NULL '
+      'UNION ALL SELECT a.media_uri FROM note_attachments a '
+      'JOIN notes n ON n.id = a.note_id WHERE n.deleted_at IS NOT NULL',
       const [],
     );
     repo.db.execute('DELETE FROM notes WHERE deleted_at IS NOT NULL');
@@ -116,13 +128,16 @@ class LibraryMaintenance {
     }
   }
 
-  /// Whether any surviving note still points at [uri].
+  /// Whether any surviving note, or any live attachment, still points at
+  /// [uri].
   ///
   /// Asked after the purge has deleted its own rows, so anything this finds
   /// belongs to a note that is still there.
   bool _stillReferenced(String uri) => repo.db.select(
-    'SELECT 1 FROM notes WHERE media_uri = ? LIMIT 1',
-    [uri],
+    'SELECT 1 FROM notes WHERE media_uri = ? '
+    'UNION ALL SELECT 1 FROM note_attachments '
+    'WHERE media_uri = ? AND deleted_at IS NULL LIMIT 1',
+    [uri, uri],
   ).isNotEmpty;
 
   /// A file is only ever deleted when it is inside [mediaRoot]. The path in
@@ -168,9 +183,12 @@ class LibraryMaintenance {
     final dir = Directory(root);
     if (!dir.existsSync()) return 0;
 
+    // A removed attachment's tombstone does not keep its file: the file is
+    // what removing it asked to be rid of.
     final referenced = {
       for (final row in repo.db.select(
-        'SELECT media_uri FROM notes WHERE media_uri IS NOT NULL',
+        'SELECT media_uri FROM notes WHERE media_uri IS NOT NULL '
+        'UNION SELECT media_uri FROM note_attachments WHERE deleted_at IS NULL',
       ))
         p.normalize(row['media_uri']! as String),
     };

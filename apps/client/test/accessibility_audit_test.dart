@@ -7,6 +7,7 @@ import 'package:nex_client/screens/settings_sheet.dart';
 import 'package:nex_client/screens/tools_screen.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/commitments_sheet.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';

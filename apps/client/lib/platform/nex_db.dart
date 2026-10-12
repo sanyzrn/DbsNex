@@ -145,6 +145,36 @@ abstract interface class NexDb {
   /// Every period and logged day, gone.
   Future<void> cycleDeleteAll();
 
+  /* ------------------------------------------------------ attachments */
+
+  /// [noteId]'s attachments, in order — not its own file
+  /// (docs/14-attachments.md).
+  Future<List<NoteAttachment>> attachmentsFor(String noteId);
+
+  /// A file already under the media root, put at the end of [noteId]'s
+  /// attachments. Null when the note is not there.
+  Future<NoteAttachment?> attachmentAdd(
+    String noteId, {
+    required AttachmentKind kind,
+    required String mediaUri,
+    required String mediaHash,
+    String? name,
+    String? mimeType,
+    int? durationMs,
+    String? caption,
+  });
+
+  Future<void> attachmentRemove(String id);
+
+  /// Undoes [attachmentRemove]. Whether there was one to put back.
+  Future<bool> attachmentRestore(String id);
+
+  Future<void> attachmentReorder(String noteId, List<String> orderedIds);
+
+  Future<void> attachmentSetCaption(String id, String? caption);
+
+  Future<void> attachmentSetOcr(String id, String? text);
+
   /* ---------------------------------------------------------- modules */
 
   /// Every record [module] saved under [kind], the newest first — see

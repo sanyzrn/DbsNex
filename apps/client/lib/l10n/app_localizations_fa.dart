@@ -1073,6 +1073,41 @@ class AppLocalizationsFa extends AppLocalizations {
   String get editCaption => 'ویرایش شرح';
 
   @override
+  String get attachmentsTitle => 'پیوست‌ها';
+
+  @override
+  String get attach => 'پیوست';
+
+  @override
+  String get attachAdd => 'پیوست عکس یا فایل';
+
+  @override
+  String get attachTakePhoto => 'گرفتن عکس';
+
+  @override
+  String get attachChoosePhotos => 'انتخاب عکس‌ها';
+
+  @override
+  String get attachChooseFile => 'انتخاب فایل';
+
+  @override
+  String get attachRemove => 'برداشتن از این یادداشت';
+
+  @override
+  String get attachRemoved => 'پیوست برداشته شد';
+
+  @override
+  String get attachOpen => 'باز کردن';
+
+  @override
+  String get attachFailed => 'پیوست کردن این فایل نشد';
+
+  @override
+  String attachedMore(int count) {
+    return '$count فایل دیگر';
+  }
+
+  @override
   String get noCaption => 'بدون شرح';
 
   @override

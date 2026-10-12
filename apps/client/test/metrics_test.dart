@@ -13,6 +13,7 @@ import 'package:nex_client/screens/metrics_screen.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/widgets/feedback_sheet.dart';
 import 'package:nex_client/widgets/nex_banner.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 

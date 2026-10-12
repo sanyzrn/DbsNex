@@ -87,6 +87,8 @@ void main() {
       'lib/screens/cycle/cycle_calendar.dart',
       'lib/screens/settings/settings_appearance.dart',
       'lib/screens/settings/settings_gestures.dart',
+      // Split out of settings_sheet.dart (REL-10), with the words it had.
+      'lib/screens/settings/settings_matching.dart',
       'lib/screens/settings/settings_search.dart',
       'lib/screens/settings_sheet.dart',
       'lib/screens/tools_screen.dart',

@@ -22,6 +22,8 @@ class NexCardStrings {
     this.dueLabel,
     this.tagName,
     this.durationLabel,
+    this.attachedShort = _defaultAttachedShort,
+    this.attachedLabel = _defaultAttachedLabel,
   });
 
   /// English default, for tests and for anything that has not been localised
@@ -34,6 +36,9 @@ class NexCardStrings {
 
   static String _defaultNoteOfType(String type) => '$type note';
   static String _defaultTagList(String tags) => 'Tags: $tags';
+  static String _defaultAttachedShort(int count) => '+$count';
+  static String _defaultAttachedLabel(int count) =>
+      count == 1 ? '1 more file' : '$count more files';
 
   /// Compact English shorthand — "now", "5m", "8h", "1d", "2w", "1mo", "1y".
   /// The app supplies Persian's own, more legible phrasing for the same
@@ -58,6 +63,13 @@ class NexCardStrings {
   final String accentColor;
   final String Function(Tag)? tagName;
   final String Function(int milliseconds)? durationLabel;
+
+  /// "+3" — the mark on a card whose note carries files after its own, in
+  /// the locale's digits.
+  final String Function(int count) attachedShort;
+
+  /// "3 more files" — what that mark says to a screen reader.
+  final String Function(int count) attachedLabel;
 
   /// "8h", "2w" and so on — see [NexRelativeTime].
   final String Function(NexRelativeTime time) relativeTime;
@@ -201,6 +213,7 @@ class NoteCard extends StatelessWidget {
     // reading "asterisk asterisk done asterisk asterisk" is the audible
     // version of the card showing its own source.
     NexMarkdownText.preview(note.displayText ?? ''),
+    if (note.attachmentCount > 0) strings.attachedLabel(note.attachmentCount),
     strings.relativeTime(nexRelativeTimeOf(note.createdAt)),
   ].where((value) => value.isNotEmpty).join('. ');
 }
@@ -292,8 +305,58 @@ class _CardBody extends StatelessWidget {
                     previewOverride ??
                     _Preview(note: note, expanded: expanded, strings: strings),
               ),
+              if (note.attachmentCount > 0) ...[
+                const SizedBox(width: NexSpacing.sm),
+                _AttachedMark(
+                  label: strings.attachedShort(note.attachmentCount),
+                ),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The files a note carries after its own, as a quiet pill at the end of
+/// its row: a paperclip and "+3". At the end rather than on the leading
+/// square, whose corners already hold the tag dots and the pin. Announced
+/// with the card (see `attachedLabel`), so the pill itself is silent.
+class _AttachedMark extends StatelessWidget {
+  const _AttachedMark({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return ExcludeSemantics(
+      child: Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(
+          NexSpacing.xs + 2,
+          2,
+          NexSpacing.sm,
+          2,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(NexRadius.pill),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.attach_file, size: 14, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 2),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
