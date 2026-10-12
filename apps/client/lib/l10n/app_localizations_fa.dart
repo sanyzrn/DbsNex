@@ -1094,6 +1094,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get attachRemove => 'برداشتن از این یادداشت';
 
   @override
+  String get attachMoveEarlier => 'جابه‌جایی به قبل';
+
+  @override
+  String get attachMoveLater => 'جابه‌جایی به بعد';
+
+  @override
   String get attachRemoved => 'پیوست برداشته شد';
 
   @override
@@ -1161,6 +1167,61 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get details => 'جزئیات';
+
+  @override
+  String detailsAgo(String span) {
+    return '$span پیش';
+  }
+
+  @override
+  String get detailsNotEdited => 'بدون تغییر از همان موقع';
+
+  @override
+  String get detailsEdited => 'آخرین تغییر';
+
+  @override
+  String detailsWords(String words, String chars) {
+    return '$words واژه · $chars نویسه';
+  }
+
+  @override
+  String detailsReading(String minutes) {
+    return 'حدود $minutes دقیقه خواندن';
+  }
+
+  @override
+  String get detailsLength => 'اندازهٔ متن';
+
+  @override
+  String detailsChecklist(String done, String total) {
+    return '$done از $total تیک خورده';
+  }
+
+  @override
+  String get detailsProgress => 'پیشرفت';
+
+  @override
+  String get detailsDuration => 'مدت';
+
+  @override
+  String get detailsFile => 'فایل';
+
+  @override
+  String get detailsAddress => 'نشانی';
+
+  @override
+  String get detailsOnPhone => 'روی این گوشی';
+
+  @override
+  String detailsWithAttached(String size, String count) {
+    return '$size، همراه $count پیوست';
+  }
+
+  @override
+  String get detailsPinned => 'سنجاق‌شده';
+
+  @override
+  String get detailsReminder => 'یادآور';
 
   @override
   String get created => 'ساخته شده';
@@ -4074,6 +4135,20 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get modulesSuggest => 'ایده‌ای برای یک ماژول دارید؟ به ما بگویید';
+
+  @override
+  String get moduleIdeaTitle => 'ایده‌ای برای یک ماژول';
+
+  @override
+  String get moduleIdeaLead =>
+      'دوست دارید چه چیزی به Nex اضافه شود؟ یکی دو جمله کافی است: به چه کاری می‌آید و به چه کسی کمک می‌کند.';
+
+  @override
+  String get moduleIdeaHint =>
+      'مثلاً: قفسه‌ای برای کارت‌های گارانتی، با یادآوری یک ماه پیش از تمام شدن هر کدام';
+
+  @override
+  String get moduleIdeaSend => 'فرستادن ایده';
 
   @override
   String get planSmokeFreeTitle => 'بدون سیگار';

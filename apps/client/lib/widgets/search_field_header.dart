@@ -116,10 +116,18 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
           child: Row(
             children: [
               Expanded(child: _pill(context, l10n, scheme)),
-              if (trailing case final trailing? when !searching) ...[
-                const SizedBox(width: NexSpacing.sm),
-                trailing,
-              ],
+              // Gives its room to the field as search opens, rather than
+              // vanishing on the frame the field is tapped.
+              if (trailing case final trailing?)
+                _Reveal(
+                  shown: !searching,
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      start: NexSpacing.sm,
+                    ),
+                    child: trailing,
+                  ),
+                ),
             ],
           ),
         ),
@@ -127,10 +135,24 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     );
   }
 
+  /// The field, its edge and its icon easing to the accent as search opens
+  /// and back as it closes, on the same beat as everything around it.
   Widget _pill(
     BuildContext context,
     AppLocalizations l10n,
     ColorScheme scheme,
+  ) => TweenAnimationBuilder<double>(
+    tween: Tween(end: searching ? 1 : 0),
+    duration: NexMotion.of(context, NexMotion.standard),
+    curve: NexMotion.curve,
+    builder: (context, focus, _) => _pillAt(context, l10n, scheme, focus),
+  );
+
+  Widget _pillAt(
+    BuildContext context,
+    AppLocalizations l10n,
+    ColorScheme scheme,
+    double focus,
   ) => NexGlassSurface(
     borderRadius: BorderRadius.circular(NexRadius.pill),
     showShadow: false,
@@ -147,8 +169,8 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
           color: Colors.transparent,
           shape: StadiumBorder(
             side: BorderSide(
-              color: searching ? scheme.primary : Colors.transparent,
-              width: searching ? 1 : 0,
+              color: scheme.primary.withValues(alpha: focus),
+              width: focus,
             ),
           ),
           child: Padding(
@@ -169,7 +191,11 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                   Icon(
                     Icons.search,
                     size: 20,
-                    color: searching ? scheme.primary : scheme.onSurfaceVariant,
+                    color: Color.lerp(
+                      scheme.onSurfaceVariant,
+                      scheme.primary,
+                      focus,
+                    ),
                   ),
                   const SizedBox(width: NexSpacing.sm),
                   Expanded(
@@ -225,40 +251,46 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                       ),
                     ),
                   ),
-                  if (searching) ...[
-                    IconButton(
-                      tooltip: l10n.showFilters,
-                      iconSize: 20,
-                      visualDensity: VisualDensity.compact,
-                      onPressed: onShowFilters,
-                      icon: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          const Icon(Icons.tune),
-                          if (filterCount > 0)
-                            PositionedDirectional(
-                              end: -2,
-                              top: -2,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: scheme.primary,
-                                  shape: BoxShape.circle,
+                  _Reveal(
+                    shown: searching,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: l10n.showFilters,
+                          iconSize: 20,
+                          visualDensity: VisualDensity.compact,
+                          onPressed: onShowFilters,
+                          icon: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              const Icon(Icons.tune),
+                              if (filterCount > 0)
+                                PositionedDirectional(
+                                  end: -2,
+                                  top: -2,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: scheme.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                        ],
-                      ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: l10n.clear,
+                          iconSize: 20,
+                          visualDensity: VisualDensity.compact,
+                          onPressed: onClear,
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      tooltip: l10n.clear,
-                      iconSize: 20,
-                      visualDensity: VisualDensity.compact,
-                      onPressed: onClear,
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
+                  ),
                 ],
               ),
             ),
@@ -284,4 +316,34 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   /// node, both owned outside this delegate.
   @override
   bool shouldRebuild(SearchFieldHeader old) => true;
+}
+
+/// Something that makes room for itself as it arrives and gives the room
+/// back as it leaves, fading as it goes — the field's buttons, and the
+/// filter beside it.
+class _Reveal extends StatelessWidget {
+  const _Reveal({required this.shown, required this.child});
+
+  final bool shown;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+    duration: NexMotion.of(context, NexMotion.standard),
+    reverseDuration: NexMotion.of(context, NexMotion.fast),
+    switchInCurve: NexMotion.curve,
+    switchOutCurve: NexMotion.exitCurve,
+    transitionBuilder: (child, animation) => FadeTransition(
+      opacity: animation,
+      child: SizeTransition(
+        sizeFactor: animation,
+        axis: Axis.horizontal,
+        axisAlignment: -1,
+        child: child,
+      ),
+    ),
+    child: shown
+        ? KeyedSubtree(key: const ValueKey(true), child: child)
+        : const SizedBox.shrink(key: ValueKey(false)),
+  );
 }

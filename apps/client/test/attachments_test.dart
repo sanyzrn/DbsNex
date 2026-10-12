@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
@@ -111,6 +112,67 @@ void main() {
     expect(find.byKey(ValueKey('attachment-${attachment.id}')), findsOneWidget);
     await tester.pump(const Duration(seconds: 7));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('a held tile moves where it is dropped, or by its menu', (
+    tester,
+  ) async {
+    final services = harness.services;
+    late Note note;
+    late List<NoteAttachment> made;
+    await tester.runAsync(() async {
+      note = (await services.captureText('three angles'))!;
+      made = [
+        for (var i = 0; i < 3; i++)
+          (await services.attachBytes(
+            note.id,
+            bytes,
+            kind: AttachmentKind.photo,
+            extension: '.jpg',
+          ))!,
+      ];
+    });
+    await openNote(tester, note.id);
+    Future<List<String>> order() async {
+      late List<NoteAttachment> now;
+      await tester.runAsync(
+        () async => now = await services.attachmentsFor(note.id),
+      );
+      return [for (final a in now) a.id];
+    }
+
+    // Picked up and carried past the next two.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(ValueKey('attachment-${made[0].id}'))),
+    );
+    await tester.pump(kLongPressTimeout + kPressTimeout);
+    for (var i = 0; i < 10; i++) {
+      await gesture.moveBy(const Offset(25, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pumpAndSettle();
+    expect(await order(), [made[1].id, made[2].id, made[0].id]);
+    expect(
+      find.byKey(const ValueKey('attachment-remove')),
+      findsNothing,
+      reason: 'a hold that moved is not a question',
+    );
+
+    // Held and let go where it was: the menu, with a step to the end.
+    await tester.longPress(find.byKey(ValueKey('attachment-${made[1].id}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('attachment-earlier')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('attachment-later')));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pumpAndSettle();
+    expect(await order(), [made[2].id, made[1].id, made[0].id]);
   });
 
   testWidgets('a checklist offers no attachments', (tester) async {

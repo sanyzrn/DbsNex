@@ -41,6 +41,13 @@ class _Worker {
   late final SqliteAttachmentRepository attachments;
   late final EnrichmentService enrichment;
 
+  /// Text in attached photos, each request logged with its note.
+  late final attachmentText = AttachmentTextReader(
+    attachments,
+    enrichment,
+    disclose: (noteId, read) => NexDisclosureLog.about(read, notes: [noteId]),
+  );
+
   AiProviderConfig? provider;
   var localSearch = false;
 
@@ -352,8 +359,11 @@ class _Worker {
         () => enrichment.enrichNote(arg('noteId')! as String),
         notes: [arg('noteId')! as String],
       ).then<Object?>((_) => null),
-      _DbCommand.backfillEnrichment => await enrichment.backfill(
-        limit: arg('limit')! as int,
+      _DbCommand.backfillEnrichment =>
+        await enrichment.backfill(limit: arg('limit')! as int) +
+            await attachmentText.backfill(limit: arg('limit')! as int),
+      _DbCommand.attachmentReadText => await attachmentText.read(
+        arg('id')! as String,
       ),
       _DbCommand.backfillEmbeddings => await enrichment.backfillEmbeddings(
         limit: arg('limit')! as int,

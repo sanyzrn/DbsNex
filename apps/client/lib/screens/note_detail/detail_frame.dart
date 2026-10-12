@@ -1,36 +1,5 @@
 part of '../note_detail_sheet.dart';
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: NexSpacing.xs / 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: theme.textTheme.bodySmall),
-          if (value.isNotEmpty) ...[
-            const SizedBox(width: NexSpacing.sm),
-            Expanded(
-              child: Text(
-                value,
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.end,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 /// A horizontally scrolling strip of labelled icon actions.
 ///
 /// Scrolling rather than wrapping: the number of actions depends on the note's

@@ -369,13 +369,18 @@ class OsCaptureBridge {
           file.path,
         );
         final dest = await _copyIntoMedia(file, preferredName: name);
+        // One of several files shared together, after the first: it joins
+        // the note the first became, as an attachment.
+        if (await _attachToGroup(payload, type!, dest, name)) {
+          return true;
+        }
         // Keep the staged file if the database response is lost: the commit
         // may already reference it. An unreferenced file is safer than a
         // successful note pointing at bytes we deleted on an uncertain error.
         final caption = (payload['text'] as String?)?.trim() ?? '';
         final note = await services.worker.captureShared({
           'requestId': payload['requestId'] as String? ?? newUuidV7(),
-          'type': type!,
+          'type': type,
           'mediaUri': dest,
           'mediaHash': await _hashOf(dest),
           'filename': name,
@@ -413,6 +418,46 @@ class OsCaptureBridge {
       await services.refreshTimeline();
     } catch (_) {}
     return true;
+  }
+
+  /// Attaches [dest] to the note the first of its group became, when it is
+  /// one of several files shared at once and not the first. False when it
+  /// should be a note of its own: not in a group, the first of one, or a
+  /// group whose first never became a note — refused as too large, or
+  /// deleted since — so the file is kept either way.
+  ///
+  /// The same file arriving twice (a delivery repeated before it was
+  /// acknowledged) is attached once.
+  Future<bool> _attachToGroup(
+    Map<Object?, Object?> payload,
+    String type,
+    String dest,
+    String name,
+  ) async {
+    final first = payload['groupFirst'] as String?;
+    final requestId = payload['requestId'] as String?;
+    if (first == null || requestId == null || first == requestId) {
+      return false;
+    }
+    final host = await services.worker.capturedFor(first);
+    if (host == null || host.deletedAt != null) return false;
+    final hash = await _hashOf(dest);
+    final already = await services.attachmentsFor(host.id);
+    if (already.any((attachment) => attachment.mediaHash == hash)) {
+      if (!already.any((attachment) => attachment.mediaUri == dest)) {
+        await File(dest).delete();
+      }
+      return true;
+    }
+    final attached = await services.attachStored(
+      host.id,
+      mediaUri: dest,
+      mediaHash: hash,
+      kind: type == 'shared_photo' ? AttachmentKind.photo : AttachmentKind.file,
+      name: name,
+      mimeType: payload['mimeType'] as String?,
+    );
+    return attached != null;
   }
 
   Future<void> _readSharedLink(String noteId, String url) async {

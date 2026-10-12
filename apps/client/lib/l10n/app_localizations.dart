@@ -1898,6 +1898,18 @@ abstract class AppLocalizations {
   /// **'Remove from this note'**
   String get attachRemove;
 
+  /// Attachment menu: move this file one place earlier
+  ///
+  /// In en, this message translates to:
+  /// **'Move earlier'**
+  String get attachMoveEarlier;
+
+  /// Attachment menu: move this file one place later
+  ///
+  /// In en, this message translates to:
+  /// **'Move later'**
+  String get attachMoveLater;
+
   /// Banner after removing an attachment
   ///
   /// In en, this message translates to:
@@ -2023,6 +2035,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Details'**
   String get details;
+
+  /// A span of time in the past, under a date in Details
+  ///
+  /// In en, this message translates to:
+  /// **'{span} ago'**
+  String detailsAgo(String span);
+
+  /// Details: the note was never edited after it was made
+  ///
+  /// In en, this message translates to:
+  /// **'Not changed since'**
+  String get detailsNotEdited;
+
+  /// Details: label for the last edit
+  ///
+  /// In en, this message translates to:
+  /// **'Last changed'**
+  String get detailsEdited;
+
+  /// Details: how long a written note is
+  ///
+  /// In en, this message translates to:
+  /// **'{words} words · {chars} characters'**
+  String detailsWords(String words, String chars);
+
+  /// Details: reading time of a long note
+  ///
+  /// In en, this message translates to:
+  /// **'About {minutes} min to read'**
+  String detailsReading(String minutes);
+
+  /// Details: label for words and characters
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get detailsLength;
+
+  /// Details: checklist progress
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} ticked'**
+  String detailsChecklist(String done, String total);
+
+  /// Details: label for checklist progress
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get detailsProgress;
+
+  /// Details: label for a recording length
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get detailsDuration;
+
+  /// Details: label for the file name
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get detailsFile;
+
+  /// Details: label for a link's site
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get detailsAddress;
+
+  /// Details: label for the storage the note takes
+  ///
+  /// In en, this message translates to:
+  /// **'On this phone'**
+  String get detailsOnPhone;
+
+  /// Details: storage including attachments
+  ///
+  /// In en, this message translates to:
+  /// **'{size}, with {count} attached'**
+  String detailsWithAttached(String size, String count);
+
+  /// Details: label for when the note was pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get detailsPinned;
+
+  /// Details: label for the note's reminder
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder'**
+  String get detailsReminder;
 
   /// Metadata row label
   ///
@@ -6697,6 +6799,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Have an idea for a module? Tell us'**
   String get modulesSuggest;
+
+  /// Title of the module-idea sheet opened from the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'An idea for a module'**
+  String get moduleIdeaTitle;
+
+  /// Lead under the module-idea title
+  ///
+  /// In en, this message translates to:
+  /// **'What would you add to Nex? A sentence or two is enough: what it is for, and who it would help.'**
+  String get moduleIdeaLead;
+
+  /// Hint in the module-idea text box
+  ///
+  /// In en, this message translates to:
+  /// **'For example: a shelf for warranty cards, with a reminder a month before each one runs out'**
+  String get moduleIdeaHint;
+
+  /// Send button of the module-idea sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Send the idea'**
+  String get moduleIdeaSend;
 
   /// Planned module title: quitting smoking
   ///

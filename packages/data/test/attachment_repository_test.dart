@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:nex_core/nex_core.dart'
+    show AiCapabilities, EnrichmentService, ImageRef, NullAIAdapter, OCRText;
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -329,4 +331,72 @@ void main() {
       expect(File(restored.mediaUri).readAsStringSync(), 'second.jpg');
     });
   });
+
+  group('text in attached photos', () {
+    test(
+      'is read once, found by search, and leaves the note unedited',
+      () async {
+        final text = note(NoteType.text, content: 'warranty');
+        final photo = attach(text.id, 'card.jpg');
+        final editedBefore = notes.getById(text.id)!.updatedAt;
+        final reader = _Reader('SERIAL 4471-B');
+        final service = EnrichmentService(
+          repo: notes,
+          adapter: reader,
+          capabilities: AiCapabilities.allOn,
+        );
+        final texts = AttachmentTextReader(attachments, service);
+
+        expect(attachments.needingOcr().map((a) => a.id), [photo.id]);
+        expect(await texts.read(photo.id), isTrue);
+        expect(attachments.forNote(text.id).single.ocrText, 'SERIAL 4471-B');
+        expect(ftsOf(text.id), contains('4471'));
+        expect(notes.getById(text.id)!.updatedAt, editedBefore);
+
+        // Read, so never asked again.
+        expect(await texts.read(photo.id), isFalse);
+        expect(reader.calls, 1);
+        expect(attachments.needingOcr(), isEmpty);
+      },
+    );
+
+    test('a photo with no words is read once and kept as read', () async {
+      final text = note(NoteType.text, content: 'sky');
+      final photo = attach(text.id, 'sky.jpg');
+      final service = EnrichmentService(
+        repo: notes,
+        adapter: _Reader(''),
+        capabilities: AiCapabilities.allOn,
+      );
+      expect(await AttachmentTextReader(attachments, service).backfill(), 1);
+      expect(attachments.forNote(text.id).single.ocrText, '');
+      expect(attachments.needingOcr(), isEmpty);
+      expect(photo.ocrText, isNull);
+    });
+
+    test('nothing is read while reading text in photos is off', () async {
+      final text = note(NoteType.text, content: 'off');
+      attach(text.id, 'a.jpg');
+      final reader = _Reader('words');
+      final service = EnrichmentService(repo: notes, adapter: reader);
+      final texts = AttachmentTextReader(attachments, service);
+      expect(await texts.backfill(), 0);
+      expect(reader.calls, 0);
+      expect(attachments.needingOcr(), hasLength(1));
+    });
+  });
+}
+
+/// Reads every image as [text], and counts the requests.
+class _Reader extends NullAIAdapter {
+  _Reader(this.text);
+
+  final String text;
+  var calls = 0;
+
+  @override
+  Future<OCRText>? ocr(ImageRef image) {
+    calls++;
+    return Future.value(OCRText(text: text));
+  }
 }

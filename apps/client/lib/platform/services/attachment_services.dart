@@ -68,8 +68,40 @@ extension NexAttachmentServices on NexServices {
     );
   }
 
+  /// Attaches a file already copied under the media root — a file shared
+  /// into Nex along with others.
+  Future<NoteAttachment?> attachStored(
+    String noteId, {
+    required String mediaUri,
+    required String mediaHash,
+    required AttachmentKind kind,
+    String? name,
+    String? mimeType,
+  }) async => _attached(
+    await worker.attachmentAdd(
+      noteId,
+      kind: kind,
+      mediaUri: mediaUri,
+      mediaHash: mediaHash,
+      name: name,
+      mimeType: mimeType,
+    ),
+  );
+
   Future<NoteAttachment?> _attached(NoteAttachment? attachment) async {
-    if (attachment != null) await refreshTimeline();
+    if (attachment == null) return null;
+    await refreshTimeline();
+    // A photo's words are read the way a photo note's are: afterwards, in
+    // the background, and only when reading text in photos is on. Nobody
+    // waits for it, so nobody is handed its failure; the next backfill
+    // picks up what this missed.
+    if (attachment.kind == AttachmentKind.photo && !_closed) {
+      unawaited(
+        worker
+            .attachmentReadText(attachment.id)
+            .then<void>((_) {}, onError: (Object _) {}),
+      );
+    }
     return attachment;
   }
 

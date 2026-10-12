@@ -121,7 +121,7 @@ class TimelineScreen extends StatefulWidget {
 }
 
 class TimelineScreenState extends State<TimelineScreen>
-    with RouteAware, WidgetsBindingObserver {
+    with RouteAware, WidgetsBindingObserver, SingleTickerProviderStateMixin {
   /// What the timeline shows: the notes, the filters, paging and the folded
   /// groups (W4.2). This State keeps only what is about showing it.
   late final TimelineModel _model = TimelineModel(
@@ -197,6 +197,24 @@ class TimelineScreenState extends State<TimelineScreen>
   /// no AI provider that re-roll *is* the refresh.
   int _greetingVariant = math.Random().nextInt(3);
   bool _searching = false;
+
+  /// What is under the field fading in, each time search opens or closes:
+  /// the results arrive as the header folds away, and the timeline comes
+  /// back the same way, instead of one list replacing the other on a frame.
+  late final AnimationController _searchFade = AnimationController(
+    vsync: this,
+    duration: NexMotion.enter,
+    value: 1,
+  );
+  late final Animation<double> _searchFadeIn = CurvedAnimation(
+    parent: _searchFade,
+    curve: NexMotion.curve,
+  );
+
+  void _fadeInBody() {
+    _searchFade.duration = NexMotion.of(context, NexMotion.enter);
+    unawaited(_searchFade.forward(from: 0));
+  }
 
   /// The note rows on screen, and the day of the one passing under the
   /// filter row — see [TimelineStickyDay].
@@ -497,6 +515,7 @@ class TimelineScreenState extends State<TimelineScreen>
       _searching = true;
       _selected.clear();
     });
+    _fadeInBody();
     _searchStarted = Stopwatch()..start();
     // After the frame: with the field switched off it is not in the list
     // until this setState puts it there, and a focus request aimed at a node
@@ -512,6 +531,7 @@ class TimelineScreenState extends State<TimelineScreen>
     _searchFocus.unfocus();
     _search.clear();
     setState(() => _searching = false);
+    _fadeInBody();
     // No scroll on the way out. Leaving search used to push the list back down
     // past the field to re-hide it; the field lives at the top now, so that
     // would just be the timeline jumping for no reason a user could name.
@@ -698,6 +718,7 @@ class TimelineScreenState extends State<TimelineScreen>
     _guard.dispose();
     _search.removeListener(_onSearchChanged);
     _search.dispose();
+    _searchFade.dispose();
     _searchFocus.dispose();
     _scroll.removeListener(_onAiSummaryScroll);
     _scroll.dispose();

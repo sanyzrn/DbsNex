@@ -21,6 +21,7 @@ import '../documents/text_import.dart';
 import '../platform/hold_menu.dart';
 import '../platform/display_date.dart' show nexReadableDate;
 import '../l10n/app_localizations.dart';
+import '../l10n/relative_span.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/ai_chat_sheet.dart';
@@ -54,6 +55,7 @@ part 'note_detail/detail_actions.dart';
 part 'note_detail/detail_ai_panel.dart';
 part 'note_detail/detail_type_body.dart';
 part 'note_detail/detail_attachments.dart';
+part 'note_detail/detail_facts.dart';
 
 /// What the sheet reports back when it closes.
 ///

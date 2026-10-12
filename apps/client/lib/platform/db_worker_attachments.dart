@@ -47,6 +47,9 @@ mixin _DbAttachments {
 
   Future<void> attachmentSetOcr(String id, String? text) =>
       _send<void>(_DbCommand.attachmentSetOcr, {'id': id, 'text': text});
+
+  Future<bool> attachmentReadText(String id) =>
+      _send<bool>(_DbCommand.attachmentReadText, {'id': id});
 }
 
 /// The worker side: one attachment command, answered from [attachments].

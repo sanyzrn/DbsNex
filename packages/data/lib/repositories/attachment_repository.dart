@@ -87,6 +87,41 @@ class SqliteAttachmentRepository {
   void setOcrText(String id, String? text) =>
       _update(id, 'ocr_text', _blankToNull(text));
 
+  /// What reading a photo's words found: the words, or an empty string for
+  /// "read, and there are none" — kept, unlike a blank caption, so the photo
+  /// is not read again on every pass.
+  void setOcrResult(String id, String text) => db.together(() {
+    final noteId = _noteOf(id);
+    if (noteId == null) return;
+    db.execute(
+      'UPDATE note_attachments SET ocr_text = ? '
+      'WHERE id = ? AND deleted_at IS NULL',
+      [text.trim(), id],
+    );
+    _notes.attachmentTextRead(noteId);
+  });
+
+  NoteAttachment? byId(String id) {
+    final rows = db.select('SELECT * FROM note_attachments WHERE id = ?', [id]);
+    return rows.isEmpty ? null : NoteAttachment.fromRow(rows.first);
+  }
+
+  /// Photos on live notes whose words have not been read yet, newest first:
+  /// what was just attached is what someone is about to search for.
+  List<NoteAttachment> needingOcr({int limit = 25}) => [
+    for (final row in db.select(
+      '''
+SELECT a.* FROM note_attachments a
+JOIN notes n ON n.id = a.note_id AND n.deleted_at IS NULL
+WHERE a.deleted_at IS NULL AND a.kind = 'photo' AND a.ocr_text IS NULL
+ORDER BY a.created_at DESC
+LIMIT ?
+''',
+      [limit],
+    ))
+      NoteAttachment.fromRow(row),
+  ];
+
   void setTranscript(String id, String? text) =>
       _update(id, 'transcript_text', _blankToNull(text));
 

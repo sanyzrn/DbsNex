@@ -171,7 +171,6 @@ class OnDeviceAIAdapter implements AIAdapter {
     }
     return head;
   }
-
 }
 
 /// Gates cloud-backed adapters behind explicit per-capability opt-in (09-ai.md).

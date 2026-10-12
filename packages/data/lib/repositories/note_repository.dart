@@ -1183,6 +1183,11 @@ WHERE id = ? AND deleted_at IS NULL
     _reindex(noteId);
   }
 
+  /// An attachment's derived words arrived — text read in a photo. Search
+  /// learns them; the note is not edited, any more than its own text being
+  /// read edits it.
+  void attachmentTextRead(String noteId) => _reindex(noteId);
+
   /// Repairs the search index's *membership*: FTS rows for notes that are
   /// gone (purged, deleted) are removed, and live notes with searchable text
   /// but no row — a crash between one FTS statement and its pair, a database
