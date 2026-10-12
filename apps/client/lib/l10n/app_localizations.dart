@@ -5882,18 +5882,6 @@ abstract class AppLocalizations {
   /// **'Follows your menstrual cycle and predicts your next period and fertile days from your own history.\nLog how you feel and what you notice, and it shows you your body\'s patterns — and, if you like, the assistant becomes a gentler companion on harder days.\nEverything stays on this phone.'**
   String get cycleProfileAbout;
 
-  /// No description provided for @cycleProfileOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Open Cycle'**
-  String get cycleProfileOpen;
-
-  /// No description provided for @cycleInProfile.
-  ///
-  /// In en, this message translates to:
-  /// **'In your profile'**
-  String get cycleInProfile;
-
   /// No description provided for @localModelChoose.
   ///
   /// In en, this message translates to:
@@ -6457,6 +6445,300 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Step {step} of {total}'**
   String onboardingStep(int step, int total);
+
+  /// Tools → Modules page title, and the Modules shelf heading in Tools
+  ///
+  /// In en, this message translates to:
+  /// **'Modules'**
+  String get modulesTitle;
+
+  /// Intro on the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'Add only what you need. A module that is not added takes no room, runs nothing and asks for nothing — and removing one asks whether to keep its data.'**
+  String get modulesIntro;
+
+  /// Section of modules that are on
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get modulesAdded;
+
+  /// Section of modules that can be added
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get modulesAvailable;
+
+  /// Button that adds a module
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get moduleAdd;
+
+  /// Button that opens a module
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get moduleOpen;
+
+  /// Button that removes a module
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get moduleRemove;
+
+  /// Tools tile that opens the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'Add modules'**
+  String get modulesManage;
+
+  /// Subtitle of the Tools tile that opens the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'Extra features, only if you want them'**
+  String get modulesManageHint;
+
+  /// Footnote on the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'Each one stays out of the app until you add it, and leaves when you remove it.'**
+  String get modulesMore;
+
+  /// Shown under Added when no module is on
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing added yet'**
+  String get modulesEmpty;
+
+  /// Chip on the Cycle module card
+  ///
+  /// In en, this message translates to:
+  /// **'Predicts your next period'**
+  String get moduleCyclePointPredict;
+
+  /// Chip on the Cycle module card
+  ///
+  /// In en, this message translates to:
+  /// **'Daily log and patterns'**
+  String get moduleCyclePointLog;
+
+  /// Chip on the Cycle module card
+  ///
+  /// In en, this message translates to:
+  /// **'Pregnancy and more'**
+  String get moduleCyclePointModes;
+
+  /// Chip on the Cycle module card
+  ///
+  /// In en, this message translates to:
+  /// **'Only on this phone'**
+  String get moduleCyclePointPrivate;
+
+  /// Settings search result for Cycle, saying where it lives
+  ///
+  /// In en, this message translates to:
+  /// **'In Tools → Modules'**
+  String get cycleInModules;
+
+  /// Title of the remove-module question
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String moduleRemoveTitle(String name);
+
+  /// Body of the remove-module question
+  ///
+  /// In en, this message translates to:
+  /// **'Its records can stay on this phone, ready if you add it again, or be deleted now.'**
+  String get moduleRemoveBody;
+
+  /// Remove a module but keep its data
+  ///
+  /// In en, this message translates to:
+  /// **'Remove, keep data'**
+  String get moduleRemoveKeep;
+
+  /// Remove a module and delete its data
+  ///
+  /// In en, this message translates to:
+  /// **'Remove and delete'**
+  String get moduleRemoveDelete;
+
+  /// Install step
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get moduleStepPrepare;
+
+  /// Install step
+  ///
+  /// In en, this message translates to:
+  /// **'Setting up'**
+  String get moduleStepSetUp;
+
+  /// Install step
+  ///
+  /// In en, this message translates to:
+  /// **'Adding to Tools'**
+  String get moduleStepAddToTools;
+
+  /// Remove step
+  ///
+  /// In en, this message translates to:
+  /// **'Removing from Tools'**
+  String get moduleStepRemoveFromTools;
+
+  /// Remove step
+  ///
+  /// In en, this message translates to:
+  /// **'Tidying up'**
+  String get moduleStepTidy;
+
+  /// Banner after a module is added
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is in Tools now'**
+  String moduleAddedBanner(String name);
+
+  /// Banner after a module is removed
+  ///
+  /// In en, this message translates to:
+  /// **'{name} removed'**
+  String moduleRemovedBanner(String name);
+
+  /// Heading of the coming-soon modules on the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'On the way'**
+  String get modulesComing;
+
+  /// Badge: a module coming soon
+  ///
+  /// In en, this message translates to:
+  /// **'Soon'**
+  String get moduleStageSoon;
+
+  /// Badge: a module that is planned
+  ///
+  /// In en, this message translates to:
+  /// **'Planned'**
+  String get moduleStagePlanned;
+
+  /// Row at the foot of the Modules page that opens feedback
+  ///
+  /// In en, this message translates to:
+  /// **'Have an idea for a module? Tell us'**
+  String get modulesSuggest;
+
+  /// Planned module title: quitting smoking
+  ///
+  /// In en, this message translates to:
+  /// **'Smoke-free'**
+  String get planSmokeFreeTitle;
+
+  /// Planned module: quitting smoking
+  ///
+  /// In en, this message translates to:
+  /// **'Counts the days, the cigarettes not smoked and the money kept. A craving logged in one tap, what sets them off, and what your body gets back along the way.'**
+  String get planSmokeFreeAbout;
+
+  /// Planned module title: gold buying helper
+  ///
+  /// In en, this message translates to:
+  /// **'Gold check'**
+  String get planGoldTitle;
+
+  /// Planned module: gold buying helper
+  ///
+  /// In en, this message translates to:
+  /// **'Before you pay, what the piece should cost: weight, karat and the day\'s price, with the making charge, the seller\'s profit and the tax worked out the way the invoice should show them. Each piece\'s receipt kept for the day you sell.'**
+  String get planGoldAbout;
+
+  /// Planned module title: parking spot
+  ///
+  /// In en, this message translates to:
+  /// **'Where I parked'**
+  String get planParkingTitle;
+
+  /// Planned module: parking spot
+  ///
+  /// In en, this message translates to:
+  /// **'One tap saves where the car is: the spot on a map, the floor and pillar, a photo and a note. A reminder before the parking time runs out.'**
+  String get planParkingAbout;
+
+  /// Planned module title: Telegram connection
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram bridge'**
+  String get planTelegramTitle;
+
+  /// Planned module: Telegram connection
+  ///
+  /// In en, this message translates to:
+  /// **'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.'**
+  String get planTelegramAbout;
+
+  /// Planned module title: language learning
+  ///
+  /// In en, this message translates to:
+  /// **'Word by word'**
+  String get planWordsTitle;
+
+  /// Planned module: language learning
+  ///
+  /// In en, this message translates to:
+  /// **'Save words and phrases from whatever you read, then review a few at a time, spaced so they stay. Your own notes become the lesson.'**
+  String get planWordsAbout;
+
+  /// Planned module title: medicines
+  ///
+  /// In en, this message translates to:
+  /// **'Medicine cabinet'**
+  String get planMedicineTitle;
+
+  /// Planned module: medicines
+  ///
+  /// In en, this message translates to:
+  /// **'What you take and when, a gentle reminder for each dose, and the boxes in the cupboard with their expiry dates.'**
+  String get planMedicineAbout;
+
+  /// Planned module title: warranties and receipts
+  ///
+  /// In en, this message translates to:
+  /// **'Warranties'**
+  String get planWarrantyTitle;
+
+  /// Planned module: warranties
+  ///
+  /// In en, this message translates to:
+  /// **'The receipt and the warranty card of everything you buy, in a photo, and a reminder before the warranty ends, while a call still costs nothing.'**
+  String get planWarrantyAbout;
+
+  /// Planned module title: lending
+  ///
+  /// In en, this message translates to:
+  /// **'Lent & borrowed'**
+  String get planLentTitle;
+
+  /// Planned module: lending
+  ///
+  /// In en, this message translates to:
+  /// **'Who owes you and whom you owe, money or things, with a quiet reminder on the day it was due back.'**
+  String get planLentAbout;
+
+  /// Planned module title: habits
+  ///
+  /// In en, this message translates to:
+  /// **'Habits'**
+  String get planHabitsTitle;
+
+  /// Planned module: habits
+  ///
+  /// In en, this message translates to:
+  /// **'The small things you want to keep doing, ticked off in a tap, with streaks that forgive a missed day.'**
+  String get planHabitsAbout;
 
   /// Title of the dialog asking where a link should point
   ///

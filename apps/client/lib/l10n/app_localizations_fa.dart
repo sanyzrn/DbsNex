@@ -3591,12 +3591,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'چرخهٔ قاعدگی‌ات را دنبال می‌کند و پریود بعدی و روزهای باروری را از روی سابقهٔ خودت پیش‌بینی می‌کند.\nبا ثبت حال و علائم، الگوهای بدنت را نشانت می‌دهد و اگر بخواهی دستیار هم در روزهای سخت‌تر همراه مهربان‌تری می‌شود.\nهمه‌چیز فقط روی همین گوشی می‌ماند.';
 
   @override
-  String get cycleProfileOpen => 'باز کردن چرخه';
-
-  @override
-  String get cycleInProfile => 'در پروفایل';
-
-  @override
   String get localModelChoose => 'مدل';
 
   @override
@@ -3943,6 +3937,171 @@ class AppLocalizationsFa extends AppLocalizations {
   String onboardingStep(int step, int total) {
     return 'قدم $step از $total';
   }
+
+  @override
+  String get modulesTitle => 'ماژول‌ها';
+
+  @override
+  String get modulesIntro =>
+      'فقط چیزی را که لازم دارید اضافه کنید. ماژولی که اضافه نشده نه جایی می‌گیرد، نه کاری در پس‌زمینه انجام می‌دهد و نه چیزی می‌خواهد — و موقع حذف می‌پرسد داده‌هایش بماند یا پاک شود.';
+
+  @override
+  String get modulesAdded => 'اضافه‌شده';
+
+  @override
+  String get modulesAvailable => 'قابل افزودن';
+
+  @override
+  String get moduleAdd => 'افزودن';
+
+  @override
+  String get moduleOpen => 'باز کردن';
+
+  @override
+  String get moduleRemove => 'حذف';
+
+  @override
+  String get modulesManage => 'افزودن ماژول';
+
+  @override
+  String get modulesManageHint => 'امکانات اضافه، فقط اگر بخواهید';
+
+  @override
+  String get modulesMore =>
+      'هر کدام تا وقتی اضافه‌اش نکنید بیرون از اپ می‌ماند و با حذفش می‌رود.';
+
+  @override
+  String get modulesEmpty => 'هنوز چیزی اضافه نشده';
+
+  @override
+  String get moduleCyclePointPredict => 'پیش‌بینی پریود بعدی';
+
+  @override
+  String get moduleCyclePointLog => 'ثبت روزانه و الگوها';
+
+  @override
+  String get moduleCyclePointModes => 'بارداری و حالت‌های دیگر';
+
+  @override
+  String get moduleCyclePointPrivate => 'فقط روی همین گوشی';
+
+  @override
+  String get cycleInModules => 'در ابزارها ← ماژول‌ها';
+
+  @override
+  String moduleRemoveTitle(String name) {
+    return '$name حذف شود؟';
+  }
+
+  @override
+  String get moduleRemoveBody =>
+      'داده‌هایش می‌تواند روی همین گوشی بماند تا اگر دوباره اضافه‌اش کردید سر جایش باشد، یا همین حالا پاک شود.';
+
+  @override
+  String get moduleRemoveKeep => 'حذف، داده بماند';
+
+  @override
+  String get moduleRemoveDelete => 'حذف و پاک کردن';
+
+  @override
+  String get moduleStepPrepare => 'آماده‌سازی';
+
+  @override
+  String get moduleStepSetUp => 'راه‌اندازی';
+
+  @override
+  String get moduleStepAddToTools => 'افزودن به ابزارها';
+
+  @override
+  String get moduleStepRemoveFromTools => 'برداشتن از ابزارها';
+
+  @override
+  String get moduleStepTidy => 'جمع‌وجور کردن';
+
+  @override
+  String moduleAddedBanner(String name) {
+    return '$name حالا در ابزارهاست';
+  }
+
+  @override
+  String moduleRemovedBanner(String name) {
+    return '$name حذف شد';
+  }
+
+  @override
+  String get modulesComing => 'در راه';
+
+  @override
+  String get moduleStageSoon => 'به‌زودی';
+
+  @override
+  String get moduleStagePlanned => 'در برنامه';
+
+  @override
+  String get modulesSuggest => 'ایده‌ای برای یک ماژول دارید؟ به ما بگویید';
+
+  @override
+  String get planSmokeFreeTitle => 'بدون سیگار';
+
+  @override
+  String get planSmokeFreeAbout =>
+      'روزها، سیگارهایی که نکشیدید و پولی که ماند را می‌شمارد. هوس را با یک لمس ثبت کنید و ببینید چه چیزی آن را راه می‌اندازد، و بدنتان در این مسیر چه چیزهایی را پس می‌گیرد.';
+
+  @override
+  String get planGoldTitle => 'طلاسنج';
+
+  @override
+  String get planGoldAbout =>
+      'پیش از پرداخت، قیمت درست تکه را ببینید: وزن، عیار و نرخ روز، با اجرت، سود فروشنده و مالیات، همان‌طور که باید در فاکتور بیاید. رسید هر تکه هم برای روز فروش نگه داشته می‌شود.';
+
+  @override
+  String get planParkingTitle => 'جای پارک';
+
+  @override
+  String get planParkingAbout =>
+      'با یک لمس جای ماشین ذخیره می‌شود: نقطه روی نقشه، طبقه و ستون، یک عکس و یک توضیح. پیش از تمام شدن زمان پارک هم یادآوری می‌کند.';
+
+  @override
+  String get planTelegramTitle => 'پل تلگرام';
+
+  @override
+  String get planTelegramAbout =>
+      'پیامی را به ربات تلگرام خودتان بفرستید تا به‌صورت یادداشت در Nex بنشیند. ربات و توکن مال خودتان است و مستقیم از همین گوشی خوانده می‌شود، بدون هیچ سروری از ما در میان.';
+
+  @override
+  String get planWordsTitle => 'واژه به واژه';
+
+  @override
+  String get planWordsAbout =>
+      'واژه‌ها و عبارت‌ها را از هر چه می‌خوانید ذخیره کنید و هر بار چندتایی را مرور کنید، با فاصله‌هایی که در ذهن بمانند. یادداشت‌های خودتان درس می‌شوند.';
+
+  @override
+  String get planMedicineTitle => 'جعبه دارو';
+
+  @override
+  String get planMedicineAbout =>
+      'چه دارویی و کِی، یادآوری آرام برای هر نوبت، و جعبه‌های توی کابینت با تاریخ انقضایشان.';
+
+  @override
+  String get planWarrantyTitle => 'ضمانت‌نامه‌ها';
+
+  @override
+  String get planWarrantyAbout =>
+      'رسید و کارت گارانتی هر چه می‌خرید، در یک عکس، و یادآوری پیش از تمام شدن گارانتی، وقتی هنوز تماس گرفتن هزینه‌ای ندارد.';
+
+  @override
+  String get planLentTitle => 'قرض و طلب';
+
+  @override
+  String get planLentAbout =>
+      'چه کسی از شما طلب دارد و شما به چه کسی بدهکارید، پول یا وسیله، با یادآوری آرام در روزی که باید برگردد.';
+
+  @override
+  String get planHabitsTitle => 'عادت‌ها';
+
+  @override
+  String get planHabitsAbout =>
+      'کارهای کوچکی که می‌خواهید ادامه بدهید، با یک لمس تیک بخورند، با زنجیره‌هایی که یک روز جاافتاده را می‌بخشند.';
 
   @override
   String get addLink => 'افزودن پیوند';

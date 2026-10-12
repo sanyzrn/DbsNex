@@ -38,7 +38,7 @@ class _DisclosuresScreenState extends State<DisclosuresScreen> {
 
   Future<void> _clear() async {
     final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
+    final ok = await nexShowDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.disclosuresClear),

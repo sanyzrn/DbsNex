@@ -42,6 +42,7 @@ import 'assistant_screen.dart';
 import 'brief_screen.dart';
 import 'disclosures_screen.dart';
 import 'metrics_screen.dart';
+import 'modules_screen.dart';
 import 'intelligence_screen.dart';
 import 'profile_screen.dart';
 import 'security_screen.dart';
@@ -181,10 +182,10 @@ class SettingsSheet extends StatelessWidget {
     }
 
     final out = <Widget>[];
-    // «Cycle» is switched on and off in the profile, not here; searching
-    // for it still finds the way there.
+    // Modules are added and removed in Tools → Modules, not here; searching
+    // for one still finds the way there.
     if (finds(
-      '${l10n.profileTitle} ${l10n.cycleTitle} Cycle period چرخه پریود قاعدگی',
+      '${l10n.modulesTitle} ${l10n.cycleTitle} Cycle period module چرخه پریود قاعدگی ماژول',
     )) {
       out.add(
         Material(
@@ -196,11 +197,11 @@ class SettingsSheet extends StatelessWidget {
             child: _Row(
               icon: Icons.water_drop_outlined,
               title: l10n.cycleTitle,
-              value: l10n.cycleInProfile,
+              value: l10n.cycleInModules,
               onTap: () => Navigator.push(
                 context,
                 NexPageRoute<void>(
-                  builder: (_) => ProfileScreen(
+                  builder: (_) => ModulesScreen(
                     services: services,
                     preferences: preferences,
                   ),

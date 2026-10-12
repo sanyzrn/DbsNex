@@ -157,7 +157,7 @@ class _SyncRowState extends State<_SyncRow> {
     final token = TextEditingController(
       text: widget.preferences.syncBearerToken ?? '',
     );
-    final ok = await showDialog<bool>(
+    final ok = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.syncServer),
@@ -268,7 +268,7 @@ Future<bool> editDisplayName(
 ) async {
   final l10n = AppLocalizations.of(context);
   final controller = TextEditingController(text: preferences.displayName ?? '');
-  final saved = await showDialog<String>(
+  final saved = await nexShowDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(l10n.yourName),

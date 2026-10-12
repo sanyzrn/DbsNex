@@ -24,6 +24,7 @@ part 'preferences/brief_preferences.dart';
 part 'preferences/cycle_preferences.dart';
 part 'preferences/home_preferences.dart';
 part 'preferences/library_preferences.dart';
+part 'preferences/module_preferences.dart';
 part 'preferences/profile_preferences.dart';
 part 'preferences/security_preferences.dart';
 part 'preferences/service_preferences.dart';
@@ -168,7 +169,8 @@ class NexPreferences extends _PreferencesStore
         _LibraryPreferences,
         _ServicePreferences,
         _BackupFolderPreferences,
-        _CyclePreferences {
+        _CyclePreferences,
+        _ModulePreferences {
   NexPreferences._(super.prefs, super.secureStorage);
 
   // Device identity and absolute paths belong to the receiving installation.

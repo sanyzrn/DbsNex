@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'persian_date_picker.dart';
+import 'nex_dialog.dart';
 
 /// The time picker, shown the way the phone's own clock shows it.
 ///
@@ -52,7 +53,7 @@ Future<DateTime?> nexPickDate(
   bool solar = false,
 }) {
   if (solar) {
-    return showDialog<DateTime>(
+    return nexShowDialog<DateTime>(
       context: context,
       builder: (_) =>
           PersianDatePicker(initial: initial, first: first, last: last),

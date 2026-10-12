@@ -138,7 +138,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
   Future<void> _createTag() async {
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
-    final name = await showDialog<String>(
+    final name = await nexShowDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.createTag),
@@ -197,7 +197,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       }
     } else if (action == 'rename') {
       final controller = TextEditingController(text: value.tag.name);
-      final name = await showDialog<String>(
+      final name = await nexShowDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text(l10n.renameTag),
@@ -251,7 +251,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         );
       }
     } else if (action == 'delete') {
-      final ok = await showDialog<bool>(
+      final ok = await nexShowDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text(l10n.deleteTag),

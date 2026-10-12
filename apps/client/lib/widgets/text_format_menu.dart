@@ -172,7 +172,7 @@ String _labelFor(AppLocalizations l10n, NexInlineFormat format) =>
 Future<String?> _askForUrl(BuildContext context) async {
   final l10n = AppLocalizations.of(context);
   final controller = TextEditingController();
-  final answer = await showDialog<String>(
+  final answer = await nexShowDialog<String>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: Text(l10n.addLink),

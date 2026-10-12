@@ -100,7 +100,7 @@ class _BackupScreenState extends State<BackupScreen> {
     var includeModel = false;
     var includeVault = false;
     var retainedKey = false;
-    final ok = await showDialog<bool>(
+    final ok = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, update) => AlertDialog(
@@ -193,7 +193,7 @@ class _BackupScreenState extends State<BackupScreen> {
   Future<bool> _confirmFolderKey(String key) async {
     final l10n = AppLocalizations.of(context);
     var saved = false;
-    final ok = await showDialog<bool>(
+    final ok = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, update) => AlertDialog(
@@ -247,7 +247,7 @@ class _BackupScreenState extends State<BackupScreen> {
     }
     final key = await widget.preferences.backupFolderKey();
     if (key == null || !mounted) return;
-    await showDialog<void>(
+    await nexShowDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.backupFolderShowKey),
@@ -264,7 +264,7 @@ class _BackupScreenState extends State<BackupScreen> {
 
   Future<void> _stopFolder() async {
     final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
+    final ok = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.backupFolderStop),
@@ -307,7 +307,7 @@ class _BackupScreenState extends State<BackupScreen> {
     final controller = TextEditingController();
     final l10n = AppLocalizations.of(context);
     try {
-      return await showDialog<String>(
+      return await nexShowDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(l10n.backupRecoveryKey),
@@ -403,7 +403,7 @@ class _BackupScreenState extends State<BackupScreen> {
 
   Future<void> _deleteBackup(File backup) async {
     final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
+    final ok = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deleteBackup),
@@ -431,7 +431,7 @@ class _BackupScreenState extends State<BackupScreen> {
 
   Future<void> _confirmRestore(File backup) async {
     final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
+    final ok = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.restoreBackup),
@@ -470,7 +470,7 @@ class _BackupScreenState extends State<BackupScreen> {
       if (!mounted) return;
       final restart = NexRestartScope.of(context).restart;
       if (result.error != null) {
-        await showDialog<void>(
+        await nexShowDialog<void>(
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(

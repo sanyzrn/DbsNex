@@ -6,7 +6,8 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
-import 'cycle_screen.dart';
+import '../modules/module_registry.dart';
+import 'modules_screen.dart';
 import '../platform/vault_store.dart';
 import 'scheduled_screen.dart';
 import 'vault_screen.dart';
@@ -14,7 +15,7 @@ import 'vault_screen.dart';
 class ToolsScreen extends StatelessWidget {
   const ToolsScreen({super.key, this.services, this.preferences});
 
-  /// Needed for the scheduled notes and «Cycle»; without them (an
+  /// Needed for the scheduled notes and the modules; without them (an
   /// accessibility audit of the vault tiles alone) those tiles are left out.
   final NexServices? services;
   final NexPreferences? preferences;
@@ -24,17 +25,6 @@ class ToolsScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final everyday = <Widget>[
       if (services case final services?) ...[
-        if (preferences case final preferences? when preferences.cycleEnabled)
-          _ToolTile(
-            title: l.cycleTitle,
-            subtitle: l.cycleSubtitle,
-            icon: Icons.water_drop_outlined,
-            hue: NexHue.rose,
-            destination: CycleScreen(
-              services: services,
-              preferences: preferences,
-            ),
-          ),
         _ToolTile(
           title: l.scheduledTitle,
           subtitle: l.scheduledSubtitle,
@@ -116,6 +106,48 @@ class ToolsScreen extends StatelessWidget {
             ),
             const SizedBox(height: NexSpacing.sm),
             nexShelfPairs(everyday),
+            // The modules that are added, and the way to add more — see
+            // `docs/17-modules.md`. Rebuilt from the preferences, so a module
+            // added or removed on its page is here, or gone, on the way back.
+            if ((services, preferences) case (
+              final services?,
+              final preferences?,
+            )) ...[
+              const SizedBox(height: NexSpacing.lg),
+              NexShelfHeading(
+                icon: Icons.extension_outlined,
+                title: l.modulesTitle,
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              ListenableBuilder(
+                listenable: preferences,
+                builder: (context, _) => nexShelfPairs([
+                  for (final module in nexModulesOn(preferences))
+                    _ToolTile(
+                      key: ValueKey('tools-module-${module.id}'),
+                      title: module.title(l),
+                      subtitle: module.tagline(l),
+                      icon: module.icon,
+                      hue: module.hue,
+                      destination: module.open(
+                        services: services,
+                        preferences: preferences,
+                      ),
+                    ),
+                  _ToolTile(
+                    key: const ValueKey('tools-modules'),
+                    title: l.modulesManage,
+                    subtitle: l.modulesManageHint,
+                    icon: Icons.extension_outlined,
+                    hue: NexHue.violet,
+                    destination: ModulesScreen(
+                      services: services,
+                      preferences: preferences,
+                    ),
+                  ),
+                ]),
+              ),
+            ],
             const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,6 +175,7 @@ class ToolsScreen extends StatelessWidget {
 
 class _ToolTile extends StatelessWidget {
   const _ToolTile({
+    super.key,
     this.kind,
     this.destination,
     required this.title,

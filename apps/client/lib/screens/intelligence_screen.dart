@@ -13,6 +13,7 @@ import '../widgets/nex_banner.dart';
 import 'ai_provider_screen.dart';
 import 'disclosures_screen.dart';
 import 'local_model_screen.dart';
+import '../widgets/nex_dialog.dart';
 
 /// Each of the six abilities, as its glyph and whether it is working now —
 /// on, and something the chosen provider (or the search model) can do. For
@@ -79,7 +80,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
 
   Future<bool?> _confirm() {
     final l10n = AppLocalizations.of(context);
-    return showDialog<bool>(
+    return nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.intelligenceConsentTitle),

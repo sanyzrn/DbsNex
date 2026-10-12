@@ -117,7 +117,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     required String confirm,
   }) {
     final l10n = AppLocalizations.of(context);
-    return showDialog<bool>(
+    return nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),

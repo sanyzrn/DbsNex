@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/screens/cycle_screen.dart';
+import 'package:nex_client/screens/modules_screen.dart';
 import 'package:nex_client/screens/profile_screen.dart';
 import 'package:nex_client/screens/settings_sheet.dart';
 import 'package:nex_client/screens/tools_screen.dart';
 
 import 'support/nex_harness.dart';
 
-/// «Cycle» is switched on and off in the profile: off by default, and off
-/// completely, keeping its data or not.
+/// «Cycle» is a module (ADR-040): added and removed in Tools → Modules, off
+/// by default, and off completely, keeping its data or not.
 void main() {
   Widget host(Widget child) => MaterialApp(
     locale: const Locale('en'),
@@ -19,6 +20,10 @@ void main() {
   );
 
   Future<void> showTools(WidgetTester tester, NexTestHarness harness) async {
+    // Tall enough for the Modules shelf, at the foot of the page.
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       host(
         ToolsScreen(
@@ -30,23 +35,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> showProfile(WidgetTester tester, NexTestHarness harness) async {
-    tester.view.physicalSize = const Size(1080, 2340);
-    tester.view.devicePixelRatio = 2.75;
+  Future<void> showModules(WidgetTester tester, NexTestHarness harness) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       host(
-        ProfileScreen(
+        ModulesScreen(
           services: harness.services,
           preferences: harness.preferences,
         ),
       ),
-    );
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('profile-cycle-switch')),
-      200,
-      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
   }
@@ -63,28 +62,56 @@ void main() {
     testWidgets('is off by default, with no tile in Tools', (tester) async {
       expect(harness.preferences.cycleEnabled, isFalse);
       await showTools(tester, harness);
-      expect(find.text('Cycle'), findsNothing);
+      expect(find.byKey(const ValueKey('tools-module-cycle')), findsNothing);
     });
 
-    testWidgets('turns it on in the profile, and opens it from there', (
+    testWidgets('is added in Tools → Modules, and opened from Tools', (
       tester,
     ) async {
-      await showProfile(tester, harness);
+      await showTools(tester, harness);
+      expect(find.byKey(const ValueKey('tools-module-cycle')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('tools-modules')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ModulesScreen), findsOneWidget);
       expect(find.textContaining('Everything stays on this phone'), findsOne);
-      expect(find.byKey(const ValueKey('profile-cycle-open')), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('profile-cycle-switch')));
+      expect(find.byKey(const ValueKey('module-cycle-open')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('module-cycle-add')));
       await tester.pumpAndSettle();
       expect(harness.preferences.cycleEnabled, isTrue);
+      // Added: it moves under Added, with a way in.
+      await tester.tap(find.byKey(const ValueKey('module-cycle-open')));
+      await tester.pumpAndSettle();
+      expect(find.byType(CycleScreen), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
 
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('profile-cycle-open')),
-      );
-      await tester.tap(find.byKey(const ValueKey('profile-cycle-open')));
+      // And back in Tools, its own tile.
+      await tester.tap(find.byKey(const ValueKey('tools-module-cycle')));
       await tester.pumpAndSettle();
       expect(find.byType(CycleScreen), findsOneWidget);
     });
 
-    testWidgets('Settings search for it points to the profile', (tester) async {
+    testWidgets('is no longer in the profile', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2340);
+      tester.view.devicePixelRatio = 2.75;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        host(
+          ProfileScreen(
+            services: harness.services,
+            preferences: harness.preferences,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('profile-cycle')), findsNothing);
+      expect(find.text('Cycle'), findsNothing);
+    });
+
+    testWidgets('Settings search for it points to Modules', (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -102,7 +129,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('settings-search-cycle')));
       await tester.pumpAndSettle();
-      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(find.byType(ModulesScreen), findsOneWidget);
     });
   });
 
@@ -120,8 +147,8 @@ void main() {
     tearDown(() => harness.dispose());
 
     Future<void> turnOff(WidgetTester tester, String choice) async {
-      await showProfile(tester, harness);
-      await tester.tap(find.byKey(const ValueKey('profile-cycle-switch')));
+      await showModules(tester, harness);
+      await tester.tap(find.byKey(const ValueKey('module-cycle-remove')));
       await tester.pumpAndSettle();
       expect(find.text('Turn off Cycle?'), findsOneWidget);
       await tester.tap(find.byKey(ValueKey('cycle-off-$choice')));
@@ -133,7 +160,7 @@ void main() {
     ) async {
       expect(harness.preferences.cycleEnabled, isTrue);
       await showTools(tester, harness);
-      expect(find.text('Cycle'), findsOneWidget);
+      expect(find.byKey(const ValueKey('tools-module-cycle')), findsOneWidget);
     });
 
     testWidgets('off, keeping the data: the tile goes, the data stays', (
@@ -145,7 +172,7 @@ void main() {
       expect(harness.preferences.cycleSetUp, isTrue);
 
       await showTools(tester, harness);
-      expect(find.text('Cycle'), findsNothing);
+      expect(find.byKey(const ValueKey('tools-module-cycle')), findsNothing);
 
       // Back on: everything is where it was.
       await harness.preferences.setCycleEnabled(true);

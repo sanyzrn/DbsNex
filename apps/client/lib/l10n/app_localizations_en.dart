@@ -3686,12 +3686,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Follows your menstrual cycle and predicts your next period and fertile days from your own history.\nLog how you feel and what you notice, and it shows you your body\'s patterns — and, if you like, the assistant becomes a gentler companion on harder days.\nEverything stays on this phone.';
 
   @override
-  String get cycleProfileOpen => 'Open Cycle';
-
-  @override
-  String get cycleInProfile => 'In your profile';
-
-  @override
   String get localModelChoose => 'Model';
 
   @override
@@ -4035,6 +4029,171 @@ class AppLocalizationsEn extends AppLocalizations {
   String onboardingStep(int step, int total) {
     return 'Step $step of $total';
   }
+
+  @override
+  String get modulesTitle => 'Modules';
+
+  @override
+  String get modulesIntro =>
+      'Add only what you need. A module that is not added takes no room, runs nothing and asks for nothing — and removing one asks whether to keep its data.';
+
+  @override
+  String get modulesAdded => 'Added';
+
+  @override
+  String get modulesAvailable => 'Available';
+
+  @override
+  String get moduleAdd => 'Add';
+
+  @override
+  String get moduleOpen => 'Open';
+
+  @override
+  String get moduleRemove => 'Remove';
+
+  @override
+  String get modulesManage => 'Add modules';
+
+  @override
+  String get modulesManageHint => 'Extra features, only if you want them';
+
+  @override
+  String get modulesMore =>
+      'Each one stays out of the app until you add it, and leaves when you remove it.';
+
+  @override
+  String get modulesEmpty => 'Nothing added yet';
+
+  @override
+  String get moduleCyclePointPredict => 'Predicts your next period';
+
+  @override
+  String get moduleCyclePointLog => 'Daily log and patterns';
+
+  @override
+  String get moduleCyclePointModes => 'Pregnancy and more';
+
+  @override
+  String get moduleCyclePointPrivate => 'Only on this phone';
+
+  @override
+  String get cycleInModules => 'In Tools → Modules';
+
+  @override
+  String moduleRemoveTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get moduleRemoveBody =>
+      'Its records can stay on this phone, ready if you add it again, or be deleted now.';
+
+  @override
+  String get moduleRemoveKeep => 'Remove, keep data';
+
+  @override
+  String get moduleRemoveDelete => 'Remove and delete';
+
+  @override
+  String get moduleStepPrepare => 'Preparing';
+
+  @override
+  String get moduleStepSetUp => 'Setting up';
+
+  @override
+  String get moduleStepAddToTools => 'Adding to Tools';
+
+  @override
+  String get moduleStepRemoveFromTools => 'Removing from Tools';
+
+  @override
+  String get moduleStepTidy => 'Tidying up';
+
+  @override
+  String moduleAddedBanner(String name) {
+    return '$name is in Tools now';
+  }
+
+  @override
+  String moduleRemovedBanner(String name) {
+    return '$name removed';
+  }
+
+  @override
+  String get modulesComing => 'On the way';
+
+  @override
+  String get moduleStageSoon => 'Soon';
+
+  @override
+  String get moduleStagePlanned => 'Planned';
+
+  @override
+  String get modulesSuggest => 'Have an idea for a module? Tell us';
+
+  @override
+  String get planSmokeFreeTitle => 'Smoke-free';
+
+  @override
+  String get planSmokeFreeAbout =>
+      'Counts the days, the cigarettes not smoked and the money kept. A craving logged in one tap, what sets them off, and what your body gets back along the way.';
+
+  @override
+  String get planGoldTitle => 'Gold check';
+
+  @override
+  String get planGoldAbout =>
+      'Before you pay, what the piece should cost: weight, karat and the day\'s price, with the making charge, the seller\'s profit and the tax worked out the way the invoice should show them. Each piece\'s receipt kept for the day you sell.';
+
+  @override
+  String get planParkingTitle => 'Where I parked';
+
+  @override
+  String get planParkingAbout =>
+      'One tap saves where the car is: the spot on a map, the floor and pillar, a photo and a note. A reminder before the parking time runs out.';
+
+  @override
+  String get planTelegramTitle => 'Telegram bridge';
+
+  @override
+  String get planTelegramAbout =>
+      'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.';
+
+  @override
+  String get planWordsTitle => 'Word by word';
+
+  @override
+  String get planWordsAbout =>
+      'Save words and phrases from whatever you read, then review a few at a time, spaced so they stay. Your own notes become the lesson.';
+
+  @override
+  String get planMedicineTitle => 'Medicine cabinet';
+
+  @override
+  String get planMedicineAbout =>
+      'What you take and when, a gentle reminder for each dose, and the boxes in the cupboard with their expiry dates.';
+
+  @override
+  String get planWarrantyTitle => 'Warranties';
+
+  @override
+  String get planWarrantyAbout =>
+      'The receipt and the warranty card of everything you buy, in a photo, and a reminder before the warranty ends, while a call still costs nothing.';
+
+  @override
+  String get planLentTitle => 'Lent & borrowed';
+
+  @override
+  String get planLentAbout =>
+      'Who owes you and whom you owe, money or things, with a quiet reminder on the day it was due back.';
+
+  @override
+  String get planHabitsTitle => 'Habits';
+
+  @override
+  String get planHabitsAbout =>
+      'The small things you want to keep doing, ticked off in a tap, with streaks that forgive a missed day.';
 
   @override
   String get addLink => 'Add link';

@@ -124,8 +124,8 @@ class _PreviewPanel extends StatelessWidget {
     final color = _swipeColor(context, action);
     final none = action == SwipeAction.none;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
+      duration: NexMotion.standard,
+      curve: NexMotion.curve,
       width: none ? 24 : 64,
       color: none ? color.withValues(alpha: 0.12) : color,
       alignment: Alignment.center,
@@ -190,7 +190,7 @@ class _EdgeChoices extends StatelessWidget {
           ],
         ),
         AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
+          duration: NexMotion.standard,
           child: Text(
             nexSwipeActionHint(l10n, current),
             key: ValueKey(current),

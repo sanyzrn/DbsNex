@@ -40,15 +40,15 @@ Future<XFile?> showNexCamera(
       barrierDismissible: true,
       barrierColor: Colors.black38,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      transitionDuration: const Duration(milliseconds: 320),
-      reverseTransitionDuration: const Duration(milliseconds: 240),
+      transitionDuration: NexMotion.enter,
+      reverseTransitionDuration: NexMotion.exit,
       pageBuilder: (_, _, _) => NexCameraSheet(cameras: found),
       transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(
           CurvedAnimation(
             parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
+            curve: NexMotion.curve,
+            reverseCurve: NexMotion.exitCurve,
           ),
         ),
         child: child,
@@ -273,10 +273,8 @@ class _NexCameraSheetState extends State<NexCameraSheet>
           }
         },
         child: AnimatedContainer(
-          duration: _drag == 0
-              ? const Duration(milliseconds: 200)
-              : Duration.zero,
-          curve: Curves.easeOut,
+          duration: _drag == 0 ? NexMotion.standard : Duration.zero,
+          curve: NexMotion.curve,
           transform: Matrix4.translationValues(0, _drag, 0),
           height: height,
           width: double.infinity,
@@ -407,11 +405,11 @@ class _NexCameraSheetState extends State<NexCameraSheet>
                 alignment: Directionality.of(context) == TextDirection.rtl
                     ? Alignment.bottomLeft
                     : Alignment.bottomRight,
-                duration: const Duration(milliseconds: 160),
-                curve: Curves.easeOutCubic,
+                duration: NexMotion.standard,
+                curve: NexMotion.curve,
                 child: AnimatedOpacity(
                   opacity: _menuOpen ? 1 : 0,
-                  duration: const Duration(milliseconds: 140),
+                  duration: NexMotion.fast,
                   child: _Menu(
                     children: [
                       if (widget.cameras.length > 1)
@@ -507,7 +505,7 @@ class _ShutterState extends State<_Shutter> {
       onTap: widget.enabled ? widget.onPressed : null,
       child: AnimatedScale(
         scale: _down ? .9 : 1,
-        duration: const Duration(milliseconds: 100),
+        duration: NexMotion.fast,
         child: Container(
           width: 78,
           height: 78,
@@ -517,7 +515,7 @@ class _ShutterState extends State<_Shutter> {
             color: Colors.black.withValues(alpha: .55),
           ),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
+            duration: NexMotion.fast,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: widget.enabled ? Colors.white : Colors.white54,

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransition;
 import 'package:flutter/material.dart';
+import '../tokens/nex_tokens.dart';
 
 /// A page route that keeps the route below paintable during a full-width
 /// back-swipe. An opaque route lets the Navigator skip painting everything
@@ -35,10 +36,10 @@ class NexPageRoute<T> extends PageRoute<T> {
   bool get maintainState => true;
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 300);
+  Duration get transitionDuration => NexMotion.enter;
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 300);
+  Duration get reverseTransitionDuration => NexMotion.exit;
 
   @override
   void install() {
@@ -186,23 +187,19 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
   @override
   void initState() {
     super.initState();
-    _settle =
-        AnimationController(
-            vsync: this,
-            duration: const Duration(milliseconds: 180),
-          )
-          ..addListener(
-            () => setState(() => _drag = _settleFrom * (1 - _settle.value)),
-          )
-          ..addStatusListener((status) {
-            if (status != AnimationStatus.completed || !mounted) return;
-            // Back at rest. The route covers what is below it again, so this
-            // page can stop carrying a surface of its own and let the app's
-            // background through — which is the whole point of not simply
-            // painting it opaque all the time.
-            if (!_popping) _route?.coverPrevious();
-            setState(() => _dragging = false);
-          });
+    _settle = AnimationController(vsync: this, duration: NexMotion.standard)
+      ..addListener(
+        () => setState(() => _drag = _settleFrom * (1 - _settle.value)),
+      )
+      ..addStatusListener((status) {
+        if (status != AnimationStatus.completed || !mounted) return;
+        // Back at rest. The route covers what is below it again, so this
+        // page can stop carrying a surface of its own and let the app's
+        // background through — which is the whole point of not simply
+        // painting it opaque all the time.
+        if (!_popping) _route?.coverPrevious();
+        setState(() => _dragging = false);
+      });
   }
 
   @override

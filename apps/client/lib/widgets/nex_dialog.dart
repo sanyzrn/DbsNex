@@ -28,18 +28,84 @@ class NexDialogBody extends StatelessWidget {
   }
 }
 
-/// How a note and the assistant rise into view: the ordinary sheet on a soft
-/// ease-out, so it reads as one smooth movement rather than a snap. In 1.90 a
-/// note grew out of its card instead; the owner preferred this.
+/// Opens a dialog the way every dialog in Nex opens: it rises a little and
+/// settles in as it fades up, on [NexMotion.enter], and drops away on
+/// [NexMotion.exit] — the same rhythm as a sheet, so a question asked over a
+/// sheet does not move like it came from a different app.
 ///
-/// 300ms, down from 460. The curve does the softening — most of the travel is
-/// in the first third — so the extra 160ms bought no smoothness, only a wait
-/// between the tap and the words, which is the part people notice.
-const nexSheetRise = AnimationStyle(
-  duration: Duration(milliseconds: 300),
-  reverseDuration: Duration(milliseconds: 220),
-  curve: Curves.easeOutCubic,
-);
+/// Flutter's own `showDialog` is a 150ms fade, a different speed and shape
+/// from everything around it; it is not used anywhere (`test/motion_test.dart`).
+/// The arguments are the ones `showDialog` was called with in this app.
+Future<T?> nexShowDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = true,
+}) {
+  final navigator = Navigator.of(context, rootNavigator: true);
+  return navigator.push<T>(
+    _NexDialogRoute<T>(
+      context: context,
+      builder: builder,
+      barrierDismissible: barrierDismissible,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      themes: InheritedTheme.capture(from: context, to: navigator.context),
+    ),
+  );
+}
+
+class _NexDialogRoute<T> extends DialogRoute<T> {
+  _NexDialogRoute({
+    required super.context,
+    required super.builder,
+    super.barrierDismissible,
+    super.barrierLabel,
+    super.themes,
+  });
+
+  @override
+  Duration get transitionDuration => NexMotion.enter;
+
+  @override
+  Duration get reverseTransitionDuration => NexMotion.exit;
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (MediaQuery.disableAnimationsOf(context)) return child;
+    final eased = CurvedAnimation(
+      parent: animation,
+      curve: NexMotion.curve,
+      reverseCurve: NexMotion.exitCurve,
+    );
+    return FadeTransition(
+      opacity: eased,
+      child: SlideTransition(
+        position: Tween(
+          begin: const Offset(0, 0.04),
+          end: Offset.zero,
+        ).animate(eased),
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.94, end: 1).animate(eased),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// How every sheet rises into view and falls away — [NexMotion.sheet]: the
+/// ordinary sheet on a soft ease-out, so it reads as one smooth movement
+/// rather than a snap, and leaves quicker than it came.
+///
+/// Until 1.99.60 only a note and the assistant rose this way and every other
+/// sheet used Flutter's default slide, so two sheets opened from the same
+/// screen could move differently. Now they all move alike, and like dialogs
+/// and pages (see the Motion section of `docs/16-design-language.md`).
+const nexSheetRise = NexMotion.sheet;
 
 /// Opens a bottom sheet the way every bottom sheet in Nex opens.
 ///
@@ -73,12 +139,9 @@ Future<T?> nexShowSheet<T>({
   required WidgetBuilder builder,
   bool dismissible = true,
   bool swipeToClose = false,
-  bool rise = false,
 }) => showModalBottomSheet<T>(
   context: context,
-  // A note opens the way the assistant does: the plain sheet, a touch
-  // slower and softer than the default slide.
-  sheetAnimationStyle: rise ? nexSheetRise : null,
+  sheetAnimationStyle: nexSheetRise,
   // This shared wrapper supplies the glass material itself. An opaque modal
   // sheet behind it would leave the backdrop filter nothing to sample.
   // The route keeps this colour for its lifetime. If it starts transparent
@@ -180,11 +243,7 @@ class _SwipeToCloseState extends State<_SwipeToClose>
     // animation carries the sheet off, and when the editor asks first the
     // sheet is already where the question expects it.
     unawaited(
-      _offset.animateTo(
-        0,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-      ),
+      _offset.animateTo(0, duration: NexMotion.exit, curve: NexMotion.curve),
     );
     if (fling || far) unawaited(Navigator.of(context).maybePop());
   }

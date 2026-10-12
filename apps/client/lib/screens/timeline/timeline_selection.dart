@@ -347,11 +347,11 @@ class _StaggerInState extends State<_StaggerIn>
     with SingleTickerProviderStateMixin {
   late final _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 260),
+    duration: NexMotion.pop,
   );
   late final _scale = CurvedAnimation(
     parent: _controller,
-    curve: Curves.easeOutBack,
+    curve: NexMotion.popCurve,
   );
   Timer? _delay;
 

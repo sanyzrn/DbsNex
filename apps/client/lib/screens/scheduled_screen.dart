@@ -60,7 +60,7 @@ class _ScheduledScreenState extends State<ScheduledScreen> {
 
   Future<void> _discard(ScheduledNote note) async {
     final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
+    final ok = await nexShowDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.scheduledDiscard),

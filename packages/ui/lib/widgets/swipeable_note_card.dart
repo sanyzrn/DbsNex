@@ -674,7 +674,7 @@ class _ActionGlyphState extends State<_ActionGlyph>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pop = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 420),
+    duration: NexMotion.morph,
   );
 
   late final Animation<double> _scale = TweenSequence<double>([

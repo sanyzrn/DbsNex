@@ -11,6 +11,7 @@ import '../platform/model_install_controller.dart';
 import '../platform/model_store.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/nex_dialog.dart';
 
 /// Downloading, keeping and removing the on-device model.
 ///
@@ -272,7 +273,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
 
   Future<void> _confirmStop() async {
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await nexShowDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.localModelStopTitle),
@@ -303,7 +304,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     if (store == null) return;
     final l10n = AppLocalizations.of(context);
     final host = NexBannerHost.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await nexShowDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.localModelDeleteTitle),

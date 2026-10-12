@@ -18,6 +18,7 @@ import 'cycle/cycle_ring.dart';
 import 'cycle/cycle_settings_sheet.dart';
 import 'cycle/cycle_space.dart';
 import 'cycle/cycle_today.dart';
+import '../widgets/nex_dialog.dart';
 
 part 'cycle/cycle_welcome.dart';
 
@@ -194,7 +195,7 @@ class _CycleScreenState extends State<CycleScreen> {
     final l10n = AppLocalizations.of(context);
     var start = period.start.local;
     DateTime? end = period.end?.local;
-    final result = await showDialog<String>(
+    final result = await nexShowDialog<String>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialog) => CycleTheme(
