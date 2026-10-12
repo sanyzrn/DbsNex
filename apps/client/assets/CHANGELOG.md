@@ -40,7 +40,6 @@ Working convention:
 - **Voice notes are recorded the way voice clips are.** On some phones a voice note recorded with **+** still played nothing, while a clip attached on the same phone played. A voice note is now recorded exactly like that clip.
 - **Search, as it should be.** With nothing typed, a touch outside the search box leaves search. With words typed and the keyboard up, the first touch anywhere — a result included — only closes the keyboard; then a result opens with a tap, and the keyboard no longer comes back when you close it.
 - **Reminders and attachments under the words.** On a card they now sit on a small line beneath the note instead of in a column beside it, so the note's words get the card's whole width.
-- **Pinned tools say what they are for**, with the same line they have on the Tools page.
 - The filter and clear buttons sit in the middle of the search box.
 
 ## v1.99.92
