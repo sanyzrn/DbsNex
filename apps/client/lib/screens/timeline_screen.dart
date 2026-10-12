@@ -17,6 +17,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
+import '../platform/display_date.dart' show nexReadableDate;
 import '../l10n/app_localizations.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/capture_failure.dart';

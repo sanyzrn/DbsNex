@@ -13,8 +13,12 @@ class _NoteGroup {
 
 /// A row in the flattened list: either a heading or a note, never both.
 class _TimelineRow {
-  const _TimelineRow.header(this.group) : note = null, groupKey = null;
-  const _TimelineRow.note(this.note, this.groupKey) : group = null;
+  const _TimelineRow.header(this.group)
+    : note = null,
+      groupKey = null,
+      indexInGroup = 0;
+  const _TimelineRow.note(this.note, this.groupKey, this.indexInGroup)
+    : group = null;
 
   final _NoteGroup? group;
   final Note? note;
@@ -22,10 +26,17 @@ class _TimelineRow {
   /// Which run this note sits under. Needed only while a group is closing —
   /// see `_closingGroups`.
   final String? groupKey;
+
+  /// Where in its run this note is, which sets its place in the fold's
+  /// cascade — see [_FoldingRow.order].
+  final int indexInGroup;
 }
 
 /// How long a run takes to fold away or open up.
-const _foldDuration = Duration(milliseconds: 220);
+///
+/// Long enough for the cascade to read as one movement: each row folds over
+/// most of it, a little after the one above — see [_FoldingRow.order].
+const _foldDuration = Duration(milliseconds: 380);
 
 /// The total vertical room a group heading claims, split 60/40 above and
 /// below — see `_GroupHeader`.
@@ -49,9 +60,17 @@ class _FoldingRow extends StatefulWidget {
     required this.open,
     required this.animateIn,
     required this.child,
+    this.order = 0,
   });
 
   final bool open;
+
+  /// This row's place in its run. The rows of a run used to fold all at once,
+  /// as one block shrinking to nothing; now each starts a beat after the one
+  /// above it, so a day opens like a fan and closes back up into its heading,
+  /// last row first. Capped, so a long run does not keep the last rows
+  /// waiting.
+  final int order;
 
   /// Whether this row is arriving now, or was already here.
   ///
@@ -104,15 +123,36 @@ class _FoldingRowState extends State<_FoldingRow>
     if (MediaQuery.disableAnimationsOf(context)) {
       return widget.open ? widget.child : const SizedBox.shrink();
     }
+    final start = (widget.order * 0.07).clamp(0.0, 0.35);
     final curved = CurvedAnimation(
       parent: _controller,
-      curve: NexMotion.curve,
-      reverseCurve: NexMotion.curve.flipped,
+      // Every row ends with the fold, and the later ones start later — so
+      // opening, the run fans out from the top; closing, every row starts at
+      // once and the lower ones, with less time, are gone first. Nothing
+      // waits before it moves.
+      curve: Interval(start, 1, curve: Curves.easeInOutCubic),
     );
+    // The size and the look move apart: the space opens on the whole curve,
+    // while the card fades and settles in over its second half — drifting
+    // down a few pixels and up to full size, rather than being uncovered by
+    // a hard edge.
+    final settle = curved.drive(CurveTween(curve: const Interval(0.3, 1)));
     return SizeTransition(
       sizeFactor: curved,
-      child: FadeTransition(
-        opacity: curved.drive(CurveTween(curve: const Interval(0.25, 1))),
+      axisAlignment: -1,
+      child: AnimatedBuilder(
+        animation: settle,
+        builder: (context, child) => Opacity(
+          opacity: settle.value,
+          child: Transform.translate(
+            offset: Offset(0, -10 * (1 - settle.value)),
+            child: Transform.scale(
+              scale: 0.96 + 0.04 * settle.value,
+              alignment: Alignment.topCenter,
+              child: child,
+            ),
+          ),
+        ),
         child: widget.child,
       ),
     );

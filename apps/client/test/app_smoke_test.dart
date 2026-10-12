@@ -179,7 +179,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(AppBar),
-        matching: find.byType(NexLogotype),
+        matching: find.byType(NexLivingLogotype),
       ),
       findsOneWidget,
     );

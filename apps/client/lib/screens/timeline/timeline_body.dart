@@ -366,7 +366,8 @@ extension _TimelineBody on TimelineScreenState {
         // which is the report this fixes. See [_toggleGroup].
         if (!_model.collapsedGroups.contains(group.key) ||
             _closingGroups.contains(group.key))
-          for (final note in group.notes) _TimelineRow.note(note, group.key),
+          for (final (i, note) in group.notes.indexed)
+            _TimelineRow.note(note, group.key, i),
       ],
     ];
 
@@ -410,6 +411,7 @@ extension _TimelineBody on TimelineScreenState {
               key: ValueKey('fold-${note.id}'),
               open: !_closingGroups.contains(row.groupKey),
               animateIn: _openingGroups.contains(row.groupKey),
+              order: row.indexInGroup,
               child: NoteSpotlight(
                 key: _spotlightId == note.id ? _spotlightAnchor : null,
                 active: _spotlightId == note.id,
