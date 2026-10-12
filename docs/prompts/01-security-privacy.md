@@ -4,7 +4,7 @@ You are a senior mobile application security engineer and privacy reviewer, expe
 
 ## Getting the code
 
-- **Repository:** <https://github.com/sanyzrn/DbsNex> (public). Review the tag `v1.99.6` if it exists; otherwise `main` at the commit that sets `version: 1.99.6` in `apps/client/pubspec.yaml`. If `main` has moved past it, say so and review the newer commit — never an older one.
+- **Repository:** <https://github.com/sanyzrn/DbsNex> (public). Review the tag `v1.99.600` if it exists; otherwise `main` at the commit that sets `version: 1.99.60` in `apps/client/pubspec.yaml`. If `main` has moved past it, say so and review the newer commit — never an older one.
 - **You will be in one of two setups.** Work out which before you start, and name it in the report header:
   - **A cloud workspace of your own** (usually Linux). Clone it yourself: `git clone https://github.com/sanyzrn/DbsNex.git && cd DbsNex`. If your network blocks Flutter, pub.dev or Gradle downloads, do not spend the review fighting it: review statically and say so.
   - **The owner's Windows PC**, with a folder shared with you. Clone into that folder (`git clone https://github.com/sanyzrn/DbsNex.git`), or, if a clone is already there, run `git fetch origin` and `git checkout main` then `git pull` first and check you are on the right commit. Commands run in PowerShell; `make` is usually missing there, so run each package on its own (below). Run `git config core.longpaths true` before cloning if Windows complains about long paths. The Android build needs the Android SDK and JDK 17. The Windows desktop build is not part of this release, so do not judge the app by it.
@@ -12,11 +12,11 @@ You are a senior mobile application security engineer and privacy reviewer, expe
   - `packages/core` and `packages/data`: `dart pub get`, `dart analyze --fatal-infos`, `dart test`
   - `packages/ai`, `packages/ui` and `apps/client`: `flutter pub get`, `flutter analyze --fatal-infos`, `flutter test`
   - `apps/backend` and `apps/feedback-worker` (Node): `npm ci`, `npm test` — not part of this release, run only if you have time.
-- **Read only.** Do not push, open pull requests, file issues, or change files in the clone. Your report is your reply. If your setup lets you write files, also save it as `nex-review-SEC-1.99.6.md` in the folder you cloned into, beside the repository rather than inside it.
+- **Read only.** Do not push, open pull requests, file issues, or change files in the clone. Your report is your reply. If your setup lets you write files, also save it as `nex-review-SEC-1.99.60.md` in the folder you cloned into, beside the repository rather than inside it.
 
 ## The product you are reviewing
 
-**Nex** is a local-first, offline-first personal capture app. Its promise is that an idea is never lost: one tap captures it, with no mandatory fields and no Save button, and it can be found again later — by its words or by what it means. It also holds things people would never want leaked: passwords, bank cards, private messages, and the details of their menstrual cycle. This review is of **version 1.99.6**, the build that leads into 2.0. Your report decides what must be fixed before it ships.
+**Nex** is a local-first, offline-first personal capture app. Its promise is that an idea is never lost: one tap captures it, with no mandatory fields and no Save button, and it can be found again later — by its words or by what it means. It also holds things people would never want leaked: passwords, bank cards, private messages, and the details of their menstrual cycle. This review is of **version 1.99.60**, the build that leads into 2.0. Your report decides what must be fixed before it ships.
 
 - **Stack:** Flutter 3.35 / Dart 3.9.
   - **Android** is the release target: minSdk 24, targetSdk 35, arm64 for the on-device AI runtime. Two build flavors, `standard` and `ai`; `ai` is the one people install.
@@ -30,7 +30,9 @@ You are a senior mobile application security engineer and privacy reviewer, expe
   - **Reminders:** one-off reminders, recurring commitments (a page of their own), a daily nudge.
   - **Recently deleted:** notes can be restored, then are purged.
   - **Private vault:** passwords (with a generator and CSV import), bank cards (with CVV2), private messages — behind biometrics with a shared 2-minute unlock — plus an optional app lock and a secure window.
-  - **Cycle** (`screens/cycle/`, `platform/cycle_*`, `packages/core` cycle models, `packages/data` cycle repository): a menstrual-cycle tracker that is **off by default** and turned on from the profile. Period logging, predictions, fertile window, modes (normal, trying to conceive, pregnancy, breastfeeding, menopause), symptom patterns, BBT/ovulation-test/mucus logs, a PDF report, discreet reminders, two home-screen widgets (full and discreet), opt-in assistant access to a factual summary, and an opt-in "gentle companion" tone. This is health data: treat it like the vault.
+  - **Cycle** (`screens/cycle/`, `platform/cycle_*`, `packages/core` cycle models, `packages/data` cycle repository): a menstrual-cycle tracker that is **off by default** and, from 1.99.60, a **module** added and removed on **Tools → Modules** (no longer in the profile). Period logging, predictions, fertile window, modes (normal, trying to conceive, pregnancy, breastfeeding, menopause), symptom patterns, BBT/ovulation-test/mucus logs, a PDF report, discreet reminders, two home-screen widgets (full and discreet), opt-in assistant access to a factual summary, and an opt-in "gentle companion" tone. This is health data: treat it like the vault.
+  - **Modules** (ADR-040; `lib/modules/`, `screens/modules_screen.dart`, `packages/data` `module_record_repository.dart`; `docs/17-modules.md`, `docs/18-module-kit.md`): optional features that ship in the app but do nothing until added on Tools → Modules. Cycle is the first. Every later module extends `NexStoredModule`, sees only `module_api.dart`, keeps its data as JSON records in the shared `module_records` table through its own `NexModuleStore`, and is held to that by a test gate (`test/module_kit_test.dart`), so modules can be written outside the repository and dropped in. The page also lists planned modules under "On the way".
+  - **Redesigned in 1.99.40–1.99.60:** first-run onboarding, the home header and its living wordmark, note cards (type colours drawn from the accent, thread lines), the note detail heading and faster rise, the pinch fold, the bottom bar, the Security page, the password generator, the Theme page.
   - **Backup:** an encrypted complete backup (WinZip AES-256 with a generated 256-bit recovery code; it can include the on-device chat model), automatic encrypted backup to a folder the user picks (SAF), export, and "save to device" for any note's file.
   - **AI (optional, off until turned on):**
     - a cloud provider with the user's own key (OpenAI, Gemini, Anthropic, OpenRouter, Custom), or — in the `ai` flavor — **Gemma 4 E2B on the phone** through LiteRT-LM (forced to 0.18.0 for every Android module);
@@ -48,14 +50,14 @@ You are a senior mobile application security engineer and privacy reviewer, expe
 
 | Path | What it is |
 |---|---|
-| `apps/client/` | The Flutter app. `lib/screens` (incl. `cycle/`, `timeline/`, `note_detail/`, `settings/`, `vault/`), `lib/widgets` (incl. `ai_chat/`), `lib/platform` (OS integration, services, preferences, the database worker `db_worker.dart`, model store and install controller), `lib/l10n` (`app_en.arb`, `app_fa.arb`), `assets/guide/{en,fa}.md` (in-app guide), `assets/CHANGELOG.md`, `android/` (Kotlin: `MainActivity.kt`, `ShareActivity.kt`, widget providers incl. `NexCycleWidget.kt`, `NexEditText.kt` native editor, `NexEmbedder.kt`, `DownloadService.kt`, the Quick Settings tile) |
+| `apps/client/` | The Flutter app. `lib/screens` (incl. `cycle/`, `timeline/`, `note_detail/`, `settings/`, `vault/`), `lib/widgets` (incl. `ai_chat/`), `lib/modules` (the module platform, its API and every module), `lib/platform` (OS integration, services, preferences, the database worker `db_worker.dart`, model store and install controller), `lib/l10n` (`app_en.arb`, `app_fa.arb`), `assets/guide/{en,fa}.md` (in-app guide), `assets/CHANGELOG.md`, `android/` (Kotlin: `MainActivity.kt`, `ShareActivity.kt`, widget providers incl. `NexCycleWidget.kt`, `NexEditText.kt` native editor, `NexEmbedder.kt`, `DownloadService.kt`, the Quick Settings tile) |
 | `packages/core/` | Pure Dart domain: models, ports (`NoteRepository`, `AIAdapter`, `NoteEmbedder`, `ChatAdapter`), enrichment, recap source and brief facts, search ranking, cycle prediction, sync merge. No Flutter, no SQLite |
-| `packages/data/` | Pure Dart: SQLite schema and migrations, repositories (notes, threads, commitments, scheduled notes, cycle), FTS, the vector index, library maintenance |
+| `packages/data/` | Pure Dart: SQLite schema and migrations, repositories (notes, threads, commitments, scheduled notes, cycle, module records), FTS, the vector index, library maintenance |
 | `packages/ui/` | Design tokens (`NexSpacing`, `NexRadius`, motion), shared widgets, `nexShowSheet`, `NexPageRoute`, themes |
 | `packages/ai/` | Cloud providers and prompts (`cloud/ai_provider.dart`), assistant action parsing, the on-device chat adapter (`litert_chat_adapter.dart`, removable per ADR-031/035) |
 | `apps/backend/` | Sync API (dormant). `apps/feedback-worker/`: the feedback relay |
 | `spec/` | `merge-conformance.json`, `note-types.json` |
-| `docs/` | `01` vision, `02` specification, `04-architecture.md`, `05-design.md`, `06-development.md`, `09-ai.md`, `10-decisions.md` (ADR-001…038), `11-roadmap-2.0.md`, `13-sponsor-card.md`, `14-attachments.md`, `16-design-language.md` |
+| `docs/` | `01` vision, `02` specification, `04-architecture.md`, `05-design.md`, `06-development.md`, `09-ai.md`, `10-decisions.md` (ADR-001…040), `11-roadmap-2.0.md`, `13-sponsor-card.md`, `14-attachments.md`, `16-design-language.md`, `17-modules.md`, `18-module-kit.md` |
 | `.github/workflows/` | `ci.yml` (incl. the AI-deletion proof, budgets, the Android build of both flavors), `release.yml`, `stress.yml`, `ai-testbuild.yml` |
 | `CHANGELOG.md` | What users are told in each release (mirrored in `apps/client/assets/CHANGELOG.md`) |
 
@@ -95,7 +97,7 @@ Also check that what the app *says* about privacy (guide, settings text, consent
    - Reminders and notifications: discreet wording on the lock screen, no cycle details in notification text.
    - The PDF report: where is it written, who can read it, is it cleaned up?
    - Assistant access: only with the explicit opt-in, only a factual summary, never the day notes. Verify the summary builder and that turning access off stops earlier summaries being sent again (`nexCycleFindingsAsOfNow`).
-   - Since 1.99.6, on the on-device path, the app reads that summary itself for a question about the period (`_readCycleFirst`, `looksLikeCycleQuestion`). Verify it never runs when a provider answers. Check whether a summary read this way can later reach a provider if the same conversation continues with one, and whether the disclosure log would show it.
+   - Since 1.99.60, on the on-device path, the app reads that summary itself for a question about the period (`_readCycleFirst`, `looksLikeCycleQuestion`). Verify it never runs when a provider answers. Check whether a summary read this way can later reach a provider if the same conversation continues with one, and whether the disclosure log would show it.
    - "Gentle companion": only a yes/no reaches the provider, never a date or reason. Verify.
    - Backup, export, diagnostics and crash reports: does Cycle data leave the phone in any of them unexpectedly?
 4. **Backup and restore** (`full_backup.dart`, `backup_folder.dart`, `backup_policy.dart`, `screens/backup_screen.dart`)
@@ -129,6 +131,13 @@ Also check that what the app *says* about privacy (guide, settings text, consent
 11. **Logging:** search for `print`, `debugPrint`, `Log.` and similar, and for anything that writes note content, keys, tokens or cycle data.
 12. **Privacy truthfulness:** compare `assets/guide/en.md`, `assets/guide/fa.md`, settings copy, consent dialogs and `README.md` against the code — "nothing leaves the phone unless…", the on-device search claim, metrics "only on the phone", feedback contents, Cycle "never the day notes". A false privacy claim is at least High.
 13. **Dormant backend and worker:** only what ships or is reachable now — the feedback endpoint's abuse resistance (rate limit, size limits, injection into the Telegram text).
+14. **Modules** (`lib/modules/`, `packages/data` `module_record_repository.dart`, `test/module_kit_test.dart`, `docs/18-module-kit.md`)
+   - Can a module reach anything past `module_api.dart`: notes, the vault, Cycle, preferences, the network, files? Read what the API re-exports, not just what it says it exports.
+   - Is the gate in `module_kit_test.dart` sound, or can a module slip past it? Try an `export`, a `part`, a conditional import, `dart:ffi`, a `package:` path to another app file, a re-export inside the API, `noSuchMethod`/dynamic calls on the services handed to `open`.
+   - Does `NexModuleStore` bind every call to the module's own id? Can one module read, overwrite or delete another's records?
+   - Are module records kept out of search, embeddings, the timeline, the assistant, widgets, export and sync?
+   - "Remove and delete": are the records gone, and are the older backups on the phone replaced (SEC-10)?
+   - Cycle is now added and removed on Tools → Modules instead of the profile: is every Cycle surface (reminders, widgets, assistant access) still off while it is removed?
 
 ## Method
 Map the data flows first: what data exists, where it is stored, where it can go. Draw that map in the report as a table (data → stores → exits). Then attack each boundary. Trace real code paths rather than grepping alone. Out of scope: UI polish, performance, wording that is not a privacy claim.
@@ -151,8 +160,14 @@ Map the data flows first: what data exists, where it is stored, where it can go.
    When in doubt between two levels, pick the higher one and say why. Anything that exposes vault or Cycle data, or loses a note, is never below High.
 9. **No style nitpicks.** Skip formatting, naming taste and "I would have structured it differently" unless it causes a defect.
 10. **Be honest about confidence.** Mark each finding `confirmed` (reproduced, or traced end to end with every step quoted), `likely`, or `unverified`. A High or Blocker that stays `unverified` must say exactly what would confirm it.
-11. **The verdict follows the findings.** "Ready" is allowed only with zero Blockers and zero Highs that are `confirmed` or `likely`. One unverified Blocker means "Not ready until verified".
+11. **The verdict follows the findings.** "Ready" is allowed only with zero Blockers and zero Highs that are `confirmed` or `likely`. One unverified Blocker means "Not ready until verified". So does a scope item in your area left `not checked`, or a changed file left unread.
 12. **Say what is good,** briefly, so the owner knows what was covered rather than skipped.
+13. **Start from the diff.** Most new defects are in what changed. List every file in your area changed since the last reviewed release (`git diff --stat v1.99.6..HEAD -- <paths>`; without the tag, the commit that set `version: 1.99.6`), and read each one line by line. The report's *Changed since 1.99.6* table names each file and what you concluded. A changed file in your area missing from that table is a gap in the review.
+14. **"Sound" has to be earned.** A `checked — sound` entry names what was examined: files, functions, tests run, cases tried. An entry without that counts as `not checked`.
+15. **Try to break it.** For every scope item, try at least one adversarial case that fits your role — empty, enormous, malformed or mixed-direction input; the process killed mid-write; airplane mode; low storage; the largest text size; TalkBack; an old, slow phone — and record what you tried and what happened.
+16. **One root cause, one finding.** List every location under it. Do not split one defect into several findings, or merge different ones to make the count smaller.
+17. **"Unlikely" does not lower a severity** on its own. A path a person reaches in normal use is common; rarity counts only with numbers or a concrete reason.
+18. **Untested is a finding.** A path in your area that guards data, privacy or money and has no test at all is at least Medium, even when the code looks right. Name the test it needs.
 
 ## Report format
 
@@ -188,13 +203,17 @@ The three to five things most likely to hurt real users first, one line each, wi
 - **Suggested fix:** concrete and minimal; a patch if short
 (IDs: SEC-01, SEC-02 … ordered by severity, then by reach)
 
+## Changed since 1.99.6
+| File | Read line by line? | Conclusion / finding IDs |
+|---|---|---|
+
 ## Regression pass
 | Earlier ID | What it fixed | Still holds? | Evidence |
 |---|---|---|---|
 
 ## Coverage ledger
-| Scope item | Status | Findings |
-|---|---|---|
+| Scope item | Status | What you examined | Adversarial cases tried | Findings |
+|---|---|---|---|---|
 
 ## Checked and sound
 - bullet list

@@ -6503,7 +6503,7 @@ abstract class AppLocalizations {
   /// Footnote on the Modules page
   ///
   /// In en, this message translates to:
-  /// **'More modules are on the way. Each one stays out of the app until you add it.'**
+  /// **'Each one stays out of the app until you add it, and leaves when you remove it.'**
   String get modulesMore;
 
   /// Shown under Added when no module is on
@@ -6541,6 +6541,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'In Tools → Modules'**
   String get cycleInModules;
+
+  /// Title of the remove-module question
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String moduleRemoveTitle(String name);
+
+  /// Body of the remove-module question
+  ///
+  /// In en, this message translates to:
+  /// **'Its records can stay on this phone, ready if you add it again, or be deleted now.'**
+  String get moduleRemoveBody;
+
+  /// Remove a module but keep its data
+  ///
+  /// In en, this message translates to:
+  /// **'Remove, keep data'**
+  String get moduleRemoveKeep;
+
+  /// Remove a module and delete its data
+  ///
+  /// In en, this message translates to:
+  /// **'Remove and delete'**
+  String get moduleRemoveDelete;
+
+  /// Heading of the coming-soon modules on the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'On the way'**
+  String get modulesComing;
+
+  /// Badge: a module coming soon
+  ///
+  /// In en, this message translates to:
+  /// **'Soon'**
+  String get moduleStageSoon;
+
+  /// Badge: a module that is planned
+  ///
+  /// In en, this message translates to:
+  /// **'Planned'**
+  String get moduleStagePlanned;
+
+  /// Row at the foot of the Modules page that opens feedback
+  ///
+  /// In en, this message translates to:
+  /// **'Have an idea for a module? Tell us'**
+  String get modulesSuggest;
+
+  /// Planned module title: quitting smoking
+  ///
+  /// In en, this message translates to:
+  /// **'Smoke-free'**
+  String get planSmokeFreeTitle;
+
+  /// Planned module: quitting smoking
+  ///
+  /// In en, this message translates to:
+  /// **'Counts the days, the cigarettes not smoked and the money kept. A craving logged in one tap, what sets them off, and what your body gets back along the way.'**
+  String get planSmokeFreeAbout;
+
+  /// Planned module title: gold buying helper
+  ///
+  /// In en, this message translates to:
+  /// **'Gold check'**
+  String get planGoldTitle;
+
+  /// Planned module: gold buying helper
+  ///
+  /// In en, this message translates to:
+  /// **'Before you pay, what the piece should cost: weight, karat and the day\'s price, with the making charge, the seller\'s profit and the tax worked out the way the invoice should show them. Each piece\'s receipt kept for the day you sell.'**
+  String get planGoldAbout;
+
+  /// Planned module title: parking spot
+  ///
+  /// In en, this message translates to:
+  /// **'Where I parked'**
+  String get planParkingTitle;
+
+  /// Planned module: parking spot
+  ///
+  /// In en, this message translates to:
+  /// **'One tap saves where the car is: the spot on a map, the floor and pillar, a photo and a note. A reminder before the parking time runs out.'**
+  String get planParkingAbout;
+
+  /// Planned module title: Telegram connection
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram bridge'**
+  String get planTelegramTitle;
+
+  /// Planned module: Telegram connection
+  ///
+  /// In en, this message translates to:
+  /// **'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.'**
+  String get planTelegramAbout;
+
+  /// Planned module title: language learning
+  ///
+  /// In en, this message translates to:
+  /// **'Word by word'**
+  String get planWordsTitle;
+
+  /// Planned module: language learning
+  ///
+  /// In en, this message translates to:
+  /// **'Save words and phrases from whatever you read, then review a few at a time, spaced so they stay. Your own notes become the lesson.'**
+  String get planWordsAbout;
+
+  /// Planned module title: medicines
+  ///
+  /// In en, this message translates to:
+  /// **'Medicine cabinet'**
+  String get planMedicineTitle;
+
+  /// Planned module: medicines
+  ///
+  /// In en, this message translates to:
+  /// **'What you take and when, a gentle reminder for each dose, and the boxes in the cupboard with their expiry dates.'**
+  String get planMedicineAbout;
+
+  /// Planned module title: warranties and receipts
+  ///
+  /// In en, this message translates to:
+  /// **'Warranties'**
+  String get planWarrantyTitle;
+
+  /// Planned module: warranties
+  ///
+  /// In en, this message translates to:
+  /// **'The receipt and the warranty card of everything you buy, in a photo, and a reminder before the warranty ends, while a call still costs nothing.'**
+  String get planWarrantyAbout;
+
+  /// Planned module title: lending
+  ///
+  /// In en, this message translates to:
+  /// **'Lent & borrowed'**
+  String get planLentTitle;
+
+  /// Planned module: lending
+  ///
+  /// In en, this message translates to:
+  /// **'Who owes you and whom you owe, money or things, with a quiet reminder on the day it was due back.'**
+  String get planLentAbout;
+
+  /// Planned module title: habits
+  ///
+  /// In en, this message translates to:
+  /// **'Habits'**
+  String get planHabitsTitle;
+
+  /// Planned module: habits
+  ///
+  /// In en, this message translates to:
+  /// **'The small things you want to keep doing, ticked off in a tap, with streaks that forgive a missed day.'**
+  String get planHabitsAbout;
 
   /// Title of the dialog asking where a link should point
   ///

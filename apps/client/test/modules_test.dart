@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/modules/module_plans.dart';
 import 'package:nex_client/modules/module_registry.dart';
 import 'package:nex_client/screens/modules_screen.dart';
 
@@ -27,6 +28,26 @@ void main() {
     await prefs.setModuleOn('planner', true);
     expect(prefs.isModuleOn('planner'), isTrue);
     expect(prefs.isModuleOn('water'), isFalse);
+  });
+
+  test('every planned module has its words, and is not one already built', () {
+    final ids = [for (final plan in nexModulePlans) plan.id];
+    expect(ids.toSet(), hasLength(ids.length));
+    for (final module in nexModules) {
+      expect(ids, isNot(contains(module.id)));
+    }
+    final titles = <String>{};
+    for (final locale in const [Locale('en'), Locale('fa')]) {
+      final l10n = lookupAppLocalizations(locale);
+      for (final plan in nexModulePlans) {
+        expect(plan.title(l10n).trim(), isNotEmpty);
+        expect(plan.about(l10n).trim(), isNotEmpty);
+        titles.add(plan.title(l10n));
+      }
+    }
+    // The switch falls through to the last plan's words; a new id that was
+    // not given its own would show a duplicate title.
+    expect(titles, hasLength(nexModulePlans.length * 2));
   });
 
   test('nothing is on in a fresh install', () {
@@ -70,5 +91,31 @@ void main() {
         tester.getTopLeft(find.byKey(const ValueKey('module-cycle'))).dy,
       ),
     );
+
+    // What is coming is listed under it, with a badge and no button.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('plan-smoke-free')),
+      300,
+    );
+    expect(find.text('On the way'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('plan-smoke-free')),
+        matching: find.text('Soon'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('plan-smoke-free')),
+        matching: find.byType(ButtonStyleButton),
+      ),
+      findsNothing,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('modules-suggest')),
+      300,
+    );
+    expect(find.text('Have an idea for a module? Tell us'), findsOneWidget);
   });
 }

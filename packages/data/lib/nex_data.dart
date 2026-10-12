@@ -34,6 +34,7 @@ export 'repositories/commitment_repository.dart';
 export 'repositories/cycle_repository.dart';
 export 'repositories/library_maintenance.dart';
 export 'repositories/memory_repository.dart';
+export 'repositories/module_record_repository.dart';
 export 'repositories/note_repository.dart';
 export 'repositories/scheduled_note_repository.dart';
 export 'repositories/thread_repository.dart';

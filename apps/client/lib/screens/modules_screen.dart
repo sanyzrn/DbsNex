@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../modules/module_plans.dart';
 import '../modules/module_registry.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/feedback_service.dart';
 import '../platform/nex_services.dart';
+import '../widgets/feedback_sheet.dart';
 import '../widgets/nex_shelf.dart';
 
 /// Tools → Modules: every optional feature Nex ships, and the one place to
@@ -68,6 +71,14 @@ class _ModulesScreenState extends State<ModulesScreen> {
       ),
     ),
   );
+
+  /// An idea for a module goes the way any other word to the developer
+  /// does: the feedback sheet.
+  Future<void> _suggest() async {
+    final service = FeedbackService(preferences: widget.preferences);
+    await FeedbackSheet.show(context, service: service);
+    service.close();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,24 +145,25 @@ class _ModulesScreenState extends State<ModulesScreen> {
                 ...available.map(card),
               ],
               const SizedBox(height: NexSpacing.sm),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.auto_awesome_outlined,
-                    size: 18,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: NexSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      l10n.modulesMore,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
+              NexShelfHeading(
+                icon: Icons.schedule_outlined,
+                title: l10n.modulesComing,
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              for (final plan in nexModulePlans)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+                  child: _PlanCard(plan: plan),
+                ),
+              const SizedBox(height: NexSpacing.sm),
+              _SuggestRow(onTap: _suggest),
+              const SizedBox(height: NexSpacing.md),
+              Text(
+                l10n.modulesMore,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           );
@@ -339,6 +351,146 @@ class _ModuleCard extends StatelessWidget {
               label: Text(l10n.moduleAdd),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A module still to come: its glyph, its name with a badge for how near it
+/// is, and a line on what it will do. Quieter than an available module's
+/// card — no wash of colour, no button — since there is nothing to do with
+/// it yet but know it is coming.
+class _PlanCard extends StatelessWidget {
+  const _PlanCard({required this.plan});
+
+  final NexModulePlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final color = plan.hue.of(theme.brightness);
+    final soon = plan.stage == NexModuleStage.soon;
+    return Container(
+      key: ValueKey('plan-${plan.id}'),
+      padding: const EdgeInsets.all(NexSpacing.md - 4),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(NexRadius.md),
+            ),
+            child: Icon(plan.icon, color: color, size: 22),
+          ),
+          const SizedBox(width: NexSpacing.md - 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: NexSpacing.sm,
+                  runSpacing: NexSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      plan.title(l10n),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: soon
+                            ? color.withValues(alpha: 0.16)
+                            : scheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(NexRadius.pill),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: NexSpacing.sm,
+                          vertical: 2,
+                        ),
+                        child: Text(
+                          soon ? l10n.moduleStageSoon : l10n.moduleStagePlanned,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: soon
+                                ? nexReadableOn(
+                                    color,
+                                    scheme.surfaceContainerLow,
+                                  )
+                                : scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: NexSpacing.xs),
+                Text(
+                  plan.about(l10n),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.55,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SuggestRow extends StatelessWidget {
+  const _SuggestRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Material(
+      color: scheme.primary.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(NexRadius.lg),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('modules-suggest'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(NexSpacing.md),
+          child: Row(
+            children: [
+              Icon(Icons.lightbulb_outline, color: scheme.primary),
+              const SizedBox(width: NexSpacing.md),
+              Expanded(
+                child: Text(
+                  l10n.modulesSuggest,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              Icon(
+                Directionality.of(context) == TextDirection.rtl
+                    ? Icons.chevron_left
+                    : Icons.chevron_right,
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

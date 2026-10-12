@@ -410,6 +410,26 @@ CREATE TABLE IF NOT EXISTS cycle_days (
     _addColumnIfMissing('cycle_days', 'ovulation_test', 'TEXT');
     _addColumnIfMissing('cycle_days', 'mucus', 'TEXT');
 
+    // Modules (ADR-040, docs/17-modules.md): one table every module after
+    // «Cycle» keeps its records in, as JSON, so a new module never needs a
+    // migration. Like Cycle's, joined to nothing — no search, embedding,
+    // widget or assistant reads it — and carried by backups with the rest of
+    // the file.
+    db.execute('''
+CREATE TABLE IF NOT EXISTS module_records (
+  module TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  id TEXT NOT NULL,
+  body TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (module, kind, id)
+);
+''');
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_module_records_recent '
+      'ON module_records(module, kind, updated_at);',
+    );
+
     // Records one-off data migrations, so a seed that the user has since
     // edited or deleted is never quietly put back.
     db.execute('''

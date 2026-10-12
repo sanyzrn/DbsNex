@@ -26,6 +26,22 @@ No layer ever downloads executable code. Flutter on Android cannot load it,
 the stores Nex ships through do not allow it, and it would break the
 promise that nothing reaches the phone unless asked.
 
+## Two kinds of layer-1 module
+
+- **Built-in modules** implement `NexModule` directly and may use anything in
+  the app. Only Cycle is one, because it predates the platform and has its own
+  tables, reminders and widgets.
+- **Stored modules** extend `NexStoredModule`. Every module after Cycle is one.
+  - It is one folder, `lib/modules/<id>/`, that sees only
+    `lib/modules/module_api.dart`.
+  - It keeps its data in its own `NexModuleStore`: JSON records in the shared
+    `module_records` table, bound to its id.
+  - Adding, removing, the keep-or-delete question and deleting the data are
+    done for it.
+  - A test gate (`test/module_kit_test.dart`) holds it to that, which is what
+    lets a module be written by another agent and dropped in. See
+    [`18-module-kit.md`](18-module-kit.md).
+
 ## The contract (layer 1)
 
 `apps/client/lib/modules/nex_module.dart`:
@@ -51,6 +67,10 @@ home-screen widgets, the assistant's tools, settings search — asks
 
 ## Adding a module
 
+A new module is a stored module, built with the module kit
+([`18-module-kit.md`](18-module-kit.md)). The steps below are for the rare
+built-in one:
+
 1. Write the feature under `lib/screens/<id>/` and its logic under
    `lib/platform/`, as any screen.
 2. Implement `NexModule` in `lib/modules/<id>_module.dart`.
@@ -62,10 +82,26 @@ home-screen widgets, the assistant's tools, settings search — asks
    "remove, delete".
 6. Add its guide section and changelog lines, in both languages.
 
+## What is coming
+
+`lib/modules/module_plans.dart` lists the modules that are not built yet.
+Each has a name, a line on what it will do and a badge, Soon or Planned, and
+they appear under **On the way** on the Modules page with no button. When
+one is built, it leaves that list and joins `nexModules`. A row at the foot
+of the page opens the feedback sheet, for ideas.
+
 ## Where things are
 
 - `lib/modules/nex_module.dart`: the contract.
 - `lib/modules/module_registry.dart`: the list of every module.
 - `lib/modules/cycle_module.dart`: Cycle as a module.
+- `lib/modules/nex_stored_module.dart`, `nex_module_store.dart`,
+  `nex_module_strings.dart`: the base every new module extends, its storage
+  and its words.
+- `lib/modules/module_api.dart`: the one import a stored module may use.
+- `lib/modules/module_plans.dart`: what is on the way.
 - `lib/screens/modules_screen.dart`: Tools → Modules.
+- `packages/data/lib/repositories/module_record_repository.dart`: the records.
 - `test/modules_test.dart`: the page, adding and removing, and Tools tiles.
+- `test/module_kit_test.dart`, `test/module_kit/tally/`: the gate, and its
+  worked example.

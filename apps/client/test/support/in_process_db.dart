@@ -34,6 +34,7 @@ class InProcessDb implements NexDb {
     _threads = SqliteThreadRepository(_db, _repo, localDeviceId: deviceId);
     _scheduled = SqliteScheduledNoteRepository(_db, _repo);
     _cycle = SqliteCycleRepository(_db);
+    _modules = SqliteModuleRecordRepository(_db);
     // Same composition as the real worker: the purge paths only delete
     // attachment files they can prove live under the media directory.
     _maintenance = LibraryMaintenance(
@@ -83,6 +84,7 @@ class InProcessDb implements NexDb {
   late final SqliteThreadRepository _threads;
   late final SqliteScheduledNoteRepository _scheduled;
   late final SqliteCycleRepository _cycle;
+  late final SqliteModuleRecordRepository _modules;
   late final SearchService _search;
   late final LibraryMaintenance _maintenance;
   late final EnrichmentService _enrichment;
@@ -316,6 +318,33 @@ class InProcessDb implements NexDb {
 
   @override
   Future<void> cycleDeleteAll() async => _cycle.deleteAll();
+
+  @override
+  Future<List<ModuleRecord>> moduleRecords(String module, String kind) async =>
+      _modules.list(module, kind);
+
+  @override
+  Future<ModuleRecord?> moduleRecord(
+    String module,
+    String kind,
+    String id,
+  ) async => _modules.get(module, kind, id);
+
+  @override
+  Future<ModuleRecord> modulePut(
+    String module,
+    String kind,
+    String id,
+    Map<String, Object?> body,
+  ) async => _modules.put(module, kind, id, body);
+
+  @override
+  Future<void> moduleDelete(String module, String kind, String id) async =>
+      _modules.delete(module, kind, id);
+
+  @override
+  Future<int> moduleDeleteAll(String module) async =>
+      _modules.deleteAll(module);
 
   @override
   Future<ScheduledNote?> scheduleNote(

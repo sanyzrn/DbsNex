@@ -454,6 +454,7 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
   - JavaScript mini-apps in a WebView — rejected: they add a second runtime and a large attack surface, and they cannot keep the privacy promise.
   - Keeping every feature always on, behind settings switches — rejected: switches scattered over Settings and Profile were already the problem (Cycle lived in Profile).
 - **Status:** Accepted at v1.99.60. Cycle moves from the profile to Tools → Modules; its stored on/off state is unchanged, so nobody's Cycle switches off on update.
+- **Addendum, also 1.99.60: modules written elsewhere.** Every module after Cycle is a *stored module* (`NexStoredModule`). It is one folder that can import only `lib/modules/module_api.dart`, keeps its data in the shared `module_records` table through a store bound to its id, and leaves adding, removing and data deletion to the platform. A test gate (`test/module_kit_test.dart`) fails the build on any import or override past that line. A module can therefore be built by another agent from `docs/prompts/11-module-builder.md` and dropped in. If it is wrong, the damage stays inside its own screen: it can reach no note, no setting, no network and no file. Capabilities such as reminders, location or network access join the API only when a real module asks for them (`docs/18-module-kit.md`).
 
 ---
 

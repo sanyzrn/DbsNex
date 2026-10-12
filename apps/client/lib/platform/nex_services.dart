@@ -39,6 +39,7 @@ import 'model_store.dart';
 import 'reminders.dart';
 
 part 'folder_backup.dart';
+part 'module_services.dart';
 
 /// Thrown when sync is invoked before the device has been paired with a server.
 class SyncNotConfigured implements Exception {
@@ -116,6 +117,17 @@ class NexServices {
   Future<T> _cycleWrite<T>(Future<T> write) async {
     final result = await write;
     if (!_cycleController.isClosed) _cycleController.add(null);
+    return result;
+  }
+
+  /// Fires with a module's id after it writes — what its screen and its
+  /// Tools tile redraw on.
+  final _moduleController = StreamController<String>.broadcast();
+  Stream<String> get moduleChanges => _moduleController.stream;
+
+  Future<T> _moduleWrite<T>(String module, Future<T> write) async {
+    final result = await write;
+    if (!_moduleController.isClosed) _moduleController.add(module);
     return result;
   }
 
@@ -701,17 +713,18 @@ class NexServices {
     await reminders.cancelCycle();
     await _preferences.resetCycle();
     if (!_cycleController.isClosed) _cycleController.add(null);
-    await _replaceBackupsHoldingCycle();
+    await _replaceBackupsHoldingDeleted();
   }
 
-  /// The library backups on this phone, made before Cycle was deleted, still
-  /// held every period and logged day (SEC-10), and they are not encrypted:
+  /// The library backups on this phone, made before Cycle (or a module's
+  /// data) was deleted, still held every period and logged day (SEC-10), and
+  /// they are not encrypted:
   /// "deleted from this phone" was not true while they were there. One new
   /// backup is made without it, and only once it exists are the older ones
   /// removed, so the notes are never left without a backup. Copies saved to
   /// a folder or shared elsewhere are outside the app's reach; the
   /// confirmation says so.
-  Future<void> _replaceBackupsHoldingCycle() async {
+  Future<void> _replaceBackupsHoldingDeleted() async {
     try {
       final dir = Directory(backupDir);
       if (!dir.existsSync()) return;
@@ -1566,6 +1579,7 @@ class NexServices {
     _scheduledTimer?.cancel();
     await _timelineController.close();
     await _cycleController.close();
+    await _moduleController.close();
     await _closeOnce();
   }
 }

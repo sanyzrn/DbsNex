@@ -145,6 +145,26 @@ abstract interface class NexDb {
   /// Every period and logged day, gone.
   Future<void> cycleDeleteAll();
 
+  /* ---------------------------------------------------------- modules */
+
+  /// Every record [module] saved under [kind], the newest first — see
+  /// SqliteModuleRecordRepository.
+  Future<List<ModuleRecord>> moduleRecords(String module, String kind);
+
+  Future<ModuleRecord?> moduleRecord(String module, String kind, String id);
+
+  Future<ModuleRecord> modulePut(
+    String module,
+    String kind,
+    String id,
+    Map<String, Object?> body,
+  );
+
+  Future<void> moduleDelete(String module, String kind, String id);
+
+  /// Everything [module] saved, gone. Resolves to how many records went.
+  Future<int> moduleDeleteAll(String module);
+
   /* -------------------------------------------------- scheduled notes */
 
   /// Takes the live text note [noteId] out of the library until

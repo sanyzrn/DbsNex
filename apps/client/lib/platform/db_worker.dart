@@ -12,6 +12,8 @@ import 'package:nex_ai/cloud.dart';
 import 'local_embedder.dart';
 import 'nex_db.dart';
 
+part 'db_worker_modules.dart';
+
 /// Commands the worker isolate understands.
 ///
 /// package:sqlite3 is a synchronous FFI binding: every call blocks the calling
@@ -78,6 +80,11 @@ enum _DbCommand {
   cycleDays,
   cycleSaveDay,
   cycleDeleteAll,
+  moduleRecords,
+  moduleRecord,
+  modulePut,
+  moduleDelete,
+  moduleDeleteAll,
   scheduleNote,
   scheduledNotes,
   releaseDueNotes,
@@ -185,7 +192,7 @@ class _WorkerOpenFailure {
 ///
 /// The UI isolate never touches sqlite3 directly; it sends a command and awaits
 /// a reply, so no query can block a frame.
-class NexDbWorker implements NexDb {
+class NexDbWorker with _DbModuleRecords implements NexDb {
   /// The error and exit subscriptions are handed in already listening.
   ///
   /// A `ReceivePort` is a single-subscription stream, and [spawn] has to watch
@@ -371,6 +378,7 @@ class NexDbWorker implements NexDb {
     }
   }
 
+  @override
   Future<T> _send<T>(
     _DbCommand command, [
     Map<String, Object?> args = const {},
@@ -1013,6 +1021,7 @@ class NexDbWorker implements NexDb {
     );
     final scheduled = SqliteScheduledNoteRepository(db, repo);
     final cycle = SqliteCycleRepository(db);
+    final modules = SqliteModuleRecordRepository(db);
     final enrichment = EnrichmentService(
       repo: repo,
       adapter: boot.adapter,
@@ -1210,6 +1219,15 @@ class NexDbWorker implements NexDb {
           () => cycle.saveDay(arg('log')! as CycleDayLog),
         ),
         _DbCommand.cycleDeleteAll => _voided(cycle.deleteAll),
+        _DbCommand.moduleRecords ||
+        _DbCommand.moduleRecord ||
+        _DbCommand.modulePut ||
+        _DbCommand.moduleDelete ||
+        _DbCommand.moduleDeleteAll => _moduleCommand(
+          modules,
+          message.command,
+          arg,
+        ),
         _DbCommand.scheduleNote => scheduled.schedule(
           arg('noteId')! as String,
           DateTime.parse(arg('releaseAt')! as String),

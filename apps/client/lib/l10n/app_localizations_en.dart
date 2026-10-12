@@ -4060,7 +4060,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modulesMore =>
-      'More modules are on the way. Each one stays out of the app until you add it.';
+      'Each one stays out of the app until you add it, and leaves when you remove it.';
 
   @override
   String get modulesEmpty => 'Nothing added yet';
@@ -4079,6 +4079,96 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cycleInModules => 'In Tools → Modules';
+
+  @override
+  String moduleRemoveTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get moduleRemoveBody =>
+      'Its records can stay on this phone, ready if you add it again, or be deleted now.';
+
+  @override
+  String get moduleRemoveKeep => 'Remove, keep data';
+
+  @override
+  String get moduleRemoveDelete => 'Remove and delete';
+
+  @override
+  String get modulesComing => 'On the way';
+
+  @override
+  String get moduleStageSoon => 'Soon';
+
+  @override
+  String get moduleStagePlanned => 'Planned';
+
+  @override
+  String get modulesSuggest => 'Have an idea for a module? Tell us';
+
+  @override
+  String get planSmokeFreeTitle => 'Smoke-free';
+
+  @override
+  String get planSmokeFreeAbout =>
+      'Counts the days, the cigarettes not smoked and the money kept. A craving logged in one tap, what sets them off, and what your body gets back along the way.';
+
+  @override
+  String get planGoldTitle => 'Gold check';
+
+  @override
+  String get planGoldAbout =>
+      'Before you pay, what the piece should cost: weight, karat and the day\'s price, with the making charge, the seller\'s profit and the tax worked out the way the invoice should show them. Each piece\'s receipt kept for the day you sell.';
+
+  @override
+  String get planParkingTitle => 'Where I parked';
+
+  @override
+  String get planParkingAbout =>
+      'One tap saves where the car is: the spot on a map, the floor and pillar, a photo and a note. A reminder before the parking time runs out.';
+
+  @override
+  String get planTelegramTitle => 'Telegram bridge';
+
+  @override
+  String get planTelegramAbout =>
+      'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.';
+
+  @override
+  String get planWordsTitle => 'Word by word';
+
+  @override
+  String get planWordsAbout =>
+      'Save words and phrases from whatever you read, then review a few at a time, spaced so they stay. Your own notes become the lesson.';
+
+  @override
+  String get planMedicineTitle => 'Medicine cabinet';
+
+  @override
+  String get planMedicineAbout =>
+      'What you take and when, a gentle reminder for each dose, and the boxes in the cupboard with their expiry dates.';
+
+  @override
+  String get planWarrantyTitle => 'Warranties';
+
+  @override
+  String get planWarrantyAbout =>
+      'The receipt and the warranty card of everything you buy, in a photo, and a reminder before the warranty ends, while a call still costs nothing.';
+
+  @override
+  String get planLentTitle => 'Lent & borrowed';
+
+  @override
+  String get planLentAbout =>
+      'Who owes you and whom you owe, money or things, with a quiet reminder on the day it was due back.';
+
+  @override
+  String get planHabitsTitle => 'Habits';
+
+  @override
+  String get planHabitsAbout =>
+      'The small things you want to keep doing, ticked off in a tap, with streaks that forgive a missed day.';
 
   @override
   String get addLink => 'Add link';

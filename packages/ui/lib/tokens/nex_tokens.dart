@@ -1193,31 +1193,90 @@ IconData nexNoteTypeIcon(String? wireName) => switch (wireName) {
 /// colour per type says it before the glyph is read: the voice notes, the
 /// lists, the links pick themselves out of a day at a glance.
 ///
-/// Text, the type most of a timeline is, takes the palette's own accent, so
-/// a timeline still looks like the theme that was chosen; the rest have
-/// fixed hues — the same six the Tools and Settings shelves use — in a
-/// lighter tone on the dark theme.
+/// The colours are not fixed hues. Fixed ones were fine on the shipped blue
+/// and wrong on almost every other accent — a mustard link on a blue theme,
+/// a lilac voice note on a green one — because only text followed the
+/// accent and the other five ignored it. So the set is the accent's own fan:
+/// the accent opened out round the colour wheel, text at its centre, lists
+/// and links a step either side, voice and photos a step further, and the
+/// file a quiet grey with a trace of the same hue. On blue that is teal,
+/// indigo, violet and green; on amber it is red, olive, green and rose — a
+/// different family on every theme, and always the theme's own.
+///
+/// Each one keeps the accent's tone, a little less of its saturation — a
+/// fully saturated blue turned to violet is neon, where the blue was not —
+/// and is then walked, hue kept, until it reads at 3:1 on the square it sits
+/// on, so a turn of the wheel into yellow cannot leave a glyph too pale to
+/// see. Text is walked too: the accent on its own wash was 2.5:1 on the light
+/// theme, a mark the type colour exists to make easier to read. An accent
+/// with almost no colour in it gives a fan of greys — what that theme asked
+/// for — told apart by tone instead.
 Color nexNoteTypeTint(String? wireName, ColorScheme scheme) {
-  final dark = scheme.brightness == Brightness.dark;
-  Color hue(int light, int night) => Color(dark ? night : light);
-  return switch (wireName) {
-    'voice' => hue(0xFF6B4FC8, 0xFFB7A4F4),
-    'photo' => hue(0xFFC2456A, 0xFFF29AB3),
-    'file' => hue(0xFF55606E, 0xFFB4BDC8),
-    'checklist' => hue(0xFF1F8A7A, 0xFF6FD3C2),
-    'link' => hue(0xFFB7791F, 0xFFF2C46D),
-    _ => scheme.primary,
-  };
+  final accent = scheme.primary.withValues(alpha: 1);
+  final ground = scheme.surfaceContainerHighest.withValues(alpha: 1);
+  final key = (wireName, accent.toARGB32(), ground.toARGB32());
+  final cached = _typeTints[key];
+  if (cached != null) return cached;
+  if (_typeTints.length > 64) _typeTints.clear();
+  return _typeTints[key] = _typeTint(
+    wireName,
+    accent,
+    ground,
+    scheme.brightness == Brightness.dark,
+  );
 }
+
+final _typeTints = <(String?, int, int), Color>{};
+
+/// Where each type sits on the fan, in degrees from the accent, and how much
+/// of the accent's saturation it keeps. Text is null: the accent, untouched.
+const _typeFan = <String, (double, double)>{
+  'checklist': (-36, 1),
+  'link': (36, 1),
+  'voice': (72, 1),
+  'photo': (-72, 1),
+  'file': (0, 0.22),
+};
+
+Color _typeTint(String? wireName, Color accent, Color ground, bool dark) {
+  final place = _typeFan[wireName];
+  var tint = accent;
+  if (place != null) {
+    final (turn, keep) = place;
+    final hsl = HSLColor.fromColor(accent);
+    final grey = hsl.saturation < 0.12;
+    // A grey accent has no hue to turn; its fan is steps of tone instead.
+    final tone = grey
+        ? (hsl.lightness + turn / 72 * 0.12).clamp(0.0, 1.0)
+        : hsl.lightness;
+    final saturation = grey
+        ? hsl.saturation
+        : (hsl.saturation * keep * 0.85).clamp(keep < 1 ? 0.0 : 0.38, 0.72);
+    tint = HSLColor.fromAHSL(
+      1,
+      (hsl.hue + turn) % 360,
+      saturation,
+      tone,
+    ).toColor();
+  }
+  // Measured on the square it is drawn on — its own wash — which is a
+  // shade darker than the card on the light theme. Twice, since walking the
+  // glyph darker darkens the wash under it a little too.
+  for (var pass = 0; pass < 2; pass++) {
+    tint = nexReadableOn(tint, _wash(tint, ground, dark), ratio: 3.1);
+  }
+  return tint;
+}
+
+Color _wash(Color tint, Color ground, bool dark) =>
+    Color.alphaBlend(tint.withValues(alpha: dark ? 0.2 : 0.13), ground);
 
 /// The fill behind a type's glyph: a wash of its colour over the card's
 /// usual square.
-Color nexNoteTypeWash(String? wireName, ColorScheme scheme) => Color.alphaBlend(
-  nexNoteTypeTint(
-    wireName,
-    scheme,
-  ).withValues(alpha: scheme.brightness == Brightness.dark ? 0.2 : 0.13),
-  scheme.surfaceContainerHighest,
+Color nexNoteTypeWash(String? wireName, ColorScheme scheme) => _wash(
+  nexNoteTypeTint(wireName, scheme),
+  scheme.surfaceContainerHighest.withValues(alpha: 1),
+  scheme.brightness == Brightness.dark,
 );
 
 double nexContrastRatio(Color a, Color b) {
