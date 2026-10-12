@@ -47,21 +47,144 @@ class _GreetingLine extends StatelessWidget {
         // A Text, not a Row of one. The Row existed to place a mark at the
         // trailing end of the words; with the mark gone it was a layout
         // holding a single child and deciding nothing.
-        child: Text(
-          text,
-          style: style,
-          // The greeting is written in the language of the user's name, which
-          // is not necessarily the interface's, and a Persian sentence laid
-          // out left-to-right puts its full stop at the wrong end.
-          textDirection: nexDirectionOf(text),
-          // Two, because the generated half joined on the end of a greeting is
-          // regularly longer than one line and cutting it mid-phrase reads as
-          // a bug.
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
+        // The full width, so the start alignment below has a line to be at
+        // the start of; sized to its words, the switcher centred it.
+        child: SizedBox(
+          width: double.infinity,
+          child: Text(
+            text,
+            style: style,
+            // The greeting is written in the language of the user's name, which
+            // is not necessarily the interface's, and a Persian sentence laid
+            // out left-to-right puts its full stop at the wrong end.
+            textDirection: nexDirectionOf(text),
+            // Two, because the generated half joined on the end of a greeting is
+            // regularly longer than one line and cutting it mid-phrase reads as
+            // a bug.
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            // At the interface's start, under the date — not centred, and not
+            // at the start of the *name's* language: a Persian name in an
+            // English interface would otherwise put the line on the far side
+            // of the date it belongs to.
+            textAlign: Directionality.of(context) == TextDirection.rtl
+                ? TextAlign.right
+                : TextAlign.left,
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// Today, named: the weekday and the date in the reader's calendar, over the
+/// greeting.
+///
+/// The header was one centred line, and the one thing it could have said for
+/// free — what day it is, in the calendar the reader actually uses — it did
+/// not. The dot is the accent's, the same mark the onboarding's miniature
+/// timeline puts beside "Today".
+class _TodayLine extends StatelessWidget {
+  const _TodayLine({required this.solar});
+
+  final bool solar;
+
+  static const _faDays = [
+    'دوشنبه',
+    'سه‌شنبه',
+    'چهارشنبه',
+    'پنج‌شنبه',
+    'جمعه',
+    'شنبه',
+    'یکشنبه',
+  ];
+  static const _enDays = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+
+  static const _faGregorianMonths = [
+    'ژانویه',
+    'فوریه',
+    'مارس',
+    'آوریل',
+    'مه',
+    'ژوئن',
+    'ژوئیه',
+    'اوت',
+    'سپتامبر',
+    'اکتبر',
+    'نوامبر',
+    'دسامبر',
+  ];
+  static const _enGregorianMonths = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  /// "20 Mehr 1405" or "12 October 2026" — the month in words, which reads at
+  /// a glance where "1405/07/20" has to be worked out.
+  String _date(DateTime day, {required bool persian}) {
+    if (solar) {
+      final d = nexPersianDate(day);
+      final month = persian
+          ? nexPersianMonthNames[d.month - 1]
+          : nexPersianMonthNamesLatin[d.month - 1];
+      return nexDigits('${d.day} $month ${d.year}', persian: persian);
+    }
+    final month = persian
+        ? _faGregorianMonths[day.month - 1]
+        : _enGregorianMonths[day.month - 1];
+    return nexDigits('${day.day} $month ${day.year}', persian: persian);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final persian = Localizations.localeOf(context).languageCode == 'fa';
+    final now = DateTime.now();
+    final text = persian
+        ? '${_faDays[now.weekday - 1]}، ${_date(now, persian: true)}'
+        : '${_enDays[now.weekday - 1]}, ${_date(now, persian: false)}';
+    return Row(
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(
+            color: scheme.primary,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: NexSpacing.sm),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onSurfaceVariant,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

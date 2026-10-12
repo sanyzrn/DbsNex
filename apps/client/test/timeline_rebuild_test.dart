@@ -1230,7 +1230,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await services.captureText('a note');
+    // A tag, so there is a row: with none, the filter button sits beside the
+    // search field and the row is not drawn.
+    final note = (await services.captureText('a note'))!;
+    await services.addTag(noteId: note.id, name: 'Work');
     await services.refreshTimeline();
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
@@ -1239,11 +1242,32 @@ void main() {
 
     // The filter row used to be a sibling *above* the 760px column, so on a
     // wide window the pills started at the window edge and the cards did not.
+    // It starts where the cards start.
     final row = tester.getRect(find.byType(TagFilterRow));
     final card = tester.getRect(find.byType(NoteCard));
     expect(row.left, greaterThan(0));
     expect(row.width, lessThanOrEqualTo(760));
-    expect(row.center.dx, closeTo(card.center.dx, 1));
+    expect(row.left, closeTo(card.left, 1));
+  });
+
+  testWidgets('with no tags the filter button sits beside the search field', (
+    tester,
+  ) async {
+    await services.captureText('a note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // A row holding only "All" narrowed nothing and cost a band of the
+    // screen. The filters are still one tap away, beside the field.
+    expect(find.byType(TagFilterRow), findsNothing);
+    final filters = find.bySemanticsLabel('Filters');
+    expect(filters, findsOneWidget);
+    await tester.tap(filters);
+    await tester.pumpAndSettle();
+    expect(find.text('a note'), findsWidgets);
   });
 
   testWidgets('the AI day summary never appears without a usable provider', (
@@ -1455,7 +1479,10 @@ void main() {
 
   group('the home layout control', () {
     testWidgets('turns the four things above the notes off', (tester) async {
-      await services.captureText('a note');
+      // Tagged, so the row has something to show — see the filter row's
+      // tests for the untagged case.
+      final note = (await services.captureText('a note'))!;
+      await services.addTag(noteId: note.id, name: 'Work');
       await tester.pumpWidget(
         NexApp(services: services, preferences: preferences),
       );

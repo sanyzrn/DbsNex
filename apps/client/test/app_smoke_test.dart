@@ -968,13 +968,13 @@ void main() {
       const Color(0xFFF5EEDC),
     );
     expect(app.theme!.scaffoldBackgroundColor.a, 0);
+    // The mode is chosen in place now, not behind a row that opened a
+    // sheet.
     await tester.scrollUntilVisible(
-      find.widgetWithText(ListTile, 'Theme'),
-      200,
+      find.text('Dark'),
+      -200,
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.widgetWithText(ListTile, 'Theme'));
-    await tester.pumpAndSettle();
     expect(find.byType(NexChoiceCards<ThemeMode>), findsOneWidget);
     await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();
@@ -1759,12 +1759,14 @@ void main() {
         isFalse,
         reason: '"$text" carries a pictograph',
       );
-      // And the line is the whole of the header's text: the mark was its own
-      // Text next to this one, so a second one here is it coming back.
-      expect(
-        find.descendant(of: header, matching: find.byType(Text)),
-        findsOneWidget,
-      );
+      // And the line and today's date above it are the whole of the
+      // header's text: the mark was its own Text next to the line, so a
+      // third one here is it coming back.
+      final texts = find.descendant(of: header, matching: find.byType(Text));
+      expect(texts, findsNWidgets(2));
+      for (final widget in tester.widgetList<Text>(texts)) {
+        expect(widget.data!.runes.any(_isEmoji), isFalse);
+      }
     }
   });
 

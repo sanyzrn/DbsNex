@@ -393,6 +393,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get securityLockManualHint => 'نکس باز می‌ماند تا وقتی قفل را بزنی';
 
   @override
+  String get securityStateOn => 'نکس پیش از باز شدن می‌پرسد';
+
+  @override
+  String get securityStateOff => 'نکس بی‌پرسش باز می‌شود';
+
+  @override
   String securityLockSeconds(int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);

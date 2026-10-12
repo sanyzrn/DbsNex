@@ -728,6 +728,18 @@ abstract class AppLocalizations {
   /// **'Nex stays open until you tap the lock'**
   String get securityLockManualHint;
 
+  /// Heading on the Security page when the app lock is on
+  ///
+  /// In en, this message translates to:
+  /// **'Nex asks before it opens'**
+  String get securityStateOn;
+
+  /// Heading on the Security page when the app lock is off
+  ///
+  /// In en, this message translates to:
+  /// **'Nex opens without asking'**
+  String get securityStateOff;
+
   /// A lock delay under a minute
   ///
   /// In en, this message translates to:

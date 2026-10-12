@@ -207,6 +207,10 @@
   "@securityLockManualHint": {
       "description": "Explains the manual lock timing"
   },
+  "securityStateOn": "Nex asks before it opens",
+  "@securityStateOn": {"description": "Heading on the Security page when the app lock is on"},
+  "securityStateOff": "Nex opens without asking",
+  "@securityStateOff": {"description": "Heading on the Security page when the app lock is off"},
   "securityLockSeconds": "{count} seconds",
   "@securityLockSeconds": {
       "description": "A lock delay under a minute",
