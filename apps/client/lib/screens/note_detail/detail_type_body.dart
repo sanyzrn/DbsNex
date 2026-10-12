@@ -25,22 +25,15 @@ extension _DetailTypeBody on _NoteDetailSheetState {
         onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
       )
     else if (note.type == NoteType.voice) ...[
-      if (_steady == null)
-        Text(
-          l10n.voiceDuration(((note.durationMs ?? 0) / 1000).ceil()),
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      if (_steady != null) ...[
-        const SizedBox(height: NexSpacing.sm),
-        _VoicePlayerControls(
-          path: note.mediaUri,
-          steady: _steady!,
-          position: _position,
-          duration: _duration > Duration.zero
-              ? _duration
-              : Duration(milliseconds: note.durationMs ?? 0),
-        ),
-      ],
+      const SizedBox(height: NexSpacing.sm),
+      // There with the rest of the note, not a moment after it: the player
+      // fills in while the card already stands.
+      NexVoicePlayer(
+        path: note.mediaUri,
+        steady: _steady,
+        length: Duration(milliseconds: note.durationMs ?? 0),
+      ),
+      const SizedBox(height: NexSpacing.xs),
       if (note.transcriptText == null)
         Text(
           l10n.voiceSearchHint,
@@ -149,8 +142,6 @@ extension _DetailTypeBody on _NoteDetailSheetState {
           path: note.mediaUri!,
           kind: NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType),
           player: _steady,
-          position: _position,
-          duration: _duration,
           onOpen: _openExternally,
         ),
     ],

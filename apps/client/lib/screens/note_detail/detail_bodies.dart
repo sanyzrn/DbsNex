@@ -242,8 +242,6 @@ class _FileBody extends StatelessWidget {
     required this.path,
     required this.kind,
     required this.player,
-    required this.position,
-    required this.duration,
     required this.onOpen,
   });
 
@@ -260,8 +258,6 @@ class _FileBody extends StatelessWidget {
   /// Owned by the sheet rather than created here: the player outlives any one
   /// rebuild, and a second one on the same note would play the file twice.
   final NexSteadyPosition? player;
-  final Duration position;
-  final Duration duration;
 
   @override
   Widget build(BuildContext context) {
@@ -280,14 +276,10 @@ class _FileBody extends StatelessWidget {
     if (kind == NexFileKind.video) {
       return _VideoBody(path: path, onOpen: onOpen);
     }
-    if (kind == NexFileKind.audio && player != null) {
+    if (kind == NexFileKind.audio) {
       return Padding(
         padding: const EdgeInsets.only(top: NexSpacing.sm),
-        child: _VoicePlayerControls(
-          steady: player!,
-          position: position,
-          duration: duration,
-        ),
+        child: NexVoicePlayer(path: path, steady: player),
       );
     }
     return const SizedBox.shrink();

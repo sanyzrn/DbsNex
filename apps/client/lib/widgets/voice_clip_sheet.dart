@@ -8,6 +8,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import 'nex_dialog.dart';
 import 'steady_position.dart';
+import 'voice_player.dart';
 
 /// A voice clip attached to a note, played where it is: a sheet with one
 /// large play button, how far along it is, its caption and, once it has been
@@ -35,6 +36,7 @@ class _VoiceClipSheetState extends State<VoiceClipSheet> {
   StreamSubscription<PlayerState>? _ended;
   Duration _total = Duration.zero;
   bool _failed = false;
+  bool _ready = false;
 
   @override
   void initState() {
@@ -53,9 +55,10 @@ class _VoiceClipSheetState extends State<VoiceClipSheet> {
     try {
       final length = await _player.setFilePath(widget.attachment.mediaUri);
       if (!mounted) return;
-      if (length != null && length > Duration.zero) {
-        setState(() => _total = length);
-      }
+      setState(() {
+        _ready = true;
+        if (length != null && length > Duration.zero) _total = length;
+      });
       unawaited(_player.play());
     } catch (_) {
       if (mounted) setState(() => _failed = true);
@@ -69,20 +72,11 @@ class _VoiceClipSheetState extends State<VoiceClipSheet> {
     super.dispose();
   }
 
-  String _clock(Duration value, bool persian) {
-    final seconds = value.inSeconds;
-    return nexDigits(
-      '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
-      persian: persian,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final persian = l10n.localeName == 'fa';
     final caption = widget.attachment.caption?.trim() ?? '';
     final said = widget.attachment.transcriptText?.trim() ?? '';
     return NexSheetBody(
@@ -106,78 +100,10 @@ class _VoiceClipSheetState extends State<VoiceClipSheet> {
             if (_failed)
               Text(l10n.mediaUnavailable, style: theme.textTheme.bodyMedium)
             else
-              StreamBuilder<PlayerState>(
-                stream: _player.playerStateStream,
-                builder: (context, state) {
-                  final playing =
-                      (state.data?.playing ?? false) &&
-                      state.data?.processingState != ProcessingState.completed;
-                  return Row(
-                    children: [
-                      IconButton.filled(
-                        key: const ValueKey('voice-clip-play'),
-                        iconSize: 32,
-                        tooltip: playing
-                            ? l10n.vaultAttachPause
-                            : l10n.vaultAttachPlay,
-                        onPressed: () async {
-                          if (playing) {
-                            await _player.pause();
-                          } else {
-                            await _steady.play();
-                          }
-                        },
-                        icon: Icon(playing ? Icons.pause : Icons.play_arrow),
-                      ),
-                      const SizedBox(width: NexSpacing.md),
-                      Expanded(
-                        child: StreamBuilder<Duration>(
-                          stream: _player.positionStream,
-                          builder: (context, position) {
-                            final at = _steady.of(
-                              position.data ?? Duration.zero,
-                            );
-                            final whole = _total.inMilliseconds;
-                            final fraction = whole <= 0
-                                ? 0.0
-                                : (at.inMilliseconds / whole).clamp(0.0, 1.0);
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(
-                                    NexRadius.pill,
-                                  ),
-                                  child: LinearProgressIndicator(
-                                    value: fraction,
-                                    minHeight: 6,
-                                    backgroundColor: scheme.primary.withValues(
-                                      alpha: 0.16,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: NexSpacing.xs),
-                                Row(
-                                  children: [
-                                    Text(
-                                      _clock(at, persian),
-                                      style: theme.textTheme.labelSmall,
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      _clock(_total, persian),
-                                      style: theme.textTheme.labelSmall,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  );
-                },
+              NexVoicePlayer(
+                path: widget.attachment.mediaUri,
+                steady: _ready ? _steady : null,
+                length: _total,
               ),
             if (said.isNotEmpty) ...[
               const SizedBox(height: NexSpacing.md),

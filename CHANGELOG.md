@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.93
+
+- **A new player for recordings.** Voice notes, audio files and attached voice clips play in one new player: a round button that turns play into pause and glows while it plays, the recording's own shape as the bar — touch or drag it to move — and a speed button for 1×, 1.5× and 2×. It is there the moment the note opens, instead of appearing a second later.
+- **Voice notes are recorded the way voice clips are.** On some phones a voice note recorded with **+** still played nothing, while a clip attached on the same phone played. A voice note is now recorded exactly like that clip.
+- **Search, as it should be.** With nothing typed, a touch outside the search box leaves search. With words typed and the keyboard up, the first touch anywhere — a result included — only closes the keyboard; then a result opens with a tap, and the keyboard no longer comes back when you close it.
+- **Reminders and attachments under the words.** On a card they now sit on a small line beneath the note instead of in a column beside it, so the note's words get the card's whole width.
+- The filter and clear buttons sit in the middle of the search box.
+
 ## v1.99.92
 
 - **Voice notes play on every phone.** On some phones a voice note recorded with **+** played nothing, while a clip attached on the same phone played: the recording was labelled with the sample rate and channels that were asked for, not the ones the phone used. Each recording now carries the phone's own, and voice notes recorded before play from a corrected copy — the original stays as it is.

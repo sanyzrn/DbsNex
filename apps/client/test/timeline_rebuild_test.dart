@@ -1159,6 +1159,49 @@ void main() {
     expect(find.byType(NoteDetailSheet), findsOneWidget);
   });
 
+  testWidgets('typing, a touch on a result only closes the keyboard; the '
+      'next opens it, and the keyboard stays down after', (tester) async {
+    await services.captureText('a rare word: platypus');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(TextField));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'platypus');
+    await tester.pumpAndSettle(const Duration(milliseconds: 200));
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.focusNode!.hasFocus, isTrue);
+
+    // The keyboard is up: the touch only puts it away.
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('a rare word: platypus'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteDetailSheet), findsNothing);
+    expect(field.focusNode!.hasFocus, isFalse);
+    expect(
+      find.text('a rare word: platypus'),
+      findsOneWidget,
+      reason: 'still searching',
+    );
+
+    // The keyboard is down: the result opens.
+    tester.view.viewInsets = FakeViewPadding.zero;
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('a rare word: platypus'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteDetailSheet), findsOneWidget);
+
+    // Closed again, the field does not take the keyboard back.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(field.focusNode!.hasFocus, isFalse);
+  });
+
   testWidgets('the empty state clears the capture button on a desktop window', (
     tester,
   ) async {
