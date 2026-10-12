@@ -1,6 +1,6 @@
 # Several attachments on one note: proposal
 
-Status: **steps 1 to 3, and most of 4, shipped in 1.99.70.** Written at the
+Status: **done: steps 1 to 4 in 1.99.70, the rest in 1.99.80.** Written at the
 owner's request in 1.93.2 and approved in 1.93.3 with two changes from the
 first draft:
 
@@ -22,16 +22,26 @@ What 1.99.70 has:
 - the card's paperclip mark with the count, spoken by screen readers;
 - **Share** sends the note's own file and every attachment.
 
-Still to come:
+1.99.80 finished it:
 
-- **Multi-file share-in.** Several files sent into Nex at once still arrive
-  as separate notes, until the Android side reads `SEND_MULTIPLE` into one
-  note.
-- **Per-attachment AI:** text in an attached photo and transcripts of
-  attached voice clips. The columns are there and searched; nothing fills
-  them yet.
-- **Reordering by drag.** The repository has `reorder`; the strip does not
-  offer it yet.
+- **Multi-file share-in.** `SEND_MULTIPLE` is registered on the share
+  window. Each file still travels alone through the share inbox, with its own
+  acknowledgement; the files are tied by the first one's request id. The
+  first becomes the note and the rest are attached to it. A repeated delivery
+  is attached once (matched by hash), and if the first never became a note
+  (refused as too large) the others become notes of their own.
+- **Reordering.** Hold a tile and drag it. A hold released where it started
+  opens the tile's menu, which also has **Move earlier** and **Move later**
+  for a screen reader.
+- **Text in attached photos.** When reading text in photos is on, a photo
+  attached to a note is read in the background, and older ones are read by
+  the enrichment backfill (`AttachmentTextReader`). The words go into the
+  attachment's `ocr_text`, which the note's search row carries. Reading does
+  not count as editing the note. An empty result is kept, so a photo with no
+  words is not read again.
+
+Still open, and small: transcripts of voice clips as attachments, which
+waits for voice clips to be attachable at all.
 
 ## What is asked
 

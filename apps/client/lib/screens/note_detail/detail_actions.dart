@@ -338,67 +338,6 @@ extension _DetailActions on _NoteDetailSheetState {
     }
   }
 
-  Future<void> _showDetails() async {
-    final note = _note;
-    if (note == null) return;
-    final l10n = AppLocalizations.of(context);
-    final uri = note.mediaUri;
-    final file = uri == null ? null : File(uri);
-    await nexShowDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.details),
-        content: NexDialogBody(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _DetailRow(label: l10n.noteType(note.type.wireName), value: ''),
-              _DetailRow(
-                label: l10n.created,
-                value: _formatTimestamp(note.createdAt),
-              ),
-              _DetailRow(
-                label: l10n.updated,
-                value: _formatTimestamp(note.updatedAt),
-              ),
-              if (note.tags.isNotEmpty)
-                _DetailRow(
-                  label: l10n.tags,
-                  value: note.tags
-                      .map((t) => t.name)
-                      .join(l10n.localeName == 'fa' ? '، ' : ', '),
-                ),
-              if (file != null && file.existsSync())
-                _DetailRow(
-                  label: l10n.size,
-                  value: nexDigits(
-                    nexFormatBytes(file.lengthSync()),
-                    persian:
-                        Localizations.localeOf(context).languageCode == 'fa',
-                  ),
-                ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatTimestamp(DateTime value) => nexDisplayDate(
-    value,
-    solar: widget.services.solarCalendar,
-    persian: Localizations.localeOf(context).languageCode == 'fa',
-    time: true,
-    seconds: true,
-  );
-
   /// Tagging a note.
   ///
   /// The dialog used to offer five hardcoded starter names and a colour grid,

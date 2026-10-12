@@ -193,6 +193,77 @@ void main() {
     },
   );
 
+  test(
+    'several files shared at once become one note with the rest attached',
+    () async {
+      Future<Map<String, Object?>> shared(
+        String name,
+        int index, {
+        String type = 'shared_photo',
+        String mime = 'image/jpeg',
+      }) async {
+        final file = File(p.join(tmp.path, name));
+        await file.writeAsBytes(
+          List<int>.generate(64, (i) => (i + index) % 256),
+        );
+        return {
+          'type': type,
+          'uri': Uri.file(file.path).toString(),
+          'filename': name,
+          'mimeType': mime,
+          'size': '64',
+          'requestId': 'group-$index',
+          'groupFirst': 'group-0',
+        };
+      }
+
+      final bridge = OsCaptureBridge(services);
+      addTearDown(bridge.dispose);
+      await bridge.start();
+
+      final second = await shared('b.jpg', 1);
+      await bridge.handle(await shared('a.jpg', 0));
+      await bridge.handle(second);
+      await bridge.handle(
+        await shared('c.pdf', 2, type: 'shared_file', mime: 'application/pdf'),
+      );
+      // Delivered again before it was acknowledged: attached once.
+      await bridge.handle(second);
+
+      final notes = await db.timeline(limit: 50);
+      expect(notes, hasLength(1));
+      final attached = await services.attachmentsFor(notes.single.id);
+      expect(attached.map((a) => a.name), ['b.jpg', 'c.pdf']);
+      expect(attached.map((a) => a.kind), [
+        AttachmentKind.photo,
+        AttachmentKind.file,
+      ]);
+    },
+  );
+
+  test(
+    'when the first of a group never became a note, the rest still do',
+    () async {
+      final bridge = OsCaptureBridge(services);
+      addTearDown(bridge.dispose);
+      await bridge.start();
+      final file = File(p.join(tmp.path, 'lonely.jpg'));
+      await file.writeAsBytes(List<int>.filled(64, 3));
+      await bridge.handle({
+        'type': 'shared_photo',
+        'uri': Uri.file(file.path).toString(),
+        'filename': 'lonely.jpg',
+        'mimeType': 'image/jpeg',
+        'size': '64',
+        'requestId': 'refused-1',
+        'groupFirst': 'refused-0',
+      });
+      final notes = await db.timeline(limit: 50);
+      expect(notes, hasLength(1));
+      expect(notes.single.type, NoteType.photo);
+    },
+  );
+
   test('a live share is captured once, not once per restart', () async {
     final bridge = OsCaptureBridge(services);
     addTearDown(bridge.dispose);

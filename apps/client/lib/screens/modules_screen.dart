@@ -148,10 +148,11 @@ class _ModulesScreenState extends State<ModulesScreen>
   );
 
   /// An idea for a module goes the way any other word to the developer
-  /// does: the feedback sheet.
+  /// does, through the feedback service, in a sheet that only asks for the
+  /// idea.
   Future<void> _suggest() async {
     final service = FeedbackService(preferences: widget.preferences);
-    await FeedbackSheet.show(context, service: service);
+    await FeedbackSheet.show(context, service: service, idea: true);
     service.close();
   }
 
@@ -601,12 +602,7 @@ class _SuggestRow extends StatelessWidget {
                   style: theme.textTheme.titleSmall,
                 ),
               ),
-              Icon(
-                Directionality.of(context) == TextDirection.rtl
-                    ? Icons.chevron_left
-                    : Icons.chevron_right,
-                color: scheme.onSurfaceVariant,
-              ),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
             ],
           ),
         ),

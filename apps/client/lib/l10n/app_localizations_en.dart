@@ -1112,6 +1112,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attachRemove => 'Remove from this note';
 
   @override
+  String get attachMoveEarlier => 'Move earlier';
+
+  @override
+  String get attachMoveLater => 'Move later';
+
+  @override
   String get attachRemoved => 'Attachment removed';
 
   @override
@@ -1189,6 +1195,61 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get details => 'Details';
+
+  @override
+  String detailsAgo(String span) {
+    return '$span ago';
+  }
+
+  @override
+  String get detailsNotEdited => 'Not changed since';
+
+  @override
+  String get detailsEdited => 'Last changed';
+
+  @override
+  String detailsWords(String words, String chars) {
+    return '$words words · $chars characters';
+  }
+
+  @override
+  String detailsReading(String minutes) {
+    return 'About $minutes min to read';
+  }
+
+  @override
+  String get detailsLength => 'Length';
+
+  @override
+  String detailsChecklist(String done, String total) {
+    return '$done of $total ticked';
+  }
+
+  @override
+  String get detailsProgress => 'Progress';
+
+  @override
+  String get detailsDuration => 'Duration';
+
+  @override
+  String get detailsFile => 'File';
+
+  @override
+  String get detailsAddress => 'Address';
+
+  @override
+  String get detailsOnPhone => 'On this phone';
+
+  @override
+  String detailsWithAttached(String size, String count) {
+    return '$size, with $count attached';
+  }
+
+  @override
+  String get detailsPinned => 'Pinned';
+
+  @override
+  String get detailsReminder => 'Reminder';
 
   @override
   String get created => 'Created';
@@ -4172,6 +4233,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modulesSuggest => 'Have an idea for a module? Tell us';
+
+  @override
+  String get moduleIdeaTitle => 'An idea for a module';
+
+  @override
+  String get moduleIdeaLead =>
+      'What would you add to Nex? A sentence or two is enough: what it is for, and who it would help.';
+
+  @override
+  String get moduleIdeaHint =>
+      'For example: a shelf for warranty cards, with a reminder a month before each one runs out';
+
+  @override
+  String get moduleIdeaSend => 'Send the idea';
 
   @override
   String get planSmokeFreeTitle => 'Smoke-free';

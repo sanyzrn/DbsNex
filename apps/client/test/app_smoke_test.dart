@@ -1411,6 +1411,30 @@ void main() {
     expect(find.text('Delete'), findsOneWidget);
   });
 
+  testWidgets('Details says what the sheet does not, and closes with Close', (
+    tester,
+  ) async {
+    await services.captureText('a short note about the boiler');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('a short note about the boiler'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('More actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Details'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('6 words · 29 characters'), findsOneWidget);
+    expect(find.text('Not changed since'), findsOneWidget);
+    expect(find.text('Cancel'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('details-close')));
+    await tester.pumpAndSettle();
+    expect(find.text('Not changed since'), findsNothing);
+  });
+
   testWidgets('what the AI read is behind a tap, not on top of the note', (
     tester,
   ) async {

@@ -175,6 +175,10 @@ abstract interface class NexDb {
 
   Future<void> attachmentSetOcr(String id, String? text);
 
+  /// Reads the words in an attached photo, when reading text in photos is
+  /// on. Whether it learned anything.
+  Future<bool> attachmentReadText(String id);
+
   /* ---------------------------------------------------------- modules */
 
   /// Every record [module] saved under [kind], the newest first — see

@@ -307,6 +307,31 @@ class EnrichmentService {
     _repo.setOcrText(note.id, result.text);
   }
 
+  /// Reads the words in a photo that is not a note of its own — one
+  /// attached to a note (`docs/14-attachments.md`).
+  ///
+  /// Null when reading text in photos is off, or nothing on this adapter
+  /// reads images: neither is an answer worth keeping. Otherwise the words,
+  /// or an empty string for a photo with none. What the adapter throws is
+  /// thrown, so the caller can stop instead of spending a dead key on the
+  /// rest of the queue.
+  Future<String?> readImage({
+    required String mediaUri,
+    String? mediaHash,
+  }) async {
+    if (!_capabilities.ocr) return null;
+    final file = File(mediaUri);
+    final call = _adapter.ocr(
+      ImageRef(
+        mediaUri: mediaUri,
+        mediaHash: mediaHash,
+        bytes: file.existsSync() ? file.readAsBytesSync() : null,
+      ),
+    );
+    if (call == null) return null;
+    return (await call).text.trim();
+  }
+
   Future<void> _summarize(Note note) async {
     final call = _adapter.summarize(note);
     if (call == null) return;

@@ -35,6 +35,7 @@ extension _DetailAttachments on _NoteDetailSheetState {
         onAdd: () => unawaited(_addAttachment(note)),
         onOpen: (attachment) => unawaited(_openAttachment(attachment)),
         onHold: (attachment) => unawaited(_attachmentMenu(attachment)),
+        onReorder: (order) => unawaited(_reorderAttachments(note, order)),
       ),
     ];
   }
@@ -50,6 +51,16 @@ extension _DetailAttachments on _NoteDetailSheetState {
       tooltip: l10n.attachAdd,
       onPressed: () => unawaited(_addAttachment(note)),
     );
+  }
+
+  Future<void> _reorderAttachments(
+    Note note,
+    List<NoteAttachment> order,
+  ) async {
+    await widget.services.reorderAttachments(note.id, [
+      for (final attachment in order) attachment.id,
+    ]);
+    await _reloadAttachments();
   }
 
   Future<void> _reloadAttachments() async {
@@ -175,6 +186,7 @@ extension _DetailAttachments on _NoteDetailSheetState {
 
   Future<void> _attachmentMenu(NoteAttachment attachment) async {
     final l10n = AppLocalizations.of(context);
+    final index = _attachments.indexWhere((a) => a.id == attachment.id);
     final choice = await nexShowSheet<String>(
       context: context,
       builder: (sheet) => NexSheetBody(
@@ -194,6 +206,22 @@ extension _DetailAttachments on _NoteDetailSheetState {
               ),
               onTap: () => Navigator.pop(sheet, 'caption'),
             ),
+            // Dragging is the quick way; these are the way a screen reader
+            // has, and the way for anyone who did not know a tile moves.
+            if (index > 0)
+              ListTile(
+                key: const ValueKey('attachment-earlier'),
+                leading: const Icon(Icons.arrow_back),
+                title: Text(l10n.attachMoveEarlier),
+                onTap: () => Navigator.pop(sheet, 'earlier'),
+              ),
+            if (index >= 0 && index < _attachments.length - 1)
+              ListTile(
+                key: const ValueKey('attachment-later'),
+                leading: const Icon(Icons.arrow_forward),
+                title: Text(l10n.attachMoveLater),
+                onTap: () => Navigator.pop(sheet, 'later'),
+              ),
             ListTile(
               key: const ValueKey('attachment-remove'),
               leading: Icon(
@@ -213,6 +241,12 @@ extension _DetailAttachments on _NoteDetailSheetState {
     );
     if (!mounted) return;
     switch (choice) {
+      case 'earlier' || 'later':
+        final note = _note;
+        if (note == null || index < 0) return;
+        final order = [..._attachments]..removeAt(index);
+        order.insert(choice == 'earlier' ? index - 1 : index + 1, attachment);
+        await _reorderAttachments(note, order);
       case 'open':
         await _openAttachment(attachment);
       case 'caption':
@@ -247,13 +281,18 @@ extension _DetailAttachments on _NoteDetailSheetState {
 }
 
 /// The row of attachment tiles, and the tile that adds one.
-class _AttachmentStrip extends StatelessWidget {
+///
+/// A hold picks a tile up. Moved, it goes where it is dropped; let go where
+/// it was, and the hold was a question, so its menu opens — the same hold
+/// that always opened it.
+class _AttachmentStrip extends StatefulWidget {
   const _AttachmentStrip({
     required this.attachments,
     required this.canAdd,
     required this.onAdd,
     required this.onOpen,
     required this.onHold,
+    required this.onReorder,
   });
 
   final List<NoteAttachment> attachments;
@@ -262,57 +301,114 @@ class _AttachmentStrip extends StatelessWidget {
   final ValueChanged<NoteAttachment> onOpen;
   final ValueChanged<NoteAttachment> onHold;
 
+  /// The attachments in their new order.
+  final ValueChanged<List<NoteAttachment>> onReorder;
+
   static const _side = 88.0;
+
+  @override
+  State<_AttachmentStrip> createState() => _AttachmentStripState();
+}
+
+class _AttachmentStripState extends State<_AttachmentStrip> {
+  /// Shown while a move is saved, so the tile stays where it was dropped
+  /// instead of jumping back until the reload arrives.
+  List<NoteAttachment>? _moved;
+
+  /// Where the held tile was picked up from.
+  int? _pickedFrom;
+
+  @override
+  void didUpdateWidget(_AttachmentStrip old) {
+    super.didUpdateWidget(old);
+    if (old.attachments != widget.attachments) _moved = null;
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final attachments = _moved ?? widget.attachments;
+    const side = _AttachmentStrip._side;
     return SizedBox(
-      height: _side,
-      child: ListView(
+      height: side,
+      child: ReorderableListView.builder(
         scrollDirection: Axis.horizontal,
-        children: [
-          for (final attachment in attachments)
-            Padding(
+        buildDefaultDragHandles: false,
+        itemCount: attachments.length,
+        onReorderStart: (index) => _pickedFrom = index,
+        onReorder: (from, to) {
+          final next = [...attachments];
+          final moving = next.removeAt(from);
+          next.insert(to > from ? to - 1 : to, moving);
+          setState(() => _moved = next);
+          widget.onReorder(next);
+        },
+        // Told the slot it was dropped in, before the move itself: the slot
+        // it was picked up from means it never went anywhere.
+        onReorderEnd: (slot) {
+          final from = _pickedFrom;
+          _pickedFrom = null;
+          if (from == null || slot != from) return;
+          widget.onHold(attachments[from]);
+        },
+        proxyDecorator: (child, index, animation) => AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) => Transform.scale(
+            scale: 1 + 0.06 * NexMotion.curve.transform(animation.value),
+            child: Material(
+              color: Colors.transparent,
+              elevation: 6 * animation.value,
+              borderRadius: BorderRadius.circular(NexRadius.md),
+              child: child,
+            ),
+          ),
+          child: child,
+        ),
+        itemBuilder: (context, index) {
+          final attachment = attachments[index];
+          return ReorderableDelayedDragStartListener(
+            key: ValueKey('attachment-${attachment.id}'),
+            index: index,
+            child: Padding(
               padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
               child: _AttachmentTile(
-                key: ValueKey('attachment-${attachment.id}'),
                 attachment: attachment,
-                side: _side,
-                onTap: () => onOpen(attachment),
-                onLongPress: () => onHold(attachment),
+                side: side,
+                onTap: () => widget.onOpen(attachment),
               ),
             ),
-          if (canAdd)
-            Tooltip(
-              message: l10n.attachAdd,
-              child: Material(
-                color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(NexRadius.md),
-                  side: BorderSide(color: scheme.outlineVariant),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  key: const ValueKey('attachment-add'),
-                  onTap: onAdd,
-                  child: SizedBox(
-                    width: _side,
-                    height: _side,
-                    child: Semantics(
-                      button: true,
-                      label: l10n.attachAdd,
-                      child: Icon(
-                        Icons.add_photo_alternate_outlined,
-                        color: scheme.onSurfaceVariant,
+          );
+        },
+        footer: widget.canAdd
+            ? Tooltip(
+                message: l10n.attachAdd,
+                child: Material(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(NexRadius.md),
+                    side: BorderSide(color: scheme.outlineVariant),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    key: const ValueKey('attachment-add'),
+                    onTap: widget.onAdd,
+                    child: SizedBox(
+                      width: side,
+                      height: side,
+                      child: Semantics(
+                        button: true,
+                        label: l10n.attachAdd,
+                        child: Icon(
+                          Icons.add_photo_alternate_outlined,
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-        ],
+              )
+            : null,
       ),
     );
   }
@@ -320,17 +416,14 @@ class _AttachmentStrip extends StatelessWidget {
 
 class _AttachmentTile extends StatelessWidget {
   const _AttachmentTile({
-    super.key,
     required this.attachment,
     required this.side,
     required this.onTap,
-    required this.onLongPress,
   });
 
   final NoteAttachment attachment;
   final double side;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -354,7 +447,6 @@ class _AttachmentTile extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          onLongPress: onLongPress,
           child: SizedBox(
             width: side,
             height: side,

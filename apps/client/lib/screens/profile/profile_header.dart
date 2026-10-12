@@ -6,6 +6,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'profile_constellation.dart';
 
 /// How old someone born on [birthday] is on [today], and how many days until
 /// they turn a year older.
@@ -66,10 +67,8 @@ String profileBirthdayCountdown(AppLocalizations l10n, int days) =>
 /// The top of the profile: the person as the app sees them.
 ///
 /// The name and bio are drawn from what is being typed below, so the page
-/// shows the result while it is being written. Behind them sits a small
-/// constellation — Nex's "one mind, a thousand connections" — laid out from
-/// the name itself: every name draws its own, and it rearranges as the name
-/// is typed.
+/// shows the result while it is being written. Behind them sits a living
+/// constellation drawn from the name — see [ProfileConstellation].
 class ProfileHeader extends StatelessWidget {
   const ProfileHeader({
     super.key,
@@ -111,13 +110,7 @@ class ProfileHeader extends StatelessWidget {
           children: [
             Positioned.fill(
               child: ExcludeSemantics(
-                child: AnimatedSwitcher(
-                  duration: NexMotion.slow,
-                  child: CustomPaint(
-                    key: ValueKey(trimmed),
-                    painter: _Constellation(seed: _seedOf(trimmed), color: ink),
-                  ),
-                ),
+                child: ProfileConstellation(name: trimmed, color: ink),
               ),
             ),
             Padding(
@@ -194,16 +187,6 @@ class ProfileHeader extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// A seed that is the same for the same name on every run — unlike
-  /// [String.hashCode], which is free to change between them.
-  static int _seedOf(String name) {
-    var seed = 17;
-    for (final unit in name.codeUnits) {
-      seed = (seed * 31 + unit) & 0x3fffffff;
-    }
-    return seed;
   }
 }
 
@@ -312,45 +295,4 @@ class _ProfileAvatar extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A scatter of points joined to their nearest neighbours, laid out from
-/// [seed]. Kept faint and to the edges' side of the middle, so it is texture
-/// behind the name rather than something competing with it.
-class _Constellation extends CustomPainter {
-  _Constellation({required this.seed, required this.color});
-
-  final int seed;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final random = math.Random(seed);
-    final points = [
-      for (var i = 0; i < 16; i++)
-        Offset(
-          random.nextDouble() * size.width,
-          random.nextDouble() * size.height,
-        ),
-    ];
-    final line = Paint()
-      ..color = color.withValues(alpha: 0.14)
-      ..strokeWidth = 1;
-    final dot = Paint()..color = color.withValues(alpha: 0.28);
-    for (final a in points) {
-      final nearest = [...points]
-        ..sort((x, y) => (x - a).distance.compareTo((y - a).distance));
-      // nearest[0] is the point itself.
-      for (final b in nearest.skip(1).take(2)) {
-        canvas.drawLine(a, b, line);
-      }
-    }
-    for (final a in points) {
-      canvas.drawCircle(a, 1.5 + random.nextDouble() * 2, dot);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_Constellation old) =>
-      old.seed != seed || old.color != color;
 }

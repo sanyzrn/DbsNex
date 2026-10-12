@@ -23,9 +23,15 @@ class FeedbackSheet extends StatefulWidget {
     required this.service,
     this.metrics,
     this.loadDiagnostics,
+    this.idea = false,
   });
 
   final FeedbackService service;
+
+  /// An idea for a module, from the foot of the Modules page: the same
+  /// sending, in a sheet that asks for nothing else — no kind to pick, no
+  /// measurements or diagnostics, which belong to reporting a problem.
+  final bool idea;
 
   /// The measurements that may be attached; [NexMetrics.shared] unless a test
   /// passes its own.
@@ -38,9 +44,10 @@ class FeedbackSheet extends StatefulWidget {
   static Future<void> show(
     BuildContext context, {
     required FeedbackService service,
+    bool idea = false,
   }) => nexShowSheet<void>(
     context: context,
-    builder: (_) => FeedbackSheet(service: service),
+    builder: (_) => FeedbackSheet(service: service, idea: idea),
   );
 
   @override
@@ -105,13 +112,19 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
     if (typed.isEmpty || _sending) return;
     // Appended as text, exactly as shown under the box, so what is sent is
     // what was read; the server holds a message to 4,000 characters.
-    final text = _attachMetrics && _canAttach ? '$typed\n\n$_report' : typed;
+    final text = widget.idea
+        ? 'Module idea:\n$typed'
+        : _attachMetrics && _canAttach
+        ? '$typed\n\n$_report'
+        : typed;
     setState(() {
       _sending = true;
       _lastFailure = null;
     });
 
-    final diagnostics = _attachDiagnostics ? _diagnostics : null;
+    final diagnostics = _attachDiagnostics && !widget.idea
+        ? _diagnostics
+        : null;
     final outcome = await widget.service.send(
       text,
       kind: _kind,
@@ -150,6 +163,7 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.idea) return _ideaBody(context);
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return NexSheetBody(
@@ -356,4 +370,139 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
       ),
     );
   }
+
+  /// The idea sheet: a lit bulb over the question, one box for the idea and
+  /// one for a way back, and a button that says what it sends.
+  Widget _ideaBody(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return NexSheetBody(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(child: _IdeaGlow(color: scheme.primary)),
+            const SizedBox(height: NexSpacing.md),
+            Text(
+              l10n.moduleIdeaTitle,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge,
+            ),
+            const SizedBox(height: NexSpacing.xs),
+            Text(
+              l10n.moduleIdeaLead,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: NexSpacing.lg),
+            NexTextField(
+              key: const ValueKey('module-idea-text'),
+              controller: _controller,
+              autofocus: true,
+              minLines: 4,
+              maxLines: 8,
+              decoration: InputDecoration(
+                hintText: l10n.moduleIdeaHint,
+                filled: true,
+                fillColor: scheme.primary.withValues(alpha: 0.06),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(NexRadius.lg),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: NexSpacing.sm),
+            TextField(
+              controller: _contact,
+              maxLength: 80,
+              contextMenuBuilder: nexReadingMenu,
+              keyboardType: TextInputType.emailAddress,
+              textDirection: TextDirection.ltr,
+              decoration: InputDecoration(
+                counterText: '',
+                prefixIcon: const Icon(Icons.alternate_email),
+                labelText: nexLabel(
+                  context,
+                  'How to reach you (optional)',
+                  'راه ارتباط با شما (اختیاری)',
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(NexRadius.lg),
+                ),
+              ),
+            ),
+            if (_lastFailure != null) ...[
+              const SizedBox(height: NexSpacing.sm),
+              Text(
+                _lastFailure == FeedbackOutcome.unavailable
+                    ? l10n.feedbackUnavailable
+                    : l10n.feedbackFailed,
+                style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
+              ),
+            ],
+            const SizedBox(height: NexSpacing.lg),
+            FilledButton.icon(
+              key: const ValueKey('module-idea-send'),
+              onPressed: _sending ? null : _send,
+              icon: _sending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send_outlined, size: 18),
+              label: Text(l10n.moduleIdeaSend),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A bulb in a soft halo that breathes once as the sheet opens: an idea
+/// being lit, not a form being filled.
+class _IdeaGlow extends StatelessWidget {
+  const _IdeaGlow({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: NexMotion.of(context, NexMotion.morph + NexMotion.enter),
+    curve: NexMotion.curve,
+    builder: (context, t, child) => Container(
+      width: 72,
+      height: 72,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [
+            color.withValues(alpha: 0.10 + 0.18 * t),
+            color.withValues(alpha: 0.0),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color.withValues(alpha: 0.14),
+          ),
+          child: Icon(
+            t > 0.5 ? Icons.lightbulb : Icons.lightbulb_outline,
+            color: color,
+          ),
+        ),
+      ),
+    ),
+  );
 }

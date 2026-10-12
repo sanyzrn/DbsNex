@@ -673,6 +673,40 @@ open class MainActivity : FlutterFragmentActivity() {
                 live,
             )
         }
+        // Several files shared at once — three photos of one receipt, a
+        // contract and its annex. They become one note: the first is the
+        // note, the rest are attached to it (docs/14-attachments.md). Each
+        // still travels alone, through the same inbox and the same
+        // acknowledgement as a single share, so none of them can be lost
+        // to another; what ties them is a group, the first one's request
+        // id, which Dart looks up to find the note the others belong to.
+        // If the first never became a note — refused as too large — the
+        // others become notes of their own.
+        if (intent?.action == Intent.ACTION_SEND_MULTIPLE) {
+            val streams = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+                ?.filterNotNull().orEmpty()
+            if (streams.isEmpty()) return
+            // Stable across a re-delivery of this same intent, so the inbox
+            // keys repeat and nothing is captured twice.
+            val base = captureRequestId
+                ?: UUID.randomUUID().toString().also { captureRequestId = it }
+            val first = "$base-0"
+            val words = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.trim()
+                ?.takeIf { it.isNotEmpty() }
+            val at = System.currentTimeMillis()
+            streams.forEachIndexed { index, uri ->
+                val described = describeUri(uri)
+                val kind = described["mimeType"].orEmpty().startsWith("image/")
+                val item = described + mapOf(
+                    "type" to if (kind) "shared_photo" else "shared_file",
+                    "groupFirst" to first,
+                ) + (if (index == 0 && words != null) mapOf("text" to words) else emptyMap())
+                // In order: the inbox is taken oldest first, and the first
+                // has to be a note before the others can be attached to it.
+                enqueue(item, live && index == streams.lastIndex, "$base-$index", at + index)
+            }
+            return
+        }
         if (intent?.action != Intent.ACTION_SEND) return
         val stream = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
         if (stream == null) {
@@ -711,11 +745,16 @@ open class MainActivity : FlutterFragmentActivity() {
         enqueue(if (words == null) described else described + ("text" to words), live)
     }
 
-    private fun enqueue(value: Map<String, String>, live: Boolean) {
-        val requestId = captureRequestId
+    private fun enqueue(
+        value: Map<String, String>,
+        live: Boolean,
+        id: String? = null,
+        receivedAt: Long = System.currentTimeMillis(),
+    ) {
+        val requestId = id ?: captureRequestId
             ?: UUID.randomUUID().toString().also { captureRequestId = it }
         val payload = value + mapOf("requestId" to requestId,
-            "receivedAt" to System.currentTimeMillis().toString())
+            "receivedAt" to receivedAt.toString())
         if (value["type"]?.startsWith("shared_") == true) {
             // Keep deliveries until Dart acknowledges the committed database row.
             // SharedPreferences is process-wide, including both Flutter engines.

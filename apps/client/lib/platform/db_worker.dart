@@ -90,6 +90,7 @@ enum _DbCommand {
   attachmentReorder,
   attachmentSetCaption,
   attachmentSetOcr,
+  attachmentReadText,
   moduleRecords,
   moduleRecord,
   modulePut,

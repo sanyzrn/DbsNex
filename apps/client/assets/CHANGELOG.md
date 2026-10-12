@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.80
+
+- **Share several files into Nex at once.** Choose several photos or files in your gallery or file manager and share them to Nex: they become one note — the first is the note, the rest are attached to it. Before, Nex was not even offered for more than one file.
+- **Drag attachments into order.** Hold an attachment on a note and drag it; hold it and let go for its menu, which can now also move it earlier or later.
+- **Words in attached photos are searchable.** With reading text in photos on, the photos attached to a note are read like a photo note's own, so a serial number on the third photo finds the note.
+- **Details that tell you something.** **More → Details** now says how long ago a note was made and last changed (or that it never was), how many words it has, how much of a checklist is ticked, a recording's length, a link's site, and how much room the note takes with its attachments. It closes with **Close**, not Cancel.
+- **The profile's sky works.** The constellation behind your name was drawn into a single dot. It now fills the card: a star for each letter of your name, drifting and twinkling, with a spark now and then running along its lines.
+- **The floating date, calmer.** The date that appears as you scroll the timeline now drops in from under the filters and tucks back, rolls to the next day in the direction you are scrolling, and has no shadow.
+- **Search opens and closes smoothly.** The field, its buttons and the results now ease in and out together instead of switching on a frame.
+- **A form just for module ideas.** The row at the foot of the Modules page opens a short form for your idea, without the bug and diagnostics options of the general feedback form — and its arrow points the right way in Persian.
+
 ## v1.99.70
 
 - **Several files on one note.** On a text, photo or file note, tap **Attach** beside Tag to add photos from the camera, several from the gallery at once, or any file, and they stay with the note. The card shows a paperclip with how many more it holds. Hold one to give it a caption or remove it, with Undo. Captions are searched with the note, Share sends every file together, and attachments travel with the note in exports and complete backups.

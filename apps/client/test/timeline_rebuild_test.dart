@@ -719,9 +719,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final row = find.byWidgetPredicate(
-      (widget) => widget is SizeTransition,
-      description: 'a folding row',
+    // The row's own fold, not any other size transition on screen — the
+    // search field's buttons make room the same way.
+    final row = find.ancestor(
+      of: find.text('note A'),
+      matching: find.byType(SizeTransition),
     );
     final openHeight = tester.getSize(row.first).height;
     expect(openHeight, greaterThan(0));

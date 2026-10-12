@@ -366,6 +366,11 @@ class InProcessDb implements NexDb {
   Future<void> attachmentSetOcr(String id, String? text) async =>
       _attachments.setOcrText(id, text);
 
+  late final _attachmentText = AttachmentTextReader(_attachments, _enrichment);
+
+  @override
+  Future<bool> attachmentReadText(String id) => _attachmentText.read(id);
+
   @override
   Future<List<ModuleRecord>> moduleRecords(String module, String kind) async =>
       _modules.list(module, kind);
@@ -536,8 +541,9 @@ class InProcessDb implements NexDb {
   Future<void> enrichNote(String noteId) => _enrichment.enrichNote(noteId);
 
   @override
-  Future<int> backfillEnrichment({int limit = 25}) =>
-      _enrichment.backfill(limit: limit);
+  Future<int> backfillEnrichment({int limit = 25}) async =>
+      await _enrichment.backfill(limit: limit) +
+      await _attachmentText.backfill(limit: limit);
 
   @override
   Future<int> backfillEmbeddings({int limit = 25}) =>

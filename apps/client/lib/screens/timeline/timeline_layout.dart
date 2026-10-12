@@ -240,7 +240,10 @@ extension _TimelineLayout on TimelineScreenState {
                                   visible: !_searching,
                                   extent: 1,
                                   lineKey: _stickyLine,
-                                  below: TimelineStickyDay(day: _stickyDay),
+                                  below: TimelineStickyDay(
+                                    day: _stickyDay,
+                                    scroll: _scroll,
+                                  ),
                                   child: const SizedBox.shrink(),
                                 ),
                               ),
@@ -251,7 +254,10 @@ extension _TimelineLayout on TimelineScreenState {
                                 delegate: _FilterRowHeader(
                                   visible: !_searching,
                                   lineKey: _stickyLine,
-                                  below: TimelineStickyDay(day: _stickyDay),
+                                  below: TimelineStickyDay(
+                                    day: _stickyDay,
+                                    scroll: _scroll,
+                                  ),
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
@@ -320,7 +326,11 @@ extension _TimelineLayout on TimelineScreenState {
                             // day, not an advertisement.
                             if (showSummary)
                               SliverToBoxAdapter(child: _briefCard(l10n)),
-                            ..._bodySlivers(l10n),
+                            for (final sliver in _bodySlivers(l10n))
+                              SliverFadeTransition(
+                                opacity: _searchFadeIn,
+                                sliver: sliver,
+                              ),
                             // And the sponsor goes last, under the notes.
                             // Nothing about a card that pays for itself earns
                             // the top of somebody's own page.

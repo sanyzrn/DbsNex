@@ -33,20 +33,15 @@ void main() {
 
   tearDown(() => harness.dispose());
 
+  /// The date the chip shows once settled, or null while it is tucked away:
+  /// hidden, it builds nothing at all.
   String? shown(WidgetTester tester) {
     final text = find.descendant(
       of: find.byType(TimelineStickyDay),
       matching: find.byType(Text),
     );
     if (text.evaluate().isEmpty) return null;
-    final value = tester.widget<Text>(text.first).data;
-    final opacity = tester.widget<AnimatedOpacity>(
-      find.descendant(
-        of: find.byType(TimelineStickyDay),
-        matching: find.byType(AnimatedOpacity),
-      ),
-    );
-    return opacity.opacity == 0 ? null : value;
+    return tester.widget<Text>(text.last).data;
   }
 
   testWidgets('the day appears once the list has moved, and follows it', (

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/platform/feedback_service.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/modules/module_plans.dart';
 import 'package:nex_client/modules/module_registry.dart';
@@ -118,6 +119,15 @@ void main() {
       300,
     );
     expect(find.text('Have an idea for a module? Tell us'), findsOneWidget);
+
+    // It opens a sheet for the idea alone: no kind to pick, nothing to
+    // attach.
+    await tester.tap(find.byKey(const ValueKey('modules-suggest')));
+    await tester.pumpAndSettle();
+    expect(find.text('An idea for a module'), findsOneWidget);
+    expect(find.byKey(const ValueKey('module-idea-send')), findsOneWidget);
+    expect(find.byType(SegmentedButton<FeedbackKind>), findsNothing);
+    expect(find.byType(CheckboxListTile), findsNothing);
   });
 
   testWidgets(
