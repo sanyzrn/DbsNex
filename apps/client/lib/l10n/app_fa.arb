@@ -362,6 +362,28 @@
   "@editCaption": {
     "description": "Button shown when a media note already has a caption"
   },
+  "attachmentsTitle": "پیوست‌ها",
+  "@attachmentsTitle": {"description": "Heading of the attachments strip in a note"},
+  "attach": "پیوست",
+  "@attach": {"description": "The chip beside Tag on a note with no attachments yet; opens the camera, photos or file choice."},
+  "attachAdd": "پیوست عکس یا فایل",
+  "@attachAdd": {"description": "Tooltip and label of the add-attachment tile"},
+  "attachTakePhoto": "گرفتن عکس",
+  "@attachTakePhoto": {"description": "Attach sheet option"},
+  "attachChoosePhotos": "انتخاب عکس‌ها",
+  "@attachChoosePhotos": {"description": "Attach sheet option"},
+  "attachChooseFile": "انتخاب فایل",
+  "@attachChooseFile": {"description": "Attach sheet option"},
+  "attachRemove": "برداشتن از این یادداشت",
+  "@attachRemove": {"description": "Attachment menu: remove"},
+  "attachRemoved": "پیوست برداشته شد",
+  "@attachRemoved": {"description": "Banner after removing an attachment"},
+  "attachOpen": "باز کردن",
+  "@attachOpen": {"description": "Attachment menu: open"},
+  "attachFailed": "پیوست کردن این فایل نشد",
+  "@attachFailed": {"description": "Banner when attaching fails"},
+  "attachedMore": "{count} فایل دیگر",
+  "@attachedMore": {"description": "Screen reader: how many files a note carries after its own", "placeholders": {"count": {"type": "int"}}},
   "noCaption": "بدون شرح",
   "@noCaption": {
     "description": "Placeholder text where a caption would appear"

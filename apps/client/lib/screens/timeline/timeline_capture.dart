@@ -155,9 +155,17 @@ extension _TimelineCapture on TimelineScreenState {
 
   /// A photo from Nex's own camera panel, or from the library. The phone's
   /// camera app is the fallback when the panel cannot open a camera.
-  Future<XFile?> _pickPhoto(ImageSource source) async {
-    if (source == ImageSource.camera) return nexTakePhoto(context);
-    return ImagePicker().pickImage(source: source);
+  ///
+  /// From the library, several at once (docs/14-attachments.md): the first
+  /// becomes the note, through the same preview as ever, and the rest go on
+  /// it as attachments — one note for "these belong together", not one
+  /// each.
+  Future<List<XFile>> _pickPhotos(ImageSource source) async {
+    if (source == ImageSource.camera) {
+      final shot = await nexTakePhoto(context);
+      return [?shot];
+    }
+    return ImagePicker().pickMultiImage();
   }
 
   Future<void> capturePhoto(ImageSource source) async {
@@ -166,7 +174,9 @@ extension _TimelineCapture on TimelineScreenState {
       // camera or the photo library, which is the single most likely failure
       // and the one the old handler could not have caught.
       final recovered = widget.preferences.editorDrafts?.readImage('photo-new');
-      final picked = recovered == null ? await _pickPhoto(source) : null;
+      final all = recovered == null ? await _pickPhotos(source) : <XFile>[];
+      final picked = all.firstOrNull;
+      final more = all.skip(1).toList();
       if (recovered == null && picked == null) return;
       final original = recovered ?? await picked!.readAsBytes();
       if (widget.preferences.editorDrafts case final drafts?) {
@@ -227,6 +237,16 @@ extension _TimelineCapture on TimelineScreenState {
         'photo-new-annotation',
       ]) {
         widget.preferences.editorDrafts?.clear(key);
+      }
+      for (final extra in more) {
+        await widget.services.attachBytes(
+          note.id,
+          await extra.readAsBytes(),
+          kind: AttachmentKind.photo,
+          extension: p.extension(extra.path).isNotEmpty
+              ? p.extension(extra.path)
+              : '.jpg',
+        );
       }
       landedId = note.id;
       NexMetrics.shared.markCapture();

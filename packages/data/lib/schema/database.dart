@@ -410,6 +410,43 @@ CREATE TABLE IF NOT EXISTS cycle_days (
     _addColumnIfMissing('cycle_days', 'ovulation_test', 'TEXT');
     _addColumnIfMissing('cycle_days', 'mucus', 'TEXT');
 
+    // Attachments (docs/14-attachments.md): the files a note carries after
+    // its own. Created empty — no existing row is rewritten and no file
+    // moves, so an older build reading this library still sees each note's
+    // own file exactly where it was. Position 0 is the note's own file, on
+    // the note; this table starts at 1. Shaped for sync like threads and
+    // commitments, for when files join sync.
+    db.execute('''
+CREATE TABLE IF NOT EXISTS note_attachments (
+  id TEXT PRIMARY KEY NOT NULL,
+  note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  media_uri TEXT NOT NULL,
+  media_hash TEXT NOT NULL,
+  name TEXT,
+  mime_type TEXT,
+  duration_ms INTEGER,
+  caption TEXT,
+  ocr_text TEXT,
+  transcript_text TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  device_id TEXT NOT NULL,
+  rev INTEGER NOT NULL,
+  sync_state TEXT NOT NULL DEFAULT 'pending'
+);
+''');
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_attachments_note '
+      'ON note_attachments(note_id, position);',
+    );
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_attachments_media '
+      'ON note_attachments(media_uri);',
+    );
+
     // Modules (ADR-040, docs/17-modules.md): one table every module after
     // «Cycle» keeps its records in, as JSON, so a new module never needs a
     // migration. Like Cycle's, joined to nothing — no search, embedding,

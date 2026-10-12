@@ -12,12 +12,14 @@ library;
 /// reverse.
 export 'package:nex_core/nex_core.dart'
     show
+        AttachmentKind,
         MemoryKind,
         NexCadence,
         NexCommitment,
         MemoryRecord,
         MemorySource,
         Note,
+        NoteAttachment,
         NoteEmbedding,
         NoteType,
         SearchFilters,
@@ -30,6 +32,7 @@ export 'package:nex_core/nex_core.dart'
         sha256OfBytes,
         sha256OfFile;
 
+export 'repositories/attachment_repository.dart';
 export 'repositories/commitment_repository.dart';
 export 'repositories/cycle_repository.dart';
 export 'repositories/library_maintenance.dart';

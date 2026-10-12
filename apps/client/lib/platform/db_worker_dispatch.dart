@@ -15,6 +15,10 @@ class _Worker {
     scheduled = SqliteScheduledNoteRepository(db, repo);
     cycle = SqliteCycleRepository(db);
     modules = SqliteModuleRecordRepository(db);
+    attachments = SqliteAttachmentRepository(
+      repo,
+      localDeviceId: boot.deviceId,
+    );
     enrichment = EnrichmentService(
       repo: repo,
       adapter: boot.adapter,
@@ -34,6 +38,7 @@ class _Worker {
   late final SqliteScheduledNoteRepository scheduled;
   late final SqliteCycleRepository cycle;
   late final SqliteModuleRecordRepository modules;
+  late final SqliteAttachmentRepository attachments;
   late final EnrichmentService enrichment;
 
   AiProviderConfig? provider;
@@ -217,6 +222,17 @@ class _Worker {
         () => cycle.saveDay(arg('log')! as CycleDayLog),
       ),
       _DbCommand.cycleDeleteAll => NexDbWorker._voided(cycle.deleteAll),
+      _DbCommand.attachmentsFor ||
+      _DbCommand.attachmentAdd ||
+      _DbCommand.attachmentRemove ||
+      _DbCommand.attachmentRestore ||
+      _DbCommand.attachmentReorder ||
+      _DbCommand.attachmentSetCaption ||
+      _DbCommand.attachmentSetOcr => _attachmentCommand(
+        attachments,
+        message.command,
+        arg,
+      ),
       _DbCommand.moduleRecords ||
       _DbCommand.moduleRecord ||
       _DbCommand.modulePut ||

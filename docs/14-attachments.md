@@ -1,13 +1,37 @@
 # Several attachments on one note: proposal
 
-Status: **decided, scheduled for 2.0.** Written at the owner's request in
-1.93.2, so the work can start from a decided shape later. In 1.93.3 the
-owner approved the shape below, with two changes from the first draft, and
-the work was moved to 2.0 to keep the release close:
+Status: **steps 1 to 3, and most of 4, shipped in 1.99.70.** Written at the
+owner's request in 1.93.2 and approved in 1.93.3 with two changes from the
+first draft:
 
 - **The note's own file stays where it is.** It is not copied into the new
   table.
 - **Sync of attachments waits for media sync (W1.3).**
+
+What 1.99.70 has:
+
+- the `note_attachments` table, its repository, reference counting in the
+  trash purge and the sweep, export v3, and attachment files in the complete
+  backup (step 1);
+- **Attach** beside **Tag** on text, photo and file notes, and the
+  **Attached** strip once a note has one: take a photo, choose several from
+  the gallery, or choose a file; open, caption, and remove with Undo (steps 2
+  to 4);
+- several photos chosen while capturing: the first is the note, the rest are
+  attached to it;
+- the card's paperclip mark with the count, spoken by screen readers;
+- **Share** sends the note's own file and every attachment.
+
+Still to come:
+
+- **Multi-file share-in.** Several files sent into Nex at once still arrive
+  as separate notes, until the Android side reads `SEND_MULTIPLE` into one
+  note.
+- **Per-attachment AI:** text in an attached photo and transcripts of
+  attached voice clips. The columns are there and searched; nothing fills
+  them yet.
+- **Reordering by drag.** The repository has `reorder`; the strip does not
+  offer it yet.
 
 ## What is asked
 

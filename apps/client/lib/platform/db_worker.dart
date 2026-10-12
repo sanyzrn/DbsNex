@@ -13,6 +13,7 @@ import 'local_embedder.dart';
 import 'nex_db.dart';
 
 part 'db_worker_client.dart';
+part 'db_worker_attachments.dart';
 part 'db_worker_dispatch.dart';
 part 'db_worker_modules.dart';
 
@@ -82,6 +83,13 @@ enum _DbCommand {
   cycleDays,
   cycleSaveDay,
   cycleDeleteAll,
+  attachmentsFor,
+  attachmentAdd,
+  attachmentRemove,
+  attachmentRestore,
+  attachmentReorder,
+  attachmentSetCaption,
+  attachmentSetOcr,
   moduleRecords,
   moduleRecord,
   modulePut,
@@ -194,7 +202,9 @@ class _WorkerOpenFailure {
 ///
 /// The UI isolate never touches sqlite3 directly; it sends a command and awaits
 /// a reply, so no query can block a frame.
-class NexDbWorker with _DbClient, _DbModuleRecords implements NexDb {
+class NexDbWorker
+    with _DbClient, _DbAttachments, _DbModuleRecords
+    implements NexDb {
   /// The error and exit subscriptions are handed in already listening.
   ///
   /// A `ReceivePort` is a single-subscription stream, and [spawn] has to watch

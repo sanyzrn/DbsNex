@@ -74,6 +74,7 @@ class Note {
     this.dueAt,
     this.dueRepeat = NoteRepeat.once,
     this.sortOrder,
+    this.attachmentCount = 0,
   });
 
   final String id;
@@ -152,6 +153,11 @@ class Note {
   /// surfaces at the top rather than waiting at the bottom of a hand-ordered
   /// list it was never part of arranging.
   final int? sortOrder;
+
+  /// How many files the note carries after its own — the `+3` on its card.
+  /// Read with the note, never written through it: attachments are their
+  /// own rows (`NoteAttachment`, docs/14-attachments.md).
+  final int attachmentCount;
 
   bool get isDeleted => deletedAt != null;
 
@@ -294,6 +300,7 @@ class Note {
     NoteRepeat? dueRepeat,
     int? sortOrder,
     bool clearSortOrder = false,
+    int? attachmentCount,
   }) {
     return Note(
       id: id,
@@ -336,6 +343,7 @@ class Note {
       dueAt: clearDueAt ? null : (dueAt ?? this.dueAt),
       dueRepeat: dueRepeat ?? this.dueRepeat,
       sortOrder: clearSortOrder ? null : (sortOrder ?? this.sortOrder),
+      attachmentCount: attachmentCount ?? this.attachmentCount,
     );
   }
 
@@ -362,7 +370,11 @@ class Note {
     'tags': tags.map((t) => t.toJson()).toList(),
   };
 
-  factory Note.fromRow(Map<String, Object?> row, {List<Tag> tags = const []}) {
+  factory Note.fromRow(
+    Map<String, Object?> row, {
+    List<Tag> tags = const [],
+    int attachmentCount = 0,
+  }) {
     return Note(
       id: row['id']! as String,
       type: NoteType.fromWire(row['type']! as String),
@@ -394,6 +406,7 @@ class Note {
           ? DateTime.parse(row['pinned_at']! as String).toUtc()
           : null,
       sortOrder: row['sort_order'] as int?,
+      attachmentCount: attachmentCount,
     );
   }
 }

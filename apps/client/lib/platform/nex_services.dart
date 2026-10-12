@@ -40,6 +40,7 @@ import 'reminders.dart';
 
 part 'folder_backup.dart';
 part 'module_services.dart';
+part 'services/attachment_services.dart';
 part 'services/backup_services.dart';
 part 'services/library_services.dart';
 part 'services/scheduled_services.dart';

@@ -1856,6 +1856,72 @@ abstract class AppLocalizations {
   /// **'Edit caption'**
   String get editCaption;
 
+  /// Heading of the attachments strip in a note
+  ///
+  /// In en, this message translates to:
+  /// **'Attached'**
+  String get attachmentsTitle;
+
+  /// The chip beside Tag on a note with no attachments yet; opens the camera, photos or file choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach'**
+  String get attach;
+
+  /// Tooltip and label of the add-attachment tile
+  ///
+  /// In en, this message translates to:
+  /// **'Attach a photo or file'**
+  String get attachAdd;
+
+  /// Attach sheet option
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get attachTakePhoto;
+
+  /// Attach sheet option
+  ///
+  /// In en, this message translates to:
+  /// **'Choose photos'**
+  String get attachChoosePhotos;
+
+  /// Attach sheet option
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a file'**
+  String get attachChooseFile;
+
+  /// Attachment menu: remove
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from this note'**
+  String get attachRemove;
+
+  /// Banner after removing an attachment
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment removed'**
+  String get attachRemoved;
+
+  /// Attachment menu: open
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get attachOpen;
+
+  /// Banner when attaching fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not attach that file'**
+  String get attachFailed;
+
+  /// Screen reader: how many files a note carries after its own
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 more file} other{{count} more files}}'**
+  String attachedMore(int count);
+
   /// Placeholder text where a caption would appear
   ///
   /// In en, this message translates to:

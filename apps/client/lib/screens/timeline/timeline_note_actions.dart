@@ -317,7 +317,10 @@ extension _TimelineNoteActions on TimelineScreenState {
         );
         await widget.services.refreshTimeline();
       case NexSwipeAction.share:
-        if (!await nexShareNote(note) && mounted) {
+        final attachments = note.attachmentCount > 0
+            ? await widget.services.attachmentsFor(note.id)
+            : const <NoteAttachment>[];
+        if (!await nexShareNote(note, attachments: attachments) && mounted) {
           nexShowBanner(context, message: l10n.nothingToCopy);
         }
       case NexSwipeAction.ask:

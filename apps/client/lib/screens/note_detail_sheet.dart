@@ -6,8 +6,10 @@ import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show compute;
 import '../platform/note_copy.dart';
+import '../platform/os_capture_bridge.dart';
 import '../platform/photo_encoding.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -40,6 +42,7 @@ import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
 import '../widgets/translate_sheet.dart';
+import 'camera_sheet.dart';
 import 'photo_crop_screen.dart';
 import 'threads_screen.dart';
 
@@ -50,6 +53,7 @@ part 'note_detail/detail_documents.dart';
 part 'note_detail/detail_actions.dart';
 part 'note_detail/detail_ai_panel.dart';
 part 'note_detail/detail_type_body.dart';
+part 'note_detail/detail_attachments.dart';
 
 /// What the sheet reports back when it closes.
 ///
@@ -110,6 +114,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   /// The threads this note is in, shown beside its tags.
   List<NoteThread> _threads = const [];
+
+  /// The files it carries after its own (docs/14-attachments.md).
+  List<NoteAttachment> _attachments = const [];
 
   /// Whether the first read has come back, whatever it found.
   ///
@@ -214,16 +221,18 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Future<void> _reload() async {
     // Together rather than one after another: three round trips to the
     // database worker, none of which needs another's answer.
-    final (loaded, pinnedNoteCount, threads) = await (
+    final (loaded, pinnedNoteCount, threads, attachments) = await (
       widget.services.getById(widget.noteId),
       widget.services.pinnedNoteCount(),
       widget.services.threadsForNote(widget.noteId),
+      widget.services.attachmentsFor(widget.noteId),
     ).wait;
     if (!mounted) return;
     setState(() {
       _note = loaded;
       _pinnedNoteCount = pinnedNoteCount;
       _threads = threads;
+      _attachments = attachments;
       _read = true;
     });
     final note = _note;
@@ -355,6 +364,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     ),
                     const SizedBox(height: NexSpacing.md),
                     ..._typeBody(context, note, l10n),
+                    ..._attachmentStrip(context, note, l10n),
                     const SizedBox(height: NexSpacing.md),
                     Wrap(
                       spacing: NexSpacing.xs,
@@ -383,6 +393,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: Text(l10n.tag),
                           onPressed: _addTag,
                         ),
+                        ?_attachChip(note, l10n),
                         // Threads sit with the tags: both say what a note
                         // belongs with, and neither moves it anywhere.
                         for (final thread in _threads)

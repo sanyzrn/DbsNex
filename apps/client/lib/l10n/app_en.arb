@@ -619,6 +619,28 @@
   "@editCaption": {
     "description": "Button shown when a media note already has a caption"
   },
+  "attachmentsTitle": "Attached",
+  "@attachmentsTitle": {"description": "Heading of the attachments strip in a note"},
+  "attach": "Attach",
+  "@attach": {"description": "The chip beside Tag on a note with no attachments yet; opens the camera, photos or file choice."},
+  "attachAdd": "Attach a photo or file",
+  "@attachAdd": {"description": "Tooltip and label of the add-attachment tile"},
+  "attachTakePhoto": "Take a photo",
+  "@attachTakePhoto": {"description": "Attach sheet option"},
+  "attachChoosePhotos": "Choose photos",
+  "@attachChoosePhotos": {"description": "Attach sheet option"},
+  "attachChooseFile": "Choose a file",
+  "@attachChooseFile": {"description": "Attach sheet option"},
+  "attachRemove": "Remove from this note",
+  "@attachRemove": {"description": "Attachment menu: remove"},
+  "attachRemoved": "Attachment removed",
+  "@attachRemoved": {"description": "Banner after removing an attachment"},
+  "attachOpen": "Open",
+  "@attachOpen": {"description": "Attachment menu: open"},
+  "attachFailed": "Could not attach that file",
+  "@attachFailed": {"description": "Banner when attaching fails"},
+  "attachedMore": "{count, plural, =1{1 more file} other{{count} more files}}",
+  "@attachedMore": {"description": "Screen reader: how many files a note carries after its own", "placeholders": {"count": {"type": "int"}}},
   "noCaption": "No caption",
   "@noCaption": {
     "description": "Placeholder text where a caption would appear"

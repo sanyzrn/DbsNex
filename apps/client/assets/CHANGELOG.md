@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.70
+
+- **Several files on one note.** On a text, photo or file note, tap **Attach** beside Tag to add photos from the camera, several from the gallery at once, or any file, and they stay with the note. The card shows a paperclip with how many more it holds. Hold one to give it a caption or remove it, with Undo. Captions are searched with the note, Share sends every file together, and attachments travel with the note in exports and complete backups.
+- **Choose several photos at once.** Picking photos from the gallery when you capture now lets you choose more than one: the first becomes the note and the rest are attached to it.
+
 ## v1.99.60
 
 - **Modules: add only what you need.** Extra features now live in **Tools → Modules**, each on a card that says what it does. One that is not added takes no room and runs nothing — no tile, no reminders, no widgets, no assistant tools — and removing one asks whether to keep its data or delete it. More modules will arrive this way, so Nex stays light for everyone who does not want them.

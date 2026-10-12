@@ -71,15 +71,44 @@ Future<SendOutcome> nexSendFileOut(
 /// Here rather than in the detail sheet because a swipe on the timeline can be
 /// bound to the same thing, and a second copy would be a second answer to
 /// "what does sharing a voice note actually send".
-Future<bool> nexShareNote(Note note) async {
+///
+/// [attachments] are the files it carries after its own
+/// (docs/14-attachments.md): all of them go, after its own file, and a text
+/// note sends its words with them.
+Future<bool> nexShareNote(
+  Note note, {
+  List<NoteAttachment> attachments = const [],
+}) async {
   final uri = note.mediaUri;
-  if (uri != null && File(uri).existsSync()) {
+  final extra = [
+    for (final a in attachments)
+      if (File(a.mediaUri).existsSync()) a,
+  ];
+  if ((uri != null && File(uri).existsSync()) || extra.isNotEmpty) {
     final staged = <Directory>[];
     try {
+      final words = note.type == NoteType.text
+          ? note.displayText?.trim()
+          : note.caption?.trim();
       await SharePlus.instance.share(
         ShareParams(
-          files: [await _shareable(note, uri, staged)],
-          text: note.caption?.trim().isNotEmpty == true ? note.caption : null,
+          files: [
+            if (uri != null && File(uri).existsSync())
+              await _shareable(
+                uri,
+                photo: note.type == NoteType.photo,
+                mimeType: note.mimeType,
+                staged: staged,
+              ),
+            for (final a in extra)
+              await _shareable(
+                a.mediaUri,
+                photo: a.kind == AttachmentKind.photo,
+                mimeType: a.mimeType,
+                staged: staged,
+              ),
+          ],
+          text: words?.isNotEmpty == true ? words : null,
         ),
       );
     } finally {
@@ -107,7 +136,14 @@ Future<bool> nexShareNotes(List<Note> notes) async {
   for (final note in notes) {
     final uri = note.mediaUri;
     if (uri != null && File(uri).existsSync()) {
-      files.add(await _shareable(note, uri, staged));
+      files.add(
+        await _shareable(
+          uri,
+          photo: note.type == NoteType.photo,
+          mimeType: note.mimeType,
+          staged: staged,
+        ),
+      );
       final caption = note.caption?.trim() ?? '';
       if (caption.isNotEmpty) words.add(caption);
       continue;
@@ -129,15 +165,20 @@ Future<bool> nexShareNotes(List<Note> notes) async {
   return true;
 }
 
-/// The file to hand to the share sheet for [note]'s media at [path].
+/// The file to hand to the share sheet for the media at [path].
 ///
 /// A photo goes out without where and when it was taken (SEC-08): a copy
 /// with its metadata stripped, staged in a temporary folder that is added to
 /// [staged] for the caller to remove. Everything else, and a photo that is
 /// not a JPEG or cannot be read, goes out as it is stored.
-Future<XFile> _shareable(Note note, String path, List<Directory> staged) async {
-  final original = XFile(path, mimeType: note.mimeType);
-  if (note.type != NoteType.photo) return original;
+Future<XFile> _shareable(
+  String path, {
+  required bool photo,
+  required String? mimeType,
+  required List<Directory> staged,
+}) async {
+  final original = XFile(path, mimeType: mimeType);
+  if (!photo) return original;
   try {
     final bytes = await File(path).readAsBytes();
     final clean = jpegWithoutMetadata(bytes);
@@ -149,7 +190,7 @@ Future<XFile> _shareable(Note note, String path, List<Directory> staged) async {
       '${path.split(Platform.pathSeparator).last}',
     );
     await copy.writeAsBytes(clean, flush: true);
-    return XFile(copy.path, mimeType: note.mimeType);
+    return XFile(copy.path, mimeType: mimeType);
   } catch (_) {
     return original;
   }
@@ -287,7 +328,12 @@ Future<SaveOutcome?> nexSaveNoteToDevice(Note note) async {
     String path;
     if (target.sourcePath != null) {
       if (!File(target.sourcePath!).existsSync()) return SaveOutcome.failed;
-      path = (await _shareable(note, target.sourcePath!, staged)).path;
+      path = (await _shareable(
+        target.sourcePath!,
+        photo: note.type == NoteType.photo,
+        mimeType: note.mimeType,
+        staged: staged,
+      )).path;
     } else {
       final folder = await Directory.systemTemp.createTemp('nex-save-');
       staged.add(folder);

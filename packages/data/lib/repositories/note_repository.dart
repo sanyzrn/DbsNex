@@ -10,6 +10,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../schema/backup_archive.dart';
 import '../schema/database.dart';
+import 'attachment_repository.dart';
 import '../schema/write_lock.dart';
 import '../search/vector_index.dart';
 import '../schema/zip_file_writer.dart';
@@ -456,7 +457,11 @@ WHERE id = ?
       [id],
     );
     if (rows.isEmpty) return null;
-    return Note.fromRow(rows.first, tags: tagsForNote(id));
+    return Note.fromRow(
+      rows.first,
+      tags: tagsForNote(id),
+      attachmentCount: attachmentCounts([id])[id] ?? 0,
+    );
   }
 
   /// Timeline page, most recently touched first (FR-2.2 / FR-2.5).
@@ -528,11 +533,38 @@ LIMIT ? OFFSET ?
   /// note (PERF-06). The batch keeps each note's tags in the same order
   /// [tagsForNote] gives them.
   List<Note> _withTags(ResultSet rows) {
-    final tags = tagsForNotes([for (final r in rows) r['id']! as String]);
+    final ids = [for (final r in rows) r['id']! as String];
+    final tags = tagsForNotes(ids);
+    final attached = attachmentCounts(ids);
     return [
       for (final r in rows)
-        Note.fromRow(r, tags: tags[r['id']! as String] ?? const []),
+        Note.fromRow(
+          r,
+          tags: tags[r['id']! as String] ?? const [],
+          attachmentCount: attached[r['id']! as String] ?? 0,
+        ),
     ];
+  }
+
+  /// How many live attachments each of [noteIds] has, in one query per 500.
+  /// Notes with none are left out.
+  Map<String, int> attachmentCounts(List<String> noteIds) {
+    final out = <String, int>{};
+    for (var at = 0; at < noteIds.length; at += 500) {
+      final chunk = noteIds.sublist(
+        at,
+        at + 500 > noteIds.length ? noteIds.length : at + 500,
+      );
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      for (final row in db.select('''
+SELECT note_id, COUNT(*) AS n FROM note_attachments
+WHERE deleted_at IS NULL AND note_id IN ($placeholders)
+GROUP BY note_id
+''', chunk)) {
+        out[row['note_id']! as String] = row['n']! as int;
+      }
+    }
+    return out;
   }
 
   /// The tags of every note in [noteIds], in one query rather than one each.
@@ -1120,12 +1152,35 @@ WHERE id = ? AND deleted_at IS NULL
   /// Re-derives this note's search row from whatever it now holds.
   void _reindex(String noteId) {
     final note = getById(noteId);
-    final searchable = note?.searchableDerivedText;
-    if (searchable != null && searchable.isNotEmpty) {
+    // A word in the third photo finds the note: each attachment's caption,
+    // OCR and transcript ride on the note's own row (docs/14-attachments.md).
+    final searchable = [
+      note?.searchableDerivedText,
+      if (note != null) _attachmentSearchText(noteId),
+    ].whereType<String>().where((s) => s.isNotEmpty).join('\n');
+    if (note != null && searchable.isNotEmpty) {
       _upsertFts(noteId, searchable);
     } else {
       db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
     }
+  }
+
+  String _attachmentSearchText(String noteId) => [
+    for (final row in db.select(
+      'SELECT caption, ocr_text, transcript_text FROM note_attachments '
+      'WHERE note_id = ? AND deleted_at IS NULL ORDER BY position',
+      [noteId],
+    ))
+      for (final key in const ['caption', 'ocr_text', 'transcript_text'])
+        if (row[key] case final String text when text.trim().isNotEmpty) text,
+  ].join('\n');
+
+  /// For [SqliteAttachmentRepository]: a note's attachments changed, so its
+  /// search row is re-derived and it is marked as edited, for sync and for
+  /// "edited" order.
+  void attachmentsChanged(String noteId) {
+    _bumpNote(noteId);
+    _reindex(noteId);
   }
 
   /// Repairs the search index's *membership*: FTS rows for notes that are
@@ -1666,8 +1721,16 @@ LIMIT ?
     final partial = File('$outputPath.partial');
     final encoder = ZipFileEncoder()..create(partial.path);
     try {
+      final attachments = SqliteAttachmentRepository(
+        this,
+        localDeviceId: localDeviceId ?? 'export',
+      ).allLive();
       final jsonPayload = jsonEncode({
-        'version': 2,
+        // Version 3 (1.99.70): the files a note carries after its own
+        // (docs/14-attachments.md). An older build reads a v3 archive as it
+        // read v2: every note with its own file, and the attachments left
+        // out.
+        'version': 3,
         'exported_at': DateTime.now().toUtc().toIso8601String(),
         // Reminders ride on each note; [Note.toJson] leaves them out because
         // the sync wire does, and an archive is not the sync wire. The app
@@ -1694,6 +1757,7 @@ LIMIT ?
         // `notes` until they are released, so an export without them lost
         // them on the way to a new phone.
         'scheduled': _rowsOf('SELECT * FROM scheduled_notes'),
+        'attachments': [for (final a in attachments) a.toJson()],
         'note_threads': _rowsOf('''
 SELECT nt.* FROM note_threads nt
 JOIN notes n ON n.id = nt.note_id AND n.deleted_at IS NULL
@@ -1727,6 +1791,18 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
             addBoundedZipFile(encoder, src, 'media/$entryName');
           }
         }
+      }
+
+      // An attachment's file: under its own name when that is free, else
+      // with the attachment's id in front — the same rule as the notes'
+      // own files, and the importer looks for both spellings in that order.
+      for (final attachment in attachments) {
+        final src = File(attachment.mediaUri);
+        if (!src.existsSync()) continue;
+        final name = p.basename(attachment.mediaUri);
+        final firstUse = usedMediaNames.add(name);
+        final entryName = firstUse ? name : '${attachment.id}-$name';
+        addBoundedZipFile(encoder, src, 'media/$entryName');
       }
 
       encoder.closeSync();
@@ -1894,6 +1970,52 @@ WHERE EXISTS (SELECT 1 FROM notes WHERE id = ?)
               row['thread_id'],
             ],
           );
+        }
+        // Attachments (v3), with the additive rule: one whose id is here
+        // already, or whose note is not, is left out. Each file gets a fresh
+        // name under the media root, as a note's own does.
+        final attachmentRepo = SqliteAttachmentRepository(
+          this,
+          localDeviceId: localDeviceId ?? 'import',
+        );
+        final touched = <String>{};
+        for (final raw in (payload['attachments'] as List? ?? const [])) {
+          final json = raw as Map<String, dynamic>;
+          final attachment = NoteAttachment.fromRow(json);
+          final name = p.basename(attachment.mediaUri);
+          var entry = archive.findFile('media/${attachment.id}-$name');
+          entry ??= archive.findFile('media/$name');
+          if (entry == null) continue;
+          final extension = p.extension(name);
+          final suffix = RegExp(r'^\.[a-zA-Z0-9]{1,10}$').hasMatch(extension)
+              ? extension
+              : '';
+          final target = File(p.join(mediaRoot, '${newUuidV7()}$suffix'));
+          final placed = NoteAttachment(
+            id: attachment.id,
+            noteId: attachment.noteId,
+            position: attachment.position,
+            kind: attachment.kind,
+            mediaUri: target.path,
+            mediaHash: attachment.mediaHash,
+            name: attachment.name,
+            mimeType: attachment.mimeType,
+            durationMs: attachment.durationMs,
+            caption: attachment.caption,
+            ocrText: attachment.ocrText,
+            transcriptText: attachment.transcriptText,
+            createdAt: attachment.createdAt,
+            updatedAt: attachment.updatedAt,
+            deviceId: attachment.deviceId,
+            rev: attachment.rev,
+          );
+          if (!attachmentRepo.insertIfAbsent(placed)) continue;
+          target.parent.createSync(recursive: true);
+          extractCheckedZipFile(entry, target.path);
+          touched.add(attachment.noteId);
+        }
+        for (final noteId in touched) {
+          _reindex(noteId);
         }
         db.execute('COMMIT');
       } catch (_) {

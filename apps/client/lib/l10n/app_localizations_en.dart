@@ -1091,6 +1091,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editCaption => 'Edit caption';
 
   @override
+  String get attachmentsTitle => 'Attached';
+
+  @override
+  String get attach => 'Attach';
+
+  @override
+  String get attachAdd => 'Attach a photo or file';
+
+  @override
+  String get attachTakePhoto => 'Take a photo';
+
+  @override
+  String get attachChoosePhotos => 'Choose photos';
+
+  @override
+  String get attachChooseFile => 'Choose a file';
+
+  @override
+  String get attachRemove => 'Remove from this note';
+
+  @override
+  String get attachRemoved => 'Attachment removed';
+
+  @override
+  String get attachOpen => 'Open';
+
+  @override
+  String get attachFailed => 'Could not attach that file';
+
+  @override
+  String attachedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count more files',
+      one: '1 more file',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get noCaption => 'No caption';
 
   @override
