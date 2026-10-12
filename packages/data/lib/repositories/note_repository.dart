@@ -1334,6 +1334,11 @@ ON CONFLICT(note_id) DO UPDATE SET
   /// candidates is far more than that can reorder past.
   static const _vectorCandidates = 200;
 
+  /// How far above the usual floor a plain match has to be to be shown when
+  /// nothing stands out, and how many such matches at most.
+  static const strongMargin = 0.1;
+  static const strongFallback = 3;
+
   @override
   List<({String noteId, double score})> nearestEmbeddings(
     List<double> query, {
@@ -1348,8 +1353,38 @@ ON CONFLICT(note_id) DO UPDATE SET
     if (index == null || index.dims != unit.length) return const [];
     final exclude = excludeNoteId == null ? null : {excludeNoteId};
     if (standout && index.length >= VectorIndex.standoutMinRows) {
-      return _standoutEmbeddings(index, unit, limit, minScore, exclude);
+      final standing = _standoutEmbeddings(
+        index,
+        unit,
+        limit,
+        minScore,
+        exclude,
+      );
+      if (standing.isNotEmpty) return standing;
+      // Nothing stood out — and after 1.99.82 that was, on the owner's
+      // phone, every search: meaning search went silent. A note that is
+      // plainly close is still a match: held to a higher floor than usual,
+      // which the generic notes the standout test is for sit just under,
+      // and only the closest few.
+      return _plainEmbeddings(
+        index,
+        unit,
+        limit < strongFallback ? limit : strongFallback,
+        minScore + strongMargin,
+        exclude,
+      );
     }
+    return _plainEmbeddings(index, unit, limit, minScore, exclude);
+  }
+
+  /// The nearest by plain similarity, at least [minScore], best first.
+  List<({String noteId, double score})> _plainEmbeddings(
+    VectorIndex index,
+    Float32List unit,
+    int limit,
+    double minScore,
+    Set<String>? exclude,
+  ) {
     final candidates = index.nearest(
       unit,
       limit > _vectorCandidates ? limit : _vectorCandidates,

@@ -36,6 +36,8 @@ Working convention:
 
 ## v1.99.91
 
+- **Meaning search speaks again.** Since 1.99.82 it could find nothing at all. When no note stands out for a search, the few notes plainly close to it are shown again — still only those, and still after the notes with your words.
+- **Search waits for the keyboard.** While you type in the search, the first touch outside the field only closes the keyboard — it no longer opens a result or closes the search by accident. Then a result opens with a tap, the field brings the keyboard back, and a touch anywhere else leaves the search.
 - **Save to device works for every item again.** A photo — a note's own or an attached one — and a note of words (saved as Markdown) said "Couldn't save"; they now go wherever you choose, as files and recordings already did.
 - **Voice notes play.** A voice note just recorded could play nothing at all: its first moment was the recorder's setup, written as if it were sound. New recordings start with the sound itself. At the end of a recording the button turns back to Play and the next tap starts from the beginning.
 - **The progress bar stays put.** Playing a voice note or an attached recording, the bar no longer runs ahead for a moment and snaps back to the start.

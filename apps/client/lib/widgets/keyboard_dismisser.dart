@@ -51,11 +51,12 @@ class NexKeyboardDismisser extends StatelessWidget {
 /// A field where, while it is being typed in, a touch outside it only puts
 /// the keyboard away (ADR-038).
 ///
-/// Only the settings search is one. There the screen under the keyboard is a
-/// list of switches and rows, and a touch meant to close the keyboard landed
-/// on one of them. Everywhere else a touch outside the field does what it
-/// touches, as in every other app: 1.91.0 made this rule app-wide, and a tag
-/// picked or a Send pressed with the keyboard up stopped working.
+/// Only the two searches are: settings and home. Under the keyboard there is
+/// a list of switches and rows, or of results, and a touch meant to close the
+/// keyboard landed on one of them. Everywhere else a touch outside the field
+/// does what it touches, as in every other app: 1.91.0 made this rule
+/// app-wide, and a tag picked or a Send pressed with the keyboard up stopped
+/// working.
 ///
 /// While [focusNode] holds focus and the on-screen keyboard is up, the first
 /// touch anywhere outside a text field — the rest of the sheet, the dimmed

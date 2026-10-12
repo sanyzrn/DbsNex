@@ -222,8 +222,8 @@ Accessibility is core functionality, not a compliance checkbox — a slow or con
   off). Single-line fields follow the typed script, or are left to right for
   links, keys and amounts. `test/text_field_rule_test.dart` holds every field
   to this ([ADR-037](./10-decisions.md#adr-037--text-a-person-writes-is-edited-in-the-platforms-own-editor-on-android)).
-- While typing in the settings search, the first touch outside it only
-  closes the keyboard; elsewhere a touch outside a field does what it touches
+- While typing in the settings search or the home search, the first touch
+  outside it only closes the keyboard; elsewhere a touch outside a field does what it touches
   ([ADR-038](./10-decisions.md#adr-038--while-typing-in-the-settings-search-a-touch-outside-it-only-closes-the-keyboard)).
 - Reopening supported editors restores their last local draft checkpoint;
   explicit discard or successful save removes that editor's checkpoint.
