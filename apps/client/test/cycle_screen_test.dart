@@ -6,6 +6,7 @@ import 'package:nex_client/screens/cycle/cycle_calendar.dart';
 import 'package:nex_client/screens/cycle/cycle_report_screen.dart';
 import 'package:nex_client/screens/cycle/cycle_ring.dart';
 import 'package:nex_client/screens/cycle_screen.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'support/nex_harness.dart';

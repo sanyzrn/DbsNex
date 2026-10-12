@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/reminders.dart';
 import 'package:nex_client/screens/scheduled_screen.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
+import 'package:nex_client/platform/nex_services.dart';
 
 import 'support/nex_harness.dart';
 

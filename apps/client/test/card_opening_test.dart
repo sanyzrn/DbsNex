@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/widgets/nex_dialog.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';

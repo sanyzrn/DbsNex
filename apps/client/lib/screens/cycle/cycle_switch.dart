@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../platform/cycle_reminders.dart';
 import '../../platform/nex_preferences.dart';
 import '../../platform/nex_services.dart';
+import '../../platform/reminders.dart';
 import '../../widgets/nex_dialog.dart';
 
 /// Turns «Cycle» on or off. Off asks once what to do with its data; on is

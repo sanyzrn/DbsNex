@@ -7,6 +7,7 @@ import 'nex_dialog.dart';
 import '../platform/nex_services.dart';
 import 'nex_banner.dart';
 import 'reminder_wheel.dart';
+import '../platform/reminders.dart';
 
 /// Asks when a note should come back, and sets or clears the alarm.
 ///

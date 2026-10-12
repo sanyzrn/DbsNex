@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/nex_banner.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';

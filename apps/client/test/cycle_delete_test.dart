@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
+import 'package:nex_client/platform/nex_services.dart';
 
 import 'support/nex_harness.dart';
 

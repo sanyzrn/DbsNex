@@ -13,6 +13,7 @@ import '../../widgets/nex_dialog.dart';
 import '../../widgets/nex_time_picker.dart';
 import 'cycle_format.dart';
 import 'cycle_space.dart';
+import '../../platform/reminders.dart';
 
 /// Reminders, the typical lengths, and deleting everything.
 ///

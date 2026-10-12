@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/platform/cycle_summary.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'support/nex_harness.dart';
