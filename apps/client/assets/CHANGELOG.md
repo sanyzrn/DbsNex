@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.82
+
+- **Search by meaning finds what is about your search, or nothing.** The same few short notes — a list of hashtags, a two-word reminder — were listed as found by meaning for almost every search. A note now has to stand out against the rest of your notes for that search to be listed, so they no longer come up for everything, and a search with nothing related in your notes shows no meaning results at all.
+
 ## v1.99.81
 
 - **Search keeps what you typed on top.** Notes that contain your words now always come first, in the order they first appear, and no longer move when the search by meaning answers a moment later. Notes found only by meaning follow them — only the few closest, marked as before. Before, a note that merely resembled the query could sit above the notes that held the words, and a long tail of unrelated notes was listed as found by meaning.
