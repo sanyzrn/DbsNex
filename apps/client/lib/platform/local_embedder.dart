@@ -33,12 +33,12 @@ class NexLocalEmbedder implements NoteEmbedder {
   /// EmbeddingGemma scores unrelated text around 0.4–0.55 and related text
   /// well above, so 0.3 admitted the whole library for any search: a six-note
   /// library answered "nuclear reactor engineering" with all six (AI-12).
-  /// 0.5 still sat inside that band, and the unrelated notes at its top
-  /// were listed as "similar in meaning" for queries they had nothing to do
-  /// with; above it, they are not. Keyword results are separate and
-  /// unaffected.
+  /// What keeps unrelated notes out of a search now is that a match has to
+  /// stand out against the rest of the library (`VectorIndex.standout`);
+  /// this floor is only the backstop, and a tiny library's whole test.
+  /// Keyword results are separate and unaffected.
   @override
-  double get minSimilarity => 0.56;
+  double get minSimilarity => 0.5;
 
   /// EmbeddingGemma's own prompts — the "Prompt instructions" of its model
   /// card, as Google's LiteRT-LM search demo applies them. A note and a

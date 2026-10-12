@@ -121,6 +121,7 @@ class VectorIndex {
   bool contains(String id) => _slot.containsKey(id);
 
   void put(String id, Uint8List q8, double scale) {
+    _centre = null;
     if (q8.length != dims) {
       remove(id);
       return;
@@ -146,6 +147,7 @@ class VectorIndex {
   void remove(String id) {
     final at = _slot.remove(id);
     if (at == null) return;
+    _centre = null;
     final last = _ids.length - 1;
     if (at != last) {
       _ids[at] = _ids[last];
@@ -201,6 +203,125 @@ class VectorIndex {
       if (best.length >= k) floor = best.last.score;
     }
     return best;
+  }
+
+  /// The direction every vector in the library shares, unit length, and how
+  /// far each row leans along it. Worked out on first use after a change.
+  Float32List? _centre;
+  Float32List _lean = Float32List(0);
+
+  void _settleCentre() {
+    if (_centre != null) return;
+    final sum = Float64List(dims);
+    for (var r = 0; r < _ids.length; r++) {
+      final codes = _codes[r];
+      final scale = _scales[r];
+      for (var i = 0; i < dims; i++) {
+        sum[i] += codes[i] * scale;
+      }
+    }
+    var norm = 0.0;
+    for (final v in sum) {
+      norm += v * v;
+    }
+    norm = math.sqrt(norm);
+    final centre = Float32List(dims);
+    if (norm > 0) {
+      for (var i = 0; i < dims; i++) {
+        centre[i] = sum[i] / norm;
+      }
+    }
+    final lean = Float32List(_ids.length);
+    for (var r = 0; r < _ids.length; r++) {
+      lean[r] = _dot(r, centre);
+    }
+    _centre = centre;
+    _lean = lean;
+  }
+
+  double _dot(int row, Float32List query) {
+    final codes = _codes[row];
+    var dot = 0.0;
+    for (var i = 0; i < dims; i++) {
+      dot += codes[i] * query[i];
+    }
+    return dot * _scales[row];
+  }
+
+  /// Too few rows to say what a query scores against the library as a
+  /// whole; [standout] answers nothing below this.
+  static const standoutMinRows = 12;
+
+  /// How many rows the background is measured on, at most.
+  static const _backgroundSample = 1500;
+
+  /// The rows that stand out for [query] (unit length), best first, at most
+  /// [k] — and none when nothing does.
+  ///
+  /// An embedding model puts every text of one language and length near the
+  /// same place, so plain cosine similarity gives every query a crowd of
+  /// near-equal matches, and the short, generic notes nearest that common
+  /// place — a list of hashtags, a two-word reminder — come up for
+  /// everything. Two things are done about it:
+  ///
+  /// - **The shared direction is taken out.** Each row is scored on what is
+  ///   left of the query once the library's common direction is removed,
+  ///   with the row's own lean along that direction subtracted. A note that
+  ///   is mostly "a short note in Persian" keeps almost nothing.
+  /// - **A match has to stand out.** The query is scored against an even
+  ///   sample of the whole library first, and a row is kept only when it
+  ///   lies [minDeviations] standard deviations or more above that
+  ///   background. A query with nothing related in the library finds
+  ///   nothing, rather than the least unrelated notes.
+  ///
+  /// Scores are the corrected similarity, comparable within one query.
+  List<({String id, double score})> standout(
+    Float32List query,
+    int k, {
+    double minDeviations = 3,
+    Set<String>? exclude,
+  }) {
+    if (query.length != dims || k <= 0 || _ids.length < standoutMinRows) {
+      return const [];
+    }
+    _settleCentre();
+    final centre = _centre!;
+    var along = 0.0;
+    for (var i = 0; i < dims; i++) {
+      along += query[i] * centre[i];
+    }
+    final rest = math.sqrt(math.max(1e-9, 1 - along * along));
+    double scoreOf(int row) => (_dot(row, query) - _lean[row] * along) / rest;
+
+    final step = math.max(1, _ids.length ~/ _backgroundSample);
+    var count = 0;
+    var sum = 0.0;
+    var squares = 0.0;
+    for (var r = 0; r < _ids.length; r += step) {
+      final score = scoreOf(r);
+      sum += score;
+      squares += score * score;
+      count++;
+    }
+    final mean = sum / count;
+    final spread = math.sqrt(math.max(1e-12, squares / count - mean * mean));
+    final cut = mean + minDeviations * spread;
+
+    final rows = _ids.length > binaryThreshold
+        ? _closestBySign(_signs(query), (_ids.length ~/ 10).clamp(400, 3000))
+        : null;
+    final total = rows?.length ?? _ids.length;
+    final kept = <({String id, double score})>[];
+    for (var r = 0; r < total; r++) {
+      final row = rows == null ? r : rows[r];
+      final score = scoreOf(row);
+      if (score < cut) continue;
+      final id = _ids[row];
+      if (exclude != null && exclude.contains(id)) continue;
+      kept.add((id: id, score: score));
+    }
+    kept.sort((a, b) => b.score.compareTo(a.score));
+    return kept.length > k ? kept.sublist(0, k) : kept;
   }
 
   /// The rows whose sign bits differ least from [query]'s — at least [keep]

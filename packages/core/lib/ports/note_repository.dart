@@ -57,11 +57,18 @@ abstract interface class NoteRepository {
   /// best first: at most [limit], none below [minScore], never a deleted
   /// note, never [excludeNoteId]. How every semantic search and "related
   /// notes" asks, so no caller ever has to load the whole library's vectors.
+  ///
+  /// With [standout], only the notes that stand out for [query] against the
+  /// library as a whole, scored with what every note shares taken out — the
+  /// answer a search wants, where plain similarity lists the same generic
+  /// notes for every query. A library too small to measure that falls back
+  /// to plain similarity.
   List<({String noteId, double score})> nearestEmbeddings(
     List<double> query, {
     int limit,
     double minScore,
     String? excludeNoteId,
+    bool standout,
   });
 
   /// Notes with text and no embedding yet, newest first.

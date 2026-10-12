@@ -121,6 +121,26 @@ void main() {
     expect(ms, lessThan(150));
   });
 
+  test('meaning search that must stand out: p95 under 150 ms', () {
+    // The first call works out the library's centre; every later one
+    // measures the query against a sample and scores the candidates.
+    final settle = Stopwatch()..start();
+    repo.nearestEmbeddings(vector(), limit: 20, minScore: -1, standout: true);
+    final first = settle.elapsedMilliseconds;
+    final probes = [for (var i = 0; i < runs; i++) vector()];
+    final ms = p95((run) {
+      repo.nearestEmbeddings(
+        probes[run],
+        limit: 20,
+        minScore: -1,
+        standout: true,
+      );
+    });
+    print('standout p95: $ms ms (first, finding the centre: $first ms)');
+    expect(first, lessThan(3000));
+    expect(ms, lessThan(150));
+  });
+
   test('fused search: p95 under 250 ms', () {
     final probes = [for (var i = 0; i < runs; i++) vector()];
     final ms = p95((run) {

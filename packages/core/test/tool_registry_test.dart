@@ -83,6 +83,7 @@ class _FakeNoteRepository implements NoteRepository {
     int limit = 20,
     double minScore = 0,
     String? excludeNoteId,
+    bool standout = false,
   }) => const [];
 
   @override
