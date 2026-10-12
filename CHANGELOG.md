@@ -36,6 +36,8 @@ Working convention:
 
 ## v1.99.92
 
+- **Voice notes play on every phone.** On some phones a voice note recorded with **+** played nothing, while a clip attached on the same phone played: the recording was labelled with the sample rate and channels that were asked for, not the ones the phone used. Each recording now carries the phone's own, and voice notes recorded before play from a corrected copy — the original stays as it is.
+- **Attaching no longer holds everything else up.** With reading text in photos or transcription on, each attached photo or voice clip made the app wait for the AI before doing anything else — a file attached or a note deleted could take minutes to appear. It is read in the background now, the way a photo note's own text always was.
 - **Tools on the home screen.** Hold any tool on the Tools page — passwords, bank cards, scheduled notes, the generator, a module — to pin it to the top of the timeline, in its own colour and icon. A pinned private tool shows only its name and still asks for your fingerprint. Hold it there to take it off.
 - **Recent searches.** Before you type, your last five searches are there to tap again, next to the saved ones, with a button to clear them.
 - **A finished checklist says so.** Ticking the last open line makes the list glow once, the phone gives a single tap, and the progress line reads **All done**.

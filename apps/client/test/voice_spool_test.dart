@@ -61,6 +61,36 @@ void main() {
     expect(NexVoiceSpool.isSetupFrame(Uint8List.fromList([1, 2, 3])), isFalse);
   });
 
+  test('every header is made to say what the encoder said', () {
+    // The encoder's setup block: AAC LC (2), 48 kHz (index 3), one channel —
+    // while the recorder's headers say 44.1 kHz.
+    final setup = Uint8List.fromList(adtsFrame(payload: 2))
+      ..[7] = (2 << 3) | (3 >> 1)
+      ..[8] = ((3 & 1) << 7) | (1 << 3);
+    final config = AdtsConfig.fromSetupFrame(setup)!;
+    expect(config.objectType, 2);
+    expect(config.rateIndex, 3);
+    expect(config.channels, 1);
+
+    final frame = Uint8List.fromList(adtsFrame(payload: 40));
+    final fixed = config.correct(frame);
+    expect((fixed[2] >> 2) & 0x0F, 3, reason: 'the rate the encoder used');
+    expect(fixed[2] >> 6, 1, reason: 'LC');
+    expect(((fixed[2] & 0x01) << 2) | (fixed[3] >> 6), 1);
+    // The length, and the audio, are untouched.
+    expect(fixed.sublist(4), frame.sublist(4));
+    expect(fixed[3] & 0x3F, frame[3] & 0x3F);
+    expect(NexVoiceSpool.adtsDurationMs(fixed), isPositive);
+
+    // Not a setup block, or one ADTS cannot carry: nothing to correct with.
+    expect(AdtsConfig.fromSetupFrame(frame), isNull);
+    final odd = Uint8List.fromList(setup)..[7] = 31 << 3;
+    expect(AdtsConfig.fromSetupFrame(odd), isNull);
+    // Not ADTS at all: left alone.
+    final raw = Uint8List.fromList([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(config.correct(raw), raw);
+  });
+
   group('on the next launch', () {
     late Directory tmp;
     late InProcessDb db;
