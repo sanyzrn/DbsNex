@@ -39,6 +39,7 @@ Working convention:
 - **Notes open faster.** A note's sheet now opens with the note already in it — it used to rise with a placeholder and wait for the library before growing to fit — and it rises in about a third less time.
 - **A clearer top to every note.** The sheet opens on its type in the colour its card wears, and the date with the month in words and the time to the minute; the exact time to the second is still under Details.
 - **Days fold like a fan.** Folding a day — by tapping its heading or pinching the timeline — now moves its notes one after another: opening, they fan out from the heading and settle into place; closing, the lowest go first and the rest fold up after them.
+- **The wordmark takes your accent, and comes alive.** The stroke through the x and the dot after it in the corner of the timeline now wear the app's accent colour instead of a fixed blue — green with Forest, and so on — and every few seconds a light runs along the stroke and the dot gives a small hop. Never with animations turned off.
 
 ## v1.99.40
 

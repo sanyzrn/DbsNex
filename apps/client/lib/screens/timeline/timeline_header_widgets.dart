@@ -17,7 +17,8 @@ class _WordmarkTile extends StatelessWidget {
   static const _height = 16.0;
 
   @override
-  Widget build(BuildContext context) => const NexLogotype(height: _height);
+  Widget build(BuildContext context) =>
+      const NexLivingLogotype(height: _height);
 }
 
 /// "Good evening, Saeed ☀️" — the text and its animated mark on one line.
