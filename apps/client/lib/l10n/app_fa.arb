@@ -985,6 +985,7 @@
       "description": "Action that opens a link note in the browser"
   },
   "checklistProgress": "{done} از {total}",
+  "checklistAllDone": "همه انجام شد",
   "@checklistProgress": {
       "description": "How many checklist items are ticked",
       "placeholders": {
@@ -1148,6 +1149,16 @@
   "askAboutNote": "بپرس",
   "saveSearch": "ذخیره این جست‌وجو",
   "savedSearches": "ذخیره‌شده",
+  "recentSearches": "اخیر",
+  "clearRecentSearches": "پاک کردن جست‌وجوهای اخیر",
+  "pinToHome": "سنجاق به صفحهٔ اصلی",
+  "unpinFromHome": "برداشتن از صفحهٔ اصلی",
+  "toolPinned": "به صفحهٔ اصلی سنجاق شد",
+  "toolUnpinned": "از صفحهٔ اصلی برداشته شد",
+  "toolsPinHint": "ابزاری را نگه دارید تا به صفحهٔ اصلی سنجاق شود.",
+  "toolsMessages": "پیام‌های ذخیره‌شدهٔ خصوصی",
+  "toolsMessagesHint": "فضایی خصوصی برای متن‌های شما",
+  "toolsGeneratorHint": "ساخت و کپی رمز قوی",
   "assistantConfirmMerge": "این یادداشت‌ها را یکی کنم؟",
   "assistantConfirmThread": "این یادداشت‌ها را به یک رشته اضافه کنم؟",
   "assistantConfirmChecklist": "این را به چک‌لیست تبدیل کنم؟",

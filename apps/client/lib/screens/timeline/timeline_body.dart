@@ -285,6 +285,7 @@ extension _TimelineBody on TimelineScreenState {
           _search.run();
         },
         onOpen: (note) {
+          unawaited(widget.preferences.rememberSearch(_search.query.text));
           if (_searchStarted case final started?) {
             NexMetrics.shared.record(NexMetric.searchToOpen, started.elapsed);
             _searchStarted = null;

@@ -3602,6 +3602,12 @@ abstract class AppLocalizations {
   /// **'{done} of {total}'**
   String checklistProgress(int done, int total);
 
+  /// Progress line of a checklist with every line ticked
+  ///
+  /// In en, this message translates to:
+  /// **'All done'**
+  String get checklistAllDone;
+
   /// What the assistant sheet says before anything is typed — a description of the box, not a greeting
   ///
   /// In en, this message translates to:
@@ -4255,6 +4261,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved'**
   String get savedSearches;
+
+  /// Heading above the last few searches used
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get recentSearches;
+
+  /// Tooltip of the button that forgets the recent searches
+  ///
+  /// In en, this message translates to:
+  /// **'Clear recent searches'**
+  String get clearRecentSearches;
+
+  /// Long-press action on a Tools tile: put it at the top of the timeline
+  ///
+  /// In en, this message translates to:
+  /// **'Pin to home'**
+  String get pinToHome;
+
+  /// Long-press action on a pinned tool: take it off the timeline
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin from home'**
+  String get unpinFromHome;
+
+  /// Banner after a tool is pinned to the home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to the home screen'**
+  String get toolPinned;
+
+  /// Banner after a tool is taken off the home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from the home screen'**
+  String get toolUnpinned;
+
+  /// Note under the Tools page heading
+  ///
+  /// In en, this message translates to:
+  /// **'Hold a tool to pin it to the home screen.'**
+  String get toolsPinHint;
+
+  /// The private messages tool, on the Tools page and pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Private saved messages'**
+  String get toolsMessages;
+
+  /// Line under the private messages tool
+  ///
+  /// In en, this message translates to:
+  /// **'A private space for your words'**
+  String get toolsMessagesHint;
+
+  /// Line under the password generator tool
+  ///
+  /// In en, this message translates to:
+  /// **'Create and copy a strong password'**
+  String get toolsGeneratorHint;
 
   /// Confirmation for merging notes
   ///

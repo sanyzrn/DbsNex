@@ -2156,6 +2156,9 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get checklistAllDone => 'همه انجام شد';
+
+  @override
   String get chatGreeting => 'از یادداشت‌هایتان بپرسید';
 
   @override
@@ -2534,6 +2537,36 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get savedSearches => 'ذخیره‌شده';
+
+  @override
+  String get recentSearches => 'اخیر';
+
+  @override
+  String get clearRecentSearches => 'پاک کردن جست‌وجوهای اخیر';
+
+  @override
+  String get pinToHome => 'سنجاق به صفحهٔ اصلی';
+
+  @override
+  String get unpinFromHome => 'برداشتن از صفحهٔ اصلی';
+
+  @override
+  String get toolPinned => 'به صفحهٔ اصلی سنجاق شد';
+
+  @override
+  String get toolUnpinned => 'از صفحهٔ اصلی برداشته شد';
+
+  @override
+  String get toolsPinHint => 'ابزاری را نگه دارید تا به صفحهٔ اصلی سنجاق شود.';
+
+  @override
+  String get toolsMessages => 'پیام‌های ذخیره‌شدهٔ خصوصی';
+
+  @override
+  String get toolsMessagesHint => 'فضایی خصوصی برای متن‌های شما';
+
+  @override
+  String get toolsGeneratorHint => 'ساخت و کپی رمز قوی';
 
   @override
   String get assistantConfirmMerge => 'این یادداشت‌ها را یکی کنم؟';

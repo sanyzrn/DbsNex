@@ -3,9 +3,10 @@ part of '../timeline_screen.dart';
 /// The app's own mark, in the corner the app bar used to spend on a title.
 ///
 /// Bare, on no ground of its own. It had a rounded tile behind it to match the
-/// footprint of the two icon buttons opposite — but those are tap targets and
+/// footprint of the two icon buttons opposite — but those are buttons and
 /// this is not, so the tile was claiming an affordance the mark does not have,
-/// and it read as a fourth button that does nothing.
+/// and it read as a fourth button that does nothing. A touch on it plays its
+/// movement, a small thing to find rather than a control.
 ///
 /// The "nex" wordmark, drawn from the brand's own vectors ([NexLogotype])
 /// rather than a picture, so it stays crisp and follows light and dark.

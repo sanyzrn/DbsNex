@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.92
+
+- **Tools on the home screen.** Hold any tool on the Tools page — passwords, bank cards, scheduled notes, the generator, a module — to pin it to the top of the timeline, in its own colour and icon. A pinned private tool shows only its name and still asks for your fingerprint. Hold it there to take it off.
+- **Recent searches.** Before you type, your last five searches are there to tap again, next to the saved ones, with a button to clear them.
+- **A finished checklist says so.** Ticking the last open line makes the list glow once, the phone gives a single tap, and the progress line reads **All done**.
+- **Touch the Nex wordmark** on the home screen and it plays its little movement there and then.
+
 ## v1.99.91
 
 - **Meaning search speaks again.** Since 1.99.82 it could find nothing at all. When no note stands out for a search, the few notes plainly close to it are shown again — still only those, and still after the notes with your words.

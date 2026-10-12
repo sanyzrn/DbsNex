@@ -113,86 +113,133 @@ class NexShelfTile extends StatelessWidget {
     required this.icon,
     required this.hue,
     required this.onTap,
+    this.onLongPress,
+    this.longPressLabel,
     this.badge,
+    this.pinned = false,
+    this.compact = false,
   });
   final String title, subtitle;
   final IconData icon;
   final NexHue hue;
   final VoidCallback onTap;
 
+  /// A hold: pinning a tool to the home screen, or taking it off.
+  final VoidCallback? onLongPress;
+
+  /// What the hold does, for a screen reader.
+  final String? longPressLabel;
+
   /// A small mark in the corner — a lock on a private tool.
   final IconData? badge;
+
+  /// Pinned to the home screen: a pin beside [badge].
+  final bool pinned;
+
+  /// One line, icon and title: the tool as a card among the notes.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final color = hue.of(theme.brightness);
-    return Material(
-      color: scheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: color.withValues(alpha: 0.35)),
+    final marks = [
+      if (pinned) Icon(Icons.push_pin_rounded, size: 14, color: color),
+      if (badge case final badge?)
+        Icon(badge, size: 16, color: scheme.onSurfaceVariant),
+    ];
+    final mark = Container(
+      padding: EdgeInsets.all(compact ? 7 : 9),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(compact ? 12 : 14),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Ink(
-          // A wash of the tool's colour from its corner, fading out
-          // before it reaches the words.
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: AlignmentDirectional.topStart,
-              end: AlignmentDirectional.bottomEnd,
-              colors: [
-                color.withValues(alpha: 0.16),
-                color.withValues(alpha: 0.02),
-              ],
-            ),
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 22,
-                      color: theme.brightness == Brightness.dark
-                          ? Colors.black87
-                          : Colors.white,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (badge case final badge?)
-                    Icon(badge, size: 16, color: scheme.onSurfaceVariant),
+      child: Icon(
+        icon,
+        size: compact ? 18 : 22,
+        color: theme.brightness == Brightness.dark
+            ? Colors.black87
+            : Colors.white,
+      ),
+    );
+    return Semantics(
+      onLongPressHint: longPressLabel,
+      child: Material(
+        color: scheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(compact ? NexRadius.lg : 22),
+          side: BorderSide(color: color.withValues(alpha: 0.35)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Ink(
+            // A wash of the tool's colour from its corner, fading out
+            // before it reaches the words.
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: AlignmentDirectional.topStart,
+                end: AlignmentDirectional.bottomEnd,
+                colors: [
+                  color.withValues(alpha: 0.16),
+                  color.withValues(alpha: 0.02),
                 ],
               ),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+            ),
+            padding: EdgeInsets.all(compact ? 10 : 14),
+            child: compact
+                ? Row(
+                    children: [
+                      mark,
+                      const SizedBox(width: NexSpacing.sm + 2),
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall,
+                        ),
+                      ),
+                      for (final m in marks) ...[
+                        const SizedBox(width: NexSpacing.xs),
+                        m,
+                      ],
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          mark,
+                          const Spacer(),
+                          for (final m in marks) ...[
+                            const SizedBox(width: NexSpacing.xs),
+                            m,
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),

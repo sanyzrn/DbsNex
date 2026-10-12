@@ -656,6 +656,9 @@ class NexPreferences extends _PreferencesStore
 
   static const maxSavedSearches = 12;
 
+  /// How many recent searches the search screen offers.
+  static const maxRecentSearches = 5;
+
   /// The key a recap is filed under: the local calendar day it describes.
   static String daySummaryDateKey(DateTime when) =>
       '${when.year.toString().padLeft(4, '0')}-'

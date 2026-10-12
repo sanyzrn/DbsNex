@@ -179,7 +179,17 @@ extension _DetailActions on _NoteDetailSheetState {
   Future<void> _toggleItem(int index) async {
     final note = _note;
     if (note == null) return;
+    final items = note.checklistItems;
+    // The last open line: the one touch that finishes the list.
+    final finishing =
+        index >= 0 &&
+        index < items.length &&
+        !items[index].done &&
+        items.where((item) => !item.done).length == 1;
     await widget.services.toggleChecklistItem(note.id, index);
+    if (finishing && (widget.preferences?.haptics ?? true)) {
+      unawaited(HapticFeedback.mediumImpact());
+    }
     await _reload();
   }
 

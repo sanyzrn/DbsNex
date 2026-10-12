@@ -1,16 +1,16 @@
-import '../widgets/feature_label.dart';
-import '../widgets/nex_shelf.dart';
-import 'password_generator_screen.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
+
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
-import '../modules/module_registry.dart';
+import '../widgets/nex_banner.dart';
+import '../widgets/nex_shelf.dart';
 import 'modules_screen.dart';
-import '../platform/vault_store.dart';
-import 'scheduled_screen.dart';
-import 'vault_screen.dart';
+import 'tools/tool_catalog.dart';
 
 class ToolsScreen extends StatelessWidget {
   const ToolsScreen({super.key, this.services, this.preferences});
@@ -23,28 +23,20 @@ class ToolsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final everyday = <Widget>[
-      if (services case final services?) ...[
-        _ToolTile(
-          title: l.scheduledTitle,
-          subtitle: l.scheduledSubtitle,
-          icon: Icons.schedule_send_outlined,
-          hue: NexHue.sky,
-          destination: ScheduledScreen(services: services),
-        ),
-      ],
-      _ToolTile(
-        title: l.vaultGenerator,
-        subtitle: nexLabel(
-          context,
-          'Create and copy a strong password',
-          'ساخت و کپی رمز قوی',
-        ),
-        icon: Icons.casino_outlined,
-        hue: NexHue.slate,
-        destination: const PasswordGeneratorScreen(),
-      ),
-    ];
+    final preferences = this.preferences;
+    // A hold pins a tool to the top of the timeline, or takes it off, with
+    // the colour and icon it has here.
+    Widget tile(NexTool tool) => preferences == null
+        ? _ToolTile(tool: tool)
+        : ListenableBuilder(
+            listenable: preferences,
+            builder: (context, _) => _ToolTile(
+              tool: tool,
+              pinned: preferences.isToolPinned(tool.id),
+              onLongPress: () =>
+                  unawaited(nexToggleToolPin(context, preferences, tool)),
+            ),
+          );
     return Scaffold(
       appBar: AppBar(title: Text(l.toolsTitle)),
       body: SafeArea(
@@ -66,46 +58,19 @@ class ToolsScreen extends StatelessWidget {
             ),
             const SizedBox(height: NexSpacing.sm),
             nexShelfPairs([
-              _ToolTile(
-                kind: VaultKind.password,
-                title: l.vaultPasswords,
-                subtitle: l.vaultPasswordsHint,
-                icon: Icons.key_rounded,
-                hue: NexHue.amber,
-                locked: true,
-              ),
-              _ToolTile(
-                kind: VaultKind.card,
-                title: l.vaultCards,
-                subtitle: l.vaultCardsHint,
-                icon: Icons.credit_card_rounded,
-                hue: NexHue.teal,
-                locked: true,
-              ),
-              _ToolTile(
-                kind: VaultKind.message,
-                title: nexLabel(
-                  context,
-                  'Private saved messages',
-                  'پیام‌های ذخیره‌شدهٔ خصوصی',
-                ),
-                subtitle: nexLabel(
-                  context,
-                  'A private space for your words',
-                  'فضایی خصوصی برای متن‌های شما',
-                ),
-                icon: Icons.chat_bubble_outline,
-                hue: NexHue.violet,
-                locked: true,
-              ),
+              for (final tool in nexPrivateTools(context)) tile(tool),
             ]),
             const SizedBox(height: NexSpacing.lg),
             NexShelfHeading(
               icon: Icons.grid_view_rounded,
               title: l.toolsSectionEveryday,
+              note: preferences == null ? null : l.toolsPinHint,
             ),
             const SizedBox(height: NexSpacing.sm),
-            nexShelfPairs(everyday),
+            nexShelfPairs([
+              for (final tool in nexEverydayTools(context, services: services))
+                tile(tool),
+            ]),
             // The modules that are added, and the way to add more — see
             // `docs/17-modules.md`. Rebuilt from the preferences, so a module
             // added or removed on its page is here, or gone, on the way back.
@@ -122,27 +87,29 @@ class ToolsScreen extends StatelessWidget {
               ListenableBuilder(
                 listenable: preferences,
                 builder: (context, _) => nexShelfPairs([
-                  for (final module in nexModulesOn(preferences))
-                    _ToolTile(
-                      key: ValueKey('tools-module-${module.id}'),
-                      title: module.title(l),
-                      subtitle: module.tagline(l),
-                      icon: module.icon,
-                      hue: module.hue,
-                      destination: module.open(
-                        services: services,
-                        preferences: preferences,
-                      ),
+                  for (final tool in nexModuleTools(
+                    context,
+                    services: services,
+                    preferences: preferences,
+                  ))
+                    KeyedSubtree(
+                      key: ValueKey('tools-${tool.id.replaceFirst('.', '-')}'),
+                      child: tile(tool),
                     ),
-                  _ToolTile(
+                  NexShelfTile(
                     key: const ValueKey('tools-modules'),
                     title: l.modulesManage,
                     subtitle: l.modulesManageHint,
                     icon: Icons.extension_outlined,
                     hue: NexHue.violet,
-                    destination: ModulesScreen(
-                      services: services,
-                      preferences: preferences,
+                    onTap: () => Navigator.push(
+                      context,
+                      NexPageRoute<void>(
+                        builder: (_) => ModulesScreen(
+                          services: services,
+                          preferences: preferences,
+                        ),
+                      ),
                     ),
                   ),
                 ]),
@@ -174,35 +141,47 @@ class ToolsScreen extends StatelessWidget {
 }
 
 class _ToolTile extends StatelessWidget {
-  const _ToolTile({
-    super.key,
-    this.kind,
-    this.destination,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.hue,
-    this.locked = false,
-  });
-  final VaultKind? kind;
-  final Widget? destination;
-  final String title, subtitle;
-  final IconData icon;
-  final NexHue hue;
-  final bool locked;
+  const _ToolTile({required this.tool, this.pinned = false, this.onLongPress});
+
+  final NexTool tool;
+  final bool pinned;
+  final VoidCallback? onLongPress;
 
   @override
-  Widget build(BuildContext context) => NexShelfTile(
-    title: title,
-    subtitle: subtitle,
-    icon: icon,
-    hue: hue,
-    badge: locked ? Icons.lock_rounded : null,
-    onTap: () => Navigator.push(
-      context,
-      NexPageRoute<void>(
-        builder: (_) => destination ?? VaultScreen(kind: kind!),
-      ),
-    ),
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return NexShelfTile(
+      key: ValueKey('tool-${tool.id}'),
+      title: tool.title,
+      subtitle: tool.subtitle,
+      icon: tool.icon,
+      hue: tool.hue,
+      badge: tool.locked ? Icons.lock_rounded : null,
+      pinned: pinned,
+      onTap: () => unawaited(tool.push(context)),
+      onLongPress: onLongPress,
+      longPressLabel: onLongPress == null
+          ? null
+          : (pinned ? l.unpinFromHome : l.pinToHome),
+    );
+  }
+}
+
+/// Pins [tool] to the home screen or takes it off, and says which, with a
+/// way back.
+Future<void> nexToggleToolPin(
+  BuildContext context,
+  NexPreferences preferences,
+  NexTool tool,
+) async {
+  final l = AppLocalizations.of(context);
+  unawaited(HapticFeedback.selectionClick());
+  final pinned = await preferences.togglePinnedTool(tool.id);
+  if (!context.mounted) return;
+  nexShowBanner(
+    context,
+    message: pinned ? l.toolPinned : l.toolUnpinned,
+    actionLabel: l.undo,
+    onAction: () => unawaited(preferences.togglePinnedTool(tool.id)),
   );
 }

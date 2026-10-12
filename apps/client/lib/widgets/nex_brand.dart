@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Nex's mark and wordmark, drawn from the designer's own vectors.
 ///
@@ -302,7 +303,8 @@ class _LogotypePainter extends CustomPainter {
 /// stroke, the way a pen would draw it, and the dot gives a small hop and
 /// lands. Seven seconds apart, under a second each, and never at all with
 /// animations turned off — a sign of life in the corner, not something
-/// competing with the notes.
+/// competing with the notes. A touch plays it at once, and the seven
+/// seconds start again from there.
 class NexLivingLogotype extends StatefulWidget {
   const NexLivingLogotype({super.key, required this.height});
 
@@ -355,6 +357,17 @@ class _NexLivingLogotypeState extends State<NexLivingLogotype>
     _timer = Timer(NexLivingLogotype.interval, _play);
   }
 
+  /// A touch plays it now, and the seven seconds start again from here —
+  /// the next one is not due a moment after the one just asked for.
+  void _touched() {
+    if (!NexLivingLogotype.enabled || MediaQuery.disableAnimationsOf(context)) {
+      return;
+    }
+    _timer?.cancel();
+    HapticFeedback.selectionClick();
+    _play();
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -369,17 +382,23 @@ class _NexLivingLogotypeState extends State<NexLivingLogotype>
     return Semantics(
       label: 'Nex',
       image: true,
-      child: AnimatedBuilder(
-        animation: _motion,
-        builder: (context, _) => CustomPaint(
-          size: Size(
-            widget.height * bounds.width / bounds.height,
-            widget.height,
-          ),
-          painter: _LivingLogotypePainter(
-            ink: NexBrand.ink(theme.brightness),
-            accent: theme.colorScheme.primary,
-            t: _motion.value,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        // Not a control, so not announced as one: a small thing to find.
+        excludeFromSemantics: true,
+        onTap: _touched,
+        child: AnimatedBuilder(
+          animation: _motion,
+          builder: (context, _) => CustomPaint(
+            size: Size(
+              widget.height * bounds.width / bounds.height,
+              widget.height,
+            ),
+            painter: _LivingLogotypePainter(
+              ink: NexBrand.ink(theme.brightness),
+              accent: theme.colorScheme.primary,
+              t: _motion.value,
+            ),
           ),
         ),
       ),

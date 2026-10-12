@@ -5,14 +5,84 @@ part of '../note_detail_sheet.dart';
 /// Rows in their stored order here, unlike the card, which floats what is
 /// still to do to the top: on the card you want the next thing, in the sheet
 /// you want the list you wrote.
-class _ChecklistBody extends StatelessWidget {
+/// A checklist's lines, ticked with a touch.
+///
+/// The touch that ticks the last open line is marked: the list glows once in
+/// the accent and settles, and the progress line says it is all done. Only
+/// on that touch — not when a finished list is opened, nor while ticking
+/// lines back and forth.
+class _ChecklistBody extends StatefulWidget {
   const _ChecklistBody({required this.items, required this.onToggle});
 
   final List<ChecklistItem> items;
   final ValueChanged<int> onToggle;
 
   @override
+  State<_ChecklistBody> createState() => _ChecklistBodyState();
+}
+
+class _ChecklistBodyState extends State<_ChecklistBody>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _glow = AnimationController(
+    vsync: this,
+    duration: NexMotion.receipt,
+  );
+
+  static bool _finished(List<ChecklistItem> items) =>
+      items.isNotEmpty && items.every((item) => item.done);
+
+  @override
+  void didUpdateWidget(_ChecklistBody old) {
+    super.didUpdateWidget(old);
+    // Same list, one more tick, and now nothing left open.
+    if (old.items.length == widget.items.length &&
+        !_finished(old.items) &&
+        _finished(widget.items)) {
+      _glow.duration = NexMotion.of(context, NexMotion.receipt);
+      unawaited(_glow.forward(from: 0));
+    }
+  }
+
+  @override
+  void dispose() {
+    _glow.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return AnimatedBuilder(
+      animation: _glow,
+      builder: (context, child) {
+        // Up quickly, down slowly: a breath, not a flash.
+        final t = _glow.value;
+        final strength = t < 0.3
+            ? Curves.easeOut.transform(t / 0.3)
+            : 1 - Curves.easeInOut.transform((t - 0.3) / 0.7);
+        if (strength <= 0) return child!;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.10 * strength),
+            borderRadius: BorderRadius.circular(NexRadius.md),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withValues(alpha: 0.22 * strength),
+                blurRadius: 18 * strength,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: _lines(context),
+    );
+  }
+
+  Widget _lines(BuildContext context) {
+    final items = widget.items;
+    final onToggle = widget.onToggle;
     final theme = Theme.of(context);
     final progress = checklistProgress(items);
     final l10n = AppLocalizations.of(context);
@@ -24,7 +94,10 @@ class _ChecklistBody extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: NexSpacing.sm),
             child: Text(
-              l10n.checklistProgress(progress.done, progress.total),
+              progress.done == progress.total
+                  ? '${l10n.checklistAllDone} · '
+                        '${l10n.checklistProgress(progress.done, progress.total)}'
+                  : l10n.checklistProgress(progress.done, progress.total),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

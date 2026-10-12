@@ -1726,6 +1726,10 @@
           }
       }
   },
+  "checklistAllDone": "All done",
+  "@checklistAllDone": {
+    "description": "Progress line of a checklist with every line ticked"
+  },
   "chatGreeting": "Ask about your notes",
   "@chatGreeting": {
     "description": "What the assistant sheet says before anything is typed \u2014 a description of the box, not a greeting"
@@ -2078,6 +2082,46 @@
   "savedSearches": "Saved",
   "@savedSearches": {
     "description": "Heading above the list of kept searches"
+  },
+  "recentSearches": "Recent",
+  "@recentSearches": {
+    "description": "Heading above the last few searches used"
+  },
+  "clearRecentSearches": "Clear recent searches",
+  "@clearRecentSearches": {
+    "description": "Tooltip of the button that forgets the recent searches"
+  },
+  "pinToHome": "Pin to home",
+  "@pinToHome": {
+    "description": "Long-press action on a Tools tile: put it at the top of the timeline"
+  },
+  "unpinFromHome": "Unpin from home",
+  "@unpinFromHome": {
+    "description": "Long-press action on a pinned tool: take it off the timeline"
+  },
+  "toolPinned": "Pinned to the home screen",
+  "@toolPinned": {
+    "description": "Banner after a tool is pinned to the home screen"
+  },
+  "toolUnpinned": "Removed from the home screen",
+  "@toolUnpinned": {
+    "description": "Banner after a tool is taken off the home screen"
+  },
+  "toolsPinHint": "Hold a tool to pin it to the home screen.",
+  "@toolsPinHint": {
+    "description": "Note under the Tools page heading"
+  },
+  "toolsMessages": "Private saved messages",
+  "@toolsMessages": {
+    "description": "The private messages tool, on the Tools page and pinned"
+  },
+  "toolsMessagesHint": "A private space for your words",
+  "@toolsMessagesHint": {
+    "description": "Line under the private messages tool"
+  },
+  "toolsGeneratorHint": "Create and copy a strong password",
+  "@toolsGeneratorHint": {
+    "description": "Line under the password generator tool"
   },
   "assistantConfirmMerge": "Combine these notes into one?",
   "@assistantConfirmMerge": {

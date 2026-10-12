@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 
@@ -211,6 +212,28 @@ void main() {
 
     expect((await services.getById(note.id))!.checklistItems.first.done, true);
     expect(find.text('1 of 2'), findsOneWidget);
+
+    // The last open line finishes the list: it says so, with one haptic tap.
+    final haptics = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          haptics.add('${call.arguments}');
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await tester.tap(find.text('bread').last);
+    await tester.pumpAndSettle();
+    expect(find.text('All done · 2 of 2'), findsOneWidget);
+    expect(haptics, contains('HapticFeedbackType.mediumImpact'));
 
     // No title action: naming a note by hand was offered for one version and
     // taken back out. Nex is not a filing app, and a capture is meant to be

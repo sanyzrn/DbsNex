@@ -99,6 +99,23 @@ mixin _HomePreferences on _PreferencesStore {
 
   Future<void> setShowTagRow(bool value) => _setHomePart('tags', value);
 
+  /// The Tools page's tools pinned to the top of the timeline, by
+  /// `NexTool.id`, in the order they were pinned.
+  List<String> get pinnedTools =>
+      _prefs.getStringList('home.pinned_tools') ?? const [];
+
+  bool isToolPinned(String id) => pinnedTools.contains(id);
+
+  /// Pins [id] at the end, or takes it off; answers whether it is pinned now.
+  Future<bool> togglePinnedTool(String id) async {
+    final pins = [...pinnedTools];
+    final pinned = !pins.remove(id);
+    if (pinned) pins.add(id);
+    await _prefs.setStringList('home.pinned_tools', pins);
+    notifyListeners();
+    return pinned;
+  }
+
   Future<void> _setHomePart(String key, bool value) async {
     await _prefs.setBool('home.$key', value);
     notifyListeners();
