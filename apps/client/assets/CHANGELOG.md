@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.60
+
+- **Modules: add only what you need.** Extra features now live in **Tools → Modules**, each on a card that says what it does. One that is not added takes no room and runs nothing — no tile, no reminders, no widgets, no assistant tools — and removing one asks whether to keep its data or delete it. More modules will arrive this way, so Nex stays light for everyone who does not want them.
+- **Cycle is the first module.** It moved from your profile to Tools → Modules. If you already use it, it stays on, with all its data; it now appears in Tools under Modules.
+
 ## v1.99.50
 
 - **Notes open faster.** A note's sheet now opens with the note already in it — it used to rise with a placeholder and wait for the library before growing to fit — and it rises in about a third less time.

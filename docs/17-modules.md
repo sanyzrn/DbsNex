@@ -1,0 +1,71 @@
+# Modules
+
+> How optional features join Nex without weighing on the people who never
+> want them. Decision: ADR-040.
+
+## The idea in one paragraph
+
+A **module** is a feature that ships inside the app but does not exist
+until someone adds it. Off, it has no tile, no menu entry, no notification,
+no background work, no widget and no assistant tool. It is as if it were
+not installed. People add and remove modules on one page, **Tools →
+Modules**: each module's card says what it is, in a few lines, and how its
+data is kept. Removing a module asks once whether to keep its data, so that
+adding it back finds everything where it was, or to delete it.
+
+## Two layers
+
+| | Layer 1: modules | Layer 2: tracker templates |
+|---|---|---|
+| What it is | Dart code behind the `NexModule` contract | A JSON description run by a tracker engine in the app |
+| Good for | Features with their own screens and logic: Cycle, a planner, a quit-smoking companion with the assistant | Simple trackers: water, mood, medicine, a habit, a streak |
+| How it arrives | In the app update, off until added | In the app, or fetched from a signed catalogue later |
+| Status | **Available from 1.99.60** (Cycle is the first) | Planned |
+
+No layer ever downloads executable code. Flutter on Android cannot load it,
+the stores Nex ships through do not allow it, and it would break the
+promise that nothing reaches the phone unless asked.
+
+## The contract (layer 1)
+
+`apps/client/lib/modules/nex_module.dart`:
+
+| Member | What it is for |
+|---|---|
+| `id` | Stable and lower-case (`cycle`). It keys the preference and the tests. |
+| `title`, `tagline`, `about`, `points` | The words on the module's card, from the ARB files. |
+| `icon`, `hue` | The module's glyph and its `NexHue`: the same colour on its card and its Tools tile. |
+| `isOn(preferences)` | Whether the module is part of the app right now. |
+| `turnOn(context, …)` | Adding it. Applies whatever it needs: reminders, its first-run questions. |
+| `turnOff(context, …)` | Removing it. Asks keep-or-delete, cancels its reminders and work. Resolves to `false` if the person backed out. |
+| `open(services, preferences)` | The module's own screen, opened from its tile in Tools. |
+
+New modules use the generic preference
+`NexPreferences.isModuleOn(id)` / `setModuleOn(id, on)` (`module.<id>.on`).
+Cycle keeps its older `cycle.enabled` key, so nobody's Cycle switches off on
+update.
+
+Every place a module reaches — Tools tiles, reminders scheduled at launch,
+home-screen widgets, the assistant's tools, settings search — asks
+`isOn(preferences)` first. Off means **none** of them run.
+
+## Adding a module
+
+1. Write the feature under `lib/screens/<id>/` and its logic under
+   `lib/platform/`, as any screen.
+2. Implement `NexModule` in `lib/modules/<id>_module.dart`.
+3. Add it to `nexModules` in `lib/modules/module_registry.dart`. That alone
+   puts its card on the Modules page and, once added, its tile in Tools.
+4. Gate everything it does outside its own screen — reminders, widgets,
+   assistant tools, launch work — on `isOn`.
+5. Give it a data-deletion path, and test both "remove, keep" and
+   "remove, delete".
+6. Add its guide section and changelog lines, in both languages.
+
+## Where things are
+
+- `lib/modules/nex_module.dart`: the contract.
+- `lib/modules/module_registry.dart`: the list of every module.
+- `lib/modules/cycle_module.dart`: Cycle as a module.
+- `lib/screens/modules_screen.dart`: Tools → Modules.
+- `test/modules_test.dart`: the page, adding and removing, and Tools tiles.

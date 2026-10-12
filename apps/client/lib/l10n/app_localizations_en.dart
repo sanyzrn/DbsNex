@@ -3686,12 +3686,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Follows your menstrual cycle and predicts your next period and fertile days from your own history.\nLog how you feel and what you notice, and it shows you your body\'s patterns — and, if you like, the assistant becomes a gentler companion on harder days.\nEverything stays on this phone.';
 
   @override
-  String get cycleProfileOpen => 'Open Cycle';
-
-  @override
-  String get cycleInProfile => 'In your profile';
-
-  @override
   String get localModelChoose => 'Model';
 
   @override
@@ -4035,6 +4029,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String onboardingStep(int step, int total) {
     return 'Step $step of $total';
   }
+
+  @override
+  String get modulesTitle => 'Modules';
+
+  @override
+  String get modulesIntro =>
+      'Add only what you need. A module that is not added takes no room, runs nothing and asks for nothing — and removing one asks whether to keep its data.';
+
+  @override
+  String get modulesAdded => 'Added';
+
+  @override
+  String get modulesAvailable => 'Available';
+
+  @override
+  String get moduleAdd => 'Add';
+
+  @override
+  String get moduleOpen => 'Open';
+
+  @override
+  String get moduleRemove => 'Remove';
+
+  @override
+  String get modulesManage => 'Add modules';
+
+  @override
+  String get modulesManageHint => 'Extra features, only if you want them';
+
+  @override
+  String get modulesMore =>
+      'More modules are on the way. Each one stays out of the app until you add it.';
+
+  @override
+  String get modulesEmpty => 'Nothing added yet';
+
+  @override
+  String get moduleCyclePointPredict => 'Predicts your next period';
+
+  @override
+  String get moduleCyclePointLog => 'Daily log and patterns';
+
+  @override
+  String get moduleCyclePointModes => 'Pregnancy and more';
+
+  @override
+  String get moduleCyclePointPrivate => 'Only on this phone';
+
+  @override
+  String get cycleInModules => 'In Tools → Modules';
 
   @override
   String get addLink => 'Add link';

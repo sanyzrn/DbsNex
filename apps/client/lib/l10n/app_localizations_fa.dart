@@ -3591,12 +3591,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'چرخهٔ قاعدگی‌ات را دنبال می‌کند و پریود بعدی و روزهای باروری را از روی سابقهٔ خودت پیش‌بینی می‌کند.\nبا ثبت حال و علائم، الگوهای بدنت را نشانت می‌دهد و اگر بخواهی دستیار هم در روزهای سخت‌تر همراه مهربان‌تری می‌شود.\nهمه‌چیز فقط روی همین گوشی می‌ماند.';
 
   @override
-  String get cycleProfileOpen => 'باز کردن چرخه';
-
-  @override
-  String get cycleInProfile => 'در پروفایل';
-
-  @override
   String get localModelChoose => 'مدل';
 
   @override
@@ -3943,6 +3937,56 @@ class AppLocalizationsFa extends AppLocalizations {
   String onboardingStep(int step, int total) {
     return 'قدم $step از $total';
   }
+
+  @override
+  String get modulesTitle => 'ماژول‌ها';
+
+  @override
+  String get modulesIntro =>
+      'فقط چیزی را که لازم دارید اضافه کنید. ماژولی که اضافه نشده نه جایی می‌گیرد، نه کاری در پس‌زمینه انجام می‌دهد و نه چیزی می‌خواهد — و موقع حذف می‌پرسد داده‌هایش بماند یا پاک شود.';
+
+  @override
+  String get modulesAdded => 'اضافه‌شده';
+
+  @override
+  String get modulesAvailable => 'قابل افزودن';
+
+  @override
+  String get moduleAdd => 'افزودن';
+
+  @override
+  String get moduleOpen => 'باز کردن';
+
+  @override
+  String get moduleRemove => 'حذف';
+
+  @override
+  String get modulesManage => 'افزودن ماژول';
+
+  @override
+  String get modulesManageHint => 'امکانات اضافه، فقط اگر بخواهید';
+
+  @override
+  String get modulesMore =>
+      'ماژول‌های بیشتری در راه است. هر کدام تا وقتی اضافه‌اش نکنید بیرون از اپ می‌ماند.';
+
+  @override
+  String get modulesEmpty => 'هنوز چیزی اضافه نشده';
+
+  @override
+  String get moduleCyclePointPredict => 'پیش‌بینی پریود بعدی';
+
+  @override
+  String get moduleCyclePointLog => 'ثبت روزانه و الگوها';
+
+  @override
+  String get moduleCyclePointModes => 'بارداری و حالت‌های دیگر';
+
+  @override
+  String get moduleCyclePointPrivate => 'فقط روی همین گوشی';
+
+  @override
+  String get cycleInModules => 'در ابزارها ← ماژول‌ها';
 
   @override
   String get addLink => 'افزودن پیوند';

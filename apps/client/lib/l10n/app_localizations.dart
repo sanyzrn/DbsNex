@@ -5882,18 +5882,6 @@ abstract class AppLocalizations {
   /// **'Follows your menstrual cycle and predicts your next period and fertile days from your own history.\nLog how you feel and what you notice, and it shows you your body\'s patterns — and, if you like, the assistant becomes a gentler companion on harder days.\nEverything stays on this phone.'**
   String get cycleProfileAbout;
 
-  /// No description provided for @cycleProfileOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Open Cycle'**
-  String get cycleProfileOpen;
-
-  /// No description provided for @cycleInProfile.
-  ///
-  /// In en, this message translates to:
-  /// **'In your profile'**
-  String get cycleInProfile;
-
   /// No description provided for @localModelChoose.
   ///
   /// In en, this message translates to:
@@ -6457,6 +6445,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Step {step} of {total}'**
   String onboardingStep(int step, int total);
+
+  /// Tools → Modules page title, and the Modules shelf heading in Tools
+  ///
+  /// In en, this message translates to:
+  /// **'Modules'**
+  String get modulesTitle;
+
+  /// Intro on the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'Add only what you need. A module that is not added takes no room, runs nothing and asks for nothing — and removing one asks whether to keep its data.'**
+  String get modulesIntro;
+
+  /// Section of modules that are on
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get modulesAdded;
+
+  /// Section of modules that can be added
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get modulesAvailable;
+
+  /// Button that adds a module
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get moduleAdd;
+
+  /// Button that opens a module
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get moduleOpen;
+
+  /// Button that removes a module
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get moduleRemove;
+
+  /// Tools tile that opens the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'Add modules'**
+  String get modulesManage;
+
+  /// Subtitle of the Tools tile that opens the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'Extra features, only if you want them'**
+  String get modulesManageHint;
+
+  /// Footnote on the Modules page
+  ///
+  /// In en, this message translates to:
+  /// **'More modules are on the way. Each one stays out of the app until you add it.'**
+  String get modulesMore;
+
+  /// Shown under Added when no module is on
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing added yet'**
+  String get modulesEmpty;
+
+  /// Chip on the Cycle module card
+  ///
+  /// In en, this message translates to:
+  /// **'Predicts your next period'**
+  String get moduleCyclePointPredict;
+
+  /// Chip on the Cycle module card
+  ///
+  /// In en, this message translates to:
+  /// **'Daily log and patterns'**
+  String get moduleCyclePointLog;
+
+  /// Chip on the Cycle module card
+  ///
+  /// In en, this message translates to:
+  /// **'Pregnancy and more'**
+  String get moduleCyclePointModes;
+
+  /// Chip on the Cycle module card
+  ///
+  /// In en, this message translates to:
+  /// **'Only on this phone'**
+  String get moduleCyclePointPrivate;
+
+  /// Settings search result for Cycle, saying where it lives
+  ///
+  /// In en, this message translates to:
+  /// **'In Tools → Modules'**
+  String get cycleInModules;
 
   /// Title of the dialog asking where a link should point
   ///

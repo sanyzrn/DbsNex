@@ -18,7 +18,6 @@ import '../widgets/nex_time_picker.dart';
 import '../platform/display_date.dart';
 import '../widgets/nex_text_field.dart';
 import 'camera_sheet.dart';
-import 'cycle/cycle_switch.dart';
 import 'profile/profile_header.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -331,10 +330,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 hintText: l10n.profileBioHint,
                 alignLabelWithHint: true,
               ),
-            ),
-            CycleProfileCard(
-              services: widget.services,
-              preferences: widget.preferences,
             ),
           ],
         ),

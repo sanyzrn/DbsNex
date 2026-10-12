@@ -438,6 +438,25 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 - **Status:** Accepted at v1.99.9, at the owner's decision after the 1.99.6 review.
 ---
 
+## ADR-040 — Optional features are modules, turned on from Tools; no code is ever downloaded
+
+- **Context:** Ideas for Tools keep arriving — Cycle, a planner, a quit-smoking companion, trackers for water, mood or medicine. Shipping every one as a permanent part of the app makes it heavier and busier for everyone, including the many people who want none of them. The owner asked whether such features could be installed separately.
+- **Decision:** An optional feature is a **module**: shipped inside the app, but absent until someone adds it. A module that is off has no tile, no menu entry, no reminders, no background work, no widgets and no assistant tools. Modules are added and removed on one page, **Tools → Modules**. Removing one asks whether to keep or delete its data, as Cycle always has. Contract, layout and how to add a module: `docs/17-modules.md`.
+  - **Layer 1 — modules (now):** Dart code in the app, behind the `NexModule` contract and listed in one registry. Cycle is the first.
+  - **Layer 2 — tracker templates (later):** a data-driven tracker engine in the app, with signed JSON templates — quit smoking, water, mood — that could be fetched from a catalogue. They are descriptions, not code.
+- **Rationale:**
+  - Flutter on Android runs ahead-of-time compiled code and cannot load new Dart at runtime. The one supported route, deferred components, works only through Google Play's delivery, and Nex ships through Cafe Bazaar and Myket.
+  - Downloading executable code also runs against store policies and against Nex's promise that nothing reaches the phone, or leaves it, unless asked.
+  - A module's code costs tens to hundreds of kilobytes. The heavy parts — models, media — download only when the module is added, the way the on-device model already does.
+  - What people actually feel is clutter and background work, and both are gone while a module is off.
+- **Alternatives Considered:**
+  - Separate companion apps per feature — rejected: they cost an install per feature, and their data cannot live in the library or reach the assistant.
+  - JavaScript mini-apps in a WebView — rejected: they add a second runtime and a large attack surface, and they cannot keep the privacy promise.
+  - Keeping every feature always on, behind settings switches — rejected: switches scattered over Settings and Profile were already the problem (Cycle lived in Profile).
+- **Status:** Accepted at v1.99.60. Cycle moves from the profile to Tools → Modules; its stored on/off state is unchanged, so nobody's Cycle switches off on update.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:
