@@ -798,7 +798,14 @@ open class MainActivity : FlutterFragmentActivity() {
         if (path.isNullOrEmpty()) return null
         return try {
             val file = File(path).canonicalFile
-            val roots = listOf(filesDir.canonicalPath, cacheDir.canonicalPath, applicationInfo.dataDir)
+            // Every root resolved the same way the path is. `dataDir` is
+            // `/data/user/0/…`, a link to `/data/data/…`, so compared as it
+            // was it never matched; and Dart's temporary folder is
+            // `code_cache`, which is where a photo stripped of its location
+            // and a note written out as Markdown wait to be saved — both
+            // were refused, and "Save to device" said it could not.
+            val roots = listOf(filesDir, cacheDir, codeCacheDir, File(applicationInfo.dataDir))
+                .map { it.canonicalPath }
             if (roots.any { file.path.startsWith(it + File.separator) }) file else null
         } catch (_: Exception) {
             null
@@ -984,15 +991,21 @@ open class MainActivity : FlutterFragmentActivity() {
         // External apps must use a provider grant, never our process's ability
         // to open arbitrary filesystem paths (including external/private roots).
         if (uri.scheme != "content") return null
-        if (uri.scheme == "content" && packageManager.resolveContentProvider(uri.authority ?: "", 0)?.applicationInfo?.uid == applicationInfo.uid) return null
-        val name = displayName(uri) ?: "shared-${System.currentTimeMillis()}"
+        // The one exception is a file Nex itself handed to the share sheet
+        // — its diagnostics, a note shared out — and then picked as the
+        // target: that file sits in the share sheet's own folder and nowhere
+        // else, and is read from there.
+        val own = packageManager.resolveContentProvider(uri.authority ?: "", 0)
+            ?.applicationInfo?.uid == applicationInfo.uid
+        val sharedOut = if (own) ownSharedFile(uri) ?: return null else null
+        val name = sharedOut?.name ?: displayName(uri) ?: "shared-${System.currentTimeMillis()}"
         val extension = name.substringAfterLast('.', "").takeIf { it.matches(Regex("[A-Za-z0-9]{1,10}")) }
         val out = destination ?: File(cacheDir, "shared").apply { mkdirs() }
             .resolve(UUID.randomUUID().toString() + (extension?.let { ".$it" } ?: ""))
         out.parentFile?.mkdirs()
         val partial = File(out.path + ".partial")
         try {
-            contentResolver.openInputStream(uri)?.use { input ->
+            (sharedOut?.inputStream() ?: contentResolver.openInputStream(uri))?.use { input ->
                 FileOutputStream(partial).use { output ->
                     val buffer = ByteArray(64 * 1024)
                     var total = 0L
@@ -1011,6 +1024,21 @@ open class MainActivity : FlutterFragmentActivity() {
         mapOf("path" to out.absolutePath, "filename" to name,
               "mimeType" to (contentResolver.getType(uri) ?: "application/octet-stream"))
       } catch (_: Exception) { null }
+    }
+
+    /**
+     * The file behind one of Nex's own share-sheet URIs, or null for any
+     * other URI of ours. share_plus copies what is shared into
+     * `cache/share_plus/` and names it `content://<app>.flutter.share_provider/cache/<file>`;
+     * only that folder is accepted, resolved, so no path can climb out of it.
+     */
+    private fun ownSharedFile(uri: Uri): File? {
+        if (uri.authority != "$packageName.flutter.share_provider") return null
+        val segments = uri.pathSegments
+        if (segments.size < 2 || segments[0] != "cache") return null
+        val folder = File(cacheDir, "share_plus").canonicalFile
+        val file = File(folder, segments.drop(1).joinToString(File.separator)).canonicalFile
+        return file.takeIf { it.isFile && it.path.startsWith(folder.path + File.separator) }
     }
 
     /**

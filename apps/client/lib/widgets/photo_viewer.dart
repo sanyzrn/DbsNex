@@ -343,7 +343,18 @@ class _FullScreenPhotoState extends State<_PhotoViewer>
           onInteractionUpdate: _onInteractionUpdate,
           onInteractionEnd: _onInteractionEnd,
           child: Center(
-            child: Image(image: widget.image, fit: BoxFit.contain),
+            child: Image(
+              image: widget.image,
+              fit: BoxFit.contain,
+              // A photo whose file is gone — deleted, or never restored with
+              // a backup — is said to be missing rather than thrown as an
+              // error (it was, in the diagnostics).
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.broken_image_outlined,
+                color: Colors.white54,
+                size: 48,
+              ),
+            ),
           ),
         ),
       ),

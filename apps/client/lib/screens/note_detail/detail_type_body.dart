@@ -25,16 +25,16 @@ extension _DetailTypeBody on _NoteDetailSheetState {
         onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
       )
     else if (note.type == NoteType.voice) ...[
-      if (_player == null)
+      if (_steady == null)
         Text(
           l10n.voiceDuration(((note.durationMs ?? 0) / 1000).ceil()),
           style: Theme.of(context).textTheme.bodyLarge,
         ),
-      if (_player != null) ...[
+      if (_steady != null) ...[
         const SizedBox(height: NexSpacing.sm),
         _VoicePlayerControls(
           path: note.mediaUri,
-          player: _player!,
+          steady: _steady!,
           position: _position,
           duration: _duration > Duration.zero
               ? _duration
@@ -148,7 +148,7 @@ extension _DetailTypeBody on _NoteDetailSheetState {
         _FileBody(
           path: note.mediaUri!,
           kind: NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType),
-          player: _player,
+          player: _steady,
           position: _position,
           duration: _duration,
           onOpen: _openExternally,

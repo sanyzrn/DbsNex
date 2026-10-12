@@ -19,6 +19,9 @@ import java.nio.ByteBuffer
  * moved into a different box.
  */
 object NexVoiceRemux {
+    /** An AAC-LC AudioSpecificConfig: what the stream's first frame holds. */
+    private const val SETUP_BYTES = 2
+
     /** True when [to] was written; [from] is left for the caller. */
     fun remux(from: File, to: File): Boolean {
         val partial = File(to.path + ".partial")
@@ -43,6 +46,15 @@ object NexVoiceRemux {
             while (true) {
                 info.size = extractor.readSampleData(buffer, 0)
                 if (info.size < 0) break
+                // The recorder's stream opens with the encoder's two-byte
+                // setup block framed as if it were audio. It is not, and as
+                // the first sample of the `.m4a` it left some players
+                // decoding nothing at all. The setup already travels in the
+                // track's format.
+                if (samples == 0 && info.size <= SETUP_BYTES) {
+                    extractor.advance()
+                    continue
+                }
                 info.offset = 0
                 info.presentationTimeUs = extractor.sampleTime
                 info.flags = if (extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) {
