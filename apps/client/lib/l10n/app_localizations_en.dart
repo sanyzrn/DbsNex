@@ -2026,32 +2026,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingStart => 'Start using Nex';
 
   @override
-  String get onboardingWelcomeTitle => 'Somewhere to put it down';
+  String get onboardingWelcomeTitle => 'Welcome to Nex';
 
   @override
   String get onboardingWelcomeBody =>
-      'Anything you put in Nex is kept. Nothing else is asked of you — no account, no inbox to clear, nothing to keep up with.';
+      'One calm place for everything on your mind — written, spoken, photographed or shared from any app. No account, and nothing to set up first.';
 
   @override
   String get onboardingCaptureTitle => 'There is no Save button';
 
   @override
   String get onboardingCaptureBody =>
-      'Type it, say it, or photograph it. A note is yours the moment you make it, and it goes to the top of one list — no folders to file it into first.';
-
-  @override
-  String get onboardingIntelligenceTitle => 'It can read what you capture';
-
-  @override
-  String get onboardingIntelligenceBody =>
-      'Voice becomes text, photos give up their words, and tags suggest themselves. This part is off until you add a provider in Settings — everything else works without it.';
-
-  @override
-  String get onboardingSilenceTitle => 'It will never interrupt you';
-
-  @override
-  String get onboardingSilenceBody =>
-      'Reminders are optional. No engagement prompts or streaks. Cloud AI and syncing send data only when you configure and use them.';
+      'Type it, say it, photograph it or share it from another app. A note exists the moment it has something in it, and it lands at the top of one timeline — no folders to choose first.';
 
   @override
   String get onboardingSetupTitle => 'A few quick choices';
@@ -2059,9 +2045,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onboardingSetupBody =>
       'All of these live in Settings afterwards, and none of them are permanent.';
-
-  @override
-  String get onboardingNameRequired => 'Nex needs something to call you.';
 
   @override
   String get checklist => 'Checklist';
@@ -3988,18 +3971,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideUnavailable => 'The guide could not be opened.';
 
   @override
-  String get onboardingFilesTitle => 'Whatever you throw at it';
-
-  @override
-  String get onboardingFilesBody =>
-      'Share a document, a PDF, a song or a picture into Nex and it shows you the thing itself — not just a filename.';
-
-  @override
   String get onboardingYoursTitle => 'It stays yours';
 
   @override
   String get onboardingYoursBody =>
-      'No account, no server, and it works with the plane on. Lock it behind your fingerprint if you like, and export the lot whenever you want.';
+      'No account and no server: your notes live on this phone and work offline. Lock the app with your fingerprint, keep passwords and cards in a private vault, and back up — encrypted — to a folder you choose. No streaks, no nagging.';
 
   @override
   String get onboardingGuideTitle => 'Not sure where something is?';
@@ -4010,6 +3986,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingGuideOpen => 'Read the guide';
+
+  @override
+  String get onboardingFindTitle => 'Find it again';
+
+  @override
+  String get onboardingFindBody =>
+      'Search reads Persian the way it is typed — either form of a letter, the half-space, Persian or Latin digits — and offers the closest note when nothing matches. Tags, threads and pins are there for later, if you want them.';
+
+  @override
+  String get onboardingFindQuery => 'book';
+
+  @override
+  String get onboardingFindMatch => 'book';
+
+  @override
+  String get onboardingFindResultA =>
+      'Borrow a book from the library on Saturday';
+
+  @override
+  String get onboardingFindResultB => 'Books to read this year';
+
+  @override
+  String get onboardingFindAi => 'AI is optional, and off by default';
+
+  @override
+  String get onboardingYoursOffline => 'Works offline';
+
+  @override
+  String get onboardingYoursLock => 'Fingerprint lock';
+
+  @override
+  String get onboardingYoursVault => 'Private vault';
+
+  @override
+  String get onboardingYoursBackup => 'Encrypted backup';
+
+  @override
+  String get onboardingSetupPreview => 'How Nex will greet you';
+
+  @override
+  String onboardingStep(int step, int total) {
+    return 'Step $step of $total';
+  }
 
   @override
   String get addLink => 'Add link';

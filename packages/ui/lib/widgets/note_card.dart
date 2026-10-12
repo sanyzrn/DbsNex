@@ -86,6 +86,8 @@ class NoteCard extends StatelessWidget {
     this.showDue = true,
     this.expanded = false,
     this.selected,
+    this.threadAbove = false,
+    this.threadBelow = false,
   });
   final Note note;
   final VoidCallback? onTap;
@@ -118,10 +120,42 @@ class NoteCard extends StatelessWidget {
   /// accent.
   final bool? selected;
 
+  /// Whether a thread runs from this card's leading square to the card
+  /// above it, and to the one below.
+  ///
+  /// The timeline sets these for neighbours under the same day, so each day
+  /// reads as one strand — the notes of a morning joined the way the app's
+  /// mark joins the pieces it catches — rather than as a pile of separate
+  /// boxes. Drawn in the gutter between cards only, never across one.
+  final bool threadAbove;
+  final bool threadBelow;
+
   @override
   Widget build(BuildContext context) {
+    final insets = nexCardInsetsFor(context);
+    final card = _card(context, insets);
+    if (!threadAbove && !threadBelow) return card;
+    final density = NexCardDensity.of(context);
+    return CustomPaint(
+      painter: _ThreadPainter(
+        above: threadAbove,
+        below: threadBelow,
+        insets: insets,
+        // The middle of the leading square.
+        offset: density.inset + density.leading / 2,
+        direction: Directionality.of(context),
+        color: nexNoteTypeTint(
+          note.type.wireName,
+          Theme.of(context).colorScheme,
+        ).withValues(alpha: 0.35),
+      ),
+      child: card,
+    );
+  }
+
+  Widget _card(BuildContext context, EdgeInsets insets) {
     return Padding(
-      padding: nexCardInsetsFor(context),
+      padding: insets,
       child: ConstrainedBox(
         // Every card, the same height. See [nexCardHeightFor] — which is
         // [nexCardHeight] at the default text size, and only grows if someone
@@ -700,11 +734,14 @@ class _Leading extends StatelessWidget {
           // crops the resulting image into the square without stretching it.
           fit: BoxFit.cover,
           errorBuilder: (_, _, _) =>
-              const _IconBox(Icons.image_not_supported_outlined),
+              const _IconBox(Icons.image_not_supported_outlined, type: 'photo'),
         ),
       );
     }
-    return _IconBox(nexNoteTypeIcon(note.type.wireName));
+    return _IconBox(
+      nexNoteTypeIcon(note.type.wireName),
+      type: note.type.wireName,
+    );
   }
 }
 
@@ -814,21 +851,35 @@ class _PickMark extends StatelessWidget {
   }
 }
 
+/// The type's glyph on a wash of the type's colour — see [nexNoteTypeTint].
+///
+/// High contrast keeps the plain square and the full-strength ink: a tinted
+/// glyph on a tinted ground is the colour doing the work, and that mode is
+/// for when colour is not enough.
 class _IconBox extends StatelessWidget {
-  const _IconBox(this.icon);
+  const _IconBox(this.icon, {required this.type});
   final IconData icon;
+
+  /// The note type's wire name.
+  final String type;
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final side = NexCardDensity.of(context).leading;
+    final plain = MediaQuery.highContrastOf(context);
     return Container(
       width: side,
       height: side,
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
+        color: plain
+            ? scheme.surfaceContainerHighest
+            : nexNoteTypeWash(type, scheme),
         borderRadius: BorderRadius.circular(NexRadius.cardLeading),
       ),
-      child: Icon(icon, color: scheme.onSurfaceVariant),
+      child: Icon(
+        icon,
+        color: plain ? scheme.onSurface : nexNoteTypeTint(type, scheme),
+      ),
     );
   }
 }
@@ -870,4 +921,52 @@ class TagChip extends StatelessWidget {
           ),
     onDeleted: onRemove,
   );
+}
+
+/// The short strands in the gutter above and below a card — see
+/// [NoteCard.threadAbove].
+class _ThreadPainter extends CustomPainter {
+  _ThreadPainter({
+    required this.above,
+    required this.below,
+    required this.insets,
+    required this.offset,
+    required this.direction,
+    required this.color,
+  });
+
+  final bool above;
+  final bool below;
+  final EdgeInsets insets;
+  final double offset;
+  final TextDirection direction;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final x = direction == TextDirection.rtl
+        ? size.width - insets.right - offset
+        : insets.left + offset;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    if (above) canvas.drawLine(Offset(x, 0), Offset(x, insets.top), paint);
+    if (below) {
+      canvas.drawLine(
+        Offset(x, size.height - insets.bottom),
+        Offset(x, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ThreadPainter old) =>
+      old.above != above ||
+      old.below != below ||
+      old.insets != insets ||
+      old.offset != offset ||
+      old.direction != direction ||
+      old.color != color;
 }

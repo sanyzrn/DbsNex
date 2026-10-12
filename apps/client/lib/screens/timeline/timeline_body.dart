@@ -387,6 +387,13 @@ extension _TimelineBody on TimelineScreenState {
             );
           }
           final note = row.note!;
+          // Neighbours under the same heading are joined — see
+          // [NoteCard.threadAbove].
+          bool sameRun(int at) =>
+              at >= 0 &&
+              at < rows.length &&
+              rows[at].note != null &&
+              rows[at].groupKey == row.groupKey;
           return _DayMark(
             label: _dayLabel(note, l10n),
             marks: _dayMarks,
@@ -438,6 +445,8 @@ extension _TimelineBody on TimelineScreenState {
                             ? _selected.contains(note.id)
                             : null,
                         expanded: widget.preferences.isNoteExpanded(note.id),
+                        threadAbove: sameRun(index - 1),
+                        threadBelow: sameRun(index + 1),
                       ),
                     ),
                   ),

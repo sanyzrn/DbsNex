@@ -1,20 +1,40 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
-import 'guide_screen.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
+import '../widgets/nex_brand.dart';
+import '../widgets/nex_shelf.dart';
+import 'guide_screen.dart';
+
+part 'onboarding/onboarding_art.dart';
+part 'onboarding/onboarding_scenes.dart';
+part 'onboarding/onboarding_setup.dart';
 
 /// What someone sees the very first time they open Nex.
 ///
-/// Four pages saying what the app is, then one that asks for the handful of
-/// things it genuinely cannot guess. Deliberately not a tour of the interface:
-/// every control here is one tap from the timeline, and pointing at buttons
-/// someone is about to see anyway is the kind of onboarding people skip.
+/// Four pages that each *show* one thing the app does — the octopus catching
+/// the pieces of a day, notes landing on a timeline with no Save button, a
+/// search that reads Persian the way it is typed, a lock closing round all of
+/// it — then one page that asks for the handful of things the app cannot
+/// guess, with the greeting those answers buy drawn live above them.
+///
+/// It used to be six pages of a grey circle and a paragraph. The words were
+/// right and nothing on screen said them: every page looked like the last, and
+/// the only picture was a logo. Each page now leads with a small illustration
+/// built from the app's own parts — its cards, its search field, its mark —
+/// that plays once when the page arrives and then holds still, so nothing is
+/// still moving by the time anyone is reading. With animations turned off the
+/// finished picture is shown at once.
+///
+/// Still not a tour of the interface: every control here is one tap from the
+/// timeline, and pointing at buttons someone is about to see anyway is the
+/// kind of onboarding people skip.
 ///
 /// It shows exactly once. [NexPreferences.load] marks an install that already
 /// has any preference at all as done, so nobody who upgrades into this build
@@ -34,7 +54,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   int _page = 0;
 
-  static const _pageCount = 7;
+  static const _pageCount = 5;
   bool get _onSetup => _page == _pageCount - 1;
   bool get _hasName => _name.text.trim().isNotEmpty;
 
@@ -61,10 +81,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   /// selection changes. Rebuilding on every notification rebuilt this sheet
   /// underneath the drag, frame after frame, which is what makes selecting
   /// text feel like it is fighting back. Nothing the rebuild is for depends
-  /// on where the caret is — it is whether the button at the end of the last
-  /// page is allowed — so the text is what is watched.
-  /// The note editor has carried this shape since v1.13.0; this is the last
-  /// of the stragglers.
+  /// on where the caret is — the greeting preview reads the text — so the
+  /// text is what is watched.
   String _lastText = '';
 
   void _onChanged() {
@@ -74,10 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _advance() async {
     if (!_onSetup) {
-      await _pages.nextPage(
-        duration: NexMotion.standard,
-        curve: NexMotion.curve,
-      );
+      await _pages.nextPage(duration: NexMotion.slow, curve: NexMotion.curve);
       return;
     }
     await _finish();
@@ -85,32 +100,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   /// Writes whatever has been given and opens the app.
   ///
-  /// The name used to be required, and it was the only thing standing between
-  /// a fresh install and the timeline. It buys a greeting — the header says
-  /// "Deep into the night, Saeed" instead of nothing — and the header already
-  /// handles not having one, so the whole cost of asking was borne at the
-  /// door and the whole benefit was cosmetic. An app whose first promise is
-  /// "capture in seconds" cannot open with a mandatory text field.
+  /// The name is optional: it buys a greeting, and the header already handles
+  /// not having one. An app whose first promise is "capture in seconds"
+  /// cannot open with a mandatory text field.
   ///
-  /// The name is the only thing not already written: the three pickers save
-  /// as they are tapped, the way they do in Settings, so backing out of this
-  /// screen mid-way could never leave a half-applied choice.
+  /// The name is the only thing not already written: the pickers save as they
+  /// are tapped, the way they do in Settings, so backing out of this screen
+  /// mid-way could never leave a half-applied choice.
   Future<void> _finish() async {
     if (_hasName) await widget.preferences.setDisplayName(_name.text);
     await widget.preferences.completeOnboarding();
   }
 
   Future<void> _back() =>
-      _pages.previousPage(duration: NexMotion.standard, curve: NexMotion.curve);
+      _pages.previousPage(duration: NexMotion.slow, curve: NexMotion.curve);
 
-  /// Finishes. Skip means skip.
-  ///
-  /// It used to jump to the setup page, on the reasoning that the name was
-  /// required so there was nothing to skip past except the reading. That made
-  /// the word untrue: someone who taps Skip is saying "let me in", and
-  /// answering with the one page they cannot leave is the opposite. With the
-  /// name optional there is nothing left to hold them for, and every choice
-  /// on that page is in Settings under the same labels.
+  /// Finishes. Skip means skip: someone who taps it is saying "let me in",
+  /// and every choice on the last page is in Settings under the same labels.
   Future<void> _skip() => _finish();
 
   @override
@@ -124,10 +130,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             constraints: const BoxConstraints(maxWidth: 560),
             child: Column(
               children: [
-                // Back on the left, Skip on the right, matching the reference
-                // screens. Skip lands on the setup page rather than finishing:
-                // the name is required, so there is nothing here to skip past
-                // except the reading.
                 SizedBox(
                   height: nexMinTapTarget,
                   child: Padding(
@@ -136,18 +138,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     child: Row(
                       children: [
-                        if (_page > 0)
-                          IconButton(
-                            onPressed: () => unawaited(_back()),
-                            tooltip: l10n.onboardingBack,
-                            icon: const Icon(Icons.arrow_back),
+                        // The same footprint whether or not it is there, so
+                        // the progress bar between does not jump when the
+                        // first page turns.
+                        SizedBox(
+                          width: nexMinTapTarget,
+                          child: _page > 0
+                              ? IconButton(
+                                  onPressed: () => unawaited(_back()),
+                                  tooltip: l10n.onboardingBack,
+                                  icon: const BackButtonIcon(),
+                                )
+                              : null,
+                        ),
+                        Expanded(
+                          child: _Progress(
+                            page: _page,
+                            count: _pageCount,
+                            label: l10n.onboardingStep(_page + 1, _pageCount),
                           ),
-                        const Spacer(),
-                        if (!_onSetup)
-                          TextButton(
-                            onPressed: () => unawaited(_skip()),
-                            child: Text(l10n.onboardingSkip),
+                        ),
+                        SizedBox(
+                          width: 88,
+                          child: Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: _onSetup
+                                ? null
+                                : TextButton(
+                                    onPressed: () => unawaited(_skip()),
+                                    child: Text(l10n.onboardingSkip),
+                                  ),
                           ),
+                        ),
                       ],
                     ),
                   ),
@@ -157,43 +179,60 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     controller: _pages,
                     onPageChanged: (value) => setState(() => _page = value),
                     children: [
-                      _Page(
-                        // The mark, not a glyph, on the one page whose job is
-                        // to say which app this is.
-                        art: Image.asset(
-                          theme.brightness == Brightness.dark
-                              ? 'assets/branding/text_logo_dark.png'
-                              : 'assets/branding/text_logo_light.png',
-                          width: 168,
-                          semanticLabel: 'Nex',
-                        ),
+                      _StoryPage(
+                        active: _page == 0,
+                        art: (play) => _WelcomeArt(play: play),
+                        eyebrow: l10n.splashTagline,
                         title: l10n.onboardingWelcomeTitle,
                         body: l10n.onboardingWelcomeBody,
                       ),
-                      _Page(
-                        icon: Icons.bolt_outlined,
+                      _StoryPage(
+                        active: _page == 1,
+                        art: (play) => _CaptureArt(play: play),
                         title: l10n.onboardingCaptureTitle,
                         body: l10n.onboardingCaptureBody,
+                        points: [
+                          (Icons.notes, l10n.text, NexHue.sky),
+                          (Icons.mic_none, l10n.voice, NexHue.violet),
+                          (Icons.photo_outlined, l10n.photo, NexHue.rose),
+                          (Icons.checklist, l10n.checklist, NexHue.teal),
+                          (Icons.link, l10n.link, NexHue.amber),
+                          (Icons.attach_file, l10n.file, NexHue.slate),
+                        ],
                       ),
-                      _Page(
-                        icon: Icons.auto_awesome_outlined,
-                        title: l10n.onboardingIntelligenceTitle,
-                        body: l10n.onboardingIntelligenceBody,
+                      _StoryPage(
+                        active: _page == 2,
+                        art: (play) => _FindArt(play: play),
+                        title: l10n.onboardingFindTitle,
+                        body: l10n.onboardingFindBody,
                       ),
-                      _Page(
-                        icon: Icons.attach_file_outlined,
-                        title: l10n.onboardingFilesTitle,
-                        body: l10n.onboardingFilesBody,
-                      ),
-                      _Page(
-                        icon: Icons.notifications_off_outlined,
-                        title: l10n.onboardingSilenceTitle,
-                        body: l10n.onboardingSilenceBody,
-                      ),
-                      _Page(
-                        icon: Icons.lock_outline,
+                      _StoryPage(
+                        active: _page == 3,
+                        art: (play) => _YoursArt(play: play),
                         title: l10n.onboardingYoursTitle,
                         body: l10n.onboardingYoursBody,
+                        points: [
+                          (
+                            Icons.airplanemode_active,
+                            l10n.onboardingYoursOffline,
+                            NexHue.sky,
+                          ),
+                          (
+                            Icons.fingerprint,
+                            l10n.onboardingYoursLock,
+                            NexHue.teal,
+                          ),
+                          (
+                            Icons.key_outlined,
+                            l10n.onboardingYoursVault,
+                            NexHue.amber,
+                          ),
+                          (
+                            Icons.folder_zip_outlined,
+                            l10n.onboardingYoursBackup,
+                            NexHue.violet,
+                          ),
+                        ],
                       ),
                       _SetupPage(preferences: widget.preferences, name: _name),
                     ],
@@ -202,56 +241,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     NexSpacing.lg,
-                    NexSpacing.md,
+                    NexSpacing.sm,
                     NexSpacing.lg,
                     NexSpacing.lg,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          for (var i = 0; i < _pageCount; i++)
-                            _Dot(active: i == _page),
-                        ],
-                      ),
-                      const SizedBox(height: NexSpacing.md),
-                      // Full width, and the only button on the row. It is the
-                      // one thing to do on every page, so it gets the whole
-                      // line rather than sharing it with the dots.
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: FilledButton.icon(
-                          onPressed: () => unawaited(_advance()),
-                          icon: Icon(
-                            _onSetup ? Icons.check : Icons.arrow_forward,
-                            size: 20,
-                          ),
-                          iconAlignment: IconAlignment.end,
-                          label: Text(
-                            _onSetup
-                                ? l10n.onboardingStart
-                                : l10n.onboardingNext,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            // Size and weight from the type scale, colour
-                            // from the button. `titleSmall` carries the
-                            // page's ink, and handing the whole style over
-                            // put that ink on the accent: near-white on a
-                            // pale blue, 1.82:1, which is what the button
-                            // looked like in the dark theme. The arrow beside
-                            // it was right all along — an `Icon` with no
-                            // colour takes the button's, which is the thing
-                            // this label was overriding.
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.onPrimary,
-                            ),
-                          ),
+                  // Full width, and the only button on the row: it is the one
+                  // thing to do on every page.
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton.icon(
+                      onPressed: () => unawaited(_advance()),
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(NexRadius.lg),
                         ),
                       ),
-                    ],
+                      icon: Icon(
+                        _onSetup ? Icons.check : Icons.arrow_forward,
+                        size: 20,
+                      ),
+                      iconAlignment: IconAlignment.end,
+                      label: Text(
+                        _onSetup ? l10n.onboardingStart : l10n.onboardingNext,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        // Size and weight from the type scale, colour from
+                        // the button. `titleSmall` carries the page's ink,
+                        // and handing the whole style over put that ink on
+                        // the accent: near-white on a pale blue in the dark
+                        // theme.
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -263,258 +287,61 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-/// One of the four pages that only say something.
-class _Page extends StatelessWidget {
-  const _Page({required this.title, required this.body, this.icon, this.art})
-    : assert(
-        icon != null || art != null,
-        'a page needs something to lead with',
-      );
+/// Where you are: one segment per page, the ones behind you filled and the
+/// current one filling.
+///
+/// It was a row of dots, which said "one of seven" and nothing about how far
+/// along that was. A bar reads as a distance.
+class _Progress extends StatelessWidget {
+  const _Progress({
+    required this.page,
+    required this.count,
+    required this.label,
+  });
 
-  /// The usual case: one glyph in a tinted circle.
-  final IconData? icon;
-
-  /// Replaces [icon] where a page has something better to lead with — the
-  /// wordmark on the welcome page.
-  final Widget? art;
-
-  final String title;
-  final String body;
+  final int page;
+  final int count;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // LayoutBuilder, not a bare SingleChildScrollView. A Column inside a
-    // scroll view is laid out unbounded, so `mainAxisAlignment: center` had
-    // nothing to centre within and every page sat pinned to the top with the
-    // whole lower half empty. Giving the child a minimum height of the
-    // viewport is what makes centring mean something, while still letting the
-    // page scroll when the text is long or the type scale is large.
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        padding: const EdgeInsets.all(NexSpacing.lg),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: constraints.maxHeight - NexSpacing.lg * 2,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              art ??
-                  Container(
-                    width: 88,
-                    height: 88,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.surfaceContainerHighest,
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 40,
-                      color: theme.colorScheme.primary,
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      label: label,
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
+        child: Row(
+          children: [
+            for (var i = 0; i < count; i++) ...[
+              if (i > 0) const SizedBox(width: NexSpacing.xs),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(NexRadius.xs),
+                  child: SizedBox(
+                    height: 4,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Not outlineVariant: on the dark theme it sits a few
+                        // percent off the background, and the segments still
+                        // ahead disappeared.
+                        ColoredBox(
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
+                        ),
+                        AnimatedFractionallySizedBox(
+                          duration: NexMotion.slow,
+                          curve: NexMotion.curve,
+                          alignment: AlignmentDirectional.centerStart,
+                          widthFactor: i <= page ? 1 : 0,
+                          child: ColoredBox(color: scheme.primary),
+                        ),
+                      ],
                     ),
                   ),
-              const SizedBox(height: NexSpacing.xl),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: NexSpacing.md),
-              Text(
-                body,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  height: 1.5,
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The last page: the things the app cannot guess.
-///
-/// The AI output language used to be asked here too (UX-04). Intelligence is
-/// off until a provider is added, so nothing on first run could make that
-/// answer mean anything; "Match my notes" stays the default and the choice
-/// lives with the smart summary in Settings.
-///
-/// Each picker writes straight through to preferences, the way it does in
-/// Settings, so the theme and language change under the user as they choose —
-/// which is the point. Picking Persian and only finding out on the next screen
-/// that it took would be a worse way to ask.
-class _SetupPage extends StatelessWidget {
-  const _SetupPage({required this.preferences, required this.name});
-
-  final NexPreferences preferences;
-  final TextEditingController name;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return ListenableBuilder(
-      listenable: preferences,
-      builder: (context, _) => SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          NexSpacing.lg,
-          NexSpacing.lg,
-          NexSpacing.lg,
-          NexSpacing.lg + MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n.onboardingSetupTitle,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: NexSpacing.xs),
-            Text(
-              l10n.onboardingSetupBody,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: NexSpacing.lg),
-            _Field(label: l10n.yourName),
-            NexAutoDirection(
-              controller: name,
-              builder: (context, direction) => TextField(
-                controller: name,
-                selectionWidthStyle: BoxWidthStyle.tight,
-                contextMenuBuilder: nexReadingMenu,
-                textCapitalization: TextCapitalization.words,
-                // The one field in the app most likely to be in a different
-                // script from the interface: someone setting Nex to English
-                // still writes their own name in Persian.
-                textDirection: direction,
-                textAlign: TextAlign.start,
-                textInputAction: TextInputAction.done,
-                // No error state: there is nothing to get wrong here any
-                // more. Leaving it blank is a valid answer, and the header
-                // simply does not greet anyone who has not said who they are.
-                decoration: InputDecoration(hintText: l10n.yourNamePlaceholder),
-              ),
-            ),
-            const SizedBox(height: NexSpacing.lg),
-            _Field(label: l10n.theme),
-            NexChoiceCards<ThemeMode>(
-              selected: preferences.themeMode,
-              onSelected: preferences.setThemeMode,
-              choices: [
-                NexChoice(
-                  value: ThemeMode.light,
-                  label: l10n.themeLight,
-                  preview: NexThemeSwatch(
-                    mode: ThemeMode.light,
-                    comfort: preferences.comfortMode,
-                  ),
-                ),
-                NexChoice(
-                  value: ThemeMode.dark,
-                  label: l10n.themeDark,
-                  preview: NexThemeSwatch(
-                    mode: ThemeMode.dark,
-                    comfort: preferences.comfortMode,
-                  ),
-                ),
-                NexChoice(
-                  value: ThemeMode.system,
-                  label: l10n.themeSystem,
-                  preview: NexThemeSwatch(
-                    mode: ThemeMode.system,
-                    comfort: preferences.comfortMode,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: NexSpacing.lg),
-            _Field(label: l10n.language),
-            NexChoiceCards<String>(
-              selected: preferences.locale?.languageCode ?? 'system',
-              onSelected: preferences.setLocale,
-              choices: [
-                NexChoice(
-                  value: 'system',
-                  label: l10n.languageSystem,
-                  preview: const NexScriptSample(
-                    icon: Icons.phone_iphone_outlined,
-                  ),
-                ),
-                const NexChoice(
-                  value: 'en',
-                  label: 'English',
-                  preview: NexScriptSample(sample: 'Aa'),
-                ),
-                const NexChoice(
-                  value: 'fa',
-                  label: 'فارسی',
-                  preview: NexScriptSample(sample: 'فا'),
-                ),
-              ],
-            ),
-            const SizedBox(height: NexSpacing.xl),
-            // The last thing on the last step, and deliberately a card rather
-            // than a line of text. Four pages of onboarding cannot cover an
-            // app this size, and the honest answer to that is not more pages —
-            // it is telling someone, once and clearly, where the whole of it
-            // is written down.
-            Card(
-              margin: EdgeInsets.zero,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(NexRadius.md),
-                onTap: () => unawaited(GuideScreen.show(context)),
-                child: Padding(
-                  padding: const EdgeInsets.all(NexSpacing.md),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.menu_book_outlined,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: NexSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              l10n.onboardingGuideTitle,
-                              style: theme.textTheme.titleSmall,
-                            ),
-                            const SizedBox(height: NexSpacing.xs),
-                            Text(
-                              l10n.onboardingGuideBody,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: NexSpacing.sm),
-                      Text(
-                        l10n.onboardingGuideOpen,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -522,45 +349,137 @@ class _SetupPage extends StatelessWidget {
   }
 }
 
-/// A label over one of the setup page's controls.
-class _Field extends StatelessWidget {
-  const _Field({required this.label});
+/// One of the pages that only say something: an illustration, then the
+/// words, then — where a page has them — the few things it is naming, as
+/// chips in their own colours.
+class _StoryPage extends StatelessWidget {
+  const _StoryPage({
+    required this.active,
+    required this.art,
+    required this.title,
+    required this.body,
+    this.eyebrow,
+    this.points = const [],
+  });
 
-  final String label;
+  /// Whether this is the page on screen, which is when its picture plays.
+  final bool active;
+
+  /// Built with whether to play, so the picture can start over each time
+  /// its page comes back rather than sitting finished from the last visit.
+  final Widget Function(bool play) art;
+
+  final String? eyebrow;
+  final String title;
+  final String body;
+  final List<(IconData, String, NexHue)> points;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-      child: Text(label, style: theme.textTheme.titleSmall),
+    // A minimum height of the viewport, so a short page centres and a long
+    // one — large text, a small phone — scrolls instead of overflowing.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final artHeight = (constraints.maxHeight * 0.5).clamp(200.0, 360.0);
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: artHeight,
+                  width: double.infinity,
+                  child: ExcludeSemantics(child: art(active)),
+                ),
+                const SizedBox(height: NexSpacing.lg),
+                if (eyebrow case final eyebrow?) ...[
+                  Text(
+                    eyebrow,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.primary,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: NexSpacing.xs),
+                ],
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: NexSpacing.sm),
+                Text(
+                  body,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.55,
+                  ),
+                ),
+                if (points.isNotEmpty) ...[
+                  const SizedBox(height: NexSpacing.md),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: NexSpacing.sm,
+                    runSpacing: NexSpacing.sm,
+                    children: [
+                      for (final (icon, label, hue) in points)
+                        _Point(icon: icon, label: label, hue: hue),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: NexSpacing.md),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
-class _Dot extends StatelessWidget {
-  const _Dot({required this.active});
+/// A thing a page names, in its own colour.
+class _Point extends StatelessWidget {
+  const _Point({required this.icon, required this.label, required this.hue});
 
-  final bool active;
+  final IconData icon;
+  final String label;
+  final NexHue hue;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return AnimatedContainer(
-      duration: NexMotion.standard,
-      curve: NexMotion.curve,
-      margin: const EdgeInsets.symmetric(horizontal: 3),
-      width: active ? 18 : 6,
-      height: 6,
+    final theme = Theme.of(context);
+    final color = hue.of(theme.brightness);
+    return DecoratedBox(
       decoration: BoxDecoration(
-        // Not outlineVariant. On the dark theme that token sits a few
-        // percent off the background, so four of the five dots were invisible
-        // and the indicator read as a single stray mark rather than as
-        // "you are one of five".
-        color: active
-            ? scheme.primary
-            : scheme.onSurfaceVariant.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(3),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(NexRadius.pill),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: NexSpacing.md - 4,
+          vertical: 6,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1594,11 +1594,11 @@
   "@onboardingStart": {
     "description": "Onboarding button on the last page that finishes setup"
   },
-  "onboardingWelcomeTitle": "Somewhere to put it down",
+  "onboardingWelcomeTitle": "Welcome to Nex",
   "@onboardingWelcomeTitle": {
     "description": "Onboarding page 1 heading"
   },
-  "onboardingWelcomeBody": "Anything you put in Nex is kept. Nothing else is asked of you — no account, no inbox to clear, nothing to keep up with.",
+  "onboardingWelcomeBody": "One calm place for everything on your mind — written, spoken, photographed or shared from any app. No account, and nothing to set up first.",
   "@onboardingWelcomeBody": {
     "description": "Onboarding page 1 body"
   },
@@ -1606,25 +1606,9 @@
   "@onboardingCaptureTitle": {
     "description": "Onboarding page 2 heading"
   },
-  "onboardingCaptureBody": "Type it, say it, or photograph it. A note is yours the moment you make it, and it goes to the top of one list — no folders to file it into first.",
+  "onboardingCaptureBody": "Type it, say it, photograph it or share it from another app. A note exists the moment it has something in it, and it lands at the top of one timeline — no folders to choose first.",
   "@onboardingCaptureBody": {
     "description": "Onboarding page 2 body"
-  },
-  "onboardingIntelligenceTitle": "It can read what you capture",
-  "@onboardingIntelligenceTitle": {
-    "description": "Onboarding page 3 heading"
-  },
-  "onboardingIntelligenceBody": "Voice becomes text, photos give up their words, and tags suggest themselves. This part is off until you add a provider in Settings — everything else works without it.",
-  "@onboardingIntelligenceBody": {
-    "description": "Onboarding page 3 body"
-  },
-  "onboardingSilenceTitle": "It will never interrupt you",
-  "@onboardingSilenceTitle": {
-    "description": "Onboarding page 4 heading"
-  },
-  "onboardingSilenceBody": "Reminders are optional. No engagement prompts or streaks. Cloud AI and syncing send data only when you configure and use them.",
-  "@onboardingSilenceBody": {
-    "description": "Onboarding page 4 body"
   },
   "onboardingSetupTitle": "A few quick choices",
   "@onboardingSetupTitle": {
@@ -1633,10 +1617,6 @@
   "onboardingSetupBody": "All of these live in Settings afterwards, and none of them are permanent.",
   "@onboardingSetupBody": {
     "description": "Onboarding page 5 body"
-  },
-  "onboardingNameRequired": "Nex needs something to call you.",
-  "@onboardingNameRequired": {
-    "description": "Validation message under the required name field on the last onboarding page"
   },
   "checklist": "Checklist",
   "@checklist": {
@@ -2727,13 +2707,9 @@
   "@guideSubtitle": {"description": "Settings row subtitle for the user guide"},
   "guideUnavailable": "The guide could not be opened.",
   "@guideUnavailable": {"description": "Shown if the bundled guide file is missing"},
-  "onboardingFilesTitle": "Whatever you throw at it",
-  "@onboardingFilesTitle": {"description": "Onboarding page title about files"},
-  "onboardingFilesBody": "Share a document, a PDF, a song or a picture into Nex and it shows you the thing itself — not just a filename.",
-  "@onboardingFilesBody": {"description": "Onboarding page body about files"},
   "onboardingYoursTitle": "It stays yours",
   "@onboardingYoursTitle": {"description": "Onboarding page title about privacy"},
-  "onboardingYoursBody": "No account, no server, and it works with the plane on. Lock it behind your fingerprint if you like, and export the lot whenever you want.",
+  "onboardingYoursBody": "No account and no server: your notes live on this phone and work offline. Lock the app with your fingerprint, keep passwords and cards in a private vault, and back up — encrypted — to a folder you choose. No streaks, no nagging.",
   "@onboardingYoursBody": {"description": "Onboarding page body about privacy"},
   "onboardingGuideTitle": "Not sure where something is?",
   "@onboardingGuideTitle": {"description": "Heading above the guide link on the last onboarding step"},
@@ -2741,6 +2717,32 @@
   "@onboardingGuideBody": {"description": "Text above the guide link on the last onboarding step"},
   "onboardingGuideOpen": "Read the guide",
   "@onboardingGuideOpen": {"description": "Button that opens the user guide from onboarding"},
+  "onboardingFindTitle": "Find it again",
+  "@onboardingFindTitle": {"description": "Onboarding page heading about search"},
+  "onboardingFindBody": "Search reads Persian the way it is typed — either form of a letter, the half-space, Persian or Latin digits — and offers the closest note when nothing matches. Tags, threads and pins are there for later, if you want them.",
+  "@onboardingFindBody": {"description": "Onboarding page body about search"},
+  "onboardingFindQuery": "book",
+  "@onboardingFindQuery": {"description": "What the search field types in the onboarding illustration. Persian uses the Arabic spelling on purpose, to show it still matches."},
+  "onboardingFindMatch": "book",
+  "@onboardingFindMatch": {"description": "The word highlighted in the onboarding illustration results; must appear in both results."},
+  "onboardingFindResultA": "Borrow a book from the library on Saturday",
+  "@onboardingFindResultA": {"description": "First search result in the onboarding illustration"},
+  "onboardingFindResultB": "Books to read this year",
+  "@onboardingFindResultB": {"description": "Second search result in the onboarding illustration"},
+  "onboardingFindAi": "AI is optional, and off by default",
+  "@onboardingFindAi": {"description": "Chip under the search illustration in onboarding"},
+  "onboardingYoursOffline": "Works offline",
+  "@onboardingYoursOffline": {"description": "Point on the onboarding privacy page"},
+  "onboardingYoursLock": "Fingerprint lock",
+  "@onboardingYoursLock": {"description": "Point on the onboarding privacy page"},
+  "onboardingYoursVault": "Private vault",
+  "@onboardingYoursVault": {"description": "Point on the onboarding privacy page"},
+  "onboardingYoursBackup": "Encrypted backup",
+  "@onboardingYoursBackup": {"description": "Point on the onboarding privacy page"},
+  "onboardingSetupPreview": "How Nex will greet you",
+  "@onboardingSetupPreview": {"description": "Caption over the live greeting preview on the last onboarding step"},
+  "onboardingStep": "Step {step} of {total}",
+  "@onboardingStep": {"description": "Screen-reader label for the onboarding progress bar", "placeholders": {"step": {"type": "int"}, "total": {"type": "int"}}},
   "addLink": "Add link",
   "@addLink": {"description": "Title of the dialog asking where a link should point"},
   "linkAddress": "Address",

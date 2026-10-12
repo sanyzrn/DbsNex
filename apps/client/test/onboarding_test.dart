@@ -265,4 +265,54 @@ void main() {
     expect(find.text('زبان خروجی هوش مصنوعی'), findsNothing);
     expect(preferences.aiOutputLanguage, AiOutputLanguage.auto);
   });
+
+  testWidgets(
+    'the last page shows the greeting the name buys, as it is typed',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+      await reachSetup(tester);
+
+      // No name: the phrase on its own, with no dangling comma.
+      expect(find.textContaining(RegExp(r'[,،]\s*$')), findsNothing);
+
+      await tester.enterText(find.byType(TextField).first, 'Saeed');
+      await tester.pumpAndSettle();
+      expect(find.textContaining(', Saeed'), findsOneWidget);
+
+      // Greeted in the language the name is written in, as the timeline does.
+      await tester.enterText(find.byType(TextField).first, 'سعید');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('، سعید'), findsOneWidget);
+
+      // Nothing is written until the end: the preview is only a preview.
+      expect(preferences.displayName, isNull);
+    },
+  );
+
+  testWidgets('the progress bar says where you are to a screen reader', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Step 1 of 5'), findsOneWidget);
+
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Step 2 of 5'), findsOneWidget);
+    semantics.dispose();
+  });
 }

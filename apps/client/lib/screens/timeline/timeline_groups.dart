@@ -188,10 +188,15 @@ class _GroupHeader extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
+                    // A day's name in the page's own ink, a step up from
+                    // the small grey label it was: the headings are how a
+                    // long timeline is read, and they were the faintest
+                    // thing on it.
                     Text(
                       label,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(width: NexSpacing.sm),
