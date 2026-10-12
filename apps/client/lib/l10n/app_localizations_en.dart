@@ -2204,6 +2204,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get checklistAllDone => 'All done';
+
+  @override
   String get chatGreeting => 'Ask about your notes';
 
   @override
@@ -2599,6 +2602,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedSearches => 'Saved';
+
+  @override
+  String get recentSearches => 'Recent';
+
+  @override
+  String get clearRecentSearches => 'Clear recent searches';
+
+  @override
+  String get pinToHome => 'Pin to home';
+
+  @override
+  String get unpinFromHome => 'Unpin from home';
+
+  @override
+  String get toolPinned => 'Pinned to the home screen';
+
+  @override
+  String get toolUnpinned => 'Removed from the home screen';
+
+  @override
+  String get toolsPinHint => 'Hold a tool to pin it to the home screen.';
+
+  @override
+  String get toolsMessages => 'Private saved messages';
+
+  @override
+  String get toolsMessagesHint => 'A private space for your words';
+
+  @override
+  String get toolsGeneratorHint => 'Create and copy a strong password';
 
   @override
   String get assistantConfirmMerge => 'Combine these notes into one?';

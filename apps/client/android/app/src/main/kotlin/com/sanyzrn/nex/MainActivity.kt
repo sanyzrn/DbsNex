@@ -173,6 +173,16 @@ open class MainActivity : FlutterFragmentActivity() {
                     NexVoiceRemux.remux(from, File(to))
                 }
             }
+            // A voice note as it plays: itself, or a corrected copy for one
+            // recorded before 1.99.92 (see NexVoiceRemux.playable).
+            "playableVoice" -> {
+                val path = inAppStorage(call.argument<String>("path"))
+                if (path == null) {
+                    result.success(call.argument<String>("path"))
+                } else replyAsync(result, ioExecutor) {
+                    NexVoiceRemux.playable(path, cacheDir).path
+                }
+            }
             "peekPending" -> result.success(nextCapture())
             // Which app installed this copy: a store that did owns its
             // updates, and the in-app updater stays out of its way (REL-01).

@@ -65,6 +65,7 @@ import '../widgets/tag_picker.dart';
 import 'home_layout_sheet.dart';
 import 'camera_sheet.dart';
 import 'tools_screen.dart';
+import 'tools/pinned_tools.dart';
 import 'intelligence_screen.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
@@ -527,6 +528,8 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   void _exitSearch() {
+    // Left with words in the field: a search worth offering again.
+    unawaited(widget.preferences.rememberSearch(_search.query.text));
     _searchStarted = null;
     _searchFocus.unfocus();
     _search.clear();

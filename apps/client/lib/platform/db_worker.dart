@@ -611,6 +611,11 @@ class NexDbWorker
   static const _background = {
     _DbCommand.enrichNote,
     _DbCommand.backfillEnrichment,
+    // A photo attached to a note is read, and a voice clip transcribed, by
+    // the same model with the same three minutes. Left on the chain in
+    // 1.99.90, every attachment held the database for as long as the model
+    // took: a file attached, or a note deleted, appeared minutes later.
+    _DbCommand.attachmentReadText,
     _DbCommand.backfillEmbeddings,
     _DbCommand.suggestTags,
     _DbCommand.summarize,

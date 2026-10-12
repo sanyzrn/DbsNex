@@ -46,6 +46,11 @@ class NexVoiceSpool {
   /// Whether a frame of real audio has been written yet.
   bool _heard = false;
 
+  /// What the encoder says it made, from its setup block: the truth every
+  /// frame's header is corrected to. Null until it arrives, or when it
+  /// cannot be read — then the headers are left as the recorder wrote them.
+  AdtsConfig? _config;
+
   /// Starts [recorder] writing into [mediaDir].
   static Future<NexVoiceSpool> start(
     AudioRecorder recorder,
@@ -77,12 +82,16 @@ class NexVoiceSpool {
     if (!_heard) {
       // The first frame the recorder sends is the encoder's setup, framed
       // as audio. Written down, it opened every voice note with a frame no
-      // decoder can play, and some players then played nothing at all.
-      if (isSetupFrame(frame)) return;
+      // decoder can play. Kept instead for what it says: the sample rate,
+      // channels and profile the encoder really used.
+      if (isSetupFrame(frame)) {
+        _config ??= AdtsConfig.fromSetupFrame(frame);
+        return;
+      }
       _heard = true;
     }
     try {
-      file.writeFromSync(frame);
+      file.writeFromSync(_config?.correct(frame) ?? frame);
       // To the disk about once a second: what a dying process can lose is
       // that second, not the memo.
       final now = DateTime.now();
@@ -163,6 +172,24 @@ class NexVoiceSpool {
     return aac;
   }
 
+  /// The file a voice note at [path] plays from: itself, or on Android a
+  /// corrected copy of one recorded before 1.99.92 (`NexVoiceRemux.playable`)
+  /// — those open with the encoder's setup block, and on some phones played
+  /// nothing at all. The stored file is never changed.
+  static Future<String> playable(String path) async {
+    if (!streams) return path;
+    try {
+      return await _channel.invokeMethod<String>('playableVoice', {
+            'path': path,
+          }) ??
+          path;
+    } on MissingPluginException {
+      return path;
+    } on PlatformException {
+      return path;
+    }
+  }
+
   /// Whether [frame] is an ADTS frame carrying no audio — two bytes or
   /// fewer after its header, which is the encoder's setup block.
   static bool isSetupFrame(Uint8List frame) {
@@ -200,5 +227,66 @@ class NexVoiceSpool {
       offset += length;
     }
     return micros ~/ 1000;
+  }
+}
+
+/// The three facts an ADTS header carries about the audio — profile,
+/// sampling rate and channels — as the encoder reported them.
+///
+/// The recorder writes each frame's header from what was asked of the
+/// encoder, not from what the encoder did. On most phones the two agree. On
+/// some they do not, and a voice note whose every header names the wrong
+/// rate or channel count decodes to nothing: on the owner's phone, recorded
+/// fine and played silent, while a clip attached on the same phone — whose
+/// container takes the encoder's own account — played. The encoder's account
+/// arrives first, as a two-byte AudioSpecificConfig in a frame of its own.
+class AdtsConfig {
+  const AdtsConfig({
+    required this.objectType,
+    required this.rateIndex,
+    required this.channels,
+  });
+
+  /// 1 to 4: AAC Main, LC, SSR, LTP — what ADTS can say.
+  final int objectType;
+  final int rateIndex;
+  final int channels;
+
+  /// Reads the AudioSpecificConfig in [frame], the encoder's setup block.
+  /// Null when it is not one, or says something ADTS cannot carry.
+  static AdtsConfig? fromSetupFrame(Uint8List frame) {
+    if (!NexVoiceSpool.isSetupFrame(frame)) return null;
+    final header = (frame[1] & 0x01) == 1 ? 7 : 9;
+    if (frame.length < header + 2) return null;
+    final a = frame[header];
+    final b = frame[header + 1];
+    final objectType = a >> 3;
+    final rateIndex = ((a & 0x07) << 1) | (b >> 7);
+    final channels = (b >> 3) & 0x0F;
+    if (objectType < 1 || objectType > 4) return null;
+    if (rateIndex > 12 || channels < 1 || channels > 7) return null;
+    return AdtsConfig(
+      objectType: objectType,
+      rateIndex: rateIndex,
+      channels: channels,
+    );
+  }
+
+  /// [frame] with its header saying what the encoder said. Anything that is
+  /// not an ADTS frame comes back as it was.
+  Uint8List correct(Uint8List frame) {
+    if (frame.length < 7) return frame;
+    if (frame[0] != 0xFF || (frame[1] & 0xF0) != 0xF0) return frame;
+    final out = Uint8List.fromList(frame);
+    // Byte 2: profile (2 bits), rate index (4), private bit (1), the top bit
+    // of the channel configuration (1).
+    out[2] =
+        ((objectType - 1) << 6) |
+        (rateIndex << 2) |
+        (frame[2] & 0x02) |
+        ((channels >> 2) & 0x01);
+    // Byte 3: the low two bits of the channel configuration, the rest kept.
+    out[3] = ((channels & 0x03) << 6) | (frame[3] & 0x3F);
+    return out;
   }
 }

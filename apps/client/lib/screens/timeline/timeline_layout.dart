@@ -326,6 +326,19 @@ extension _TimelineLayout on TimelineScreenState {
                             // day, not an advertisement.
                             if (showSummary)
                               SliverToBoxAdapter(child: _briefCard(l10n)),
+                            // Tools pinned from the Tools page, at the top
+                            // of the cards. Always in the list, keyed, and
+                            // collapsed to nothing in a search or a filtered
+                            // list — those are about notes — for the reason
+                            // the headers above are.
+                            SliverToBoxAdapter(
+                              key: const ValueKey('pinned-tools'),
+                              child: PinnedTools(
+                                services: widget.services,
+                                preferences: widget.preferences,
+                                hidden: _searching || _model.filtering,
+                              ),
+                            ),
                             for (final sliver in _bodySlivers(l10n))
                               SliverFadeTransition(
                                 opacity: _searchFadeIn,

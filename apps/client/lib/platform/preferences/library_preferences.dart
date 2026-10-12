@@ -103,6 +103,33 @@ mixin _LibraryPreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// The last few searches that were used — a result opened from them, or
+  /// left with the words still in the field — newest first. Only on this
+  /// phone, and cleared from the search screen.
+  List<String> get recentSearches =>
+      _prefs.getStringList('search.recent') ?? const [];
+
+  Future<void> rememberSearch(String query) async {
+    final trimmed = query.trim();
+    // A letter or two is a search still being typed, not one to go back to.
+    if (trimmed.runes.length < 2) return;
+    final updated = <String>[
+      trimmed,
+      for (final recent in recentSearches)
+        if (recent != trimmed) recent,
+    ];
+    await _prefs.setStringList(
+      'search.recent',
+      updated.take(NexPreferences.maxRecentSearches).toList(),
+    );
+    notifyListeners();
+  }
+
+  Future<void> clearRecentSearches() async {
+    await _prefs.remove('search.recent');
+    notifyListeners();
+  }
+
   Future<void> removeSavedSearch(String query) async {
     final remaining = [
       for (final saved in savedSearches)

@@ -41,4 +41,24 @@ void main() {
     await tester.pump(NexLivingLogotype.interval);
     expect(tester.binding.hasScheduledFrame, isFalse);
   });
+
+  testWidgets('a touch plays it now and starts the wait again', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.binding.hasScheduledFrame, isFalse);
+
+    await tester.tap(find.byType(NexLivingLogotype));
+    await tester.pump();
+    expect(tester.binding.hasScheduledFrame, isTrue, reason: 'played now');
+    await tester.pumpAndSettle();
+
+    // The first movement was due at 1.6 s; the touch moved it a whole
+    // interval on, so nothing starts where it would have.
+    await tester.pump(NexLivingLogotype.firstDelay);
+    expect(tester.binding.hasScheduledFrame, isFalse);
+    await tester.pump(NexLivingLogotype.interval);
+    expect(tester.binding.hasScheduledFrame, isTrue);
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox());
+  });
 }

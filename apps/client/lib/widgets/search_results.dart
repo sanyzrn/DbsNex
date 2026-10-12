@@ -28,6 +28,12 @@ List<Widget> searchResultSlivers({
 
   if (search.query.text.trim().isEmpty && search.activeFilterCount == 0) {
     final saved = preferences?.savedSearches ?? const <String>[];
+    // What was searched lately, but not what is kept already: one chip for
+    // one search, under the heading where it is easiest to find again.
+    final recent = [
+      for (final query in preferences?.recentSearches ?? const <String>[])
+        if (!saved.contains(query)) query,
+    ];
     return [
       SliverToBoxAdapter(
         child: Padding(
@@ -36,6 +42,45 @@ List<Widget> searchResultSlivers({
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(l10n.searchStart, style: theme.textTheme.bodyMedium),
+              if (recent.isNotEmpty) ...[
+                const SizedBox(height: NexSpacing.lg),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.recentSearches,
+                        style: theme.textTheme.titleSmall,
+                      ),
+                    ),
+                    IconButton(
+                      key: const ValueKey('recent-searches-clear'),
+                      tooltip: l10n.clearRecentSearches,
+                      visualDensity: VisualDensity.compact,
+                      iconSize: 20,
+                      onPressed: () =>
+                          unawaited(preferences!.clearRecentSearches()),
+                      icon: const Icon(Icons.clear_all),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: NexSpacing.xs),
+                Wrap(
+                  spacing: NexSpacing.sm,
+                  runSpacing: NexSpacing.sm,
+                  children: [
+                    for (final query in recent)
+                      ActionChip(
+                        key: ValueKey('recent-search-$query'),
+                        avatar: const Icon(Icons.history, size: 16),
+                        label: Text(
+                          query,
+                          textDirection: nexDirectionOf(query),
+                        ),
+                        onPressed: () => onUseSaved?.call(query),
+                      ),
+                  ],
+                ),
+              ],
               // Kept searches live here rather than behind a menu: the empty
               // search screen is the one moment they are useful, and it is
               // otherwise a screen with a sentence on it.

@@ -91,7 +91,6 @@ void main() {
       'lib/screens/settings/settings_matching.dart',
       'lib/screens/settings/settings_search.dart',
       'lib/screens/settings_sheet.dart',
-      'lib/screens/tools_screen.dart',
       'lib/screens/vault/vault_items.dart',
       'lib/screens/vault/vault_pages.dart',
       'lib/screens/vault_editor.dart',

@@ -27,6 +27,7 @@ import '../l10n/relative_span.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/steady_position.dart';
+import '../platform/voice_spool.dart';
 import '../widgets/ai_chat_sheet.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/file_opener.dart';
@@ -261,7 +262,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
           (note.type == NoteType.file &&
               NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType) ==
                   NexFileKind.audio);
-      if (playable) _initPlayer(note.mediaUri!);
+      if (playable) {
+        _initPlayer(note.mediaUri!, voice: note.type == NoteType.voice);
+      }
     }
   }
 
@@ -269,12 +272,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   /// it is read and transcribed, and each reload used to start loading
   /// another player before the first had finished — the bar then followed
   /// one while the button drove the other.
-  Future<void> _initPlayer(String uri) async {
+  Future<void> _initPlayer(String uri, {bool voice = false}) async {
     if (!File(uri).existsSync()) return;
     _playerLoading = true;
     final player = AudioPlayer();
     try {
-      await player.setFilePath(uri);
+      // A voice note recorded before 1.99.92 plays from a corrected copy.
+      await player.setFilePath(voice ? await NexVoiceSpool.playable(uri) : uri);
       if (!mounted) {
         await player.dispose();
         return;
