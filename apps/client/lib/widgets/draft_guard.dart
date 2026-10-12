@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import 'nex_dialog.dart';
 
 /// Editors using this guard must disable a modal sheet's drag dismissal,
 /// which calls Navigator.pop directly and bypasses the system back check.
@@ -17,7 +18,7 @@ mixin NexDraftGuard<T extends StatefulWidget> on State<T> {
     }
     _confirmingDiscard = true;
     final l10n = AppLocalizations.of(context);
-    final discard = await showDialog<bool>(
+    final discard = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.unsavedChanges),

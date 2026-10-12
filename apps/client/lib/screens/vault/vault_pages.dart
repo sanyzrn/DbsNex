@@ -59,7 +59,7 @@ extension _VaultPages on _VaultScreenState {
     final fresh = result.entries.where((e) => seen.add(passwordIdentity(e)));
     final count = fresh.length;
     final duplicates = result.entries.length - count;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await nexShowDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(nexLabel(context, 'Import passwords', 'ورود رمزها')),
@@ -159,7 +159,7 @@ extension _VaultPages on _VaultScreenState {
       VaultKind.card => nexLabel(context, 'cards', 'کارت'),
       VaultKind.message => nexLabel(context, 'messages', 'پیام'),
     };
-    final yes = await showDialog<bool>(
+    final yes = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(_deleteAllLabel(ctx)),

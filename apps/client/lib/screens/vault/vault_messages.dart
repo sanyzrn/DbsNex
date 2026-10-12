@@ -229,7 +229,7 @@ extension _VaultMessages on _VaultScreenState {
       case 'share':
         await _shareAttachment(entry);
       case 'delete':
-        final yes = await showDialog<bool>(
+        final yes = await nexShowDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: Text(l.vaultDelete),

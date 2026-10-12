@@ -112,7 +112,7 @@ class ProfileHeader extends StatelessWidget {
             Positioned.fill(
               child: ExcludeSemantics(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
+                  duration: NexMotion.slow,
                   child: CustomPaint(
                     key: ValueKey(trimmed),
                     painter: _Constellation(seed: _seedOf(trimmed), color: ink),

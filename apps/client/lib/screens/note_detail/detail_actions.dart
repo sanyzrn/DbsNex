@@ -342,7 +342,7 @@ extension _DetailActions on _NoteDetailSheetState {
     final l10n = AppLocalizations.of(context);
     final uri = note.mediaUri;
     final file = uri == null ? null : File(uri);
-    await showDialog<void>(
+    await nexShowDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.details),

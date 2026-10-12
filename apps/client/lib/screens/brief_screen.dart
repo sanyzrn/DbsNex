@@ -10,6 +10,7 @@ import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/settings_group.dart';
 import '../widgets/nex_text_field.dart';
+import '../widgets/nex_dialog.dart';
 
 /// What the card at the top of the timeline is for — asked rather than
 /// assumed.
@@ -307,7 +308,7 @@ class _BriefScreenState extends State<BriefScreen> {
       return;
     }
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await nexShowDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.warning_amber_rounded),

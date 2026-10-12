@@ -40,6 +40,8 @@ Working convention:
 - **Cycle is the first module.** It moved from your profile to Tools → Modules. If you already use it, it stays on, with all its data; it now appears in Tools under Modules.
 - **Note colours that match your theme.** The colour of each item's icon (lists, links, voice, photos, files) used to be fixed: a mustard link on a blue theme. Now every type takes a shade of your own accent, fanned out around it on the colour wheel. Each theme gets its own family of colours, and every icon stays easy to read against its square.
 - **What is coming to Modules.** Tools → Modules now lists what is on the way, each marked Soon or Planned: Smoke-free, Where I parked, Gold check, Word by word, Telegram bridge, Medicine cabinet, Warranties, Lent & borrowed and Habits. A row at the bottom sends your own idea for a module straight to us.
+- **Adding a module feels like installing it.** Tap Add and you watch it go in: small pieces in the module's colour gather into its icon while a ring closes around it, with each step and the percentage below. When the ring meets itself a check pops on, and the card moves up to the modules you have added. Removing one runs it backwards, then tells you it is gone. With animations turned off it happens at once.
+- **One way of moving, everywhere.** Sheets, dialogs, pages and cards now arrive and leave in the same rhythm: they arrive softly, and leave a little quicker than they came. Dialogs used to fade in at a different speed from the sheets they opened over, and some sheets slid while others rose. Now everything moves alike.
 
 ## v1.99.50
 

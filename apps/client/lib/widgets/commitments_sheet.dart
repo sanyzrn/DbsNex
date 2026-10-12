@@ -90,7 +90,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
 
   Future<void> _delete(NexCommitment commitment) async {
     final l10n = AppLocalizations.of(context);
-    final sure = await showDialog<bool>(
+    final sure = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.commitmentDeleteTitle),
@@ -180,6 +180,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
 
   Future<void> _actions(NexCommitment c) async {
     final choice = await showModalBottomSheet<String>(
+      sheetAnimationStyle: NexMotion.sheet,
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(
@@ -281,6 +282,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
 
   Future<void> _history(NexCommitment c) async {
     await showModalBottomSheet<void>(
+      sheetAnimationStyle: NexMotion.sheet,
       context: context,
       isScrollControlled: true,
       builder: (ctx) => SafeArea(
@@ -325,7 +327,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                     final controller = TextEditingController(
                       text: item['note'] as String? ?? '',
                     );
-                    final note = await showDialog<String>(
+                    final note = await nexShowDialog<String>(
                       context: ctx,
                       builder: (dialog) => AlertDialog(
                         title: Text(

@@ -143,7 +143,7 @@ class _PaletteTile extends StatelessWidget {
                             AnimatedScale(
                               scale: selected ? 1 : 0,
                               duration: NexMotion.fast,
-                              curve: Curves.easeOutBack,
+                              curve: NexMotion.popCurve,
                               child: Icon(
                                 Icons.check_circle,
                                 size: 22,

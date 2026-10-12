@@ -112,7 +112,7 @@ Records are:
 - `package:nex_ui/nex_ui.dart`: the tokens `NexSpacing`, `NexRadius` and
   `NexMotion`, `NexPageRoute`, the colour helpers, and the shared widgets;
 - the shelf widgets (`NexPanel`, `NexShelfHeading`, `NexHue`, …);
-- `nexShowSheet` and `NexDialogBody`;
+- `nexShowSheet`, `nexShowDialog` and `NexDialogBody`;
 - `AppLocalizations`, for the shared words such as `cancel`;
 - the module classes above.
 
@@ -130,7 +130,8 @@ For every folder under `lib/modules/`, the gate checks five things:
    - overrides `open`, `turnOn`, `turnOff` or `isOn`;
    - names `NexServices` or `NexPreferences`;
    - opens a platform channel;
-   - calls `showModalBottomSheet`.
+   - calls `showModalBottomSheet` or `showDialog` (it uses `nexShowSheet` and
+     `nexShowDialog`).
 3. **Files.** It has a `README.md`, and tests under `test/modules/<id>/`.
 4. **Registry.** It is in `nexModules`.
 5. **Words.** Both languages have the same keys, every required key is there,

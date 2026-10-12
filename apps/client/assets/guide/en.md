@@ -94,7 +94,7 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 ## Tools and private vault
 
-**Modules** are extra features that stay out of the app until you want them: **Tools → Add modules** lists each one with what it does. **Add** puts it in Tools under **Modules**; **Remove** takes it out again — with nothing left running — and asks whether to keep its data for later or delete it. Cycle is the first module. Below the modules you can add, **On the way** lists the ones being planned, and the row at the bottom sends us your own idea.
+**Modules** are extra features that stay out of the app until you want them: **Tools → Add modules** lists each one with what it does. **Add** installs it, which you can watch as its pieces gather into its icon, and puts it in Tools under **Modules**; **Remove** takes it out again — with nothing left running — and asks whether to keep its data for later or delete it. Cycle is the first module. Below the modules you can add, **On the way** lists the ones being planned, and the row at the bottom sends us your own idea.
 
 **Tools**, at the left of the bottom bar, holds **Passwords**, **Bank cards**, **Private saved messages** and a **Password generator**. The private tools need your fingerprint or screen lock, and one unlock opens all of them for as long as you are using them. They lock after two minutes without activity — including time spent in another app, so you can copy a password, paste it in your browser and come straight back. Leaving the app always hides their contents from the task switcher, and **Lock** closes them at once.
 

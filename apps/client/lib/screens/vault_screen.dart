@@ -349,7 +349,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
 
   Future<void> _confirmDelete(VaultEntry entry) async {
     final l = AppLocalizations.of(context);
-    final yes = await showDialog<bool>(
+    final yes = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.vaultDelete),

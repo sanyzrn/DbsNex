@@ -43,6 +43,10 @@ form that is not a whole page.
 
 ## 3. Dialogs
 
+- Opened with **`nexShowDialog`** (`apps/client/lib/widgets/nex_dialog.dart`),
+  never `showDialog`. It rises and settles in like a sheet (§6), where
+  Flutter's own dialog is a 150ms fade at another speed from everything around
+  it. Enforced by `test/motion_test.dart`.
 - `AlertDialog` with its body in `NexDialogBody`; the cancelling action first,
   the destructive one in `colorScheme.error`, the confirming one last.
 - A dialog asks one question. Anything with more than two or three fields is a
@@ -68,9 +72,33 @@ form that is not a whole page.
 
 ## 6. Motion
 
-- Short and purposeful (`NexMotion`); nothing loops forever on its own.
+Everything in Nex moves in one language, so a sheet, a dialog, a page, a card
+and a module being added feel like the same app. The tokens are in
+`NexMotion` (`packages/ui`):
+
+| Movement | Duration | Curve | Used by |
+|---|---|---|---|
+| Arriving | `enter`, 300ms | `curve` (ease out) | pages, sheets, dialogs, the camera, a card arriving |
+| Leaving | `exit`, 220ms | `exitCurve` (ease in) | the same things going away: always quicker than they came |
+| Changing shape | `morph`, 400ms | `moveCurve` (ease in-out) | the dock turning into the selection bar, a day folding, a swiped card's glyph |
+| Popping in | `pop`, 260ms | `popCurve` (a little overshoot) | a check, a badge, the selection bar's buttons landing |
+| Changing state | `fast` 120, `standard` 180, `slow` 320 | `curve` | a press, a crossfade, a row growing |
+
+- **Sheets** rise with `NexMotion.sheet` (`nexSheetRise`). **Dialogs** rise and
+  settle in with the same timing (`nexShowDialog`). **Pages** slide with
+  `NexPageRoute` on `enter` and back on `exit`.
+- **Adding and removing** something that becomes part of the app — a module —
+  is shown as an installation, not a switch: its pieces gather while a ring
+  closes, then it moves to its new place (see `lib/widgets/module_install.dart`).
+  Taking it out runs the same thing backwards.
+- **Signature pieces** have their own choreography and say so where they are
+  defined: the splash, the onboarding scenes, the living wordmark, the top
+  capsule, the assistant's glow, Cycle's light, the recording pulse.
+  Everything else uses the tokens. `test/motion_test.dart` keeps literal
+  durations out of every other file.
+- Short and purposeful; nothing loops forever on its own.
 - Respect reduced motion: when `MediaQuery.disableAnimationsOf(context)` is
-  true, appear in place.
+  true, appear in place. `NexMotion.of(context, duration)` does this for you.
 - A test's `pumpAndSettle` must settle: a page that never stops animating is a
   page that cannot be tested — and one that tires the person looking at it.
 
@@ -102,5 +130,7 @@ Most of Nex is calm, neutral and the person's own theme. A feature may have
 - [ ] Every page is pushed with `NexPageRoute` and has one primary action.
 - [ ] Persian and English, light and dark: nothing overflows, nothing reads in
       the wrong direction.
+- [ ] Dialogs open with `nexShowDialog`; every duration and curve is a
+      `NexMotion` token, unless the piece is a signature one (§6).
 - [ ] Reduced motion leaves nothing moving.
 - [ ] New text a person writes follows §4.

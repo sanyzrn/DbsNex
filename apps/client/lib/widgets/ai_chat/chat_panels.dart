@@ -115,7 +115,7 @@ class _ChatHistorySheetState extends State<ChatHistorySheet> {
                 // Every conversation, gone for good: asked first (UX-01),
                 // the way deleting a model is.
                 onTap: () async {
-                  final confirmed = await showDialog<bool>(
+                  final confirmed = await nexShowDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: Text(l10n.chatClearHistory),
@@ -160,6 +160,7 @@ class AssistantSettingsPanel extends StatelessWidget {
     BuildContext context, {
     required NexPreferences preferences,
   }) => showModalBottomSheet<void>(
+    sheetAnimationStyle: NexMotion.sheet,
     context: context,
     isScrollControlled: true,
     useSafeArea: true,

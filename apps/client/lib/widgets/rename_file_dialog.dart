@@ -15,7 +15,7 @@ import 'nex_dialog.dart';
 Future<String?> nexAskFileName(
   BuildContext context, {
   required String current,
-}) => showDialog<String>(
+}) => nexShowDialog<String>(
   context: context,
   builder: (_) => _RenameFileDialog(current: current),
 );

@@ -36,7 +36,7 @@ class _TimelineRow {
 ///
 /// Long enough for the cascade to read as one movement: each row folds over
 /// most of it, a little after the one above — see [_FoldingRow.order].
-const _foldDuration = Duration(milliseconds: 380);
+const _foldDuration = NexMotion.morph;
 
 /// The total vertical room a group heading claims, split 60/40 above and
 /// below — see `_GroupHeader`.
@@ -130,7 +130,7 @@ class _FoldingRowState extends State<_FoldingRow>
       // opening, the run fans out from the top; closing, every row starts at
       // once and the lower ones, with less time, are gone first. Nothing
       // waits before it moves.
-      curve: Interval(start, 1, curve: Curves.easeInOutCubic),
+      curve: Interval(start, 1, curve: NexMotion.moveCurve),
     );
     // The size and the look move apart: the space opens on the whole curve,
     // while the card fades and settles in over its second half — drifting

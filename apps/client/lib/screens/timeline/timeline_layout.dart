@@ -383,14 +383,10 @@ extension _TimelineLayout on TimelineScreenState {
               // then land one after another (see [_StaggerIn]) — so the
               // change reads as the same bar turning into a different
               // tool rather than one picture swapped for another.
-              duration: MediaQuery.disableAnimationsOf(context)
-                  ? Duration.zero
-                  : const Duration(milliseconds: 420),
-              reverseDuration: MediaQuery.disableAnimationsOf(context)
-                  ? Duration.zero
-                  : const Duration(milliseconds: 260),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
+              duration: NexMotion.of(context, NexMotion.morph),
+              reverseDuration: NexMotion.of(context, NexMotion.exit),
+              switchInCurve: NexMotion.curve,
+              switchOutCurve: NexMotion.exitCurve,
               transitionBuilder: _morphTransition,
               // Bottom-aligned: the selection bar carries a count above it,
               // and centring the two would lift the capsule mid-change.

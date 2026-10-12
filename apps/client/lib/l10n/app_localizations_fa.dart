@@ -4004,6 +4004,31 @@ class AppLocalizationsFa extends AppLocalizations {
   String get moduleRemoveDelete => 'حذف و پاک کردن';
 
   @override
+  String get moduleStepPrepare => 'آماده‌سازی';
+
+  @override
+  String get moduleStepSetUp => 'راه‌اندازی';
+
+  @override
+  String get moduleStepAddToTools => 'افزودن به ابزارها';
+
+  @override
+  String get moduleStepRemoveFromTools => 'برداشتن از ابزارها';
+
+  @override
+  String get moduleStepTidy => 'جمع‌وجور کردن';
+
+  @override
+  String moduleAddedBanner(String name) {
+    return '$name حالا در ابزارهاست';
+  }
+
+  @override
+  String moduleRemovedBanner(String name) {
+    return '$name حذف شد';
+  }
+
+  @override
   String get modulesComing => 'در راه';
 
   @override

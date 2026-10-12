@@ -4,6 +4,7 @@ import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/modules/module_plans.dart';
 import 'package:nex_client/modules/module_registry.dart';
 import 'package:nex_client/screens/modules_screen.dart';
+import 'package:nex_client/widgets/module_install.dart';
 
 import 'support/nex_harness.dart';
 
@@ -117,5 +118,98 @@ void main() {
       300,
     );
     expect(find.text('Have an idea for a module? Tell us'), findsOneWidget);
+  });
+
+  testWidgets(
+    'adding is an installation you can watch, and removing undoes it',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 2000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ModulesScreen(
+            services: harness.services,
+            preferences: harness.preferences,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final prefs = harness.preferences;
+
+      await tester.tap(find.byKey(const ValueKey('module-cycle-add')));
+      await tester.pump();
+      await tester.pump(moduleInstallTime ~/ 2);
+      // Mid-way: the bar and its step stand where the button was, and the
+      // module is not part of the app until the run is over.
+      expect(find.byType(ModuleInstallProgress), findsOneWidget);
+      expect(find.text('Setting up'), findsOneWidget);
+      expect(find.byKey(const ValueKey('module-cycle-add')), findsNothing);
+      expect(prefs.cycleEnabled, isFalse);
+
+      await tester.pumpAndSettle();
+      expect(prefs.cycleEnabled, isTrue);
+      expect(find.byType(ModuleInstallProgress), findsNothing);
+      expect(find.byKey(const ValueKey('module-cycle-open')), findsOneWidget);
+      expect(find.text('Cycle is in Tools now'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 7));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('module-cycle-remove')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('cycle-off-keep')));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(moduleRemoveTime ~/ 4);
+      // Taken apart where it stood, among the added, before it moves.
+      expect(prefs.cycleEnabled, isFalse);
+      expect(find.text('Removing from Tools'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('module-cycle'))).dy,
+        lessThan(tester.getTopLeft(find.text('On the way')).dy),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('module-cycle-add')), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('module-cycle'))).dy,
+        greaterThan(tester.getTopLeft(find.text('Available')).dy),
+      );
+      expect(find.text('Cycle removed'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 7));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets('with animations removed, adding is immediate', (tester) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
+        home: ModulesScreen(
+          services: harness.services,
+          preferences: harness.preferences,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('module-cycle-add')));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    expect(harness.preferences.cycleEnabled, isTrue);
+    await tester.pump(const Duration(seconds: 7));
+    await tester.pumpAndSettle();
   });
 }

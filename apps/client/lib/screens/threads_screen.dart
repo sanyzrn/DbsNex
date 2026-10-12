@@ -179,7 +179,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
       await widget.services.renameThread(widget.thread.id, name);
       if (mounted) setState(() => _name = name);
     } else if (action == 'delete') {
-      final ok = await showDialog<bool>(
+      final ok = await nexShowDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text(l10n.threadDelete),
@@ -273,7 +273,7 @@ Future<String?> nexAskThreadName(
 }) async {
   final l10n = AppLocalizations.of(context);
   final controller = TextEditingController(text: initial ?? '');
-  final name = await showDialog<String>(
+  final name = await nexShowDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(initial == null ? l10n.threadNew : l10n.threadRename),

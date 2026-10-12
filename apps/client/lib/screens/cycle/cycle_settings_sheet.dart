@@ -95,7 +95,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final suggested = periods.isEmpty ? null : periods.last.start.local;
-    final choice = await showDialog<String>(
+    final choice = await nexShowDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.cycleModePregnant),
@@ -138,7 +138,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
 
   Future<void> _deleteAll() async {
     final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
+    final ok = await nexShowDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.cycleDeleteAll),

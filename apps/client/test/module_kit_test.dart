@@ -218,6 +218,7 @@ List<String> moduleKitProblems(Directory folder) {
     RegExp(r'\bNexPreferences\b'): 'names NexPreferences',
     RegExp(r'\bMethodChannel\b|\bEventChannel\b'): 'opens a platform channel',
     RegExp(r'\bshowModalBottomSheet\b'): 'uses showModalBottomSheet',
+    RegExp(r'(?<![A-Za-z_])showDialog\b'): 'uses showDialog',
   };
   final directive = RegExp(
     r'''^\s*(?:import|export|part)\s+['"]([^'"]+)['"]''',

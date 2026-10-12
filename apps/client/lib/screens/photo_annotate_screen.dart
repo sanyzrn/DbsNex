@@ -11,6 +11,7 @@ import '../platform/editor_drafts.dart';
 import 'package:crypto/crypto.dart';
 import '../widgets/draft_guard.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/nex_dialog.dart';
 
 enum _Mode { draw, text }
 
@@ -216,7 +217,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
   }
 
   Future<void> _placeText(Offset position) async {
-    final text = await showDialog<String>(
+    final text = await nexShowDialog<String>(
       context: context,
       builder: (_) => const _AnnotationTextDialog(),
     );

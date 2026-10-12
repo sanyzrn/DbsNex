@@ -448,8 +448,8 @@ class _FadeIn extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
     tween: Tween(begin: 0, end: 1),
-    duration: const Duration(milliseconds: 180),
-    curve: Curves.easeOut,
+    duration: NexMotion.standard,
+    curve: NexMotion.curve,
     builder: (context, value, child) => Opacity(opacity: value, child: child),
     child: child,
   );

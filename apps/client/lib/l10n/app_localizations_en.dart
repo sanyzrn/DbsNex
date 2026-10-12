@@ -4096,6 +4096,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moduleRemoveDelete => 'Remove and delete';
 
   @override
+  String get moduleStepPrepare => 'Preparing';
+
+  @override
+  String get moduleStepSetUp => 'Setting up';
+
+  @override
+  String get moduleStepAddToTools => 'Adding to Tools';
+
+  @override
+  String get moduleStepRemoveFromTools => 'Removing from Tools';
+
+  @override
+  String get moduleStepTidy => 'Tidying up';
+
+  @override
+  String moduleAddedBanner(String name) {
+    return '$name is in Tools now';
+  }
+
+  @override
+  String moduleRemovedBanner(String name) {
+    return '$name removed';
+  }
+
+  @override
   String get modulesComing => 'On the way';
 
   @override

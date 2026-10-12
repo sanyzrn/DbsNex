@@ -199,17 +199,64 @@ abstract final class NexSpacing {
   static const xl = 32.0;
 }
 
+/// How everything in Nex moves — one language, so a sheet, a dialog, a page
+/// and a module being added all feel like the same app. See the Motion
+/// section of `docs/16-design-language.md`.
+///
+/// Four kinds of movement, each with one duration and one curve:
+///
+/// - **Arriving** ([enter], [curve]): a page, a sheet, a dialog, a card that
+///   appears. Most of the travel happens early and it settles softly.
+/// - **Leaving** ([exit], [exitCurve]): the same things going away —
+///   quicker than they came, accelerating out, because nobody waits to watch
+///   something they dismissed.
+/// - **Changing shape** ([morph], [moveCurve]): one thing becoming another
+///   or moving between places — the dock turning into the selection bar, a
+///   day folding, a card snapping back.
+/// - **Popping in** ([pop], [popCurve]): a small mark arriving with a touch
+///   of overshoot — a check, a badge, a count.
+///
+/// [fast], [standard] and [slow] are for state changes inside something
+/// already on screen: a press, a crossfade, a row growing.
 abstract final class NexMotion {
   static const fast = Duration(milliseconds: 120);
   static const standard = Duration(milliseconds: 180);
   static const slow = Duration(milliseconds: 320);
 
+  static const enter = Duration(milliseconds: 300);
+  static const exit = Duration(milliseconds: 220);
+  static const morph = Duration(milliseconds: 400);
+  static const pop = Duration(milliseconds: 260);
+
   /// How long a commit receipt takes to fade out.
   static const receipt = Duration(milliseconds: 600);
+
+  /// Arriving and settling.
   static const curve = Curves.easeOutCubic;
+
+  /// Leaving.
+  static const exitCurve = Curves.easeInCubic;
+
+  /// Moving from one place or shape to another.
+  static const moveCurve = Curves.easeInOutCubic;
+
+  /// A small mark popping in.
+  static const popCurve = Curves.easeOutBack;
 
   /// How long a toast's content takes to pop in — see [NexToastPop].
   static const toastPop = Duration(milliseconds: 380);
+
+  /// Every sheet, page-like or not, rises and falls this way.
+  static const sheet = AnimationStyle(
+    duration: enter,
+    reverseDuration: exit,
+    curve: curve,
+  );
+
+  /// [duration], or nothing at all when the person has asked the system to
+  /// remove animations.
+  static Duration of(BuildContext context, Duration duration) =>
+      MediaQuery.disableAnimationsOf(context) ? Duration.zero : duration;
 }
 
 /// One radius scale. Inner radii are derived from an outer radius minus the

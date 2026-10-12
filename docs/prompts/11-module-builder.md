@@ -125,7 +125,11 @@ Every word a person sees comes from your `NexModuleStrings`:
 
 Follow `docs/16-design-language.md`:
 
-- sheets open with `nexShowSheet`, never `showModalBottomSheet`;
+- sheets open with `nexShowSheet`, never `showModalBottomSheet`, and dialogs
+  with `nexShowDialog`, never `showDialog`;
+- every duration and curve is a `NexMotion` token (`enter`, `exit`, `morph`,
+  `pop`, `standard` and their curves), so the module moves like the rest of
+  the app;
 - pages are pushed with `NexPageRoute`;
 - spacing and corners come from `NexSpacing` and `NexRadius`;
 - colour comes from the theme's `ColorScheme`, plus your module's `hue` via

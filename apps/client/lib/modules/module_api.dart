@@ -12,7 +12,8 @@ export 'package:nex_data/nex_data.dart' show ModuleRecord;
 export 'package:nex_ui/nex_ui.dart';
 
 export '../l10n/app_localizations.dart' show AppLocalizations;
-export '../widgets/nex_dialog.dart' show nexShowSheet, NexDialogBody;
+export '../widgets/nex_dialog.dart'
+    show nexShowDialog, nexShowSheet, NexDialogBody;
 export '../widgets/nex_shelf.dart';
 export 'nex_module_store.dart';
 export 'nex_module_strings.dart';

@@ -106,7 +106,7 @@ extension _TimelineNoteActions on TimelineScreenState {
   /// dialog says so nobody has to hope.
   Future<void> _deleteGroup(_NoteGroup group, AppLocalizations l10n) async {
     final notes = List.of(group.notes);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(group.label),
@@ -384,7 +384,6 @@ extension _TimelineNoteActions on TimelineScreenState {
   }) async {
     final result = await nexShowSheet<DetailResult>(
       context: context,
-      rise: true,
       builder: (_) => NoteDetailSheet(
         editOnOpen: edit,
         runOnOpen: run,

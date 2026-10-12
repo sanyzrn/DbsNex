@@ -6566,6 +6566,48 @@ abstract class AppLocalizations {
   /// **'Remove and delete'**
   String get moduleRemoveDelete;
 
+  /// Install step
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get moduleStepPrepare;
+
+  /// Install step
+  ///
+  /// In en, this message translates to:
+  /// **'Setting up'**
+  String get moduleStepSetUp;
+
+  /// Install step
+  ///
+  /// In en, this message translates to:
+  /// **'Adding to Tools'**
+  String get moduleStepAddToTools;
+
+  /// Remove step
+  ///
+  /// In en, this message translates to:
+  /// **'Removing from Tools'**
+  String get moduleStepRemoveFromTools;
+
+  /// Remove step
+  ///
+  /// In en, this message translates to:
+  /// **'Tidying up'**
+  String get moduleStepTidy;
+
+  /// Banner after a module is added
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is in Tools now'**
+  String moduleAddedBanner(String name);
+
+  /// Banner after a module is removed
+  ///
+  /// In en, this message translates to:
+  /// **'{name} removed'**
+  String moduleRemovedBanner(String name);
+
   /// Heading of the coming-soon modules on the Modules page
   ///
   /// In en, this message translates to:
