@@ -171,6 +171,59 @@ Future<bool> nexShareNotes(List<Note> notes) async {
 /// with its metadata stripped, staged in a temporary folder that is added to
 /// [staged] for the caller to remove. Everything else, and a photo that is
 /// not a JPEG or cannot be read, goes out as it is stored.
+/// The name an attachment goes out under: the one it was given, or its
+/// file's own.
+String _attachmentName(NoteAttachment attachment) =>
+    attachment.name ?? attachment.mediaUri.split(Platform.pathSeparator).last;
+
+/// Shares one file a note carries, on its own — a photo without where and
+/// when it was taken, as everywhere else.
+Future<bool> nexShareAttachment(NoteAttachment attachment) async {
+  if (!File(attachment.mediaUri).existsSync()) return false;
+  final staged = <Directory>[];
+  try {
+    final file = await _shareable(
+      attachment.mediaUri,
+      photo: attachment.kind == AttachmentKind.photo,
+      mimeType: attachment.mimeType,
+      staged: staged,
+    );
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [file],
+        fileNameOverrides: [_attachmentName(attachment)],
+        text: attachment.caption,
+      ),
+    );
+    return true;
+  } finally {
+    _cleanUp(staged);
+  }
+}
+
+/// Saves a copy of one attached file where the person chooses.
+Future<SaveOutcome> nexSaveAttachmentToDevice(NoteAttachment attachment) async {
+  if (!File(attachment.mediaUri).existsSync()) return SaveOutcome.failed;
+  final staged = <Directory>[];
+  try {
+    final file = await _shareable(
+      attachment.mediaUri,
+      photo: attachment.kind == AttachmentKind.photo,
+      mimeType: attachment.mimeType,
+      staged: staged,
+    );
+    return await nexSaveFileToDevice(
+      file.path,
+      name: _attachmentName(attachment),
+      mimeType: attachment.mimeType ?? 'application/octet-stream',
+    );
+  } catch (_) {
+    return SaveOutcome.failed;
+  } finally {
+    _cleanUp(staged);
+  }
+}
+
 Future<XFile> _shareable(
   String path, {
   required bool photo,

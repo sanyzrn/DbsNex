@@ -283,37 +283,55 @@ class _CardBody extends StatelessWidget {
               else
                 _LeadingWithPin(note: note, strings: strings),
               const SizedBox(width: NexSpacing.contentGap),
-              // A due reminder remains visible because it is an action for
-              // the future. The edit time belongs in note details, leaving
-              // this row for the note's own content.
-              if (showDue ? note.dueAt : null case final due?)
-                _DueChip(
-                  due: due,
-                  label: strings.dueLabel?.call(due, note.dueRepeat),
-                  // A lapsed reminder is not an alarm any more, so it stops
-                  // asking for attention in the accent colour. A repeating one
-                  // never lapses: it is always about to happen again, however
-                  // long ago the series began.
-                  upcoming:
-                      note.dueRepeat != NoteRepeat.once ||
-                      due.isAfter(DateTime.now().toUtc()),
-                ),
-              if (showDue && note.dueAt != null)
-                const SizedBox(width: NexSpacing.contentGap),
               Expanded(
                 child:
                     previewOverride ??
                     _Preview(note: note, expanded: expanded, strings: strings),
               ),
-              if (note.attachmentCount > 0) ...[
-                const SizedBox(width: NexSpacing.sm),
-                _AttachedMark(
-                  label: strings.attachedShort(note.attachmentCount),
-                ),
-              ],
+              // What the note carries besides its words, together at the end
+              // of the row: when it will remind, then how many more files it
+              // holds, one above the other. They used to sit at opposite ends
+              // with the note's words between them, so a glance had two
+              // places to look for what were both facts about the note.
+              ?_trailing(context),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+extension on _CardBody {
+  Widget? _trailing(BuildContext context) {
+    final due = showDue ? note.dueAt : null;
+    final attached = note.attachmentCount > 0;
+    if (due == null && !attached) return null;
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: NexSpacing.sm),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // A due reminder remains visible because it is an action for the
+          // future. The edit time belongs in note details, leaving this row
+          // for the note's own content.
+          if (due != null)
+            _DueChip(
+              due: due,
+              label: strings.dueLabel?.call(due, note.dueRepeat),
+              // A lapsed reminder is not an alarm any more, so it stops
+              // asking for attention in the accent colour. A repeating one
+              // never lapses: it is always about to happen again, however
+              // long ago the series began.
+              upcoming:
+                  note.dueRepeat != NoteRepeat.once ||
+                  due.isAfter(DateTime.now().toUtc()),
+            ),
+          if (due != null && attached) const SizedBox(height: NexSpacing.xs),
+          if (attached)
+            _AttachedMark(label: strings.attachedShort(note.attachmentCount)),
+        ],
       ),
     );
   }

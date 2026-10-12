@@ -43,6 +43,7 @@ extension NexAttachmentServices on NexServices {
     required AttachmentKind kind,
     String? name,
     String? mimeType,
+    int? durationMs,
   }) async {
     final extension = p.extension(source);
     final dest = p.join(
@@ -64,6 +65,7 @@ extension NexAttachmentServices on NexServices {
         mediaHash: hash,
         name: name,
         mimeType: mimeType,
+        durationMs: durationMs,
       ),
     );
   }
@@ -91,11 +93,12 @@ extension NexAttachmentServices on NexServices {
   Future<NoteAttachment?> _attached(NoteAttachment? attachment) async {
     if (attachment == null) return null;
     await refreshTimeline();
-    // A photo's words are read the way a photo note's are: afterwards, in
-    // the background, and only when reading text in photos is on. Nobody
+    // A photo's words are read, and a voice clip transcribed, the way a
+    // photo or voice note's are: afterwards, in the background, and only
+    // when that is switched on. Nobody
     // waits for it, so nobody is handed its failure; the next backfill
     // picks up what this missed.
-    if (attachment.kind == AttachmentKind.photo && !_closed) {
+    if (attachment.kind != AttachmentKind.file && !_closed) {
       unawaited(
         worker
             .attachmentReadText(attachment.id)
@@ -119,6 +122,32 @@ extension NexAttachmentServices on NexServices {
 
   Future<void> reorderAttachments(String noteId, List<String> orderedIds) =>
       worker.attachmentReorder(noteId, orderedIds);
+
+  /// The name a file attachment is shown and shared under.
+  Future<void> renameAttachment(String id, String? name) =>
+      worker.attachmentRename(id, name);
+
+  /// Takes an attachment off its note and makes it a note of its own,
+  /// read like any new note. The new note, or null.
+  Future<Note?> detachAttachment(String id) async {
+    final note = await worker.attachmentDetach(id);
+    if (note != null) {
+      scheduleEnrichment(note.id);
+      await refreshTimeline();
+    }
+    return note;
+  }
+
+  /// Makes an attached photo the note's own photo, the old one attached in
+  /// its place. The note is read again, since its picture changed.
+  Future<bool> promoteAttachment(String noteId, String id) async {
+    final done = await worker.attachmentPromote(id);
+    if (done) {
+      scheduleEnrichment(noteId);
+      await refreshTimeline();
+    }
+    return done;
+  }
 
   Future<void> setAttachmentCaption(String id, String? caption) =>
       worker.attachmentSetCaption(id, caption);

@@ -1287,6 +1287,10 @@ ON CONFLICT(note_id) DO UPDATE SET
   }
 
   /// Drops one note's vector, and keeps the index in step.
+  /// Drops [noteId]'s vector, so the next backfill embeds it again — for a
+  /// change to what the note means that is not an edit of its words.
+  void forgetEmbedding(String noteId) => _forgetEmbedding(noteId);
+
   void _forgetEmbedding(String noteId) {
     db.execute('DELETE FROM note_embeddings WHERE note_id = ?', [noteId]);
     final index = _vectors;

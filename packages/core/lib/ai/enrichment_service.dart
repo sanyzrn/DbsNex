@@ -338,6 +338,27 @@ class EnrichmentService {
     return (await call).text.trim();
   }
 
+  /// Transcribes a recording that is not a note of its own — a voice clip
+  /// attached to one. Null when transcription is off or nothing here hears
+  /// audio; otherwise the words, or an empty string for none. What the
+  /// adapter throws is thrown, as for [readImage].
+  Future<String?> transcribeAudio({
+    required String mediaUri,
+    String? mediaHash,
+  }) async {
+    if (!_capabilities.transcription) return null;
+    final file = File(mediaUri);
+    final call = _adapter.transcribe(
+      AudioRef(
+        mediaUri: mediaUri,
+        mediaHash: mediaHash,
+        bytes: file.existsSync() ? file.readAsBytesSync() : null,
+      ),
+    );
+    if (call == null) return null;
+    return (await call).text.trim();
+  }
+
   Future<void> _summarize(Note note) async {
     final call = _adapter.summarize(note);
     if (call == null) return;

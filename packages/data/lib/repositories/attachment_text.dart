@@ -2,9 +2,9 @@ import 'package:nex_core/nex_core.dart';
 
 import 'attachment_repository.dart';
 
-/// Reads the words in photos attached to notes — the attachments' share of
-/// the enrichment a photo note gets for its own picture
-/// (`docs/14-attachments.md`).
+/// Reads the words in photos attached to notes, and transcribes attached
+/// voice clips — the attachments' share of the enrichment a photo or voice
+/// note gets for its own file (`docs/14-attachments.md`).
 ///
 /// What it finds goes into the attachment's `ocr_text`, which the note's
 /// search row already carries, so a word in the third photo of a receipt
@@ -28,26 +28,37 @@ class AttachmentTextReader {
   )?
   _disclose;
 
-  /// Reads one attached photo. Whether it learned anything: false when it
-  /// was not a photo, was read before, or nothing here reads images.
+  /// Reads one attached photo, or transcribes one attached voice clip.
+  /// Whether it learned anything: false when it is neither, was read
+  /// before, or nothing here reads it.
   Future<bool> read(String id) async {
     final attachment = _attachments.byId(id);
-    if (attachment == null ||
-        attachment.deletedAt != null ||
-        attachment.kind != AttachmentKind.photo ||
-        attachment.ocrText != null) {
+    if (attachment == null || attachment.deletedAt != null) return false;
+    final photo = attachment.kind == AttachmentKind.photo;
+    final voice = attachment.kind == AttachmentKind.voice;
+    if (!(photo && attachment.ocrText == null) &&
+        !(voice && attachment.transcriptText == null)) {
       return false;
     }
-    Future<String?> ask() => _enrichment.readImage(
-      mediaUri: attachment.mediaUri,
-      mediaHash: attachment.mediaHash,
-    );
+    Future<String?> ask() => photo
+        ? _enrichment.readImage(
+            mediaUri: attachment.mediaUri,
+            mediaHash: attachment.mediaHash,
+          )
+        : _enrichment.transcribeAudio(
+            mediaUri: attachment.mediaUri,
+            mediaHash: attachment.mediaHash,
+          );
     final disclose = _disclose;
     final text = disclose == null
         ? await ask()
         : await disclose(attachment.noteId, ask);
     if (text == null) return false;
-    _attachments.setOcrResult(id, text);
+    if (photo) {
+      _attachments.setOcrResult(id, text);
+    } else {
+      _attachments.setTranscriptResult(id, text);
+    }
     return true;
   }
 
@@ -56,9 +67,16 @@ class AttachmentTextReader {
   /// a dead key, or text reading switched off — rather than learning the
   /// same thing from every photo behind it.
   Future<int> backfill({int limit = 25}) async {
-    if (!_enrichment.capabilities.ocr) return 0;
+    final can = _enrichment.capabilities;
+    if (!can.ocr && !can.transcription) return 0;
     var done = 0;
-    for (final attachment in _attachments.needingOcr(limit: limit)) {
+    for (final attachment in _attachments.needingText(limit: limit)) {
+      // Not a reason to stop: with text in photos on and transcription off,
+      // a voice clip waiting in the queue says nothing about the photos.
+      final off = attachment.kind == AttachmentKind.photo
+          ? !can.ocr
+          : !can.transcription;
+      if (off) continue;
       try {
         if (!await read(attachment.id)) break;
       } catch (_) {

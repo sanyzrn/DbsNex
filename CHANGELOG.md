@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.90
+
+- **Attachments, grown up.** Photos open in one gallery with every photo of the note — swipe between them, with each caption at the bottom and where you are at the top. Tiles show what each file is: a PDF by its first page, a video by a frame, a voice clip by its length, any other file by its kind and extension, and a photo's caption along its bottom. The **Attached** row says how many files there are and how much room they take.
+- **Voice clips on notes.** **Attach → Record a voice clip** adds a spoken note to a photo of a receipt or a whiteboard. Tap it to play it in place; with transcription on, what is said is found by search.
+- **More from a hold.** Hold an attachment and let go for its menu: share it or save it to your device on its own, rename a file, make an attached photo the note's own photo, or take it out as a note of its own.
+- **The reminder and the paperclip together.** On a card, the reminder and the count of attached files now sit together at the end, one above the other, instead of at opposite ends of the note's words.
+
 ## v1.99.82
 
 - **Search by meaning finds what is about your search, or nothing.** The same few short notes — a list of hashtags, a two-word reminder — were listed as found by meaning for almost every search. A note now has to stand out against the rest of your notes for that search to be listed, so they no longer come up for everything, and a search with nothing related in your notes shows no meaning results at all.

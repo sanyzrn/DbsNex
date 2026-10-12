@@ -179,6 +179,14 @@ abstract interface class NexDb {
   /// on. Whether it learned anything.
   Future<bool> attachmentReadText(String id);
 
+  Future<void> attachmentRename(String id, String? name);
+
+  /// Makes an attachment a note of its own; the new note, or null.
+  Future<Note?> attachmentDetach(String id);
+
+  /// Makes an attached photo its photo note's own; whether it could.
+  Future<bool> attachmentPromote(String id);
+
   /* ---------------------------------------------------------- modules */
 
   /// Every record [module] saved under [kind], the newest first — see

@@ -372,6 +372,16 @@ class InProcessDb implements NexDb {
   Future<bool> attachmentReadText(String id) => _attachmentText.read(id);
 
   @override
+  Future<void> attachmentRename(String id, String? name) async =>
+      _attachments.rename(id, name);
+
+  @override
+  Future<Note?> attachmentDetach(String id) async => _attachments.detach(id);
+
+  @override
+  Future<bool> attachmentPromote(String id) async => _attachments.promote(id);
+
+  @override
   Future<List<ModuleRecord>> moduleRecords(String module, String kind) async =>
       _modules.list(module, kind);
 

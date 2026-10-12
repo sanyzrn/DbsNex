@@ -1880,6 +1880,12 @@ abstract class AppLocalizations {
   /// **'Take a photo'**
   String get attachTakePhoto;
 
+  /// Attach menu: record a short voice clip onto the note
+  ///
+  /// In en, this message translates to:
+  /// **'Record a voice clip'**
+  String get attachRecordVoice;
+
   /// Attach sheet option
   ///
   /// In en, this message translates to:
@@ -1897,6 +1903,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove from this note'**
   String get attachRemove;
+
+  /// Attachment menu: swap this photo with the photo note's own
+  ///
+  /// In en, this message translates to:
+  /// **'Make it the note\'s photo'**
+  String get attachMakeMain;
+
+  /// Banner after making an attached photo the note's own
+  ///
+  /// In en, this message translates to:
+  /// **'It is now the note\'s photo'**
+  String get attachMadeMain;
+
+  /// Attachment menu: take the file out as a separate note
+  ///
+  /// In en, this message translates to:
+  /// **'Make it a note of its own'**
+  String get attachDetach;
+
+  /// Banner after taking an attachment out as its own note
+  ///
+  /// In en, this message translates to:
+  /// **'Now a note of its own'**
+  String get attachDetached;
+
+  /// An attached voice recording, read by screen readers and in the add menu
+  ///
+  /// In en, this message translates to:
+  /// **'Voice clip'**
+  String get attachVoice;
 
   /// Attachment menu: move this file one place earlier
   ///
