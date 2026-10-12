@@ -284,16 +284,16 @@ class _CardBody extends StatelessWidget {
                 _LeadingWithPin(note: note, strings: strings),
               const SizedBox(width: NexSpacing.contentGap),
               Expanded(
-                child:
-                    previewOverride ??
-                    _Preview(note: note, expanded: expanded, strings: strings),
+                child: _withFootnote(
+                  context,
+                  previewOverride ??
+                      _Preview(
+                        note: note,
+                        expanded: expanded,
+                        strings: strings,
+                      ),
+                ),
               ),
-              // What the note carries besides its words, together at the end
-              // of the row: when it will remind, then how many more files it
-              // holds, one above the other. They used to sit at opposite ends
-              // with the note's words between them, so a glance had two
-              // places to look for what were both facts about the note.
-              ?_trailing(context),
             ],
           ),
         ),
@@ -303,44 +303,54 @@ class _CardBody extends StatelessWidget {
 }
 
 extension on _CardBody {
-  Widget? _trailing(BuildContext context) {
+  /// The note's words, and under them — only when there is one — a quiet
+  /// footnote of what it carries besides: when it will remind, and how many
+  /// more files it holds.
+  ///
+  /// It was a column at the end of the row, one pill above the other, and it
+  /// took its width from every line of the note beside it; on a short card
+  /// the two pills were as wide as the words. Under the words they cost one
+  /// small line, on the cards that have them, and the words keep the card.
+  Widget _withFootnote(BuildContext context, Widget preview) {
     final due = showDue ? note.dueAt : null;
     final attached = note.attachmentCount > 0;
-    if (due == null && !attached) return null;
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(start: NexSpacing.sm),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // A due reminder remains visible because it is an action for the
-          // future. The edit time belongs in note details, leaving this row
-          // for the note's own content.
-          if (due != null)
-            _DueChip(
-              due: due,
-              label: strings.dueLabel?.call(due, note.dueRepeat),
-              // A lapsed reminder is not an alarm any more, so it stops
-              // asking for attention in the accent colour. A repeating one
-              // never lapses: it is always about to happen again, however
-              // long ago the series began.
-              upcoming:
-                  note.dueRepeat != NoteRepeat.once ||
-                  due.isAfter(DateTime.now().toUtc()),
-            ),
-          if (due != null && attached) const SizedBox(height: NexSpacing.xs),
-          if (attached)
-            _AttachedMark(label: strings.attachedShort(note.attachmentCount)),
-        ],
-      ),
+    if (due == null && !attached) return preview;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        preview,
+        const SizedBox(height: NexSpacing.xs),
+        Wrap(
+          spacing: NexSpacing.md,
+          runSpacing: 2,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            // A reminder still to come stays in the accent: it is the one
+            // thing here that asks for something.
+            if (due != null)
+              _DueChip(
+                due: due,
+                label: strings.dueLabel?.call(due, note.dueRepeat),
+                // A lapsed reminder is not an alarm any more. A repeating
+                // one never lapses: it is always about to happen again.
+                upcoming:
+                    note.dueRepeat != NoteRepeat.once ||
+                    due.isAfter(DateTime.now().toUtc()),
+              ),
+            if (attached)
+              _AttachedMark(label: strings.attachedShort(note.attachmentCount)),
+          ],
+        ),
+      ],
     );
   }
 }
 
-/// The files a note carries after its own, as a quiet pill at the end of
-/// its row: a paperclip and "+3". At the end rather than on the leading
-/// square, whose corners already hold the tag dots and the pin. Announced
-/// with the card (see `attachedLabel`), so the pill itself is silent.
+/// The files a note carries after its own, in the card's footnote: a
+/// paperclip and "+3". Not on the leading square, whose corners already hold
+/// the tag dots and the pin. Announced with the card (see `attachedLabel`),
+/// so the mark itself is silent.
 class _AttachedMark extends StatelessWidget {
   const _AttachedMark({required this.label});
 
@@ -351,31 +361,19 @@ class _AttachedMark extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return ExcludeSemantics(
-      child: Container(
-        padding: const EdgeInsetsDirectional.fromSTEB(
-          NexSpacing.xs + 2,
-          2,
-          NexSpacing.sm,
-          2,
-        ),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(NexRadius.pill),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.attach_file, size: 14, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 2),
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.attach_file, size: 13, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 2),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -411,27 +409,24 @@ class _DueChip extends StatelessWidget {
     if (text == null) {
       return Icon(Icons.notifications_active_outlined, size: 14, color: color);
     }
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(NexRadius.sm),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.notifications_active_outlined, size: 12, color: color),
-            const SizedBox(width: 3),
-            Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(color: color),
+    // No box of its own: a line of the card's footnote, not a chip on it.
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.notifications_active_outlined, size: 13, color: color),
+        const SizedBox(width: 3),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

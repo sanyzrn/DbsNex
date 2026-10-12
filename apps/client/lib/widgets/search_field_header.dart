@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
-import 'keyboard_dismisser.dart';
 
 /// How tall the search field's sliver is: the field itself plus its padding.
 const nexSearchHeaderExtent = nexMinTapTarget + NexSpacing.xs + NexSpacing.sm;
@@ -86,61 +85,62 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   ) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    // While typing, the first touch outside the field only puts the
-    // keyboard away (ADR-038) — on a result, on the empty screen, anywhere:
-    // the results are under the reader's thumb, and a touch meant to close
-    // the keyboard opened a note or closed the search instead. With the
-    // keyboard down, a result opens and anywhere else leaves.
-    return NexGuardedField(
-      focusNode: focusNode,
-      child: ClipRect(
-        child: TapRegion(
-          // A tap anywhere outside the field closes search the same way the X
-          // button does — the X was the only way out, so leaving search meant
-          // aiming for one small target instead of just tapping whatever you
-          // meant to look at. A result card shares [nexSearchTapGroup] with
-          // this region precisely so tapping *it* does not count as "outside":
-          // that tap fires on pointer-down, before the card's own onTap would
-          // resolve, so without the group the card never got a chance to open
-          // — search silently closed back to the timeline instead.
-          groupId: nexSearchTapGroup,
-          onTapOutside: (_) {
-            // The touch that closed the keyboard is not also the one that
-            // leaves: the keyboard is still on its way down when it arrives.
-            if (View.of(context).viewInsets.bottom > 0) return;
-            if (searching) onClear();
-          },
-          // No backing behind the row. The tag row below this one needs one,
-          // because it is pinned and the list genuinely runs beneath it; this
-          // header is not pinned and never has anything behind it — it scrolls
-          // away with the list like any other item. Painted anyway, it was a
-          // band of flat colour drawn straight across whatever background the
-          // reader had chosen, which is the same thing that was wrong with the
-          // tag row's and is more obvious here because this strip is taller.
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.md,
-              NexSpacing.xs,
-              NexSpacing.md,
-              NexSpacing.sm,
-            ),
-            child: Row(
-              children: [
-                Expanded(child: _pill(context, l10n, scheme)),
-                // Gives its room to the field as search opens, rather than
-                // vanishing on the frame the field is tapped.
-                if (trailing case final trailing?)
-                  _Reveal(
-                    shown: !searching,
-                    child: Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                        start: NexSpacing.sm,
-                      ),
-                      child: trailing,
+    return ClipRect(
+      child: TapRegion(
+        // A tap anywhere outside the field closes search the same way the X
+        // button does — the X was the only way out, so leaving search meant
+        // aiming for one small target instead of just tapping whatever you
+        // meant to look at. A result card shares [nexSearchTapGroup] with
+        // this region precisely so tapping *it* does not count as "outside":
+        // that tap fires on pointer-down, before the card's own onTap would
+        // resolve, so without the group the card never got a chance to open
+        // — search silently closed back to the timeline instead.
+        groupId: nexSearchTapGroup,
+        onTapOutside: (_) {
+          if (!searching) return;
+          // Words typed and the keyboard up: the touch that closes the
+          // keyboard is not also the one that leaves — the results are
+          // still to be looked at. With nothing typed there is nothing to
+          // look at, and a touch outside leaves at once.
+          final typed = controller.text.trim().isNotEmpty;
+          if (typed && View.of(context).viewInsets.bottom > 0) {
+            // Put away here rather than left to the app's dismisser: on the
+            // timeline the touch can be claimed before it gets there.
+            focusNode.unfocus();
+            return;
+          }
+          onClear();
+        },
+        // No backing behind the row. The tag row below this one needs one,
+        // because it is pinned and the list genuinely runs beneath it; this
+        // header is not pinned and never has anything behind it — it scrolls
+        // away with the list like any other item. Painted anyway, it was a
+        // band of flat colour drawn straight across whatever background the
+        // reader had chosen, which is the same thing that was wrong with the
+        // tag row's and is more obvious here because this strip is taller.
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            NexSpacing.md,
+            NexSpacing.xs,
+            NexSpacing.md,
+            NexSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              Expanded(child: _pill(context, l10n, scheme)),
+              // Gives its room to the field as search opens, rather than
+              // vanishing on the frame the field is tapped.
+              if (trailing case final trailing?)
+                _Reveal(
+                  shown: !searching,
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      start: NexSpacing.sm,
                     ),
+                    child: trailing,
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -364,13 +364,22 @@ class _Reveal extends StatelessWidget {
     reverseDuration: NexMotion.of(context, NexMotion.fast),
     switchInCurve: NexMotion.curve,
     switchOutCurve: NexMotion.exitCurve,
+    // Grown sideways from its start edge, and centred on the row's height.
+    // A horizontal SizeTransition aligns its child to the top as well, which
+    // set the filter and clear buttons above the middle of the field.
     transitionBuilder: (child, animation) => FadeTransition(
       opacity: animation,
-      child: SizeTransition(
-        sizeFactor: animation,
-        axis: Axis.horizontal,
-        axisAlignment: -1,
-        child: child,
+      child: ClipRect(
+        child: AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) => Align(
+            alignment: AlignmentDirectional.centerStart,
+            widthFactor: animation.value.clamp(0.0, 1.0),
+            heightFactor: 1,
+            child: child,
+          ),
+          child: child,
+        ),
       ),
     ),
     child: shown

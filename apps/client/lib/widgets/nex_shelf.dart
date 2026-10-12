@@ -136,7 +136,8 @@ class NexShelfTile extends StatelessWidget {
   /// Pinned to the home screen: a pin beside [badge].
   final bool pinned;
 
-  /// One line, icon and title: the tool as a card among the notes.
+  /// Icon beside title and one line of what it is for: the tool as a card
+  /// among the notes.
   final bool compact;
 
   @override
@@ -195,11 +196,27 @@ class NexShelfTile extends StatelessWidget {
                       mark,
                       const SizedBox(width: NexSpacing.sm + 2),
                       Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall,
+                            ),
+                            // The line it has on the Tools page, so a pinned
+                            // tool still says what it is for.
+                            Text(
+                              subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       for (final m in marks) ...[

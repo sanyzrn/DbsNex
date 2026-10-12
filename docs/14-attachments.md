@@ -58,7 +58,7 @@ What 1.99.70 has:
   is embedded again), and take one out as a note of its own (`detach`: a
   photo, voice or file note sharing the same file, with its caption and
   words).
-- **The card.** The reminder and the paperclip sit together at the end.
+- **The card.** The reminder and the paperclip sit together on a footnote line under the note's words (1.99.93), leaving the words the card's whole width.
 
 ## What is asked
 

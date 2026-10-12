@@ -276,23 +276,37 @@ extension _TimelineBody on TimelineScreenState {
   /// the timeline itself.
   List<Widget> _bodySlivers(AppLocalizations l10n) {
     if (_searching) {
-      return searchResultSlivers(
-        context: context,
-        search: _search,
-        preferences: widget.preferences,
-        onUseSaved: (query) {
-          _search.query.text = query;
-          _search.run();
-        },
-        onOpen: (note) {
-          unawaited(widget.preferences.rememberSearch(_search.query.text));
-          if (_searchStarted case final started?) {
-            NexMetrics.shared.record(NexMetric.searchToOpen, started.elapsed);
-            _searchStarted = null;
-          }
-          unawaited(_openNote(note));
-        },
-      );
+      // Words typed and the keyboard up: a touch on a result only puts the
+      // keyboard away, so a result is never opened by the touch meant to
+      // close it. The touch passes through to the app's keyboard dismisser.
+      // Scrolling the results still works.
+      final hold =
+          _search.query.text.trim().isNotEmpty &&
+          _searchFocus.hasFocus &&
+          MediaQuery.viewInsetsOf(context).bottom > 0;
+      return [
+        for (final sliver in searchResultSlivers(
+          context: context,
+          search: _search,
+          preferences: widget.preferences,
+          onUseSaved: (query) {
+            _search.query.text = query;
+            _search.run();
+          },
+          onOpen: (note) {
+            unawaited(widget.preferences.rememberSearch(_search.query.text));
+            if (_searchStarted case final started?) {
+              NexMetrics.shared.record(NexMetric.searchToOpen, started.elapsed);
+              _searchStarted = null;
+            }
+            // The field gives up its focus first: kept, it was handed back when
+            // the note closed, and the keyboard came up again unasked.
+            _searchFocus.unfocus();
+            unawaited(_openNote(note));
+          },
+        ))
+          SliverIgnorePointer(ignoring: hold, sliver: sliver),
+      ];
     }
 
     // Three states, not two. "Not loaded yet" was indistinguishable from

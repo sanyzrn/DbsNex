@@ -30,8 +30,21 @@ class NexVoiceSpool {
 
   static const _channel = MethodChannel('nex/os_capture');
 
-  /// Whether recordings stream to a spool here.
+  /// Whether recordings made by the old spool can exist here: what reads
+  /// and repairs them asks this.
   static bool get streams => Platform.isAndroid;
+
+  /// Whether a new recording streams to a spool. Off, since 1.99.93.
+  ///
+  /// On the owner's phone every voice note made through the stream played
+  /// silent — after the setup block was dropped (1.99.91) and after every
+  /// header was corrected to it (1.99.92) — while a voice clip attached on
+  /// the same phone, recorded straight to an `.m4a` by the recorder's own
+  /// muxer, played. Whatever that phone's decoder objects to in a stream
+  /// turned into a file, a voice note now is recorded the way the clip is.
+  /// The cost is DATA-04's: a process killed mid-memo loses that memo.
+  /// Spools left by earlier versions are still recovered.
+  static const streamNewRecordings = false;
 
   final AudioRecorder recorder;
 
@@ -57,7 +70,7 @@ class NexVoiceSpool {
     String mediaDir,
   ) async {
     final stamp = DateTime.now().millisecondsSinceEpoch;
-    if (!streams) {
+    if (!streams || !streamNewRecordings) {
       final path = p.join(mediaDir, 'voice-$stamp.m4a');
       await recorder.start(const RecordConfig(), path: path);
       return NexVoiceSpool._(recorder, path, null);

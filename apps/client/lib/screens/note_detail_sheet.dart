@@ -27,6 +27,7 @@ import '../l10n/relative_span.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/steady_position.dart';
+import '../widgets/voice_player.dart';
 import '../platform/voice_spool.dart';
 import '../widgets/ai_chat_sheet.dart';
 import 'package:nex_ai/cloud.dart';
@@ -43,7 +44,6 @@ import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/note_editor_sheet.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/attachment_tile.dart';
-import '../widgets/audio_waveform.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/voice_clip_sheet.dart';
 import '../widgets/nex_banner.dart';
@@ -147,12 +147,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   bool _loadingAi = false;
   Map<String, String> _relatedTitles = const {};
   AudioPlayer? _player;
-  Duration _position = Duration.zero;
-  Duration _duration = Duration.zero;
   NexSteadyPosition? _steady;
   bool _playerLoading = false;
-  StreamSubscription<Duration>? _posSub;
-  StreamSubscription<Duration?>? _durSub;
   StreamSubscription<PlayerState>? _stateSub;
 
   @override
@@ -225,8 +221,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   @override
   void dispose() {
-    _posSub?.cancel();
-    _durSub?.cancel();
     _stateSub?.cancel();
     _player?.dispose();
     super.dispose();
@@ -286,12 +280,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       final steady = NexSteadyPosition(player);
       _player = player;
       _steady = steady;
-      _posSub = player.positionStream.listen((p) {
-        if (mounted) setState(() => _position = steady.of(p));
-      });
-      _durSub = player.durationStream.listen((d) {
-        if (mounted && d != null) setState(() => _duration = d);
-      });
       // At the end: back to the start, with Play on the button.
       _stateSub = player.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed &&

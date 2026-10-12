@@ -205,76 +205,90 @@ void main() {
     expect(focus.hasFocus, isTrue);
   });
 
-  testWidgets('typing, the first touch outside only closes the keyboard; '
-      'then a result opens and anywhere else leaves', (tester) async {
-    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-    addTearDown(tester.view.reset);
-    final focus = FocusNode();
-    addTearDown(focus.dispose);
-    var cleared = 0;
-    var opened = 0;
+  for (final (typed, keyboard, leaves) in [
+    ('', true, true),
+    ('boiler', true, false),
+    ('boiler', false, true),
+    ('', false, true),
+  ]) {
+    final state =
+        '${typed.isEmpty ? 'nothing typed' : 'words typed'}, '
+        'keyboard ${keyboard ? 'up' : 'down'}';
+    testWidgets('a touch outside the field '
+        '${leaves ? 'leaves' : 'only closes the keyboard'} ($state)', (
+      tester,
+    ) async {
+      if (keyboard) {
+        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      }
+      addTearDown(tester.view.reset);
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      var cleared = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) => NexKeyboardDismisser(child: child!),
+          home: Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                SliverPersistentHeader(
+                  delegate: SearchFieldHeader(
+                    controller: TextEditingController(text: typed),
+                    focusNode: focus,
+                    searching: true,
+                    onTap: () {},
+                    onChanged: (_) {},
+                    onClear: () => cleared++,
+                  ),
+                ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 300, child: Text('empty')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      focus.requestFocus();
+      await tester.pump();
+      await tester.tap(find.text('empty'));
+      await tester.pump();
+      expect(cleared, leaves ? 1 : 0);
+      if (keyboard) expect(focus.hasFocus, isFalse);
+    });
+  }
+
+  testWidgets('the filter and clear buttons sit on the middle of the field', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        builder: (context, child) => NexKeyboardDismisser(child: child!),
         home: Scaffold(
           body: CustomScrollView(
             slivers: [
               SliverPersistentHeader(
                 delegate: SearchFieldHeader(
+                  extent: 72,
                   controller: TextEditingController(text: 'boiler'),
-                  focusNode: focus,
+                  focusNode: FocusNode(),
                   searching: true,
                   onTap: () {},
                   onChanged: (_) {},
-                  onClear: () => cleared++,
+                  onClear: () {},
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: TapRegion(
-                  groupId: nexSearchTapGroup,
-                  child: ListTile(
-                    title: const Text('a result'),
-                    onTap: () => opened++,
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 300, child: Text('empty')),
               ),
             ],
           ),
         ),
       ),
     );
-    focus.requestFocus();
-    await tester.pump();
-
-    // Keyboard up: a result does not open, and search stays.
-    await tester.tap(find.text('a result'));
-    await tester.pump();
-    expect(focus.hasFocus, isFalse);
-    expect(opened, 0);
-    expect(cleared, 0);
-
-    // Keyboard down: a result opens and search stays.
-    tester.view.viewInsets = FakeViewPadding.zero;
-    await tester.tap(find.text('a result'));
-    await tester.pump();
-    expect(opened, 1);
-    expect(cleared, 0);
-
-    // The field brings the keyboard back.
-    await tester.tap(find.byType(TextField));
-    await tester.pump();
-    expect(focus.hasFocus, isTrue);
-
-    // Anywhere else, keyboard down, leaves.
-    focus.unfocus();
-    await tester.pump();
-    await tester.tap(find.text('empty'));
-    await tester.pump();
-    expect(cleared, 1);
+    await tester.pumpAndSettle();
+    final middle = tester.getCenter(find.byIcon(Icons.search)).dy;
+    expect(tester.getCenter(find.byIcon(Icons.close)).dy, closeTo(middle, 1));
+    expect(tester.getCenter(find.byIcon(Icons.tune)).dy, closeTo(middle, 1));
   });
 }
