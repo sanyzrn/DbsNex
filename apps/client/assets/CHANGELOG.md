@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.94
+
+- **Voice notes open again.** In 1.99.93 opening a voice note or an audio file froze the app and left a grey box where the player should be. It opens and plays again.
+
 ## v1.99.93
 
 - **A new player for recordings.** Voice notes, audio files and attached voice clips play in one new player: a round button that turns play into pause and glows while it plays, the recording's own shape as the bar — touch or drag it to move — and a speed button for 1×, 1.5× and 2×. It is there the moment the note opens, instead of appearing a second later.

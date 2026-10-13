@@ -103,6 +103,9 @@ class _AudioWaveformState extends State<AudioWaveform> {
         ),
       );
       if (onSeek != null) {
+        // Its own name: the builder runs later, when `bars` is this
+        // LayoutBuilder, and a child of itself recurses until the stack ends.
+        final drawn = bars;
         bars = LayoutBuilder(
           builder: (context, box) {
             void seek(double dx) => onSeek((dx / box.maxWidth).clamp(0.0, 1.0));
@@ -110,7 +113,7 @@ class _AudioWaveformState extends State<AudioWaveform> {
               behavior: HitTestBehavior.opaque,
               onTapDown: (d) => seek(d.localPosition.dx),
               onHorizontalDragUpdate: (d) => seek(d.localPosition.dx),
-              child: bars,
+              child: drawn,
             );
           },
         );
