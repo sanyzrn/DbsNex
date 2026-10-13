@@ -89,7 +89,7 @@
   "securityBiometric": "Fingerprint or biometrics",
   "securityBiometricSubtitle": "Require an enrolled fingerprint, face, or Windows Hello instead of passcode fallback.",
   "securityLocalOnly": "Authentication is handled by your device. Nex never receives or stores your passcode or biometric data.",
-  "securityScreenshotBlocked": "While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.",
+  "securityScreenshotBlocked": "While the lock is on, the recent-apps screen shows Nex blank, and nothing can be captured while it is locked. Open and in front of you, it is your own screen to capture.",
   "sponsorLabel": "SPONSORED",
   "@sponsorLabel": {
       "description": "Small label at the top of the sponsor card, saying what it is"
@@ -240,6 +240,18 @@
   },
   "securityPasscodeUnavailable": "Set up a device passcode, PIN, or pattern first.",
   "securityBiometricUnavailable": "No enrolled fingerprint or other biometric was found.",
+  "securityLockedOut": "Too many tries. Wait a moment, then try again.",
+  "@securityLockedOut": {
+    "description": "Under the lock, or on the Security page, when the phone has paused fingerprint attempts for a short while after too many failures"
+  },
+  "securityLockedOutHard": "Too many tries. Unlock your phone with its PIN, pattern or password, then try again.",
+  "@securityLockedOutHard": {
+    "description": "When the phone has turned the fingerprint off until its own PIN, pattern or password is entered"
+  },
+  "securityConfirmWeaker": "Confirm it is you to lock less often",
+  "@securityConfirmWeaker": {
+    "description": "Reason shown in the system fingerprint prompt when someone changes the lock to close later or only on request"
+  },
   "securityAuthenticateReason": "Unlock Nex to protect your notes",
   "securityLockedTitle": "Nex is locked",
   "securityLockedSubtitle": "Authenticate with your device to open your notes.",
@@ -1376,6 +1388,26 @@
     "description": "Confirms the crop and saves the photo"
   },
   "cropRotate": "Rotate",
+  "cropFlip": "Flip",
+  "@cropFlip": {
+    "description": "Tool under the photo editor that mirrors the photo left to right"
+  },
+  "annotateSize": "Size",
+  "@annotateSize": {
+    "description": "Accessible name of the slider that sets the size of a brush stroke or of new text in the photo editor"
+  },
+  "annotateRedo": "Redo",
+  "@annotateRedo": {
+    "description": "Photo editor button that brings back the mark last undone"
+  },
+  "annotateEditTextHint": "Hold a label to change or remove it",
+  "@annotateEditTextHint": {
+    "description": "Hint under the photo while adding text labels"
+  },
+  "annotateDelete": "Remove",
+  "@annotateDelete": {
+    "description": "Button in the text dialog that removes a text label from the photo"
+  },
   "cropFree": "Free",
   "cropReset": "Reset",
   "moreActions": "More actions",

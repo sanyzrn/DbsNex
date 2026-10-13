@@ -5,40 +5,15 @@ import 'dart:typed_data';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
-import 'package:image/image.dart' as img;
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/editor_drafts.dart';
+import '../platform/photo_encoding.dart';
 import '../widgets/draft_guard.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/photo_editor_theme.dart';
 import 'photo_annotate_screen.dart';
-
-/// Runs off the UI thread: a full-resolution camera photo is large enough
-/// that decode+rotate+encode on the main isolate would drop frames.
-Uint8List _rotateClockwise(Uint8List bytes) {
-  final decoded = img.decodeImage(bytes);
-  if (decoded == null) throw const FormatException('Unsupported image');
-  final rotated = img.copyRotate(decoded, angle: 90);
-  // PNG, not the source format: re-encoding a JPEG here would compound
-  // generation loss on every tap, for a step that is meant to be repeatable.
-  return Uint8List.fromList(img.encodePng(rotated));
-}
-
-/// crop_your_image keeps the source encoding. Persisted edits use a PNG name
-/// and MIME type, so normalize JPEG crops before handing them to callers.
-Uint8List _asPng(Uint8List bytes) {
-  if (bytes.length >= 8 &&
-      bytes[0] == 0x89 &&
-      bytes[1] == 0x50 &&
-      bytes[2] == 0x4E &&
-      bytes[3] == 0x47) {
-    return bytes;
-  }
-  final decoded = img.decodeImage(bytes);
-  if (decoded == null) throw const FormatException('Unsupported image');
-  return Uint8List.fromList(img.encodePng(decoded));
-}
 
 /// Crop step shown right after a photo is taken or picked, before it is ever
 /// written to disk.
@@ -68,7 +43,16 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   @override
   bool get hasUnsavedChanges => _ready || _rotating || _cropping;
   final _controller = CropController();
+
+  /// The photo as it is to be seen — upright, see [uprightPhoto] — and what
+  /// every turn and flip starts from, so four turns are one re-encoding.
+  /// Null until it has been read.
+  Uint8List? _base;
+
+  /// What the cropper shows: [_base] turned and flipped.
   Uint8List _current = Uint8List(0);
+  int _turns = 0;
+  bool _flipped = false;
   bool _cropping = false;
   bool _rotating = false;
   // False from the very first frame until `Crop`'s own async parse of
@@ -85,6 +69,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   String get _key => '${widget.draftKey}-crop';
   void _snapshot() => widget.drafts?.write(_key, {
     'ratio': _aspectRatio,
+    'turns': _turns,
+    'flipped': _flipped,
     if (_area != null)
       'area': [_area!.left, _area!.top, _area!.right, _area!.bottom],
   });
@@ -110,12 +96,15 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   }
 
   void _reset() {
-    if (_cropping || _rotating) return;
+    final base = _base;
+    if (_cropping || _rotating || base == null) return;
     setState(() {
       discardDraft();
       _restoredArea = null;
       _area = null;
-      _current = Uint8List.fromList(widget.image);
+      _turns = 0;
+      _flipped = false;
+      _current = base;
       _aspectRatio = null;
       _ready = false;
     });
@@ -124,9 +113,10 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   @override
   void initState() {
     super.initState();
-    _current = widget.drafts?.readImage(_key) ?? widget.image;
     final draft = widget.drafts?.read(_key);
     _aspectRatio = (draft?['ratio'] as num?)?.toDouble();
+    _turns = (draft?['turns'] as num?)?.toInt() ?? 0;
+    _flipped = draft?['flipped'] == true;
     final area = draft?['area'];
     if (area is List && area.length == 4) {
       _restoredArea = Rect.fromLTRB(
@@ -136,14 +126,60 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
         (area[3] as num).toDouble(),
       );
     }
+    unawaited(_prepare());
   }
 
-  Future<void> _rotate() async {
-    if (_rotating || _cropping || !_ready) return;
+  /// Reads the photo upright, off the UI thread, and picks up a turned or
+  /// flipped draft where it was left.
+  Future<void> _prepare() async {
+    // Most photos are upright already, and their tag is in the header: the
+    // cropper opens at once for those, with no trip off the UI thread.
+    if (!photoNeedsUpright(widget.image) && _turns % 4 == 0 && !_flipped) {
+      _base = widget.image;
+      _current = widget.image;
+      return;
+    }
+    Uint8List base;
+    try {
+      base = await compute(uprightPhoto, widget.image);
+    } catch (_) {
+      base = widget.image;
+    }
+    var current = base;
+    if (_turns % 4 != 0 || _flipped) {
+      try {
+        current = await compute(transformPhoto, (
+          bytes: base,
+          turns: _turns,
+          flip: _flipped,
+        ));
+      } catch (_) {
+        _turns = 0;
+        _flipped = false;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _base = base;
+      _current = current;
+    });
+  }
+
+  Future<void> _rotate() => _transform(turns: _turns + 1, flip: _flipped);
+
+  Future<void> _flip() => _transform(turns: _turns, flip: !_flipped);
+
+  Future<void> _transform({required int turns, required bool flip}) async {
+    final base = _base;
+    if (_rotating || _cropping || !_ready || base == null) return;
     setState(() => _rotating = true);
     Uint8List rotated;
     try {
-      rotated = await compute(_rotateClockwise, _current);
+      rotated = await compute(transformPhoto, (
+        bytes: base,
+        turns: turns,
+        flip: flip,
+      ));
     } catch (_) {
       if (!mounted) return;
       setState(() => _rotating = false);
@@ -168,9 +204,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
       // `CropStatus.loading` on its own, so without this the stale `true`
       // from the widget it is replacing would let a crop through before the
       // new instance has parsed anything at all.
-      if (widget.drafts case final drafts?) {
-        unawaited(drafts.writeImage(_key, rotated));
-      }
+      _turns = turns % 4;
+      _flipped = flip;
       _restoredArea = null;
       _area = null;
       _current = rotated;
@@ -191,22 +226,11 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   Future<void> _onCropped(CropResult result) async {
     switch (result) {
       case CropSuccess(:final croppedImage):
-        late final Uint8List png;
-        try {
-          png =
-              croppedImage.length >= 4 &&
-                  croppedImage[0] == 0x89 &&
-                  croppedImage[1] == 0x50 &&
-                  croppedImage[2] == 0x4E &&
-                  croppedImage[3] == 0x47
-              ? croppedImage
-              : await compute(_asPng, croppedImage);
-        } catch (error) {
-          if (!mounted) return;
-          setState(() => _cropping = false);
-          nexShowBanner(context, message: '$error');
-          return;
-        }
+        // In the photo's own format: a JPEG crop stays a JPEG. It used to be
+        // turned into a PNG here — seconds of work on a camera photo, and a
+        // file several times the size — for the save step to turn back into
+        // a JPEG; the save names the file from its bytes.
+        final png = croppedImage;
         if (!mounted) return;
         if (!_pendingAnnotate) {
           Navigator.of(context).pop(png);
@@ -225,6 +249,11 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
         if (!mounted) return;
         if (annotated == null) {
           setState(() {
+            // Back from drawing: the crop stays made, and it is what turns
+            // and flips start from now.
+            _base = png;
+            _turns = 0;
+            _flipped = false;
             _current = png;
             _cropping = false;
             _ready = false;
@@ -243,175 +272,213 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final busy = _cropping || _rotating || !_ready;
-    return guardDraft(
-      Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: Text(l10n.cropPhotoTitle),
-          leading: IconButton(
-            tooltip: l10n.cropCancel,
-            icon: const Icon(Icons.close),
-            onPressed: requestDiscard,
+    return NexPhotoEditorTheme(
+      child: guardDraft(
+        Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            title: Text(l10n.cropPhotoTitle),
+            leading: IconButton(
+              tooltip: l10n.cropCancel,
+              icon: const Icon(Icons.close),
+              onPressed: requestDiscard,
+            ),
           ),
-        ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.md,
-              12,
-              NexSpacing.md,
-              NexSpacing.md,
-            ),
-            decoration: const BoxDecoration(
-              color: Color(0xFF171717),
-              border: Border(top: BorderSide(color: Color(0xFF383838))),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  height: 48,
-                  child: Scrollbar(
-                    controller: _ratioScroll,
-                    thumbVisibility: true,
-                    child: ListView(
-                      controller: _ratioScroll,
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _RatioOption(
-                          label: l10n.cropFree,
-                          selected: _aspectRatio == null,
-                          onTap: busy ? null : () => _setAspectRatio(null),
-                        ),
-                        for (final (label, value) in const [
-                          ('1:1', 1.0),
-                          ('4:3', 4 / 3),
-                          ('3:4', 3 / 4),
-                          ('16:9', 16 / 9),
-                          ('9:16', 9 / 16),
-                        ])
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NexSpacing.md,
+                NexSpacing.sm,
+                NexSpacing.md,
+                NexSpacing.md,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // The shapes, as a row of pills that scrolls sideways on a
+                  // narrow phone and sits centred on a wide one.
+                  SizedBox(
+                    height: 40,
+                    child: Center(
+                      child: ListView(
+                        shrinkWrap: true,
+                        scrollDirection: Axis.horizontal,
+                        children: [
                           _RatioOption(
-                            label: label,
-                            selected: _aspectRatio == value,
-                            onTap: busy ? null : () => _setAspectRatio(value),
+                            label: l10n.cropFree,
+                            selected: _aspectRatio == null,
+                            onTap: busy ? null : () => _setAspectRatio(null),
                           ),
-                      ],
-                    ),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(top: 4),
-                  child: Icon(
-                    Icons.swipe_outlined,
-                    color: Colors.white70,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton.icon(
-                        onPressed: busy ? null : _rotate,
-                        icon: const Icon(Icons.rotate_90_degrees_cw_outlined),
-                        label: Text(l10n.cropRotate),
+                          for (final (label, value) in const [
+                            ('1:1', 1.0),
+                            ('4:3', 4 / 3),
+                            ('3:4', 3 / 4),
+                            ('16:9', 16 / 9),
+                            ('9:16', 9 / 16),
+                          ])
+                            _RatioOption(
+                              label: label,
+                              selected: _aspectRatio == value,
+                              onTap: busy ? null : () => _setAspectRatio(value),
+                            ),
+                        ],
                       ),
                     ),
-                    Expanded(
-                      child: TextButton.icon(
-                        onPressed: busy ? null : _reset,
-                        icon: const Icon(Icons.restart_alt),
-                        label: Text(l10n.cropReset),
+                  ),
+                  const SizedBox(height: NexSpacing.md),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      NexPhotoTool(
+                        icon: Icons.rotate_90_degrees_cw_outlined,
+                        label: l10n.cropRotate,
+                        onPressed: busy ? null : () => unawaited(_rotate()),
                       ),
-                    ),
-                    Expanded(
-                      child: TextButton.icon(
+                      NexPhotoTool(
+                        icon: Icons.flip_outlined,
+                        label: l10n.cropFlip,
+                        selected: _flipped,
+                        onPressed: busy ? null : () => unawaited(_flip()),
+                      ),
+                      NexPhotoTool(
+                        icon: Icons.draw_outlined,
+                        label: l10n.cropAnnotate,
                         onPressed: busy
                             ? null
                             : () => _startCrop(annotate: true),
-                        icon: const Icon(Icons.draw_outlined),
-                        label: Text(l10n.cropAnnotate),
+                      ),
+                      NexPhotoTool(
+                        icon: Icons.restart_alt,
+                        label: l10n.cropReset,
+                        onPressed: busy ? null : _reset,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: NexSpacing.md),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: busy
+                          ? null
+                          : () => _startCrop(annotate: false),
+                      icon: _cropping
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check),
+                      label: Text(l10n.cropConfirm),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: busy ? null : () => _startCrop(annotate: false),
-                    icon: _cropping
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.check),
-                    label: Text(l10n.cropConfirm),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        body: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: math
-                  .max(
-                    MediaQuery.systemGestureInsetsOf(context).left,
-                    MediaQuery.systemGestureInsetsOf(context).right,
-                  )
-                  .clamp(24.0, 80.0),
-              vertical: 12,
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) => MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(size: constraints.biggest),
-                child: ClipRect(
-                  child: Crop(
-                    key: ValueKey(_current),
-                    image: _current,
-                    aspectRatio: _aspectRatio,
-                    controller: _controller,
-                    initialRectBuilder: _restoredArea == null
-                        ? null
-                        : InitialRectBuilder.withArea(_restoredArea!),
-                    onMoved: (_, area) {
-                      _area = area;
-                      _snapshot();
-                    },
-                    onCropped: (result) => unawaited(_onCropped(result)),
-                    // `_crop()` reports `.ready` again right after `.cropped`, in the
-                    // same call — including once this screen has already popped itself
-                    // in response to that same result, which made this a `setState`
-                    // after dispose.
-                    onStatusChanged: (status) {
-                      if (!mounted) return;
-                      setState(() => _ready = status == CropStatus.ready);
-                    },
-                    baseColor: Colors.black,
-                    maskColor: Colors.black.withValues(alpha: 0.6),
-                    interactive: true,
-                    radius: 4,
-                  ),
-                ),
+          body: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: math
+                    .max(
+                      MediaQuery.systemGestureInsetsOf(context).left,
+                      MediaQuery.systemGestureInsetsOf(context).right,
+                    )
+                    .clamp(24.0, 80.0),
+                vertical: 12,
               ),
+              child: _base == null
+                  // Turning a camera photo upright takes a moment; the
+                  // cropper waits for the upright one rather than showing
+                  // it sideways first. The photo itself stands in, dimmed —
+                  // the system draws it upright already.
+                  ? Center(
+                      child: Opacity(
+                        opacity: 0.5,
+                        child: Image.memory(widget.image, fit: BoxFit.contain),
+                      ),
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) => MediaQuery(
+                        data: MediaQuery.of(
+                          context,
+                        ).copyWith(size: constraints.biggest),
+                        child: ClipRect(
+                          child: Crop(
+                            key: ValueKey(_current),
+                            image: _current,
+                            aspectRatio: _aspectRatio,
+                            controller: _controller,
+                            initialRectBuilder: _restoredArea == null
+                                ? null
+                                : InitialRectBuilder.withArea(_restoredArea!),
+                            onMoved: (_, area) {
+                              _area = area;
+                              _snapshot();
+                            },
+                            onCropped: (result) =>
+                                unawaited(_onCropped(result)),
+                            // `_crop()` reports `.ready` again right after
+                            // `.cropped`, in the same call — including once
+                            // this screen has already popped itself in
+                            // response to that same result, which made this a
+                            // `setState` after dispose.
+                            onStatusChanged: (status) {
+                              if (!mounted) return;
+                              setState(
+                                () => _ready = status == CropStatus.ready,
+                              );
+                            },
+                            baseColor: Colors.black,
+                            maskColor: Colors.black.withValues(alpha: 0.6),
+                            cornerDotBuilder: (size, edge) =>
+                                _CropCorner(size: size),
+                            interactive: true,
+                            radius: 4,
+                          ),
+                        ),
+                      ),
+                    ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// The handle at each corner of the crop: a white dot ringed in the accent,
+/// big enough to find with a thumb.
+class _CropCorner extends StatelessWidget {
+  const _CropCorner({required this.size});
+
+  /// The touch area the cropper gives each corner.
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: size,
+    child: Center(
+      child: Container(
+        width: 14,
+        height: 14,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary,
+            width: 2,
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _RatioOption extends StatelessWidget {
@@ -429,19 +496,32 @@ class _RatioOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsetsDirectional.only(end: 8),
-      child: OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: selected ? scheme.onPrimary : Colors.white,
-          backgroundColor: selected ? scheme.primary : const Color(0xFF2A2A2A),
-          side: BorderSide(
-            color: selected ? scheme.primary : const Color(0xFF555555),
+      padding: const EdgeInsetsDirectional.only(end: NexSpacing.xs),
+      child: Semantics(
+        button: true,
+        selected: selected,
+        child: Material(
+          color: selected
+              ? scheme.primary
+              : Colors.white.withValues(alpha: 0.1),
+          shape: const StadiumBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: NexSpacing.md,
+                vertical: NexSpacing.sm,
+              ),
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: selected ? scheme.onPrimary : Colors.white,
+                ),
+              ),
+            ),
           ),
-          minimumSize: const Size(62, 48),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
         ),
-        child: Text(label),
       ),
     );
   }

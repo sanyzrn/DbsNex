@@ -41,4 +41,48 @@ void main() {
     final png = Uint8List.fromList(img.encodePng(image));
     expect(encodeEditedPhoto((bytes: png, wasJpeg: true)), same(png));
   });
+
+  // A camera photo is saved the way the sensor lay, with a tag saying how to
+  // turn it. The cropper ignored the tag; the editor now turns it first.
+  test('a tagged photo comes out upright, an untagged one untouched', () {
+    final sideways = img.Image(width: 40, height: 20);
+    sideways.exif.imageIfd.orientation = 6;
+    final tagged = Uint8List.fromList(img.encodeJpg(sideways));
+    expect(photoNeedsUpright(tagged), isTrue);
+    final upright = uprightPhoto(tagged);
+    expect(photoNeedsUpright(upright), isFalse);
+    final decoded = img.decodeJpg(upright)!;
+    expect((decoded.width, decoded.height), (20, 40));
+
+    final plain = Uint8List.fromList(
+      img.encodeJpg(img.Image(width: 40, height: 20)),
+    );
+    expect(photoNeedsUpright(plain), isFalse);
+    expect(identical(uprightPhoto(plain), plain), isTrue);
+  });
+
+  test('turns and flips start from the same picture, JPEG staying JPEG', () {
+    final jpeg = Uint8List.fromList(
+      img.encodeJpg(img.Image(width: 40, height: 20)),
+    );
+    final once = transformPhoto((bytes: jpeg, turns: 1, flip: false));
+    expect(once.sublist(0, 2), [0xff, 0xd8]);
+    final decoded = img.decodeJpg(once)!;
+    expect((decoded.width, decoded.height), (20, 40));
+    // A full turn, unflipped, is the picture itself: nothing re-encoded.
+    expect(
+      identical(transformPhoto((bytes: jpeg, turns: 4, flip: false)), jpeg),
+      isTrue,
+    );
+
+    final png = Uint8List.fromList(
+      img.encodePng(
+        img.Image(width: 4, height: 2)..setPixelRgb(0, 0, 255, 0, 0),
+      ),
+    );
+    final mirrored = img.decodePng(
+      transformPhoto((bytes: png, turns: 0, flip: true)),
+    )!;
+    expect(mirrored.getPixel(3, 0).r, 255);
+  });
 }

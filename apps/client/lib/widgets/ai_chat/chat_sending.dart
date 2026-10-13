@@ -188,6 +188,12 @@ extension _ChatSending on _AiChatSheetState {
     _toBottom();
 
     await _retrieveFor(trimmed);
+    // How the app works, for a question about the app: a short passage on
+    // the phone's model, a few on a cloud one.
+    _guide = await NexAppGuide.forQuestion(
+      trimmed,
+      budget: _adapter.answersOnDevice ? 1200 : 3500,
+    );
     try {
       _gentle = await nexCycleGentleToday(
         services: widget.services,

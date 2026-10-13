@@ -299,7 +299,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get securityScreenshotBlocked =>
-      'تا وقتی قفل روشن است، Nex از صفحهٔ برنامه‌های اخیر هم پنهان می‌ماند و گرفتن اسکرین‌شات از آن مسدود می‌شود.';
+      'تا وقتی قفل روشن است، صفحهٔ برنامه‌های اخیر Nex را خالی نشان می‌دهد و تا قفل است نمی‌توان از آن تصویر گرفت. وقتی باز و جلوی خودتان است، صفحه مال شماست و می‌توانید از آن اسکرین‌شات بگیرید.';
 
   @override
   String get sponsorLabel => 'حمایت‌شده';
@@ -432,6 +432,18 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get securityBiometricUnavailable =>
       'اثر انگشت یا بیومتریک ثبت‌شده‌ای پیدا نشد.';
+
+  @override
+  String get securityLockedOut =>
+      'تلاش‌ها زیاد شد. کمی صبر کنید و دوباره امتحان کنید.';
+
+  @override
+  String get securityLockedOutHard =>
+      'تلاش‌ها زیاد شد. اول قفل گوشی را با پین، الگو یا رمزش باز کنید، بعد دوباره امتحان کنید.';
+
+  @override
+  String get securityConfirmWeaker =>
+      'برای کمتر قفل شدن، تأیید کنید که خودتان هستید';
 
   @override
   String get securityAuthenticateReason =>
@@ -1870,6 +1882,22 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cropRotate => 'چرخاندن';
+
+  @override
+  String get cropFlip => 'قرینه';
+
+  @override
+  String get annotateSize => 'اندازه';
+
+  @override
+  String get annotateRedo => 'انجام دوباره';
+
+  @override
+  String get annotateEditTextHint =>
+      'برای تغییر یا حذف یک نوشته، آن را نگه دارید';
+
+  @override
+  String get annotateDelete => 'حذف';
 
   @override
   String get cropFree => 'آزاد';

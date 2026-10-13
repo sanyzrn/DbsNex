@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.96
+
+- **Ask the assistant about Nex itself.** "How do I pin a tool?", "why did my reminder not ring?", "how do I move to a new phone?" — it now answers from the app's own guide, in your language, and says where in the app to go.
+- **A fuller guide.** The guide now explains the app lock in detail, lists what each settings page holds, and answers the common questions.
+- **The app lock is harder to loosen.** Making Nex lock later — or only when you ask — now asks for your fingerprint first, so nobody holding your phone for a moment can change it. Locking sooner still takes one tap.
+- **Locking closes everything.** When Nex locks, the private tools lock with it and the keyboard closes, so nothing typed at the lock lands in a hidden note.
+- **The lock says what is wrong.** After too many wrong fingerprints it tells you to wait or to unlock the phone first, and if the phone has no screen lock it offers to open the phone's settings to set one.
+- **A better photo editor.** A photo the camera saved on its side now opens the right way up for cropping, and comes out that way. Crop pills, round tools and a new **Flip**; in drawing, a tap leaves a dot, lines are smoother, the slider also sets the size of text, a label can be held to change or remove it, **Redo** joins Undo, and text sits where you tapped. The editor is dark in every theme, so none of its buttons fade into the background, and turning and cropping a camera photo is quicker and no longer makes a much larger file along the way.
+
 ## v1.99.95
 
 - **Reminders and attachments cost a card no line.** They sit at the end of the note's last line, the way a message's time does in a chat: a short note keeps them on its one line, and a long one fades out just before them. Its words keep every line they had.

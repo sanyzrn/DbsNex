@@ -348,6 +348,7 @@ extension _ChatContext on _AiChatSheetState {
     // tells it not to do.
     canAct: _context.isNotEmpty,
     currentSettings: _currentSettings,
+    appGuide: _guide,
   );
 
   /// The settings [assistantSettableKeys] covers, as they are now, in the

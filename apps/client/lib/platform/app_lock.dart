@@ -1,3 +1,4 @@
+import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
 
@@ -40,11 +41,30 @@ bool nexLockGraceHasRunOut(NexPreferences preferences) {
   return away.isNegative || away.inSeconds >= preferences.appLockGraceSeconds;
 }
 
+/// Why the last attempt to authenticate did not open anything, when the
+/// phone said — a plain cancel says nothing and leaves this null.
+enum NexAuthFailure {
+  /// Too many tries: the phone pauses its fingerprint for a short while.
+  lockedOut,
+
+  /// Too many tries: the fingerprint is off until the phone's own PIN,
+  /// pattern or password is entered.
+  lockedOutHard,
+
+  /// No screen lock, or nothing enrolled, to authenticate with.
+  unavailable,
+}
+
 class AppLockService {
   AppLockService({LocalAuthentication? authentication})
     : _authentication = authentication ?? LocalAuthentication();
 
   final LocalAuthentication _authentication;
+
+  /// What [authenticate] last ran into, for a gate that would otherwise
+  /// answer every refusal with the same silence: someone locked out after
+  /// five tries tapped Unlock again and again, and nothing said to wait.
+  NexAuthFailure? lastFailure;
 
   Future<void> openDeviceSecurity() async {
     try {
@@ -79,6 +99,7 @@ class AppLockService {
     required String reason,
     required bool biometricOnly,
   }) async {
+    lastFailure = null;
     try {
       return await _authentication.authenticate(
         localizedReason: reason,
@@ -87,8 +108,22 @@ class AppLockService {
           stickyAuth: true,
         ),
       );
+    } on PlatformException catch (error) {
+      lastFailure = failureOf(error.code);
+      return false;
     } catch (_) {
       return false;
     }
   }
+
+  /// The failure a `local_auth` error code stands for, or null for one that
+  /// only means "not this time".
+  static NexAuthFailure? failureOf(String code) => switch (code) {
+    auth_error.lockedOut => NexAuthFailure.lockedOut,
+    auth_error.permanentlyLockedOut => NexAuthFailure.lockedOutHard,
+    auth_error.notAvailable ||
+    auth_error.notEnrolled ||
+    auth_error.passcodeNotSet => NexAuthFailure.unavailable,
+    _ => null,
+  };
 }

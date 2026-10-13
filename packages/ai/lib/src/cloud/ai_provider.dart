@@ -498,6 +498,7 @@ class AiChatOptions {
     this.gentle = false,
     this.now,
     this.currentSettings = '',
+    this.appGuide = '',
   });
 
   final AiCreativity creativity;
@@ -568,6 +569,15 @@ class AiChatOptions {
   /// is not told. Answer more softly. Set only when the user turned on
   /// "Gentle companion" in Cycle.
   final bool gentle;
+
+  /// Passages of Nex's own guide that the newest question is about, or
+  /// empty.
+  ///
+  /// The app's documentation, not the user's data: it says how Nex works so
+  /// that "how do I lock the app?" is answered from what the app does rather
+  /// than from what notes apps usually do. Chosen by the app for the
+  /// question, a few hundred words at most.
+  final String appGuide;
 }
 
 /// The outcome of a connection test, in the user's terms.
@@ -1751,6 +1761,24 @@ class CloudAIAdapter implements AIAdapter {
         'on the note being asked about. They are the notes, not something '
         'from outside them: look at them and answer from what you see. Never '
         'say you cannot see an image that has been attached.',
+      );
+    }
+    final guide = options.appGuide.trim();
+    if (guide.isNotEmpty) {
+      // Its own block, apart from the notes: it is the app describing
+      // itself, so it may be relied on — but it is not something the user
+      // wrote, and a citation of it would open a note that does not exist.
+      parts.add(
+        'How Nex itself works, from its own guide, is given between '
+        '<<<GUIDE and GUIDE>>>. Answer questions about using Nex — its '
+        'screens, settings and features, and what to do when something does '
+        'not work — from it, naming where in the app to go, in the '
+        "user's language. It is the app's documentation, not the user's "
+        'notes: never list it as a source. If it does not cover what was '
+        'asked, say so rather than guess.\n'
+        '<<<GUIDE\n'
+        '${guide.replaceAll('<<<GUIDE', '<<GUIDE').replaceAll('GUIDE>>>', 'GUIDE>>')}'
+        '\nGUIDE>>>',
       );
     }
     parts.add(outputLanguage.promptRule);

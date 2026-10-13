@@ -11,6 +11,7 @@ import 'package:nex_client/platform/app_lock.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
+import 'package:nex_client/platform/vault_session.dart';
 
 import 'support/in_process_db.dart';
 
@@ -301,6 +302,41 @@ void main() {
 
     expect(gateIsUp(tester), isTrue);
   });
+
+  testWidgets('locking closes the private tools with the app', (tester) async {
+    final services = await boot({'security.lock_timing': 'immediately'});
+    addTearDown(VaultSession.instance.close);
+    await tester.pumpWidget(
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _AlwaysRefused(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    VaultSession.instance.open();
+
+    await leave(tester);
+    expect(gateIsUp(tester), isTrue);
+    expect(VaultSession.instance.isOpen, isFalse);
+  });
+
+  testWidgets('too many tries: the gate says to wait', (tester) async {
+    final services = await boot({'security.lock_closed': true});
+    await tester.pumpWidget(
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _LockedOut(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(gateIsUp(tester), isTrue);
+    expect(
+      find.text('Too many tries. Wait a moment, then try again.'),
+      findsOneWidget,
+    );
+  });
 }
 
 /// A prompt that refuses, and does it before the next line of the test runs.
@@ -340,5 +376,17 @@ class _PromptThatTakesTheForeground extends AppLockService {
   }) async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     return true;
+  }
+}
+
+/// A phone that has paused its fingerprint after too many tries.
+class _LockedOut extends AppLockService {
+  @override
+  Future<bool> authenticate({
+    required String reason,
+    required bool biometricOnly,
+  }) async {
+    lastFailure = NexAuthFailure.lockedOut;
+    return false;
   }
 }

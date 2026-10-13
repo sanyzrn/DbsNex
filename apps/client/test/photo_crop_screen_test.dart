@@ -137,31 +137,20 @@ void main() {
     expect(result, isNot(equals(_testPng)));
   });
 
-  testWidgets('a JPEG crop returns PNG bytes for the saved media type', (
-    tester,
-  ) async {
+  testWidgets('a JPEG crop stays a JPEG', (tester) async {
+    // It was turned into a PNG here — seconds of work on a camera photo and
+    // a file several times the size — for the save step to turn back.
     final jpeg = Uint8List.fromList(
       img.encodeJpg(img.Image(width: 100, height: 100)),
     );
     final getResult = await _pushCropScreen(tester, image: jpeg);
     await _waitAndSettle(tester);
     await tester.tap(find.byIcon(Icons.check));
-    await tester.pump();
-    // JPEG needs a second isolate pass to normalize the crop to PNG. Keep
-    // pumping while real isolate work runs; pumpAndSettle alone advances fake
-    // time through its timeout before that result gets back.
-    await tester.runAsync(() async {
-      for (var attempt = 0; attempt < 50; attempt++) {
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-        await tester.pump(const Duration(milliseconds: 16));
-        if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
-      }
-    });
-    await tester.pumpAndSettle();
+    await _waitAndSettle(tester);
 
     final result = getResult();
     expect(result, isNotNull);
-    expect(result!.sublist(0, 4), [0x89, 0x50, 0x4e, 0x47]);
+    expect(result!.sublist(0, 2), [0xff, 0xd8]);
   });
 
   testWidgets('rotating changes what gets cropped, not just a no-op tap', (

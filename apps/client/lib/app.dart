@@ -1,3 +1,5 @@
+export 'widgets/app_lock_gate.dart' show appLockBarrierKey;
+
 import 'platform/theme_presets.dart';
 import 'dart:async';
 
@@ -18,10 +20,12 @@ import 'platform/os_capture_bridge.dart';
 import 'platform/reminders.dart';
 import 'platform/secure_window.dart';
 import 'platform/update_service.dart';
+import 'platform/vault_session.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/timeline_screen.dart';
 import 'widgets/keyboard_dismisser.dart';
 import 'widgets/nex_banner.dart';
+import 'widgets/app_lock_gate.dart';
 
 class NexApp extends StatefulWidget {
   const NexApp({
@@ -135,6 +139,12 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   void _lock() {
     _graceTimer?.cancel();
     unawaited(widget.preferences.setAppLockClosed(true));
+    // A field behind the gate kept its focus, and with it the keyboard: on
+    // the way back, keys typed at the lock went into a note nobody could
+    // see. And the private tools close with the app — a lock that leaves
+    // Passwords open for two more minutes behind it is not a lock.
+    FocusManager.instance.primaryFocus?.unfocus();
+    VaultSession.instance.close();
     // The home screen is the one place a closed lock is visible from outside
     // the app, so it is told at once rather than at the next refresh.
     unawaited(widget.widgets?.refresh());
@@ -327,6 +337,20 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     if (!mounted) return;
     setState(() => _unlocking = false);
     if (!unlocked) {
+      // Said when the phone said it: too many tries is a wait, not a fault,
+      // and someone tapping Unlock again needs to be told which.
+      final failure = _appLock.lastFailure;
+      if (failure == NexAuthFailure.lockedOut ||
+          failure == NexAuthFailure.lockedOutHard) {
+        if (!context.mounted) return;
+        final l10n = AppLocalizations.of(context);
+        setState(
+          () => _lockError = failure == NexAuthFailure.lockedOut
+              ? l10n.securityLockedOut
+              : l10n.securityLockedOutHard,
+        );
+        return;
+      }
       final supported = await _appLock.supportsDeviceAuthentication();
       final biometric =
           !widget.preferences.appLockBiometricOnly ||
@@ -649,7 +673,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
                           ),
                           if (_locked)
                             Positioned.fill(
-                              child: _AppLockGate(
+                              child: AppLockGate(
                                 busy: _unlocking,
                                 error: _lockError,
                                 onSettings: () =>
@@ -698,89 +722,4 @@ class _CaptureIntent extends Intent {
 
 class _SearchIntent extends Intent {
   const _SearchIntent();
-}
-
-/// The opaque sheet the lock gate paints over the app.
-///
-/// Named so a test can find it and check that it is still opaque — which is
-/// the whole of the bug it exists for.
-@visibleForTesting
-const appLockBarrierKey = Key('nex.app-lock-barrier');
-
-class _AppLockGate extends StatelessWidget {
-  const _AppLockGate({
-    required this.busy,
-    required this.onUnlock,
-    this.error,
-    required this.onSettings,
-  });
-  final String? error;
-  final VoidCallback onSettings;
-
-  final bool busy;
-  final VoidCallback onUnlock;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    // Its own colour, not the theme's scaffold background, and forced opaque.
-    //
-    // `scaffoldBackgroundColor` is `Colors.transparent` whenever liquid glass
-    // or a background pattern is on — deliberately, so the app's backdrop
-    // shows through every screen — and a bare `Scaffold` here inherited that.
-    // The result was a lock gate you could read the timeline through while it
-    // waited for a fingerprint: every note on screen, behind the prompt that
-    // was supposedly hiding them.
-    //
-    // `canvasColor` is the page background with no glass applied, which is the
-    // right shade; the alpha is pinned anyway so that no future theme can make
-    // this see-through again without failing a test.
-    final barrier = theme.canvasColor.withValues(alpha: 1);
-    return Scaffold(
-      key: appLockBarrierKey,
-      backgroundColor: barrier,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(NexSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.lock_outline,
-                size: 56,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(height: NexSpacing.md),
-              Text(
-                l10n.securityLockedTitle,
-                style: theme.textTheme.headlineSmall,
-              ),
-              const SizedBox(height: NexSpacing.sm),
-              Text(
-                error ?? l10n.securityLockedSubtitle,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: NexSpacing.lg),
-              FilledButton.icon(
-                onPressed: busy ? null : onUnlock,
-                icon: busy
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.fingerprint),
-                label: Text(l10n.securityUnlock),
-              ),
-              if (error != null)
-                TextButton(onPressed: onSettings, child: Text(l10n.settings)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
