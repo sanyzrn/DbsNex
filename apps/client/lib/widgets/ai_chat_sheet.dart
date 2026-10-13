@@ -19,6 +19,7 @@ import 'dismiss_on_overscroll.dart';
 import 'assistant_settings.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/cycle_summary.dart';
+import '../platform/app_guide.dart';
 import '../platform/assistant_citations.dart';
 import '../platform/chat_history.dart';
 import '../platform/nex_preferences.dart';
@@ -294,6 +295,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// the library is about this?", and the answer to the last question is not
   /// the answer to this one.
   String _retrieved = '';
+
+  /// The passages of Nex's own guide the latest question is about, or empty
+  /// — see [NexAppGuide]. Replaced on every question, like [_retrieved].
+  String _guide = '';
 
   /// Every note put in front of the model in this conversation, for the
   /// record of what left the device (W3.2).

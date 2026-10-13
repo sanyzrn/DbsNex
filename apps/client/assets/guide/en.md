@@ -169,9 +169,50 @@ Restoring replaces the library and restarts Nex. If a restore is interrupted, th
 
 ## Security and privacy
 
-Under **Settings → Security and privacy**, Nex can ask for your fingerprint or screen lock whenever it returns to the foreground, after a delay you choose. The lock is local and hides the screen in the task switcher. Your notes and anything about you stay on the phone unless you turn on a cloud AI provider, send feedback or share something yourself. Nex itself goes online only for these: to check for a new version and fetch the sponsor card, about once a day (retried a few times when the connection fails); to read the page of a link you save for its title and preview, as a browser would; and to download a model you choose. None of these sends anything about you or your notes. The update check can be turned off in Settings. **Settings → Security and privacy → What left this device** lists every request Nex made to an AI provider — which one, what for, what kind of content and from which notes — kept on the phone only; clear it whenever you like.
+**App lock.** Under **Settings → Security and privacy → App lock**, turn on **Device passcode** and Nex asks for your phone's own fingerprint, face, PIN, pattern or password before it shows anything. **Fingerprint or biometrics** asks for the fingerprint or face only, with no PIN in its place. Turning the lock on or off, and turning biometrics off, each ask for it first. Nex never sees or keeps your fingerprint or PIN — the phone checks them and only tells Nex yes or no — so if you can unlock your phone, you can unlock Nex; there is no separate Nex password to forget. If the phone has no screen lock yet, Nex says so and opens the phone's security settings to set one.
+
+**When it locks**, chosen under the switches:
+- **As soon as I leave** — every time Nex goes to the background.
+- **After a while** — 15 or 30 seconds, 1, 2, 5, 15 or 30 minutes, or an hour away; a quick trip to another app does not ask again.
+- **Only when I ask** — Nex stays open until you tap the lock at the top of the home screen.
+
+Locking sooner takes one tap; making Nex lock later, or only when you ask, asks for your fingerprint first, so nobody holding your phone for a moment can loosen it. The lock at the top of the home screen locks at once whatever the choice. A lock that has closed stays closed even if Android stops the app, and "after a while" is measured by the clock, so it holds even if the app was closed in between.
+
+**While Nex is locked:** the recent-apps screen shows it blank and it cannot be captured; the home-screen widgets hide your notes (unless you choose otherwise in **Home screen widget**); reminder notifications are not shown on the phone's lock screen; and Passwords, Bank cards and Private messages lock with it. Once Nex is open and in front of you, it is your own screen to photograph. After too many wrong fingerprints the phone pauses them: Nex says to wait a moment, or — if the phone wants its own PIN first — to unlock the phone and try again.
+
+**Privacy.** Your notes and anything about you stay on the phone unless you turn on a cloud AI provider, send feedback or share something yourself. Nex itself goes online only for these: to check for a new version and fetch the sponsor card, about once a day (retried a few times when the connection fails); to read the page of a link you save for its title and preview, as a browser would; and to download a model you choose. None of these sends anything about you or your notes. The update check can be turned off in **Settings → About**. **Settings → Security and privacy → What left this device** lists every request Nex made to an AI provider — which one, what for, what kind of content and from which notes — kept on the phone only; clear it whenever you like.
 
 **Settings → Security and privacy → Speed and reliability** lets Nex time itself on your phone: how long it takes to open, how long a capture takes from opening to saved, how long a search takes to find the note you open, and how many sessions with a capture ran without an error. It is off until you switch it on. The numbers are timings and counts only — never your notes or what you searched for — stay on the phone, are never backed up, and are deleted when you switch it off.
+
+## Settings at a glance
+
+- **Profile** (top of Settings): picture, name, bio and birthday.
+- **Appearance**: light or dark, text size, accent, palette, card size and the app icon.
+- **Language and calendar**: the app's language, the Persian or Gregorian calendar, and the language AI answers in.
+- **Capture**: whether Enter saves a quick note (Shift+Enter always starts a new line), haptics, offers to add a new note to a thread, and the capture row in the notification shade.
+- **Gestures and menus**: what each swipe of a card does and what the hold menu holds.
+- **Reminders and notifications**: the daily nudge and its time, the sound of reminders, and a test notification.
+- **Home screen widget**: which notes the Timeline widget shows, and what widgets show while the lock is closed.
+- **Intelligence**: the AI provider or offline model, which AI features are on, on-device search, the **Assistant** (what it calls you and a few words about you, its voice — natural, friendly, formal, serious, romantic or your own — how long and how inventive its answers are, how many recent notes it can see, **Stay in my notes**, and checking spoken questions before they are sent) and the **Smart summary** (its style — Assistant, Facts plus one observation, Plain report, Planner or My own brief — how it sounds, how much of it, and **No token limit**).
+- **Security and privacy**: app lock, what left this device, speed and reliability.
+- **Data and backup**: backup and restore, export, import from Google Keep or Markdown.
+- **About**: version, updates, guide, feedback, diagnostics and the privacy policy.
+
+The field at the top of Settings finds any of these by name.
+
+## Common questions
+
+- **Where are my notes kept?** On this phone, in Nex's own storage. Nothing is uploaded unless you turn on a cloud AI provider, and then only what a request needs.
+- **How do I move to a new phone?** Make a **complete backup** in **Settings → Data and backup**, keep its recovery code, copy the file to the new phone and choose **Restore or import from a file** there. An automatic copy to a folder you can reach from both phones works too.
+- **A reminder did not ring.** Open **Settings → Reminders and notifications** and send the test notification. If it does not arrive, Android is blocking Nex: allow notifications and exact alarms for Nex, and take it out of battery optimisation.
+- **I deleted a note by mistake.** Look in **Library → Trash** within 30 days, or ask the assistant to bring it back.
+- **Search does not find something I know is there.** Try part of a word; with semantic search on, notes about the same thing are found by meaning too. Words in photos and recordings are searchable once reading text in photos and transcription are on.
+- **A voice note has no sound.** Check the phone's media volume first. If a file will not open, the note says so under its player; tell us through **Send feedback** with the diagnostics report attached.
+- **The assistant or smart summary does nothing.** AI is off until you choose a provider in **Settings → Intelligence** and test it. With a cloud provider, a missing key, no internet or an exhausted plan is the usual cause; with the offline model, try **Try loading it again** on its page.
+- **I forgot how to open the app lock.** The lock is your phone's own: unlock it the way you unlock your phone. Nex has no password of its own to forget.
+- **Is my vault in my backups?** Only in a complete backup with **Include private vault** chosen, encrypted with its recovery code. Automatic copies never include it.
+- **Does Nex need the internet?** No. Capturing, reading, searching and reminders all work offline; only cloud AI, link previews, updates and downloads need a connection.
+- **How do I ask the assistant about Nex itself?** Ask it as you would ask a person — "how do I pin a tool?", "why did my reminder not ring?" — and it answers from this guide.
 
 ## Updates, feedback and help
 

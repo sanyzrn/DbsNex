@@ -557,7 +557,7 @@ abstract class AppLocalizations {
   /// No description provided for @securityScreenshotBlocked.
   ///
   /// In en, this message translates to:
-  /// **'While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.'**
+  /// **'While the lock is on, the recent-apps screen shows Nex blank, and nothing can be captured while it is locked. Open and in front of you, it is your own screen to capture.'**
   String get securityScreenshotBlocked;
 
   /// Small label at the top of the sponsor card, saying what it is
@@ -769,6 +769,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No enrolled fingerprint or other biometric was found.'**
   String get securityBiometricUnavailable;
+
+  /// Under the lock, or on the Security page, when the phone has paused fingerprint attempts for a short while after too many failures
+  ///
+  /// In en, this message translates to:
+  /// **'Too many tries. Wait a moment, then try again.'**
+  String get securityLockedOut;
+
+  /// When the phone has turned the fingerprint off until its own PIN, pattern or password is entered
+  ///
+  /// In en, this message translates to:
+  /// **'Too many tries. Unlock your phone with its PIN, pattern or password, then try again.'**
+  String get securityLockedOutHard;
+
+  /// Reason shown in the system fingerprint prompt when someone changes the lock to close later or only on request
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm it is you to lock less often'**
+  String get securityConfirmWeaker;
 
   /// No description provided for @securityAuthenticateReason.
   ///

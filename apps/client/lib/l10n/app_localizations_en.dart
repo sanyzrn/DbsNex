@@ -315,7 +315,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get securityScreenshotBlocked =>
-      'While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.';
+      'While the lock is on, the recent-apps screen shows Nex blank, and nothing can be captured while it is locked. Open and in front of you, it is your own screen to capture.';
 
   @override
   String get sponsorLabel => 'SPONSORED';
@@ -451,6 +451,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get securityBiometricUnavailable =>
       'No enrolled fingerprint or other biometric was found.';
+
+  @override
+  String get securityLockedOut =>
+      'Too many tries. Wait a moment, then try again.';
+
+  @override
+  String get securityLockedOutHard =>
+      'Too many tries. Unlock your phone with its PIN, pattern or password, then try again.';
+
+  @override
+  String get securityConfirmWeaker => 'Confirm it is you to lock less often';
 
   @override
   String get securityAuthenticateReason => 'Unlock Nex to protect your notes';

@@ -10,38 +10,109 @@ import '../widgets/nex_banner.dart';
 import '../widgets/nex_shelf.dart';
 
 class SecurityScreen extends StatefulWidget {
-  const SecurityScreen({super.key, required this.preferences});
+  const SecurityScreen({super.key, required this.preferences, this.lock});
 
   final NexPreferences preferences;
+
+  /// The device's authentication; replaceable so tests can answer for it.
+  final AppLockService? lock;
 
   @override
   State<SecurityScreen> createState() => _SecurityScreenState();
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
-  final _lock = AppLockService();
+  late final AppLockService _lock = widget.lock ?? AppLockService();
   bool _busy = false;
 
-  Future<bool> _authenticate({required bool biometricOnly}) async {
+  Future<bool> _authenticate({
+    required bool biometricOnly,
+    String? reason,
+  }) async {
     final l10n = AppLocalizations.of(context);
     final supported = biometricOnly
         ? await _lock.supportsBiometrics()
         : await _lock.supportsDeviceAuthentication();
     if (!mounted) return false;
     if (!supported) {
-      nexShowBanner(
-        context,
-        message: biometricOnly
-            ? l10n.securityBiometricUnavailable
-            : l10n.securityPasscodeUnavailable,
-        kind: NexBannerKind.failed,
-      );
+      _unavailable(biometricOnly: biometricOnly);
       return false;
     }
-    return _lock.authenticate(
-      reason: l10n.securityAuthenticateReason,
+    final ok = await _lock.authenticate(
+      reason: reason ?? l10n.securityAuthenticateReason,
       biometricOnly: biometricOnly,
     );
+    if (ok || !mounted) return ok;
+    // A cancel says nothing back. Anything the phone did say is said here:
+    // the switch otherwise just stayed where it was, with no reason given.
+    switch (_lock.lastFailure) {
+      case NexAuthFailure.lockedOut || NexAuthFailure.lockedOutHard:
+        nexShowBanner(
+          context,
+          message: _lock.lastFailure == NexAuthFailure.lockedOut
+              ? l10n.securityLockedOut
+              : l10n.securityLockedOutHard,
+          kind: NexBannerKind.failed,
+        );
+      case NexAuthFailure.unavailable:
+        _unavailable(biometricOnly: biometricOnly);
+      case null:
+        break;
+    }
+    return false;
+  }
+
+  /// No screen lock, or no fingerprint: said, with the way to the phone's
+  /// own settings where either is set up.
+  void _unavailable({required bool biometricOnly}) {
+    final l10n = AppLocalizations.of(context);
+    nexShowBanner(
+      context,
+      message: biometricOnly
+          ? l10n.securityBiometricUnavailable
+          : l10n.securityPasscodeUnavailable,
+      kind: NexBannerKind.failed,
+      actionLabel: l10n.openSettings,
+      onAction: () => unawaited(_lock.openDeviceSecurity()),
+    );
+  }
+
+  /// How long the lock lets Nex stay open, as a number to compare: a change
+  /// to a larger one locks less often.
+  static int _openFor(AppLockTiming timing, int graceSeconds) =>
+      switch (timing) {
+        AppLockTiming.immediately => 0,
+        AppLockTiming.after => graceSeconds,
+        AppLockTiming.manual => 1 << 30,
+      };
+
+  /// Changes when the lock closes — asking first when the change makes it
+  /// close less often.
+  ///
+  /// Turning the lock off always asked; making it close later did not, so
+  /// anyone holding the phone for a minute with Nex open could set "Only
+  /// when I ask" and walk away with a lock that never closed again. Closing
+  /// sooner is free: it only protects more.
+  Future<void> _setTiming({AppLockTiming? timing, int? graceSeconds}) async {
+    final preferences = widget.preferences;
+    final nextTiming = timing ?? preferences.appLockTiming;
+    final nextGrace = graceSeconds ?? preferences.appLockGraceSeconds;
+    final weaker =
+        _openFor(nextTiming, nextGrace) >
+        _openFor(preferences.appLockTiming, preferences.appLockGraceSeconds);
+    if (weaker) {
+      setState(() => _busy = true);
+      final ok = await _authenticate(
+        biometricOnly: preferences.appLockBiometricOnly,
+        reason: AppLocalizations.of(context).securityConfirmWeaker,
+      );
+      if (mounted) setState(() => _busy = false);
+      if (!ok) return;
+    }
+    if (timing != null) await preferences.setAppLockTiming(timing);
+    if (graceSeconds != null) {
+      await preferences.setAppLockGraceSeconds(graceSeconds);
+    }
   }
 
   Future<void> _setAppLock(bool value) async {
@@ -179,9 +250,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
                           label: label,
                           hint: hint,
                           selected: widget.preferences.appLockTiming == value,
-                          onTap: () => unawaited(
-                            widget.preferences.setAppLockTiming(value),
-                          ),
+                          onTap: _busy
+                              ? null
+                              : () => unawaited(_setTiming(timing: value)),
                         ),
                       if (widget.preferences.appLockTiming ==
                           AppLockTiming.after) ...[
@@ -196,11 +267,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                 selected:
                                     widget.preferences.appLockGraceSeconds ==
                                     seconds,
-                                onSelected: (_) => unawaited(
-                                  widget.preferences.setAppLockGraceSeconds(
-                                    seconds,
-                                  ),
-                                ),
+                                onSelected: _busy
+                                    ? null
+                                    : (_) => unawaited(
+                                        _setTiming(graceSeconds: seconds),
+                                      ),
                               ),
                           ],
                         ),
@@ -327,7 +398,7 @@ class _TimingOption extends StatelessWidget {
   final String label;
   final String hint;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
