@@ -14,6 +14,7 @@ import 'package:nex_core/nex_core.dart'
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/capture_flick.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
@@ -424,6 +425,13 @@ class SettingsSheet extends StatelessWidget {
               '${l10n.swipeActions} ${l10n.swipeLeading} ${l10n.swipeTrailing} '
               'swipe gesture edge کشیدن لبه',
           child: _SwipeMapping(preferences: preferences),
+        ),
+        _Searchable(
+          text:
+              '${l10n.captureFlickTitle} ${l10n.captureFlickLeft} '
+              '${l10n.captureFlickRight} flick plus button shortcut '
+              'میان‌بر دکمه کشیدن',
+          child: _CaptureFlickChoices(preferences: preferences),
         ),
         _Searchable(
           text:

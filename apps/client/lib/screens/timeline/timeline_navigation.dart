@@ -259,13 +259,13 @@ extension _TimelineNavigation on TimelineScreenState {
       case OsCaptureMode.text:
         unawaited(openCapture());
       case OsCaptureMode.voice:
-        unawaited(captureVoice());
+        unawaited(openCapture(kind: CaptureKind.voice));
       case OsCaptureMode.photo:
         unawaited(capturePhoto(ImageSource.camera));
       case OsCaptureMode.gallery:
         unawaited(capturePhoto(ImageSource.gallery));
       case OsCaptureMode.checklist:
-        unawaited(captureChecklist());
+        unawaited(openCapture(kind: CaptureKind.checklist));
     }
   }
 

@@ -1,6 +1,7 @@
 part of '../timeline_screen.dart';
 
-/// Capturing from the timeline: text, checklist, link, photo, voice, file.
+/// Capturing from the timeline: what the capture sheet hands over — a
+/// recording to keep, a link to read, a photo or a file to fetch.
 extension _TimelineCapture on TimelineScreenState {
   /// Says why a shared file was not kept.
   ///
@@ -55,54 +56,6 @@ extension _TimelineCapture on TimelineScreenState {
         banner.show(message: l10n.threadAdded(name));
       }()),
     );
-  }
-
-  /// Opens the checklist sheet and commits whatever came back.
-  ///
-  /// Same shape as every other capture path here: the sheet decides *what*,
-  /// this decides that it is kept. A dismissed sheet returns null and nothing
-  /// is written — the one place in Nex where a capture can be abandoned, and
-  /// only because nothing was committed in the first place.
-  Future<void> captureChecklist() async {
-    final items = await nexShowSheet<List<ChecklistItem>>(
-      context: context,
-      dismissible: false,
-      swipeToClose: true,
-      builder: (_) => ChecklistCaptureSheet(preferences: widget.preferences),
-    );
-    if (items == null || items.isEmpty) return;
-    final note = await widget.services.captureChecklist(items);
-    if (note != null) widget.preferences.editorDrafts?.clear('checklist-new');
-    if (note != null) _landed(note.id);
-    await widget.services.refreshTimeline();
-  }
-
-  Future<void> captureLink() async {
-    final url = await nexShowSheet<String>(
-      context: context,
-      dismissible: false,
-      swipeToClose: true,
-      builder: (_) => LinkCaptureSheet(preferences: widget.preferences),
-    );
-    if (url == null) return;
-    final note = await widget.services.captureLink(url);
-    if (note != null) widget.preferences.editorDrafts?.clear('link-new');
-    if (note != null) {
-      _landed(note.id);
-      // The page is read after the note exists, never before: a bookmark is
-      // saved the moment you ask for it, and the title and description are an
-      // improvement that arrives late or not at all.
-      unawaited(_readLink(note.id, url));
-    }
-    await widget.services.refreshTimeline();
-  }
-
-  void _landed(String id) {
-    if (!mounted) return;
-    _rebuild(() => landedId = id);
-    NexMetrics.shared.markCapture();
-    unawaited(_offerThread(id));
-    if (widget.preferences.haptics) HapticFeedback.lightImpact();
   }
 
   /// Reads the page a link note points at, and asks the provider to summarise
@@ -282,54 +235,6 @@ extension _TimelineCapture on TimelineScreenState {
             : capturePhoto(source),
       ),
     );
-  }
-
-  Future<void> captureVoice() async {
-    final recorder = AudioRecorder();
-    // Say so. A denied microphone used to end this method on the spot, with
-    // no sheet, no banner and no reason — the button simply did nothing, and
-    // "nothing" is indistinguishable from a broken control. There is no way
-    // to open the system settings from here without a dependency this app
-    // does not carry, so the message names where the permission lives.
-    if (!await recorder.hasPermission()) {
-      await recorder.dispose();
-      if (!mounted) return;
-      nexShowBanner(
-        context,
-        message: AppLocalizations.of(context).micDenied,
-        actionLabel: AppLocalizations.of(context).openSettings,
-        onAction: () => unawaited(openCaptureSettings()),
-        kind: NexBannerKind.failed,
-        haptics: widget.preferences.haptics,
-      );
-      return;
-    }
-    final elapsed = Stopwatch()..start();
-    // Straight to an `.m4a`, the way an attached voice clip is (1.99.93);
-    // see [NexVoiceSpool.streamNewRecordings] for the spool it replaced.
-    final spool = await NexVoiceSpool.start(recorder, widget.services.mediaDir);
-    if (!mounted) {
-      await spool.discard();
-      await recorder.dispose();
-      return;
-    }
-    // Not dismissible: swiping the sheet away mid-recording would leave the
-    // recorder running with nothing on screen driving it.
-    final keep = await nexShowSheet<bool>(
-      context: context,
-      dismissible: false,
-      builder: (_) => RecordingSheet(recorder: recorder),
-    );
-    elapsed.stop();
-    if (keep != true) {
-      await spool.discard();
-      await recorder.dispose();
-      return;
-    }
-    final recorded = await spool.stop();
-    await recorder.dispose();
-    if (recorded == null) return;
-    await _keepVoice(recorded, elapsed.elapsedMilliseconds);
   }
 
   /// Saves a finished recording as a note.

@@ -3629,7 +3629,7 @@ abstract class AppLocalizations {
   /// Placeholder in the link capture field
   ///
   /// In en, this message translates to:
-  /// **'Paste a link'**
+  /// **'Paste a link — a line about it is welcome'**
   String get linkHint;
 
   /// Shown when pasted text cannot be read as a URL
@@ -3637,6 +3637,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That does not look like a link.'**
   String get linkNotValid;
+
+  /// No description provided for @captureKindNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get captureKindNote;
+
+  /// No description provided for @captureKinds.
+  ///
+  /// In en, this message translates to:
+  /// **'What you are capturing'**
+  String get captureKinds;
+
+  /// No description provided for @captureRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get captureRecording;
+
+  /// No description provided for @linkKeptAsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not a link, so it stays a note.'**
+  String get linkKeptAsNote;
+
+  /// No description provided for @captureFlickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Flick the + button'**
+  String get captureFlickTitle;
+
+  /// No description provided for @captureFlickSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Flick + to one side to start something straight away, without the capture sheet. A tap still writes a note; holding still opens the assistant.'**
+  String get captureFlickSubtitle;
+
+  /// No description provided for @captureFlickLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Flick left'**
+  String get captureFlickLeft;
+
+  /// No description provided for @captureFlickRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Flick right'**
+  String get captureFlickRight;
+
+  /// No description provided for @captureFlickOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing'**
+  String get captureFlickOff;
 
   /// Action that opens a link note in the browser
   ///

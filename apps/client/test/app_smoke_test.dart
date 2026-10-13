@@ -188,22 +188,30 @@ void main() {
   });
 
   testWidgets(
-    'Capture sheet focuses text with Voice/Camera/Gallery/File inline',
+    'Capture sheet opens on a focused note, with the kinds above and the '
+    'camera and attach menu below',
     (tester) async {
       await tester.pumpWidget(
         NexApp(services: services, preferences: preferences),
       );
       await tester.tap(find.byIcon(Icons.add));
       await tester.pumpAndSettle();
-      // Text is the default mode — a focused field, not a menu tile.
+      // A note is the default — a focused field, not a menu to choose from.
       expect(find.byType(TextField), findsWidgets);
-      // Icon-only: the name survives as a tooltip, not as printed text.
-      expect(find.byTooltip('Voice'), findsOneWidget);
+      expect(find.text("What's on your mind?"), findsOneWidget);
+      // The kinds are glyphs with their names as tooltips; the chosen one
+      // also says its name.
+      for (final kind in ['Note', 'Voice', 'Checklist', 'Link']) {
+        expect(find.byTooltip(kind), findsOneWidget);
+      }
+      expect(find.text('Note'), findsOneWidget);
+      // The camera has its own button; the gallery and a file share one.
       expect(find.byTooltip('Camera'), findsOneWidget);
-      expect(find.byTooltip('Gallery'), findsOneWidget);
-      expect(find.byTooltip('File'), findsOneWidget);
-      // Not a type-picker-first menu of four equal choices.
-      expect(find.text('Text'), findsNothing);
+      expect(find.byTooltip('Gallery'), findsNothing);
+      await tester.tap(find.byTooltip('Attach'));
+      await tester.pumpAndSettle();
+      expect(find.text('Gallery'), findsOneWidget);
+      expect(find.text('File'), findsOneWidget);
       expect(find.text('Save'), findsNothing);
     },
   );

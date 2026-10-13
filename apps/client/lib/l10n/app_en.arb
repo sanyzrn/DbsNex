@@ -1734,7 +1734,7 @@
   "@checklistHint": {
       "description": "Placeholder in the checklist capture field"
   },
-  "linkHint": "Paste a link",
+  "linkHint": "Paste a link — a line about it is welcome",
   "@linkHint": {
       "description": "Placeholder in the link capture field"
   },
@@ -1742,6 +1742,15 @@
   "@linkNotValid": {
       "description": "Shown when pasted text cannot be read as a URL"
   },
+  "captureKindNote": "Note",
+  "captureKinds": "What you are capturing",
+  "captureRecording": "Recording",
+  "linkKeptAsNote": "That is not a link, so it stays a note.",
+  "captureFlickTitle": "Flick the + button",
+  "captureFlickSubtitle": "Flick + to one side to start something straight away, without the capture sheet. A tap still writes a note; holding still opens the assistant.",
+  "captureFlickLeft": "Flick left",
+  "captureFlickRight": "Flick right",
+  "captureFlickOff": "Nothing",
   "openLink": "Open link",
   "@openLink": {
       "description": "Action that opens a link note in the browser"

@@ -353,7 +353,7 @@ extension _TimelineBody on TimelineScreenState {
           hasScrollBody: false,
           child: EmptyTimeline(
             onWrite: () => unawaited(openCapture()),
-            onSpeak: () => unawaited(captureVoice()),
+            onSpeak: () => unawaited(openCapture(kind: CaptureKind.voice)),
             onPhotograph: () => unawaited(capturePhoto(ImageSource.camera)),
           ),
         ),

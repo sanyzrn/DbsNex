@@ -89,12 +89,9 @@ void main() {
       body: CaptureSheet(
         services: h.services,
         preferences: h.preferences,
-        onVoice: () {},
         onCamera: () {},
         onGallery: () {},
         onFile: () {},
-        onChecklist: () {},
-        onLink: () {},
       ),
     ),
   };

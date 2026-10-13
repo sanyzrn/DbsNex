@@ -528,14 +528,22 @@ extension _TimelineLayout on TimelineScreenState {
               unawaited(widget.preferences.dismissCaptureHoldHint());
               _openAssistant();
             },
-            child: FloatingActionButton(
-              key: _captureAnchor,
-              onPressed: () {
+            // Flicked sideways, a shortcut: see [CaptureFlick].
+            child: CaptureFlick(
+              preferences: widget.preferences,
+              onShortcut: (shortcut) {
                 if (_claimedByOverlay()) return;
-                openCapture();
+                unawaited(runCaptureShortcut(shortcut));
               },
-              tooltip: l10n.capture,
-              child: const Icon(Icons.add, size: 32),
+              builder: (context, glyph) => FloatingActionButton(
+                key: _captureAnchor,
+                onPressed: () {
+                  if (_claimedByOverlay()) return;
+                  openCapture();
+                },
+                tooltip: l10n.capture,
+                child: glyph,
+              ),
             ),
           ),
           trailing: [

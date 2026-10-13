@@ -69,3 +69,13 @@ String? urlHost(String? url) {
   if (words.length > 280 || '\n'.allMatches(words).length > 1) return null;
   return (url: url, words: words.isEmpty ? null : words);
 }
+
+/// What someone wrote in a link box, as a link: an address on its own —
+/// with or without its scheme, the way people type one — or one address
+/// with a short line around it, which becomes the link's caption (see
+/// [sharedLink]). Null when it is neither.
+({String url, String? words})? writtenLink(String text) {
+  final bare = normaliseUrl(text);
+  if (bare != null) return (url: bare, words: null);
+  return sharedLink(text);
+}

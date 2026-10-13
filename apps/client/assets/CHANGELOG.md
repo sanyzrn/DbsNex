@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.97
+
+- **One capture box for everything.** Note, voice, checklist and link now sit at the top of the box and switch in place — what you typed stays, so a note becomes a list without typing it again, and a pasted address becomes a link (a line around it becomes its caption).
+- **Record right in the box.** Voice turns the box itself into a recorder with a live waveform; stop keeps it, the bin throws it away and brings your words back.
+- **A shorter row of tools.** The camera keeps its own button; the gallery and files share one clip menu.
+- **Flick + for a shortcut.** Flick the + button left or right to start a voice note or the camera straight away — choose both in Settings → Gestures.
+
 ## v1.99.96
 
 - **Ask the assistant about Nex itself.** "How do I pin a tool?", "why did my reminder not ring?", "how do I move to a new phone?" — it now answers from the app's own guide, in your language, and says where in the app to go.
