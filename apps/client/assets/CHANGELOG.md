@@ -37,6 +37,7 @@ Working convention:
 ## v1.99.94
 
 - **Voice notes open again.** In 1.99.93 opening a voice note or an audio file froze the app and left a grey box where the player should be. It opens and plays again.
+- **Reminders and attachments fit on every card.** The line under the note's words takes the place of its last line, so on a compact card it is no longer cut off at the bottom, and it sits on the same side as the words — on the right under a Persian note. A voice note's length joins it on that line.
 
 ## v1.99.93
 

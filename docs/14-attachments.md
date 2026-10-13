@@ -58,7 +58,7 @@ What 1.99.70 has:
   is embedded again), and take one out as a note of its own (`detach`: a
   photo, voice or file note sharing the same file, with its caption and
   words).
-- **The card.** The reminder and the paperclip sit together on a footnote line under the note's words (1.99.93), leaving the words the card's whole width.
+- **The card.** The reminder and the paperclip sit together on a footnote line under the note's words (1.99.93), leaving the words the card's whole width. The footnote takes the place of the words' last line — the card keeps its one height, so a footnote added below the words was cut off on a compact card — and it sits on the side the words start from, so a Persian note in an English app carries it on the right (1.99.94). A voice note's length joins it there.
 
 ## What is asked
 
