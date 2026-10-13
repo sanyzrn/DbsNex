@@ -1884,6 +1884,22 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cropRotate => 'چرخاندن';
 
   @override
+  String get cropFlip => 'قرینه';
+
+  @override
+  String get annotateSize => 'اندازه';
+
+  @override
+  String get annotateRedo => 'انجام دوباره';
+
+  @override
+  String get annotateEditTextHint =>
+      'برای تغییر یا حذف یک نوشته، آن را نگه دارید';
+
+  @override
+  String get annotateDelete => 'حذف';
+
+  @override
   String get cropFree => 'آزاد';
 
   @override

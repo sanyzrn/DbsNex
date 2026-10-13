@@ -1388,6 +1388,26 @@
     "description": "Confirms the crop and saves the photo"
   },
   "cropRotate": "Rotate",
+  "cropFlip": "Flip",
+  "@cropFlip": {
+    "description": "Tool under the photo editor that mirrors the photo left to right"
+  },
+  "annotateSize": "Size",
+  "@annotateSize": {
+    "description": "Accessible name of the slider that sets the size of a brush stroke or of new text in the photo editor"
+  },
+  "annotateRedo": "Redo",
+  "@annotateRedo": {
+    "description": "Photo editor button that brings back the mark last undone"
+  },
+  "annotateEditTextHint": "Hold a label to change or remove it",
+  "@annotateEditTextHint": {
+    "description": "Hint under the photo while adding text labels"
+  },
+  "annotateDelete": "Remove",
+  "@annotateDelete": {
+    "description": "Button in the text dialog that removes a text label from the photo"
+  },
   "cropFree": "Free",
   "cropReset": "Reset",
   "moreActions": "More actions",

@@ -12,6 +12,7 @@ import 'package:crypto/crypto.dart';
 import '../widgets/draft_guard.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_dialog.dart';
+import '../widgets/photo_editor_theme.dart';
 
 enum _Mode { draw, text }
 
@@ -36,11 +37,21 @@ class _Stroke extends _Mark {
 }
 
 class _TextMark extends _Mark {
-  _TextMark({required this.text, required this.position, required this.color});
-  final String text;
+  _TextMark({
+    required this.text,
+    required this.position,
+    required this.color,
+    this.size = _defaultTextSize,
+  });
+  String text;
+
+  /// Where the middle of the label is: where the finger was.
   Offset position;
   final Color color;
+  final double size;
 }
+
+const _defaultTextSize = 24.0;
 
 /// Freehand drawing and draggable text labels on top of a photo, reached
 /// optionally from [PhotoCropScreen] after the crop is confirmed — cropping
@@ -97,6 +108,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
               'text': mark.text,
               'x': mark.position.dx / width,
               'y': mark.position.dy / width,
+              'size': mark.size / width,
             },
           },
       ],
@@ -127,10 +139,12 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
           }
           marks.add(stroke);
         } else {
+          final size = (mark['size'] as num?)?.toDouble();
           marks.add(
             _TextMark(
               text: mark['text'] as String,
               color: color,
+              size: size == null ? _defaultTextSize : size * width,
               position: Offset(
                 (mark['x'] as num).toDouble() * width,
                 (mark['y'] as num).toDouble() * width,
@@ -149,7 +163,23 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
   _Mode _mode = _Mode.draw;
   Color _color = _palette.first;
   double _strokeWidth = 6;
+  double _textSize = _defaultTextSize;
   final List<_Mark> _marks = [];
+
+  /// What undo took, newest last, for redo. Emptied by any new mark.
+  final List<_Mark> _undone = [];
+
+  /// Repaints the strokes as a finger moves, without rebuilding the screen:
+  /// every movement used to rebuild everything, the photo and the controls
+  /// included.
+  final _ink = ValueNotifier<int>(0);
+
+  @override
+  void dispose() {
+    _ink.dispose();
+    super.dispose();
+  }
+
   bool _saving = false;
   int? _nativeWidth;
   int? _nativeHeight;
@@ -202,6 +232,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
 
   void _onPanStart(DragStartDetails details) {
     setState(() {
+      _undone.clear();
       _marks.add(
         _Stroke(color: _color, width: _strokeWidth)
           ..points.add(details.localPosition),
@@ -213,7 +244,20 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
     if (_marks.isEmpty) return;
     final last = _marks.last;
     if (last is! _Stroke) return;
-    setState(() => last.points.add(details.localPosition));
+    last.points.add(details.localPosition);
+    _ink.value++;
+  }
+
+  /// A tap with the pen is a dot. It used to be nothing: a stroke only
+  /// began once a finger moved.
+  void _dot(Offset position) {
+    setState(() {
+      _undone.clear();
+      _marks.add(
+        _Stroke(color: _color, width: _strokeWidth)..points.add(position),
+      );
+    });
+    _snapshot();
   }
 
   Future<void> _placeText(Offset position) async {
@@ -223,22 +267,54 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
     );
     if (!mounted || text == null || text.trim().isEmpty) return;
     setState(() {
+      _undone.clear();
       _marks.add(
-        _TextMark(text: text.trim(), position: position, color: _color),
+        _TextMark(
+          text: text.trim(),
+          position: position,
+          color: _color,
+          size: _textSize,
+        ),
       );
+    });
+    _snapshot();
+  }
+
+  /// A label held: change its words, or take it off.
+  Future<void> _editText(_TextMark mark) async {
+    final text = await nexShowDialog<String>(
+      context: context,
+      builder: (_) => _AnnotationTextDialog(initial: mark.text),
+    );
+    if (!mounted || text == null) return;
+    setState(() {
+      if (text.trim().isEmpty) {
+        _marks.remove(mark);
+      } else {
+        mark.text = text.trim();
+      }
     });
     _snapshot();
   }
 
   void _undo() {
     if (_marks.isEmpty) return;
-    setState(() => _marks.removeLast());
+    setState(() => _undone.add(_marks.removeLast()));
+    _snapshot();
+  }
+
+  void _redo() {
+    if (_undone.isEmpty) return;
+    setState(() => _marks.add(_undone.removeLast()));
     _snapshot();
   }
 
   void _clear() {
     if (_marks.isEmpty) return;
-    setState(_marks.clear);
+    setState(() {
+      _undone.clear();
+      _marks.clear();
+    });
     _snapshot();
   }
 
@@ -281,230 +357,293 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
     final ratio = _nativeWidth == null || _nativeHeight == null
         ? 1.0
         : _nativeWidth! / _nativeHeight!;
-    return guardDraft(
-      AbsorbPointer(
-        absorbing: _saving,
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            title: Text(l10n.annotateTitle),
-            leading: IconButton(
-              tooltip: l10n.closeLabel,
-              onPressed: requestDiscard,
-              icon: const Icon(Icons.close),
+    final drawing = _mode == _Mode.draw;
+    return NexPhotoEditorTheme(
+      child: guardDraft(
+        AbsorbPointer(
+          absorbing: _saving,
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              title: Text(l10n.annotateTitle),
+              leading: IconButton(
+                tooltip: l10n.closeLabel,
+                onPressed: requestDiscard,
+                icon: const Icon(Icons.close),
+              ),
+              actions: [
+                IconButton(
+                  tooltip: l10n.annotateUndo,
+                  icon: const Icon(Icons.undo),
+                  onPressed: _marks.isEmpty ? null : _undo,
+                ),
+                IconButton(
+                  tooltip: l10n.annotateRedo,
+                  icon: const Icon(Icons.redo),
+                  onPressed: _undone.isEmpty ? null : _redo,
+                ),
+                IconButton(
+                  tooltip: l10n.annotateClear,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: _marks.isEmpty ? null : _clear,
+                ),
+              ],
             ),
-          ),
-          body: Column(
-            children: [
-              Expanded(
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: ratio,
-                    child: RepaintBoundary(
-                      key: _boundaryKey,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.memory(widget.image, fit: BoxFit.contain),
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onPanStart: _mode == _Mode.draw
-                                ? _onPanStart
-                                : null,
-                            onPanUpdate: _mode == _Mode.draw
-                                ? _onPanUpdate
-                                : null,
-                            onPanEnd: (_) => _snapshot(),
-                            onPanCancel: _snapshot,
-                            onTapUp: _mode == _Mode.text
-                                ? (d) => unawaited(_placeText(d.localPosition))
-                                : null,
-                            child: CustomPaint(
-                              painter: _StrokePainter(
-                                _marks.whereType<_Stroke>().toList(),
-                              ),
-                            ),
-                          ),
-                          for (final mark in _marks.whereType<_TextMark>())
-                            Positioned(
-                              left: mark.position.dx,
-                              top: mark.position.dy,
-                              child: GestureDetector(
-                                onPanEnd: (_) => _snapshot(),
-                                onPanUpdate: (d) {
-                                  final boundary =
-                                      _boundaryKey.currentContext
-                                              ?.findRenderObject()
-                                          as RenderBox?;
-                                  if (boundary == null) return;
-                                  setState(() {
-                                    final next = mark.position + d.delta;
-                                    mark.position = Offset(
-                                      next.dx.clamp(0, boundary.size.width),
-                                      next.dy.clamp(0, boundary.size.height),
-                                    );
-                                  });
-                                },
-                                child: Text(
-                                  mark.text,
-                                  style: TextStyle(
-                                    color: mark.color,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w600,
-                                    shadows: const [
-                                      Shadow(
-                                        blurRadius: 4,
-                                        color: Colors.black87,
-                                      ),
-                                    ],
-                                  ),
+            body: Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: ratio,
+                      child: RepaintBoundary(
+                        key: _boundaryKey,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.memory(widget.image, fit: BoxFit.contain),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onPanStart: drawing ? _onPanStart : null,
+                              onPanUpdate: drawing ? _onPanUpdate : null,
+                              onPanEnd: (_) => _snapshot(),
+                              onPanCancel: _snapshot,
+                              onTapUp: (d) => drawing
+                                  ? _dot(d.localPosition)
+                                  : unawaited(_placeText(d.localPosition)),
+                              child: CustomPaint(
+                                key: const ValueKey('annotate-canvas'),
+                                painter: _StrokePainter(
+                                  _marks.whereType<_Stroke>().toList(),
+                                  repaint: _ink,
                                 ),
                               ),
                             ),
-                        ],
+                            for (final mark in _marks.whereType<_TextMark>())
+                              Positioned(
+                                left: mark.position.dx,
+                                top: mark.position.dy,
+                                // Centred on where the finger was, not hung
+                                // below and beside it.
+                                child: FractionalTranslation(
+                                  translation: const Offset(-0.5, -0.5),
+                                  child: GestureDetector(
+                                    onLongPress: () =>
+                                        unawaited(_editText(mark)),
+                                    onPanEnd: (_) => _snapshot(),
+                                    onPanUpdate: (d) {
+                                      final boundary =
+                                          _boundaryKey.currentContext
+                                                  ?.findRenderObject()
+                                              as RenderBox?;
+                                      if (boundary == null) return;
+                                      setState(() {
+                                        final next = mark.position + d.delta;
+                                        mark.position = Offset(
+                                          next.dx.clamp(0, boundary.size.width),
+                                          next.dy.clamp(
+                                            0,
+                                            boundary.size.height,
+                                          ),
+                                        );
+                                      });
+                                    },
+                                    child: Text(
+                                      mark.text,
+                                      textDirection: nexDirectionOf(mark.text),
+                                      style: TextStyle(
+                                        color: mark.color,
+                                        fontSize: mark.size,
+                                        fontWeight: FontWeight.w700,
+                                        shadows: const [
+                                          Shadow(
+                                            blurRadius: 4,
+                                            color: Colors.black87,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              if (_mode == _Mode.text)
-                Padding(
-                  padding: const EdgeInsets.all(NexSpacing.sm),
-                  child: Text(
-                    l10n.annotateTapToPlaceText,
-                    style: const TextStyle(color: Colors.white70),
+                if (!drawing)
+                  Padding(
+                    padding: const EdgeInsets.all(NexSpacing.sm),
+                    child: Text(
+                      _marks.any((mark) => mark is _TextMark)
+                          ? l10n.annotateEditTextHint
+                          : l10n.annotateTapToPlaceText,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
                   ),
-                ),
-              SafeArea(
-                top: false,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(
-                    NexSpacing.md,
-                    12,
-                    NexSpacing.md,
-                    NexSpacing.md,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF171717),
-                    border: Border(top: BorderSide(color: Color(0xFF383838))),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SegmentedButton<_Mode>(
-                        segments: [
-                          ButtonSegment(
-                            value: _Mode.draw,
-                            icon: const Icon(Icons.brush_outlined),
-                            label: Text(l10n.annotateDraw),
-                          ),
-                          ButtonSegment(
-                            value: _Mode.text,
-                            icon: const Icon(Icons.text_fields),
-                            label: Text(l10n.annotateText),
-                          ),
-                        ],
-                        selected: {_mode},
-                        onSelectionChanged: (selection) =>
-                            setState(() => _mode = selection.first),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          for (final (index, swatch) in _palette.indexed)
-                            Semantics(
-                              button: true,
-                              selected: _color == swatch,
-                              label: l10n.annotateColor(
-                                const [
-                                  'white',
-                                  'black',
-                                  'red',
-                                  'yellow',
-                                  'green',
-                                  'blue',
-                                ][index],
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      NexSpacing.md,
+                      NexSpacing.sm,
+                      NexSpacing.md,
+                      NexSpacing.md,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SegmentedButton<_Mode>(
+                                segments: [
+                                  ButtonSegment(
+                                    value: _Mode.draw,
+                                    icon: const Icon(Icons.brush_outlined),
+                                    label: Text(l10n.annotateDraw),
+                                  ),
+                                  ButtonSegment(
+                                    value: _Mode.text,
+                                    icon: const Icon(Icons.text_fields),
+                                    label: Text(l10n.annotateText),
+                                  ),
+                                ],
+                                selected: {_mode},
+                                onSelectionChanged: (selection) =>
+                                    setState(() => _mode = selection.first),
                               ),
-                              child: InkResponse(
-                                onTap: () => setState(() => _color = swatch),
-                                child: SizedBox.square(
-                                  dimension: 48,
-                                  child: Center(
-                                    child: Container(
-                                      width: 30,
-                                      height: 30,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: swatch,
-                                        border: Border.all(
-                                          color: _color == swatch
-                                              ? Colors.white
-                                              : Colors.white24,
-                                          width: _color == swatch ? 3 : 1,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: NexSpacing.sm),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (final (index, swatch) in _palette.indexed)
+                              Semantics(
+                                button: true,
+                                selected: _color == swatch,
+                                label: l10n.annotateColor(
+                                  const [
+                                    'white',
+                                    'black',
+                                    'red',
+                                    'yellow',
+                                    'green',
+                                    'blue',
+                                  ][index],
+                                ),
+                                child: InkResponse(
+                                  onTap: () => setState(() => _color = swatch),
+                                  child: SizedBox.square(
+                                    dimension: 44,
+                                    child: Center(
+                                      child: AnimatedContainer(
+                                        duration: NexMotion.fast,
+                                        width: _color == swatch ? 32 : 26,
+                                        height: _color == swatch ? 32 : 26,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: swatch,
+                                          border: Border.all(
+                                            color: _color == swatch
+                                                ? Colors.white
+                                                : Colors.white24,
+                                            width: _color == swatch ? 3 : 1,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                      if (_mode == _Mode.draw)
-                        Slider(
-                          semanticFormatterCallback: (value) =>
-                              '${l10n.annotateStrokeWidth}: ${value.round()}',
-                          value: _strokeWidth,
-                          min: 2,
-                          max: 20,
-                          onChanged: (value) =>
-                              setState(() => _strokeWidth = value),
+                          ],
                         ),
-                      Row(
-                        children: [
-                          IconButton(
-                            tooltip: l10n.annotateUndo,
-                            icon: const Icon(Icons.undo),
-                            onPressed: _marks.isEmpty ? null : _undo,
-                          ),
-                          IconButton(
-                            tooltip: l10n.annotateClear,
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: _marks.isEmpty ? null : _clear,
-                          ),
-                          const SizedBox(width: NexSpacing.sm),
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: _saving || _nativeWidth == null
-                                  ? null
-                                  : _done,
-                              icon: _saving
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                        // One slider for both: the pen's width while
+                        // drawing, the size of new text while placing it —
+                        // with the mark it makes drawn beside it.
+                        Row(
+                          children: [
+                            SizedBox.square(
+                              dimension: 44,
+                              child: Center(
+                                child: drawing
+                                    ? AnimatedContainer(
+                                        duration: NexMotion.fast,
+                                        width: _strokeWidth + 2,
+                                        height: _strokeWidth + 2,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _color,
+                                          border: Border.all(
+                                            color: Colors.white38,
+                                          ),
+                                        ),
+                                      )
+                                    : Text(
+                                        'Aa',
+                                        style: TextStyle(
+                                          color: _color,
+                                          fontSize: _textSize * 0.7,
+                                          fontWeight: FontWeight.w700,
+                                          shadows: const [
+                                            Shadow(
+                                              blurRadius: 3,
+                                              color: Colors.black,
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    )
-                                  : const Icon(Icons.check),
-                              label: Text(l10n.annotateDone),
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size.fromHeight(50),
                               ),
                             ),
+                            Expanded(
+                              child: Slider(
+                                semanticFormatterCallback: (value) =>
+                                    '${drawing ? l10n.annotateStrokeWidth : l10n.annotateSize}: ${value.round()}',
+                                value: drawing ? _strokeWidth : _textSize,
+                                min: drawing ? 2 : 14,
+                                max: drawing ? 24 : 56,
+                                onChanged: (value) => setState(
+                                  () => drawing
+                                      ? _strokeWidth = value
+                                      : _textSize = value,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: NexSpacing.xs),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: _saving || _nativeWidth == null
+                                ? null
+                                : _done,
+                            icon: _saving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.check),
+                            label: Text(l10n.annotateDone),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(52),
+                            ),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -513,49 +652,61 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
 }
 
 class _StrokePainter extends CustomPainter {
-  const _StrokePainter(this.strokes);
+  _StrokePainter(this.strokes, {super.repaint});
 
   final List<_Stroke> strokes;
 
   @override
   void paint(Canvas canvas, Size size) {
     for (final stroke in strokes) {
-      if (stroke.points.isEmpty) continue;
+      final points = stroke.points;
+      if (points.isEmpty) continue;
       final paint = Paint()
         ..color = stroke.color
         ..strokeWidth = stroke.width
         ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
         ..style = PaintingStyle.stroke;
-      if (stroke.points.length == 1) {
+      if (points.length == 1) {
         canvas.drawCircle(
-          stroke.points.first,
+          points.first,
           stroke.width / 2,
           paint..style = PaintingStyle.fill,
         );
         continue;
       }
-      final path = Path()
-        ..moveTo(stroke.points.first.dx, stroke.points.first.dy);
-      for (final point in stroke.points.skip(1)) {
-        path.lineTo(point.dx, point.dy);
+      // Through the midpoints, with each sampled point as the curve's
+      // control: a line that bends where the finger did, rather than a chain
+      // of straight segments that shows its corners on a fast stroke.
+      final path = Path()..moveTo(points.first.dx, points.first.dy);
+      for (var i = 1; i < points.length - 1; i++) {
+        final mid = (points[i] + points[i + 1]) / 2;
+        path.quadraticBezierTo(points[i].dx, points[i].dy, mid.dx, mid.dy);
       }
+      path.lineTo(points.last.dx, points.last.dy);
       canvas.drawPath(path, paint);
     }
   }
 
+  // The strokes grow in place as a finger moves, and [repaint] says when;
+  // a new list means marks were added or taken away.
   @override
-  bool shouldRepaint(_StrokePainter oldDelegate) =>
-      oldDelegate.strokes != strokes;
+  bool shouldRepaint(_StrokePainter oldDelegate) => true;
 }
 
 class _AnnotationTextDialog extends StatefulWidget {
-  const _AnnotationTextDialog();
+  const _AnnotationTextDialog({this.initial});
+
+  /// The label's words when one is being changed; null for a new one.
+  final String? initial;
+
   @override
   State<_AnnotationTextDialog> createState() => _AnnotationTextDialogState();
 }
 
 class _AnnotationTextDialogState extends State<_AnnotationTextDialog> {
-  final _text = TextEditingController();
+  late final _text = TextEditingController(text: widget.initial);
+
   @override
   void dispose() {
     _text.dispose();
@@ -579,6 +730,12 @@ class _AnnotationTextDialogState extends State<_AnnotationTextDialog> {
         ),
       ),
       actions: [
+        // Changing a label can also take it off; an empty answer does too.
+        if (widget.initial != null)
+          TextButton(
+            onPressed: () => Navigator.pop(context, ''),
+            child: Text(l10n.annotateDelete),
+          ),
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text(l10n.cancel),

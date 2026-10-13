@@ -41,6 +41,7 @@ Working convention:
 - **The app lock is harder to loosen.** Making Nex lock later — or only when you ask — now asks for your fingerprint first, so nobody holding your phone for a moment can change it. Locking sooner still takes one tap.
 - **Locking closes everything.** When Nex locks, the private tools lock with it and the keyboard closes, so nothing typed at the lock lands in a hidden note.
 - **The lock says what is wrong.** After too many wrong fingerprints it tells you to wait or to unlock the phone first, and if the phone has no screen lock it offers to open the phone's settings to set one.
+- **A better photo editor.** A photo the camera saved on its side now opens the right way up for cropping, and comes out that way. Crop pills, round tools and a new **Flip**; in drawing, a tap leaves a dot, lines are smoother, the slider also sets the size of text, a label can be held to change or remove it, **Redo** joins Undo, and text sits where you tapped. The editor is dark in every theme, so none of its buttons fade into the background, and turning and cropping a camera photo is quicker and no longer makes a much larger file along the way.
 
 ## v1.99.95
 

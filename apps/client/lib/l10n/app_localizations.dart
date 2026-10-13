@@ -3098,6 +3098,36 @@ abstract class AppLocalizations {
   /// **'Rotate'**
   String get cropRotate;
 
+  /// Tool under the photo editor that mirrors the photo left to right
+  ///
+  /// In en, this message translates to:
+  /// **'Flip'**
+  String get cropFlip;
+
+  /// Accessible name of the slider that sets the size of a brush stroke or of new text in the photo editor
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get annotateSize;
+
+  /// Photo editor button that brings back the mark last undone
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get annotateRedo;
+
+  /// Hint under the photo while adding text labels
+  ///
+  /// In en, this message translates to:
+  /// **'Hold a label to change or remove it'**
+  String get annotateEditTextHint;
+
+  /// Button in the text dialog that removes a text label from the photo
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get annotateDelete;
+
   /// No description provided for @cropFree.
   ///
   /// In en, this message translates to:

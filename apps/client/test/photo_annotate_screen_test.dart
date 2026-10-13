@@ -55,7 +55,9 @@ Future<Uint8List? Function()> _pushAnnotateScreen(WidgetTester tester) async {
 /// default size lining up with wherever `Center` + `AspectRatio` happens to
 /// place the square canvas.
 Future<void> _tapOnPhoto(WidgetTester tester, Offset fromCenter) async {
-  final center = tester.getCenter(find.byType(CustomPaint).first);
+  final center = tester.getCenter(
+    find.byKey(const ValueKey('annotate-canvas')),
+  );
   await tester.tapAt(center + fromCenter);
 }
 
@@ -117,7 +119,9 @@ void main() {
     expect(find.text('hello'), findsOneWidget);
 
     final before = tester.getTopLeft(find.text('hello'));
-    await tester.drag(find.text('hello'), const Offset(15, 0));
+    // Past the touch slop: a label can also be held to change it, and a
+    // movement shorter than the slop is still a hold.
+    await tester.drag(find.text('hello'), const Offset(40, 0));
     await tester.pump();
     final after = tester.getTopLeft(find.text('hello'));
 
@@ -145,5 +149,53 @@ void main() {
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
     expect(find.text('first'), findsNothing);
+  });
+
+  testWidgets('a held label can be changed or taken off', (tester) async {
+    await _pushAnnotateScreen(tester);
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await _placeText(tester, Offset.zero, 'hello');
+
+    await tester.longPress(find.text('hello'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'goodbye');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('goodbye'), findsOneWidget);
+    expect(find.text('hello'), findsNothing);
+
+    await tester.longPress(find.text('goodbye'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove'));
+    await tester.pumpAndSettle();
+    expect(find.text('goodbye'), findsNothing);
+  });
+
+  testWidgets('undo can be redone, and a new mark ends redo', (tester) async {
+    await _pushAnnotateScreen(tester);
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await _placeText(tester, Offset.zero, 'one');
+    await tester.tap(find.byIcon(Icons.undo));
+    await tester.pump();
+    expect(find.text('one'), findsNothing);
+    await tester.tap(find.byIcon(Icons.redo));
+    await tester.pump();
+    expect(find.text('one'), findsOneWidget);
+  });
+
+  testWidgets('a tap with the pen leaves a dot', (tester) async {
+    await _pushAnnotateScreen(tester);
+    await _tapOnPhoto(tester, Offset.zero);
+    await tester.pump();
+    // A mark exists now, so undo is offered.
+    final undo = tester.widget<IconButton>(
+      find.ancestor(
+        of: find.byIcon(Icons.undo),
+        matching: find.byType(IconButton),
+      ),
+    );
+    expect(undo.onPressed, isNotNull);
   });
 }

@@ -1923,6 +1923,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cropRotate => 'Rotate';
 
   @override
+  String get cropFlip => 'Flip';
+
+  @override
+  String get annotateSize => 'Size';
+
+  @override
+  String get annotateRedo => 'Redo';
+
+  @override
+  String get annotateEditTextHint => 'Hold a label to change or remove it';
+
+  @override
+  String get annotateDelete => 'Remove';
+
+  @override
   String get cropFree => 'Free';
 
   @override
