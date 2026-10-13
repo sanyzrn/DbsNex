@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// One unlock for every private tool, and how long it lasts.
 ///
 /// Each vault screen used to own its unlock and threw it away the moment the
@@ -13,7 +15,13 @@
 /// again is what the grace period spares.
 ///
 /// Nothing is persisted. A killed process always starts locked.
-class VaultSession {
+///
+/// Listenable for the lock on the private tools' cards, which shows open
+/// while this is: it tells when an unlock begins and when one is closed.
+/// One that lapses says nothing — nothing is running to notice — so a
+/// listener that shows it open waits out [remaining] itself
+/// (see `VaultOpenBuilder`).
+class VaultSession extends ChangeNotifier {
   VaultSession._();
 
   static final instance = VaultSession._();
@@ -40,7 +48,10 @@ class VaultSession {
   }
 
   /// Called only after a successful device authentication.
-  void open() => _until = clock().add(grace);
+  void open() {
+    _until = clock().add(grace);
+    notifyListeners();
+  }
 
   /// Activity inside a private tool pushes the deadline out again. An unlock
   /// that has already lapsed is never revived by a touch.
@@ -48,5 +59,9 @@ class VaultSession {
     if (isOpen) _until = clock().add(grace);
   }
 
-  void close() => _until = null;
+  void close() {
+    if (_until == null) return;
+    _until = null;
+    notifyListeners();
+  }
 }

@@ -9,6 +9,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_shelf.dart';
+import '../widgets/vault_open_builder.dart';
 import 'modules_screen.dart';
 import 'tools/tool_catalog.dart';
 
@@ -150,19 +151,23 @@ class _ToolTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return NexShelfTile(
+    Widget tile({IconData? badge}) => NexShelfTile(
       key: ValueKey('tool-${tool.id}'),
       title: tool.title,
       subtitle: tool.subtitle,
       icon: tool.icon,
       hue: tool.hue,
-      badge: tool.locked ? Icons.lock_rounded : null,
+      badge: badge,
       pinned: pinned,
       onTap: () => unawaited(tool.push(context)),
       onLongPress: onLongPress,
       longPressLabel: onLongPress == null
           ? null
           : (pinned ? l.unpinFromHome : l.pinToHome),
+    );
+    if (!tool.locked) return tile();
+    return VaultOpenBuilder(
+      builder: (context, open) => tile(badge: nexLockBadge(open: open)),
     );
   }
 }

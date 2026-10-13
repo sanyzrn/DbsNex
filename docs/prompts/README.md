@@ -7,7 +7,7 @@ local, without the others.
 
 ## Pre-release review (Android)
 
-One role per file, written against **1.99.60**, for <https://github.com/sanyzrn/DbsNex>. Each prompt says how to get the code in either setup it may be given in: a model working in its own cloud workspace, which clones the repository itself, or a model on the owner's Windows PC, which clones into the folder shared with it and runs the checks package by package in PowerShell. Reports come back in
+One role per file, for <https://github.com/sanyzrn/DbsNex>. None names a version: each reviews the latest one in the repository — the newest commit on `main` — and reads the version from `apps/client/pubspec.yaml` there, so the prompts stay usable release after release. Each prompt says how to get the code in either setup it may be given in: a model working in its own cloud workspace, which clones the repository itself, or a model on the owner's Windows PC, which clones into the folder shared with it and runs the checks package by package in PowerShell. Reports come back in
 English, with findings labelled Blocker / High / Medium / Low, each tied to
 a file and line, a reproduction or failing test where possible, and the test
 that would catch it. Every report also carries the commit it reviewed, a
@@ -19,7 +19,7 @@ sensitive things in the app.
 The prompts are deliberately strict:
 
 - **Start from the diff.** Every file in the reviewer's area that changed
-  since the last reviewed release is read line by line and listed.
+  since the previous release is read line by line and listed.
 - **"Sound" has to be earned.** A scope item marked sound names what was
   examined.
 - **Try to break it.** At least one adversarial case is tried and recorded

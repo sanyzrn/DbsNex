@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.95
+
+- **Reminders and attachments cost a card no line.** They sit at the end of the note's last line, the way a message's time does in a chat: a short note keeps them on its one line, and a long one fades out just before them. Its words keep every line they had.
+- **A folded smart summary stays folded.** It used to open again on its own when you came back to the app, as if it were opening to update; now it updates inside the folded card, and only a tap opens it.
+- **The lock on private tools opens with them.** On the Tools page and on tools pinned to the home screen, the lock shows open while Passwords, Bank cards and Private messages are unlocked, and closes again when they lock.
+- A voice note whose file will not open now says so under the player instead of leaving its button dimmed, and a recording that wrote nothing is no longer saved as an empty note.
+
 ## v1.99.94
 
 - **Voice notes open again.** In 1.99.93 opening a voice note or an audio file froze the app and left a grey box where the player should be. It opens and plays again.

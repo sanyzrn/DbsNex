@@ -4,7 +4,7 @@ You are a senior Flutter and Android performance engineer. You know the raster a
 
 ## Getting the code
 
-- **Repository:** <https://github.com/sanyzrn/DbsNex> (public). Review the tag `v1.99.600` if it exists; otherwise `main` at the commit that sets `version: 1.99.60` in `apps/client/pubspec.yaml`. If `main` has moved past it, say so and review the newer commit — never an older one.
+- **Repository:** <https://github.com/sanyzrn/DbsNex> (public). Review the latest version in the repository: the newest commit on `main` (clone it fresh, or `git pull` an existing clone first). The version under review is whatever `version:` says in `apps/client/pubspec.yaml` at that commit — read it there and write it in the report header. Never review an older commit or tag in its place.
 - **You will be in one of two setups.** Work out which before you start, and name it in the report header:
   - **A cloud workspace of your own** (usually Linux). Clone it yourself: `git clone https://github.com/sanyzrn/DbsNex.git && cd DbsNex`. If your network blocks Flutter, pub.dev or Gradle downloads, do not spend the review fighting it: review statically and say so.
   - **The owner's Windows PC**, with a folder shared with you. Clone into that folder (`git clone https://github.com/sanyzrn/DbsNex.git`), or, if a clone is already there, run `git fetch origin` and `git checkout main` then `git pull` first and check you are on the right commit. Commands run in PowerShell; `make` is usually missing there, so run each package on its own (below). Run `git config core.longpaths true` before cloning if Windows complains about long paths. The Android build needs the Android SDK and JDK 17. The Windows desktop build is not part of this release, so do not judge the app by it.
@@ -12,11 +12,11 @@ You are a senior Flutter and Android performance engineer. You know the raster a
   - `packages/core` and `packages/data`: `dart pub get`, `dart analyze --fatal-infos`, `dart test`
   - `packages/ai`, `packages/ui` and `apps/client`: `flutter pub get`, `flutter analyze --fatal-infos`, `flutter test`
   - `apps/backend` and `apps/feedback-worker` (Node): `npm ci`, `npm test` — not part of this release, run only if you have time.
-- **Read only.** Do not push, open pull requests, file issues, or change files in the clone. Your report is your reply. If your setup lets you write files, also save it as `nex-review-PERF-1.99.60.md` in the folder you cloned into, beside the repository rather than inside it.
+- **Read only.** Do not push, open pull requests, file issues, or change files in the clone. Your report is your reply. If your setup lets you write files, also save it as `nex-review-PERF-<version>.md` (`<version>` being the one in `pubspec.yaml`) in the folder you cloned into, beside the repository rather than inside it.
 
 ## The product you are reviewing
 
-**Nex** is a local-first, offline-first personal capture app. Its promise is that an idea is never lost: one tap captures it, with no mandatory fields and no Save button, and it can be found again later — by its words or by what it means. It also holds things people would never want leaked: passwords, bank cards, private messages, and the details of their menstrual cycle. This review is of **version 1.99.60**, the build that leads into 2.0. Your report decides what must be fixed before it ships.
+**Nex** is a local-first, offline-first personal capture app. Its promise is that an idea is never lost: one tap captures it, with no mandatory fields and no Save button, and it can be found again later — by its words or by what it means. It also holds things people would never want leaked: passwords, bank cards, private messages, and the details of their menstrual cycle. This review is of **the latest version in the repository** (see *Getting the code*), a build on the way to 2.0. Your report decides what must be fixed before it ships.
 
 - **Stack:** Flutter 3.35 / Dart 3.9.
   - **Android** is the release target: minSdk 24, targetSdk 35, arm64 for the on-device AI runtime. Two build flavors, `standard` and `ai`; `ai` is the one people install.
@@ -30,9 +30,9 @@ You are a senior Flutter and Android performance engineer. You know the raster a
   - **Reminders:** one-off reminders, recurring commitments (a page of their own), a daily nudge.
   - **Recently deleted:** notes can be restored, then are purged.
   - **Private vault:** passwords (with a generator and CSV import), bank cards (with CVV2), private messages — behind biometrics with a shared 2-minute unlock — plus an optional app lock and a secure window.
-  - **Cycle** (`screens/cycle/`, `platform/cycle_*`, `packages/core` cycle models, `packages/data` cycle repository): a menstrual-cycle tracker that is **off by default** and, from 1.99.60, a **module** added and removed on **Tools → Modules** (no longer in the profile). Period logging, predictions, fertile window, modes (normal, trying to conceive, pregnancy, breastfeeding, menopause), symptom patterns, BBT/ovulation-test/mucus logs, a PDF report, discreet reminders, two home-screen widgets (full and discreet), opt-in assistant access to a factual summary, and an opt-in "gentle companion" tone. This is health data: treat it like the vault.
+  - **Cycle** (`screens/cycle/`, `platform/cycle_*`, `packages/core` cycle models, `packages/data` cycle repository): a menstrual-cycle tracker that is **off by default** and a **module** added and removed on **Tools → Modules** (no longer in the profile). Period logging, predictions, fertile window, modes (normal, trying to conceive, pregnancy, breastfeeding, menopause), symptom patterns, BBT/ovulation-test/mucus logs, a PDF report, discreet reminders, two home-screen widgets (full and discreet), opt-in assistant access to a factual summary, and an opt-in "gentle companion" tone. This is health data: treat it like the vault.
   - **Modules** (ADR-040; `lib/modules/`, `screens/modules_screen.dart`, `packages/data` `module_record_repository.dart`; `docs/17-modules.md`, `docs/18-module-kit.md`): optional features that ship in the app but do nothing until added on Tools → Modules. Cycle is the first. Every later module extends `NexStoredModule`, sees only `module_api.dart`, keeps its data as JSON records in the shared `module_records` table through its own `NexModuleStore`, and is held to that by a test gate (`test/module_kit_test.dart`), so modules can be written outside the repository and dropped in. The page also lists planned modules under "On the way".
-  - **Redesigned in 1.99.40–1.99.60:** first-run onboarding, the home header and its living wordmark, note cards (type colours drawn from the accent, thread lines), the note detail heading and faster rise, the pinch fold, the bottom bar, the Security page, the password generator, the Theme page.
+  - **Recent work:** the newest sections of `CHANGELOG.md` say what the last releases changed. Among them: several files on one note (attachments — photos, voice clips and files, a swipe gallery, a menu per file; `docs/14-attachments.md`), one player for every recording (`widgets/voice_player.dart`, the waveform as its bar), voice notes recorded straight to `.m4a` (`platform/voice_spool.dart`), tools pinned to the home screen, recent searches, a card's reminder and attachment marks tucked at the end of its last line (`packages/ui` `note_card_footnote.dart`), the home search's touch rules (ADR-038), a folded smart summary that stays folded, and the lock on private tools that opens while the vault is unlocked. Earlier redesigns: first-run onboarding, the home header and its living wordmark, note cards (type colours drawn from the accent, thread lines), the note detail heading and faster rise, the pinch fold, the bottom bar, the Security page, the password generator, the Theme page.
   - **Backup:** an encrypted complete backup (WinZip AES-256 with a generated 256-bit recovery code; it can include the on-device chat model), automatic encrypted backup to a folder the user picks (SAF), export, and "save to device" for any note's file.
   - **AI (optional, off until turned on):**
     - a cloud provider with the user's own key (OpenAI, Gemini, Anthropic, OpenRouter, Custom), or — in the `ai` flavor — **Gemma 4 E2B on the phone** through LiteRT-LM (forced to 0.18.0 for every Android module);
@@ -79,7 +79,7 @@ Make sure Nex starts fast, scrolls smoothly, captures instantly, does not drain 
 6. **On-device AI — the most likely stability risk:**
    - Loading Gemma (~2.6 GB) and EmbeddingGemma (~160 MB): memory peak, both loaded at once, low-RAM phones (4 GB), Android killing the app mid-load.
    - `LiteRtChatAdapter`: one load at a time (verify the single-flight guard), idle release after 5 minutes, release on memory pressure, the crash marker (`.loading`) with its two-strike, 12-hour rule — can the app still end up permanently unable to load? Does "Try loading it again" really recover?
-   - Requests to the on-device model fit its 4,096-token window (`LocalBudget`, 1.99.5), and new turns go as one message (`asOneMessage`, 1.99.60). With a large library and a long chat, measure prefill time and the time to the first reply. Can any request still exceed the window and fail?
+   - Requests to the on-device model fit its 4,096-token window (`LocalBudget`), and new turns go as one message (`asOneMessage`). With a large library and a long chat, measure prefill time and the time to the first reply. Can any request still exceed the window and fail?
    - GPU-then-CPU fallback; what happens on a phone whose GPU driver kills the process.
    - The LiteRT-LM 0.18.0 force (`android/build.gradle.kts`): any risk to the chat plugin built against 0.10.0?
    - The search model in the worker isolate through `BackgroundIsolateBinaryMessenger`: what happens when the engine is missing, slow or fails for every note (does `embedLibrary` spin, retry forever, or block the worker queue)?
@@ -91,10 +91,12 @@ Make sure Nex starts fast, scrolls smoothly, captures instantly, does not drain 
 11. **Stability:** unhandled exceptions and async errors (`runZonedGuarded`, `FlutterError.onError`, `PlatformDispatcher.onError`); `!` on data from disk or network; platform-channel calls without `MissingPluginException`/`PlatformException` handling (every `invokeMethod`); activity recreation (rotation, theme, dark mode, language) losing state; process death and restore; `ShareActivity` lifecycle.
 12. **APK size and build:** per-ABI splits, R8/shrink (the new `-keep class com.google.ai.edge.litertlm.**`), unused assets and fonts, the AI runtime's native libraries in the `standard` flavor.
 13. **Existing budgets:** CI's timeline and retrieval budget tests and the stress job — realistic, and protecting the right things? What is not covered (model loading, embedding a library, the Cycle screen)?
-14. **New since 1.99.6**
+14. **Newer code paths**
+   - a card's marks: each card that carries a reminder or attachments paints its words through a shader-mask layer (`_RenderTucked` in `packages/ui/lib/widgets/note_card_footnote.dart`) — measure raster time on a long timeline where most cards carry one;
+   - the recording player and its waveform (decoded on the platform, cached in the temporary folder); the vault-lock timer behind each private tool's card (`widgets/vault_open_builder.dart`);
    - the living wordmark's timer: does it run while the timeline is not visible, under a pushed page, on the lock screen, or in the background?
    - the type-colour cache in `nexNoteTypeTint` (its bound, and what invalidates it);
-   - the note detail open time: 1.99.50 claims 30–40% faster — measure it before and after on the same phone;
+   - the note detail open time: the changelog claims 30–40% faster — measure it before and after on the same phone;
    - the pinch fold of a day: frame times on a mid-range phone, with a long day;
    - the Modules page and Tools shelf rebuilding on every preference change; module record reads and writes on the database worker.
 
@@ -121,7 +123,7 @@ If you can run the app, use `flutter run --profile --flavor ai` on a real mid-ra
 10. **Be honest about confidence.** Mark each finding `confirmed` (reproduced, or traced end to end with every step quoted), `likely`, or `unverified`. A High or Blocker that stays `unverified` must say exactly what would confirm it.
 11. **The verdict follows the findings.** "Ready" is allowed only with zero Blockers and zero Highs that are `confirmed` or `likely`. One unverified Blocker means "Not ready until verified". So does a scope item in your area left `not checked`, or a changed file left unread.
 12. **Say what is good,** briefly, so the owner knows what was covered rather than skipped.
-13. **Start from the diff.** Most new defects are in what changed. List every file in your area changed since the last reviewed release (`git diff --stat v1.99.6..HEAD -- <paths>`; without the tag, the commit that set `version: 1.99.6`), and read each one line by line. The report's *Changed since 1.99.6* table names each file and what you concluded. A changed file in your area missing from that table is a gap in the review.
+13. **Start from the diff.** Most new defects are in what changed. List every file in your area changed since the last reviewed release (`git diff --stat <previous>..HEAD -- <paths>`, where `<previous>` is the release tag before the version under review — `git tag --sort=-v:refname | head` lists them; if an earlier report with your prefix is in the repository or was given to you, start from the version it reviewed instead), and read each one line by line. The report's *Changed since the previous release* table names each file and what you concluded. A changed file in your area missing from that table is a gap in the review.
 14. **"Sound" has to be earned.** A `checked — sound` entry names what was examined: files, functions, tests run, cases tried. An entry without that counts as `not checked`.
 15. **Try to break it.** For every scope item, try at least one adversarial case that fits your role — empty, enormous, malformed or mixed-direction input; the process killed mid-write; airplane mode; low storage; the largest text size; TalkBack; an old, slow phone — and record what you tried and what happened.
 16. **One root cause, one finding.** List every location under it. Do not split one defect into several findings, or merge different ones to make the count smaller.
@@ -162,7 +164,7 @@ The three to five things most likely to hurt real users first, one line each, wi
 - **Suggested fix:** concrete and minimal; a patch if short
 (IDs: PERF-01, PERF-02 … ordered by severity, then by reach)
 
-## Changed since 1.99.6
+## Changed since <previous release>
 | File | Read line by line? | Conclusion / finding IDs |
 |---|---|---|
 

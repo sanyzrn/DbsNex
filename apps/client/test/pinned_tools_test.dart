@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/platform/vault_session.dart';
 import 'package:nex_client/screens/tools/pinned_tools.dart';
 import 'package:nex_client/screens/tools_screen.dart';
 
@@ -110,5 +111,45 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('pinned-tool-generator')), findsNothing);
+  });
+
+  // The lock opens with the private tools and closes again with them —
+  // when they are locked by hand and when the unlock runs out.
+  testWidgets("a private tool's lock opens while the vault is unlocked", (
+    tester,
+  ) async {
+    final session = VaultSession.instance;
+    var now = DateTime(2026, 10, 13, 9);
+    session.clock = () => now;
+    addTearDown(() {
+      session.close();
+      session.clock = DateTime.now;
+    });
+    await harness.preferences.togglePinnedTool('vault.card');
+    await tester.pumpWidget(
+      host(
+        PinnedTools(
+          services: harness.services,
+          preferences: harness.preferences,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
+
+    session.open();
+    await tester.pump();
+    expect(find.byIcon(Icons.lock_open_rounded), findsOneWidget);
+
+    session.close();
+    await tester.pump();
+    expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
+
+    session.open();
+    await tester.pump();
+    expect(find.byIcon(Icons.lock_open_rounded), findsOneWidget);
+    now = now.add(VaultSession.grace + const Duration(seconds: 1));
+    await tester.pump(VaultSession.grace + const Duration(seconds: 1));
+    expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
   });
 }

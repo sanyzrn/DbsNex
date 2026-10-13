@@ -248,7 +248,9 @@ class TimelineScreenState extends State<TimelineScreen>
   /// the chevron that reopens it, stays on screen either way. It used to
   /// collapse to nothing and reopen from a chip in the app bar — a control
   /// nowhere near the thing it controlled.
-  bool _aiSummaryCollapsed = false;
+  ///
+  /// Remembered across launches — see [NexPreferences.daySummaryFolded].
+  late bool _aiSummaryCollapsed = widget.preferences.daySummaryFolded;
 
   /// The first real scroll collapses the card on its own, once. Touching the
   /// chevron takes that over: an explicit open should not be undone by the
@@ -484,7 +486,10 @@ class TimelineScreenState extends State<TimelineScreen>
   /// by hand, scrolling stops having an opinion about it.
   void _onAiSummaryScroll() {
     if (_aiSummaryCollapsed || _aiSummaryToggledByUser) return;
-    if (_scroll.offset > 4) setState(() => _aiSummaryCollapsed = true);
+    if (_scroll.offset > 4) {
+      setState(() => _aiSummaryCollapsed = true);
+      unawaited(widget.preferences.setDaySummaryFolded(true));
+    }
   }
 
   void _onSearchChanged() {
