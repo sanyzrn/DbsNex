@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import '../tokens/nex_appearance.dart';
 import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
+
+part 'note_card_footnote.dart';
 
 /// The words a screen reader needs, in the language the user chose.
 ///
@@ -283,150 +286,11 @@ class _CardBody extends StatelessWidget {
               else
                 _LeadingWithPin(note: note, strings: strings),
               const SizedBox(width: NexSpacing.contentGap),
-              Expanded(
-                child: _withFootnote(
-                  context,
-                  previewOverride ??
-                      _Preview(
-                        note: note,
-                        expanded: expanded,
-                        strings: strings,
-                      ),
-                ),
-              ),
+              Expanded(child: _withFootnote(context)),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-extension on _CardBody {
-  /// The note's words, and under them — only when there is one — a quiet
-  /// footnote of what it carries besides: when it will remind, and how many
-  /// more files it holds.
-  ///
-  /// It was a column at the end of the row, one pill above the other, and it
-  /// took its width from every line of the note beside it; on a short card
-  /// the two pills were as wide as the words. Under the words they cost one
-  /// small line, on the cards that have them, and the words keep the card.
-  Widget _withFootnote(BuildContext context, Widget preview) {
-    final due = showDue ? note.dueAt : null;
-    final attached = note.attachmentCount > 0;
-    if (due == null && !attached) return preview;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        preview,
-        const SizedBox(height: NexSpacing.xs),
-        Wrap(
-          spacing: NexSpacing.md,
-          runSpacing: 2,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            // A reminder still to come stays in the accent: it is the one
-            // thing here that asks for something.
-            if (due != null)
-              _DueChip(
-                due: due,
-                label: strings.dueLabel?.call(due, note.dueRepeat),
-                // A lapsed reminder is not an alarm any more. A repeating
-                // one never lapses: it is always about to happen again.
-                upcoming:
-                    note.dueRepeat != NoteRepeat.once ||
-                    due.isAfter(DateTime.now().toUtc()),
-              ),
-            if (attached)
-              _AttachedMark(label: strings.attachedShort(note.attachmentCount)),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-/// The files a note carries after its own, in the card's footnote: a
-/// paperclip and "+3". Not on the leading square, whose corners already hold
-/// the tag dots and the pin. Announced with the card (see `attachedLabel`),
-/// so the mark itself is silent.
-class _AttachedMark extends StatelessWidget {
-  const _AttachedMark({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return ExcludeSemantics(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.attach_file, size: 13, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 2),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The bell on a card, and when it will ring.
-///
-/// It was the bell on its own, which said a reminder existed and nothing
-/// about it — so the only thing anyone could do with a reminder they could not
-/// read was delete it. Every app that sets reminders on a list row puts the
-/// time on the row.
-///
-/// The text is optional and the bell is not: a caller with no localisation
-/// still gets the mark it always had.
-class _DueChip extends StatelessWidget {
-  const _DueChip({
-    required this.due,
-    required this.label,
-    required this.upcoming,
-  });
-
-  final DateTime due;
-  final String? label;
-  final bool upcoming;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = upcoming
-        ? theme.colorScheme.primary
-        : theme.colorScheme.outline;
-    final text = label;
-    if (text == null) {
-      return Icon(Icons.notifications_active_outlined, size: 14, color: color);
-    }
-    // No box of its own: a line of the card's footnote, not a chip on it.
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.notifications_active_outlined, size: 13, color: color),
-        const SizedBox(width: 3),
-        Flexible(
-          child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -535,11 +399,21 @@ class _Preview extends StatelessWidget {
     required this.note,
     required this.expanded,
     required this.strings,
+    required this.lines,
+    this.voiceLength = true,
   });
   final NexCardStrings strings;
 
   final Note note;
   final bool expanded;
+
+  /// The rows the note's words have: the density's, less the one the
+  /// footnote takes when there is one.
+  final int lines;
+
+  /// Whether a voice note's length has a row of its own here. It moves into
+  /// the footnote when there is one, beside the reminder and the files.
+  final bool voiceLength;
 
   @override
   Widget build(BuildContext context) {
@@ -548,9 +422,15 @@ class _Preview extends StatelessWidget {
     // interactive here: the card's own tap opens the note, and a checkbox
     // inside a tappable card is a target inside a target.
     if (note.type == NoteType.checklist && note.checklistItems.isNotEmpty) {
-      return _ChecklistPreview(items: note.checklistItems, expanded: expanded);
+      return _ChecklistPreview(
+        items: note.checklistItems,
+        expanded: expanded,
+        lines: lines,
+      );
     }
-    if (note.type == NoteType.link) return _LinkPreview(note: note);
+    if (note.type == NoteType.link) {
+      return _LinkPreview(note: note, showSite: expanded || lines > 1);
+    }
 
     // The card is a picture of the note, not the note: a body someone made
     // bold shows as bold text would, without the asterisks that made it so.
@@ -588,12 +468,14 @@ class _Preview extends StatelessWidget {
           ? nexCardExpandedMaxLines
           : note.type == NoteType.voice && (note.durationMs ?? 0) > 0
           ? 1
-          : NexCardDensity.of(context).lines,
+          : lines,
       style: NexCardDensity.of(context).previewStyle(Theme.of(context)),
     );
     // The card already announces its type. Keep real note content reachable,
     // but do not announce the translated empty-media fallback a second time.
-    if (note.type == NoteType.voice && (note.durationMs ?? 0) > 0) {
+    if (voiceLength &&
+        note.type == NoteType.voice &&
+        (note.durationMs ?? 0) > 0) {
       final seconds = note.durationMs! ~/ 1000;
       final duration =
           strings.durationLabel?.call(note.durationMs!) ??
@@ -630,10 +512,15 @@ class _Preview extends StatelessWidget {
 /// other, so a hundred-item shopping list carries "+88" on its last line
 /// rather than swallowing the timeline.
 class _ChecklistPreview extends StatelessWidget {
-  const _ChecklistPreview({required this.items, required this.expanded});
+  const _ChecklistPreview({
+    required this.items,
+    required this.expanded,
+    required this.lines,
+  });
 
   final List<ChecklistItem> items;
   final bool expanded;
+  final int lines;
 
   @override
   Widget build(BuildContext context) {
@@ -641,7 +528,6 @@ class _ChecklistPreview extends StatelessWidget {
       ...items.where((item) => !item.done),
       ...items.where((item) => item.done),
     ];
-    final lines = NexCardDensity.of(context).lines;
     final shown = ordered
         .take(expanded ? nexCardExpandedMaxLines : lines)
         .toList();
@@ -731,9 +617,12 @@ class _ChecklistLine extends StatelessWidget {
 /// The host on its own line is the part that stops a list of bookmarks from
 /// being unreadable — titles repeat across a site, domains do not.
 class _LinkPreview extends StatelessWidget {
-  const _LinkPreview({required this.note});
+  const _LinkPreview({required this.note, required this.showSite});
 
   final Note note;
+
+  /// Whether the site has its row. Not when the footnote needs it.
+  final bool showSite;
 
   @override
   Widget build(BuildContext context) {
@@ -759,29 +648,30 @@ class _LinkPreview extends StatelessWidget {
               style: NexCardDensity.of(context).previewStyle(theme),
             ),
           ),
-          SizedBox(
-            height: nexCardPreviewLineHeightFor(context),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.public,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: NexSpacing.xs),
-                Expanded(
-                  child: Text(
-                    host ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+          if (showSite)
+            SizedBox(
+              height: nexCardPreviewLineHeightFor(context),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.public,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: NexSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      host ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

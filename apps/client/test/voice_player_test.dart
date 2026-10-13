@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/widgets/audio_waveform.dart';
 import 'package:nex_client/widgets/voice_player.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -51,4 +52,30 @@ void main() {
       });
     }
   }
+
+  // 1.99.93 built the seekable bar as a child of itself: a stack overflow and
+  // a grey box the moment the file was open.
+  testWidgets('the bar can be touched once the file is open', (tester) async {
+    final seeks = <double>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 200,
+            child: AudioWaveform(
+              path: 'voice.m4a',
+              progress: 0.3,
+              onSeek: seeks.add,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await tester.tapAt(
+      tester.getTopLeft(find.byType(AudioWaveform)) + const Offset(150, 20),
+    );
+    expect(seeks.single, closeTo(0.75, 0.01));
+  });
 }
