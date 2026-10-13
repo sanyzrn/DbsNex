@@ -53,6 +53,17 @@ class _NexVoicePlayerState extends State<NexVoicePlayer>
   );
   int _speed = 0;
 
+  // The file opens after the card is up, and the speed chosen while it was
+  // opening — or before a sheet swapped the player — belongs to the new one.
+  @override
+  void didUpdateWidget(NexVoicePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final steady = widget.steady;
+    if (steady != null && steady != oldWidget.steady && _speed != 0) {
+      unawaited(steady.player.setSpeed(NexVoicePlayer._speeds[_speed]));
+    }
+  }
+
   @override
   void dispose() {
     _morph.dispose();

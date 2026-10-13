@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../platform/nex_preferences.dart';
 import '../../platform/nex_services.dart';
 import '../../widgets/nex_shelf.dart';
+import '../../widgets/vault_open_builder.dart';
 import '../tools_screen.dart' show nexToggleToolPin;
 import 'tool_catalog.dart';
 
@@ -57,19 +58,21 @@ class PinnedTools extends StatelessWidget {
                 ),
                 child: nexShelfPairs([
                   for (final tool in tools)
-                    NexShelfTile(
+                    VaultOpenBuilder(
                       key: ValueKey('pinned-tool-${tool.id}'),
-                      compact: true,
-                      title: tool.title,
-                      subtitle: tool.subtitle,
-                      icon: tool.icon,
-                      hue: tool.hue,
-                      badge: tool.locked ? Icons.lock_rounded : null,
-                      onTap: () => unawaited(tool.push(context)),
-                      onLongPress: () => unawaited(
-                        nexToggleToolPin(context, preferences, tool),
+                      builder: (context, open) => NexShelfTile(
+                        compact: true,
+                        title: tool.title,
+                        subtitle: tool.subtitle,
+                        icon: tool.icon,
+                        hue: tool.hue,
+                        badge: tool.locked ? nexLockBadge(open: open) : null,
+                        onTap: () => unawaited(tool.push(context)),
+                        onLongPress: () => unawaited(
+                          nexToggleToolPin(context, preferences, tool),
+                        ),
+                        longPressLabel: l.unpinFromHome,
                       ),
-                      longPressLabel: l.unpinFromHome,
                     ),
                 ]),
               ),

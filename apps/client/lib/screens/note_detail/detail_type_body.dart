@@ -34,7 +34,14 @@ extension _DetailTypeBody on _NoteDetailSheetState {
         length: Duration(milliseconds: note.durationMs ?? 0),
       ),
       const SizedBox(height: NexSpacing.xs),
-      if (note.transcriptText == null)
+      if (_playerFailed)
+        Text(
+          l10n.mediaUnavailable,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.error,
+          ),
+        )
+      else if (note.transcriptText == null)
         Text(
           l10n.voiceSearchHint,
           style: Theme.of(context).textTheme.bodySmall,

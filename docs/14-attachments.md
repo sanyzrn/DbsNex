@@ -58,7 +58,7 @@ What 1.99.70 has:
   is embedded again), and take one out as a note of its own (`detach`: a
   photo, voice or file note sharing the same file, with its caption and
   words).
-- **The card.** The reminder and the paperclip sit together on a footnote line under the note's words (1.99.93), leaving the words the card's whole width. The footnote takes the place of the words' last line — the card keeps its one height, so a footnote added below the words was cut off on a compact card — and it sits on the side the words start from, so a Persian note in an English app carries it on the right (1.99.94). A voice note's length joins it there.
+- **The card.** The reminder and the paperclip sit together at the end of the note's last line, the way a message's time sits at the end of its last line in a chat: a short note carries them on its one line, and a note that fills its lines fades out just before them (`_Tucked` in `packages/ui/lib/widgets/note_card_footnote.dart`). So they cost the card no line and no column. A checklist carries them at the end of its first row, since its last row ends in "+3"; a voice note's length joins them; an expanded card, which grows, keeps them on a line of their own under the note. Before: a column beside the words (too wide), a line under the words (cut off on a compact card, 1.99.93), and that line taking the words' last line (a line of the note lost, 1.99.94).
 
 ## What is asked
 

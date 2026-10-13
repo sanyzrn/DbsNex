@@ -149,6 +149,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   AudioPlayer? _player;
   NexSteadyPosition? _steady;
   bool _playerLoading = false;
+
+  /// The file would not open: said under the player instead of leaving its
+  /// button dimmed for good, and not tried again on every reload.
+  bool _playerFailed = false;
   StreamSubscription<PlayerState>? _stateSub;
 
   @override
@@ -250,7 +254,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     if (note != null &&
         note.mediaUri != null &&
         _player == null &&
-        !_playerLoading) {
+        !_playerLoading &&
+        !_playerFailed) {
       final playable =
           note.type == NoteType.voice ||
           (note.type == NoteType.file &&
@@ -267,7 +272,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   /// another player before the first had finished — the bar then followed
   /// one while the button drove the other.
   Future<void> _initPlayer(String uri, {bool voice = false}) async {
-    if (!File(uri).existsSync()) return;
+    if (!File(uri).existsSync()) {
+      setState(() => _playerFailed = true);
+      return;
+    }
     _playerLoading = true;
     final player = AudioPlayer();
     try {
@@ -290,6 +298,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       setState(() {});
     } catch (_) {
       await player.dispose();
+      if (mounted) setState(() => _playerFailed = true);
     } finally {
       _playerLoading = false;
     }

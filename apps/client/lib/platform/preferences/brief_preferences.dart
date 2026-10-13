@@ -35,6 +35,18 @@ mixin _BriefPreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// Whether the day summary on the timeline is folded.
+  ///
+  /// Kept rather than held by the screen: it was a field that started open,
+  /// so a summary folded by hand or by a scroll opened again on its own each
+  /// time the app came back and rebuilt the timeline — mid-refresh, looking
+  /// as if it had opened to update. Folded stays folded until a tap opens
+  /// it; a refresh happens inside the folded card.
+  bool get daySummaryFolded => _prefs.getBool('brief.summary_folded') ?? false;
+
+  Future<void> setDaySummaryFolded(bool value) =>
+      _prefs.setBool('brief.summary_folded', value);
+
   String get briefInstruction => _prefs.getString('brief.instruction') ?? '';
 
   Future<void> setBriefInstruction(String value) async {

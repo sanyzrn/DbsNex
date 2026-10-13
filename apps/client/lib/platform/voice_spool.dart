@@ -128,7 +128,7 @@ class NexVoiceSpool {
   Future<String?> stop() async {
     final recorded = await recorder.stop();
     final file = _file;
-    if (file == null) return recorded;
+    if (file == null) return _kept(recorded);
     await _done.future.timeout(
       const Duration(seconds: 2),
       onTimeout: () => _frames?.cancel(),
@@ -138,6 +138,20 @@ class NexVoiceSpool {
       file.closeSync();
     } catch (_) {}
     return finish(path);
+  }
+
+  /// A file recorded straight to `.m4a`, or null when nothing was written —
+  /// a recorder that failed to start leaves an empty file, which kept as a
+  /// note would be a voice note that never plays.
+  static String? _kept(String? recorded) {
+    if (recorded == null) return null;
+    final file = File(recorded);
+    if (!file.existsSync()) return null;
+    if (file.lengthSync() == 0) {
+      file.deleteSync();
+      return null;
+    }
+    return recorded;
   }
 
   /// Stops recording and deletes what was written.

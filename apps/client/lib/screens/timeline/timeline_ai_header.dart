@@ -385,6 +385,7 @@ extension _TimelineAiHeader on TimelineScreenState {
       _aiSummaryToggledByUser = true;
       _aiSummaryCollapsed = !_aiSummaryCollapsed;
     });
+    unawaited(widget.preferences.setDaySummaryFolded(_aiSummaryCollapsed));
   }
 
   String _aiSummaryDateKey() =>

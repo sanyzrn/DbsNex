@@ -305,8 +305,8 @@ extension _TimelineCapture on TimelineScreenState {
       return;
     }
     final elapsed = Stopwatch()..start();
-    // Written so that a process killed mid-memo leaves a recording the next
-    // launch can still keep (DATA-04).
+    // Straight to an `.m4a`, the way an attached voice clip is (1.99.93);
+    // see [NexVoiceSpool.streamNewRecordings] for the spool it replaced.
     final spool = await NexVoiceSpool.start(recorder, widget.services.mediaDir);
     if (!mounted) {
       await spool.discard();

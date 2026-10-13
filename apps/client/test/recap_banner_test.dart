@@ -121,4 +121,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(l10n.recapRefreshFailed), findsNothing);
   });
+
+  // Folded stays folded when the app comes back: the timeline is built anew
+  // then, and it used to start the card open every time.
+  testWidgets('a folded summary is still folded when the app comes back', (
+    tester,
+  ) async {
+    await preferences.setDaySummaryFolded(true);
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final recap = find.byKey(const ValueKey('timeline-recap'));
+    expect(recap, findsOneWidget);
+    // The open card's body is the only thing in it that fades.
+    final body = find.descendant(
+      of: recap,
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(body, findsNothing);
+
+    await tester.tap(recap);
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(body, findsOneWidget);
+    expect(preferences.daySummaryFolded, isFalse);
+  });
 }

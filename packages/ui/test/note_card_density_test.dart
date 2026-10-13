@@ -119,13 +119,16 @@ void main() {
     );
   });
 
-  // The footnote sits under the first letter of the words: on the right for
-  // a Persian note, even in an English app.
+  // The marks sit where the words end, on their own line: on the right
+  // after English words, on the left after Persian ones — and a short note
+  // carries them on its one line, so they cost the card no line.
   for (final (text, right) in [
-    ('Call the plumber', false),
-    ('قبض برق', true),
+    ('Call the plumber', true),
+    ('قبض برق', false),
   ]) {
-    testWidgets('the footnote starts where "$text" does', (tester) async {
+    testWidgets('the marks sit where "$text" ends, on its line', (
+      tester,
+    ) async {
       final carrying = Note(
         id: 'n',
         type: NoteType.text,
@@ -146,11 +149,57 @@ void main() {
           ),
         ),
       );
+      expect(tester.takeException(), isNull);
       final card = tester.getRect(find.byType(NoteCard));
       final bell = tester.getCenter(
         find.byIcon(Icons.notifications_active_outlined),
       );
       expect(bell.dx > card.center.dx, right);
+      final words = tester.getCenter(find.text(text));
+      expect((bell.dy - words.dy).abs(), lessThan(4), reason: 'same line');
     });
   }
+
+  testWidgets('a long note keeps both its lines beside the marks', (
+    tester,
+  ) async {
+    const long =
+        'A thought long enough to need both lines of the card and then some '
+        'more words after that, and more again past the third line too.';
+    Note make({required bool carries}) => Note(
+      id: 'n$carries',
+      type: NoteType.text,
+      content: long,
+      dueAt: carries ? DateTime.utc(2099) : null,
+      attachmentCount: carries ? 2 : 0,
+      createdAt: DateTime.utc(2026, 7, 28),
+      updatedAt: DateTime.utc(2026, 7, 28),
+      deviceId: 'test',
+      rev: 1,
+      syncState: SyncState.pending,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: Column(
+              children: [
+                NoteCard(note: make(carries: false)),
+                NoteCard(note: make(carries: true)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    final heights = [
+      for (final element in find.text(long).evaluate())
+        tester.getSize(find.byWidget(element.widget)).height,
+    ];
+    expect(heights, hasLength(2));
+    expect(heights.last, heights.first);
+  });
 }
