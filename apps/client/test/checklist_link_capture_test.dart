@@ -7,11 +7,24 @@ import 'package:nex_client/app.dart';
 import 'package:nex_client/platform/link_reader.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
+import 'package:nex_client/widgets/capture_sheet.dart';
 
 import 'support/nex_harness.dart';
 
 /// The two capture types added alongside text, voice, photo and file — from
 /// the button in the capture sheet through to what the card shows.
+/// The capture sheet's one field — the timeline has a search field too.
+final _field = find.descendant(
+  of: find.byType(CaptureSheet),
+  matching: find.byType(TextField),
+);
+
+/// Its Send — the + button behind it is called Capture too.
+final _send = find.descendant(
+  of: find.byType(CaptureSheet),
+  matching: find.byTooltip('Capture'),
+);
+
 void main() {
   late NexTestHarness harness;
   late NexServices services;
@@ -31,26 +44,29 @@ void main() {
 
   tearDown(() => harness.dispose());
 
-  testWidgets('a checklist is captured as lines and shown as rows', (
-    tester,
-  ) async {
+  Future<void> openComposer(WidgetTester tester) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
-
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
+  }
+
+  testWidgets('a checklist is captured as lines and shown as rows', (
+    tester,
+  ) async {
+    await openComposer(tester);
+    // The same sheet: the kind is switched at its top, in place.
     await tester.tap(find.byTooltip('Checklist'));
     await tester.pumpAndSettle();
+    expect(find.text('An item, one per line'), findsOneWidget);
 
     // One field, one item per line — not five taps into five separate rows.
-    await tester.enterText(find.byType(TextField).last, 'milk\nbread\nolives');
+    await tester.enterText(_field, 'milk\nbread\nolives');
     await tester.pumpAndSettle();
-    // No Capture button: closing the sheet keeps the list, the way a text
-    // capture is kept.
-    expect(find.text('Capture'), findsNothing);
-    await tester.tap(find.byTooltip('Close'));
+    expect(find.text('3 items'), findsOneWidget);
+    await tester.tap(_send);
     await tester.pumpAndSettle();
 
     final notes = await services.timeline(limit: 5);
@@ -66,6 +82,37 @@ void main() {
     expect(find.text('milk'), findsOneWidget);
     expect(find.text('bread'), findsOneWidget);
     expect(find.text('+1'), findsOneWidget);
+  });
+
+  testWidgets('a note already written becomes a list in place, reminder '
+      'and all, leaving nothing behind', (tester) async {
+    await openComposer(tester);
+    await tester.enterText(_field, 'milk\neggs');
+    await tester.pumpAndSettle();
+    // Saved as a note from the first keystroke (ADR-002)…
+    final draft = (await services.timeline(limit: 5)).single;
+    expect(draft.type, NoteType.text);
+    final due = DateTime.now().add(const Duration(days: 1)).toUtc();
+    await services.setDueAt(draft.id, due);
+
+    // …and turned into a list without typing it again.
+    await tester.tap(find.byTooltip('Checklist'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 items'), findsOneWidget);
+    // Back closes it the way Send does.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    final notes = await services.timeline(limit: 5);
+    expect(notes.single.type, NoteType.checklist);
+    expect(notes.single.checklistItems.map((i) => i.text), ['milk', 'eggs']);
+    expect(
+      notes.single.dueAt?.millisecondsSinceEpoch,
+      due.millisecondsSinceEpoch,
+    );
+    // The note it was is gone outright, not waiting in the trash.
+    expect(await services.deletedNotes(), isEmpty);
+    expect(await services.getById(draft.id), isNull);
   });
 
   testWidgets('ticking an item is an ordinary edit to the note', (
@@ -89,20 +136,16 @@ void main() {
   testWidgets('a link is normalised on the way in, and shows its host', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
+    await openComposer(tester);
     await tester.tap(find.byTooltip('Link'));
     await tester.pumpAndSettle();
 
     // No scheme, the way people actually paste.
-    await tester.enterText(find.byType(TextField).last, 'www.example.com/a');
+    await tester.enterText(_field, 'www.example.com/a');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Capture'));
+    // The site it will open, under the box, before anything is kept.
+    expect(find.text('example.com'), findsOneWidget);
+    await tester.tap(_send);
     await tester.pumpAndSettle();
 
     final notes = await services.timeline(limit: 5);
@@ -113,75 +156,80 @@ void main() {
     expect(find.text('example.com'), findsOneWidget);
   });
 
+  testWidgets('a line written around a link becomes its caption', (
+    tester,
+  ) async {
+    await openComposer(tester);
+    await tester.tap(find.byTooltip('Link'));
+    await tester.pumpAndSettle();
+    await tester.enterText(_field, 'Friday dinner https://example.com/recipe');
+    await tester.pumpAndSettle();
+    expect(find.text('example.com · Friday dinner'), findsOneWidget);
+    await tester.tap(_send);
+    await tester.pumpAndSettle();
+
+    final note = (await services.timeline(limit: 5)).single;
+    expect(note.type, NoteType.link);
+    expect(note.linkUrl, 'https://example.com/recipe');
+    expect(note.caption, 'Friday dinner');
+  });
+
   testWidgets('closing the sheet keeps a complete link (UX-03)', (
     tester,
   ) async {
     // "Close keeps" is what text and checklists teach; a link asked
     // "Discard?" instead.
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
+    await openComposer(tester);
     await tester.tap(find.byTooltip('Link'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).last, 'example.com/kept');
+    await tester.enterText(_field, 'example.com/kept');
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Close'));
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     final notes = await services.timeline(limit: 5);
     expect(notes.single.linkUrl, 'https://example.com/kept');
   });
 
-  testWidgets('closing on something that is not a link still asks', (
+  testWidgets('closing on something that is not a link keeps it as a note', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
+    await openComposer(tester);
     await tester.tap(find.byTooltip('Link'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).last, 'not a link');
+    await tester.enterText(_field, 'not a link');
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Close'));
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    expect(find.text('Discard'), findsOneWidget);
-    expect(await services.timeline(limit: 5), isEmpty);
+    // Nothing written is thrown away, and the reason is said.
+    final notes = await services.timeline(limit: 5);
+    expect(notes.single.type, NoteType.text);
+    expect(notes.single.content, 'not a link');
+    expect(
+      find.text('That is not a link, so it stays a note.'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('a link that is not a link cannot be captured', (tester) async {
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
+  testWidgets('a link that is not a link cannot be sent', (tester) async {
+    await openComposer(tester);
     await tester.tap(find.byTooltip('Link'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).last, 'javascript:alert(1)');
+    await tester.enterText(_field, 'javascript:alert(1)');
     await tester.pumpAndSettle();
 
     expect(find.text('That does not look like a link.'), findsOneWidget);
-
-    // The button is disabled rather than hidden — see the sheet's own note —
-    // so it is still there to tap, and tapping it does nothing. Asserted
-    // through the behaviour rather than by reading `onPressed`: FilledButton
-    // .icon builds a private subclass that a type finder does not match.
-    await tester.tap(find.text('Capture'));
+    // Send is there and does nothing: the sheet stays, and no link is made.
+    await tester.tap(_send);
     await tester.pumpAndSettle();
 
-    expect(await services.timeline(limit: 5), isEmpty);
     expect(find.text('That does not look like a link.'), findsOneWidget);
+    final notes = await services.timeline(limit: 5);
+    expect(notes.where((n) => n.type == NoteType.link), isEmpty);
   });
 
   testWidgets('the detail sheet ticks an item, and offers no title', (

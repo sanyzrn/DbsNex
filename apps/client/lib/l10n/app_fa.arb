@@ -980,7 +980,7 @@
   "@checklistHint": {
       "description": "Placeholder in the checklist capture field"
   },
-  "linkHint": "لینک را بچسبانید",
+  "linkHint": "لینک را بچسبانید؛ یک خط توضیح هم می‌شود",
   "@linkHint": {
       "description": "Placeholder in the link capture field"
   },
@@ -988,6 +988,15 @@
   "@linkNotValid": {
       "description": "Shown when pasted text cannot be read as a URL"
   },
+  "captureKindNote": "یادداشت",
+  "captureKinds": "نوع چیزی که ثبت می‌کنید",
+  "captureRecording": "در حال ضبط",
+  "linkKeptAsNote": "این لینک نبود، برای همین یادداشت ماند.",
+  "captureFlickTitle": "کشیدن دکمهٔ +",
+  "captureFlickSubtitle": "دکمهٔ + را به یک طرف بکشید تا کاری را مستقیم شروع کنید، بدون باز شدن کادر ثبت. زدن همچنان یادداشت می‌نویسد و نگه داشتن، دستیار را باز می‌کند.",
+  "captureFlickLeft": "کشیدن به چپ",
+  "captureFlickRight": "کشیدن به راست",
+  "captureFlickOff": "هیچ",
   "openLink": "باز کردن لینک",
   "@openLink": {
       "description": "Action that opens a link note in the browser"

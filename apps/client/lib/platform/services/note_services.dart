@@ -38,6 +38,23 @@ extension NexNoteServices on NexServices {
 
   Future<Note?> captureLink(String url) => worker.captureLink(url);
 
+  /// What was written in the capture sheet's link box, as a link note: the
+  /// address, with a line around it as its caption — read by `writtenLink`. Null when [text] is not one link.
+  ///
+  /// Keyed by [draftId], so a sheet that is closed two ways at once still
+  /// makes one note.
+  Future<Note?> captureWrittenLink(String draftId, String text) async {
+    final link = writtenLink(text);
+    if (link == null) return null;
+    return worker.captureShared({
+      'requestId': 'link-$draftId',
+      'type': 'shared_text',
+      // A bare address goes as the address it was read as, scheme and all,
+      // so the share's own reading finds it.
+      'text': link.words == null ? link.url : text,
+    });
+  }
+
   /// Imports another app's export, and answers how many notes landed.
   Future<int> importNotes(String path) =>
       worker.importNotes(path, mediaDir: mediaDir);

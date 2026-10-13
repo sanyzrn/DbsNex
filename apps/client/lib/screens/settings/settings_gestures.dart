@@ -347,3 +347,101 @@ class _HoldMenuChoices extends StatelessWidget {
     );
   }
 }
+
+/// What a flick of the + button to each side starts, picked as chips the
+/// way the swipe edges are.
+///
+/// The sides are the screen's own, east and west, in both languages: the
+/// dock does not mirror, so the flick across it does not either.
+class _CaptureFlickChoices extends StatelessWidget {
+  const _CaptureFlickChoices({required this.preferences});
+
+  final NexPreferences preferences;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    Widget side({
+      required bool left,
+      required IconData arrow,
+      required String label,
+    }) {
+      final current = left
+          ? preferences.captureFlickLeft
+          : preferences.captureFlickRight;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(arrow, size: 16, color: theme.colorScheme.secondary),
+              const SizedBox(width: NexSpacing.sm),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(color: muted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: NexSpacing.xs),
+          Wrap(
+            spacing: NexSpacing.xs,
+            children: [
+              for (final shortcut in CaptureShortcut.values)
+                _ActionChip(
+                  key: ValueKey(
+                    'flick-${left ? 'left' : 'right'}-${shortcut.name}',
+                  ),
+                  icon: shortcut == CaptureShortcut.none
+                      ? Icons.block
+                      : captureShortcutIcon(shortcut),
+                  label: captureShortcutLabel(l10n, shortcut),
+                  color: _shortcutColor(context, shortcut),
+                  selected: shortcut == current,
+                  onTap: () => unawaited(
+                    preferences.setCaptureFlick(left: left, shortcut: shortcut),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(NexSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.captureFlickTitle, style: theme.textTheme.titleSmall),
+          const SizedBox(height: NexSpacing.xs),
+          Text(
+            l10n.captureFlickSubtitle,
+            style: theme.textTheme.bodySmall?.copyWith(color: muted),
+          ),
+          const SizedBox(height: NexSpacing.md),
+          side(left: true, arrow: Icons.west, label: l10n.captureFlickLeft),
+          const SizedBox(height: NexSpacing.md),
+          side(left: false, arrow: Icons.east, label: l10n.captureFlickRight),
+        ],
+      ),
+    );
+  }
+}
+
+/// A shortcut wears the colour of the note it makes, as on the timeline.
+Color _shortcutColor(BuildContext context, CaptureShortcut shortcut) {
+  final scheme = Theme.of(context).colorScheme;
+  final wire = switch (shortcut) {
+    CaptureShortcut.none => null,
+    CaptureShortcut.voice => 'voice',
+    CaptureShortcut.camera || CaptureShortcut.gallery => 'photo',
+    CaptureShortcut.checklist => 'checklist',
+    CaptureShortcut.link => 'link',
+    CaptureShortcut.file => 'file',
+  };
+  return wire == null ? scheme.outline : nexNoteTypeTint(wire, scheme);
+}

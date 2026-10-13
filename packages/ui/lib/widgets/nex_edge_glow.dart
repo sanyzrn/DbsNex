@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 
 /// The light that runs around the inside of the screen while a long press is
@@ -631,14 +632,37 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
     super.dispose();
   }
 
+  /// Where the finger went down, while it is still a hold.
+  Offset? _down;
+
   @override
   Widget build(BuildContext context) => Listener(
     // Listener rather than GestureDetector.onLongPress: that only reports
     // once the press has already succeeded, which is too late to have been
     // animating during it — and the animation *is* the feature.
-    onPointerDown: (_) => _start(),
-    onPointerUp: (_) => _cancel(),
-    onPointerCancel: (_) => _cancel(),
+    onPointerDown: (event) {
+      _down = event.position;
+      _start();
+    },
+    // A finger that travels is not holding: it is flicking or scrolling
+    // whatever it pressed on, and the hold gives way rather than firing
+    // under it.
+    onPointerMove: (event) {
+      final down = _down;
+      if (down == null || (event.position - down).distance <= kTouchSlop) {
+        return;
+      }
+      _down = null;
+      _cancel();
+    },
+    onPointerUp: (_) {
+      _down = null;
+      _cancel();
+    },
+    onPointerCancel: (_) {
+      _down = null;
+      _cancel();
+    },
     child: widget.child,
   );
 }

@@ -6,9 +6,11 @@ The first time you open Nex, four short pages show what it does, and a last one 
 
 ## Capture something
 
-Tap **+** at the centre of the bottom bar and choose text, checklist, voice, photo, file or link. Quick text and new checklists have no Save button: they are kept when you close their sheet, and clearing the box before you close it removes what you started.
+Tap **+** at the centre of the bottom bar to write. The kinds sit at the top of the box — **Note**, **Voice**, **Checklist** and **Link** — and switch in place: what you typed stays, so a note becomes a list line by line, and a pasted address (with a line about it if you like) becomes a link. **Voice** turns the box into a recorder: the square keeps the recording, the bin throws it away. Below the box, the camera has its own button and the clip opens the gallery or a file. Nothing has a Save button: what you write is kept from the first letter and is turned into the kind you chose when you close the box; words that are not a link stay a note.
 
-To have a note arrive later — a letter to yourself, a thought for next month — **hold** the send button instead of tapping it and choose when: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is not in your notes, search or widgets; at its time it lands on the timeline with a notification. **Tools → Scheduled** shows what is on its way, where you can deliver one now, change its time or discard it. A link is kept the same way when you close its sheet, as long as it is a complete address; anything that is not yet one asks before it is thrown away. The other editors have a **Save** or **Confirm** button. A checklist uses one item per line.
+Flick **+** left or right to start a shortcut without opening the box — by default left records a voice note and right opens the camera. Choose them in **Settings → Gestures**. A tap still writes a note, and holding still opens the assistant.
+
+To have a note arrive later — a letter to yourself, a thought for next month — **hold** the send button instead of tapping it and choose when: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is not in your notes, search or widgets; at its time it lands on the timeline with a notification. **Tools → Scheduled** shows what is on its way, where you can deliver one now, change its time or discard it.
 
 Without opening Nex first: add the **Nex capture** tile to your Quick Settings (pull the shade down twice, then edit the tiles), or turn on **Settings → Capture → Capture from notifications** for a silent row with **Note**, **Voice** and **Photo** buttons.
 

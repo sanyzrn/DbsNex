@@ -2170,10 +2170,38 @@ class AppLocalizationsFa extends AppLocalizations {
   String get checklistHint => 'هر خط یک مورد';
 
   @override
-  String get linkHint => 'لینک را بچسبانید';
+  String get linkHint => 'لینک را بچسبانید؛ یک خط توضیح هم می‌شود';
 
   @override
   String get linkNotValid => 'این شبیه لینک نیست.';
+
+  @override
+  String get captureKindNote => 'یادداشت';
+
+  @override
+  String get captureKinds => 'نوع چیزی که ثبت می‌کنید';
+
+  @override
+  String get captureRecording => 'در حال ضبط';
+
+  @override
+  String get linkKeptAsNote => 'این لینک نبود، برای همین یادداشت ماند.';
+
+  @override
+  String get captureFlickTitle => 'کشیدن دکمهٔ +';
+
+  @override
+  String get captureFlickSubtitle =>
+      'دکمهٔ + را به یک طرف بکشید تا کاری را مستقیم شروع کنید، بدون باز شدن کادر ثبت. زدن همچنان یادداشت می‌نویسد و نگه داشتن، دستیار را باز می‌کند.';
+
+  @override
+  String get captureFlickLeft => 'کشیدن به چپ';
+
+  @override
+  String get captureFlickRight => 'کشیدن به راست';
+
+  @override
+  String get captureFlickOff => 'هیچ';
 
   @override
   String get openLink => 'باز کردن لینک';

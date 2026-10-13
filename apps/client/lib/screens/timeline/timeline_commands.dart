@@ -4,8 +4,11 @@ part of '../timeline_screen.dart';
 /// sheet, or delete a note with an undo. Split out of timeline_screen.dart
 /// (REL-10).
 extension TimelineCommands on TimelineScreenState {
-  Future<void> openCapture() async {
+  /// The capture sheet, open on [kind] — a note unless an entry point says
+  /// otherwise (the widget's list button, the voice shortcut).
+  Future<void> openCapture({CaptureKind kind = CaptureKind.note}) async {
     String? committed;
+    var counted = false;
     // The three-second promise, timed the way a person lives it: from the
     // sheet opening to the note existing (W3.4).
     final opened = Stopwatch()..start();
@@ -14,37 +17,40 @@ extension TimelineCommands on TimelineScreenState {
       builder: (sheetContext) => CaptureSheet(
         services: widget.services,
         preferences: widget.preferences,
+        initialKind: kind,
         onCommitted: (id) {
           committed = id;
           landedId = id;
-          NexMetrics.shared
-            ..record(NexMetric.capture, opened.elapsed)
-            ..markCapture();
+          // Once a sheet: the words becoming a list as it closes are the
+          // same capture, not a second one.
+          if (!counted) {
+            counted = true;
+            NexMetrics.shared
+              ..record(NexMetric.capture, opened.elapsed)
+              ..markCapture();
+          }
           if (widget.preferences.haptics) HapticFeedback.lightImpact();
         },
-        onVoice: () {
-          Navigator.pop(sheetContext);
-          captureVoice();
+        onRetracted: (id) {
+          if (committed == id) committed = null;
         },
+        onKeepVoice: (path, durationMs) =>
+            unawaited(_keepVoice(path, durationMs)),
+        // The page is read after the note exists, never before: a bookmark
+        // is saved the moment you ask for it, and the title and description
+        // are an improvement that arrives late or not at all.
+        onLinkCaptured: (id, url) => unawaited(_readLink(id, url)),
         onCamera: () {
           Navigator.pop(sheetContext);
-          capturePhoto(ImageSource.camera);
+          unawaited(capturePhoto(ImageSource.camera));
         },
         onGallery: () {
           Navigator.pop(sheetContext);
-          capturePhoto(ImageSource.gallery);
+          unawaited(capturePhoto(ImageSource.gallery));
         },
         onFile: () {
           Navigator.pop(sheetContext);
-          captureFile();
-        },
-        onChecklist: () {
-          Navigator.pop(sheetContext);
-          unawaited(captureChecklist());
-        },
-        onLink: () {
-          Navigator.pop(sheetContext);
-          unawaited(captureLink());
+          unawaited(captureFile());
         },
       ),
     );
@@ -53,6 +59,19 @@ extension TimelineCommands on TimelineScreenState {
     // note: only then is there a whole note to compare.
     if (committed case final id?) unawaited(_offerThread(id));
   }
+
+  /// What a flick of the + button starts: the capture sheet already on the
+  /// kind, or the camera, the gallery or a file straight away.
+  Future<void> runCaptureShortcut(CaptureShortcut shortcut) =>
+      switch (shortcut) {
+        CaptureShortcut.none => Future.value(),
+        CaptureShortcut.voice => openCapture(kind: CaptureKind.voice),
+        CaptureShortcut.checklist => openCapture(kind: CaptureKind.checklist),
+        CaptureShortcut.link => openCapture(kind: CaptureKind.link),
+        CaptureShortcut.camera => capturePhoto(ImageSource.camera),
+        CaptureShortcut.gallery => capturePhoto(ImageSource.gallery),
+        CaptureShortcut.file => captureFile(),
+      };
 
   /// The post-capture offer on its own, for tests that cannot drive a
   /// capture sheet to its close.

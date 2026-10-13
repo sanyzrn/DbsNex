@@ -101,7 +101,7 @@ class _RecordingSheetState extends State<RecordingSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _RecordingDot(theme: theme),
+                  const NexRecordingDot(),
                   const SizedBox(width: NexSpacing.sm),
                   Semantics(
                     liveRegion: true,
@@ -169,17 +169,16 @@ class _RecordingSheetState extends State<RecordingSheet> {
   }
 }
 
-/// The steady "we are recording" pulse, independent of what the mic hears.
-class _RecordingDot extends StatefulWidget {
-  const _RecordingDot({required this.theme});
-
-  final ThemeData theme;
+/// The steady "we are recording" pulse, independent of what the mic hears —
+/// here and in the capture sheet's own recorder.
+class NexRecordingDot extends StatefulWidget {
+  const NexRecordingDot({super.key});
 
   @override
-  State<_RecordingDot> createState() => _RecordingDotState();
+  State<NexRecordingDot> createState() => _RecordingDotState();
 }
 
-class _RecordingDotState extends State<_RecordingDot>
+class _RecordingDotState extends State<NexRecordingDot>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulse = AnimationController(
     vsync: this,

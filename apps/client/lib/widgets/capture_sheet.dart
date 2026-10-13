@@ -2,40 +2,93 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
-import 'package:nex_core/nex_core.dart' show newUuidV7;
+import 'package:nex_core/nex_core.dart'
+    show Note, newUuidV7, parseChecklist, urlHost, writtenLink;
+import 'package:record/record.dart';
 import '../l10n/app_localizations.dart';
+import '../platform/capture_failure.dart' show openCaptureSettings;
+import '../platform/display_date.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/voice_spool.dart';
 import 'nex_banner.dart';
+import 'recording_sheet.dart' show NexLiveWaveform, NexRecordingDot;
 import 'reminder_picker.dart';
 import 'schedule_picker.dart';
 import 'nex_text_field.dart';
 
+part 'capture_sheet_modes.dart';
+part 'capture_sheet_parts.dart';
+
+/// What the capture sheet is making.
+enum CaptureKind { note, checklist, voice, link }
+
+/// The one place things are written into Nex: a note, a list, a voice note or
+/// a link, chosen at the top and switched in place.
+///
+/// Each kind used to be its own sheet. Tapping the list or the link icon
+/// closed this one — keeping what had been typed as a note of its own — and
+/// opened another; the microphone did the same with a recording sheet. So a
+/// person who started typing "milk, eggs" and then thought "this is a list"
+/// ended up with a stray note and an empty list to type it all again into.
+///
+/// Now the words stay where they are and the kind is what changes: one
+/// field, the same keyboard, the box taking on the kind's colour and the
+/// hint saying what a line means. A note becomes a list line by line, a
+/// pasted address becomes a link, and the microphone turns the box itself
+/// into a recorder — no sheet closes, nothing is typed twice.
+///
+/// **Nothing is lost on the way (ADR-002).** What is typed is a note from
+/// the first keystroke, whatever kind is showing, so a process that dies
+/// mid-list comes back as a note with every line. Only when the sheet
+/// closes does a list or a link take that note's place: made first, and
+/// only once it exists is the note it came from removed, carrying its
+/// reminder across. Words that turn out not to be a link stay the note they
+/// already are.
 class CaptureSheet extends StatefulWidget {
   const CaptureSheet({
     super.key,
     required this.services,
     required this.preferences,
-    required this.onVoice,
     required this.onCamera,
     required this.onGallery,
     required this.onFile,
-    required this.onChecklist,
-    required this.onLink,
+    this.initialKind = CaptureKind.note,
     this.onCommitted,
+    this.onRetracted,
+    this.onKeepVoice,
+    this.onLinkCaptured,
   });
   final NexServices services;
   final NexPreferences preferences;
-  final VoidCallback onVoice;
   final VoidCallback onCamera;
   final VoidCallback onGallery;
   final VoidCallback onFile;
-  final VoidCallback onChecklist;
-  final VoidCallback onLink;
+
+  /// The kind the sheet opens on. [CaptureKind.voice] starts recording.
+  final CaptureKind initialKind;
+
+  /// A note now exists for what is being written: at the first keystroke,
+  /// and again when closing turns the words into a list or a link.
   final ValueChanged<String>? onCommitted;
+
+  /// A note [onCommitted] named is gone again — its words became a list or
+  /// a link, which [onCommitted] names next.
+  final ValueChanged<String>? onRetracted;
+
+  /// A finished recording at a path, and how long it ran in milliseconds,
+  /// to keep as a voice note.
+  final void Function(String path, int durationMs)? onKeepVoice;
+
+  /// A link note was made from the words; its page is read afterwards.
+  final void Function(String noteId, String url)? onLinkCaptured;
+
   @override
   State<CaptureSheet> createState() => _CaptureSheetState();
 }
+
+/// Where the microphone is: off, asking for itself, or listening.
+enum _Voice { off, starting, on }
 
 class _CaptureSheetState extends State<CaptureSheet> {
   final controller = TextEditingController();
@@ -48,6 +101,27 @@ class _CaptureSheetState extends State<CaptureSheet> {
   Future<void> _writes = Future.value();
   bool _allowClose = false;
   bool _closing = false;
+
+  /// The text kinds: what the words become. The microphone is shown over
+  /// them rather than replacing the choice, so discarding a recording comes
+  /// back to the list it interrupted.
+  late CaptureKind _kind = widget.initialKind == CaptureKind.voice
+      ? CaptureKind.note
+      : widget.initialKind;
+
+  _Voice _voice = _Voice.off;
+  bool _voiceBusy = false;
+  AudioRecorder? _recorder;
+  NexVoiceSpool? _spool;
+  final _recordWatch = Stopwatch();
+
+  bool get _voiceOn => _voice != _Voice.off;
+
+  /// `setState` for the parts of this sheet that live in its other files.
+  void _set(VoidCallback change) => setState(change);
+
+  /// What the switcher and the box show.
+  CaptureKind get _shown => _voiceOn ? CaptureKind.voice : _kind;
 
   /// The write the first keystroke starts.
   ///
@@ -62,6 +136,50 @@ class _CaptureSheetState extends State<CaptureSheet> {
   /// what was tapped: the picker can also be dismissed, denied permission, or
   /// used to remove the reminder that was there.
   bool hasReminder = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialKind == CaptureKind.voice) {
+      // The recorder shows from the first frame, not after the permission
+      // round trip: a sheet opened to speak into should never flash a
+      // keyboard first.
+      _voice = _Voice.starting;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_startVoice());
+      });
+    } else {
+      _restoreOlderDraft();
+    }
+  }
+
+  /// A list or a link left half-written by a version that gave each its own
+  /// sheet, when the process died with that sheet open. Those kept their
+  /// lines in an editor draft rather than as a note; this brings them back
+  /// into the box, in their kind, and lets the ordinary first write keep
+  /// them from here.
+  void _restoreOlderDraft() {
+    final drafts = widget.preferences.editorDrafts;
+    if (drafts == null) return;
+    for (final (key, kind) in [
+      ('checklist-new', CaptureKind.checklist),
+      ('link-new', CaptureKind.link),
+    ]) {
+      final text = drafts.read(key)?['text'];
+      if (text is! String || text.trim().isEmpty) continue;
+      _kind = kind;
+      controller.text = text;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        try {
+          widget.services.captureJournal.write(_draftId, text);
+        } catch (_) {}
+        changed(text);
+        drafts.clear(key);
+      });
+      return;
+    }
+  }
 
   void changed(String value) {
     _latestText = value;
@@ -236,7 +354,95 @@ class _CaptureSheetState extends State<CaptureSheet> {
     }
   }
 
-  /// Sets a reminder on the note being typed, without interrupting the typing.
+  /// What the words become as the sheet closes — once, however many ways
+  /// it is closed (the send button, back, a swipe, leaving for the camera,
+  /// the sheet simply going away).
+  ///
+  /// False when the words could not be made into the kind showing; they are
+  /// still the note they were, and the sheet stays open to say so.
+  Future<bool>? _settling;
+
+  Future<bool> _settle() => _settling ??= _settleOnce();
+
+  Future<bool> _settleOnce() async {
+    await flush();
+    final id = noteId;
+    final text = _latestText;
+    final kind = _kind;
+    if (id == null || persisted != text || text.trim().isEmpty) return true;
+    if (kind == CaptureKind.note) return true;
+    Note? made;
+    try {
+      switch (kind) {
+        case CaptureKind.checklist:
+          final items = parseChecklist(text);
+          if (items.isEmpty) return true;
+          made = await widget.services.captureChecklist(items);
+        case CaptureKind.link:
+          if (writtenLink(text) == null) {
+            // Not an address: the note it already is keeps it, and the
+            // person is told why it is not a link.
+            if (mounted) {
+              nexShowBanner(
+                context,
+                message: AppLocalizations.of(context).linkKeptAsNote,
+                haptics: false,
+              );
+            }
+            return true;
+          }
+          made = await widget.services.captureWrittenLink(_draftId, text);
+        case CaptureKind.note:
+        case CaptureKind.voice:
+          return true;
+      }
+    } catch (_) {
+      made = null;
+    }
+    if (made == null) {
+      if (mounted) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).captureFailed,
+          kind: NexBannerKind.failed,
+        );
+      }
+      return false;
+    }
+    // The reminder set while writing goes with the words.
+    try {
+      final before = await widget.services.getById(id);
+      final due = before?.dueAt;
+      if (due != null) {
+        await widget.services.setDueAt(made.id, due, repeat: before!.dueRepeat);
+      }
+    } catch (_) {}
+    // From here the sheet holds nothing: a flush that comes later — the
+    // pop, `dispose` — must not write the note it is about to remove.
+    debounce?.cancel();
+    noteId = null;
+    draft = null;
+    persisted = '';
+    _latestText = '';
+    queued = null;
+    try {
+      widget.services.captureJournal.complete(_draftId);
+    } catch (_) {}
+    // Removed outright, not sent to the trash: it was never a note of its
+    // own, only these words on their way to being a list or a link.
+    try {
+      await widget.services.deleteNote(id);
+      await widget.services.purgeNote(id);
+    } catch (_) {}
+    widget.onRetracted?.call(id);
+    widget.onCommitted?.call(made.id);
+    if (kind == CaptureKind.link && made.linkUrl != null) {
+      widget.onLinkCaptured?.call(made.id, made.linkUrl!);
+    }
+    return true;
+  }
+
+  /// Sets a reminder on what is being written, without interrupting it.
   ///
   /// The capture sheet has one hard rule over it: nothing may become a
   /// decision on the way in (`docs/07-contributing.md`). A date picker is the
@@ -244,11 +450,13 @@ class _CaptureSheetState extends State<CaptureSheet> {
   /// until there is something to remind anyone about — an empty sheet is
   /// exactly what it always was — and it never blocks the capture: the note
   /// is already saved by the time the button exists, so this hangs a time on
-  /// a note that exists rather than gating one that does not.
+  /// a note that exists rather than gating one that does not. A list or a
+  /// link made from the words when the sheet closes takes the reminder with
+  /// it.
   ///
-  /// It sits beside the send button rather than in the row of six, because
-  /// that row answers "what kind of thing am I capturing" and this answers
-  /// "what should happen to it" — the same question the send button answers.
+  /// It sits beside the send button rather than in the row of tools, because
+  /// that row answers "what am I adding" and this answers "what should
+  /// happen to it" — the same question the send button answers.
   Future<void> _remind() async {
     await draft;
     // What has been typed since the first keystroke, so a reminder set here
@@ -277,12 +485,14 @@ class _CaptureSheetState extends State<CaptureSheet> {
   /// that note to [NexServices.scheduleNote], which takes it back out of the
   /// library until its time — and then the sheet closes with nothing left
   /// behind to write: the draft is forgotten, not flushed, or the close
-  /// would put the words straight back on the timeline.
+  /// would put the words straight back on the timeline. A note only: what
+  /// waits is words, and it comes back as the note they were.
   bool _scheduling = false;
   bool _hintCounted = false;
 
   Future<void> _schedule() async {
     if (_scheduling || _closing || controller.text.trim().isEmpty) return;
+    if (_shown != CaptureKind.note) return;
     if (widget.preferences.haptics) unawaited(HapticFeedback.mediumImpact());
     _scheduling = true;
     try {
@@ -329,23 +539,81 @@ class _CaptureSheetState extends State<CaptureSheet> {
     }
   }
 
+  /// Switches what the words become. The field, its text and the keyboard
+  /// stay; only the kind changes.
+  void _select(CaptureKind kind) {
+    if (_closing) return;
+    if (kind == CaptureKind.voice) {
+      if (!_voiceOn) unawaited(_startVoice());
+      return;
+    }
+    // While recording, the recorder's own two buttons decide what happens
+    // to it — a tap on another kind is not a decision to keep or to lose it.
+    if (_voiceOn || kind == _kind) return;
+    if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
+    setState(() => _kind = kind);
+  }
+
+  /// Leaves for the camera, the gallery or a file, with what was written
+  /// kept first, in its kind.
+  Future<void> _leaveFor(VoidCallback launch) async {
+    if (_closing) return;
+    setState(() => _closing = true);
+    if (_voiceOn) await _stopVoice(keep: true);
+    final settled = await _settle();
+    if (!mounted) return;
+    if (!settled) {
+      _settling = null;
+      setState(() => _closing = false);
+      return;
+    }
+    setState(() => _allowClose = true);
+    launch();
+  }
+
   Future<void> close() async {
     if (_closing) return;
-    _closing = true;
-    await flush();
-    _closing = false;
-    if (!mounted || persisted != _latestText) return;
+    setState(() => _closing = true);
+    if (_voiceOn) await _stopVoice(keep: true);
+    final settled = await _settle();
+    if (!mounted) return;
+    if (!settled || persisted != _latestText) {
+      // Kept open over words that are not saved yet, so they can be tried
+      // again rather than closed over.
+      _settling = null;
+      setState(() => _closing = false);
+      return;
+    }
     setState(() => _allowClose = true);
     await widget.services.refreshTimeline();
     if (mounted) Navigator.pop(context);
   }
 
+  /// Send in a link box: only something that reads as a link.
+  bool get _sendable {
+    if (_shown != CaptureKind.link) return true;
+    final text = controller.text.trim();
+    return text.isEmpty || writtenLink(text) != null;
+  }
+
+  void _submit() {
+    if (_sendable) unawaited(close());
+  }
+
+  /// Set as `dispose` begins, while `mounted` still says true: nothing may
+  /// rebuild from here.
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     // The journal first: the database write below may still fail, and the
     // snapshot is what a relaunch recovers from.
     widget.services.captureJournal.flushPending();
-    flush();
+    // A sheet taken away mid-recording keeps the recording, as closing it
+    // any other way does.
+    if (_voiceOn) unawaited(_stopVoice(keep: true));
+    unawaited(_settle());
     debounce?.cancel();
     controller.dispose();
     super.dispose();
@@ -354,189 +622,99 @@ class _CaptureSheetState extends State<CaptureSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final shown = _shown;
+    final typed = controller.text.trim().isNotEmpty;
     final showScheduleHint =
-        controller.text.trim().isNotEmpty &&
+        shown == CaptureKind.note &&
+        typed &&
         (_hintCounted || widget.preferences.scheduleHintDue);
     if (showScheduleHint && !_hintCounted) {
       _hintCounted = true;
       unawaited(widget.preferences.countScheduleHint());
     }
+    final tools = !_voiceOn && !_closing;
     return PopScope(
       canPop: _allowClose,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(close());
       },
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          8,
-          16,
-          MediaQuery.viewInsetsOf(context).bottom + 16,
+        padding: EdgeInsetsDirectional.fromSTEB(
+          NexSpacing.md,
+          NexSpacing.xs,
+          NexSpacing.md,
+          MediaQuery.viewInsetsOf(context).bottom + NexSpacing.md,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Bounded rather than left to grow with `maxLines: null`: a long
-            // paste used to push the divider and every action icon below it
-            // straight off the bottom of the sheet, with no scroll view
-            // around the whole thing to recover them. A `TextField` given a
-            // height constraint from its parent scrolls its own overflow
-            // internally instead of demanding more space, so capping the
-            // height here is the whole fix — the icon row stays put.
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.35,
-              ),
-              child: Focus(
-                // A multiline field's own default is to insert a newline on
-                // Enter — textInputAction only changes the on-screen
-                // keyboard's action button, physical Enter still needs
-                // catching here. Shift+Enter is the escape hatch to actually
-                // start a new line while this is on.
-                onKeyEvent: (node, event) {
-                  if (!widget.preferences.enterSubmitsCapture) {
-                    return KeyEventResult.ignored;
-                  }
-                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                  final isEnter =
-                      event.logicalKey == LogicalKeyboardKey.enter ||
-                      event.logicalKey == LogicalKeyboardKey.numpadEnter;
-                  if (!isEnter || HardwareKeyboard.instance.isShiftPressed) {
-                    return KeyEventResult.ignored;
-                  }
-                  close();
-                  return KeyEventResult.handled;
-                },
-                // Android's own editor: each paragraph in its own direction,
-                // aligned to its own side, with the system's handles — see
-                // [NexTextField] for why a note is never a bare `TextField`.
-                child: NexTextField(
-                  controller: controller,
-                  autofocus: true,
-                  minLines: 3,
-                  // Bold, italic and the rest, appended to the platform's own
-                  // Cut/Copy/Paste rather than replacing them.
-                  formatting: true,
-                  decoration: InputDecoration(
-                    hintText: l10n.captureHint,
-                    border: InputBorder.none,
-                  ),
-                  textInputAction: widget.preferences.enterSubmitsCapture
-                      ? TextInputAction.send
-                      : TextInputAction.newline,
-                  onChanged: changed,
-                  onSubmitted: widget.preferences.enterSubmitsCapture
-                      ? (_) => close()
-                      : null,
-                ),
-              ),
-            ),
-            const Divider(height: 1),
-            AnimatedSize(
-              duration: NexMotion.standard,
-              alignment: Alignment.topCenter,
-              child: showScheduleHint
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: NexSpacing.xs),
-                      child: Align(
-                        alignment: AlignmentDirectional.centerEnd,
-                        child: Text(
-                          l10n.scheduleHint,
-                          key: const ValueKey('schedule-hint'),
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
+            _KindBar(shown: shown, recording: _voiceOn, onSelect: _select),
+            const SizedBox(height: NexSpacing.sm),
+            _ComposerBox(
+              kind: shown,
+              child: _voiceOn
+                  ? _ComposerRecorder(
+                      key: const ValueKey('capture-recorder'),
+                      recorder: _voice == _Voice.on ? _recorder : null,
+                      watch: _recordWatch,
+                      color: nexNoteTypeTint(
+                        'voice',
+                        Theme.of(context).colorScheme,
                       ),
                     )
-                  : const SizedBox(width: double.infinity),
+                  : KeyedSubtree(
+                      key: const ValueKey('capture-field'),
+                      child: _field(context, l10n),
+                    ),
             ),
+            _ComposerFootnote(
+              kind: shown,
+              text: controller.text,
+              scheduleHint: showScheduleHint,
+              onPaste: _paste,
+            ),
+            const SizedBox(height: NexSpacing.xs),
             Row(
               children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _Action(Icons.mic_none, l10n.voice, widget.onVoice),
-                        _Action(
-                          Icons.photo_camera_outlined,
-                          l10n.camera,
-                          widget.onCamera,
-                        ),
-                        _Action(
-                          Icons.photo_library_outlined,
-                          l10n.gallery,
-                          widget.onGallery,
-                        ),
-                        _Action(Icons.attach_file, l10n.file, widget.onFile),
-                        _Action(
-                          Icons.checklist_rtl_outlined,
-                          l10n.checklist,
-                          widget.onChecklist,
-                        ),
-                        _Action(Icons.link_outlined, l10n.link, widget.onLink),
-                      ],
-                    ),
-                  ),
+                _Tool(
+                  icon: Icons.photo_camera_outlined,
+                  label: l10n.camera,
+                  onTap: tools
+                      ? () => unawaited(_leaveFor(widget.onCamera))
+                      : null,
                 ),
-                const SizedBox(width: NexSpacing.xs),
-                IconButton(
-                  constraints: const BoxConstraints.tightFor(
-                    width: nexMinTapTarget,
-                    height: nexMinTapTarget,
-                  ),
-                  onPressed: controller.text.isEmpty
+                _AttachMenu(
+                  enabled: tools,
+                  onGallery: () => unawaited(_leaveFor(widget.onGallery)),
+                  onFile: () => unawaited(_leaveFor(widget.onFile)),
+                ),
+                const Spacer(),
+                _SideAction(
+                  recording: _voiceOn,
+                  canRemind: controller.text.isNotEmpty && !_closing,
+                  hasReminder: hasReminder,
+                  onRemind: () => unawaited(_remind()),
+                  onDiscard: _closing
                       ? null
-                      : () => unawaited(_remind()),
-                  tooltip: l10n.remind,
-                  icon: Icon(
-                    hasReminder ? Icons.alarm_on : Icons.alarm_add_outlined,
-                    size: 20,
-                    color: hasReminder
-                        ? Theme.of(context).colorScheme.primary
-                        : null,
-                  ),
+                      : () => unawaited(_discardRecording()),
                 ),
                 const SizedBox(width: NexSpacing.xs),
-                // Tap sends; hold schedules. The tooltip keeps its label for
-                // screen readers and tests but no longer claims the hold,
-                // which belongs to scheduling.
-                Semantics(
-                  onLongPressHint: l10n.scheduleTitle,
-                  child: GestureDetector(
-                    key: const ValueKey('capture-send'),
-                    onLongPress: controller.text.trim().isEmpty
-                        ? null
-                        : () => unawaited(_schedule()),
-                    child: TooltipTheme(
-                      data: const TooltipThemeData(
-                        triggerMode: TooltipTriggerMode.manual,
-                      ),
-                      child: IconButton.filled(
-                        // Keep the primary action anchored while attachment tools scroll.
-                        // The quieter reminder retains a full 48px touch target.
-                        constraints: const BoxConstraints.tightFor(
-                          width: 60,
-                          height: 60,
-                        ),
-                        onPressed: _closing ? null : close,
-                        tooltip: l10n.capture,
-                        icon: _closing
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.arrow_upward, size: 32),
-                      ),
-                    ),
-                  ),
+                _SendButton(
+                  kind: shown,
+                  closing: _closing,
+                  onSend: _closing
+                      ? null
+                      : switch (shown) {
+                          CaptureKind.voice =>
+                            _voice == _Voice.on
+                                ? () => unawaited(_keepRecording())
+                                : null,
+                          _ => _sendable ? () => unawaited(close()) : null,
+                        },
+                  onSchedule: shown == CaptureKind.note && typed
+                      ? () => unawaited(_schedule())
+                      : null,
                 ),
               ],
             ),
@@ -545,26 +723,4 @@ class _CaptureSheetState extends State<CaptureSheet> {
       ),
     );
   }
-}
-
-/// Icon-only on purpose: four of these plus the submit button already read
-/// clearly by shape (a mic, a camera, ...), and the label under each one was
-/// the only text-heavy thing in a row that is otherwise pure affordance. The
-/// name survives as a tooltip and a semantic label — it just stops being
-/// printed on the button.
-class _Action extends StatelessWidget {
-  const _Action(this.icon, this.label, this.onTap);
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: label,
-    constraints: const BoxConstraints.tightFor(
-      width: nexMinTapTarget,
-      height: nexMinTapTarget,
-    ),
-    onPressed: onTap,
-    icon: Icon(icon, size: 20),
-  );
 }

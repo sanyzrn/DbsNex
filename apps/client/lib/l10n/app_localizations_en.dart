@@ -2208,10 +2208,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checklistHint => 'An item, one per line';
 
   @override
-  String get linkHint => 'Paste a link';
+  String get linkHint => 'Paste a link — a line about it is welcome';
 
   @override
   String get linkNotValid => 'That does not look like a link.';
+
+  @override
+  String get captureKindNote => 'Note';
+
+  @override
+  String get captureKinds => 'What you are capturing';
+
+  @override
+  String get captureRecording => 'Recording';
+
+  @override
+  String get linkKeptAsNote => 'That is not a link, so it stays a note.';
+
+  @override
+  String get captureFlickTitle => 'Flick the + button';
+
+  @override
+  String get captureFlickSubtitle =>
+      'Flick + to one side to start something straight away, without the capture sheet. A tap still writes a note; holding still opens the assistant.';
+
+  @override
+  String get captureFlickLeft => 'Flick left';
+
+  @override
+  String get captureFlickRight => 'Flick right';
+
+  @override
+  String get captureFlickOff => 'Nothing';
 
   @override
   String get openLink => 'Open link';

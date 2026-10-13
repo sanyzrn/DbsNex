@@ -241,6 +241,10 @@ private class NexEditTextView(
     override fun getView(): View = edit
 
     override fun dispose() {
+        // A field taken away with the focus still in it — the capture box
+        // turning into a recorder — would otherwise leave the keyboard up
+        // over a screen with nothing left to type into.
+        if (edit.hasFocus()) keyboard()?.hideSoftInputFromWindow(edit.windowToken, 0)
         channel.setMethodCallHandler(null)
         edit.onSelection = null
         edit.onCopy = null
@@ -351,7 +355,13 @@ private class NexEditTextView(
             else -> EditorInfo.IME_ACTION_NONE
         }
         if (args["incognito"] == true) options = options or EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
-        edit.imeOptions = options
+        if (edit.imeOptions != options) {
+            edit.imeOptions = options
+            // The keyboard reads the action key when it attaches, so a field
+            // whose action changes while typing — a note becoming a list, Send
+            // becoming a new line — tells it to look again.
+            if (edit.hasFocus()) keyboard()?.restartInput(edit)
+        }
 
         expands = args["expands"] == true
         minLines = (args["minLines"] as? Number)?.toInt() ?: 1

@@ -1,5 +1,25 @@
 part of '../nex_preferences.dart';
 
+/// What a sideways flick of the + button starts, instead of the capture
+/// sheet: a recording, the camera, a list, a link, a photo from the
+/// gallery or a file — or nothing, for a side left free.
+enum CaptureShortcut {
+  none,
+  voice,
+  camera,
+  checklist,
+  link,
+  gallery,
+  file;
+
+  static CaptureShortcut? fromWire(String? wire) {
+    for (final value in values) {
+      if (value.name == wire) return value;
+    }
+    return null;
+  }
+}
+
 /// The home screen: what it shows, the swipe and hold actions, the widget, the
 /// nudge.
 mixin _HomePreferences on _PreferencesStore {
@@ -180,6 +200,30 @@ mixin _HomePreferences on _PreferencesStore {
 
   SwipeAction actionFor({required bool isLeading}) =>
       isLeading ? leadingAction : trailingAction;
+
+  /// What a flick of the + button to the left starts (`CaptureFlick`).
+  ///
+  /// Sides are the screen's, not the language's: the dock the button sits
+  /// in does not mirror in Persian, so neither does a flick across it.
+  CaptureShortcut get captureFlickLeft =>
+      CaptureShortcut.fromWire(_prefs.getString('capture.flick_left')) ??
+      CaptureShortcut.voice;
+
+  /// What a flick of the + button to the right starts.
+  CaptureShortcut get captureFlickRight =>
+      CaptureShortcut.fromWire(_prefs.getString('capture.flick_right')) ??
+      CaptureShortcut.camera;
+
+  Future<void> setCaptureFlick({
+    required bool left,
+    required CaptureShortcut shortcut,
+  }) async {
+    await _prefs.setString(
+      left ? 'capture.flick_left' : 'capture.flick_right',
+      shortcut.name,
+    );
+    notifyListeners();
+  }
 
   /// What the daily brief is — see [NexBriefStyle].
   ///
