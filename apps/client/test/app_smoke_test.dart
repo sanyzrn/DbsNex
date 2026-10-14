@@ -188,8 +188,8 @@ void main() {
   });
 
   testWidgets(
-    'Capture sheet opens on a focused note, with the kinds above and the '
-    'camera and attach menu below',
+    'Capture sheet opens on a focused note, with text kinds above and '
+    'direct media actions below',
     (tester) async {
       await tester.pumpWidget(
         NexApp(services: services, preferences: preferences),
@@ -199,19 +199,18 @@ void main() {
       // A note is the default — a focused field, not a menu to choose from.
       expect(find.byType(TextField), findsWidgets);
       expect(find.text("What's on your mind?"), findsOneWidget);
-      // The kinds are glyphs with their names as tooltips; the chosen one
-      // also says its name.
-      for (final kind in ['Note', 'Voice', 'Checklist', 'Link']) {
+      for (final kind in ['Note', 'Checklist', 'Link']) {
         expect(find.byTooltip(kind), findsOneWidget);
+        expect(find.text(kind), findsOneWidget);
       }
-      expect(find.text('Note'), findsOneWidget);
-      // The camera has its own button; the gallery and a file share one.
-      expect(find.byTooltip('Camera'), findsOneWidget);
-      expect(find.byTooltip('Gallery'), findsNothing);
-      await tester.tap(find.byTooltip('Attach'));
-      await tester.pumpAndSettle();
-      expect(find.text('Gallery'), findsOneWidget);
-      expect(find.text('File'), findsOneWidget);
+      // Every media action is directly reachable, with voice in the same
+      // row rather than between the kinds sharing the text field.
+      final voiceY = tester.getCenter(find.byTooltip('Voice')).dy;
+      for (final kind in ['Voice', 'Camera', 'Gallery', 'File']) {
+        expect(find.byTooltip(kind).hitTestable(), findsOneWidget);
+        expect(tester.getCenter(find.byTooltip(kind)).dy, voiceY);
+      }
+      expect(voiceY, greaterThan(tester.getCenter(find.byTooltip('Link')).dy));
       expect(find.text('Save'), findsNothing);
     },
   );
@@ -1654,6 +1653,8 @@ void main() {
       // pumping 600ms straight away elapses it all before the first tick, and
       // the hold never progresses at all.
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       await press.up();
       await tester.pumpAndSettle();
@@ -1672,6 +1673,8 @@ void main() {
       final hold = await tester.startGesture(
         tester.getCenter(find.byIcon(Icons.add)),
       );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       await hold.up();

@@ -998,6 +998,7 @@
   "captureFlickRight": "کشیدن به راست",
   "captureFlickOff": "هیچ",
   "openLink": "باز کردن لینک",
+  "copyLink": "کپی لینک",
   "@openLink": {
       "description": "Action that opens a link note in the browser"
   },

@@ -8,10 +8,12 @@ class FoldedNote extends StatefulWidget {
     super.key,
     required this.text,
     this.onTapLink,
+    this.onHoldLink,
     this.onCopyCode,
   });
   final String text;
   final void Function(String)? onTapLink;
+  final NexLinkHold? onHoldLink;
   final void Function(String)? onCopyCode;
   @override
   State<FoldedNote> createState() => _FoldedNoteState();
@@ -37,14 +39,17 @@ class _FoldedNoteState extends State<FoldedNote> {
                   text,
                   selectable: false,
                   onTapLink: widget.onTapLink,
+                  onHoldLink: widget.onHoldLink,
                   onCopyCode: widget.onCopyCode,
                   style: Theme.of(
                     context,
                   ).textTheme.bodyLarge?.copyWith(height: 1.62),
                 )
-              : NexTextSurface(
+              : NexLinkText(
                   text,
                   selectable: false,
+                  onTapLink: widget.onTapLink,
+                  onHoldLink: widget.onHoldLink,
                   style: Theme.of(
                     context,
                   ).textTheme.bodyLarge?.copyWith(height: 1.62),

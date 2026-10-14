@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -30,11 +31,15 @@ void main() {
 
   tearDown(() => harness.dispose());
 
-  Future<void> openText(WidgetTester tester, String body) async {
+  Future<void> openText(
+    WidgetTester tester,
+    String body, {
+    String language = 'en',
+  }) async {
     final note = (await services.captureText(body))!;
     await tester.pumpWidget(
       MaterialApp(
-        locale: const Locale('en'),
+        locale: Locale(language),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -74,6 +79,81 @@ void main() {
     expect(find.byType(NexMarkdown), findsOneWidget);
     expect(find.textContaining('مورد اول'), findsWidgets);
   });
+
+  for (final language in ['en', 'fa']) {
+    for (final markdown in [false, true]) {
+      testWidgets(
+        '$language ${markdown ? 'formatted' : 'plain'} links open and have a two-action hold menu',
+        (tester) async {
+          const href = 'https://realmetaverse.ir/cipher/';
+          final launches = <MethodCall>[];
+          final copied = <String>[];
+          const launcher = MethodChannel('plugins.flutter.io/url_launcher');
+          final messenger = tester.binding.defaultBinaryMessenger;
+          messenger.setMockMethodCallHandler(launcher, (call) async {
+            launches.add(call);
+            return true;
+          });
+          messenger.setMockMethodCallHandler(SystemChannels.platform, (
+            call,
+          ) async {
+            if (call.method == 'Clipboard.setData') {
+              copied.add((call.arguments as Map)['text'] as String);
+            }
+            return null;
+          });
+          addTearDown(() {
+            messenger.setMockMethodCallHandler(launcher, null);
+            messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+          });
+          final label = markdown ? 'امکانات' : href;
+          await openText(
+            tester,
+            'افزودن امکانات اکو\n\n${markdown ? '[$label]($href)' : href}',
+            language: language,
+          );
+          final rich = find
+              .byWidgetPredicate(
+                (w) => w is RichText && w.text.toPlainText().contains(label),
+              )
+              .last;
+          final paragraph = tester.renderObject<RenderParagraph>(rich);
+          final index = paragraph.text.toPlainText().indexOf(label);
+          final box = paragraph
+              .getBoxesForSelection(
+                TextSelection(baseOffset: index, extentOffset: index + 1),
+              )
+              .first;
+          final at = paragraph.localToGlobal(box.toRect().center);
+          await tester.tapAt(at);
+          await tester.pumpAndSettle();
+          expect(launches.single.method, 'launch');
+          expect((launches.single.arguments as Map)['url'], href);
+          expect((launches.single.arguments as Map)['useWebView'], isFalse);
+          launches.clear();
+          await tester.longPressAt(at);
+          await tester.pumpAndSettle();
+          expect(launches, isEmpty);
+          expect(
+            find.byWidgetPredicate((w) => w is PopupMenuItem),
+            findsNWidgets(2),
+          );
+          final open = language == 'fa' ? 'باز کردن لینک' : 'Open link';
+          final copy = language == 'fa' ? 'کپی لینک' : 'Copy link';
+          expect(find.text(open), findsOneWidget);
+          await tester.tap(find.text(copy));
+          await tester.pumpAndSettle();
+          expect(copied, [href]);
+          expect(launches, isEmpty);
+          await tester.longPressAt(at);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(open));
+          await tester.pumpAndSettle();
+          expect((launches.single.arguments as Map)['url'], href);
+        },
+      );
+    }
+  }
 
   group('a tapped code span is copied', () {
     /// Everything the platform channel was asked to put on the clipboard.

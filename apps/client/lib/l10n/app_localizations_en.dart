@@ -2245,6 +2245,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openLink => 'Open link';
 
   @override
+  String get copyLink => 'Copy link';
+
+  @override
   String checklistProgress(int done, int total) {
     final intl.NumberFormat doneNumberFormat = intl.NumberFormat.decimalPattern(
       localeName,

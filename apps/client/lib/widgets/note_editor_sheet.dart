@@ -11,6 +11,7 @@ import '../platform/nex_preferences.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
 import 'nex_text_field.dart';
+import 'keyboard_dismisser.dart';
 
 /// Editing a note's words.
 ///
@@ -92,6 +93,7 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
   final _undo = <String>[];
 
   bool _expanded = false;
+  bool _saving = false;
   NexRewriteStyle? _running;
 
   /// Keeps the one field — and Android's editor under it, with its caret,
@@ -215,7 +217,12 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
     });
   }
 
-  void _save() => Navigator.pop(context, _text.text);
+  void _save() {
+    if (_saving) return;
+    _saving = true;
+    nexDismissKeyboard(context);
+    if (mounted) Navigator.pop(context, _text.text);
+  }
 
   @override
   Widget build(BuildContext context) {

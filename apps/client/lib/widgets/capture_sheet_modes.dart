@@ -215,6 +215,16 @@ extension _CaptureModes on _CaptureSheetState {
               _ => l10n.captureHint,
             },
             border: InputBorder.none,
+            // The composer owns the only surface and outline. The theme
+            // supplies focused/enabled borders even when `border` is none,
+            // including on Android's native editor (applyDefaults).
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
+            filled: false,
+            contentPadding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
           ),
           textInputAction: action,
           onChanged: changed,

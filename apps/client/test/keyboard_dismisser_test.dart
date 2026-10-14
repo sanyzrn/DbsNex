@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:nex_client/widgets/keyboard_dismisser.dart';
@@ -49,6 +50,59 @@ void main() {
     await tester.pump();
     expect(field.hasFocus, isTrue, reason: 'the field should start focused');
   }
+
+  testWidgets('explicit dismissal reaches the window with no focused field', (
+    tester,
+  ) async {
+    var dismissed = 0;
+    const channel = MethodChannel('nex/os_capture');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      if (call.method == 'hideKeyboard') dismissed++;
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+    await show(tester, keyboard: 300);
+    field.unfocus();
+    await tester.pump();
+    expect(field.hasFocus, isFalse);
+    nexDismissKeyboard(tester.element(find.byType(TextField)));
+    await tester.pump();
+    expect(dismissed, 1);
+  });
+
+  testWidgets('a native hide failure falls back without blocking exit', (
+    tester,
+  ) async {
+    const channel = MethodChannel('nex/os_capture');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      throw PlatformException(code: 'unavailable');
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+    await show(tester, keyboard: 300);
+    tester.testTextInput.log.clear();
+    nexDismissKeyboard(tester.element(find.byType(TextField)));
+    await tester.pump();
+    expect(field.hasFocus, isFalse);
+    expect(
+      tester.testTextInput.log.map((call) => call.method),
+      contains('TextInput.hide'),
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('a tap on nothing puts the keyboard away', (tester) async {
     await show(tester, keyboard: 300);

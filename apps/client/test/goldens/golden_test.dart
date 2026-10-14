@@ -40,8 +40,9 @@ void main() {
     );
   });
 
-  // Fixed, so a date on a card or in the sheet never makes a picture stale.
-  final written = DateTime.utc(2026, 3, 14, 9, 26);
+  // Fix the displayed wall clock too: the sheet converts storage timestamps
+  // to local time, so pinning UTC changed the golden outside UTC hosts.
+  final written = DateTime(2026, 3, 14, 9, 26);
 
   Note note(String id, NoteType type, String content) => Note(
     id: id,
@@ -175,8 +176,8 @@ void main() {
         // Pinned in the database itself: the sheet reads the note back.
         final db = NexDatabase.open(harness.dbPath);
         db.db.execute('UPDATE notes SET created_at = ?, updated_at = ?', [
-          written.toIso8601String(),
-          written.toIso8601String(),
+          written.toUtc().toIso8601String(),
+          written.toUtc().toIso8601String(),
         ]);
         db.close();
         await tester.pumpWidget(

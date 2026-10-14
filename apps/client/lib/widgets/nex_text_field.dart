@@ -394,14 +394,25 @@ class _NativeFieldState extends State<_NativeField> {
         widget.field.onSubmitted?.call(_controller.text);
       case 'format':
         if (!mounted) return;
+        final command = args['id']! as String;
         final value = _controller.value.copyWith(
           selection: _selection(args, _controller.text.length),
         );
-        final formatted = await nexApplyFormat(
-          context,
-          args['id']! as String,
-          value,
-        );
+        final formatted = await nexApplyFormat(context, command, value);
+        if (!mounted) return;
+        if (command == 'link') {
+          if (ModalRoute.of(context)?.isCurrent == false) return;
+          // The URL field has completely left before this returns, so its
+          // input connection cannot steal or hide the editor's keyboard.
+          // Cancellation hands the same selection back too.
+          if (_focus.hasPrimaryFocus) {
+            // Route focus may already have returned during the dialog's
+            // exit; repeat the native hand-off now its IME client is gone.
+            await _channel?.invokeMethod<void>('focus');
+          } else {
+            _focus.requestFocus();
+          }
+        }
         if (formatted == null || !mounted) return;
         _controller.value = formatted;
         widget.field.onChanged?.call(formatted.text);

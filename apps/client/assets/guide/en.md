@@ -6,9 +6,9 @@ The first time you open Nex, four short pages show what it does, and a last one 
 
 ## Capture something
 
-Tap **+** at the centre of the bottom bar to write. The kinds sit at the top of the box — **Note**, **Voice**, **Checklist** and **Link** — and switch in place: what you typed stays, so a note becomes a list line by line, and a pasted address (with a line about it if you like) becomes a link. **Voice** turns the box into a recorder: the square keeps the recording, the bin throws it away. Below the box, the camera has its own button and the clip opens the gallery or a file. Nothing has a Save button: what you write is kept from the first letter and is turned into the kind you chose when you close the box; words that are not a link stay a note.
+Tap **+** at the centre of the bottom bar to write. The kinds sit at the top of the box — **Note**, **Checklist** and **Link** — and switch in place: what you typed stays, so a note becomes a list line by line, and a pasted address (with a line about it if you like) becomes a link. **Voice** turns the box into a recorder: the square keeps the recording, the bin throws it away. Below the box, **Voice**, **Camera**, **Gallery** and **File** each have their own button. Nothing has a Save button: what you write is kept from the first letter and is turned into the kind you chose when you close the box; words that are not a link stay a note.
 
-Flick **+** left or right to start a shortcut without opening the box — by default left records a voice note and right opens the camera. Choose them in **Settings → Gestures**. A tap still writes a note, and holding still opens the assistant.
+Flick **+** left or right to start a shortcut without opening the box — by default left records a voice note and right opens the camera. Choose them in **Settings → Gestures**. As you swipe, a border traces the screen in the shortcut’s colour from Settings; releasing after it completes opens the shortcut, while returning or releasing early cancels it. A tap still writes a note. Hold still to open the assistant: its glow starts after a short pause so swiping does not flash it. Reduced motion skips the border and glow.
 
 To have a note arrive later — a letter to yourself, a thought for next month — **hold** the send button instead of tapping it and choose when: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is not in your notes, search or widgets; at its time it lands on the timeline with a notification. **Tools → Scheduled** shows what is on its way, where you can deliver one now, change its time or discard it.
 
@@ -47,6 +47,8 @@ Open an item for its exact date and time, tags, description and every action. Th
 Voice notes, audio files and voice clips play in Nex's player: tap the round button to play or pause, touch or drag the recording's shape to move through it, and tap **1×** to play at 1.5× or 2×. On Android the shape is drawn from the recording itself; formats without one still play. A recording is kept when you tap Keep; if Nex is closed in the middle of recording, that recording is lost.
 
 When you write in two languages, each line keeps its own direction and side while you edit it, just as it does when you read it. While you type in the settings search, touching anywhere outside it only closes the keyboard, so no setting is changed by accident.
+
+Web addresses in a note or caption become links automatically. Tap a link to open it in your browser; hold it for **Open link** or **Copy link**. Hold ordinary words to select and copy text.
 
 ![A note's details](note-details.webp)
 

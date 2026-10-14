@@ -1752,6 +1752,7 @@
   "captureFlickRight": "Flick right",
   "captureFlickOff": "Nothing",
   "openLink": "Open link",
+  "copyLink": "Copy link",
   "@openLink": {
       "description": "Action that opens a link note in the browser"
   },

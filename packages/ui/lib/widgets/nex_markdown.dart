@@ -5,6 +5,7 @@ import 'package:markdown/markdown.dart' as md;
 
 import '../tokens/nex_text_direction.dart';
 import 'nex_selectable_lines.dart';
+import 'nex_link_text.dart';
 import 'nex_selection_menu.dart';
 import '../tokens/nex_contrast.dart';
 import '../tokens/nex_tokens.dart';
@@ -46,6 +47,7 @@ class NexMarkdown extends StatefulWidget {
     super.key,
     this.style,
     this.onTapLink,
+    this.onHoldLink,
     this.onCopyCode,
     this.selectable = true,
   });
@@ -61,6 +63,9 @@ class NexMarkdown extends StatefulWidget {
   /// right default for a package that has no business launching a browser;
   /// the app passes a handler where opening one makes sense.
   final void Function(String href)? onTapLink;
+
+  /// Link-specific actions, without selecting the surrounding text.
+  final NexLinkHold? onHoldLink;
 
   /// Called with the contents of an inline `code` span when one is tapped.
   ///
@@ -98,10 +103,12 @@ class NexMarkdown extends StatefulWidget {
 /// builder hands out. Nothing here is state the user can see.
 class _NexMarkdownState extends State<NexMarkdown> {
   final _NexCodeSpanBuilder _codeSpans = _NexCodeSpanBuilder();
+  final _NexLinkSpanBuilder _links = _NexLinkSpanBuilder();
 
   @override
   void dispose() {
     _codeSpans.dispose();
+    _links.recognizers.dispose();
     super.dispose();
   }
 
@@ -111,6 +118,14 @@ class _NexMarkdownState extends State<NexMarkdown> {
     final text = widget.text;
     final direction = nexDirectionOf(text) ?? Directionality.of(context);
     _codeSpans.onTap = widget.onCopyCode;
+    _links.recognizers
+      ..onTap = widget.onTapLink
+      ..onHold = widget.onHoldLink;
+    final sheet = _sheet(
+      theme,
+      widget.style ?? theme.textTheme.bodyLarge,
+      direction,
+    );
     // Every paragraph, heading and list item is its own text widget, so a
     // copy across them needs its line breaks put back — see
     // [NexSelectableLines].
@@ -124,12 +139,11 @@ class _NexMarkdownState extends State<NexMarkdown> {
           // below does it without taking anything away — see [selectable].
           selectable: false,
           fitContent: false,
-          builders: {if (widget.onCopyCode != null) 'code': _codeSpans},
-          styleSheet: _sheet(
-            theme,
-            widget.style ?? theme.textTheme.bodyLarge,
-            direction,
-          ),
+          builders: {
+            if (widget.onCopyCode != null) 'code': _codeSpans,
+            if (widget.onHoldLink != null) 'a': _links,
+          },
+          styleSheet: sheet,
           onTapLink: widget.onTapLink == null
               ? null
               : (_, href, _) {
@@ -228,16 +242,66 @@ class _NexMarkdownState extends State<NexMarkdown> {
   }
 }
 
-/// Makes an inline `code` span tappable without taking it out of the sentence
-/// it sits in.
-///
-/// The obvious version — return any widget from the builder — is wrong here.
-/// The renderer keeps a paragraph's inline children as text widgets and merges
-/// them into one rich text at the end; a child it cannot read a span out of is
-/// left as a separate item in the `Wrap` that lays the paragraph out. So a
-/// `Container` around the code would push the words after it onto their own
-/// line. A [Text] carrying a [TextSpan] is read back, merged, and stays in the
-/// flow — which is also how the renderer's own links work.
+/// Keeps links inside the paragraph, with tap and hold recognizers on each
+/// styled text run. Image links retain the renderer's existing image layout.
+class _NexLinkSpanBuilder extends MarkdownElementBuilder {
+  final recognizers = NexLinkRecognizers();
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final href = element.attributes['href'];
+    if (href == null || href.isEmpty) return null;
+    bool hasImage(md.Node node) =>
+        node is md.Element &&
+        (node.tag == 'img' || (node.children?.any(hasImage) ?? false));
+    if (element.children?.any(hasImage) ?? false) return null;
+    final recognizer = recognizers.forHref(href);
+    Iterable<TextSpan> spans(md.Node node, TextStyle? inherited) sync* {
+      if (node is md.Text) {
+        yield TextSpan(
+          text: node.textContent,
+          style: inherited,
+          recognizer: recognizer,
+          mouseCursor: SystemMouseCursors.click,
+        );
+        return;
+      }
+      final child = node as md.Element;
+      final style = switch (child.tag) {
+        'strong' => const TextStyle(fontWeight: FontWeight.w700),
+        'em' => const TextStyle(fontStyle: FontStyle.italic),
+        'del' => const TextStyle(decoration: TextDecoration.lineThrough),
+        'code' => const TextStyle(fontFamily: 'monospace'),
+        _ => null,
+      };
+      for (final node in child.children ?? <md.Node>[]) {
+        yield* spans(node, inherited?.merge(style) ?? style);
+      }
+    }
+
+    return Text.rich(
+      TextSpan(
+        // The renderer flattens one level when merging inline widgets, so
+        // pass styled leaves rather than nested spans that it would discard.
+        children: [
+          for (final node in element.children ?? <md.Node>[])
+            ...spans(
+              node,
+              parentStyle?.merge(preferredStyle) ?? preferredStyle,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A Text carrying spans is merged into the paragraph by the renderer;
+/// wrapping it in a gesture widget would break the sentence's inline layout.
 class _NexCodeSpanBuilder extends MarkdownElementBuilder {
   /// Set by the widget on every build; null until it has been.
   void Function(String code)? onTap;
