@@ -21,9 +21,47 @@
 /// desktop or with a hardware keyboard and buys nothing anywhere.
 library;
 
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+
+/// Ends an editor session before its route leaves. Unfocusing alone cannot
+/// hide an IME handed between Android's embedded editor and a Flutter dialog:
+/// neither field may still report focus, while the keyboard remains visible.
+/// Flutter also deliberately leaves physical platform-view IMEs alone when
+/// handling TextInput.hide. Android therefore dismisses at the activity window.
+void nexDismissKeyboard(BuildContext context) {
+  FocusScope.of(context).unfocus();
+  // The request precedes the pop, but saving never waits for an IME reply.
+  // The activity window remains valid after the editor view has gone.
+  unawaited(_hideKeyboard());
+}
+
+Future<void> _hideKeyboard() async {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    try {
+      await const MethodChannel(
+        'nex/os_capture',
+      ).invokeMethod<void>('hideKeyboard');
+      return;
+    } on MissingPluginException {
+      // Desktop, tests, or an older native host use Flutter's connection.
+    } on PlatformException {
+      // Still ask Flutter to release any connection it owns.
+    }
+  }
+  try {
+    await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+  } on MissingPluginException {
+    // No IME service on this host; closing the editor must still succeed.
+  } on PlatformException {
+    // The note is already saved. A keyboard failure must not strand it.
+  }
+}
 
 /// See the library doc: one tap target under the whole app, for the taps
 /// nothing else claimed.

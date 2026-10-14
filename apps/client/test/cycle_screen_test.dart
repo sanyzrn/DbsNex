@@ -24,17 +24,24 @@ Future<void> reopen(WidgetTester tester) async {
   expect(find.byType(CycleScreen), findsOneWidget);
 }
 
-Future<void> scrollTo(WidgetTester tester, Finder target) =>
-    tester.scrollUntilVisible(
-      target,
-      300,
-      scrollable: find
-          .descendant(
-            of: find.byType(CycleScreen),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
+Future<void> scrollTo(WidgetTester tester, Finder target) async {
+  await tester.scrollUntilVisible(
+    target,
+    300,
+    scrollable: find
+        .descendant(
+          of: find.byType(CycleScreen),
+          matching: find.byType(Scrollable),
+        )
+        .first,
+  );
+  // Nightly stress #14: revealing at the leading edge could leave the mood
+  // row's tap point under the AppBar (y=50). Wait for layout/entrance motion,
+  // then put the actual target inside the viewport rather than at its edge.
+  await tester.pumpAndSettle();
+  await Scrollable.ensureVisible(tester.element(target), alignment: 0.5);
+  await tester.pumpAndSettle();
+}
 
 void main() {
   Future<NexTestHarness> openCycle(
@@ -445,6 +452,10 @@ void main() {
     await scrollTo(tester, find.byKey(const ValueKey('cycle-tip')));
     expect(find.textContaining('For today'), findsOneWidget);
     await scrollTo(tester, find.byKey(const ValueKey('cycle-quick-mood-good')));
+    expect(
+      find.byKey(const ValueKey('cycle-quick-mood-good')).hitTestable(),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const ValueKey('cycle-quick-mood-good')));
     await tester.pumpAndSettle();
     final log = (await harness.services.cycleDays(today(), today())).single;

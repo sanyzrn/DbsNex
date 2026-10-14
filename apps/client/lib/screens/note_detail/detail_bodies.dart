@@ -459,6 +459,8 @@ class _FileTextBodyState extends State<_FileTextBody> {
               text,
               selectable: false,
               onTapLink: _openHref,
+              onHoldLink: (href, at) =>
+                  unawaited(_showLinkMenu(context, href, at)),
               onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
             ),
           ),
@@ -535,6 +537,53 @@ Future<void> _copyCodeSpan(BuildContext context, String code) async {
 /// The schemes a tapped link in a note may hand to the system.
 @visibleForTesting
 const nexFollowableLinkSchemes = {'http', 'https', 'mailto', 'tel'};
+
+enum _LinkAction { open, copy }
+
+Future<void> _showLinkMenu(BuildContext context, String href, Offset at) async {
+  final l10n = AppLocalizations.of(context);
+  final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+  final point = overlay.globalToLocal(at);
+  final canOpen = nexFollowableLinkSchemes.contains(Uri.tryParse(href)?.scheme);
+  final action = await showMenu<_LinkAction>(
+    context: context,
+    position: RelativeRect.fromRect(
+      Rect.fromLTWH(point.dx, point.dy, 1, 1),
+      Offset.zero & overlay.size,
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(NexRadius.md),
+    ),
+    items: [
+      PopupMenuItem(
+        value: _LinkAction.open,
+        enabled: canOpen,
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.open_in_new),
+          title: Text(l10n.openLink),
+        ),
+      ),
+      PopupMenuItem(
+        value: _LinkAction.copy,
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.copy_outlined),
+          title: Text(l10n.copyLink),
+        ),
+      ),
+    ],
+  );
+  if (!context.mounted) return;
+  switch (action) {
+    case _LinkAction.open:
+      await _openHref(href);
+    case _LinkAction.copy:
+      await _copyCodeSpan(context, href);
+    case null:
+      break;
+  }
+}
 
 /// Follows a link out of rendered Markdown — a note's own body, or a file
 /// shown inside one.

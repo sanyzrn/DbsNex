@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import 'nex_dialog.dart';
+import 'keyboard_dismisser.dart';
 
 /// Editors using this guard must disable a modal sheet's drag dismissal,
 /// which calls Navigator.pop directly and bypasses the system back check.
@@ -11,12 +12,13 @@ mixin NexDraftGuard<T extends StatefulWidget> on State<T> {
 
   Future<void> requestDiscard() async {
     if (_confirmingDiscard) return;
+    _confirmingDiscard = true;
     if (!hasUnsavedChanges) {
       discardDraft();
-      Navigator.of(context).pop();
+      nexDismissKeyboard(context);
+      if (mounted) Navigator.of(context).pop();
       return;
     }
-    _confirmingDiscard = true;
     final l10n = AppLocalizations.of(context);
     final discard = await nexShowDialog<bool>(
       context: context,
@@ -34,10 +36,12 @@ mixin NexDraftGuard<T extends StatefulWidget> on State<T> {
         ],
       ),
     );
-    _confirmingDiscard = false;
     if (discard == true && mounted) {
       discardDraft();
-      Navigator.of(context).pop();
+      nexDismissKeyboard(context);
+      if (mounted) Navigator.of(context).pop();
+    } else {
+      _confirmingDiscard = false;
     }
   }
 

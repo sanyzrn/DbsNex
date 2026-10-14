@@ -53,6 +53,85 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets(
+    'one composer outline, adjacent text modes and direct media tools',
+    (tester) async {
+      await openComposer(tester);
+      final sheet = find.byType(CaptureSheet);
+      final text = tester.widget<TextField>(_field);
+      final defaults = text.decoration!.applyDefaults(
+        Theme.of(tester.element(_field)).inputDecorationTheme,
+      );
+      expect(defaults.filled, isFalse);
+      expect(defaults.enabledBorder, InputBorder.none);
+      expect(defaults.focusedBorder, InputBorder.none);
+      Finder tool(String label) =>
+          find.descendant(of: sheet, matching: find.byTooltip(label));
+      final note = tool('Note');
+      final checklist = tool('Checklist');
+      final link = tool('Link');
+      final voice = tool('Voice');
+      expect(tester.getCenter(note).dy, tester.getCenter(checklist).dy);
+      expect(tester.getCenter(note).dy, tester.getCenter(link).dy);
+      expect(
+        tester.getCenter(voice).dy,
+        greaterThan(tester.getCenter(_field).dy),
+      );
+      for (final label in ['Camera', 'Gallery', 'File']) {
+        expect(tool(label), findsOneWidget);
+        expect(tester.getCenter(tool(label)).dy, tester.getCenter(voice).dy);
+      }
+      // The same field and draft survive all three text modes.
+      final editor = tester.element(_field);
+      await tester.enterText(_field, 'milk\neggs');
+      for (final label in ['Checklist', 'Link', 'Note']) {
+        await tester.tap(tool(label));
+        await tester.pumpAndSettle();
+        expect(tester.element(_field), same(editor));
+        expect(tester.widget<TextField>(_field).controller!.text, 'milk\neggs');
+      }
+      await tester.tap(_send);
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets('capture tools fit a narrow phone in either language and theme', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    for (final locale in ['en', 'fa']) {
+      await preferences.setLocale(locale);
+      for (final theme in [ThemeMode.light, ThemeMode.dark]) {
+        await preferences.setThemeMode(theme);
+        await openComposer(tester);
+        expect(tester.takeException(), isNull);
+        final sheet = find.byType(CaptureSheet);
+        expect(
+          find.descendant(of: sheet, matching: find.byIcon(Icons.mic_none)),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: sheet,
+            matching: find.byIcon(Icons.photo_library_outlined),
+          ),
+          findsOneWidget,
+        );
+        final send = find.descendant(
+          of: sheet,
+          matching: find.byKey(const ValueKey('capture-send')),
+        );
+        await tester.ensureVisible(send);
+        await tester.tap(send);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      }
+    }
+  });
+
   testWidgets('a checklist is captured as lines and shown as rows', (
     tester,
   ) async {

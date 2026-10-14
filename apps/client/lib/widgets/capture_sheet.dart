@@ -16,6 +16,7 @@ import 'recording_sheet.dart' show NexLiveWaveform, NexRecordingDot;
 import 'reminder_picker.dart';
 import 'schedule_picker.dart';
 import 'nex_text_field.dart';
+import 'keyboard_dismisser.dart';
 
 part 'capture_sheet_modes.dart';
 part 'capture_sheet_parts.dart';
@@ -24,7 +25,7 @@ part 'capture_sheet_parts.dart';
 enum CaptureKind { note, checklist, voice, link }
 
 /// The one place things are written into Nex: a note, a list, a voice note or
-/// a link, chosen at the top and switched in place.
+/// a link. Text kinds switch above the editor; media is reached below it.
 ///
 /// Each kind used to be its own sheet. Tapping the list or the link icon
 /// closed this one — keeping what had been typed as a note of its own — and
@@ -533,7 +534,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
         kind: NexBannerKind.done,
       );
       setState(() => _allowClose = true);
-      Navigator.pop(context);
+      nexDismissKeyboard(context);
+      if (mounted) Navigator.pop(context);
     } finally {
       _scheduling = false;
     }
@@ -568,6 +570,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
       return;
     }
     setState(() => _allowClose = true);
+    nexDismissKeyboard(context);
+    if (!mounted) return;
     launch();
   }
 
@@ -585,6 +589,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
       return;
     }
     setState(() => _allowClose = true);
+    nexDismissKeyboard(context);
+    if (!mounted) return;
     await widget.services.refreshTimeline();
     if (mounted) Navigator.pop(context);
   }
@@ -649,7 +655,11 @@ class _CaptureSheetState extends State<CaptureSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _KindBar(shown: shown, recording: _voiceOn, onSelect: _select),
+            _KindBar(
+              shown: _kind,
+              recording: _voiceOn || _closing,
+              onSelect: _select,
+            ),
             const SizedBox(height: NexSpacing.sm),
             _ComposerBox(
               kind: shown,
@@ -675,46 +685,78 @@ class _CaptureSheetState extends State<CaptureSheet> {
               onPaste: _paste,
             ),
             const SizedBox(height: NexSpacing.xs),
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: NexSpacing.sm,
+              runSpacing: NexSpacing.xs,
               children: [
-                _Tool(
-                  icon: Icons.photo_camera_outlined,
-                  label: l10n.camera,
-                  onTap: tools
-                      ? () => unawaited(_leaveFor(widget.onCamera))
-                      : null,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _Tool(
+                      icon: Icons.mic_none,
+                      label: l10n.voice,
+                      type: 'voice',
+                      selected: _voiceOn,
+                      onTap: tools ? () => _select(CaptureKind.voice) : null,
+                    ),
+                    _Tool(
+                      icon: Icons.photo_camera_outlined,
+                      label: l10n.camera,
+                      type: 'photo',
+                      onTap: tools
+                          ? () => unawaited(_leaveFor(widget.onCamera))
+                          : null,
+                    ),
+                    _Tool(
+                      icon: Icons.photo_library_outlined,
+                      label: l10n.gallery,
+                      type: 'photo',
+                      onTap: tools
+                          ? () => unawaited(_leaveFor(widget.onGallery))
+                          : null,
+                    ),
+                    _Tool(
+                      icon: Icons.insert_drive_file_outlined,
+                      label: l10n.file,
+                      type: 'file',
+                      onTap: tools
+                          ? () => unawaited(_leaveFor(widget.onFile))
+                          : null,
+                    ),
+                  ],
                 ),
-                _AttachMenu(
-                  enabled: tools,
-                  onGallery: () => unawaited(_leaveFor(widget.onGallery)),
-                  onFile: () => unawaited(_leaveFor(widget.onFile)),
-                ),
-                const Spacer(),
-                _SideAction(
-                  recording: _voiceOn,
-                  canRemind: controller.text.isNotEmpty && !_closing,
-                  hasReminder: hasReminder,
-                  onRemind: () => unawaited(_remind()),
-                  onDiscard: _closing
-                      ? null
-                      : () => unawaited(_discardRecording()),
-                ),
-                const SizedBox(width: NexSpacing.xs),
-                _SendButton(
-                  kind: shown,
-                  closing: _closing,
-                  onSend: _closing
-                      ? null
-                      : switch (shown) {
-                          CaptureKind.voice =>
-                            _voice == _Voice.on
-                                ? () => unawaited(_keepRecording())
-                                : null,
-                          _ => _sendable ? () => unawaited(close()) : null,
-                        },
-                  onSchedule: shown == CaptureKind.note && typed
-                      ? () => unawaited(_schedule())
-                      : null,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _SideAction(
+                      recording: _voiceOn,
+                      canRemind: controller.text.isNotEmpty && !_closing,
+                      hasReminder: hasReminder,
+                      onRemind: () => unawaited(_remind()),
+                      onDiscard: _closing
+                          ? null
+                          : () => unawaited(_discardRecording()),
+                    ),
+                    const SizedBox(width: NexSpacing.xs),
+                    _SendButton(
+                      kind: shown,
+                      closing: _closing,
+                      onSend: _closing
+                          ? null
+                          : switch (shown) {
+                              CaptureKind.voice =>
+                                _voice == _Voice.on
+                                    ? () => unawaited(_keepRecording())
+                                    : null,
+                              _ => _sendable ? () => unawaited(close()) : null,
+                            },
+                      onSchedule: shown == CaptureKind.note && typed
+                          ? () => unawaited(_schedule())
+                          : null,
+                    ),
+                  ],
                 ),
               ],
             ),

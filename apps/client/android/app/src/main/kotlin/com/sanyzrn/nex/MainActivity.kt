@@ -1,6 +1,7 @@
 package com.sanyzrn.nex
 
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -18,6 +19,7 @@ import android.provider.OpenableColumns
 import android.provider.Settings
 import android.service.quicksettings.TileService
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -154,6 +156,17 @@ open class MainActivity : FlutterFragmentActivity() {
         NexEmbedder.register(engine.dartExecutor.binaryMessenger, applicationContext)
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "nex/os_capture")
         channel?.setMethodCallHandler { call, result -> when (call.method) {
+            "hideKeyboard" -> {
+                // Link entry transfers the IME between a native EditText and
+                // Flutter. The editor's hasFocus() no longer tells us whether
+                // this window has an IME to dismiss. Use the activity token,
+                // before the editor route (and its platform view) is removed.
+                val token = window.decorView.applicationWindowToken
+                currentFocus?.clearFocus()
+                (getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager)
+                    ?.hideSoftInputFromWindow(token, 0)
+                result.success(null)
+            }
             "audioWaveform" -> {
                 val path = call.argument<String>("path")
                 if (path == null) result.error("path", "Missing audio path", null)

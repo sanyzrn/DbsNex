@@ -521,6 +521,7 @@ extension _TimelineLayout on TimelineScreenState {
           ],
           // Hold capture for the assistant; the leftmost destination is Tools.
           capture: NexLongPressGlow(
+            startDelay: CaptureFlick.assistantDelay,
             colors: nexAssistantSpectrum,
             onHoldStart: _tick,
             onTriggered: () {

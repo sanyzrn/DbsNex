@@ -155,6 +155,8 @@ class _DocumentBodyState extends State<_DocumentBody> {
               document.markdown,
               selectable: false,
               onTapLink: _openHref,
+              onHoldLink: (href, at) =>
+                  unawaited(_showLinkMenu(context, href, at)),
               onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
             ),
           ),

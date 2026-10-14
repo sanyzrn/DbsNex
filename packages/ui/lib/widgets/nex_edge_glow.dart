@@ -41,6 +41,121 @@ class NexEdgeGlow extends StatelessWidget {
   }
 }
 
+/// A shortcut's colour traces the perimeter from the bottom in the physical
+/// direction of the swipe. Distance, rather than time, controls its reach.
+class NexEdgeTrace extends StatelessWidget {
+  const NexEdgeTrace({
+    super.key,
+    required this.progress,
+    required this.color,
+    required this.toRight,
+    this.opacity = 1,
+  });
+
+  final double progress;
+  final Color color;
+  final bool toRight;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: RepaintBoundary(
+      child: CustomPaint(
+        size: Size.infinite,
+        painter: _EdgeTracePainter(
+          progress: progress,
+          color: color,
+          toRight: toRight,
+          opacity: opacity,
+        ),
+      ),
+    ),
+  );
+}
+
+class _EdgeTracePainter extends CustomPainter {
+  _EdgeTracePainter({
+    required this.progress,
+    required this.color,
+    required this.toRight,
+    required this.opacity,
+  });
+
+  final double progress;
+  final Color color;
+  final bool toRight;
+  final double opacity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0 || opacity <= 0 || size.isEmpty) return;
+    final rect = (Offset.zero & size).deflate(2);
+    final r = math.min(44.0, rect.shortestSide / 2);
+    final corner = Radius.circular(r);
+    // Bottom centre → bottom right → top right → top left → bottom left.
+    final path = Path()
+      ..moveTo(rect.center.dx, rect.bottom)
+      ..lineTo(rect.right - r, rect.bottom)
+      ..arcToPoint(
+        Offset(rect.right, rect.bottom - r),
+        radius: corner,
+        clockwise: false,
+      )
+      ..lineTo(rect.right, rect.top + r)
+      ..arcToPoint(
+        Offset(rect.right - r, rect.top),
+        radius: corner,
+        clockwise: false,
+      )
+      ..lineTo(rect.left + r, rect.top)
+      ..arcToPoint(
+        Offset(rect.left, rect.top + r),
+        radius: corner,
+        clockwise: false,
+      )
+      ..lineTo(rect.left, rect.bottom - r)
+      ..arcToPoint(
+        Offset(rect.left + r, rect.bottom),
+        radius: corner,
+        clockwise: false,
+      )
+      ..close();
+    final metric = path.computeMetrics().single;
+    final trace = progress >= 1
+        ? path
+        : metric.extractPath(0, metric.length * progress.clamp(0.0, 1.0));
+    canvas.save();
+    if (!toRight) {
+      canvas.translate(size.width, 0);
+      canvas.scale(-1, 1);
+    }
+    canvas.drawPath(
+      trace,
+      Paint()
+        ..color = color.withValues(alpha: 0.45 * opacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 10
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    canvas.drawPath(
+      trace,
+      Paint()
+        ..color = color.withValues(alpha: opacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_EdgeTracePainter old) =>
+      old.progress != progress ||
+      old.color != color ||
+      old.toRight != toRight ||
+      old.opacity != opacity;
+}
+
 class _EdgeGlowPainter extends CustomPainter {
   _EdgeGlowPainter({required this.progress, required this.colors});
 
@@ -513,18 +628,23 @@ class NexLongPressGlow extends StatefulWidget {
     required this.onTriggered,
     required this.colors,
     this.holdDuration = const Duration(milliseconds: 420),
+    this.startDelay = Duration.zero,
     this.onHoldStart,
   });
 
   final Widget child;
   final VoidCallback onTriggered;
 
-  /// Fired the moment the finger goes down, before the ramp — for the small
+  /// Fired after [startDelay], before the ramp — for the small
   /// haptic that tells someone the hold is being counted.
   final VoidCallback? onHoldStart;
 
   final List<Color> colors;
   final Duration holdDuration;
+
+  /// Wait silently before painting or giving feedback, leaving time for a
+  /// tap to become a swipe. Movement or release cancels the pending start.
+  final Duration startDelay;
 
   @override
   State<NexLongPressGlow> createState() => NexLongPressGlowState();
@@ -539,6 +659,8 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
   late final AnimationController _hold;
 
   OverlayEntry? _glow;
+  Timer? _pendingStart;
+  int? _pointer;
 
   /// Set once a hold has completed, cleared when the next one starts. Lifting
   /// the finger after the trigger has already fired must not turn the gentle
@@ -578,6 +700,7 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
   }
 
   void _start() {
+    if (!mounted) return;
     _handedOff = false;
     widget.onHoldStart?.call();
     if (MediaQuery.disableAnimationsOf(context)) {
@@ -593,6 +716,11 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
   }
 
   void _cancel() {
+    _pendingStart?.cancel();
+    _pendingStart = null;
+    // A pointer route can still deliver its up/cancel after this button
+    // left the tree (for example when the target opens on release).
+    if (!mounted) return;
     if (_handedOff) return;
     _hold.reverse().whenComplete(() {
       if (_hold.value == 0) _remove();
@@ -624,6 +752,7 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
 
   @override
   void dispose() {
+    _pendingStart?.cancel();
     // Before the controller: the overlay's builder reads it every frame.
     _remove();
     _hold
@@ -641,13 +770,23 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
     // once the press has already succeeded, which is too late to have been
     // animating during it — and the animation *is* the feature.
     onPointerDown: (event) {
+      if (_pointer != null) return;
+      _pointer = event.pointer;
       _down = event.position;
-      _start();
+      if (widget.startDelay == Duration.zero) {
+        _start();
+      } else {
+        _pendingStart = Timer(widget.startDelay, () {
+          _pendingStart = null;
+          if (mounted && _down != null) _start();
+        });
+      }
     },
     // A finger that travels is not holding: it is flicking or scrolling
     // whatever it pressed on, and the hold gives way rather than firing
     // under it.
     onPointerMove: (event) {
+      if (event.pointer != _pointer) return;
       final down = _down;
       if (down == null || (event.position - down).distance <= kTouchSlop) {
         return;
@@ -655,11 +794,15 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
       _down = null;
       _cancel();
     },
-    onPointerUp: (_) {
+    onPointerUp: (event) {
+      if (event.pointer != _pointer) return;
+      _pointer = null;
       _down = null;
       _cancel();
     },
-    onPointerCancel: (_) {
+    onPointerCancel: (event) {
+      if (event.pointer != _pointer) return;
+      _pointer = null;
       _down = null;
       _cancel();
     },

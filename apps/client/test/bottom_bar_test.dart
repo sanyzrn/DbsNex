@@ -176,6 +176,8 @@ void main() {
         tester.getCenter(find.byType(FloatingActionButton)),
       );
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       await hold.up();
       await tester.pumpAndSettle();

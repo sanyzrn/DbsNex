@@ -432,16 +432,6 @@ class _CaptureFlickChoices extends StatelessWidget {
   }
 }
 
-/// A shortcut wears the colour of the note it makes, as on the timeline.
-Color _shortcutColor(BuildContext context, CaptureShortcut shortcut) {
-  final scheme = Theme.of(context).colorScheme;
-  final wire = switch (shortcut) {
-    CaptureShortcut.none => null,
-    CaptureShortcut.voice => 'voice',
-    CaptureShortcut.camera || CaptureShortcut.gallery => 'photo',
-    CaptureShortcut.checklist => 'checklist',
-    CaptureShortcut.link => 'link',
-    CaptureShortcut.file => 'file',
-  };
-  return wire == null ? scheme.outline : nexNoteTypeTint(wire, scheme);
-}
+/// Shared with the swipe's label and perimeter feedback.
+Color _shortcutColor(BuildContext context, CaptureShortcut shortcut) =>
+    captureShortcutColor(context, shortcut);

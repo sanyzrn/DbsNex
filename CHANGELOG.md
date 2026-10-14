@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.98
+
+- **A cleaner capture box.** One outline around the editor; Note, Checklist and Link stay together above it. Voice joins Camera, Gallery and File below, each directly reachable in its own type colour.
+- **Swiping + has its own light.** A border in the shortcut’s Settings colour traces the screen as your finger moves, completes before the shortcut opens, and retracts if you cancel. Left and right keep your chosen actions in every theme and language.
+- **A deliberate hold for the assistant.** A short pause before its glow starts keeps taps and sideways swipes from flashing the assistant. Holding still continues to open it; reduced motion skips the light.
+- **The keyboard leaves with the editor.** After adding a link to selected words, saving or leaving the note editor or capture box no longer leaves the keyboard behind. Saving or cancelling the link returns to the original field; all other text formats keep working.
+- **Links work as soon as you write them.** Web addresses in ordinary notes and captions are recognised without adding another formatted link first. Tap a link to open it in your browser; hold it for Open link and Copy link. Ordinary words still select and copy as before.
+
 ## v1.99.97
 
 - **One capture box for everything.** Note, voice, checklist and link now sit at the top of the box and switch in place — what you typed stays, so a note becomes a list without typing it again, and a pasted address becomes a link (a line around it becomes its caption).

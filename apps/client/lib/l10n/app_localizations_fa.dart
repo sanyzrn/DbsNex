@@ -2207,6 +2207,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get openLink => 'باز کردن لینک';
 
   @override
+  String get copyLink => 'کپی لینک';
+
+  @override
   String checklistProgress(int done, int total) {
     return '$done از $total';
   }

@@ -2,6 +2,46 @@ import 'package:nex_core/nex_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('web addresses in plain writing', () {
+    test('finds the screenshot URL without changing the surrounding note', () {
+      const text = 'افزودن امکانات اکو\n\nhttps://realmetaverse.ir/cipher/';
+      final link = nexTextLinks(text).single;
+      expect(link.url, 'https://realmetaverse.ir/cipher/');
+      expect(text.substring(link.start, link.end), link.url);
+    });
+
+    test(
+      'keeps query, fragment and balanced parentheses, outside punctuation stays text',
+      () {
+        const text =
+            '(https://en.wikipedia.org/wiki/Link_(The_Legend_of_Zelda)), '
+            'https://x.dev/a?q=1&b=2#part! www.example.com/،';
+        expect(nexTextLinks(text).map((l) => l.url), [
+          'https://en.wikipedia.org/wiki/Link_(The_Legend_of_Zelda)',
+          'https://x.dev/a?q=1&b=2#part',
+          'https://www.example.com/',
+        ]);
+      },
+    );
+
+    test(
+      'recognises uppercase schemes and ignores malformed and unsafe links',
+      () {
+        expect(nexTextLinks('Https://DD.com').single.url, 'https://dd.com');
+        expect(
+          nexTextLinks(
+            'https:// javascript:alert(1) file:///x data:text/html,x',
+          ),
+          isEmpty,
+        );
+        expect(
+          nexTextLinks('https://x.dev\u200F متن').single.url,
+          'https://x.dev',
+        );
+      },
+    );
+  });
+
   group('normaliseUrl', () {
     test('adds https to what people actually type', () {
       expect(normaliseUrl('example.com'), 'https://example.com');

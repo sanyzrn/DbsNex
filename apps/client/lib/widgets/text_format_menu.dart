@@ -82,7 +82,13 @@ EditableTextContextMenuBuilder nexFormatContextMenuBuilder(BuildContext host) {
             final where = value.selection;
             state.hideToolbar();
             final url = await _askForUrl(host);
-            if (url == null || url.isEmpty || !state.mounted) return;
+            if (!state.mounted ||
+                !host.mounted ||
+                ModalRoute.of(host)?.isCurrent == false) {
+              return;
+            }
+            state.widget.focusNode.requestFocus();
+            if (url == null || url.isEmpty) return;
             write(
               NexTextFormatting.link(value.text, where.start, where.end, url),
             );
@@ -170,38 +176,71 @@ String _labelFor(AppLocalizations l10n, NexInlineFormat format) =>
 
 /// Asks where a link should point. Null when the question was dismissed.
 Future<String?> _askForUrl(BuildContext context) async {
-  final l10n = AppLocalizations.of(context);
-  final controller = TextEditingController();
+  ModalRoute<Object?>? route;
   final answer = await nexShowDialog<String>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) {
+      route = ModalRoute.of(dialogContext);
+      return const _LinkDialog();
+    },
+  );
+  // Navigator.push resolves at pop, while the input is still on screen for
+  // the reverse transition. Hand focus back only after that input is gone.
+  await route?.completed;
+  return answer?.trim();
+}
+
+class _LinkDialog extends StatefulWidget {
+  const _LinkDialog();
+
+  @override
+  State<_LinkDialog> createState() => _LinkDialogState();
+}
+
+class _LinkDialogState extends State<_LinkDialog> {
+  final _controller = TextEditingController();
+  bool _closing = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _finish([String? value]) {
+    if (_closing) return;
+    _closing = true;
+    FocusScope.of(context).unfocus();
+    Navigator.pop(context, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
       title: Text(l10n.addLink),
       content: NexDialogBody(
         child: TextField(
-          controller: controller,
+          controller: _controller,
           selectionWidthStyle: BoxWidthStyle.tight,
           contextMenuBuilder: nexReadingMenu,
           autofocus: true,
           keyboardType: TextInputType.url,
+          textInputAction: TextInputAction.done,
           // A URL is left to right in every language, including in an
           // interface that is not.
           textDirection: TextDirection.ltr,
           decoration: InputDecoration(labelText: l10n.linkAddress),
-          onSubmitted: (value) => Navigator.pop(dialogContext, value),
+          onSubmitted: _finish,
         ),
       ),
       actions: [
+        TextButton(onPressed: _finish, child: Text(l10n.cancel)),
         TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: Text(l10n.cancel),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext, controller.text),
+          onPressed: () => _finish(_controller.text),
           child: Text(l10n.save),
         ),
       ],
-    ),
-  );
-  controller.dispose();
-  return answer?.trim();
+    );
+  }
 }

@@ -24,10 +24,7 @@ String _kindLabel(AppLocalizations l10n, CaptureKind kind) => switch (kind) {
 
 /// What is being captured, chosen at the top of the sheet.
 ///
-/// Four glyphs, the chosen one opening out to say its name in its own
-/// colour — the colour the note will have on the timeline — while the one
-/// it leaves folds back. Voice sits beside the note and the list: the
-/// three ways of putting down what is on your mind, before the link.
+/// The three ways of using the same text field. Media lives below it.
 class _KindBar extends StatelessWidget {
   const _KindBar({
     required this.shown,
@@ -41,7 +38,6 @@ class _KindBar extends StatelessWidget {
 
   static const _order = [
     CaptureKind.note,
-    CaptureKind.voice,
     CaptureKind.checklist,
     CaptureKind.link,
   ];
@@ -62,7 +58,7 @@ class _KindBar extends StatelessWidget {
               kind: kind,
               selected: kind == shown,
               // While recording, only the recorder's own buttons decide.
-              enabled: !recording || kind == CaptureKind.voice,
+              enabled: !recording,
               onTap: () => onSelect(kind),
             ),
         ],
@@ -127,30 +123,18 @@ class _KindChip extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(_kindIcon(kind), size: 20, color: glyph),
-                        // The name opens out of the glyph, and folds back
-                        // into it — the same widget both ways, so the bar
-                        // never jumps.
-                        ClipRect(
-                          child: Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            widthFactor: t,
-                            child: Opacity(
-                              opacity: t,
-                              child: ExcludeSemantics(
-                                child: Padding(
-                                  padding: const EdgeInsetsDirectional.only(
-                                    start: NexSpacing.xs + NexSpacing.xs / 2,
-                                  ),
-                                  child: Text(
-                                    label,
-                                    maxLines: 1,
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      color: scheme.onSurface,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
+                        const SizedBox(width: NexSpacing.xs),
+                        ExcludeSemantics(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: scheme.onSurface.withValues(
+                                alpha: enabled ? 1 : 0.38,
                               ),
+                              fontWeight: selected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
                             ),
                           ),
                         ),
@@ -450,91 +434,44 @@ class _ComposerFootnote extends StatelessWidget {
   }
 }
 
-/// Icon-only on purpose: these read clearly by shape (a camera, a clip),
-/// and a label under each was the only text-heavy thing in a row that is
-/// otherwise pure affordance. The name survives as a tooltip and a
-/// semantic label.
+/// Media actions, each in the same type colour used in Settings.
 class _Tool extends StatelessWidget {
-  const _Tool({required this.icon, required this.label, required this.onTap});
+  const _Tool({
+    required this.icon,
+    required this.label,
+    required this.type,
+    required this.onTap,
+    this.selected = false,
+  });
 
   final IconData icon;
   final String label;
+  final String type;
   final VoidCallback? onTap;
+  final bool selected;
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: label,
-    constraints: const BoxConstraints.tightFor(
-      width: nexMinTapTarget,
-      height: nexMinTapTarget,
+  Widget build(BuildContext context) => Semantics(
+    selected: selected,
+    child: IconButton(
+      tooltip: label,
+      constraints: const BoxConstraints.tightFor(
+        width: nexMinTapTarget,
+        height: nexMinTapTarget,
+      ),
+      onPressed: onTap,
+      style: IconButton.styleFrom(
+        foregroundColor: nexNoteTypeTint(type, Theme.of(context).colorScheme),
+        backgroundColor: selected
+            ? nexNoteTypeTint(
+                type,
+                Theme.of(context).colorScheme,
+              ).withValues(alpha: 0.16)
+            : null,
+      ),
+      icon: Icon(icon, size: 22),
     ),
-    onPressed: onTap,
-    icon: Icon(icon, size: 22),
   );
-}
-
-/// The gallery and a file, behind one clip.
-///
-/// The camera keeps its own button: it is the one of the three reached for
-/// in a hurry, with something in front of the lens. A photo already taken
-/// and a document are both "something already on the phone", and asking
-/// which is one tap a person can afford — which keeps the row short enough
-/// that nothing in it scrolls out of sight.
-class _AttachMenu extends StatelessWidget {
-  const _AttachMenu({
-    required this.enabled,
-    required this.onGallery,
-    required this.onFile,
-  });
-
-  final bool enabled;
-  final VoidCallback onGallery;
-  final VoidCallback onFile;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    PopupMenuItem<VoidCallback> item(
-      String key,
-      IconData icon,
-      String label,
-      VoidCallback action,
-    ) => PopupMenuItem<VoidCallback>(
-      key: ValueKey(key),
-      value: action,
-      child: Row(
-        children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: NexSpacing.md),
-          Text(label),
-        ],
-      ),
-    );
-    return PopupMenuButton<VoidCallback>(
-      tooltip: l10n.attach,
-      enabled: enabled,
-      icon: const Icon(Icons.attach_file, size: 22),
-      position: PopupMenuPosition.over,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(NexRadius.md),
-      ),
-      onSelected: (action) => action(),
-      itemBuilder: (context) => [
-        item(
-          'capture-gallery',
-          Icons.photo_library_outlined,
-          l10n.gallery,
-          onGallery,
-        ),
-        item(
-          'capture-file',
-          Icons.insert_drive_file_outlined,
-          l10n.file,
-          onFile,
-        ),
-      ],
-    );
-  }
 }
 
 /// Beside Send: the reminder while writing, the bin while recording.

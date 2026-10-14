@@ -29,6 +29,37 @@ String? normaliseUrl(String raw) {
   return uri.toString();
 }
 
+/// A web address inside ordinary writing. Offsets refer to the original
+/// text: recognising a link never rewrites the note or consumes punctuation.
+typedef NexTextLink = ({int start, int end, String url});
+
+final _textLinkPattern = RegExp(
+  r'''(?<![\w@])(?:https?://|www\.)[^\s<>"\u200B-\u200F\u202A-\u202E\u2066-\u2069]+''',
+  caseSensitive: false,
+);
+
+Iterable<NexTextLink> nexTextLinks(String text) sync* {
+  for (final match in _textLinkPattern.allMatches(text)) {
+    var address = match.group(0)!;
+    while (address.isNotEmpty) {
+      final last = address[address.length - 1];
+      final opening = {')': '(', ']': '[', '}': '{'}[last];
+      final unbalanced =
+          opening != null &&
+          last.allMatches(address).length > opening.allMatches(address).length;
+      if (unbalanced || '.,!?;:،؛؟۔\u0027'.contains(last)) {
+        address = address.substring(0, address.length - 1);
+      } else {
+        break;
+      }
+    }
+    final url = normaliseUrl(address);
+    if (url != null) {
+      yield (start: match.start, end: match.start + address.length, url: url);
+    }
+  }
+}
+
 /// The part of a URL worth showing next to a title — `example.com`, not
 /// `https://www.example.com/a/very/long/path?utm_source=...`.
 ///

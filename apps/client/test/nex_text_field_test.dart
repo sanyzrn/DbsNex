@@ -181,6 +181,66 @@ void main() {
     );
   });
 
+  for (final cancel in [false, true]) {
+    testWidgets(
+      'native Link ${cancel ? 'cancel' : 'save'} hands focus back after the URL input leaves',
+      (tester) async {
+        final controller = TextEditingController(text: 'one two');
+        final focus = FocusNode();
+        addTearDown(controller.dispose);
+        addTearDown(focus.dispose);
+        await pump(
+          tester,
+          NexTextField(
+            controller: controller,
+            focusNode: focus,
+            formatting: true,
+          ),
+        );
+        focus.requestFocus();
+        await tester.pump();
+        await fromNative(tester, 'focus', {'focused': true});
+        final formatted = tester.binding.defaultBinaryMessenger
+            .handlePlatformMessage(
+              'nex/edit_text/$viewId',
+              const StandardMethodCodec().encodeMethodCall(
+                const MethodCall('format', {
+                  'id': 'link',
+                  'start': 4,
+                  'end': 7,
+                }),
+              ),
+              (_) {},
+            );
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsOneWidget);
+        // The URL input owns the keyboard now; this is the hand-off that the
+        // old focus-conditional cleanup missed when the editor later closed.
+        await fromNative(tester, 'focus', {'focused': false});
+        toNative.clear();
+        await tester.enterText(find.byType(TextField), 'https://example.com');
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(AlertDialog)),
+        );
+        await tester.tap(find.text(cancel ? l10n.cancel : l10n.save));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        // Ignore focus restored at pop: the native IME needs a hand-off
+        // after the outgoing URL field is actually removed.
+        toNative.clear();
+        await tester.pumpAndSettle();
+        await formatted;
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(toNative.map((call) => call.method), contains('focus'));
+        expect(
+          controller.text,
+          cancel ? 'one two' : 'one [two](https://example.com)',
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('Enter sends where the field sends', (tester) async {
     final controller = TextEditingController(text: 'ask this');
     final submitted = <String>[];

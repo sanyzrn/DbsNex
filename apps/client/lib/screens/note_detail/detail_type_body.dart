@@ -22,6 +22,7 @@ extension _DetailTypeBody on _NoteDetailSheetState {
       FoldedNote(
         text: note.content ?? '',
         onTapLink: _openHref,
+        onHoldLink: (href, at) => unawaited(_showLinkMenu(context, href, at)),
         onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
       )
     else if (note.type == NoteType.voice) ...[
@@ -167,12 +168,17 @@ extension _DetailTypeBody on _NoteDetailSheetState {
                   note.caption!,
                   selectable: false,
                   onTapLink: _openHref,
+                  onHoldLink: (href, at) =>
+                      unawaited(_showLinkMenu(context, href, at)),
                   onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               )
-            : NexTextSurface(
+            : NexLinkText(
                 note.caption!,
+                onTapLink: _openHref,
+                onHoldLink: (href, at) =>
+                    unawaited(_showLinkMenu(context, href, at)),
                 style: Theme.of(context).textTheme.bodyLarge,
                 selectable: true,
               )
