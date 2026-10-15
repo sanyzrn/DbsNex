@@ -52,10 +52,12 @@ void main() {
     tester,
   ) async {
     await open(tester);
-    await tester.enterText(searchField(), 'accent');
-    await tester.pumpAndSettle();
-    expect(find.text('Theme'), findsOneWidget);
-    expect(find.text('Capture haptics'), findsNothing);
+    for (final query in ['accent', 'liquid glass']) {
+      await tester.enterText(searchField(), query);
+      await tester.pumpAndSettle();
+      expect(find.text('Theme'), findsOneWidget);
+      expect(find.text('Capture haptics'), findsNothing);
+    }
   });
 
   testWidgets('found rows stay above the keyboard', (tester) async {
