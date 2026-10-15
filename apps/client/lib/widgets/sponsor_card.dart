@@ -27,9 +27,8 @@ class SponsorCard extends StatelessWidget {
 
   final NexSponsor sponsor;
 
-  /// The picture, already on disk. Never fetched from here: a card whose
-  /// image has not arrived is not shown at all, so by the time this widget
-  /// exists the file does too.
+  /// The cached picture, when available. Missing or unreadable pictures
+  /// fall back to the campaign's words.
   final File? image;
   final VoidCallback onOpen;
   final VoidCallback? onDismiss;
@@ -118,55 +117,71 @@ class _Words extends StatelessWidget {
     final body = sponsor.body;
     return Padding(
       padding: _wordsInsets,
-      child: Row(
-        children: [
-          Container(
-            width: nexCardLeadingSize,
-            height: nexCardLeadingSize,
-            decoration: BoxDecoration(
-              color: tint.withValues(alpha: 0.20),
-              borderRadius: BorderRadius.circular(NexRadius.md),
-            ),
-            child: Icon(Icons.campaign_outlined, color: tint),
-          ),
-          const SizedBox(width: NexSpacing.contentGap),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Says what it is, in small type, above the words somebody
-                // paid for. Not a disclosure buried at the bottom — the
-                // label is the first thing read.
-                Text(
-                  l10n.sponsorLabel,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    letterSpacing: 0.6,
-                  ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final scale = MediaQuery.textScalerOf(context);
+          double line(TextStyle? style) =>
+              scale.scale(style?.fontSize ?? 12) * (style?.height ?? 1.5);
+          final showBody =
+              body != null &&
+              body.isNotEmpty &&
+              line(theme.textTheme.labelSmall) +
+                      line(theme.textTheme.titleSmall) +
+                      line(theme.textTheme.bodySmall) <=
+                  constraints.maxHeight;
+          return Row(
+            children: [
+              Container(
+                width: nexCardLeadingSize,
+                height: nexCardLeadingSize,
+                decoration: BoxDecoration(
+                  color: tint.withValues(alpha: 0.20),
+                  borderRadius: BorderRadius.circular(NexRadius.md),
                 ),
-                Text(
-                  sponsor.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textDirection: nexDirectionOf(sponsor.title),
-                  style: theme.textTheme.titleSmall,
-                ),
-                if (body != null && body.isNotEmpty)
-                  Text(
-                    body,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textDirection: nexDirectionOf(body),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                child: Icon(Icons.campaign_outlined, color: tint),
+              ),
+              const SizedBox(width: NexSpacing.contentGap),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Says what it is, in small type, above the words somebody
+                    // paid for. Not a disclosure buried at the bottom — the
+                    // label is the first thing read.
+                    Text(
+                      l10n.sponsorLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        letterSpacing: 0.6,
+                      ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-          if (onDismiss case final dismiss?) _Dismiss(onDismiss: dismiss),
-        ],
+                    Text(
+                      sponsor.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textDirection: nexDirectionOf(sponsor.title),
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    if (showBody)
+                      Text(
+                        body,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textDirection: nexDirectionOf(body),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (onDismiss case final dismiss?) _Dismiss(onDismiss: dismiss),
+            ],
+          );
+        },
       ),
     );
   }
@@ -195,69 +210,98 @@ class _Picture extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Image.file(
-          picture,
-          fit: BoxFit.cover,
-          // The card is already only shown when the file is there, so this
-          // is the case where the bytes on disk turn out not to decode.
-          // Nothing is drawn rather than Flutter's broken-image glyph.
-          errorBuilder: (_, _, _) => const SizedBox.shrink(),
-          // Its own label, because the picture *is* the message here and a
-          // screen reader gets nothing from the file.
-          semanticLabel: sponsor.title,
-        ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: AlignmentDirectional.centerStart,
-              end: AlignmentDirectional.centerEnd,
-              colors: [
-                Colors.black.withValues(alpha: 0.55),
-                Colors.black.withValues(alpha: 0.15),
-                Colors.transparent,
-              ],
-              stops: const [0, 0.55, 1],
-            ),
-          ),
-        ),
-        Padding(
-          padding: _wordsInsets,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.sponsorLabel,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: Colors.white70,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    Text(
-                      sponsor.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textDirection: nexDirectionOf(sponsor.title),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
+    final pixels =
+        (MediaQuery.sizeOf(context).width *
+                MediaQuery.devicePixelRatioOf(context))
+            .ceil();
+    return Image.file(
+      picture,
+      fit: BoxFit.cover,
+      cacheWidth: pixels > 0 ? pixels.clamp(1, 4096).toInt() : null,
+      excludeFromSemantics: true,
+      errorBuilder: (_, _, _) => _Words(
+        sponsor: sponsor,
+        tint: nexParseTagColor(sponsor.color) ?? theme.colorScheme.primary,
+        onDismiss: onDismiss,
+      ),
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (frame == null) {
+          return _Words(
+            sponsor: sponsor,
+            tint: nexParseTagColor(sponsor.color) ?? theme.colorScheme.primary,
+            onDismiss: onDismiss,
+          );
+        }
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            child,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: AlignmentDirectional.centerStart,
+                  end: AlignmentDirectional.centerEnd,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.55),
+                    Colors.black.withValues(alpha: 0.15),
+                    Colors.transparent,
                   ],
+                  stops: const [0, 0.55, 1],
                 ),
               ),
-              if (onDismiss case final dismiss?)
-                _Dismiss(onDismiss: dismiss, onImage: true),
-            ],
-          ),
-        ),
-      ],
+            ),
+            Padding(
+              padding: _wordsInsets,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final scale = MediaQuery.textScalerOf(context);
+                        final heading = theme.textTheme.titleSmall;
+                        final label = theme.textTheme.labelSmall;
+                        double line(TextStyle? style) =>
+                            scale.scale(style?.fontSize ?? 12) *
+                            (style?.height ?? 1.5);
+                        final lines =
+                            ((constraints.maxHeight - line(label)) /
+                                    line(heading))
+                                .floor()
+                                .clamp(1, 2);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              l10n.sponsorLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: label?.copyWith(
+                                color: Colors.white70,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                            Text(
+                              sponsor.title,
+                              maxLines: lines,
+                              overflow: TextOverflow.ellipsis,
+                              textDirection: nexDirectionOf(sponsor.title),
+                              style: heading?.copyWith(color: Colors.white),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  if (onDismiss case final dismiss?)
+                    _Dismiss(onDismiss: dismiss, onImage: true),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -277,7 +321,10 @@ class _Dismiss extends StatelessWidget {
     tooltip: AppLocalizations.of(context).sponsorDismiss,
     icon: const Icon(Icons.close, size: 18),
     color: onImage ? Colors.white : null,
-    visualDensity: VisualDensity.compact,
+    constraints: const BoxConstraints.tightFor(
+      width: nexMinTapTarget,
+      height: nexMinTapTarget,
+    ),
     onPressed: onDismiss,
   );
 }

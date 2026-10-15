@@ -152,9 +152,7 @@ class _NexMarkdownState extends State<NexMarkdown> {
         ),
       ),
     );
-    return widget.selectable
-        ? SelectionArea(contextMenuBuilder: nexSelectionMenu, child: body)
-        : body;
+    return widget.selectable ? NexSelectionArea(child: body) : body;
   }
 
   MarkdownStyleSheet _sheet(

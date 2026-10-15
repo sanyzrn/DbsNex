@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
 
@@ -87,3 +88,39 @@ String nexRepeatLabel(AppLocalizations l10n, NoteRepeat repeat) =>
       NoteRepeat.daily => l10n.remindRepeatDaily,
       NoteRepeat.weekly => l10n.remindRepeatWeekly,
     };
+
+/// The phone's clock convention and local digits.
+String nexDueClock(BuildContext context, DateTime due) {
+  final l10n = AppLocalizations.of(context);
+  return nexDigits(
+    MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay.fromDateTime(due.toLocal()),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+    ),
+    persian: l10n.localeName == 'fa',
+  );
+}
+
+/// Daily · 09:00, or Wed · 09:00, beside the repeat icon.
+String nexDueCardLabel(BuildContext context, DateTime due, NoteRepeat repeat) {
+  final l10n = AppLocalizations.of(context);
+  if (repeat == NoteRepeat.once) return nexDueCountdown(l10n, due);
+  final day = repeat == NoteRepeat.daily
+      ? l10n.reminderDailyShort
+      : DateFormat.E(l10n.localeName).format(due.toLocal());
+  return '$day · ${nexDueClock(context, due)}';
+}
+
+/// The full schedule for the tooltip and screen reader.
+String nexDueCardDescription(
+  BuildContext context,
+  DateTime due,
+  NoteRepeat repeat,
+) {
+  final l10n = AppLocalizations.of(context);
+  if (repeat == NoteRepeat.once) return nexDueExact(context, due);
+  final day = repeat == NoteRepeat.weekly
+      ? ' · ${DateFormat.EEEE(l10n.localeName).format(due.toLocal())}'
+      : '';
+  return '${nexRepeatLabel(l10n, repeat)}$day · ${nexDueClock(context, due)}';
+}

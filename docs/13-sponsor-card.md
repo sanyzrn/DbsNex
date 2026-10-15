@@ -37,7 +37,7 @@ releases repository and used the same fallback.)
   "url": "https://nexahr.example",
   "starts": "2026-09-01T00:00:00Z",
   "ends": "2026-12-31T00:00:00Z",
-  "locales": ["fa"],
+  "locales": ["fa", "en"],
   "minDaysInstalled": 10,
   "minNotes": 5
 }
@@ -52,7 +52,7 @@ releases repository and used the same fallback.)
 | `image` | no | A picture to fill the card. See below. |
 | `url` | no | Opened on tap. `https` and `http` only — anything else is ignored. A card with no link is still a card. |
 | `starts` / `ends` | no | ISO-8601. Outside the window, nothing appears. |
-| `locales` | no | Language codes, e.g. `["fa"]`. Empty or absent means everyone. A card written in Persian has no business appearing for an English reader. |
+| `locales` | no | Preferred interface languages, e.g. `["fa", "en"]`. Matching or unrestricted campaigns are picked first. If none matches, another active campaign still appears. |
 | `minDaysInstalled` / `minNotes` | no | A new install sees no card until **either** this many days have passed since the timeline was first shown **or** it holds this many notes — whichever comes first. Absent means 10 and 5; `0` means no wait. Once a phone has earned the card it keeps it: deleting notes does not hide it again. Clearing the app's data starts the count over, along with the library. |
 
 ## Several cards at once
@@ -69,10 +69,13 @@ exactly like the single card above:
 ```
 
 - Each phone picks **one at random** at its daily refresh, from the cards it
-  could show that day — inside their dates and in its language — and keeps it
+  could show that day — inside their dates, preferring its language — and keeps it
   until the next refresh. Across phones every card is seen about as often.
 - Only the chosen card's picture is downloaded.
-- Past five, the rest are ignored. A list with nothing for a phone that day is
+- If no campaign matches the interface language, an active campaign in another
+  language is shown instead. Changing the interface language does not hide the
+  cached card.
+- Past five, the rest are ignored. A list with no active campaign that day is
   the same as no file: no card.
 - `minDaysInstalled` and `minNotes` are read from the chosen card.
 
@@ -96,7 +99,9 @@ decoder is a large thing to carry for a card the height of one note.
   (and `body`) are drawn on the plain card instead, so write a title that
   stands on its own even for a picture-led campaign. (It used to be hidden
   altogether, which on a network that blocks the picture's host meant the
-  card never appeared.)
+  card never appeared.) A cached picture that fails to decode also falls back
+  to this word card. At large text sizes, the supporting body line may be
+  omitted so the sponsor label and title remain readable.
 
 ## When nothing appears
 
@@ -109,11 +114,10 @@ placeholder, no error:
 - a file that is not valid JSON, or has no `id` or `title`
 - an HTML error page from a captive portal, a filter or a proxy, or a 403 or
   5xx from the host
-- a picture that is missing, too large, or not a picture
 - the device is offline, or has been for more than 48 hours (the card only
   shows while the last **successful** fetch is recent — an old campaign must
   not live on in the timeline of a phone that has been off the network)
-- the card's dates have passed, or it is for another language
+- the card's dates have passed
 - the reader hid it in the last 24 hours (while hiding is on — see below)
 
 ## Hiding a card
@@ -158,3 +162,19 @@ A stored time that lies in the future — the phone's clock was moved back since
 it was written — counts as long ago, not as recent, so a corrected date never
 holds the card back until the wrong date comes round. A foreground resume
 redraws the timeline only when the check actually changed the card.
+
+A missing picture gets another attempt after the 30-minute failure cool-off,
+even while its manifest is inside the normal 24-hour refresh interval. That
+image-only retry does not advance the manifest's successful-fetch timestamp.
+A temporary fetch failure preserves the previous picture of the same campaign
+and URL. Switching to a card without a picture removes the old cached file.
+
+Response size limits are enforced while reading the stream, with a total
+request deadline. A broken or filtered GitHub image host can use the mirror
+on transport errors, 403, 429 or 5xx; a missing mirror copy never removes a
+campaign. A canonical 404/410 still ends it.
+
+**Language preferences apply to the app interface**, not to the note's language
+or the phone's country. `"locales": ["fa"]` gives a campaign priority in the
+Persian interface, while still allowing it as a fallback in English. Omit
+`locales` or use `["fa", "en"]` for equal priority in both interfaces.

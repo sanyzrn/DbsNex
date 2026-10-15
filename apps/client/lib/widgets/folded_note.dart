@@ -32,8 +32,7 @@ class _FoldedNoteState extends State<FoldedNote> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SelectionArea(
-          contextMenuBuilder: nexSelectionMenu,
+        NexSelectionArea(
           child: nexLooksLikeMarkdown(text)
               ? NexMarkdown(
                   text,

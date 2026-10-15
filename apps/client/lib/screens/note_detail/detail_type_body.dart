@@ -162,8 +162,7 @@ extension _DetailTypeBody on _NoteDetailSheetState {
         // link actions as a text note's, so a caption that
         // used them is drawn the way a text note's body is.
         nexLooksLikeMarkdown(note.caption!)
-            ? SelectionArea(
-                contextMenuBuilder: nexSelectionMenu,
+            ? NexSelectionArea(
                 child: NexMarkdown(
                   note.caption!,
                   selectable: false,

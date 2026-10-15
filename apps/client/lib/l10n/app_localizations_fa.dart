@@ -9,6 +9,9 @@ class AppLocalizationsFa extends AppLocalizations {
   AppLocalizationsFa([String locale = 'fa']) : super(locale);
 
   @override
+  String get reminderDailyShort => 'روزانه';
+
+  @override
   String get libraryTagsHint => 'نام و رنگ برای آنچه دسته می‌کنید';
 
   @override

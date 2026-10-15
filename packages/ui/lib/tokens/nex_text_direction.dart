@@ -301,7 +301,7 @@ class NexTextSurface extends StatelessWidget {
     return selectable
         // The app's own menu, not Flutter's default one — see
         // [nexSelectionMenu].
-        ? SelectionArea(contextMenuBuilder: nexSelectionMenu, child: body)
+        ? NexSelectionArea(child: body)
         : body;
   }
 

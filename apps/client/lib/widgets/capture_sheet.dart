@@ -93,6 +93,7 @@ enum _Voice { off, starting, on }
 
 class _CaptureSheetState extends State<CaptureSheet> {
   final controller = TextEditingController();
+  final _fieldFocus = FocusNode();
 
   Timer? debounce;
   String? noteId;
@@ -622,6 +623,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
     unawaited(_settle());
     debounce?.cancel();
     controller.dispose();
+    _fieldFocus.dispose();
     super.dispose();
   }
 
@@ -675,14 +677,39 @@ class _CaptureSheetState extends State<CaptureSheet> {
                     )
                   : KeyedSubtree(
                       key: const ValueKey('capture-field'),
-                      child: _field(context, l10n),
+                      child: TextFieldTapRegion(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _field(context, l10n)),
+                            IconButton(
+                              key: const ValueKey('capture-paste'),
+                              tooltip: MaterialLocalizations.of(
+                                context,
+                              ).pasteButtonLabel,
+                              onPressed: _closing ? null : _paste,
+                              constraints: const BoxConstraints.tightFor(
+                                width: nexMinTapTarget,
+                                height: nexMinTapTarget,
+                              ),
+                              color: nexNoteTypeTint(
+                                _wire(shown),
+                                Theme.of(context).colorScheme,
+                              ),
+                              icon: const Icon(
+                                Icons.content_paste_outlined,
+                                size: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
             ),
             _ComposerFootnote(
               kind: shown,
               text: controller.text,
               scheduleHint: showScheduleHint,
-              onPaste: _paste,
             ),
             const SizedBox(height: NexSpacing.xs),
             Wrap(

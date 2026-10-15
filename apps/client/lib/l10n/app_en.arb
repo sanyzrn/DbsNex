@@ -1,4 +1,5 @@
 {
+  "reminderDailyShort": "Daily",
   "libraryTagsHint": "Colour and name what you file",
   "libraryTrashHint": "Kept for 30 days",
   "libraryTagCount": "{count, plural, =0{No tags yet} =1{1 tag} other{{count} tags}}",

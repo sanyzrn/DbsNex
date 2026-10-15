@@ -132,20 +132,37 @@ extension _CaptureModes on _CaptureSheetState {
     }
   }
 
-  /// The link box's paste: an address on the clipboard, put in the field.
+  /// Paste into the shared editor, replacing its selection or inserting at
+  /// its caret. Keep line breaks and spacing in notes and checklists.
   ///
   /// Read only when asked. Android tells the person every time an app reads
   /// the clipboard, and a sheet that did it on opening would be telling
   /// them on every capture.
   Future<void> _paste() async {
+    if (_closing) return;
     final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final pasted = data?.text?.trim() ?? '';
-    if (!mounted || pasted.isEmpty || controller.text.isNotEmpty) return;
-    controller.value = TextEditingValue(
-      text: pasted,
-      selection: TextSelection.collapsed(offset: pasted.length),
+    if (!mounted || _closing || _voiceOn) return;
+    final pasted = _kind == CaptureKind.link
+        ? data?.text?.trim() ?? ''
+        : data?.text ?? '';
+    if (pasted.isEmpty) return;
+    final value = controller.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final text = value.text.replaceRange(
+      selection.start,
+      selection.end,
+      pasted,
     );
-    changed(pasted);
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(
+        offset: selection.start + pasted.length,
+      ),
+    );
+    changed(text);
+    _fieldFocus.requestFocus();
   }
 
   /// The one field the three text kinds share — the same widget in the same
@@ -196,6 +213,7 @@ extension _CaptureModes on _CaptureSheetState {
         // for why a note is never a bare `TextField`.
         child: NexTextField(
           controller: controller,
+          focusNode: _fieldFocus,
           autofocus: true,
           minLines: 3,
           readOnly: _closing,

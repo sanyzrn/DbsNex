@@ -42,11 +42,10 @@ NexCardStrings nexCardStrings(BuildContext context) {
       NexRelativeUnit.months => l10n.timeMonthsAgo(time.count),
       NexRelativeUnit.years => l10n.timeYearsAgo(time.count),
     },
-    // A repeat has no countdown to give: its stored time is when the series
-    // started. It says how often instead, which is the thing worth knowing at
-    // a glance about a reminder that keeps coming back.
-    dueLabel: (due, repeat) => repeat == NoteRepeat.once
-        ? nexDueCountdown(l10n, due)
-        : nexRepeatLabel(l10n, repeat),
+    dueLabel: (due, repeat) => nexDueCardLabel(context, due, repeat),
+    dueDescription: (due, repeat) =>
+        nexDueCardDescription(context, due, repeat),
+    dueCompactLabel: (due, repeat) =>
+        repeat == NoteRepeat.once ? null : nexDueClock(context, due),
   );
 }

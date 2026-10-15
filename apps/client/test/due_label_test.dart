@@ -133,4 +133,103 @@ void main() {
       expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
     });
   });
+  for (final lang in ['en', 'fa']) {
+    for (final repeat in [NoteRepeat.daily, NoteRepeat.weekly]) {
+      testWidgets('$lang $repeat shows a local clock and full schedule', (
+        tester,
+      ) async {
+        final due = DateTime(2026, 10, 14, 9, 5);
+        late String label;
+        late String description;
+        final semantics = tester.ensureSemantics();
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: Locale(lang),
+            theme: nexLightTheme(fontFamily: nexFontFor(Locale(lang))),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: MediaQuery(
+              data: const MediaQueryData(alwaysUse24HourFormat: true),
+              child: Scaffold(
+                body: Builder(
+                  builder: (context) {
+                    label = nexDueCardLabel(context, due.toUtc(), repeat);
+                    description = nexDueCardDescription(
+                      context,
+                      due.toUtc(),
+                      repeat,
+                    );
+                    final base = _noteDue(due);
+                    return NoteCard(
+                      note: base.copyWith(dueRepeat: repeat),
+                      strings: nexCardStrings(context),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(label, contains(lang == 'fa' ? '۹:۰۵' : '09:05'));
+        expect(find.text(label), findsOneWidget);
+        expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
+        expect(
+          description,
+          contains(
+            lang == 'fa'
+                ? (repeat == NoteRepeat.daily ? 'هر روز' : 'هر هفته')
+                : (repeat == NoteRepeat.daily ? 'Every day' : 'Every week'),
+          ),
+        );
+        expect(find.bySemanticsLabel(description), findsOneWidget);
+        await tester.longPress(find.text(label));
+        await tester.pumpAndSettle();
+        expect(find.text(description), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        semantics.dispose();
+      });
+    }
+  }
+  testWidgets(
+    'the reminder clock survives a narrow card with large text and attachments',
+    (tester) async {
+      final due = DateTime(2026, 10, 14, 9, 5);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          theme: nexLightTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MediaQuery(
+            data: const MediaQueryData(
+              alwaysUse24HourFormat: true,
+              textScaler: TextScaler.linear(1.9),
+            ),
+            child: Scaffold(
+              body: SizedBox(
+                width: 320,
+                child: Builder(
+                  builder: (context) => NoteCard(
+                    note: _noteDue(
+                      due,
+                    ).copyWith(dueRepeat: NoteRepeat.daily, attachmentCount: 2),
+                    strings: nexCardStrings(context),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('09:05'),
+        findsOneWidget,
+        reason: 'hide the daily abbreviation before hiding the clock',
+      );
+      expect(find.text('+2'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
