@@ -213,8 +213,8 @@
   "themeDark": "تیره",
   "themeSystem": "مثل سیستم",
   "comfortMode": "حالت آسایش",
-  "liquidGlass": "شیشهٔ مایع",
-  "liquidGlassSubtitle": "کنترل‌های نیمه‌شفاف تطبیقی با محوشدگی واقعی پس‌زمینه",
+  "liquidGlass": "لیکویید گلس",
+  "liquidGlassSubtitle": "جلوهٔ شیشه‌ای برای کنترل‌های شناور، منوها و شیت‌ها؛ با حفظ تم و خوانایی یادداشت‌ها.",
   "backgroundStyle": "پس‌زمینه",
   "backgroundStyleSubtitle": "پترن‌های مینیمال داخلی، تنظیم‌شده برای هر دو پوستهٔ روشن و تیره",
   "backgroundPlain": "ساده",
@@ -1938,5 +1938,7 @@
   "vaultAttachPlay": "پخش",
   "vaultAttachPause": "توقف",
   "assistantVoiceReview": "بررسی گفته‌ها پیش از ارسال",
-  "assistantVoiceReviewSubtitle": "درخواستی که با صدا می‌گویید، به جای ارسال فوری، برای ویرایش در کادر نوشتن قرار می‌گیرد."
+  "assistantVoiceReviewSubtitle": "درخواستی که با صدا می‌گویید، به جای ارسال فوری، برای ویرایش در کادر نوشتن قرار می‌گیرد.",
+  "editPhotoBeforeCapture": "ویرایش تصویر پیش از ثبت",
+  "editPhotoBeforeCaptureSubtitle": "پس از گرفتن یا انتخاب عکس، پیش‌نمایش و ابزارهای ویرایش باز شوند. در حالت خاموش، عکس مستقیم ثبت می‌شود."
 }

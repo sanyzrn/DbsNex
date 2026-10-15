@@ -134,3 +134,9 @@ Most of Nex is calm, neutral and the person's own theme. A feature may have
       `NexMotion` token, unless the piece is a signature one (§6).
 - [ ] Reduced motion leaves nothing moving.
 - [ ] New text a person writes follows §4.
+
+## 10. Optional glass material (2.0)
+
+Liquid glass is an independent opt-in in Appearance, off by default. Keep note cards and reading surfaces opaque; use `NexGlassSurface` for floating chrome and sheet menus, and `NexGlassBar` where content scrolls behind a header. Use the active palette's wash, a bounded backdrop blur and a fine inner optical rim. High contrast falls back to a solid surface. Do not add perpetual sheen animations or a blur to each row of a scrolling list.
+
+Each swipe action owns a small mechanical motion driven by drag progress. The commit point adds one finite beat; reduced motion keeps the glyph static. Never couple the animation to the action's execution threshold.

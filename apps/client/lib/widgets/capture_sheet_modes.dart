@@ -162,7 +162,9 @@ extension _CaptureModes on _CaptureSheetState {
       ),
     );
     changed(text);
-    _fieldFocus.requestFocus();
+    // The native editor owns a child focus node. Re-requesting the parent
+    // steals that focus and briefly drops the IME before restoring it.
+    if (!_fieldFocus.hasFocus) _fieldFocus.requestFocus();
   }
 
   /// The one field the three text kinds share — the same widget in the same

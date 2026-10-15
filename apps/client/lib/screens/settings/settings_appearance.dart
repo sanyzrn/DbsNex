@@ -236,7 +236,16 @@ class _ThemeScreen extends StatelessWidget {
             ),
             const SizedBox(height: NexSpacing.md),
             _SettingsCard(
-              children: [_AccentColorRow(preferences: preferences)],
+              children: [
+                _AccentColorRow(preferences: preferences),
+                _SwitchRow(
+                  icon: Icons.blur_on_rounded,
+                  title: l10n.liquidGlass,
+                  subtitle: l10n.liquidGlassSubtitle,
+                  value: preferences.liquidGlass,
+                  onChanged: preferences.setLiquidGlass,
+                ),
+              ],
             ),
             const SizedBox(height: NexSpacing.md),
             Text(

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -78,6 +79,42 @@ void main() {
     }
   });
 
+  for (final enabled in [true, false]) {
+    for (final icon in [Icons.inventory_2_outlined, Icons.settings_outlined]) {
+      testWidgets('$icon respects haptics=$enabled', (tester) async {
+        await preferences.setHaptics(enabled);
+        await open(tester);
+        final taps = <Object?>[];
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'HapticFeedback.vibrate') {
+              taps.add(call.arguments);
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+        await tester.tap(find.byIcon(icon));
+        await tester.pump();
+        await tester.pump(NexMotion.enter);
+        expect(
+          taps
+              .where((value) => value == 'HapticFeedbackType.selectionClick')
+              .length,
+          enabled ? 1 : 0,
+        );
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      });
+    }
+  }
+
   testWidgets('capture rises above a single home dock', (tester) async {
     await open(tester);
 
@@ -134,29 +171,28 @@ void main() {
     }
   });
 
-  testWidgets(
-    'temporarily disabled glass stays opaque despite saved preference',
-    (tester) async {
-      // An opaque modal Material used to be painted before the glass wrapper,
-      // leaving the backdrop filter only its own solid colour to sample.
-      await preferences.setLiquidGlass(true);
-      await open(tester);
-      // Any sheet over the timeline: the capture sheet, now that Settings is
-      // a page.
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
+  testWidgets('opted-in glass reaches the dock and capture sheet', (
+    tester,
+  ) async {
+    // An opaque modal Material used to be painted before the glass wrapper,
+    // leaving the backdrop filter only its own solid colour to sample.
+    await preferences.setLiquidGlass(true);
+    await open(tester);
+    // Any sheet over the timeline: the capture sheet, now that Settings is
+    // a page.
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
 
-      final sheets = tester.widgetList<BottomSheet>(find.byType(BottomSheet));
-      expect(sheets.last.backgroundColor, Colors.transparent);
-      expect(
-        find.descendant(
-          of: find.byType(BottomSheet).last,
-          matching: find.byType(BackdropFilter),
-        ),
-        findsNothing,
-      );
-    },
-  );
+    final sheets = tester.widgetList<BottomSheet>(find.byType(BottomSheet));
+    expect(sheets.last.backgroundColor, Colors.transparent);
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet).last,
+        matching: find.byType(BackdropFilter),
+      ),
+      findsWidgets,
+    );
+  });
 
   testWidgets(
     'tools opens from the dock; hold capture offers assistant setup',

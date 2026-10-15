@@ -634,15 +634,11 @@ ThemeData _theme({
 }) {
   final dark = brightness == Brightness.dark;
   final errorColor = dark ? NexColors.errorDark : NexColors.error;
-  final pageSurface = liquidGlass
-      ? background.withValues(alpha: dark ? 0.72 : 0.68)
-      : background;
-  final cardSurface = liquidGlass
-      ? card.withValues(alpha: dark ? 0.76 : 0.74)
-      : card;
-  final elevatedSurface = liquidGlass
-      ? elevated.withValues(alpha: dark ? 0.66 : 0.62)
-      : elevated;
+  // Reading surfaces stay solid. Glass is a material for floating chrome,
+  // not a whole-page transparency mode that makes note text overlap.
+  final pageSurface = background;
+  final cardSurface = card;
+  final elevatedSurface = elevated;
   // What a sheet is drawn on. Higher than the other glass surfaces on
   // purpose: a sheet covers the page rather than sitting within it, and it is
   // the one place where seeing the layer underneath is not depth, it is two

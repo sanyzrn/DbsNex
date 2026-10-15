@@ -272,6 +272,13 @@ class _ProfileScreenState extends State<ProfileScreen>
               photo: photoFile,
               name: _name.text,
               bio: _bio.text,
+              birthdayColor:
+                  const {
+                    'classic',
+                    'graphite',
+                  }.contains(widget.preferences.themePreset)
+                  ? Theme.of(context).colorScheme.onSurface
+                  : null,
               birthdayLine: birthday == null
                   ? null
                   : profileBirthdayCountdown(l10n, birthday.daysUntil),

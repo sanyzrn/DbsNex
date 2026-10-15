@@ -557,6 +557,7 @@ extension _TimelineLayout on TimelineScreenState {
               // screen shows, and neither refreshes it on its own.
               onPressed: () async {
                 if (_claimedByOverlay()) return;
+                _tick();
                 await Navigator.push(
                   context,
                   NexPageRoute<void>(
@@ -580,6 +581,7 @@ extension _TimelineLayout on TimelineScreenState {
               // just added would look broken to whoever just added it.
               onPressed: () async {
                 if (_claimedByOverlay()) return;
+                _tick();
                 await Navigator.push<void>(
                   context,
                   NexPageRoute<void>(

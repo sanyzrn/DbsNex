@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
-import '../tokens/nex_appearance.dart';
 import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
@@ -269,8 +268,6 @@ class _CardBody extends StatelessWidget {
             ? BorderSide(color: theme.colorScheme.primary, width: 2)
             : MediaQuery.highContrastOf(context)
             ? BorderSide(color: theme.colorScheme.outline, width: 1.5)
-            : context.nexVisualStyle.liquidGlass
-            ? BorderSide(color: context.nexVisualStyle.glassBorder)
             : BorderSide(
                 color: theme.colorScheme.outline.withValues(alpha: 0.6),
                 width: 0.75,

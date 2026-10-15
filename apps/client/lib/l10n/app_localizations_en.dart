@@ -783,11 +783,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get comfortMode => 'Comfort Mode';
 
   @override
-  String get liquidGlass => 'Liquid Glass';
+  String get liquidGlass => 'Liquid glass';
 
   @override
   String get liquidGlassSubtitle =>
-      'Adaptive translucent controls with real background blur';
+      'Frosted floating controls, menus and sheets. Your theme and note readability stay intact.';
 
   @override
   String get backgroundStyle => 'Background';
@@ -5295,4 +5295,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get assistantVoiceReviewSubtitle =>
       'A spoken request is put in the box to edit instead of being sent straight away.';
+
+  @override
+  String get editPhotoBeforeCapture => 'Edit photos before capture';
+
+  @override
+  String get editPhotoBeforeCaptureSubtitle =>
+      'Open the preview and editing tools after taking or choosing a photo. Off saves it straight away.';
 }

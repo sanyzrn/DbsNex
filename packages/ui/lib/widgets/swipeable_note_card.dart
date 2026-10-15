@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
@@ -9,11 +11,12 @@ import 'package:flutter/semantics.dart';
 import '../tokens/nex_haptics.dart';
 import '../tokens/nex_tokens.dart';
 
+part 'swipe_action_glyph.dart';
+
 /// Everything an edge can be bound to.
 ///
-/// Open by construction (ADR-022). The panel draws whatever [NexSwipeActionSpec]
-/// it is handed, so adding one here costs a spec at the call site and nothing
-/// in this file.
+/// Labels and colours come from [NexSwipeActionSpec] at the call site;
+/// each action's moving parts live in [NexSwipeActionGlyph].
 enum NexSwipeAction { delete, addTag, pin, remind, share, ask }
 
 /// How one action looks when a card is swiped far enough to reveal it.
@@ -528,6 +531,8 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
                                 : Alignment.centerRight,
                             child: _ActionPanel(
                               width: dx.abs(),
+                              progress: (dx.abs() / (_width * _commitFraction))
+                                  .clamp(0, 1),
                               spec: revealed,
                               // Past the commit point the panel says so, so the
                               // user knows letting go will act rather than open.
@@ -593,6 +598,7 @@ const _glyphRevealWidth = 54.0;
 class _ActionPanel extends StatelessWidget {
   const _ActionPanel({
     required this.width,
+    required this.progress,
     required this.spec,
     required this.committed,
     required this.theme,
@@ -600,6 +606,7 @@ class _ActionPanel extends StatelessWidget {
   });
 
   final double width;
+  final double progress;
   final NexSwipeActionSpec spec;
   final bool committed;
   final ThemeData theme;
@@ -621,16 +628,20 @@ class _ActionPanel extends StatelessWidget {
           child: Center(
             child: AnimatedScale(
               scale: showGlyph ? 1 : 0.4,
-              duration: NexMotion.standard,
+              duration: NexMotion.of(context, NexMotion.standard),
               curve: NexMotion.curve,
               child: AnimatedOpacity(
                 opacity: showGlyph ? 1 : 0,
-                duration: NexMotion.standard,
+                duration: NexMotion.of(context, NexMotion.standard),
                 curve: NexMotion.curve,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _ActionGlyph(icon: spec.icon, committed: committed),
+                    NexSwipeActionGlyph(
+                      action: spec.action,
+                      progress: progress,
+                      armed: committed,
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       spec.label,
@@ -651,104 +662,4 @@ class _ActionPanel extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The panel's icon, which reacts when the swipe locks in.
-///
-/// Crossing the commit point is the one moment in the gesture with a real
-/// consequence — let go here and the action runs — and until now the only sign
-/// of it was a static 12% scale step. The icon now takes a beat: it swells,
-/// tips, and springs back, so the change of state is something the hand feels
-/// it caused rather than something the eye has to notice.
-class _ActionGlyph extends StatefulWidget {
-  const _ActionGlyph({required this.icon, required this.committed});
-
-  final IconData icon;
-  final bool committed;
-
-  @override
-  State<_ActionGlyph> createState() => _ActionGlyphState();
-}
-
-class _ActionGlyphState extends State<_ActionGlyph>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pop = AnimationController(
-    vsync: this,
-    duration: NexMotion.morph,
-  );
-
-  late final Animation<double> _scale = TweenSequence<double>([
-    TweenSequenceItem(
-      tween: Tween(
-        begin: 1.0,
-        end: 1.35,
-      ).chain(CurveTween(curve: Curves.easeOutCubic)),
-      weight: 30,
-    ),
-    TweenSequenceItem(
-      tween: Tween(
-        begin: 1.35,
-        end: 1.12,
-      ).chain(CurveTween(curve: Curves.elasticOut)),
-      weight: 70,
-    ),
-  ]).animate(_pop);
-
-  /// A quick tip and back. Small on purpose: a full spin would be a mascot.
-  late final Animation<double> _tilt = TweenSequence<double>([
-    TweenSequenceItem(
-      tween: Tween(
-        begin: 0.0,
-        end: -0.26,
-      ).chain(CurveTween(curve: Curves.easeOut)),
-      weight: 30,
-    ),
-    TweenSequenceItem(
-      tween: Tween(
-        begin: -0.26,
-        end: 0.12,
-      ).chain(CurveTween(curve: Curves.easeInOut)),
-      weight: 30,
-    ),
-    TweenSequenceItem(
-      tween: Tween(
-        begin: 0.12,
-        end: 0.0,
-      ).chain(CurveTween(curve: Curves.easeOutBack)),
-      weight: 40,
-    ),
-  ]).animate(_pop);
-
-  @override
-  void didUpdateWidget(_ActionGlyph oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.committed == oldWidget.committed) return;
-    if (!widget.committed) {
-      // Dragged back below the line: settle, rather than play the pop in
-      // reverse, which would read as a second event.
-      _pop.animateTo(0, duration: NexMotion.fast, curve: NexMotion.curve);
-      return;
-    }
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _pop.value = 1;
-      return;
-    }
-    _pop.forward(from: 0);
-  }
-
-  @override
-  void dispose() {
-    _pop.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _pop,
-    child: Icon(widget.icon, color: Colors.white, size: 22),
-    builder: (context, child) => Transform.rotate(
-      angle: _tilt.value,
-      child: Transform.scale(scale: _scale.value, child: child),
-    ),
-  );
 }

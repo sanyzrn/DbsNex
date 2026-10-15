@@ -361,6 +361,7 @@ class NexGlassSurface extends StatelessWidget {
           // temporarily paints into a fresh layer above the blurred page.
           child: CustomPaint(
             painter: _GlassWashPainter(visual.glassWash),
+            foregroundPainter: _GlassRimPainter(borderRadius, visual),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -381,6 +382,36 @@ class NexGlassSurface extends StatelessWidget {
       ),
     );
   }
+}
+
+class _GlassRimPainter extends CustomPainter {
+  const _GlassRimPainter(this.radius, this.visual);
+  final BorderRadius radius;
+  final NexVisualStyle visual;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final rect = (Offset.zero & size).deflate(0.7);
+    final shape = radius.toRRect(rect);
+    final shader = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [visual.glassRim, visual.glassBorder, visual.glassDepth],
+      stops: const [0, 0.48, 1],
+    ).createShader(rect);
+    canvas.drawRRect(
+      shape,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..shader = shader,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GlassRimPainter old) =>
+      old.radius != radius || old.visual != visual;
 }
 
 /// The blurred band behind a top bar, for a bar the content scrolls under.
