@@ -30,7 +30,7 @@ extension _EditorActions on _AssetEditorSheetState {
       if (old != null && unit != old.distanceUnit) {
         final answer = await nexShowDialog<String>(
           context: context,
-          builder: (dialog) => AlertDialog(
+          builder: (dialog) => NexAlertDialog(
             title: Text(maintenanceStrings(dialog, 'convertUnitTitle')),
             content: NexDialogBody(
               child: Text(

@@ -7,7 +7,7 @@ extension _ParkingDetailBody on _ParkingDetailPageState {
     final active = body != null && ParkingLogic.isActive(body);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(strings(context, 'detailsTitle')),
         actions: [
           IconButton(

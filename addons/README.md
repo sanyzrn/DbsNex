@@ -1,15 +1,15 @@
 # Nex add-on sources
 
-All 11 supplied modules are integrated into the client for the owner's 2.0.1
-preview. Sources and original READMEs are under `apps/client/lib/modules/<id>/`;
+All 11 supplied modules are integrated into the client for individual review. Sources and original READMEs are under `apps/client/lib/modules/<id>/`;
 tests are under `apps/client/test/modules/<id>/`. They were moved from this
 folder with Git history preserved. All 369 supplied files are retained, with the
 repository's LF normalization (original archive SHA-256
 `28b2cfa90b8f8f86a87524543bbd4aabcce4d4bb89fe67c330188d2878a8b893`).
 
-The eleven modules default on in Tools for testing. An explicit Remove choice
-is retained; Cycle keeps its existing opt-in. New, unrelated modules still default
-off. Continue all work on `codex/2.0-polish` and complete each module individually.
+All modules default off from 2.0.2, including upgrades from the automatic
+2.0.1 preview. Explicit Add/Remove choices are preserved; Cycle keeps its existing
+opt-in. Add the modules you want from Tools → Add modules. Continue all work on
+`codex/2.0-polish` and complete each module individually.
 
 ## Inventory
 

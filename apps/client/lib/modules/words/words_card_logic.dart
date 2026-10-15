@@ -98,7 +98,7 @@ mixin _WordsCardLogic on State<WordsCardPage> {
       if (duplicate != null) {
         final accepted = await nexShowDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
+          builder: (ctx) => NexAlertDialog(
             title: Text(wordsStrings(ctx, 'duplicateTitle')),
             content: NexDialogBody(
               child: Text(
@@ -166,7 +166,7 @@ mixin _WordsCardLogic on State<WordsCardPage> {
     try {
       final confirmed = await nexShowDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => NexAlertDialog(
           title: Text(wordsStrings(ctx, 'deleteTitle')),
           content: NexDialogBody(child: Text(wordsStrings(ctx, 'deleteBody'))),
           actions: [

@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:nex_core/nex_core.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
@@ -62,6 +63,39 @@ void main() {
     expect(find.byType(NexMarkdown), findsOneWidget);
     expect(find.textContaining('**'), findsNothing);
   });
+
+  for (final language in ['en', 'fa']) {
+    testWidgets('bold preserves the writer\'s Enter ($language)', (
+      tester,
+    ) async {
+      const source = 'سلام\nحالت چطوره؟';
+      final formatted = NexTextFormatting.toggleInline(
+        source,
+        0,
+        4,
+        NexInlineFormat.bold,
+      );
+      expect(formatted.text, '**سلام**\nحالت چطوره؟');
+      await openText(tester, formatted.text, language: language);
+      final rich = find.byWidgetPredicate(
+        (w) =>
+            w is RichText && w.text.toPlainText().contains('سلام\nحالت چطوره؟'),
+      );
+      expect(rich, findsOneWidget);
+      final paragraph = tester.renderObject<RenderParagraph>(rich);
+      final first = paragraph
+          .getBoxesForSelection(
+            const TextSelection(baseOffset: 0, extentOffset: 4),
+          )
+          .first;
+      final second = paragraph
+          .getBoxesForSelection(
+            const TextSelection(baseOffset: 5, extentOffset: 9),
+          )
+          .first;
+      expect(second.top, greaterThan(first.top));
+    });
+  }
 
   testWidgets('an ordinary sentence is shown exactly as typed', (tester) async {
     // The cost of getting this wrong is a character the writer put there being

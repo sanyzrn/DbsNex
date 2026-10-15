@@ -44,7 +44,7 @@ class LensInvalidRow extends StatelessWidget {
     final s = priceLensStrings;
     final approved = await nexShowDialog<bool>(
       context: context,
-      builder: (dialog) => AlertDialog(
+      builder: (dialog) => NexAlertDialog(
         title: Text(s(dialog, 'incompleteDelete')),
         content: NexDialogBody(child: Text(s(dialog, 'incompleteDeleteBody'))),
         actions: [

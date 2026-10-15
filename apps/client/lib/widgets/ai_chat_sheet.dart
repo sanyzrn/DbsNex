@@ -377,12 +377,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
         expand: false,
         builder: (context, sheetScroll) {
           _scroll = sheetScroll;
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(NexRadius.xl),
-              ),
+          return NexGlassSurface(
+            fallbackColor: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(NexRadius.xl),
             ),
             child: Column(
               children: [

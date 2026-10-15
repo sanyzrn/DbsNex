@@ -100,7 +100,7 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
     final s = priceLensStrings;
     final answer = await nexShowDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => NexAlertDialog(
         title: Text(s(dialogContext, 'removeOptionTitle')),
         content: NexDialogBody(
           child: Text(s(dialogContext, 'removeOptionBody')),
@@ -133,7 +133,7 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
         : compareOptions(options, unit);
     final memoryLine = _memoryLine(context);
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(s(context, 'title')),
         actions: [
           IconButton(
@@ -141,7 +141,7 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
             onPressed: _reset,
             icon: const Icon(Icons.restart_alt),
           ),
-          PopupMenuButton<String>(
+          NexPopupMenuButton<String>(
             tooltip: s(context, 'moreActions'),
             onSelected: (action) => unawaited(_menu(action)),
             itemBuilder: (menuContext) => [

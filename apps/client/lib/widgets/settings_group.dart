@@ -43,7 +43,7 @@ class NexSettingsGroup extends StatelessWidget {
               ),
             ),
           ),
-          Material(
+          NexSurface(
             color: theme.colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(NexRadius.lg),
             clipBehavior: Clip.antiAlias,

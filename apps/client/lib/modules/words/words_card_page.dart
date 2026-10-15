@@ -47,7 +47,7 @@ class _WordsCardPageState extends State<WordsCardPage> with _WordsCardLogic {
       child: AbsorbPointer(
         absorbing: _saving,
         child: Scaffold(
-          appBar: AppBar(
+          appBar: NexAppBar(
             title: Text(strings(context, existing ? 'wordLabel' : 'addWord')),
             actions: [
               if (existing)

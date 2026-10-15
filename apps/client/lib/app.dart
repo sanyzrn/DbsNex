@@ -1,4 +1,3 @@
-import 'widgets/ready_swipe_icon.dart';
 export 'widgets/app_lock_gate.dart' show appLockBarrierKey;
 
 import 'platform/theme_presets.dart';
@@ -668,21 +667,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
                               excluding: _locked,
                               child: IgnorePointer(
                                 ignoring: _locked,
-                                child: NexSwipeGlyphTheme(
-                                  builder:
-                                      (
-                                        context,
-                                        action,
-                                        progress,
-                                        armed,
-                                        color,
-                                      ) => NexReadySwipeIcon(
-                                        action: action,
-                                        progress: progress,
-                                        color: color,
-                                      ),
-                                  child: FocusTraversalGroup(child: child!),
-                                ),
+                                child: FocusTraversalGroup(child: child!),
                               ),
                             ),
                           ),

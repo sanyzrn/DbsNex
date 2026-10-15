@@ -14,7 +14,6 @@ import 'warranty/module.dart';
 import 'words/module.dart';
 
 export 'nex_module.dart';
-export 'module_preview.dart';
 
 /// Every module Nex ships, in the order the Modules page lists them. Adding
 /// one here is what puts its card on that page — see `docs/17-modules.md`.

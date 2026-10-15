@@ -82,7 +82,7 @@ class _ArchiveScreenState extends State<ArchiveScreen>
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text(strings(context, 'archived'))),
+      appBar: NexAppBar(title: Text(strings(context, 'archived'))),
       body: recordsBody(
         _archived.isEmpty
             ? NexEmptyState(

@@ -149,7 +149,7 @@ class _GoldScreenState extends State<GoldScreen> {
     final result = input == null ? null : GoldMath.calculate(input);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(strings(context, 'title')),
         actions: [
           // The rial/toman toggle: labelled with the unit in use, one tap

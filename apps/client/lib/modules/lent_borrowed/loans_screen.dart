@@ -74,7 +74,7 @@ class _LoansScreenState extends State<LoansScreen>
   Widget build(BuildContext context) {
     final strings = lentStrings;
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(strings(context, 'title')),
         bottom: TabBar(
           key: const ValueKey('loans-tabs'),

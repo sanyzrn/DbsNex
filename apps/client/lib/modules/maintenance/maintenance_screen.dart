@@ -100,7 +100,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen>
       AssetGroup.archived,
     ];
     return Scaffold(
-      appBar: AppBar(title: Text(s(context, 'title'))),
+      appBar: NexAppBar(title: Text(s(context, 'title'))),
       floatingActionButton: FloatingActionButton.extended(
         key: const ValueKey('maintenance-add-asset'),
         onPressed: () =>

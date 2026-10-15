@@ -68,6 +68,56 @@ void main() {
     return gesture;
   }
 
+  for (final brightness in Brightness.values) {
+    testWidgets(
+      'capture fill follows each shortcut and returns after cancel ($brightness)',
+      (tester) async {
+        await show(tester, brightness: brightness);
+        Color fill() => tester
+            .widget<Material>(
+              find
+                  .descendant(
+                    of: find.byType(FloatingActionButton),
+                    matching: find.byType(Material),
+                  )
+                  .first,
+            )
+            .color!;
+        final original = fill();
+        for (final direction in [-1.0, 1.0]) {
+          final shortcut = direction < 0
+              ? preferences.captureFlickLeft
+              : preferences.captureFlickRight;
+          final expected = captureShortcutColor(
+            tester.element(find.byType(CaptureFlick)),
+            shortcut,
+          );
+          final gesture = await drag(tester, direction * 22);
+          await tester.pump(const Duration(milliseconds: 250));
+          expect(fill(), isNot(original));
+          expect(fill(), isNot(expected));
+          await gesture.moveBy(Offset(direction * 30, 0));
+          await tester.pump(const Duration(milliseconds: 250));
+          expect(fill(), expected);
+          final theme = Theme.of(
+            tester.element(find.byType(FloatingActionButton)),
+          );
+          expect(
+            nexContrastRatio(
+              theme.floatingActionButtonTheme.foregroundColor!,
+              fill(),
+            ),
+            greaterThanOrEqualTo(4.5),
+          );
+          await gesture.cancel();
+          await tester.pumpAndSettle();
+          expect(fill(), original);
+        }
+        expect(launched, isEmpty);
+      },
+    );
+  }
+
   testWidgets('tap and sideways swipe never flash the assistant', (
     tester,
   ) async {

@@ -72,7 +72,7 @@ class _NexPhotoGalleryState extends State<NexPhotoGallery> {
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
+      appBar: NexAppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -364,7 +364,7 @@ class _FullScreenPhotoState extends State<_PhotoViewer>
     }
     return Scaffold(
       backgroundColor: Color.lerp(Colors.black, Colors.transparent, progress),
-      appBar: AppBar(
+      appBar: NexAppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,

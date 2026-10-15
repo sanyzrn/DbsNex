@@ -79,7 +79,7 @@ Future<bool> _confirm(
 ) async {
   final answer = await nexShowDialog<String>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(title),
       content: NexDialogBody(child: Text(body)),
       actions: [

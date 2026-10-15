@@ -7,7 +7,7 @@ extension _WordsDateRepair on _WordsCardPageState {
     try {
       final yes = await nexShowDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => NexAlertDialog(
           title: Text(wordsStrings(ctx, 'scheduleUnknown')),
           content: NexDialogBody(
             child: Text(wordsStrings(ctx, 'repairDueBody')),

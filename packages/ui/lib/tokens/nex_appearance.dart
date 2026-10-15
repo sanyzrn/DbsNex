@@ -407,6 +407,21 @@ class _GlassRimPainter extends CustomPainter {
         ..strokeWidth = 1.2
         ..shader = shader,
     );
+    // A narrow top reflection makes the curvature visible even over a quiet
+    // plain backdrop. It stays on the rim, outside the reading area.
+    canvas.save();
+    canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height * 0.48));
+    canvas.drawRRect(
+      shape,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..shader = LinearGradient(
+          colors: [Colors.transparent, visual.glassRim, Colors.transparent],
+          stops: const [0.08, 0.42, 0.92],
+        ).createShader(rect),
+    );
+    canvas.restore();
   }
 
   @override

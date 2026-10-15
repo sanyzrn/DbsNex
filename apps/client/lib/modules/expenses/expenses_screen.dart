@@ -135,7 +135,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         ? const <ExpenseBudgetStatus>[]
         : expenseBudgetStatuses(controller.budgets, _month!, _scope);
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(s(context, 'title')),
         actions: [
           IconButton(
@@ -143,7 +143,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             onPressed: () => setState(() => _searching = !_searching),
             icon: const Icon(Icons.search),
           ),
-          PopupMenuButton<String>(
+          NexPopupMenuButton<String>(
             tooltip: s(context, 'title'),
             onSelected: (action) => unawaited(_menu(action)),
             itemBuilder: (menuContext) => [

@@ -21,7 +21,7 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
         : visible;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(strings(context, 'title')),
         actions: [
           IconButton(

@@ -15,7 +15,7 @@ class WarrantyDialogs {
     String name,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'deleteWarranty', {'name': name})),
       content: NexDialogBody(
         child: Text(strings(dialogContext, 'deleteWarrantyBody')),
@@ -43,7 +43,7 @@ class WarrantyDialogs {
     NexModuleStrings strings,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'discardTitle')),
       content: NexDialogBody(
         child: Text(strings(dialogContext, 'discardBody')),

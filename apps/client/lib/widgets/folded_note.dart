@@ -37,6 +37,7 @@ class _FoldedNoteState extends State<FoldedNote> {
               ? NexMarkdown(
                   text,
                   selectable: false,
+                  preserveLineBreaks: true,
                   onTapLink: widget.onTapLink,
                   onHoldLink: widget.onHoldLink,
                   onCopyCode: widget.onCopyCode,

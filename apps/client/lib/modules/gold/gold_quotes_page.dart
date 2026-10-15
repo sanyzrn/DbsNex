@@ -144,7 +144,7 @@ class _GoldQuotesPageState extends State<GoldQuotesPage>
   Future<void> _delete(GoldQuote quote) async {
     final confirmed = await nexShowDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => NexAlertDialog(
         title: Text(goldStrings(dialogContext, 'deleteQuoteTitle')),
         content: NexDialogBody(
           child: Text(goldStrings(dialogContext, 'deleteQuoteBody')),
@@ -224,7 +224,7 @@ class _GoldQuotesPageState extends State<GoldQuotesPage>
     final strings = goldStrings;
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(strings(context, 'savedQuotes')),
         actions: [
           if (_quotes.length >= 2)

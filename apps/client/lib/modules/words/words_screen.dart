@@ -41,7 +41,7 @@ class _WordsScreenState extends State<WordsScreen>
     final fresh = _newToday;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(strings(context, 'title')),
         actions: [
           IconButton(

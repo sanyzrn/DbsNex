@@ -1,31 +1,9 @@
 part of 'swipeable_note_card.dart';
 
-/// Keeps the design system independent of the app's bundled animation player.
-typedef NexSwipeGlyphBuilder =
-    Widget Function(
-      BuildContext context,
-      NexSwipeAction action,
-      double progress,
-      bool armed,
-      Color color,
-    );
-
-class NexSwipeGlyphTheme extends InheritedWidget {
-  const NexSwipeGlyphTheme({
-    super.key,
-    required this.builder,
-    required super.child,
-  });
-  final NexSwipeGlyphBuilder builder;
-
-  @override
-  bool updateShouldNotify(NexSwipeGlyphTheme oldWidget) =>
-      builder != oldWidget.builder;
-}
-
-/// The application supplies ready-made animation assets; other consumers have
-/// a standard Material glyph. No custom icon geometry lives in the swipe card.
-class NexSwipeActionGlyph extends StatelessWidget {
+/// A familiar Material icon with one short acknowledgement as it is revealed
+/// and when the full-swipe threshold changes. Motion completes even when the
+/// finger pauses; no playback frame is tied to drag distance.
+class NexSwipeActionGlyph extends StatefulWidget {
   const NexSwipeActionGlyph({
     super.key,
     required this.action,
@@ -40,33 +18,90 @@ class NexSwipeActionGlyph extends StatelessWidget {
   final Color color;
 
   @override
+  State<NexSwipeActionGlyph> createState() => _NexSwipeActionGlyphState();
+}
+
+class _NexSwipeActionGlyphState extends State<NexSwipeActionGlyph>
+    with SingleTickerProviderStateMixin {
+  late final _pulse = AnimationController(
+    vsync: this,
+    duration: NexMotion.standard,
+  );
+  late final _scale = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 1.0,
+        end: 1.14,
+      ).chain(CurveTween(curve: Curves.easeOut)),
+      weight: 45,
+    ),
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 1.14,
+        end: 1.0,
+      ).chain(CurveTween(curve: Curves.easeInOut)),
+      weight: 55,
+    ),
+  ]).animate(_pulse);
+
+  bool get _visible => widget.progress >= 0.12;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pulse.reset();
+    } else if (_visible && !_pulse.isAnimating) {
+      _pulse.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(NexSwipeActionGlyph oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (MediaQuery.disableAnimationsOf(context)) return;
+    if ((!(oldWidget.progress >= 0.12) && _visible) ||
+        (oldWidget.armed != widget.armed && _visible)) {
+      _pulse.forward(from: 0);
+    } else if (!_visible) {
+      _pulse.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = context
-        .dependOnInheritedWidgetOfExactType<NexSwipeGlyphTheme>();
     final still = MediaQuery.disableAnimationsOf(context);
     return ExcludeSemantics(
       child: SizedBox.square(
         dimension: 28,
-        child:
-            theme?.builder(
-              context,
-              action,
-              still ? 0 : progress.clamp(0, 1),
-              !still && armed,
-              color,
-            ) ??
-            Icon(
-              switch (action) {
-                NexSwipeAction.delete => Icons.delete_outline,
-                NexSwipeAction.addTag => Icons.sell_outlined,
-                NexSwipeAction.pin => Icons.push_pin_outlined,
-                NexSwipeAction.remind => Icons.notifications_outlined,
-                NexSwipeAction.share => Icons.ios_share,
-                NexSwipeAction.ask => Icons.auto_awesome_outlined,
-              },
-              color: color,
-              size: 24,
+        child: AnimatedBuilder(
+          animation: _pulse,
+          builder: (context, child) => Transform.translate(
+            offset: Offset(0, still ? 0 : -(_scale.value - 1) * 14),
+            child: Transform.scale(
+              scale: still ? 1 : _scale.value,
+              child: child,
             ),
+          ),
+          child: Icon(
+            switch (widget.action) {
+              NexSwipeAction.delete => Icons.delete_outline,
+              NexSwipeAction.addTag => Icons.sell_outlined,
+              NexSwipeAction.pin => Icons.push_pin_outlined,
+              NexSwipeAction.remind => Icons.notifications_outlined,
+              NexSwipeAction.share => Icons.ios_share,
+              NexSwipeAction.ask => Icons.auto_awesome_outlined,
+            },
+            color: widget.color,
+            size: 24,
+          ),
+        ),
       ),
     );
   }

@@ -45,7 +45,7 @@ extension _MedicineDetailBody on _MedicineDetailSheetState {
                 Expanded(
                   child: Text(name, style: theme.textTheme.headlineSmall),
                 ),
-                PopupMenuButton<String>(
+                NexPopupMenuButton<String>(
                   key: const ValueKey('medicine-detail-menu'),
                   tooltip: strings(context, 'detailsTitle'),
                   onSelected: (value) => unawaited(_runAction(value)),

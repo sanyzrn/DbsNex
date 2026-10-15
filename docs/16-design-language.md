@@ -139,4 +139,7 @@ Most of Nex is calm, neutral and the person's own theme. A feature may have
 
 Liquid glass is an independent opt-in in Appearance, off by default. Keep note cards and reading surfaces opaque; use `NexSurface` for shared Settings/Tools panels, `NexAppBar` for page headers, `NexAlertDialog` for confirmation dialogs and `NexPopupMenuButton` for popup menus. `NexGlassSurface` handles bounded floating chrome and sheets; `NexGlassBar` handles header bands. Use the active palette's wash, a bounded backdrop blur and a fine inner optical rim. High contrast falls back to a solid surface. Do not add perpetual sheen animations or a blur to each row of a scrolling list.
 
-Swipe actions use the bundled useAnimations/Animate UI assets through `NexSwipeGlyphTheme`; their upstream licenses appear in the app. The app owns the Lottie player so the design system stays independent of it. Reduced motion holds a static frame. Never couple asset playback to the action's execution threshold.
+Swipe actions keep standard Material icons. A short, one-shot scale/lift pulse
+acknowledges reveal and threshold changes, then returns to rest even while the
+finger is held still. No custom icon geometry or drag-scrubbed animation files.
+Reduced motion keeps the glyph still; action thresholds stay independent.

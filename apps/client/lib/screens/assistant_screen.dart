@@ -49,16 +49,13 @@ class AssistantScreen extends StatelessWidget {
               NexSpacing.md,
               0,
             ),
-            child: Container(
-              width: double.infinity,
+            child: NexSurface(
               padding: const EdgeInsets.all(NexSpacing.md),
-              decoration: BoxDecoration(
-                color: Color.alphaBlend(
-                  theme.colorScheme.primary.withValues(alpha: 0.12),
-                  theme.colorScheme.surfaceContainerLow,
-                ),
-                borderRadius: BorderRadius.circular(NexRadius.lg),
+              color: Color.alphaBlend(
+                theme.colorScheme.primary.withValues(alpha: 0.12),
+                theme.colorScheme.surfaceContainerLow,
               ),
+              borderRadius: BorderRadius.circular(NexRadius.lg),
               child: Row(
                 children: [
                   Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
