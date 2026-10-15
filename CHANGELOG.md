@@ -36,6 +36,8 @@ Working convention:
 
 ## v2.0.1
 
+- **Eleven modules to try.** Habits, Price Lens, Lent & Borrowed, Expenses, Gold, Words, Parking, Medicine, Warranty, Maintenance and Smoke Free are available and already added in Tools for this preview. Remove or re-add each independently. Their data stays local and in backups, separate from notes, search and the assistant; camera, GPS, network and background reminders remain future integrations.
+
 - **Glass across the app.** Page headers, confirmation dialogs, popup and note-action menus, Settings groups and Tools/Library panels now share the optional frosted material. High contrast stays opaque and note cards keep their reading surface.
 - **Ready-made swipe motion.** Replaced the hand-drawn swipe glyphs with bundled useAnimations and Animate UI assets. Motion follows the swipe and reverses as you pull back, works offline and respects reduced motion.
 

@@ -47,18 +47,15 @@ class LoanDateFields extends StatelessWidget {
           enabled: !!enabled,
         ),
         const SizedBox(height: NexSpacing.md),
-        NexAutoDirection(
+        NexTextField(
+          key: const ValueKey('loan-field-note'),
           controller: note,
-          builder: (context, _) => TextField(
-            key: const ValueKey('loan-field-note'),
-            controller: note,
-            minLines: 2,
-            maxLines: 4,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: strings(context, 'noteLabel'),
-              border: const OutlineInputBorder(),
-            ),
+          minLines: 2,
+          maxLines: 4,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            labelText: strings(context, 'noteLabel'),
+            border: const OutlineInputBorder(),
           ),
         ),
         if (loan != null) ...[

@@ -108,7 +108,24 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 ## Tools and private vault
 
-**Modules** are extra features that stay out of the app until you want them: **Tools → Add modules** lists each one with what it does. **Add** installs it, which you can watch as its pieces gather into its icon, and puts it in Tools under **Modules**; **Remove** takes it out again — with nothing left running — and asks whether to keep its data for later or delete it. Cycle is the first module. Below the modules you can add, **On the way** lists the ones being planned, and the row at the bottom opens a short form that sends us your own idea for one.
+**Modules** are extra features that stay out of the app until you want them: **Tools → Add modules** lists each one with what it does. **Add** installs it, which you can watch as its pieces gather into its icon, and puts it in Tools under **Modules**; **Remove** takes it out again — with nothing left running — and asks whether to keep its data for later or delete it. Cycle keeps its existing opt-in. Below the modules you can add, **On the way** lists the ones being planned, and the row at the bottom opens a short form that sends us your own idea for one.
+
+**Module preview in 2.0.1.** All eleven new modules below are already added in **Tools → Modules** for testing. Open them from Tools; use **Remove** on the module-management page to hide one and choose whether to keep its data. A removed module stays removed until you add it again.
+
+- **Habits:** daily/weekly check-ins, history and streaks.
+- **Price Lens:** compare unit prices across differently sized offers; save comparisons.
+- **Lent & Borrowed:** track money/item loans, due dates and partial/full returns.
+- **Expenses:** manually record income/expenses, categories, budgets and separate currencies.
+- **Gold:** calculate manual gold/jewelry quotes and save receipts; no live prices.
+- **Words:** build vocabulary cards, paste a batch and review at spaced intervals.
+- **Parking:** save manual location clues and track paid-until time; no GPS or maps.
+- **Medicine:** track medicines, stock, expiry and taken/skipped doses; no automatic reminders.
+- **Warranty:** keep product details, typed receipt references, warranty dates and claim notes.
+- **Maintenance:** log equipment services, costs, meter readings and service intervals.
+- **Smoke Free:** track smoke-free progress, estimated savings and cravings.
+
+Each module stores its own data locally and in backups. These records do not enter notes, search, note widgets or the assistant. These modules have no camera, location, network or background-notification integration yet. Some date pickers currently use explicitly labeled Gregorian dates; further integration will be reviewed module by module.
+
 
 **Tools**, at the left of the bottom bar, holds **Passwords**, **Bank cards**, **Private saved messages** and a **Password generator**. The private tools need your fingerprint or screen lock, and one unlock opens all of them for as long as you are using them. They lock after two minutes without activity — including time spent in another app, so you can copy a password, paste it in your browser and come straight back. Leaving the app always hides their contents from the task switcher, and **Lock** closes them at once. Hold any tool to pin it to the top of the home screen, in its own colour and icon; hold it there to take it off. A pinned private tool shows only its name and still asks for your fingerprint. The lock on a private tool's card shows open while they are unlocked.
 

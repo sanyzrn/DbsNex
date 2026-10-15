@@ -15,6 +15,7 @@ export '../l10n/app_localizations.dart' show AppLocalizations;
 export '../widgets/nex_dialog.dart'
     show nexShowDialog, nexShowSheet, NexDialogBody;
 export '../widgets/nex_shelf.dart';
+export '../widgets/nex_text_field.dart' show NexTextField;
 export 'nex_module_store.dart';
 export 'nex_module_strings.dart';
 export 'nex_stored_module.dart';

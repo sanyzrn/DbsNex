@@ -265,19 +265,16 @@ class _CravingSheetState extends State<_CravingSheet> {
                   ],
                 ),
                 const SizedBox(height: NexSpacing.md),
-                NexAutoDirection(
+                NexTextField(
+                  key: const ValueKey('craving-field-note'),
                   controller: _note,
-                  builder: (context, _) => TextField(
-                    key: const ValueKey('craving-field-note'),
-                    controller: _note,
-                    minLines: 2,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      labelText: strings(context, 'noteLabel'),
-                      hintText: strings(context, 'noteHint'),
-                      border: const OutlineInputBorder(),
-                    ),
+                  minLines: 2,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    labelText: strings(context, 'noteLabel'),
+                    hintText: strings(context, 'noteHint'),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: NexSpacing.lg),

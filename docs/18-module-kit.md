@@ -113,6 +113,7 @@ Records are:
   `NexMotion`, `NexPageRoute`, the colour helpers, and the shared widgets;
 - the shelf widgets (`NexPanel`, `NexShelfHeading`, `NexHue`, …);
 - `nexShowSheet`, `nexShowDialog` and `NexDialogBody`;
+- `NexTextField`, the shared multiline editor (native on Android);
 - `AppLocalizations`, for the shared words such as `cancel`;
 - the module classes above.
 

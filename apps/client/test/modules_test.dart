@@ -13,7 +13,14 @@ import 'support/nex_harness.dart';
 void main() {
   late NexTestHarness harness;
 
-  setUp(() async => harness = await NexTestHarness.create(name: 'nex_mod_'));
+  setUp(
+    () async => harness = await NexTestHarness.create(
+      name: 'nex_mod_',
+      preferences: {
+        for (final id in nexPreviewModuleIds) 'module.$id.on': false,
+      },
+    ),
+  );
   tearDown(() => harness.dispose());
 
   test('every module has its own stable, lower-case id', () {
@@ -52,7 +59,7 @@ void main() {
     expect(titles, hasLength(nexModulePlans.length * 2));
   });
 
-  test('nothing is on in a fresh install', () {
+  test('explicitly removed modules stay out of Tools', () {
     expect(nexModulesOn(harness.preferences), isEmpty);
   });
 
@@ -78,8 +85,15 @@ void main() {
     await show();
     expect(find.text('Nothing added yet'), findsOneWidget);
     for (final module in nexModules) {
-      expect(find.byKey(ValueKey('module-${module.id}-add')), findsOneWidget);
+      final add = find.byKey(ValueKey('module-${module.id}-add'));
+      await tester.scrollUntilVisible(add, 400, maxScrolls: 40);
+      expect(add, findsOneWidget);
     }
+    tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .jumpTo(0);
+    await tester.pumpAndSettle();
 
     await harness.preferences.setCycleEnabled(true);
     await tester.pumpAndSettle();
@@ -96,20 +110,20 @@ void main() {
 
     // What is coming is listed under it, with a badge and no button.
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('plan-smoke-free')),
+      find.byKey(const ValueKey('plan-telegram')),
       300,
     );
     expect(find.text('On the way'), findsOneWidget);
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('plan-smoke-free')),
-        matching: find.text('Soon'),
+        of: find.byKey(const ValueKey('plan-telegram')),
+        matching: find.text('Planned'),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('plan-smoke-free')),
+        of: find.byKey(const ValueKey('plan-telegram')),
         matching: find.byType(ButtonStyleButton),
       ),
       findsNothing,
@@ -178,8 +192,10 @@ void main() {
       expect(prefs.cycleEnabled, isFalse);
       expect(find.text('Removing from Tools'), findsOneWidget);
       expect(
-        tester.getTopLeft(find.byKey(const ValueKey('module-cycle'))).dy,
-        lessThan(tester.getTopLeft(find.text('On the way')).dy),
+        tester.getTopLeft(find.text('Added')).dy,
+        lessThan(
+          tester.getTopLeft(find.byKey(const ValueKey('module-cycle'))).dy,
+        ),
       );
 
       await tester.pumpAndSettle();

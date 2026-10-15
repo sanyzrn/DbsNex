@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:nex_ai/cloud.dart';
+import '../modules/module_preview.dart';
 import 'chat_history.dart';
 import 'editor_drafts.dart';
 import 'hold_menu.dart';

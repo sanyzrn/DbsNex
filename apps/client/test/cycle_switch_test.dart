@@ -71,16 +71,51 @@ void main() {
     ) async {
       await showTools(tester, harness);
       expect(find.byKey(const ValueKey('tools-module-cycle')), findsNothing);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('tools-modules')),
+        400,
+        maxScrolls: 30,
+      );
       await tester.tap(find.byKey(const ValueKey('tools-modules')));
       await tester.pumpAndSettle();
       expect(find.byType(ModulesScreen), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.textContaining('Everything stays on this phone'),
+        400,
+        maxScrolls: 40,
+      );
       expect(find.textContaining('Everything stays on this phone'), findsOne);
       expect(find.byKey(const ValueKey('module-cycle-open')), findsNothing);
 
+      tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position
+          .jumpTo(0);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('module-cycle-add')),
+        400,
+        maxScrolls: 40,
+      );
+      await Scrollable.ensureVisible(
+        tester.element(find.byKey(const ValueKey('module-cycle-add'))),
+        alignment: 0.5,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('module-cycle-add')));
       await tester.pumpAndSettle();
       expect(harness.preferences.cycleEnabled, isTrue);
       // Added: it moves under Added, with a way in.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('module-cycle-open')),
+        -400,
+        maxScrolls: 40,
+      );
+      await Scrollable.ensureVisible(
+        tester.element(find.byKey(const ValueKey('module-cycle-open'))),
+        alignment: 0.5,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('module-cycle-open')));
       await tester.pumpAndSettle();
       expect(find.byType(CycleScreen), findsOneWidget);
@@ -90,6 +125,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // And back in Tools, its own tile.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('tools-module-cycle')),
+        -400,
+        maxScrolls: 30,
+      );
+      await Scrollable.ensureVisible(
+        tester.element(find.byKey(const ValueKey('tools-module-cycle'))),
+        alignment: 0.5,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('tools-module-cycle')));
       await tester.pumpAndSettle();
       expect(find.byType(CycleScreen), findsOneWidget);
