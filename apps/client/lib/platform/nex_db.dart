@@ -78,6 +78,8 @@ abstract interface class NexDb {
 
   Future<void> setCaption(String id, String caption);
 
+  Future<bool> appendCaption(String id, String text);
+
   /// Null or empty clears the title.
   Future<void> setTitle(String id, String? title);
 
@@ -186,7 +188,7 @@ abstract interface class NexDb {
 
   /// Reads the words in an attached photo, when reading text in photos is
   /// on. Whether it learned anything.
-  Future<bool> attachmentReadText(String id);
+  Future<bool> attachmentReadText(String id, {bool refresh = false});
 
   Future<void> attachmentRename(String id, String? name);
 
@@ -311,7 +313,9 @@ abstract interface class NexDb {
 
   Future<void> enrichNote(String noteId);
 
-  /// Enriches notes captured before the intelligence layer could read them.
+  Future<String?> readMediaOnDemand(String noteId);
+
+  /// Indexes existing text; never uploads unread photos or recordings.
   Future<int> backfillEnrichment({int limit});
 
   /// Embeds up to [limit] notes that have no vector yet, and answers how

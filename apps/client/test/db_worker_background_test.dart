@@ -21,6 +21,7 @@ void main() {
     ).allMatches(dispatch);
     const asksAModel = [
       'enrichment.enrichNote',
+      'enrichment.readMediaOnDemand',
       'enrichment.backfill',
       'enrichment.suggestTags',
       'enrichment.summarizeOnDemand',

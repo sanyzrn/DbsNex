@@ -897,7 +897,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get transcription => 'تبدیل گفتار به متن';
 
   @override
-  String get ocr => 'تشخیص متن در تصویر';
+  String get ocr => 'شرح و متن تصویر';
 
   @override
   String get tagSuggestions => 'پیشنهاد برچسب';
@@ -1177,7 +1177,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get transcript => 'متن گفتار';
 
   @override
-  String get voiceSearchHint => 'فقط با برچسب یا تاریخ پیدا می‌شود';
+  String get voiceSearchHint =>
+      'از «بیشتر ← تبدیل صدا به متن» این ضبط را قابل جست‌وجو کنید.';
 
   @override
   String voiceDuration(int seconds) {
@@ -2070,10 +2071,11 @@ class AppLocalizationsFa extends AppLocalizations {
   String get notSupportedByProvider => 'سرویسی که انتخاب کرده‌اید این را ندارد';
 
   @override
-  String get transcriptionSubtitle => 'تبدیل یادداشت صوتی به متنِ قابل جست‌وجو';
+  String get transcriptionSubtitle =>
+      'تبدیل صوت به متن قابل جست‌وجو، با درخواست شما';
 
   @override
-  String get ocrSubtitle => 'خواندن نوشته‌های داخل عکس';
+  String get ocrSubtitle => 'شرح تصویر و خواندن متن مفید، با درخواست شما';
 
   @override
   String get summarizationSubtitle => 'فشرده کردن یادداشت بلند در یک خط';
@@ -5172,4 +5174,57 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get editPhotoBeforeCaptureSubtitle =>
       'پس از گرفتن یا انتخاب عکس، پیش‌نمایش و ابزارهای ویرایش باز شوند. در حالت خاموش، عکس مستقیم ثبت می‌شود.';
+
+  @override
+  String get planPauseTitle => 'مکث';
+
+  @override
+  String get planPauseAbout =>
+      'وقفه‌ای کوتاه برای تنفس با حالت‌های آرامش، تمرکز و ریلکس؛ حرکت ظریف هماهنگ با نفس، ویبرهٔ اختیاری و استفادهٔ آفلاین.';
+
+  @override
+  String get aiDescribeImage => 'شرح و خواندن تصویر';
+
+  @override
+  String get aiTranscribeAudio => 'تبدیل صدا به متن';
+
+  @override
+  String get aiImageResult => 'شرح و متن تصویر';
+
+  @override
+  String get aiMediaWorking => 'در حال خواندن رسانه…';
+
+  @override
+  String get aiMediaFailed =>
+      'خواندن این رسانه انجام نشد. نتیجهٔ قبلی حفظ شده؛ دوباره تلاش کنید.';
+
+  @override
+  String get aiMediaEmpty => 'گفتار یا محتوای خواندنی پیدا نشد.';
+
+  @override
+  String get aiAddToCaption => 'افزودن به کپشن';
+
+  @override
+  String get aiAppendCaptionTitle => 'این آیتم از قبل کپشن دارد';
+
+  @override
+  String get aiAppendCaptionBody => 'این متن به انتهای کپشن فعلی اضافه شود؟';
+
+  @override
+  String get aiAppendCaption => 'افزودن به انتها';
+
+  @override
+  String get aiCaptionAdded => 'به کپشن اضافه شد';
+
+  @override
+  String get aiCaptionFailed => 'افزودن این متن به کپشن انجام نشد.';
+
+  @override
+  String get aiTranslateTranscript => 'ترجمهٔ متن صوت';
+
+  @override
+  String get aiSummarizeTranscript => 'خلاصهٔ متن صوت';
+
+  @override
+  String get aiSummarizeImageText => 'خلاصهٔ متن تصویر';
 }

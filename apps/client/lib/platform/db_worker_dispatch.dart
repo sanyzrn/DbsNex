@@ -143,6 +143,10 @@ class _Worker {
       _DbCommand.undelete => NexDbWorker._voided(
         () => repo.undelete(arg('id')! as String),
       ),
+      _DbCommand.appendCaption => repo.appendCaption(
+        arg('id')! as String,
+        arg('text')! as String,
+      ),
       _DbCommand.setCaption => NexDbWorker._voided(
         () => repo.setCaption(arg('id')! as String, arg('caption')! as String),
       ),
@@ -359,15 +363,20 @@ class _Worker {
         arg('mediaDir')! as String,
         arg('backupDir')! as String,
       ),
+      _DbCommand.readMediaOnDemand => await NexDisclosureLog.about(
+        () => enrichment.readMediaOnDemand(arg('noteId')! as String),
+        notes: [arg('noteId')! as String],
+      ),
       _DbCommand.enrichNote => await NexDisclosureLog.about(
         () => enrichment.enrichNote(arg('noteId')! as String),
         notes: [arg('noteId')! as String],
       ).then<Object?>((_) => null),
-      _DbCommand.backfillEnrichment =>
-        await enrichment.backfill(limit: arg('limit')! as int) +
-            await attachmentText.backfill(limit: arg('limit')! as int),
+      _DbCommand.backfillEnrichment => await enrichment.backfill(
+        limit: arg('limit')! as int,
+      ),
       _DbCommand.attachmentReadText => await attachmentText.read(
         arg('id')! as String,
+        refresh: arg('refresh') == true,
       ),
       _DbCommand.backfillEmbeddings => await enrichment.backfillEmbeddings(
         limit: arg('limit')! as int,

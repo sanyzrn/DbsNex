@@ -135,6 +135,10 @@ mixin _DbClient implements NexDb {
       _send<void>(_DbCommand.undelete, {'id': id});
 
   @override
+  Future<bool> appendCaption(String id, String text) =>
+      _send<bool>(_DbCommand.appendCaption, {'id': id, 'text': text});
+
+  @override
   Future<void> setCaption(String id, String caption) =>
       _send<void>(_DbCommand.setCaption, {'id': id, 'caption': caption});
 
@@ -457,6 +461,10 @@ mixin _DbClient implements NexDb {
   });
 
   /* ----------------------------------------------------------- enrichment */
+
+  @override
+  Future<String?> readMediaOnDemand(String noteId) =>
+      _send<String?>(_DbCommand.readMediaOnDemand, {'noteId': noteId});
 
   @override
   Future<void> enrichNote(String noteId) =>

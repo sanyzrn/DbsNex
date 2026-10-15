@@ -1571,7 +1571,7 @@ abstract class AppLocalizations {
   /// No description provided for @ocr.
   ///
   /// In en, this message translates to:
-  /// **'Text in the photo'**
+  /// **'Image description & text'**
   String get ocr;
 
   /// No description provided for @tagSuggestions.
@@ -2057,7 +2057,7 @@ abstract class AppLocalizations {
   /// FR-4.6 — voice notes are not keyword-searchable in v1
   ///
   /// In en, this message translates to:
-  /// **'Searchable by tag/date only'**
+  /// **'Use Transcribe audio in More to make this recording searchable.'**
   String get voiceSearchHint;
 
   /// Voice note header in the detail sheet
@@ -3443,13 +3443,13 @@ abstract class AppLocalizations {
   /// Capability explanation
   ///
   /// In en, this message translates to:
-  /// **'Turn a voice note into searchable text'**
+  /// **'Turn audio into searchable text when you ask'**
   String get transcriptionSubtitle;
 
   /// Capability explanation
   ///
   /// In en, this message translates to:
-  /// **'Read the words in a photo'**
+  /// **'Describe a picture and read useful text when you ask'**
   String get ocrSubtitle;
 
   /// Capability explanation
@@ -8503,6 +8503,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the preview and editing tools after taking or choosing a photo. Off saves it straight away.'**
   String get editPhotoBeforeCaptureSubtitle;
+
+  /// No description provided for @planPauseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get planPauseTitle;
+
+  /// No description provided for @planPauseAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'A brief breathing break with calm, focus and relax modes. Gentle motion follows each breath, with optional vibration and offline use.'**
+  String get planPauseAbout;
+
+  /// No description provided for @aiDescribeImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe & read image'**
+  String get aiDescribeImage;
+
+  /// No description provided for @aiTranscribeAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribe audio'**
+  String get aiTranscribeAudio;
+
+  /// No description provided for @aiImageResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Image description & text'**
+  String get aiImageResult;
+
+  /// No description provided for @aiMediaWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading media…'**
+  String get aiMediaWorking;
+
+  /// No description provided for @aiMediaFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read this media. Your previous result is unchanged; try again.'**
+  String get aiMediaFailed;
+
+  /// No description provided for @aiMediaEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No speech or readable content was found.'**
+  String get aiMediaEmpty;
+
+  /// No description provided for @aiAddToCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to caption'**
+  String get aiAddToCaption;
+
+  /// No description provided for @aiAppendCaptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This item already has a caption'**
+  String get aiAppendCaptionTitle;
+
+  /// No description provided for @aiAppendCaptionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this text after your existing caption?'**
+  String get aiAppendCaptionBody;
+
+  /// No description provided for @aiAppendCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Append text'**
+  String get aiAppendCaption;
+
+  /// No description provided for @aiCaptionAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to caption'**
+  String get aiCaptionAdded;
+
+  /// No description provided for @aiCaptionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not add this text to the caption.'**
+  String get aiCaptionFailed;
+
+  /// No description provided for @aiTranslateTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate transcript'**
+  String get aiTranslateTranscript;
+
+  /// No description provided for @aiSummarizeTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'Summarize transcript'**
+  String get aiSummarizeTranscript;
+
+  /// No description provided for @aiSummarizeImageText.
+  ///
+  /// In en, this message translates to:
+  /// **'Summarize image text'**
+  String get aiSummarizeImageText;
 }
 
 class _AppLocalizationsDelegate

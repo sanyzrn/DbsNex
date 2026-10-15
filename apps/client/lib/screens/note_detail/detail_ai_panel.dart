@@ -2,6 +2,103 @@ part of '../note_detail_sheet.dart';
 
 /// The sheet's AI panel: the summary, related notes and threads.
 extension _DetailAiPanel on _NoteDetailSheetState {
+  Future<void> _readMedia() async {
+    final note = _note;
+    if (note == null || _readingMedia) return;
+    _rebuild(() {
+      _readingMedia = true;
+      _showAi = true;
+    });
+    String? result;
+    try {
+      result = await widget.services.readMediaOnDemand(note.id);
+      await _reload();
+    } catch (_) {
+      result = null;
+    } finally {
+      if (mounted) _rebuild(() => _readingMedia = false);
+    }
+    if (!mounted || result?.isNotEmpty == true) return;
+    final l10n = AppLocalizations.of(context);
+    nexShowBanner(
+      context,
+      message: result == null ? l10n.aiMediaFailed : l10n.aiMediaEmpty,
+      kind: result == null ? NexBannerKind.failed : NexBannerKind.done,
+    );
+  }
+
+  Future<void> _readAttachment(NoteAttachment attachment) async {
+    if (_readingAttachments.contains(attachment.id)) return;
+    _rebuild(() {
+      _readingAttachments.add(attachment.id);
+      _showAi = true;
+    });
+    var success = false;
+    try {
+      success = await widget.services.readAttachmentOnDemand(attachment.id);
+      await _reload();
+    } catch (_) {
+      success = false;
+    } finally {
+      if (mounted) _rebuild(() => _readingAttachments.remove(attachment.id));
+    }
+    if (!mounted || success) return;
+    nexShowBanner(
+      context,
+      message: AppLocalizations.of(context).aiMediaFailed,
+      kind: NexBannerKind.failed,
+    );
+  }
+
+  Future<void> _addDerivedToCaption(String text) async {
+    if (_addingCaption || text.trim().isEmpty) return;
+    final l10n = AppLocalizations.of(context);
+    _rebuild(() => _addingCaption = true);
+    try {
+      final current = await widget.services.getById(widget.noteId);
+      if (!mounted || current == null) return;
+      if (current.caption?.trim().isNotEmpty == true) {
+        final append = await nexShowDialog<bool>(
+          context: context,
+          builder: (dialog) => NexAlertDialog(
+            title: Text(l10n.aiAppendCaptionTitle),
+            content: NexDialogBody(child: Text(l10n.aiAppendCaptionBody)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialog, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialog, true),
+                child: Text(l10n.aiAppendCaption),
+              ),
+            ],
+          ),
+        );
+        if (append != true || !mounted) return;
+      }
+      final saved = await widget.services.appendCaption(widget.noteId, text);
+      await _reload();
+      if (mounted) {
+        nexShowBanner(
+          context,
+          message: saved ? l10n.aiCaptionAdded : l10n.aiCaptionFailed,
+          kind: saved ? NexBannerKind.done : NexBannerKind.failed,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        nexShowBanner(
+          context,
+          message: l10n.aiCaptionFailed,
+          kind: NexBannerKind.failed,
+        );
+      }
+    } finally {
+      if (mounted) _rebuild(() => _addingCaption = false);
+    }
+  }
+
   /// Asks for a summary and says what came back.
   ///
   /// The old version was `await summarizeOnDemand(id); await _reload();` — it
@@ -9,7 +106,10 @@ extension _DetailAiPanel on _NoteDetailSheetState {
   /// not be produced looked exactly like one that had not arrived yet, which
   /// looked exactly like a tap that had not registered.
   Future<void> _summarize(String noteId) async {
-    _rebuild(() => _summarizing = true);
+    _rebuild(() {
+      _summarizing = true;
+      _showAi = true;
+    });
     Summary? summary;
     try {
       summary = await widget.services.summarizeOnDemand(noteId);
@@ -61,19 +161,28 @@ extension _DetailAiPanel on _NoteDetailSheetState {
 
   /// Everything the intelligence layer produced about this note, behind a tap.
   ///
-  /// The layer runs on its own — a recording is transcribed and a long note is
-  /// summarised in the background, without being asked — but its output does
-  /// not open on top of the user's own writing. One quiet row says what is
-  /// there; the tap is what puts it on screen. That also means opening a note
-  /// no longer fires two network calls nobody requested.
+  /// Media reading is requested through its type-specific action. Opening the
+  /// note fetches no model output; a requested result opens this panel directly.
   Widget _aiPanel(Note note, AppLocalizations l10n) {
     final theme = Theme.of(context);
     final derived = <(String, String)>[
       if (note.transcriptText?.trim().isNotEmpty ?? false)
         (l10n.transcript, note.transcriptText!.trim()),
       if (note.ocrText?.trim().isNotEmpty ?? false)
-        (l10n.ocr, note.ocrText!.trim()),
+        (l10n.aiImageResult, note.ocrText!.trim()),
       if (_summaryIsMeaningful(note)) (l10n.summary, note.summaryText!.trim()),
+      for (var i = 0; i < _attachments.length; i++) ...[
+        if (_attachments[i].ocrText?.trim().isNotEmpty == true)
+          (
+            '${l10n.aiImageResult} · ${nexDigits('${i + 1}', persian: l10n.localeName == 'fa')}',
+            _attachments[i].ocrText!.trim(),
+          ),
+        if (_attachments[i].transcriptText?.trim().isNotEmpty == true)
+          (
+            '${l10n.transcript} · ${nexDigits('${i + 1}', persian: l10n.localeName == 'fa')}',
+            _attachments[i].transcriptText!.trim(),
+          ),
+      ],
     ];
     // With nothing derived and no provider behind it, the row would promise
     // something the app cannot deliver.
@@ -112,20 +221,33 @@ extension _DetailAiPanel on _NoteDetailSheetState {
           ],
         ),
         for (final (label, body) in derived) ...[
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Expanded(child: Text(label, style: theme.textTheme.bodySmall)),
-              InkWell(
-                onTap: () => unawaited(_copyDerivedText(body)),
-                borderRadius: BorderRadius.circular(NexRadius.lg),
-                child: Padding(
-                  padding: const EdgeInsets.all(NexSpacing.xs),
-                  child: Icon(
-                    Icons.copy_outlined,
-                    size: 14,
+              Text(label, style: theme.textTheme.bodySmall),
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  IconButton(
+                    tooltip: l10n.copy,
                     color: theme.colorScheme.secondary,
+                    icon: const Icon(Icons.copy_outlined, size: 14),
+                    onPressed: () => unawaited(_copyDerivedText(body)),
                   ),
-                ),
+                  TextButton.icon(
+                    key: ValueKey('add-derived-caption-$label'),
+                    style: TextButton.styleFrom(
+                      textStyle: theme.textTheme.labelSmall,
+                      minimumSize: const Size(48, 48),
+                    ),
+                    onPressed: _addingCaption
+                        ? null
+                        : () => unawaited(_addDerivedToCaption(body)),
+                    icon: const Icon(Icons.playlist_add_outlined, size: 14),
+                    label: Text(l10n.aiAddToCaption),
+                  ),
+                ],
               ),
             ],
           ),
@@ -134,6 +256,11 @@ extension _DetailAiPanel on _NoteDetailSheetState {
           NexTextSurface(body, selectable: true),
           const SizedBox(height: NexSpacing.sm),
         ],
+        if (_readingMedia || _readingAttachments.isNotEmpty || _summarizing)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: NexSpacing.sm),
+            child: LinearProgressIndicator(minHeight: 2),
+          ),
         if (_loadingAi)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: NexSpacing.sm),
@@ -184,6 +311,9 @@ extension _DetailAiPanel on _NoteDetailSheetState {
             ),
         ],
         if (!_loadingAi &&
+            !_readingMedia &&
+            _readingAttachments.isEmpty &&
+            !_summarizing &&
             derived.isEmpty &&
             _suggestions.isEmpty &&
             _related.isEmpty)
@@ -200,8 +330,7 @@ extension _DetailAiPanel on _NoteDetailSheetState {
   bool _summaryIsMeaningful(Note note) {
     final summary = note.summaryText?.trim();
     if (summary == null || summary.isEmpty) return false;
-    final source = (note.content ?? note.transcriptText ?? note.ocrText ?? '')
-        .trim();
+    final source = (note.aiSourceText ?? '').trim();
     if (source.isEmpty) return summary.isNotEmpty;
     if (summary == source) return false;
     if (summary.length >= source.length) return false;

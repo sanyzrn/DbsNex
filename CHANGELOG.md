@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.4
+
+- **Selection without keyboard surprises.** A small halo around the focused input protects taps near text-selection handles while a farther tap still dismisses the keyboard.
+- **Matching context menus.** Link Open/Copy uses the card menu's type, icon size, spacing, rounded corners and optional floating glass.
+- **Pause is on the way.** The module catalog now previews an offline breathing break with calm, focus and relax modes; it is not installed or enabled.
+- **AI actions fit the item.** Images offer Describe & read image; recordings offer Transcribe audio. Media is read only when requested, including attachments. Translate and Summarize operate on suitable text rather than a filename; images no longer offer a generic Translate action.
+- **Descriptions as well as text.** Image reading starts with a short visual description, even for photos without words. Screenshots retain structured useful content and documents keep faithful transcription.
+- **AI text into your caption, by choice.** Beside Copy, Add to caption accepts a result without touching the original body or media. An existing caption asks before appending; concurrent edits are preserved.
+- **One clean writing surface.** Capture and every Android multiline editor use the surrounding field's fill again; the separate grey rectangle introduced in 2.0.3 is removed, including unfilled and translucent fields.
+- **Lighter Android editing.** Editors use texture composition again instead of forcing the whole scene through hybrid composition. The Android host uses TextureView so the system magnifier can sample the text and its background together; selection, formatting and keyboard behaviour are preserved.
+
 ## v2.0.3
 
 - **Consistent glass borders.** The settings search field, profile card, birthday row and home-widget settings panels use the shared glass surface and edge.

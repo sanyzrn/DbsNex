@@ -90,7 +90,6 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
       final tint = destructive ? error : scheme.onSurface;
       return MenuItemButton(
         onPressed: onPressed,
-        leadingIcon: Icon(icon, size: 20, color: tint),
         style: MenuItemButton.styleFrom(
           foregroundColor: tint,
           iconColor: tint,
@@ -100,10 +99,7 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
           ),
           textStyle: theme.textTheme.bodyMedium,
         ),
-        child: Padding(
-          padding: const EdgeInsetsDirectional.only(start: NexSpacing.xs),
-          child: Text(label),
-        ),
+        child: NexMenuEntryContent(icon: icon, label: label, color: tint),
       );
     }
 

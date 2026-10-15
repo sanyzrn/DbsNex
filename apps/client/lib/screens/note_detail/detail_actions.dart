@@ -34,18 +34,7 @@ extension _DetailActions on _NoteDetailSheetState {
   /// answer for the card and the wrong one here: a photo captioned "receipt"
   /// with a page of Persian read out of it has a page worth translating and a
   /// one-word caption that is not.
-  String _translatableText(Note note) {
-    for (final candidate in [
-      note.content,
-      note.transcriptText,
-      note.ocrText,
-      note.displayText,
-    ]) {
-      final text = candidate?.trim() ?? '';
-      if (text.isNotEmpty) return text;
-    }
-    return '';
-  }
+  String _translatableText(Note note) => note.aiSourceText ?? '';
 
   void _toast(String message) {
     nexShowBanner(context, message: message);

@@ -78,8 +78,9 @@ class NexKeyboardDismisser extends StatelessWidget {
     // Not a control. A tap target the size of the app is noise to anyone
     // reading the screen aloud.
     excludeFromSemantics: true,
-    onTap: () {
+    onTapUp: (details) {
       if (View.of(context).viewInsets.bottom <= 0) return;
+      if (_nearFocusedEditor(details.globalPosition)) return;
       FocusManager.instance.primaryFocus?.unfocus();
     },
     child: _KeyboardGuard(view: View.of(context), child: child),
@@ -145,6 +146,43 @@ class _NexGuardedFieldState extends State<NexGuardedField> {
 /// The focus nodes of every [NexGuardedField] on screen.
 final _guarded = <FocusNode>{};
 
+/// Selection handles and fingers extend beyond the painted input. Protect
+/// only a small halo around the currently focused field, not the whole sheet.
+/// Read its live render bounds so scrolling, keyboard animation and a native
+/// platform view's child focus all use the same rule. No larger hit target is
+/// added: nearby buttons keep their own taps and drags.
+bool _nearFocusedEditor(Offset globalPosition) {
+  final context = FocusManager.instance.primaryFocus?.context;
+  if (context == null || !context.mounted) return false;
+  var near = false;
+  context.visitAncestorElements((element) {
+    if (element is! RenderObjectElement) return true;
+    final render = element.renderObject;
+    if (render is! RenderTapRegion ||
+        render.groupId != EditableText ||
+        !render.attached ||
+        !render.hasSize) {
+      return true;
+    }
+    final bounds = MatrixUtils.transformRect(
+      render.getTransformTo(null),
+      Offset.zero & render.size,
+    );
+    near =
+        near ||
+        Rect.fromLTRB(
+          bounds.left - 12,
+          bounds.top - 12,
+          bounds.right + 12,
+          bounds.bottom + 24,
+        ).contains(globalPosition);
+    // EditableText also has an inner region around only the glyphs. Keep
+    // walking to the outer region that includes the decorated input.
+    return true;
+  });
+  return near;
+}
+
 /// Under the whole app, so a guarded field's rule holds for the screen
 /// around its sheet too. Stops the touch in hit testing: nothing below it is
 /// hit at all, raw pointer listeners included.
@@ -187,6 +225,9 @@ class _RenderKeyboardGuard extends RenderProxyBox {
           (entry.target as RenderTapRegion).groupId == EditableText,
     );
     if (onAField) return super.hitTest(result, position: position);
+    if (_nearFocusedEditor(localToGlobal(position))) {
+      return super.hitTest(result, position: position);
+    }
     // Outside: this is all the touch reaches, start to finish.
     result.add(_StoppedTouch(this, position));
     return true;

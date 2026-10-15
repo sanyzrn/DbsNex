@@ -111,6 +111,60 @@ void main() {
     expect(field.hasFocus, isFalse);
   });
 
+  for (final guarded in [false, true]) {
+    testWidgets(
+      'a small selection halo preserves focus, a farther tap dismisses (guarded=$guarded)',
+      (tester) async {
+        tester.view.viewInsets = const FakeViewPadding(bottom: 250);
+        addTearDown(tester.view.reset);
+        const key = ValueKey('writing-field');
+        Widget editor = TextField(
+          key: key,
+          focusNode: field,
+          minLines: 3,
+          maxLines: 3,
+        );
+        if (guarded) editor = NexGuardedField(focusNode: field, child: editor);
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => NexKeyboardDismisser(child: child!),
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    editor,
+                    const Expanded(child: SizedBox.expand()),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        field.requestFocus();
+        await tester.pump();
+        final bounds = tester.getRect(find.byKey(key));
+        for (final point in [
+          Offset(bounds.left - 6, bounds.center.dy),
+          Offset(bounds.right + 6, bounds.center.dy),
+          Offset(bounds.center.dx, bounds.top - 6),
+          Offset(bounds.center.dx, bounds.bottom + 18),
+        ]) {
+          await tester.tapAt(point);
+          await tester.pump();
+          expect(
+            field.hasFocus,
+            isTrue,
+            reason: 'selection near $point belongs to the editor',
+          );
+        }
+        await tester.tapAt(Offset(bounds.center.dx, bounds.bottom + 54));
+        await tester.pump();
+        expect(field.hasFocus, isFalse);
+      },
+    );
+  }
+
   testWidgets('a tap on the field stays with the field', (tester) async {
     await show(tester, keyboard: 300);
     await tester.tap(find.byType(TextField));

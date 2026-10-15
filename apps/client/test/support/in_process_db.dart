@@ -220,6 +220,10 @@ class InProcessDb implements NexDb {
   Future<void> undelete(String id) async => _repo.undelete(id);
 
   @override
+  Future<bool> appendCaption(String id, String text) async =>
+      _repo.appendCaption(id, text);
+
+  @override
   Future<void> setCaption(String id, String caption) async =>
       _repo.setCaption(id, caption);
 
@@ -382,7 +386,8 @@ class InProcessDb implements NexDb {
   late final _attachmentText = AttachmentTextReader(_attachments, _enrichment);
 
   @override
-  Future<bool> attachmentReadText(String id) => _attachmentText.read(id);
+  Future<bool> attachmentReadText(String id, {bool refresh = false}) =>
+      _attachmentText.read(id, refresh: refresh);
 
   @override
   Future<void> attachmentRename(String id, String? name) async =>
@@ -561,12 +566,15 @@ class InProcessDb implements NexDb {
   }) => _maintenance.storage(dbPath, mediaDir, backupDir);
 
   @override
+  Future<String?> readMediaOnDemand(String noteId) =>
+      _enrichment.readMediaOnDemand(noteId);
+
+  @override
   Future<void> enrichNote(String noteId) => _enrichment.enrichNote(noteId);
 
   @override
   Future<int> backfillEnrichment({int limit = 25}) async =>
-      await _enrichment.backfill(limit: limit) +
-      await _attachmentText.backfill(limit: limit);
+      await _enrichment.backfill(limit: limit);
 
   @override
   Future<int> backfillEmbeddings({int limit = 25}) =>

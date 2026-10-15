@@ -1062,6 +1062,18 @@ WHERE id = ?
     ]);
   }
 
+  /// Appends explicitly accepted AI output using the current stored caption.
+  /// Reading and writing together prevents a concurrent edit being overwritten.
+  bool appendCaption(String noteId, String text) => db.together(() {
+    final note = getById(noteId);
+    final addition = text.trim();
+    if (note == null || addition.isEmpty) return false;
+    final before = note.caption?.trim() ?? '';
+    if (before == addition || before.endsWith('\n\n$addition')) return true;
+    setCaption(noteId, before.isEmpty ? addition : '$before\n\n$addition');
+    return true;
+  });
+
   /// Optional post-capture caption on photo/voice/file (distinct from OCR/transcript).
   void setCaption(String noteId, String? caption) {
     db.together(() {

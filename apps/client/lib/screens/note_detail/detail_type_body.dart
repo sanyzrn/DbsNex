@@ -153,7 +153,8 @@ extension _DetailTypeBody on _NoteDetailSheetState {
           onOpen: _openExternally,
         ),
     ],
-    if (note.type != NoteType.text) ...[
+    if (note.type != NoteType.text ||
+        note.caption?.trim().isNotEmpty == true) ...[
       const SizedBox(height: NexSpacing.md),
       Text(l10n.caption, style: Theme.of(context).textTheme.bodySmall),
       const SizedBox(height: NexSpacing.xs),

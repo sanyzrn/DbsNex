@@ -137,12 +137,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   /// True while an on-demand summary is out.
   bool _summarizing = false;
+  bool _readingMedia = false;
+  bool _addingCaption = false;
+  final _readingAttachments = <String>{};
 
   /// Whether the user has asked to see what the intelligence layer produced.
   ///
-  /// The layer works on its own, in the background — that is the point of it —
-  /// but a note is the user's writing, and a machine's reading of it does not
-  /// get to sit on top of that uninvited.
+  /// Existing output starts folded; explicitly reading media reveals it.
   bool _showAi = false;
   bool _loadingAi = false;
   Map<String, String> _relatedTitles = const {};
@@ -194,6 +195,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
             await _convertMarkdown();
           case NexHoldAction.summarize:
             await _summarize(note.id);
+          case NexHoldAction.describeImage || NexHoldAction.transcribeAudio:
+            await _readMedia();
           case NexHoldAction.details:
             await _showDetails();
           case NexHoldAction.translate:
@@ -632,16 +635,39 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             ),
                           ),
                         ),
+                      if (note.isImageMedia &&
+                          widget.services.imageReadingAvailable)
+                        _DetailAction(
+                          icon: Icons.image_search_outlined,
+                          label: l10n.aiDescribeImage,
+                          accent: true,
+                          onPressed: _readingMedia
+                              ? null
+                              : () => unawaited(_readMedia()),
+                        ),
+                      if (note.isAudioMedia &&
+                          widget.services.audioTranscriptionAvailable)
+                        _DetailAction(
+                          icon: Icons.transcribe_outlined,
+                          label: l10n.aiTranscribeAudio,
+                          accent: true,
+                          onPressed: _readingMedia
+                              ? null
+                              : () => unawaited(_readMedia()),
+                        ),
                       // The transcript and the extracted text count: a
                       // recording in one language and a photographed sign in
                       // another are exactly the notes someone needs this for,
                       // and neither has typed content to offer.
                       if (widget.preferences case final preferences?
-                          when TranslateSheet.availableFor(preferences) &&
+                          when !note.isImageMedia &&
+                              TranslateSheet.availableFor(preferences) &&
                               _translatableText(note).isNotEmpty)
                         _DetailAction(
                           icon: Icons.translate,
-                          label: l10n.translate,
+                          label: note.isAudioMedia
+                              ? l10n.aiTranslateTranscript
+                              : l10n.translate,
                           accent: true,
                           onPressed: () => unawaited(
                             TranslateSheet.show(
@@ -665,14 +691,19 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           when preferences
                                   .effectiveAiCapabilities
                                   .summarization &&
-                              aiTextAvailableWith(preferences.aiProvider))
+                              aiTextAvailableWith(preferences.aiProvider) &&
+                              (note.aiSourceText?.length ?? 0) > 80)
                         _DetailAction(
                           // A page with a sparkle on it. `summarize` is a
                           // page with lines, which is what the note icons in
                           // this same row already are — it named the content,
                           // not the action.
                           glyph: const NexSummariseIcon(),
-                          label: l10n.summarize,
+                          label: note.isAudioMedia
+                              ? l10n.aiSummarizeTranscript
+                              : note.isImageMedia
+                              ? l10n.aiSummarizeImageText
+                              : l10n.summarize,
                           accent: true,
                           // Null while one is already running, so a slow
                           // summary cannot be asked for four more times.

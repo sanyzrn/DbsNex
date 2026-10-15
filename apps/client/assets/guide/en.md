@@ -60,7 +60,7 @@ Web addresses in a note or caption become links automatically. Tap a link to ope
 
 ![A note's details](note-details.webp)
 
-**Editing an attachment.** Hold an attached image and choose **Edit** to crop, rotate or annotate it. Save replaces only that attachment while keeping its caption and order; cancelling leaves it as it was. The original file is kept until unreferenced media is cleaned up. With image reading enabled, the new image is read again.
+**Editing an attachment.** Hold an attached image and choose **Edit** to crop, rotate or annotate it. Save replaces only that attachment while keeping its caption and order; cancelling leaves it as it was. The original file is kept until unreferenced media is cleaned up. Choose Describe & read image when you want the edited picture read again.
 
 ## Long notes, Markdown and files
 
@@ -110,9 +110,14 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 ![The assistant opening](assistant.webp)
 
-**Reading screenshots.** With a connected image-capable AI provider and image reading enabled, new screenshots are read as organized reports about their main content, including a visible URL when legible. Keyboard keys and routine controls are skipped. Documents and receipts keep their text and layout relationships. Existing readings are unchanged; output quality depends on the chosen model.
+**Read media when you choose.** In an item's **More** menu, use **Describe & read image** for a picture or **Transcribe audio** for a recording. The same actions are in an attachment's hold menu. Capturing, editing, opening an item or enabling a provider does not automatically read or upload its media. A new image reading begins with a brief visual description, including pictures without words; screenshots then show organized main content and a clearly readable URL, skipping keyboard keys and routine controls. Documents and receipts keep faithful transcription. Text-only actions appear when usable text exists; images do not offer a generic Translate action. Results stay under the AI section and depend on the chosen model.
+
+**Use AI output as a caption.** Beside each result's Copy button, **Add to caption** fills an empty caption. If it already has words, confirm **Append text** to add the result below them, or cancel. The original note body and media stay intact. Hold a copied or recognized link for a menu styled like the card's own menu.
 
 ## Tools and private vault
+
+**Pause (coming soon).** Tools → Add modules previews a short offline breathing break with three modes and optional haptics.
+
 
 **Modules** are extra features that stay out of the app until you want them: **Tools → Add modules** lists each one with what it does. **Add** installs it, which you can watch as its pieces gather into its icon, and puts it in Tools under **Modules**; **Remove** takes it out again — with nothing left running — and asks whether to keep its data for later or delete it. Cycle keeps its existing opt-in. Below the modules you can add, **On the way** lists the ones being planned, and the row at the bottom opens a short form that sends us your own idea for one.
 
@@ -242,7 +247,7 @@ The field at the top of Settings finds any of these by name.
 - **How do I move to a new phone?** Make a **complete backup** in **Settings → Data and backup**, keep its recovery code, copy the file to the new phone and choose **Restore or import from a file** there. An automatic copy to a folder you can reach from both phones works too.
 - **A reminder did not ring.** Open **Settings → Reminders and notifications** and send the test notification. If it does not arrive, Android is blocking Nex: allow notifications and exact alarms for Nex, and take it out of battery optimisation.
 - **I deleted a note by mistake.** Look in **Library → Trash** within 30 days, or ask the assistant to bring it back.
-- **Search does not find something I know is there.** Try part of a word; with semantic search on, notes about the same thing are found by meaning too. Words in photos and recordings are searchable once reading text in photos and transcription are on.
+- **Search does not find something I know is there.** Try part of a word. Semantic search can also find related wording. For words in photos or recordings, first use **Describe & read image** or **Transcribe audio** from the item’s More menu, with the corresponding capability and provider enabled.
 - **A voice note has no sound.** Check the phone's media volume first. If a file will not open, the note says so under its player; tell us through **Send feedback** with the diagnostics report attached.
 - **The assistant or smart summary does nothing.** AI is off until you choose a provider in **Settings → Intelligence** and test it. With a cloud provider, a missing key, no internet or an exhausted plan is the usual cause; with the offline model, try **Try loading it again** on its page.
 - **I forgot how to open the app lock.** The lock is your phone's own: unlock it the way you unlock your phone. Nex has no password of its own to forget.

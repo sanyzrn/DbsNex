@@ -173,6 +173,26 @@ extension NexLibraryServices on NexServices {
     }
   }
 
+  Future<bool> appendCaption(String noteId, String text) async {
+    final saved = await worker.appendCaption(noteId, text);
+    if (saved) {
+      try {
+        await refreshTimeline();
+      } catch (_) {}
+    }
+    return saved;
+  }
+
+  Future<String?> readMediaOnDemand(String noteId) async {
+    final text = await worker.readMediaOnDemand(noteId);
+    if (text != null) {
+      try {
+        await refreshTimeline();
+      } catch (_) {}
+    }
+    return text;
+  }
+
   Future<Summary?> summarizeOnDemand(String noteId) =>
       worker.summarizeOnDemand(noteId);
 

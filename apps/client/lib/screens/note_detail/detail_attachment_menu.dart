@@ -14,6 +14,16 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
     if (note == null) return;
     final index = _attachments.indexWhere((a) => a.id == attachment.id);
     final look = AttachmentTile.lookOf(attachment);
+    final mediaKind = NexFileKinds.of(
+      path: attachment.mediaUri,
+      mimeType: attachment.mimeType,
+    );
+    final image =
+        attachment.kind == AttachmentKind.photo ||
+        mediaKind == NexFileKind.image;
+    final audio =
+        attachment.kind == AttachmentKind.voice ||
+        mediaKind == NexFileKind.audio;
     final file = File(attachment.mediaUri);
     final size = file.existsSync() ? file.lengthSync() : 0;
     final persian = l10n.localeName == 'fa';
@@ -95,6 +105,22 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
                 action('open', Icons.open_in_new, l10n.attachOpen),
                 if (look == AttachmentLook.photo)
                   action('edit', Icons.edit_outlined, l10n.edit),
+                if (image &&
+                    widget.services.imageReadingAvailable &&
+                    !_readingAttachments.contains(attachment.id))
+                  action(
+                    'read-media',
+                    Icons.image_search_outlined,
+                    l10n.aiDescribeImage,
+                  ),
+                if (audio &&
+                    widget.services.audioTranscriptionAvailable &&
+                    !_readingAttachments.contains(attachment.id))
+                  action(
+                    'read-media',
+                    Icons.transcribe_outlined,
+                    l10n.aiTranscribeAudio,
+                  ),
                 action(
                   'caption',
                   Icons.short_text,
@@ -155,6 +181,8 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
         await _openAttachment(attachment);
       case 'edit':
         await _editAttachmentImage(attachment);
+      case 'read-media':
+        await _readAttachment(attachment);
       case 'caption':
         final preferences = widget.preferences;
         if (preferences == null) return;
