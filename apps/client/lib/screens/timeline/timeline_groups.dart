@@ -278,7 +278,7 @@ class _GroupHeader extends StatelessWidget {
             NexSpacing.md,
             _headerSpace * 0.4,
           ),
-          child: PopupMenuButton<_GroupAction>(
+          child: NexPopupMenuButton<_GroupAction>(
             tooltip: l10n.groupActions,
             // Horizontal. A vertical ellipsis beside a chevron is two marks
             // running in two directions; laid flat it reads as a row of

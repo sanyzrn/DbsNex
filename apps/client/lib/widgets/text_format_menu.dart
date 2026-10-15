@@ -217,7 +217,7 @@ class _LinkDialogState extends State<_LinkDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
+    return NexAlertDialog(
       title: Text(l10n.addLink),
       content: NexDialogBody(
         child: TextField(

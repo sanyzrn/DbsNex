@@ -213,14 +213,14 @@ void main() {
               (_) {},
             );
         await tester.pumpAndSettle();
-        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(find.bySubtype<AlertDialog>(), findsOneWidget);
         // The URL input owns the keyboard now; this is the hand-off that the
         // old focus-conditional cleanup missed when the editor later closed.
         await fromNative(tester, 'focus', {'focused': false});
         toNative.clear();
         await tester.enterText(find.byType(TextField), 'https://example.com');
         final l10n = AppLocalizations.of(
-          tester.element(find.byType(AlertDialog)),
+          tester.element(find.bySubtype<AlertDialog>()),
         );
         await tester.tap(find.text(cancel ? l10n.cancel : l10n.save));
         await tester.pump();
@@ -230,7 +230,7 @@ void main() {
         toNative.clear();
         await tester.pumpAndSettle();
         await formatted;
-        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.bySubtype<AlertDialog>(), findsNothing);
         expect(toNative.map((call) => call.method), contains('focus'));
         expect(
           controller.text,

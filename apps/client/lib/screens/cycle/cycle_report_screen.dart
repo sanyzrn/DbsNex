@@ -152,7 +152,7 @@ class _CycleReportScreenState extends State<CycleReportScreen> {
     final l10n = AppLocalizations.of(context);
     final data = _data;
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(l10n.cycleReport),
         actions: [
           IconButton(

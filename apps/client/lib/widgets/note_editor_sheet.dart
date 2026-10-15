@@ -527,7 +527,7 @@ class _AiMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return PopupMenuButton<NexRewriteStyle>(
+    return NexPopupMenuButton<NexRewriteStyle>(
       tooltip: l10n.aiEditTools,
       enabled: enabled && running == null,
       onSelected: onPick,

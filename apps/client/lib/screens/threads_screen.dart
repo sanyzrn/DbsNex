@@ -57,7 +57,7 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
     final l10n = AppLocalizations.of(context);
     final threads = _threads;
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(l10n.threads),
         actions: [
           IconButton(
@@ -181,7 +181,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
     } else if (action == 'delete') {
       final ok = await nexShowDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => NexAlertDialog(
           title: Text(l10n.threadDelete),
           content: NexDialogBody(child: Text(l10n.threadDeleteBody)),
           actions: [
@@ -210,10 +210,10 @@ class _ThreadScreenState extends State<ThreadScreen> {
     final l10n = AppLocalizations.of(context);
     final notes = _notes;
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(_name, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
-          PopupMenuButton<String>(
+          NexPopupMenuButton<String>(
             onSelected: (action) => unawaited(_act(action)),
             itemBuilder: (context) => [
               PopupMenuItem(value: 'rename', child: Text(l10n.threadRename)),
@@ -275,7 +275,7 @@ Future<String?> nexAskThreadName(
   final controller = TextEditingController(text: initial ?? '');
   final name = await nexShowDialog<String>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => NexAlertDialog(
       title: Text(initial == null ? l10n.threadNew : l10n.threadRename),
       content: NexDialogBody(
         child: NexAutoDirection(

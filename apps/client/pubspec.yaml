@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 2.0.0
+version: 2.0.1
 
 environment:
   sdk: ^3.9.0
@@ -25,6 +25,8 @@ dependencies:
   # The in-app updater: one GET to the GitHub releases API when the user
   # asks, plus the streamed download of the installer.
   http: ^1.2.2
+  # Bundled, licensed swipe animations; no network animation sources are used.
+  lottie: 3.3.3
   # Verifies a downloaded installer against the release's SHA256SUMS asset.
   # Already resolved transitively (http depends on it); declared directly
   # because app_update.dart now imports it.
@@ -114,6 +116,8 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
+    - assets/swipe/
+    - third_party/swipe-icons-LICENSE.txt
     - assets/branding/
     # Bundled rather than fetched: a separate releases repo may have no
     # history published yet, and the changelog screen should never depend on

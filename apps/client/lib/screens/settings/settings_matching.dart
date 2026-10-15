@@ -25,7 +25,7 @@ extension _SettingsMatching on SettingsSheet {
       '${l10n.modulesTitle} ${l10n.cycleTitle} Cycle period module چرخه پریود قاعدگی ماژول',
     )) {
       out.add(
-        Material(
+        NexSurface(
           color: theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(NexRadius.lg),
           clipBehavior: Clip.antiAlias,
@@ -75,7 +75,7 @@ extension _SettingsMatching on SettingsSheet {
         ),
       );
       out.add(
-        Material(
+        NexSurface(
           color: theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(NexRadius.lg),
           clipBehavior: Clip.antiAlias,

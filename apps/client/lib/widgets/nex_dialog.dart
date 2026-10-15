@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'dismiss_on_overscroll.dart';
 
+export 'package:nex_ui/nex_ui.dart' show NexAlertDialog;
+
 /// Wraps dialog content at a stable width.
 ///
 /// `AlertDialog` sizes itself to its content's intrinsic width, so a dialog
@@ -47,6 +49,9 @@ Future<T?> nexShowDialog<T>({
       context: context,
       builder: builder,
       barrierDismissible: barrierDismissible,
+      barrierColor: context.nexVisualStyle.liquidGlass
+          ? Colors.black.withValues(alpha: 0.24)
+          : null,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       themes: InheritedTheme.capture(from: context, to: navigator.context),
     ),
@@ -58,6 +63,7 @@ class _NexDialogRoute<T> extends DialogRoute<T> {
     required super.context,
     required super.builder,
     super.barrierDismissible,
+    super.barrierColor,
     super.barrierLabel,
     super.themes,
   });

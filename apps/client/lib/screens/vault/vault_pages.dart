@@ -61,7 +61,7 @@ extension _VaultPages on _VaultScreenState {
     final duplicates = result.entries.length - count;
     final confirmed = await nexShowDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => NexAlertDialog(
         title: Text(nexLabel(context, 'Import passwords', 'ورود رمزها')),
         content: SingleChildScrollView(
           child: Column(
@@ -161,7 +161,7 @@ extension _VaultPages on _VaultScreenState {
     };
     final yes = await nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(_deleteAllLabel(ctx)),
         content: Text(
           nexLabel(

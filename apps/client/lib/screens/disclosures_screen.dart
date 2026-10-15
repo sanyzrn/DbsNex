@@ -40,7 +40,7 @@ class _DisclosuresScreenState extends State<DisclosuresScreen> {
     final l10n = AppLocalizations.of(context);
     final ok = await nexShowDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => NexAlertDialog(
         title: Text(l10n.disclosuresClear),
         content: NexDialogBody(child: Text(l10n.disclosuresClearBody)),
         actions: [
@@ -69,7 +69,7 @@ class _DisclosuresScreenState extends State<DisclosuresScreen> {
     final theme = Theme.of(context);
     final entries = _entries;
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(l10n.disclosuresTitle),
         actions: [
           if (entries != null && entries.isNotEmpty)

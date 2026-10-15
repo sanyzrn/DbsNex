@@ -260,7 +260,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
     final canSave = _title.text.trim().isNotEmpty && !_saving;
     return guardDraft(
       Scaffold(
-        appBar: AppBar(
+        appBar: NexAppBar(
           leading: IconButton(
             tooltip: l10n.cancel,
             onPressed: requestDiscard,

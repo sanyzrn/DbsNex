@@ -119,7 +119,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     final l10n = AppLocalizations.of(context);
     return nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(title),
         content: NexDialogBody(child: Text(body)),
         actions: [
@@ -145,7 +145,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     final theme = Theme.of(context);
     final loaded = notes;
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(l10n.trash),
         actions: [
           // Not while the read is still out: an Empty trash button on a

@@ -251,7 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           );
     return guardDraft(
       Scaffold(
-        appBar: AppBar(
+        appBar: NexAppBar(
           title: Text(l10n.profileTitle),
           actions: [
             TextButton(

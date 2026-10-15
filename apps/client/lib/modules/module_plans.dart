@@ -46,57 +46,9 @@ class NexModulePlan {
 /// What is coming, nearest first.
 const List<NexModulePlan> nexModulePlans = [
   NexModulePlan(
-    'smoke-free',
-    Icons.smoke_free_outlined,
-    NexHue.teal,
-    NexModuleStage.soon,
-  ),
-  NexModulePlan(
-    'parking',
-    Icons.local_parking_outlined,
-    NexHue.sky,
-    NexModuleStage.soon,
-  ),
-  NexModulePlan(
-    'gold',
-    Icons.diamond_outlined,
-    NexHue.amber,
-    NexModuleStage.soon,
-  ),
-  NexModulePlan(
-    'words',
-    Icons.translate_outlined,
-    NexHue.violet,
-    NexModuleStage.planned,
-  ),
-  NexModulePlan(
     'telegram',
     Icons.send_outlined,
     NexHue.sky,
-    NexModuleStage.planned,
-  ),
-  NexModulePlan(
-    'medicine',
-    Icons.medication_outlined,
-    NexHue.rose,
-    NexModuleStage.planned,
-  ),
-  NexModulePlan(
-    'warranty',
-    Icons.verified_outlined,
-    NexHue.amber,
-    NexModuleStage.planned,
-  ),
-  NexModulePlan(
-    'lent',
-    Icons.swap_horiz_outlined,
-    NexHue.slate,
-    NexModuleStage.planned,
-  ),
-  NexModulePlan(
-    'habits',
-    Icons.event_repeat_outlined,
-    NexHue.teal,
     NexModuleStage.planned,
   ),
 ];

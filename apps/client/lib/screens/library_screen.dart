@@ -85,7 +85,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final l10n = AppLocalizations.of(context);
     final counts = _counts;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.libraryTitle)),
+      appBar: NexAppBar(title: Text(l10n.libraryTitle)),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
           NexSpacing.md,

@@ -55,7 +55,7 @@ class _BriefScreenState extends State<BriefScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.briefTitle)),
+      appBar: NexAppBar(title: Text(l10n.briefTitle)),
       // Rebuilt from the preferences themselves rather than from `setState`
       // after each write, the same way the assistant's settings are: every
       // control here writes through `preferences`, which notifies, and a
@@ -310,7 +310,7 @@ class _BriefScreenState extends State<BriefScreen> {
     final l10n = AppLocalizations.of(context);
     final confirmed = await nexShowDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => NexAlertDialog(
         icon: const Icon(Icons.warning_amber_rounded),
         title: Text(
           nexLabel(context, 'Remove the token limit?', 'سقف توکن برداشته شود؟'),

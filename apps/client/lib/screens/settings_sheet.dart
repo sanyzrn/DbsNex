@@ -98,7 +98,7 @@ class SettingsSheet extends StatelessWidget {
     // and a sheet that a stray pull at its top could close was the wrong
     // container for that.
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settings)),
+      appBar: NexAppBar(title: Text(l10n.settings)),
       body: _SettingsSearch(
         builder: (context, query, field) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

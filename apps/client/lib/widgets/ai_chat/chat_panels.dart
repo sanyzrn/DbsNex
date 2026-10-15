@@ -117,7 +117,7 @@ class _ChatHistorySheetState extends State<ChatHistorySheet> {
                 onTap: () async {
                   final confirmed = await nexShowDialog<bool>(
                     context: context,
-                    builder: (context) => AlertDialog(
+                    builder: (context) => NexAlertDialog(
                       title: Text(l10n.chatClearHistory),
                       content: Text(l10n.chatClearHistoryBody),
                       actions: [

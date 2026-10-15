@@ -164,7 +164,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     final teal = NexHue.teal.of(theme.brightness);
     final violet = NexHue.violet.of(theme.brightness);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.securityTitle)),
+      appBar: NexAppBar(title: Text(l10n.securityTitle)),
       body: AnimatedBuilder(
         animation: widget.preferences,
         builder: (context, _) {

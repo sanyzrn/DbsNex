@@ -139,7 +139,7 @@ void main() {
     await openDelete();
 
     // A confirmation, not an immediate delete — the file cannot come back.
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.bySubtype<AlertDialog>(), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(await services.listBackups(), hasLength(1));

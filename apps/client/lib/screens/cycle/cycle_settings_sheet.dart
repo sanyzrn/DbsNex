@@ -98,7 +98,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     final suggested = periods.isEmpty ? null : periods.last.start.local;
     final choice = await nexShowDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => NexAlertDialog(
         title: Text(l10n.cycleModePregnant),
         content: NexDialogBody(child: Text(l10n.cyclePregnancyNote)),
         actions: [
@@ -141,7 +141,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     final l10n = AppLocalizations.of(context);
     final ok = await nexShowDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => NexAlertDialog(
         title: Text(l10n.cycleDeleteAll),
         content: NexDialogBody(child: Text(l10n.cycleDeleteAllConfirm)),
         actions: [

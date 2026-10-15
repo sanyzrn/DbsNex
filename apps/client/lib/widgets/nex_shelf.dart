@@ -165,12 +165,10 @@ class NexShelfTile extends StatelessWidget {
     );
     return Semantics(
       onLongPressHint: longPressLabel,
-      child: Material(
+      child: NexSurface(
         color: scheme.surfaceContainerLow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(compact ? NexRadius.lg : 22),
-          side: BorderSide(color: color.withValues(alpha: 0.35)),
-        ),
+        borderRadius: BorderRadius.circular(compact ? NexRadius.lg : 22),
+        border: BorderSide(color: color.withValues(alpha: 0.35)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -267,7 +265,7 @@ class NexPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final title = this.title;
-    return Material(
+    return NexSurface(
       color: scheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(NexRadius.lg),
       clipBehavior: Clip.antiAlias,

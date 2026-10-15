@@ -159,7 +159,7 @@ class _SyncRowState extends State<_SyncRow> {
     );
     final ok = await nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l10n.syncServer),
         content: NexDialogBody(
           child: Column(
@@ -270,7 +270,7 @@ Future<bool> editDisplayName(
   final controller = TextEditingController(text: preferences.displayName ?? '');
   final saved = await nexShowDialog<String>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => NexAlertDialog(
       title: Text(l10n.yourName),
       content: NexDialogBody(
         child: NexAutoDirection(

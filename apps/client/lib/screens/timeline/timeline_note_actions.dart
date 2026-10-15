@@ -109,7 +109,7 @@ extension _TimelineNoteActions on TimelineScreenState {
     final notes = List.of(group.notes);
     final confirmed = await nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(group.label),
         content: NexDialogBody(child: Text(l10n.groupDeleteBody(notes.length))),
         actions: [

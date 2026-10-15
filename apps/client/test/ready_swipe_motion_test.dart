@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:nex_client/widgets/ready_swipe_icon.dart';
+import 'package:lottie/lottie.dart';
 
 void main() {
   for (final action in NexSwipeAction.values) {
@@ -12,6 +14,12 @@ void main() {
       '${action.name}: motion reverses and reduced motion stays still',
       (tester) async {
         final boundaryKey = GlobalKey();
+        await tester.runAsync(() async {
+          await Lottie.cache.putIfAbsent(
+            AssetLottie(NexReadySwipeIcon.asset(action)),
+            () => AssetLottie(NexReadySwipeIcon.asset(action)).load(),
+          );
+        });
         Future<void> paint(double progress, {bool still = false}) async {
           await tester.pumpWidget(
             MaterialApp(
@@ -22,10 +30,18 @@ void main() {
                     key: boundaryKey,
                     child: ColoredBox(
                       color: Colors.black,
-                      child: NexSwipeActionGlyph(
-                        action: action,
-                        progress: progress,
-                        armed: progress >= 1,
+                      child: NexSwipeGlyphTheme(
+                        builder: (context, action, progress, armed, color) =>
+                            NexReadySwipeIcon(
+                              action: action,
+                              progress: progress,
+                              color: color,
+                            ),
+                        child: NexSwipeActionGlyph(
+                          action: action,
+                          progress: progress,
+                          armed: progress >= 1,
+                        ),
                       ),
                     ),
                   ),
@@ -50,7 +66,7 @@ void main() {
 
         await paint(0);
         final resting = await pixels();
-        await paint(1);
+        await paint(0.55);
         expect(await pixels(), isNot(orderedEquals(resting)));
         await paint(0);
         expect(await pixels(), orderedEquals(resting));

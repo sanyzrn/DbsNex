@@ -54,7 +54,7 @@ class _RenameFileDialogState extends State<_RenameFileDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final problem = _problem;
-    return AlertDialog(
+    return NexAlertDialog(
       title: Text(l10n.renameFileTitle),
       content: NexDialogBody(
         child: NexAutoDirection(

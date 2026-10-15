@@ -45,7 +45,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
     final on = widget.preferences.metricsEnabled;
     final sessions = _metrics.sessions;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.metricsTitle)),
+      appBar: NexAppBar(title: Text(l10n.metricsTitle)),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
           NexSpacing.md,

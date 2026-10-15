@@ -138,7 +138,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
     final provider = _config.provider;
     final needsEndpoint = provider.needsBaseUrl;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.aiProvider)),
+      appBar: NexAppBar(title: Text(l10n.aiProvider)),
       // Test and Save live in a bar of their own. Six provider rows plus three
       // fields is more than one screenful, so inline actions sat below the fold
       // — the two buttons the screen exists for were the two you had to go

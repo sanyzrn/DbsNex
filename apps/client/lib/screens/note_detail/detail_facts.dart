@@ -67,7 +67,7 @@ extension _DetailFacts on _NoteDetailSheetState {
 
     await nexShowDialog<void>(
       context: context,
-      builder: (dialog) => AlertDialog(
+      builder: (dialog) => NexAlertDialog(
         title: Text(l10n.details),
         content: NexDialogBody(
           child: Column(

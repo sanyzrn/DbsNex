@@ -62,7 +62,7 @@ class _ScheduledScreenState extends State<ScheduledScreen> {
     final l10n = AppLocalizations.of(context);
     final ok = await nexShowDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => NexAlertDialog(
         title: Text(l10n.scheduledDiscard),
         content: NexDialogBody(child: Text(l10n.scheduledDiscardConfirm)),
         actions: [
@@ -93,7 +93,7 @@ class _ScheduledScreenState extends State<ScheduledScreen> {
     final l10n = AppLocalizations.of(context);
     final notes = _notes;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.scheduledTitle)),
+      appBar: NexAppBar(title: Text(l10n.scheduledTitle)),
       body: SafeArea(
         child: switch (notes) {
           null => const Center(child: CircularProgressIndicator()),
@@ -178,7 +178,7 @@ class _ScheduledCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                PopupMenuButton<VoidCallback>(
+                NexPopupMenuButton<VoidCallback>(
                   tooltip: l10n.moreActions,
                   onSelected: (run) => run(),
                   itemBuilder: (context) => [

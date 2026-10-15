@@ -65,7 +65,7 @@ class _GuideScreenState extends State<GuideScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(widget.privacy ? l10n.privacyPolicy : l10n.guideTitle),
       ),
       body: SafeArea(
