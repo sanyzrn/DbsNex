@@ -76,7 +76,7 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
     final asset = controller.assetById(widget.assetId);
     if (controller.loading || controller.readFailed || asset == null) {
       return Scaffold(
-        appBar: AppBar(title: Text(s(context, 'title'))),
+        appBar: NexAppBar(title: Text(s(context, 'title'))),
         body: controller.loading
             ? const Center(child: CircularProgressIndicator())
             : NexEmptyState(
@@ -117,7 +117,7 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
     final costTotals = assetCostTotals(events);
     final hue = NexHue.amber.of(theme.brightness);
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(
           asset.nickname,
           maxLines: 1,
@@ -131,7 +131,7 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
             ),
             icon: const Icon(Icons.edit_outlined),
           ),
-          PopupMenuButton<String>(
+          NexPopupMenuButton<String>(
             tooltip: s(context, 'moreActions'),
             onSelected: (action) => unawaited(
               assetPageMenu(

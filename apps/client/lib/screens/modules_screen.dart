@@ -352,20 +352,18 @@ class _ModuleCard extends StatelessWidget {
           ModuleInstallPhase.removing => 1 - t,
           ModuleInstallPhase.idle => on ? 1.0 : 0.0,
         };
-        return Container(
+        return NexSurface(
           key: ValueKey('module-${module.id}'),
-          decoration: BoxDecoration(
-            color: Color.alphaBlend(
-              color.withValues(alpha: 0.05 + 0.05 * inness),
-              scheme.surfaceContainerLow,
-            ),
-            borderRadius: BorderRadius.circular(NexRadius.xl),
-            border: Border.all(
-              color: color.withValues(alpha: 0.25 + 0.2 * inness),
-            ),
+          color: Color.alphaBlend(
+            color.withValues(alpha: 0.05 + 0.05 * inness),
+            scheme.surfaceContainerLow,
+          ),
+          borderRadius: BorderRadius.circular(NexRadius.xl),
+          border: BorderSide(
+            color: color.withValues(alpha: 0.25 + 0.2 * inness),
           ),
           padding: const EdgeInsets.all(NexSpacing.md),
-          child: child,
+          child: child!,
         );
       },
       child: Column(
@@ -583,7 +581,7 @@ class _SuggestRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Material(
+    return NexSurface(
       color: scheme.primary.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(NexRadius.lg),
       clipBehavior: Clip.antiAlias,

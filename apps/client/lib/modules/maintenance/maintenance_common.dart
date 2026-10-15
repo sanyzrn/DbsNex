@@ -18,7 +18,7 @@ Future<void> confirmMaintenanceDiscard(
   final s = maintenanceStrings;
   final answer = await nexShowDialog<String>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(s(dialogContext, 'discardTitle')),
       content: NexDialogBody(child: Text(s(dialogContext, 'discardBody'))),
       actions: [
@@ -168,7 +168,7 @@ Future<bool> confirmMaintenanceDelete(
   final s = maintenanceStrings;
   final answer = await nexShowDialog<String>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(title),
       content: NexDialogBody(child: Text(body)),
       actions: [

@@ -100,7 +100,7 @@ class _ReadingEditorState extends State<ReadingEditor> {
       if (previous != null && value < previous.value) {
         final answer = await nexShowDialog<bool>(
           context: context,
-          builder: (dialog) => AlertDialog(
+          builder: (dialog) => NexAlertDialog(
             title: Text(maintenanceStrings(dialog, 'readingCorrection')),
             content: NexDialogBody(
               child: Text(maintenanceStrings(dialog, 'readingCorrectionBody')),

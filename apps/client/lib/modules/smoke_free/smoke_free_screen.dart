@@ -129,7 +129,7 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
     final past = SmokeMath.pastAttempts(_attempts);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(strings(context, 'title')),
         actions: [
           if (active != null)
@@ -142,7 +142,7 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
                   : () => unawaited(_setup(editing: active)),
             ),
           if (active != null)
-            PopupMenuButton<String>(
+            NexPopupMenuButton<String>(
               key: const ValueKey('smoke-menu'),
               tooltip: strings(context, 'more'),
               icon: const Icon(Icons.more_vert),
@@ -201,7 +201,7 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
     if (_writing) return;
     final choice = await nexShowDialog<bool>(
       context: context,
-      builder: (dialog) => AlertDialog(
+      builder: (dialog) => NexAlertDialog(
         title: Text(smokeFreeStrings(dialog, 'restartAttempt')),
         content: NexDialogBody(
           child: Text(smokeFreeStrings(dialog, 'restartBody')),
@@ -233,7 +233,7 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
     final l10n = AppLocalizations.of(context);
     final restart = await nexShowDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => NexAlertDialog(
         title: Text(strings(dialogContext, 'lapseTitle')),
         content: NexDialogBody(
           child: Text(strings(dialogContext, 'lapseBody')),

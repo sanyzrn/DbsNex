@@ -37,7 +37,7 @@ class _Suggestions extends StatelessWidget {
         for (final (icon, label) in prompts)
           Padding(
             padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-            child: Material(
+            child: NexSurface(
               color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(NexRadius.lg),
               clipBehavior: Clip.antiAlias,
@@ -98,6 +98,9 @@ class _Thread extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final glass =
+        context.nexVisualStyle.liquidGlass &&
+        !MediaQuery.highContrastOf(context);
     return ListView.builder(
       controller: controller,
       padding: const EdgeInsets.all(NexSpacing.md),
@@ -166,9 +169,11 @@ class _Thread extends StatelessWidget {
                   maxWidth: MediaQuery.sizeOf(context).width * 0.78,
                 ),
                 decoration: BoxDecoration(
-                  color: mine
-                      ? theme.colorScheme.primaryContainer
-                      : theme.colorScheme.surfaceContainerHighest,
+                  color:
+                      (mine
+                              ? theme.colorScheme.primaryContainer
+                              : theme.colorScheme.surfaceContainerHighest)
+                          .withValues(alpha: glass ? 0.78 : 1),
                   borderRadius: BorderRadius.circular(NexRadius.lg),
                 ),
                 // Long-press used to copy the whole turn and nothing else

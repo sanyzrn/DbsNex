@@ -18,7 +18,7 @@ class GoldGuidePage extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text(strings(context, 'guideTitle'))),
+      appBar: NexAppBar(title: Text(strings(context, 'guideTitle'))),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
         children: [

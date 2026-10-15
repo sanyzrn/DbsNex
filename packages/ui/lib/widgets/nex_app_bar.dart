@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../tokens/nex_appearance.dart';
 
@@ -16,6 +17,7 @@ class NexAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.elevation,
     this.flexibleSpace,
     this.titleSpacing,
+    this.bottom,
   });
 
   final Widget? title, leading, flexibleSpace;
@@ -24,9 +26,11 @@ class NexAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color? backgroundColor, foregroundColor;
   final double? elevation;
   final double? titleSpacing;
+  final PreferredSizeWidget? bottom;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize =>
+      Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +39,7 @@ class NexAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: title,
       leading: leading,
       actions: actions,
+      bottom: bottom,
       centerTitle: centerTitle,
       titleSpacing: titleSpacing,
       backgroundColor: glass ? Colors.transparent : backgroundColor,
@@ -42,6 +47,15 @@ class NexAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: glass ? 0 : elevation,
       scrolledUnderElevation: glass ? 0 : null,
       surfaceTintColor: glass ? Colors.transparent : null,
+      // Transparent has no meaningful brightness. Keep system icons tied to
+      // the actual glass palette instead of treating its alpha as black.
+      systemOverlayStyle: glass
+          ? (Theme.of(context).appBarTheme.systemOverlayStyle ??
+                    (Theme.of(context).brightness == Brightness.dark
+                        ? SystemUiOverlayStyle.light
+                        : SystemUiOverlayStyle.dark))
+                .copyWith(statusBarColor: Colors.transparent)
+          : null,
       forceMaterialTransparency: glass,
       flexibleSpace: flexibleSpace ?? (glass ? const NexGlassBar() : null),
     );

@@ -13,14 +13,7 @@ import 'support/nex_harness.dart';
 void main() {
   late NexTestHarness harness;
 
-  setUp(
-    () async => harness = await NexTestHarness.create(
-      name: 'nex_mod_',
-      preferences: {
-        for (final id in nexPreviewModuleIds) 'module.$id.on': false,
-      },
-    ),
-  );
+  setUp(() async => harness = await NexTestHarness.create(name: 'nex_mod_'));
   tearDown(() => harness.dispose());
 
   test('every module has its own stable, lower-case id', () {
@@ -59,7 +52,7 @@ void main() {
     expect(titles, hasLength(nexModulePlans.length * 2));
   });
 
-  test('explicitly removed modules stay out of Tools', () {
+  test('all modules start off in a fresh install', () {
     expect(nexModulesOn(harness.preferences), isEmpty);
   });
 

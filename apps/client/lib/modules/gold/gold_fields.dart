@@ -242,7 +242,7 @@ class GoldDropdownField<T> extends StatelessWidget {
           padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.xs),
           child: Text(label, style: theme.textTheme.labelLarge),
         ),
-        PopupMenuButton<T>(
+        NexPopupMenuButton<T>(
           key: fieldKey,
           initialValue: value,
           onSelected: onSelected,

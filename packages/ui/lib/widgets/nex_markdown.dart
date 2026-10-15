@@ -50,6 +50,7 @@ class NexMarkdown extends StatefulWidget {
     this.onHoldLink,
     this.onCopyCode,
     this.selectable = true,
+    this.preserveLineBreaks = false,
   });
 
   /// The raw Markdown source.
@@ -95,6 +96,10 @@ class NexMarkdown extends StatefulWidget {
   /// reach wider than this one block.
   final bool selectable;
 
+  /// Keep a note's typed Enter even when inline formatting enables Markdown.
+  /// Assistant replies and imported Markdown keep CommonMark's soft wrapping.
+  final bool preserveLineBreaks;
+
   @override
   State<NexMarkdown> createState() => _NexMarkdownState();
 }
@@ -134,6 +139,7 @@ class _NexMarkdownState extends State<NexMarkdown> {
         textDirection: direction,
         child: MarkdownBody(
           data: text,
+          softLineBreak: widget.preserveLineBreaks,
           // Never the markdown body's own selection: it is a `SelectableText`,
           // which eats the taps the code spans and links are built on. The area
           // below does it without taking anything away — see [selectable].

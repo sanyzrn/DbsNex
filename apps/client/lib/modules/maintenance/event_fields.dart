@@ -174,7 +174,7 @@ Future<bool> confirmBackwardsMeter(
   final persian = NexModuleStrings.persian(context);
   final answer = await nexShowDialog<String>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(s(dialogContext, 'backwardsTitle')),
       content: NexDialogBody(
         child: Text(

@@ -76,24 +76,30 @@ class _Composer extends StatelessWidget {
             // the field had one direction for everything in it, the bubble
             // one per line. [NexTextField] is the platform's own editor, which
             // does what the bubble does.
-            child: NexTextField(
-              controller: controller,
-              focusNode: focusNode,
-              minLines: 1,
-              maxLines: 5,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => onSend(),
-              decoration: InputDecoration(
-                hintText: l10n.chatHint,
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest,
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(NexRadius.xl)),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: NexSpacing.md,
-                  vertical: NexSpacing.sm,
+            child: NexSurface(
+              key: const ValueKey('chat-composer-surface'),
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(NexRadius.xl),
+              child: NexTextField(
+                controller: controller,
+                focusNode: focusNode,
+                minLines: 1,
+                maxLines: 5,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => onSend(),
+                decoration: InputDecoration(
+                  hintText: l10n.chatHint,
+                  filled: false,
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(NexRadius.xl),
+                    ),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.md,
+                    vertical: NexSpacing.sm,
+                  ),
                 ),
               ),
             ),
@@ -203,67 +209,69 @@ class _VoiceBarState extends State<_VoiceBar> {
         ),
         const SizedBox(width: NexSpacing.xs),
         Expanded(
-          child: Container(
+          child: SizedBox(
             height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
-            decoration: BoxDecoration(
+            child: NexSurface(
               color: scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(NexRadius.xl),
+              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+              child: recorder == null
+                  ? Row(
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: NexSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            l10n.chatTranscribing,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: NexColors.swipeDelete,
+                          ),
+                        ),
+                        const SizedBox(width: NexSpacing.sm),
+                        Semantics(
+                          liveRegion: true,
+                          label: l10n.recordingElapsed(elapsed),
+                          child: Text(
+                            elapsed,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: NexSpacing.md),
+                        Expanded(
+                          child: SizedBox(
+                            height: 28,
+                            child: NexLiveWaveform(
+                              recorder: recorder,
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
             ),
-            child: recorder == null
-                ? Row(
-                    children: [
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      const SizedBox(width: NexSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          l10n.chatTranscribing,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: NexColors.swipeDelete,
-                        ),
-                      ),
-                      const SizedBox(width: NexSpacing.sm),
-                      Semantics(
-                        liveRegion: true,
-                        label: l10n.recordingElapsed(elapsed),
-                        child: Text(
-                          elapsed,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: NexSpacing.md),
-                      Expanded(
-                        child: SizedBox(
-                          height: 28,
-                          child: NexLiveWaveform(
-                            recorder: recorder,
-                            color: scheme.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
           ),
         ),
         const SizedBox(width: NexSpacing.sm),
@@ -563,13 +571,11 @@ class _ActionCard extends StatelessWidget {
         NexSpacing.md,
         NexSpacing.sm,
       ),
-      child: Container(
+      child: NexSurface(
         padding: const EdgeInsets.all(NexSpacing.md),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(NexRadius.lg),
-          border: Border.all(color: accent.withValues(alpha: 0.5)),
-          color: accent.withValues(alpha: 0.06),
-        ),
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        border: BorderSide(color: accent.withValues(alpha: 0.5)),
+        color: accent.withValues(alpha: 0.06),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,

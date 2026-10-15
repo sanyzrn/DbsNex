@@ -64,7 +64,7 @@ class GoldComparePage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings(context, 'compare'))),
+      appBar: NexAppBar(title: Text(strings(context, 'compare'))),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
         children: [

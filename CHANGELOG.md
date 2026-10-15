@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.2
+
+- **Small, visible swipe feedback.** Standard icons give one brief pulse when revealed and when a full swipe arms. The motion finishes while your finger pauses and stays still with reduced motion.
+- **Glass reaches the assistant and modules.** The chat sheet no longer covers glass with an opaque layer; assistant settings, composer, module headers, dialogs and menus share the same material. A fine rim reflection adds depth, with solid high-contrast fallbacks.
+- **Modules start off.** All modules are available in Tools → Add modules and are off until you add them. The automatic 2.0.1 preview no longer enables them; explicit Add/Remove choices are preserved.
+- **Bold keeps your line breaks.** Formatting part of a note no longer pulls the next line up beside it; typed Enter stays a new line.
+- **The + button follows the shortcut colour.** Its fill gradually takes the selected capture type's colour as you swipe and returns when you cancel.
+- **Faster editing scroll.** A quick vertical flick in Android's editor continues with bounded momentum. Touching again stops it, while long-press selection and handles keep their normal behaviour.
+
 ## v2.0.1
 
 - **Eleven modules to try.** Habits, Price Lens, Lent & Borrowed, Expenses, Gold, Words, Parking, Medicine, Warranty, Maintenance and Smoke Free are available and already added in Tools for this preview. Remove or re-add each independently. Their data stays local and in backups, separate from notes, search and the assistant; camera, GPS, network and background reminders remain future integrations.

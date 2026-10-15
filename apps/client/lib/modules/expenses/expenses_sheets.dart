@@ -157,7 +157,7 @@ class _CategoriesSheetState extends State<_CategoriesSheet> {
   Future<void> _deleteCategory(ExpenseCategory category) async {
     final answer = await nexShowDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => NexAlertDialog(
         title: Text(expenseStrings(dialogContext, 'deleteCategoryTitle')),
         content: NexDialogBody(
           child: Text(expenseStrings(dialogContext, 'deleteCategoryBody')),

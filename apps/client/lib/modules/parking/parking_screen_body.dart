@@ -27,7 +27,7 @@ extension _ParkingScreenBody on _ParkingScreenState {
     );
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(strings(context, 'title')),
         actions: [
           IconButton(
@@ -42,7 +42,7 @@ extension _ParkingScreenBody on _ParkingScreenState {
             },
           ),
           if (historyAll.isNotEmpty)
-            PopupMenuButton<String>(
+            NexPopupMenuButton<String>(
               key: const ValueKey('parking-menu'),
               tooltip: strings(context, 'history'),
               onSelected: (_) => unawaited(_clearHistory()),

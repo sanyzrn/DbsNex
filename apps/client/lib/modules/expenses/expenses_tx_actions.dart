@@ -63,7 +63,7 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     if (existing == null || _saving) return;
     final answer = await nexShowDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => NexAlertDialog(
         title: Text(expenseStrings(context, 'deleteTxTitle')),
         content: NexDialogBody(
           child: Text(expenseStrings(context, 'deleteTxBody')),

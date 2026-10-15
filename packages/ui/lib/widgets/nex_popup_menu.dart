@@ -23,6 +23,7 @@ class NexPopupMenuButton<T> extends StatelessWidget {
     this.color,
     this.elevation,
     this.popUpAnimationStyle,
+    this.borderRadius,
   });
 
   final PopupMenuItemBuilder<T> itemBuilder;
@@ -39,6 +40,7 @@ class NexPopupMenuButton<T> extends StatelessWidget {
   final Color? color;
   final double? elevation;
   final AnimationStyle? popUpAnimationStyle;
+  final BorderRadius? borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,7 @@ class NexPopupMenuButton<T> extends StatelessWidget {
       elevation: glass ? 0 : elevation,
       shape: shape,
       popUpAnimationStyle: popUpAnimationStyle,
+      borderRadius: borderRadius,
       menuPadding: glass ? EdgeInsets.zero : null,
       itemBuilder: (context) {
         final entries = itemBuilder(context);

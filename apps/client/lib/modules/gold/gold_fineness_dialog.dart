@@ -26,7 +26,7 @@ class _FinenessDialogState extends State<_FinenessDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => NexAlertDialog(
     title: Text(goldStrings(context, 'finenessCustom')),
     content: NexDialogBody(
       child: Form(

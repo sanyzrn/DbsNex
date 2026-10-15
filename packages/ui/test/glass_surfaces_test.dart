@@ -76,6 +76,15 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
+          if (glass) {
+            expect(
+              tester
+                  .widget<AppBar>(find.byType(AppBar))
+                  .systemOverlayStyle
+                  ?.statusBarIconBrightness,
+              dark ? Brightness.light : Brightness.dark,
+            );
+          }
           final blurred = mode == 'glass';
           expect(
             find.byType(BackdropFilter),

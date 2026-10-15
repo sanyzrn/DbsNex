@@ -110,7 +110,7 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 **Modules** are extra features that stay out of the app until you want them: **Tools → Add modules** lists each one with what it does. **Add** installs it, which you can watch as its pieces gather into its icon, and puts it in Tools under **Modules**; **Remove** takes it out again — with nothing left running — and asks whether to keep its data for later or delete it. Cycle keeps its existing opt-in. Below the modules you can add, **On the way** lists the ones being planned, and the row at the bottom opens a short form that sends us your own idea for one.
 
-**Module preview in 2.0.1.** All eleven new modules below are already added in **Tools → Modules** for testing. Open them from Tools; use **Remove** on the module-management page to hide one and choose whether to keep its data. A removed module stays removed until you add it again.
+**Optional modules.** The eleven modules below are available in **Tools → Add modules**. All start off; use **Add** to put one in Tools and open it. **Remove** hides it again and asks whether to keep its data. Explicit choices survive updates; 2.0.2 also turns off modules that were only enabled by the automatic 2.0.1 preview.
 
 - **Habits:** daily/weekly check-ins, history and streaks.
 - **Price Lens:** compare unit prices across differently sized offers; save comparisons.
@@ -248,3 +248,5 @@ The field at the top of Settings finds any of these by name.
 **Settings → About Nex** shows the installed version and checks for updates; releases download inside the app and install over the existing one, keeping all your data. The same page links to the maker, **DbsStudio.ir**, and to Nex's own page with news, downloads and help.
 
 **Send feedback** goes straight to the people who make Nex. Choose whether it is a problem, an idea or something else, and add a Telegram ID or email if you would like a reply; nothing from your notes is attached. The app version, the Android version and the phone model go with it, so a problem can be traced to the phones it happens on. If speed measurements are on, you can tick **Attach my speed measurements**; the exact text that will be added is shown before you send. If sending is not available, copy your message and send it another way. If something has gone wrong, tick **Attach the diagnostics report**: recent errors and app events, with links, keys and passwords removed and nothing from your notes. The exact report is shown before you send. **Share diagnostics** in About sends the same report any other way you like. Both stay on your phone until you choose to send them.
+
+Swiping the capture **+** button gradually changes its fill to the selected shortcut's colour. Cancel returns its original colour. In Android's text editor, a quick vertical flick scrolls with momentum; tap to stop, and hold to select text normally. Formatting a note keeps every typed line break.

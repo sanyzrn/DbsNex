@@ -12,6 +12,7 @@ class NexSurface extends StatelessWidget {
     this.borderRadius = const BorderRadius.all(Radius.circular(NexRadius.lg)),
     this.border = BorderSide.none,
     this.clipBehavior = Clip.antiAlias,
+    this.padding,
   });
 
   final Widget child;
@@ -19,6 +20,7 @@ class NexSurface extends StatelessWidget {
   final BorderRadius borderRadius;
   final BorderSide border;
   final Clip clipBehavior;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -26,12 +28,15 @@ class NexSurface extends StatelessWidget {
       borderRadius: borderRadius,
       side: border,
     );
+    final body = padding == null
+        ? child
+        : Padding(padding: padding!, child: child);
     if (!context.nexVisualStyle.liquidGlass) {
       return Material(
         color: color,
         shape: shape,
         clipBehavior: clipBehavior,
-        child: child,
+        child: body,
       );
     }
     return NexGlassSurface(
@@ -42,7 +47,7 @@ class NexSurface extends StatelessWidget {
         type: MaterialType.transparency,
         shape: shape,
         clipBehavior: clipBehavior,
-        child: child,
+        child: body,
       ),
     );
   }

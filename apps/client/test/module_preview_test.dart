@@ -9,32 +9,33 @@ import 'package:nex_client/screens/tools_screen.dart';
 import 'support/nex_harness.dart';
 
 void main() {
+  final moduleIds = nexModules
+      .whereType<NexStoredModule>()
+      .map((m) => m.id)
+      .toSet();
   late NexTestHarness harness;
   setUp(
     () async => harness = await NexTestHarness.create(name: 'nex_preview_'),
   );
   tearDown(() => harness.dispose());
 
-  test(
-    'all eleven preview modules start on; Cycle and future modules do not',
-    () {
-      expect(nexPreviewModuleIds, hasLength(11));
-      expect(
-        nexModules.whereType<NexStoredModule>().map((m) => m.id).toSet(),
-        nexPreviewModuleIds,
-      );
-      expect(
-        nexModulesOn(harness.preferences).map((m) => m.id).toSet(),
-        nexPreviewModuleIds,
-      );
-      expect(harness.preferences.cycleEnabled, isFalse);
-      expect(harness.preferences.isModuleOn('future_module'), isFalse);
-    },
-  );
+  test('all modules default off, including the eleven add-ons', () {
+    expect(moduleIds, hasLength(11));
+    expect(
+      nexModules.whereType<NexStoredModule>().map((m) => m.id).toSet(),
+      moduleIds,
+    );
+    expect(nexModulesOn(harness.preferences), isEmpty);
+    expect(harness.preferences.cycleEnabled, isFalse);
+    expect(harness.preferences.isModuleOn('future_module'), isFalse);
+  });
 
   test(
     'removing a preview module survives reload without disabling others',
     () async {
+      for (final id in moduleIds) {
+        await harness.preferences.setModuleOn(id, true);
+      }
       await harness.preferences.setModuleOn('habits', false);
       final reloaded = await NexPreferences.load();
       addTearDown(reloaded.dispose);
@@ -48,14 +49,14 @@ void main() {
   test(
     'identical record keys stay isolated across all eleven modules',
     () async {
-      for (final id in nexPreviewModuleIds) {
+      for (final id in moduleIds) {
         await NexModuleStore(
           harness.services,
           id,
         ).put('sample', 'same-id', {'owner': id});
       }
       await harness.services.moduleDeleteAll('habits');
-      for (final id in nexPreviewModuleIds) {
+      for (final id in moduleIds) {
         expect(
           await NexModuleStore(harness.services, id).get('sample', 'same-id'),
           id == 'habits' ? isNull : {'owner': id},
@@ -70,6 +71,9 @@ void main() {
     testWidgets('all eleven open from Tools and return ($locale)', (
       tester,
     ) async {
+      for (final id in moduleIds) {
+        await harness.preferences.setModuleOn(id, true);
+      }
       tester.view.physicalSize = const Size(400, 900);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -88,7 +92,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      for (final id in nexPreviewModuleIds) {
+      for (final id in moduleIds) {
         final tile = find.byKey(ValueKey('tool-module.$id'));
         await tester.scrollUntilVisible(tile, 350, maxScrolls: 30);
         await tester.ensureVisible(tile);

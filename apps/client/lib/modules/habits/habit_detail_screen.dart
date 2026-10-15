@@ -177,7 +177,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     final habit = _habit;
     if (habit == null) {
       return Scaffold(
-        appBar: AppBar(),
+        appBar: NexAppBar(),
         body: recordsBody(const SizedBox(), () => unawaited(_load())),
       );
     }
@@ -191,7 +191,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     final name = habit.name.isEmpty ? strings(context, 'untitled') : habit.name;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(name, maxLines: 2, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
@@ -200,7 +200,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
             icon: const Icon(Icons.edit_outlined),
             onPressed: _writing ? null : () => unawaited(_edit()),
           ),
-          PopupMenuButton<String>(
+          NexPopupMenuButton<String>(
             key: const ValueKey('habit-menu'),
             tooltip: strings(context, 'more'),
             icon: const Icon(Icons.more_vert),

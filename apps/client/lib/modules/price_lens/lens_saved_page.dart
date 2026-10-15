@@ -39,7 +39,7 @@ class _LensSavedPageState extends State<LensSavedPage> {
     final s = priceLensStrings;
     final answer = await nexShowDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => NexAlertDialog(
         title: Text(s(dialogContext, 'deleteSavedTitle')),
         content: NexDialogBody(
           child: Text(s(dialogContext, 'savedDeleteBody')),
@@ -85,7 +85,7 @@ class _LensSavedPageState extends State<LensSavedPage> {
     final s = priceLensStrings;
     final saved = widget.controller.saved;
     return Scaffold(
-      appBar: AppBar(title: Text(s(context, 'savedComparisons'))),
+      appBar: NexAppBar(title: Text(s(context, 'savedComparisons'))),
       body: SafeArea(
         child: widget.controller.readFailed
             ? LensReadError(controller: widget.controller)

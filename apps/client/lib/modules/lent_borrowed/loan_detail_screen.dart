@@ -134,7 +134,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
     final loan = _loan;
     if (loan == null) {
       return Scaffold(
-        appBar: AppBar(),
+        appBar: NexAppBar(),
         body: recordsBody(const SizedBox(), () => unawaited(_load())),
       );
     }
@@ -145,7 +145,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
         : loan.person;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(person, maxLines: 2, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
@@ -163,7 +163,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
                     ),
                   ),
           ),
-          PopupMenuButton<String>(
+          NexPopupMenuButton<String>(
             key: const ValueKey('loan-menu'),
             tooltip: strings(context, 'more'),
             icon: const Icon(Icons.more_vert),

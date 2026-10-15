@@ -153,7 +153,7 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     return PopScope(
       canPop: !_answering,
       child: Scaffold(
-        appBar: AppBar(title: Text(strings(context, 'reviewTitle'))),
+        appBar: NexAppBar(title: Text(strings(context, 'reviewTitle'))),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : _failed

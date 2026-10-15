@@ -14,14 +14,19 @@ import android.text.TextWatcher
 import android.util.TypedValue
 import android.view.ActionMode
 import android.view.Gravity
+import android.view.GestureDetector
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
+import android.view.accessibility.AccessibilityManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import android.widget.OverScroller
 import io.flutter.FlutterInjector
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
@@ -73,6 +78,68 @@ class NexEditTextFactory(private val messenger: BinaryMessenger) :
 
 /** An `EditText` that says when its selection moves, and can take Copy. */
 private class NexEditText(context: Context) : EditText(context) {
+    // EditText tracks a drag but does not keep scrolling after a quick flick.
+    // Keep Android's own selection/drag handling and add bounded momentum only
+    // to a one-finger vertical flick. Long presses and selection handles never
+    // start a fling.
+    private val momentum = OverScroller(context)
+    private val maxFlingVelocity = ViewConfiguration.get(context).scaledMaximumFlingVelocity
+    private val accessibility = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+    private var flingAllowed = false
+    private val scrollGestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent): Boolean = true
+
+        override fun onLongPress(e: MotionEvent) {
+            flingAllowed = false
+        }
+
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+            if (!flingAllowed || hasSelection() || abs(velocityY) <= abs(velocityX)) return false
+            val range = scrollRange()
+            if (range == 0) return false
+            val velocity = (-velocityY * 1.35f).toInt().coerceIn(-maxFlingVelocity, maxFlingVelocity)
+            momentum.fling(0, scrollY.coerceIn(0, range), 0, velocity, 0, 0, 0, range)
+            postInvalidateOnAnimation()
+            return true
+        }
+    })
+
+    private fun scrollRange(): Int = max(0, (layout?.height ?: 0) - (height - totalPaddingTop - totalPaddingBottom))
+
+    fun stopFling() {
+        momentum.forceFinished(true)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                stopFling()
+                flingAllowed = isEnabled && !hasSelection() && accessibility?.isTouchExplorationEnabled != true
+            }
+            MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_CANCEL -> {
+                flingAllowed = false
+                stopFling()
+            }
+        }
+        val handled = super.onTouchEvent(event)
+        scrollGestures.onTouchEvent(event)
+        return handled
+    }
+
+    override fun computeScroll() {
+        super.computeScroll()
+        if (hasSelection()) stopFling()
+        if (momentum.computeScrollOffset()) {
+            scrollTo(scrollX, momentum.currY.coerceIn(0, scrollRange()))
+            postInvalidateOnAnimation()
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        stopFling()
+        super.onDetachedFromWindow()
+    }
+
     var onSelection: ((Int, Int) -> Unit)? = null
 
     /** Given Copy (false) or Cut (true); true when it took care of it. */
@@ -166,6 +233,7 @@ private class NexEditTextView(
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
+                edit.stopFling()
                 if (!applying) {
                     channel.invokeMethod(
                         "changed",

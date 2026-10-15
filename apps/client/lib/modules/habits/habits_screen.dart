@@ -125,7 +125,7 @@ class _HabitsScreenState extends State<HabitsScreen>
         .length;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(strings(context, 'title')),
         actions: [
           IconButton(

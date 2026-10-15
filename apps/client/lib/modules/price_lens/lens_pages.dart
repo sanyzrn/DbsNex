@@ -49,7 +49,7 @@ class _LensMemoryPageState extends State<LensMemoryPage> {
     final s = priceLensStrings;
     final answer = await nexShowDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => NexAlertDialog(
         title: Text(s(dialogContext, 'deleteMemoryTitle')),
         content: NexDialogBody(
           child: Text(s(dialogContext, 'memoryDeleteBody')),
@@ -97,7 +97,7 @@ class _LensMemoryPageState extends State<LensMemoryPage> {
     final persian = NexModuleStrings.persian(context);
     final memories = widget.controller.memories;
     return Scaffold(
-      appBar: AppBar(title: Text(s(context, 'memoryTitle'))),
+      appBar: NexAppBar(title: Text(s(context, 'memoryTitle'))),
       body: SafeArea(
         child: widget.controller.readFailed
             ? LensReadError(controller: widget.controller)

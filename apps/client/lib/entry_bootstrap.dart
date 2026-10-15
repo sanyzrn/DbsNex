@@ -17,9 +17,6 @@ Future<void> bootstrapEntry() async {
   WidgetsFlutterBinding.ensureInitialized();
   LicenseRegistry.addLicense(() async* {
     yield LicenseEntryWithLineBreaks([
-      'useAnimations / Animate UI swipe icons',
-    ], await rootBundle.loadString('third_party/swipe-icons-LICENSE.txt'));
-    yield LicenseEntryWithLineBreaks([
       'jalaali-js',
     ], await rootBundle.loadString('third_party/jalaali-js-LICENSE.txt'));
     // The two bundled fonts. Pub packages' licences reach the licence page

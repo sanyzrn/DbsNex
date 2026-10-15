@@ -17,7 +17,7 @@ class ParkingDialogs {
     NexModuleStrings strings,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'stillParkedTitle')),
       content: NexDialogBody(
         child: Text(
@@ -49,7 +49,7 @@ class ParkingDialogs {
     NexModuleStrings strings,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'deleteParking')),
       content: NexDialogBody(child: Text(strings(dialogContext, 'deleteBody'))),
       actions: [
@@ -75,7 +75,7 @@ class ParkingDialogs {
     NexModuleStrings strings,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'clearHistoryTitle')),
       content: NexDialogBody(
         child: Text(strings(dialogContext, 'clearHistoryBody')),
@@ -104,7 +104,7 @@ class ParkingDialogs {
     NexModuleStrings strings,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'discardTitle')),
       content: NexDialogBody(
         child: Text(strings(dialogContext, 'discardBody')),

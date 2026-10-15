@@ -318,6 +318,18 @@ class _CaptureFlickState extends State<CaptureFlick>
               size: 30,
             ),
     );
+    final theme = Theme.of(context);
+    final fab = theme.floatingActionButtonTheme;
+    final target = _dx == 0 ? CaptureShortcut.none : _side(_dx);
+    final amount = target == CaptureShortcut.none ? 0.0 : travel.abs();
+    final base = fab.backgroundColor ?? theme.colorScheme.primaryContainer;
+    final fill = Color.lerp(
+      base,
+      captureShortcutColor(context, target),
+      amount,
+    )!;
+    final baseInk = fab.foregroundColor ?? theme.colorScheme.onPrimaryContainer;
+    final ink = nexReadableOn(baseInk, fill);
     final left = widget.preferences.captureFlickLeft;
     final right = widget.preferences.captureFlickRight;
     return Semantics(
@@ -340,19 +352,33 @@ class _CaptureFlickState extends State<CaptureFlick>
         ),
         child: CompositedTransformTarget(
           link: _anchor,
-          child: GestureDetector(
-            // From the touch itself, so the travel counted is the whole
-            // movement and not what is left after the slop.
-            dragStartBehavior: DragStartBehavior.down,
-            onHorizontalDragStart: _anySide ? _start : null,
-            onHorizontalDragUpdate: _anySide ? _update : null,
-            onHorizontalDragEnd: _anySide ? _end : null,
-            onHorizontalDragCancel: _anySide ? _reset : null,
-            // The button leans after the finger, held back so it stays in
-            // its place in the dock.
-            child: Transform.translate(
-              offset: Offset(_dx.clamp(-160.0, 160.0) * 0.18, 0),
-              child: widget.builder(context, glyph),
+          child: Listener(
+            // A cancelled pointer can otherwise arrive as a zero-velocity
+            // drag end after the shortcut has armed. Cancel before the
+            // recognizer sees it so an interrupted touch never launches.
+            onPointerCancel: (_) => _reset(),
+            child: GestureDetector(
+              // From the touch itself, so the travel counted is the whole
+              // movement and not what is left after the slop.
+              dragStartBehavior: DragStartBehavior.down,
+              onHorizontalDragStart: _anySide ? _start : null,
+              onHorizontalDragUpdate: _anySide ? _update : null,
+              onHorizontalDragEnd: _anySide ? _end : null,
+              onHorizontalDragCancel: _anySide ? _reset : null,
+              // The button leans after the finger, held back so it stays in
+              // its place in the dock.
+              child: Transform.translate(
+                offset: Offset(_dx.clamp(-160.0, 160.0) * 0.18, 0),
+                child: Theme(
+                  data: theme.copyWith(
+                    floatingActionButtonTheme: fab.copyWith(
+                      backgroundColor: fill,
+                      foregroundColor: ink,
+                    ),
+                  ),
+                  child: widget.builder(context, glyph),
+                ),
+              ),
             ),
           ),
         ),

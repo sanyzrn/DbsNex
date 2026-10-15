@@ -15,7 +15,7 @@ class MedicineDialogs {
     String name,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'deleteMedicine', {'name': name})),
       content: NexDialogBody(
         child: Text(strings(dialogContext, 'deleteMedicineBody')),
@@ -44,7 +44,7 @@ class MedicineDialogs {
     String name,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'archiveMedicine', {'name': name})),
       content: NexDialogBody(
         child: Text(strings(dialogContext, 'archiveBody')),
@@ -71,7 +71,7 @@ class MedicineDialogs {
     String name,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'duplicateName')),
       content: NexDialogBody(
         child: Text(strings(dialogContext, 'deleteMedicine', {'name': name})),
@@ -97,7 +97,7 @@ class MedicineDialogs {
     NexModuleStrings strings,
   ) => nexShowDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(strings(dialogContext, 'discardTitle')),
       content: NexDialogBody(
         child: Text(strings(dialogContext, 'discardBody')),

@@ -13,7 +13,7 @@ extension _MedicineScreenBody on _MedicineScreenState {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings(context, 'title'))),
+      appBar: NexAppBar(title: Text(strings(context, 'title'))),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _loadFailed

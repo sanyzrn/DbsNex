@@ -637,7 +637,7 @@ class _ActionPanel extends StatelessWidget {
                   children: [
                     NexSwipeActionGlyph(
                       action: spec.action,
-                      progress: progress,
+                      progress: showGlyph ? progress : 0,
                       armed: committed,
                     ),
                     const SizedBox(height: 4),

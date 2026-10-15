@@ -61,7 +61,7 @@ Future<void> confirmExpensesDiscard(
 }) async {
   final answer = await nexShowDialog<String>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(expenseStrings(dialogContext, 'discardTitle')),
       content: NexDialogBody(
         child: Text(expenseStrings(dialogContext, 'discardBody')),
