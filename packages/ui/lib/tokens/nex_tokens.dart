@@ -398,24 +398,35 @@ const _nexCardPreviewLineHeight = 24.0;
 /// original size back.
 const nexCardHeight = nexCardLeadingSize + NexSpacing.cardInset * 2;
 
-/// [nexCardHeight], grown only as far as larger text actually needs.
+/// [nexCardHeight], grown for larger text and an optional status row.
 ///
-/// At the default scale this is exactly [nexCardHeight] — two preview lines
+/// Without a status row, the default scale is [nexCardHeight]: two preview lines
 /// and the glyph both come to 48. Past that the lines outgrow the glyph and
 /// the card follows them, because the alternative is a fixed box clipping the
 /// text of whoever turned the size up. The app's own UI-scale setting composes
 /// with the system's and clamps at 1.9, so this can be asked for nearly twice
 /// the default.
-double nexCardHeightFor(BuildContext context) {
+double nexCardHeightFor(BuildContext context, {bool withFootnote = false}) {
   final density = NexCardDensity.of(context);
   final lines = nexCardPreviewLineHeightFor(context) * density.lines;
-  return math.max(density.leading, lines) + density.inset * 2;
+  final footnote = withFootnote ? nexCardFootnoteHeightFor(context) : 0.0;
+  return math.max(density.leading, lines + footnote) + density.inset * 2;
+}
+
+/// The status line and its gap from the preview. Its text follows the
+/// person's text size, while the bell and paperclip always have room.
+double nexCardFootnoteHeightFor(BuildContext context) {
+  final style = Theme.of(context).textTheme.labelSmall;
+  final textHeight =
+      MediaQuery.textScalerOf(context).scale(style?.fontSize ?? 12) *
+      (style?.height ?? 1.5);
+  return NexSpacing.xs + math.max(14, textHeight);
 }
 
 /// How much a timeline card holds, chosen in Settings → Appearance (W7.2).
 ///
-/// Every value keeps the one-height-for-every-card rule; each is a different
-/// height. Compact keeps two lines — a link's title and site, a voice note's
+/// Each density has one preview budget, with a status row added only when
+/// needed. Compact keeps two lines — a link's title and site, a voice note's
 /// words and length, are two rows whatever the density — in smaller type.
 enum NexCardDensity {
   compact(inset: 10, leading: 40, lines: 2, lineHeight: 20),

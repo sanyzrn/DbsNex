@@ -98,6 +98,12 @@ abstract class AppLocalizations {
     Locale('fa'),
   ];
 
+  /// No description provided for @reminderDailyShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get reminderDailyShort;
+
   /// No description provided for @libraryTagsHint.
   ///
   /// In en, this message translates to:

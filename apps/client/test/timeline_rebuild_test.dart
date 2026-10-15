@@ -1499,8 +1499,8 @@ void main() {
 
       // It is still going to ring tomorrow, so the chip stays — and it says
       // how often rather than counting down to a moment that has gone.
-      expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
-      expect(find.text('Every day'), findsOneWidget);
+      expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
+      expect(find.textContaining('Daily ·'), findsOneWidget);
     });
 
     testWidgets('a reminder still ahead keeps its chip', (tester) async {

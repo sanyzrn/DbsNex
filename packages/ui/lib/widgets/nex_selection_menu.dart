@@ -21,6 +21,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SelectedContent;
 
 /// [items] without the entries other apps put there.
 List<ContextMenuButtonItem> nexOwnMenuItems(List<ContextMenuButtonItem> items) {
@@ -45,5 +46,53 @@ Widget nexReadingMenu(BuildContext context, EditableTextState state) {
   return AdaptiveTextSelectionToolbar.buttonItems(
     anchors: state.contextMenuAnchors,
     buttonItems: nexOwnMenuItems(state.contextMenuButtonItems),
+  );
+}
+
+/// A reading surface whose selection ends when the person taps elsewhere.
+/// The platform toolbar and handles already belong to TextFieldTapRegion,
+/// so Copy, Select all and dragging a handle stay inside the same tap group.
+class NexSelectionArea extends StatefulWidget {
+  const NexSelectionArea({
+    super.key,
+    required this.child,
+    this.onSelectionChanged,
+  });
+
+  final Widget child;
+  final ValueChanged<SelectedContent?>? onSelectionChanged;
+
+  @override
+  State<NexSelectionArea> createState() => _NexSelectionAreaState();
+}
+
+class _NexSelectionAreaState extends State<NexSelectionArea> {
+  final _key = GlobalKey<SelectionAreaState>();
+  final _focus = FocusNode();
+
+  void _clear() {
+    final region = _key.currentState?.selectableRegion;
+    region
+      ?..hideToolbar()
+      ..clearSelection();
+    _focus.unfocus();
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => TextFieldTapRegion(
+    onTapOutside: (_) => _clear(),
+    child: SelectionArea(
+      key: _key,
+      focusNode: _focus,
+      contextMenuBuilder: nexSelectionMenu,
+      onSelectionChanged: widget.onSelectionChanged,
+      child: widget.child,
+    ),
   );
 }

@@ -233,3 +233,13 @@ The workflow builds a signed Android App Bundle plus split APKs and attaches the
 - Add the GitHub Actions secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
 
 See [`07-contributing.md`](./07-contributing.md) for the contributor workflow.
+
+### README status badges
+
+CI runs on pull requests and is reused by the release workflow; it no longer
+creates standalone CI runs on `main`. GitHub's native CI workflow badge can
+therefore keep reporting an old failed run on its default branch even after
+newer PR and release checks pass. The README CI badge reads the Checks API for
+the current `main` commit through Shields' branch checks badge. It reports the
+actual commit's checks, including release verification, without re-running the
+suite or hardcoding a green result. Nightly tracks `main` separately.

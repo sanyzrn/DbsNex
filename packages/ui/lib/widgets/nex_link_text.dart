@@ -165,8 +165,6 @@ class _NexLinkTextState extends State<NexLinkText> {
               children: [for (final line in lines) _paragraph(line)],
             ),
           );
-    return widget.selectable
-        ? SelectionArea(contextMenuBuilder: nexSelectionMenu, child: body)
-        : body;
+    return widget.selectable ? NexSelectionArea(child: body) : body;
   }
 }

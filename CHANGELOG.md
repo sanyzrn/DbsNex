@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.99
+
+- **Sponsor cards in both interfaces.** Campaigns prefer the interface language; when none matches, an available campaign still appears in Persian or English. Switching languages no longer hides the cached card.
+- **Repeating reminders show their clock.** A repeat icon and “Daily · 09:00” replace “Every day”; weekly reminders name the weekday and time. Hold the label for the full schedule, also available to screen readers.
+- **Tap away to stop selecting.** Tapping outside a note or caption clears the text selection and its menu, including notes with links. Copy, selection handles and link gestures keep working.
+- **Sponsor cards recover more reliably.** A temporary picture error keeps a usable cached picture; missing pictures retry after the shorter cool-off. Unreadable pictures show the campaign’s words, and network reads stay within their time and size limits.
+- **Paste, inside the capture box.** A small clipboard icon in the editor's corner works for Note, Checklist and Link. It pastes at the caret or replaces selected words, keeping the rest of your text.
+- **Card indicators stay together.** Reminders and attached-file counts sit on a compact, consistent row below the preview, independent of the note's language. Both preview lines keep their full width; cards without indicators stay compact.
+
 ## v1.99.98
 
 - **A cleaner capture box.** One outline around the editor; Note, Checklist and Link stay together above it. Voice joins Camera, Gallery and File below, each directly reachable in its own type colour.

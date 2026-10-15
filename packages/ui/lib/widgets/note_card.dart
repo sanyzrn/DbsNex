@@ -1,7 +1,5 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:nex_core/nex_core.dart';
 import '../tokens/nex_appearance.dart';
 import '../tokens/nex_relative_time.dart';
@@ -24,6 +22,8 @@ class NexCardStrings {
     required this.accentColor,
     this.relativeTime = _defaultRelativeTime,
     this.dueLabel,
+    this.dueDescription,
+    this.dueCompactLabel,
     this.tagName,
     this.durationLabel,
     this.attachedShort = _defaultAttachedShort,
@@ -90,6 +90,12 @@ class NexCardStrings {
   /// hand. A bell with no time beside it says a reminder exists and nothing
   /// else, which was the report this parameter exists to answer.
   final String Function(DateTime due, NoteRepeat repeat)? dueLabel;
+
+  /// Full schedule for the tooltip and screen reader.
+  final String Function(DateTime due, NoteRepeat repeat)? dueDescription;
+
+  /// A shorter label when the full reminder cannot fit, retaining its time.
+  final String? Function(DateTime due, NoteRepeat repeat)? dueCompactLabel;
 }
 
 class NoteCard extends StatelessWidget {
@@ -170,19 +176,18 @@ class NoteCard extends StatelessWidget {
   }
 
   Widget _card(BuildContext context, EdgeInsets insets) {
+    final height = nexCardHeightFor(
+      context,
+      withFootnote: (showDue && note.dueAt != null) || note.attachmentCount > 0,
+    );
     return Padding(
       padding: insets,
       child: ConstrainedBox(
-        // Every card, the same height. See [nexCardHeightFor] — which is
-        // [nexCardHeight] at the default text size, and only grows if someone
-        // has turned the text up past what the glyph's 48 can hold.
-        //
-        // An expanded card turns that into a floor: it grows to whatever its
-        // note needs, and still never sits shorter than the row every other
-        // card keeps.
+        // Keep the full preview budget. Only cards with status marks add a
+        // compact footer; expanded cards can grow further to fit their note.
         constraints: expanded
-            ? BoxConstraints(minHeight: nexCardHeightFor(context))
-            : BoxConstraints.tightFor(height: nexCardHeightFor(context)),
+            ? BoxConstraints(minHeight: height)
+            : BoxConstraints.tightFor(height: height),
         child: Semantics(
           button: onTap != null,
           selected: selected,
@@ -401,20 +406,14 @@ class _Preview extends StatelessWidget {
     required this.expanded,
     required this.strings,
     required this.lines,
-    this.voiceLength = true,
   });
   final NexCardStrings strings;
 
   final Note note;
   final bool expanded;
 
-  /// The rows the note's words have: the density's, less the one the
-  /// footnote takes when there is one.
+  /// The density's complete budget of preview lines.
   final int lines;
-
-  /// Whether a voice note's length has a row of its own here. It moves into
-  /// the footnote when there is one, beside the reminder and the files.
-  final bool voiceLength;
 
   @override
   Widget build(BuildContext context) {
@@ -474,9 +473,7 @@ class _Preview extends StatelessWidget {
     );
     // The card already announces its type. Keep real note content reachable,
     // but do not announce the translated empty-media fallback a second time.
-    if (voiceLength &&
-        note.type == NoteType.voice &&
-        (note.durationMs ?? 0) > 0) {
+    if (note.type == NoteType.voice && (note.durationMs ?? 0) > 0) {
       final seconds = note.durationMs! ~/ 1000;
       final duration =
           strings.durationLabel?.call(note.durationMs!) ??

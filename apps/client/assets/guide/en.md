@@ -8,6 +8,8 @@ The first time you open Nex, four short pages show what it does, and a last one 
 
 Tap **+** at the centre of the bottom bar to write. The kinds sit at the top of the box — **Note**, **Checklist** and **Link** — and switch in place: what you typed stays, so a note becomes a list line by line, and a pasted address (with a line about it if you like) becomes a link. **Voice** turns the box into a recorder: the square keeps the recording, the bin throws it away. Below the box, **Voice**, **Camera**, **Gallery** and **File** each have their own button. Nothing has a Save button: what you write is kept from the first letter and is turned into the kind you chose when you close the box; words that are not a link stay a note.
 
+The small clipboard icon in the editor’s corner pastes into **Note**, **Checklist** or **Link**, at your caret or in place of selected text.
+
 Flick **+** left or right to start a shortcut without opening the box — by default left records a voice note and right opens the camera. Choose them in **Settings → Gestures**. As you swipe, a border traces the screen in the shortcut’s colour from Settings; releasing after it completes opens the shortcut, while returning or releasing early cancels it. A tap still writes a note. Hold still to open the assistant: its glow starts after a short pause so swiping does not flash it. Reduced motion skips the border and glow.
 
 To have a note arrive later — a letter to yourself, a thought for next month — **hold** the send button instead of tapping it and choose when: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is not in your notes, search or widgets; at its time it lands on the timeline with a notification. **Tools → Scheduled** shows what is on its way, where you can deliver one now, change its time or discard it.
@@ -19,6 +21,8 @@ Without opening Nex first: add the **Nex capture** tile to your Quick Settings (
 ![The capture menu](capture.webp)
 
 ## The home timeline
+
+Reminders and attachment counts share a small row below the card’s text. Their position follows the interface language, even when individual notes use another language.
 
 Everything lives in one reverse-chronological stream, grouped under date headings. At the top, today's date in your calendar sits over the greeting, and the filter button is beside the search field; the row of tag chips under it appears once you have tags. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again. Once you scroll down, the day of the notes you are passing stays named under the filters. Each card's square takes its note type's colour, a family drawn from your theme's accent: text in the accent itself, and checklists, links, voice notes and photos in neighbouring shades of it, with files in a quiet grey. A new accent brings a new family. The notes of one day are joined by a thin thread down their squares. Tap a card and it opens into the note; **Settings → Appearance → Card size** makes cards compact, standard or easier to read.
 
@@ -39,6 +43,8 @@ Tags group related notes and can carry any colour. **Library → Tags** renames,
 ![Search with filters](search.webp)
 
 ## Read, edit and share
+
+Repeating reminder labels show **Daily · time** or the weekday and time beside a repeat icon; hold one for its full schedule. Tap outside selected text to clear the selection and its menu.
 
 Open an item for its exact date and time, tags, description and every action. The common actions are always visible; **More** holds the rest. **More → Details** says what the sheet does not: how long ago it was made and last changed, how long it is or how much of a list is ticked, and how much room it takes on the phone with its attachments. Select text to copy or format it. When you edit a note, the **Full screen** button gives the whole page to the text: the AI edits are behind one button at the bottom, next to Save. Open a photo to zoom with two fingers, drag to look around, and drag down to close it.
 

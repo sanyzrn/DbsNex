@@ -35,7 +35,7 @@ extension _TimelineNoteActions on TimelineScreenState {
   /// The sponsor card, when there is one to show.
   ///
   /// Null on every path that means "nothing to show" — no file, an
-  /// unparseable one, dates that have passed, another language, or one this
+  /// unparseable one, dates that have passed, or one this
   /// person has already dismissed. Absence is silent by design: there is no
   /// placeholder and no error, because a card that failed to arrive and a
   /// day with no campaign are the same thing to the reader.
@@ -45,10 +45,7 @@ extension _TimelineNoteActions on TimelineScreenState {
   /// the worst possible time to ask for attention.
   Widget? _sponsorCard() {
     if (_searching || _model.filtering) return null;
-    final sponsor = _sponsor.visible(
-      languageCode: Localizations.localeOf(context).languageCode,
-      notes: _model.all?.length ?? 0,
-    );
+    final sponsor = _sponsor.visible(notes: _model.all?.length ?? 0);
     if (sponsor == null) return null;
     return SponsorCard(
       sponsor: sponsor,
@@ -67,7 +64,11 @@ extension _TimelineNoteActions on TimelineScreenState {
     // Only the two schemes a card has any business using. A file:// or
     // intent:// url in a document fetched from a server is not a link, it is
     // an attempt at something else.
-    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) return;
+    if (uri == null ||
+        uri.host.isEmpty ||
+        (uri.scheme != 'https' && uri.scheme != 'http')) {
+      return;
+    }
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {

@@ -9,6 +9,9 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get reminderDailyShort => 'Daily';
+
+  @override
   String get libraryTagsHint => 'Colour and name what you file';
 
   @override

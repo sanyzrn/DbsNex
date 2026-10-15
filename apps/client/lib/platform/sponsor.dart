@@ -78,8 +78,8 @@ class NexSponsor {
   final DateTime? starts;
   final DateTime? ends;
 
-  /// Language codes this card is for, empty meaning everyone. A sponsor
-  /// writing in Persian has no business appearing for an English reader.
+  /// Preferred interface languages. Matching campaigns are picked first;
+  /// an available campaign still shows when none matches the interface.
   final List<String> locales;
 
   /// Parses the file, or returns null for every way it can fail to be one.
@@ -126,17 +126,10 @@ class NexSponsor {
   /// Pure, and separate from the fetch, because every one of these rules is a
   /// way to show somebody the wrong thing and none of them needs a network to
   /// be tested.
-  bool visibleAt({
-    required DateTime now,
-    required String languageCode,
-    required Set<String> dismissed,
-  }) {
+  bool visibleAt({required DateTime now, required Set<String> dismissed}) {
     if (dismissed.contains(id)) return false;
     if (starts != null && now.isBefore(starts!)) return false;
     if (ends != null && !now.isBefore(ends!)) return false;
-    if (locales.isNotEmpty && !locales.contains(languageCode.toLowerCase())) {
-      return false;
-    }
     return true;
   }
 }
@@ -170,10 +163,9 @@ class NexSponsorService {
   /// The card this phone shows from [body]: the file itself when it is one
   /// card, or one of up to [maxCards] picked at random when it is a list.
   ///
-  /// The pick is among the cards that could be shown here today — inside
-  /// their dates, in this phone's language — so a list of Persian and English
-  /// cards never lands an English reader on a Persian one and then shows
-  /// nothing. It is made once per refresh, about once a day, and kept until
+  /// The pick prefers cards in the interface language (or with no language
+  /// preference), falling back to any active campaign when none matches.
+  /// It is made once per refresh, about once a day, and kept until
   /// the next: one phone sees one card for the day, and across phones each
   /// card is seen about as often as the others. Answers the card's own JSON,
   /// which is what is cached; null when the file is not a card or a list of
@@ -189,17 +181,22 @@ class NexSponsorService {
     if (root is! List) return null;
     final now = _now();
     final cards = <String>[];
+    final fallback = <String>[];
     for (final item in root.take(maxCards)) {
       if (item is! Map) continue;
       final json = jsonEncode(item);
       final card = NexSponsor.parse(json);
       if (card == null) continue;
-      if (card.visibleAt(now: now, languageCode: languageCode, dismissed: {})) {
+      if (!card.visibleAt(now: now, dismissed: {})) continue;
+      fallback.add(json);
+      if (card.locales.isEmpty ||
+          card.locales.contains(languageCode.toLowerCase())) {
         cards.add(json);
       }
     }
-    if (cards.isEmpty) return '';
-    return cards[_random.nextInt(cards.length)];
+    final available = cards.isEmpty ? fallback : cards;
+    if (available.isEmpty) return '';
+    return available[_random.nextInt(available.length)];
   }
 
   /// Whether the card carries a close button, and whether a dismissal hides
@@ -271,9 +268,9 @@ class NexSponsorService {
   /// can never draw.
   static const _imageMagic = <List<int>>[
     [0xFF, 0xD8, 0xFF], // JPEG
-    [0x89, 0x50, 0x4E, 0x47], // PNG
-    [0x47, 0x49, 0x46, 0x38], // GIF87a / GIF89a, animated included
-    [0x52, 0x49, 0x46, 0x46], // RIFF — WebP, still or animated
+    [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], // PNG
+    [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], // GIF87a
+    [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], // GIF89a
     [0x42, 0x4D], // BMP
   ];
 
@@ -314,19 +311,75 @@ class NexSponsorService {
     return 'https://cdn.jsdelivr.net/gh/${parts[0]}/${parts[1]}@${parts[2]}/$rest';
   }
 
-  /// One GET, falling back to [mirrorOf] when the host cannot be reached.
+  /// Bounded reads and one shared deadline for headers plus body. A large
+  /// or slowly streaming error page must not consume unbounded memory/time.
   Future<http.Response> _get(
     http.Client client,
     String url,
     Duration timeout,
+    int limit,
   ) async {
-    try {
-      return await client.get(Uri.parse(url)).timeout(timeout);
-    } catch (_) {
-      final mirror = mirrorOf(url);
-      if (mirror == null) rethrow;
-      return client.get(Uri.parse(mirror)).timeout(timeout);
+    Future<http.Response> fetch(String target) async {
+      final clock = Stopwatch()..start();
+      final response = await client
+          .send(http.Request('GET', Uri.parse(target)))
+          .timeout(timeout);
+      if (response.statusCode != 200 || (response.contentLength ?? 0) > limit) {
+        // StreamIterator subscribes lazily. Discarded responses still need
+        // a real subscription cancelled so their connection can be released.
+        unawaited(
+          response.stream.listen(null).cancel().catchError((Object _) {}),
+        );
+        if (response.statusCode != 200) {
+          return http.Response('', response.statusCode);
+        }
+        throw const FormatException('Sponsor response too large');
+      }
+      final chunks = StreamIterator(response.stream);
+      try {
+        final bytes = BytesBuilder(copy: false);
+        while (true) {
+          final left = timeout - clock.elapsed;
+          if (left <= Duration.zero) {
+            throw TimeoutException('Sponsor response deadline');
+          }
+          if (!await chunks.moveNext().timeout(left)) break;
+          if (bytes.length + chunks.current.length > limit) {
+            throw const FormatException('Sponsor response too large');
+          }
+          bytes.add(chunks.current);
+        }
+        return http.Response.bytes(
+          bytes.takeBytes(),
+          response.statusCode,
+          headers: response.headers,
+        );
+      } finally {
+        // Some transports finish cancellation asynchronously. Releasing a
+        // response must not hold the UI or overrun the request deadline.
+        unawaited(chunks.cancel().catchError((Object _) {}));
+      }
     }
+
+    final mirror = mirrorOf(url);
+    http.Response? original;
+    try {
+      original = await fetch(url);
+      // A canonical 404/410 is final. Filtering and server errors can use
+      // the same trusted mirror as a connection failure.
+      if (mirror == null ||
+          (original.statusCode != 403 &&
+              original.statusCode != 429 &&
+              original.statusCode < 500)) {
+        return original;
+      }
+    } catch (_) {
+      if (mirror == null) rethrow;
+    }
+    final fallback = await fetch(mirror);
+    if (fallback.statusCode == 200) return fallback;
+    // A mirror that has not cached the file is not proof the campaign ended.
+    return original ?? http.Response('', 503);
   }
 
   /// What was fetched last, whenever that was. Read synchronously so the
@@ -342,7 +395,9 @@ class NexSponsorService {
   /// Whether the last successful fetch is recent enough to trust.
   bool get _fresh {
     final at = preferences.sponsorFetchedAt;
-    return at != null && _now().difference(at) < maxAge;
+    if (at == null) return false;
+    final age = _now().difference(at);
+    return !age.isNegative && age < maxAge;
   }
 
   /// The days and notes a new install waits for, unless the file says
@@ -375,13 +430,11 @@ class NexSponsorService {
   /// The card to draw, or null. The only method the timeline needs.
   ///
   /// [notes] is how many notes the library holds, for [earned].
-  NexSponsor? visible({required String languageCode, int notes = 0}) {
+  NexSponsor? visible({int notes = 0}) {
     // Stale is the same as absent. See [maxAge].
     if (!_fresh) return null;
     final sponsor = cached;
     if (sponsor == null) return null;
-    // A card that asked for a picture and has none is not a card. Better an
-    // empty space than a banner with a hole where its design was.
     // A picture that could not be had leaves the card in words: its title is
     // required and always says what it is. Only the first moments after
     // launch wait, while yesterday's picture is still being found on disk.
@@ -389,7 +442,6 @@ class NexSponsorService {
     if (!earned(sponsor, notes: notes)) return null;
     return sponsor.visibleAt(
           now: _now(),
-          languageCode: languageCode,
           dismissed: dismissible ? _dismissed : const {},
         )
         ? sponsor
@@ -419,7 +471,9 @@ class NexSponsorService {
     final now = _now();
     return {
       for (final entry in preferences.sponsorDismissals.entries)
-        if (now.difference(entry.value) < dismissalCoolOff) entry.key,
+        if (!now.isBefore(entry.value) &&
+            now.difference(entry.value) < dismissalCoolOff)
+          entry.key,
     };
   }
 
@@ -433,6 +487,9 @@ class NexSponsorService {
       if (path == null) return;
       final file = File(path);
       if (await file.exists()) _image = file;
+    } catch (_) {
+      // A cache read failure must not prevent the launch refresh or text fallback.
+      _image = null;
     } finally {
       // Settled means "we looked", not "a file exists". Leaving this false
       // when a previous picture fetch failed made a perfectly valid cached
@@ -453,7 +510,10 @@ class NexSponsorService {
     final active = _refreshing;
     if (active != null) return active;
 
-    final work = _refresh(force: force, manual: manual);
+    final work = _refresh(
+      force: force,
+      manual: manual,
+    ).catchError((Object _) => false);
     _refreshing = work;
     return work.whenComplete(() {
       if (identical(_refreshing, work)) _refreshing = null;
@@ -468,7 +528,16 @@ class NexSponsorService {
       // as recent, or the card would wait out the wrong year to refresh.
       bool within(DateTime? at, Duration window) =>
           at != null && !now.isBefore(at) && now.difference(at) < window;
-      if (within(preferences.sponsorFetchedAt, refreshInterval)) return false;
+      if (within(preferences.sponsorFetchedAt, refreshInterval)) {
+        final sponsor = cached;
+        if (sponsor?.image != null &&
+            _image == null &&
+            _imageSettled &&
+            !within(preferences.sponsorAttemptedAt, failedRefreshCooldown)) {
+          return _retryCachedImage(sponsor!);
+        }
+        return false;
+      }
       if (within(preferences.sponsorAttemptedAt, failedRefreshCooldown)) {
         return false;
       }
@@ -484,6 +553,7 @@ class NexSponsorService {
             client,
             endpoint,
             const Duration(seconds: 10),
+            maxBytes,
           );
 
           // Only "not found" ends a campaign. Anything else that is not a
@@ -503,8 +573,10 @@ class NexSponsorService {
               ? choose(
                   raw,
                   languageCode:
-                      (preferences.locale ?? PlatformDispatcher.instance.locale)
-                          .languageCode,
+                      preferences.locale?.languageCode ??
+                      (PlatformDispatcher.instance.locale.languageCode == 'fa'
+                          ? 'fa'
+                          : 'en'),
                 )
               : null;
           // A list with nothing for this phone today is a campaign with
@@ -519,9 +591,15 @@ class NexSponsorService {
             // The picture first, then the card. A picture that cannot be had
             // no longer takes the whole card down with it; the card is shown
             // in words instead and the image gets another chance tomorrow.
+            final previous = cached;
             final kept = await _cacheImage(sponsor, client);
             if (sponsor.image != null && !kept) {
-              await _dropImage();
+              final stillUsable =
+                  previous?.id == sponsor.id &&
+                  previous?.image == sponsor.image &&
+                  _image != null &&
+                  await _image!.exists();
+              if (!stillUsable) await _dropImage();
             }
             _imageSettled = true;
             await preferences.setSponsorPayload(body!);
@@ -533,6 +611,22 @@ class NexSponsorService {
           // tiny retry budget. The last good cache is untouched.
         }
       }
+      return false;
+    } finally {
+      if (_client == null) client.close();
+    }
+  }
+
+  /// Retry only a missing picture after the shorter failure cool-off. A
+  /// readable manifest must not postpone image recovery for a whole day.
+  Future<bool> _retryCachedImage(NexSponsor sponsor) async {
+    await preferences.setSponsorAttemptedAt(_now());
+    final client = _client ?? http.Client();
+    try {
+      final kept = await _cacheImage(sponsor, client);
+      _imageSettled = true;
+      return kept;
+    } catch (_) {
       return false;
     } finally {
       if (_client == null) client.close();
@@ -572,14 +666,12 @@ class NexSponsorService {
 
   /// Fetches the picture and keeps it beside the payload, or answers false.
   ///
-  /// One file, always the same name, replaced in place: a card is one at a
-  /// time, so there is nothing to garbage-collect and no way for a
-  /// campaign's leftovers to accumulate on somebody's phone.
+  /// Content-addressed files avoid Flutter's stale file-image cache. The old
+  /// picture goes only after its replacement is safely on disk.
   Future<bool> _cacheImage(NexSponsor sponsor, http.Client client) async {
     final url = sponsor.image;
     if (url == null) {
-      await preferences.setSponsorImagePath(null);
-      _image = null;
+      await _dropImage();
       return true;
     }
     final uri = Uri.tryParse(url);
@@ -587,7 +679,12 @@ class NexSponsorService {
       return false;
     }
     try {
-      final response = await _get(client, url, const Duration(seconds: 15));
+      final response = await _get(
+        client,
+        url,
+        const Duration(seconds: 15),
+        maxImageBytes,
+      );
       final bytes = response.bodyBytes;
       if (response.statusCode != 200 ||
           bytes.length > maxImageBytes ||
@@ -626,6 +723,10 @@ class NexSponsorService {
   }
 
   static bool _looksLikeImage(Uint8List bytes) {
+    if (bytes.length >= 12 &&
+        ascii.decode(bytes.sublist(0, 4), allowInvalid: true) == 'RIFF') {
+      return ascii.decode(bytes.sublist(8, 12), allowInvalid: true) == 'WEBP';
+    }
     for (final magic in _imageMagic) {
       if (bytes.length < magic.length) continue;
       var matches = true;

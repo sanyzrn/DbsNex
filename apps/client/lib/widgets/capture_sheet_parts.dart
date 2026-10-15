@@ -320,21 +320,18 @@ class _ComposerRecorderState extends State<_ComposerRecorder> {
 
 /// The line under the box: what the words will become, in so many words.
 ///
-/// The count of a list's items; for a link, the site it will open — or that
-/// it is not a link yet, or a Paste button while the box is empty; for a
-/// note, the hint that holding Send schedules it.
+/// A list's item count, a link's site or validation message, and the note's
+/// hint that holding Send schedules it.
 class _ComposerFootnote extends StatelessWidget {
   const _ComposerFootnote({
     required this.kind,
     required this.text,
     required this.scheduleHint,
-    required this.onPaste,
   });
 
   final CaptureKind kind;
   final String text;
   final bool scheduleHint;
-  final VoidCallback onPaste;
 
   @override
   Widget build(BuildContext context) {
@@ -373,17 +370,7 @@ class _ComposerFootnote extends StatelessWidget {
           ],
         ),
       ),
-      CaptureKind.link when trimmed.isEmpty => (
-        'paste',
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: TextButton.icon(
-            onPressed: onPaste,
-            icon: const Icon(Icons.content_paste, size: 18),
-            label: Text(MaterialLocalizations.of(context).pasteButtonLabel),
-          ),
-        ),
-      ),
+      CaptureKind.link when trimmed.isEmpty => null,
       CaptureKind.link => switch (writtenLink(trimmed)) {
         final link? => (
           'host',

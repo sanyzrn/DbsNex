@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -87,15 +88,8 @@ void main() {
   group('visibleAt', () {
     NexSponsor parsed(String source) => NexSponsor.parse(source)!;
 
-    bool visible(
-      NexSponsor sponsor, {
-      String locale = 'en',
-      Set<String>? hidden,
-    }) => sponsor.visibleAt(
-      now: now,
-      languageCode: locale,
-      dismissed: hidden ?? const {},
-    );
+    bool visible(NexSponsor sponsor, {Set<String>? hidden}) =>
+        sponsor.visibleAt(now: now, dismissed: hidden ?? const {});
 
     test('a card with no dates is always in season', () {
       expect(visible(parsed(card())), isTrue);
@@ -122,12 +116,11 @@ void main() {
       );
     });
 
-    test('a card written in one language is not shown in another', () {
+    test('language metadata does not hide an active card', () {
       final persian = parsed(card(locales: ['fa']));
-      expect(visible(persian, locale: 'fa'), isTrue);
-      expect(visible(persian, locale: 'en'), isFalse);
+      expect(visible(persian), isTrue);
       // No list means everyone.
-      expect(visible(parsed(card()), locale: 'en'), isTrue);
+      expect(visible(parsed(card())), isTrue);
     });
 
     test('dismissed is dismissed', () {
@@ -209,7 +202,7 @@ void main() {
       expect(service.dismissible, NexSponsorService.dismissibleByDefault);
       await service.refresh();
       await service.dismiss('c1');
-      expect(service.visible(languageCode: 'en')?.id, 'c1');
+      expect(service.visible()?.id, 'c1');
     });
 
     test('a Persian card served without a charset reads as Persian', () async {
@@ -223,7 +216,7 @@ void main() {
         ),
       );
       await service.refresh();
-      expect(service.visible(languageCode: 'en')?.title, 'کتاب‌فروشی محله');
+      expect(service.visible()?.title, 'کتاب‌فروشی محله');
     });
 
     test('a byte-order mark at the start of the file is ignored', () async {
@@ -234,7 +227,7 @@ void main() {
         ], 200),
       );
       await service.refresh();
-      expect(service.visible(languageCode: 'en')?.id, 'c1');
+      expect(service.visible()?.id, 'c1');
     });
 
     test('a blocked or failing host does not take the card down', () async {
@@ -249,11 +242,7 @@ void main() {
         await preferences.setSponsorFetchedAt(now);
         final service = serviceReturning((_) => response);
         await service.refresh(force: true);
-        expect(
-          service.visible(languageCode: 'en')?.id,
-          'c1',
-          reason: '${response.statusCode}',
-        );
+        expect(service.visible()?.id, 'c1', reason: '${response.statusCode}');
       }
     });
 
@@ -262,7 +251,7 @@ void main() {
       await service.refresh();
 
       expect(preferences.sponsorPayload, isNotNull);
-      expect(service.visible(languageCode: 'en')?.id, 'c1');
+      expect(service.visible()?.id, 'c1');
     });
 
     test('a 404 takes the card down rather than leaving it up', () async {
@@ -275,7 +264,7 @@ void main() {
         isNull,
         reason: 'deleting the file is how a campaign ends',
       );
-      expect(service.visible(languageCode: 'en'), isNull);
+      expect(service.visible(), isNull);
     });
 
     test(
@@ -306,7 +295,7 @@ void main() {
         // It is kept, and it is not shown: nothing has ever been fetched, so
         // there is no successful check to be recent. See the "going quiet"
         // group for the rule.
-        expect(service.visible(languageCode: 'en'), isNull);
+        expect(service.visible(), isNull);
       },
     );
 
@@ -381,17 +370,17 @@ void main() {
           now: () => now,
         );
 
-        expect(service.visible(languageCode: 'en'), isNull);
+        expect(service.visible(), isNull);
         await service.restoreCachedImage();
         expect(
-          service.visible(languageCode: 'en')?.id,
+          service.visible()?.id,
           'c1',
           reason:
               'no cached picture means fallback to words, not hide the card',
         );
         await service.refresh();
         expect(
-          service.visible(languageCode: 'en')?.id,
+          service.visible()?.id,
           'c1',
           reason: 'the fresh daily cache skips the network without hiding it',
         );
@@ -488,7 +477,7 @@ void main() {
       await service.dismiss('c1');
       await service.refresh(force: true);
 
-      expect(service.visible(languageCode: 'en'), isNull);
+      expect(service.visible(), isNull);
     });
 
     test('a dismissal runs out, and the card comes back', () async {
@@ -498,7 +487,7 @@ void main() {
       final service = serviceReturning((_) => http.Response(card(), 200));
       await service.refresh();
       await service.dismiss('c1');
-      expect(service.visible(languageCode: 'en'), isNull);
+      expect(service.visible(), isNull);
 
       // An hour short of the cool-off is still an hour short of it: whatever
       // Android did to the process in between, the session that dismissed it
@@ -507,7 +496,7 @@ void main() {
         (_) => http.Response(card(), 200),
         at: now.add(const Duration(hours: 23)),
       );
-      expect(sameDay.visible(languageCode: 'en'), isNull);
+      expect(sameDay.visible(), isNull);
 
       final tomorrow = serviceReturning(
         (_) => http.Response(card(), 200),
@@ -515,7 +504,7 @@ void main() {
       );
       // Fetched within `maxAge` of this clock, so freshness is not what is
       // being measured here.
-      expect(tomorrow.visible(languageCode: 'en')?.id, 'c1');
+      expect(tomorrow.visible()?.id, 'c1');
     });
 
     test('waving off one campaign says nothing about the next', () async {
@@ -526,7 +515,7 @@ void main() {
       final next = serviceReturning((_) => http.Response(card(id: 'c2'), 200));
       await next.refresh(force: true);
 
-      expect(next.visible(languageCode: 'en')?.id, 'c2');
+      expect(next.visible()?.id, 'c2');
     });
 
     test(
@@ -594,6 +583,181 @@ void main() {
     const onGitHub =
         'https://raw.githubusercontent.com/sanyzrn/DbsNex-releases/main/banner.json';
 
+    test(
+      'a transient image failure preserves the previous usable picture',
+      () async {
+        var failed = false;
+        final s = service(
+          (r) => r.url.path.endsWith('.gif')
+              ? (failed
+                    ? http.Response('', 503)
+                    : http.Response.bytes(gif, 200))
+              : http.Response(withImage(), 200),
+        );
+        await s.refresh();
+        final path = s.image!.path;
+        failed = true;
+        await s.refresh(force: true);
+        expect(s.image?.path, path);
+        expect(File(path).existsSync(), isTrue);
+        expect(s.visible()?.id, 'c1');
+      },
+    );
+
+    test(
+      'missing pictures retry after the cool-off without refetching the daily manifest',
+      () async {
+        var clock = now;
+        var picturesWork = false;
+        var manifests = 0;
+        var pictures = 0;
+        final client = MockClient((r) async {
+          if (r.url.path.endsWith('.gif')) {
+            pictures++;
+            return picturesWork
+                ? http.Response.bytes(gif, 200)
+                : http.Response('', 503);
+          }
+          manifests++;
+          return http.Response(withImage(), 200);
+        });
+        NexSponsorService make() => NexSponsorService(
+          preferences: preferences,
+          client: client,
+          now: () => clock,
+        );
+        await make().refresh();
+        final fetched = preferences.sponsorFetchedAt;
+        picturesWork = true;
+        final restarted = make();
+        await restarted.restoreCachedImage();
+        expect(await restarted.refresh(), isFalse);
+        expect(pictures, 1);
+        clock = now.add(NexSponsorService.failedRefreshCooldown);
+        expect(await restarted.refresh(), isTrue);
+        expect(restarted.image, isNotNull);
+        expect(pictures, 2);
+        expect(manifests, 1);
+        expect(preferences.sponsorFetchedAt, fetched);
+      },
+    );
+
+    test(
+      'switching to a card without a picture deletes the old file',
+      () async {
+        var picture = true;
+        final s = service(
+          (r) => r.url.path.endsWith('.gif')
+              ? http.Response.bytes(gif, 200)
+              : http.Response(picture ? withImage() : card(), 200),
+        );
+        await s.refresh();
+        final path = s.image!.path;
+        picture = false;
+        await s.refresh(force: true);
+        expect(File(path).existsSync(), isFalse);
+        expect(s.image, isNull);
+        expect(preferences.sponsorImagePath, isNull);
+      },
+    );
+
+    test('RIFF audio is not mistaken for WebP', () async {
+      final bytes = Uint8List.fromList(ascii.encode('RIFF1234WAVEdata'));
+      final s = service(
+        (r) => r.url.path.endsWith('.gif')
+            ? http.Response.bytes(bytes, 200)
+            : http.Response(withImage(), 200),
+      );
+      await s.refresh();
+      expect(s.image, isNull);
+      expect(s.visible()?.id, 'c1');
+    });
+
+    test('a future fetch timestamp does not make an old card fresh', () async {
+      await preferences.setSponsorPayload(card());
+      await preferences.setSponsorFetchedAt(now.add(const Duration(days: 300)));
+      expect(service((_) => http.Response('', 503)).visible(), isNull);
+    });
+
+    test(
+      'GitHub filtering responses use the mirror without treating a mirror miss as deletion',
+      () async {
+        final asked = <String>[];
+        var missing = false;
+        final s = service((r) {
+          asked.add(r.url.host);
+          return r.url.host == 'raw.githubusercontent.com'
+              ? http.Response('', 403)
+              : http.Response(missing ? '' : card(), missing ? 404 : 200);
+        }, endpoint: onGitHub);
+        await s.refresh();
+        expect(asked, ['raw.githubusercontent.com', 'cdn.jsdelivr.net']);
+        expect(s.cached?.id, 'c1');
+        missing = true;
+        await s.refresh(force: true);
+        expect(s.cached?.id, 'c1');
+      },
+    );
+
+    test(
+      'oversized chunked responses are stopped before the rest is read',
+      () async {
+        var delivered = 0;
+        final client = MockClient.streaming(
+          (request, body) async => http.StreamedResponse(
+            Stream.fromIterable(
+              List.generate(20, (_) => List.filled(4096, 32)),
+            ).map((chunk) {
+              delivered++;
+              return chunk;
+            }),
+            200,
+          ),
+        );
+        final s = NexSponsorService(
+          preferences: preferences,
+          client: client,
+          now: () => now,
+        );
+        expect(await s.refresh(), isFalse);
+        expect(
+          delivered,
+          lessThan(40),
+          reason: 'both attempts must cancel at the byte ceiling',
+        );
+        expect(s.cached, isNull);
+      },
+    );
+
+    test('slow transport cancellation cannot hold refresh open', () async {
+      final cancellations = <Completer<void>>[];
+      final controllers = <StreamController<List<int>>>[];
+      final client = MockClient.streaming((request, body) async {
+        final done = Completer<void>();
+        cancellations.add(done);
+        final controller = StreamController<List<int>>(
+          onCancel: () => done.future,
+        );
+        controllers.add(controller);
+        return http.StreamedResponse(controller.stream, 503);
+      });
+      addTearDown(() async {
+        for (final done in cancellations) {
+          done.complete();
+        }
+        for (final controller in controllers) {
+          await controller.close();
+        }
+      });
+      final s = NexSponsorService(
+        preferences: preferences,
+        client: client,
+        now: () => now,
+      );
+      expect(await s.refresh(), isFalse);
+      expect(cancellations, hasLength(NexSponsorService.automaticAttempts));
+    });
+
     test('the picture is fetched and kept beside the card', () async {
       final s = service(
         (request) => request.url.path.endsWith('.gif')
@@ -603,7 +767,7 @@ void main() {
       await s.refresh();
 
       expect(s.image, isNotNull);
-      expect(s.visible(languageCode: 'en')?.id, 'c1');
+      expect(s.visible()?.id, 'c1');
       expect(preferences.sponsorImagePath, isNotNull);
     });
 
@@ -637,7 +801,7 @@ void main() {
       );
       await s.refresh();
 
-      expect(s.visible(languageCode: 'en')?.id, 'c1');
+      expect(s.visible()?.id, 'c1');
       expect(s.image, isNull);
       expect(preferences.sponsorImagePath, isNull);
     });
@@ -654,7 +818,7 @@ void main() {
       await s.refresh();
 
       expect(asked, ['raw.githubusercontent.com', 'cdn.jsdelivr.net']);
-      expect(s.visible(languageCode: 'en')?.id, 'c1');
+      expect(s.visible()?.id, 'c1');
       expect(
         NexSponsorService.mirrorOf(
           'https://raw.githubusercontent.com/o/r/main/img/banner.webp',
@@ -716,7 +880,7 @@ void main() {
       await s.refresh();
 
       expect(s.image, isNull);
-      expect(s.visible(languageCode: 'en')?.id, 'c1');
+      expect(s.visible()?.id, 'c1');
     });
   });
 
@@ -746,16 +910,13 @@ void main() {
         now: () => when,
       );
 
-      expect(at(now).visible(languageCode: 'en')?.id, 'c1');
+      expect(at(now).visible()?.id, 'c1');
       expect(
-        at(now.add(const Duration(hours: 47))).visible(languageCode: 'en'),
+        at(now.add(const Duration(hours: 47))).visible(),
         isNotNull,
         reason: 'one missed check is not enough to lose a running card',
       );
-      expect(
-        at(now.add(const Duration(hours: 49))).visible(languageCode: 'en'),
-        isNull,
-      );
+      expect(at(now.add(const Duration(hours: 49))).visible(), isNull);
     });
 
     test('a device that has never fetched shows nothing', () async {
@@ -765,7 +926,7 @@ void main() {
         client: MockClient((_) async => http.Response('', 500)),
         now: () => now,
       );
-      expect(s.visible(languageCode: 'en'), isNull);
+      expect(s.visible(), isNull);
     });
   });
 
@@ -801,7 +962,7 @@ void main() {
           preferences = await NexPreferences.load();
           final service = serving(body, seed: seed);
           await service.refresh();
-          seen.add(service.visible(languageCode: 'en')!.id);
+          seen.add(service.visible()!.id);
         }
         expect(seen, {'c1', 'c2', 'c3', 'c4', 'c5'});
       },
@@ -816,18 +977,71 @@ void main() {
         ]),
       );
       await service.refresh();
-      expect(service.visible(languageCode: 'en')?.id, 'en');
+      expect(service.visible()?.id, 'en');
     });
 
-    test('nothing to show here means no card', () async {
+    test('a Persian-only list still shows in the English interface', () async {
       final service = serving(
         list([
           card(id: 'fa', locales: ['fa']),
         ]),
       );
       expect(await service.refresh(), isTrue);
-      expect(service.visible(languageCode: 'en'), isNull);
-      expect(preferences.sponsorPayload, isNull);
+      expect(service.visible()?.id, 'fa');
+      expect(preferences.sponsorPayload, isNotNull);
+    });
+
+    test(
+      'the live single-card shape shows in English, including from cache',
+      () async {
+        final body = card(id: '2026-09-nexahr', locales: ['fa']);
+        final service = serving(body);
+        expect(preferences.locale?.languageCode, 'en');
+        expect(await service.refresh(), isTrue);
+        expect(service.visible()?.id, '2026-09-nexahr');
+
+        // A restart or language switch must not require a new network fetch.
+        final restarted = NexSponsorService(
+          preferences: await NexPreferences.load(),
+          now: () => now,
+        );
+        expect(restarted.visible()?.id, '2026-09-nexahr');
+        await preferences.setLocale('fa');
+        expect(service.visible()?.id, '2026-09-nexahr');
+        await preferences.setLocale('en');
+        expect(service.visible()?.id, '2026-09-nexahr');
+      },
+    );
+
+    test(
+      'language fallback never revives an expired or future campaign',
+      () async {
+        final service = serving(
+          list([
+            card(id: 'ended', locales: ['fa'], ends: '2026-09-01T00:00:00Z'),
+            card(id: 'future', locales: ['fa'], starts: '2026-10-01T00:00:00Z'),
+          ]),
+        );
+        expect(await service.refresh(), isTrue);
+        expect(service.visible(), isNull);
+        expect(preferences.sponsorPayload, isNull);
+      },
+    );
+
+    test('matching campaigns retain priority in both interface languages', () {
+      final body = list([
+        card(id: 'fa', locales: ['fa']),
+        card(id: 'en', locales: ['en']),
+      ]);
+      for (final language in ['fa', 'en']) {
+        for (var seed = 0; seed < 10; seed++) {
+          final chosen = serving(
+            body,
+            seed: seed,
+          ).choose(body, languageCode: language)!;
+          expect(NexSponsor.parse(chosen)!.id, language);
+        }
+      }
     });
 
     test('past five, the rest are ignored', () {
@@ -835,7 +1049,8 @@ void main() {
         for (var i = 1; i <= 5; i++) card(id: 'c$i', locales: ['fa']),
         card(id: 'sixth'),
       ]);
-      expect(serving(body).choose(body, languageCode: 'en'), '');
+      final chosen = serving(body).choose(body, languageCode: 'en')!;
+      expect(NexSponsor.parse(chosen)!.id, isNot('sixth'));
     });
 
     test('a single card still works as it always has', () {
@@ -864,7 +1079,7 @@ void main() {
     test('a new install with few notes waits', () async {
       final service = at(now);
       await service.refresh();
-      expect(service.visible(languageCode: 'en', notes: 4), isNull);
+      expect(service.visible(notes: 4), isNull);
       expect(preferences.firstOpenedAt?.isAtSameMomentAs(now), isTrue);
       // Nine days on, still not.
       expect(
@@ -878,7 +1093,7 @@ void main() {
     test('five notes earn it on the third day', () async {
       final service = at(now);
       await service.refresh();
-      expect(service.visible(languageCode: 'en', notes: 5)?.id, 'c1');
+      expect(service.visible(notes: 5)?.id, 'c1');
     });
 
     test('ten days earn it with no notes at all', () async {
@@ -890,10 +1105,10 @@ void main() {
     test('once earned, deleting notes does not take it away', () async {
       final service = at(now);
       await service.refresh();
-      expect(service.visible(languageCode: 'en', notes: 6), isNotNull);
+      expect(service.visible(notes: 6), isNotNull);
       await Future<void>.delayed(Duration.zero);
       expect(preferences.sponsorEarned, isTrue);
-      expect(service.visible(languageCode: 'en', notes: 0), isNotNull);
+      expect(service.visible(notes: 0), isNotNull);
     });
 
     test('the file can change both numbers', () async {

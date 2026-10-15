@@ -120,6 +120,13 @@ void main() {
           ),
           findsOneWidget,
         );
+        final paste = find.byKey(const ValueKey('capture-paste'));
+        final editor = tester.getRect(_field);
+        final button = tester.getRect(paste);
+        expect(button.overlaps(editor), isFalse);
+        expect(button.width, greaterThanOrEqualTo(48));
+        expect(button.height, greaterThanOrEqualTo(48));
+        expect(button.top, closeTo(editor.top, 1));
         final send = find.descendant(
           of: sheet,
           matching: find.byKey(const ValueKey('capture-send')),
@@ -131,6 +138,92 @@ void main() {
       }
     }
   });
+
+  for (final kind in CaptureKind.values.where((k) => k != CaptureKind.voice)) {
+    testWidgets('${kind.name}: corner paste replaces the selection and saves', (
+      tester,
+    ) async {
+      var reads = 0;
+      String? clipboard = kind == CaptureKind.link ? ' new ' : '  new\nline  ';
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.getData') {
+            reads++;
+            return clipboard == null ? null : {'text': clipboard};
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await openComposer(tester);
+      final context = tester.element(find.byType(CaptureSheet));
+      if (kind != CaptureKind.note) {
+        await tester.tap(
+          find.byTooltip(kind == CaptureKind.link ? 'Link' : 'Checklist'),
+        );
+        await tester.pumpAndSettle();
+      }
+      final paste = find.byKey(const ValueKey('capture-paste'));
+      expect(paste, findsOneWidget);
+      expect(
+        find.text(MaterialLocalizations.of(context).pasteButtonLabel),
+        findsNothing,
+      );
+      expect(
+        reads,
+        0,
+        reason: 'opening and switching never read the clipboard',
+      );
+      final original = kind == CaptureKind.link
+          ? 'https://example.com/old/end'
+          : 'before old after';
+      await tester.enterText(_field, original);
+      final controller = tester.widget<TextField>(_field).controller!;
+      final start = original.indexOf('old');
+      controller.selection = TextSelection(
+        baseOffset: start,
+        extentOffset: start + 3,
+      );
+      await tester.tap(paste);
+      await tester.pumpAndSettle();
+      final expected = original.replaceFirst(
+        'old',
+        kind == CaptureKind.link ? 'new' : clipboard,
+      );
+      expect(controller.text, expected);
+      expect(
+        controller.selection.baseOffset,
+        start + (kind == CaptureKind.link ? 3 : clipboard.length),
+      );
+      expect(tester.widget<TextField>(_field).focusNode!.hasFocus, isTrue);
+      // Empty clipboard leaves the draft and caret alone.
+      clipboard = null;
+      final value = controller.value;
+      await tester.tap(paste);
+      await tester.pumpAndSettle();
+      expect(controller.value, value);
+      await tester.tap(_send);
+      await tester.pumpAndSettle();
+      final note = (await services.timeline(limit: 5)).single;
+      if (kind == CaptureKind.link) {
+        expect(note.linkUrl, expected);
+      } else if (kind == CaptureKind.checklist) {
+        expect(note.checklistItems.map((i) => i.text), [
+          'before   new',
+          'line   after',
+        ]);
+      } else {
+        expect(note.content, expected);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('a checklist is captured as lines and shown as rows', (
     tester,
