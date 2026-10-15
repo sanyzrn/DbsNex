@@ -34,6 +34,9 @@ Working convention:
 
 ## Unreleased
 
+- **Glass across the app.** Page headers, confirmation dialogs, popup and note-action menus, Settings groups and Tools/Library panels now share the optional frosted material. High contrast stays opaque and note cards keep their reading surface.
+- **Ready-made swipe motion.** Replaced the hand-drawn swipe glyphs with bundled useAnimations and Animate UI assets. Motion follows the swipe and reverses as you pull back, works offline and respects reduced motion.
+
 ## v2.0.0
 
 - **Paste without a keyboard blink.** The capture editor keeps its active focus when pasting in Note, Checklist and Link.

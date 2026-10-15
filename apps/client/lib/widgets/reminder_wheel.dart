@@ -547,7 +547,7 @@ class _RepeatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return PopupMenuButton<NoteRepeat>(
+    return NexPopupMenuButton<NoteRepeat>(
       initialValue: repeat,
       onSelected: onChanged,
       itemBuilder: (context) => [

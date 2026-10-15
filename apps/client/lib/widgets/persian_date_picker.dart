@@ -1,3 +1,4 @@
+import 'package:nex_ui/nex_ui.dart';
 import 'package:flutter/material.dart';
 import '../platform/display_date.dart';
 
@@ -74,7 +75,7 @@ class _PersianDatePickerState extends State<PersianDatePicker> {
     final lastYear = nexPersianDate(widget.last).year;
     final offset = (nexGregorianDate(year, month, 1).weekday + 1) % 7;
     final days = nexPersianMonthDays(year, month);
-    return AlertDialog(
+    return NexAlertDialog(
       title: Text(nexDisplayDate(selected, solar: true, persian: fa)),
       content: SizedBox(
         width: 360,

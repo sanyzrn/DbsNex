@@ -205,7 +205,7 @@ class _CycleScreenState extends State<CycleScreen> {
   Widget _scaffold(BuildContext context, AppLocalizations l10n) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
+      appBar: NexAppBar(
         backgroundColor: Colors.transparent,
         centerTitle: true,
         title: Text(

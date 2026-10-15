@@ -39,7 +39,7 @@ class ToolsScreen extends StatelessWidget {
             ),
           );
     return Scaffold(
-      appBar: AppBar(title: Text(l.toolsTitle)),
+      appBar: NexAppBar(title: Text(l.toolsTitle)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(

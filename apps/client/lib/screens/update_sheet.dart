@@ -50,7 +50,7 @@ class UpdateSheet extends StatefulWidget {
   }) => Navigator.of(context).push(
     NexPageRoute<void>(
       builder: (_) => Scaffold(
-        appBar: AppBar(
+        appBar: NexAppBar(
           title: Text(AppLocalizations.of(context).checkForUpdate),
         ),
         body: SingleChildScrollView(

@@ -36,7 +36,7 @@ class AssistantScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.assistant)),
+      appBar: NexAppBar(title: Text(l10n.assistant)),
       // The controls themselves live in AssistantSettingsBody, because the chat
       // opens the same ones in a panel of its own — where the thing you want to
       // change is usually the thing you just watched go wrong.

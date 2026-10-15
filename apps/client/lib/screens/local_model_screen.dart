@@ -277,7 +277,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     final l10n = AppLocalizations.of(context);
     final confirmed = await nexShowDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => NexAlertDialog(
         title: Text(l10n.localModelStopTitle),
         content: Text(l10n.localModelStopBody),
         actions: [
@@ -308,7 +308,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     final host = NexBannerHost.of(context);
     final confirmed = await nexShowDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => NexAlertDialog(
         title: Text(l10n.localModelDeleteTitle),
         content: Text(
           widget.search
@@ -353,7 +353,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     final support = _support;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         title: Text(
           widget.search ? l10n.searchModelTitle : l10n.localModelTitle,
         ),

@@ -139,7 +139,7 @@ class _SettingsCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-      child: Material(
+      child: NexSurface(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(NexRadius.lg),
         clipBehavior: Clip.antiAlias,
@@ -206,7 +206,7 @@ class _SettingsCategoryScreen extends StatelessWidget {
       builder: (context, _) {
         final section = _section(context);
         return Scaffold(
-          appBar: AppBar(title: Text(section.title)),
+          appBar: NexAppBar(title: Text(section.title)),
           body: ListView(
             padding: const EdgeInsets.all(NexSpacing.md),
             children: [section],

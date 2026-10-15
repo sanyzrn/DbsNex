@@ -11,7 +11,7 @@ extension _CycleEditPeriod on _CycleScreenState {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialog) => CycleTheme(
-          child: AlertDialog(
+          child: NexAlertDialog(
             title: Text(l10n.cycleEditPeriod),
             content: Column(
               mainAxisSize: MainAxisSize.min,

@@ -60,7 +60,7 @@ abstract class NexStoredModule extends NexModule {
     final l10n = AppLocalizations.of(context);
     final choice = await nexShowDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => NexAlertDialog(
         title: Text(l10n.moduleRemoveTitle(title(l10n))),
         content: NexDialogBody(child: Text(l10n.moduleRemoveBody)),
         actions: [

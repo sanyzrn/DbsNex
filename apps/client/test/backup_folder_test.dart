@@ -194,7 +194,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Stop copying'));
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.bySubtype<AlertDialog>(), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, 'Stop copying').last);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),

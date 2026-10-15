@@ -86,7 +86,7 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.widgetSettingsTitle)),
+      appBar: NexAppBar(title: Text(l10n.widgetSettingsTitle)),
       body: AnimatedBuilder(
         animation: widget.preferences,
         builder: (context, _) {

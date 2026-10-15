@@ -1,6 +1,11 @@
 /// Nex shared Flutter UI package.
 library;
 
+export 'widgets/nex_app_bar.dart';
+export 'widgets/nex_alert_dialog.dart';
+export 'widgets/nex_surface.dart';
+export 'widgets/nex_popup_menu.dart';
+
 export 'tokens/nex_accent_palette.dart';
 export 'tokens/nex_appearance.dart';
 export 'tokens/nex_contrast.dart';

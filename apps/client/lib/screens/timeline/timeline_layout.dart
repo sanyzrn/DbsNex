@@ -23,7 +23,7 @@ extension _TimelineLayout on TimelineScreenState {
             _model.selectedTagIds.isNotEmpty ||
             otherFilters);
     return Scaffold(
-      appBar: AppBar(
+      appBar: NexAppBar(
         // Transparent so the blur below has the list to work on rather than a
         // fill of the bar's own — see [NexGlassBar]. Null keeps the theme's
         // opaque colour everywhere else.

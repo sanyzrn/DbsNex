@@ -59,7 +59,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     final l10n = AppLocalizations.of(context);
     final loaded = tags;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.tags)),
+      appBar: NexAppBar(title: Text(l10n.tags)),
       // The screen could rename, merge and delete tags but had no way to create
       // one, so a tag could only ever come into existence by tagging a note.
       floatingActionButton: FloatingActionButton(
@@ -104,7 +104,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
                     ),
                     title: Text(nexTagLabel(value.tag, l10n)),
                     subtitle: Text(l10n.noteCount(value.count)),
-                    trailing: PopupMenuButton<String>(
+                    trailing: NexPopupMenuButton<String>(
                       tooltip: l10n.tagActions,
                       onSelected: (action) => act(action, value),
                       itemBuilder: (_) => [
@@ -140,7 +140,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     final controller = TextEditingController();
     final name = await nexShowDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l10n.createTag),
         content: NexDialogBody(
           child: NexAutoDirection(
@@ -199,7 +199,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       final controller = TextEditingController(text: value.tag.name);
       final name = await nexShowDialog<String>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => NexAlertDialog(
           title: Text(l10n.renameTag),
           content: NexDialogBody(
             child: NexAutoDirection(
@@ -253,7 +253,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     } else if (action == 'delete') {
       final ok = await nexShowDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => NexAlertDialog(
           title: Text(l10n.deleteTag),
           content: NexDialogBody(child: Text(l10n.deleteTagBody)),
           actions: [

@@ -22,7 +22,7 @@ mixin NexDraftGuard<T extends StatefulWidget> on State<T> {
     final l10n = AppLocalizations.of(context);
     final discard = await nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l10n.unsavedChanges),
         actions: [
           TextButton(

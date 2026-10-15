@@ -64,7 +64,7 @@ class _PasswordGeneratorState extends State<PasswordGeneratorScreen> {
       strength,
     )!;
     return Scaffold(
-      appBar: AppBar(title: Text(l.vaultGenerator)),
+      appBar: NexAppBar(title: Text(l.vaultGenerator)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(NexSpacing.md),

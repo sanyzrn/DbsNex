@@ -351,7 +351,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     final l = AppLocalizations.of(context);
     final yes = await nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l.vaultDelete),
         content: Text(l.vaultDeleteHint),
         actions: [
@@ -396,7 +396,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       child: Listener(
         onPointerDown: (_) => _touch(),
         child: Scaffold(
-          appBar: AppBar(
+          appBar: NexAppBar(
             leading: BackButton(
               onPressed: busy
                   ? null
@@ -427,7 +427,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                   !widget.picking &&
                   widget.focusId == null &&
                   entries.any((e) => e.kind == widget.kind))
-                PopupMenuButton<String>(
+                NexPopupMenuButton<String>(
                   key: const ValueKey('vault-page-menu'),
                   tooltip: nexLabel(context, 'More', 'بیشتر'),
                   enabled: !busy,

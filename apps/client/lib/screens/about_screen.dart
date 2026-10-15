@@ -33,7 +33,7 @@ class AboutScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.about)),
+      appBar: NexAppBar(title: Text(l10n.about)),
       body: ListView(
         padding: EdgeInsets.only(
           bottom: NexSpacing.xl + nexBottomInset(context),

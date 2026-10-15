@@ -82,7 +82,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
     final l10n = AppLocalizations.of(context);
     return nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l10n.intelligenceConsentTitle),
         content: SizedBox(
           width: double.maxFinite,
@@ -213,7 +213,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
     final persian = l10n.localeName == 'fa';
     String digits(int n) => nexDigits('$n', persian: persian);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.intelligence)),
+      appBar: NexAppBar(title: Text(l10n.intelligence)),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
           NexSpacing.md,

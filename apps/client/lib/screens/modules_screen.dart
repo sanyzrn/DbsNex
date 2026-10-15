@@ -161,7 +161,7 @@ class _ModulesScreenState extends State<ModulesScreen>
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.modulesTitle)),
+      appBar: NexAppBar(title: Text(l10n.modulesTitle)),
       body: ListenableBuilder(
         listenable: widget.preferences,
         builder: (context, _) {

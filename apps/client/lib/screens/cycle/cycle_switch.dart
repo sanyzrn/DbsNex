@@ -30,7 +30,7 @@ Future<bool> nexSetCycleEnabled(
   final l10n = AppLocalizations.of(context);
   final choice = await nexShowDialog<String>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialogContext) => NexAlertDialog(
       title: Text(l10n.cycleTurnOffTitle),
       content: NexDialogBody(child: Text(l10n.cycleTurnOffBody)),
       actions: [

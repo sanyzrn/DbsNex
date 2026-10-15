@@ -103,7 +103,7 @@ class _BackupScreenState extends State<BackupScreen> {
     final ok = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, update) => AlertDialog(
+        builder: (ctx, update) => NexAlertDialog(
           title: Text(l10n.fullBackupTitle),
           content: SingleChildScrollView(
             child: Column(
@@ -196,7 +196,7 @@ class _BackupScreenState extends State<BackupScreen> {
     final ok = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, update) => AlertDialog(
+        builder: (ctx, update) => NexAlertDialog(
           title: Text(l10n.backupFolderTitle),
           content: SingleChildScrollView(
             child: Column(
@@ -249,7 +249,7 @@ class _BackupScreenState extends State<BackupScreen> {
     if (key == null || !mounted) return;
     await nexShowDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l10n.backupFolderShowKey),
         content: NexRecoveryCode(key),
         actions: [
@@ -266,7 +266,7 @@ class _BackupScreenState extends State<BackupScreen> {
     final l10n = AppLocalizations.of(context);
     final ok = await nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l10n.backupFolderStop),
         content: NexDialogBody(child: Text(l10n.backupFolderStopBody)),
         actions: [
@@ -309,7 +309,7 @@ class _BackupScreenState extends State<BackupScreen> {
     try {
       return await nexShowDialog<String>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => NexAlertDialog(
           title: Text(l10n.backupRecoveryKey),
           content: TextField(
             controller: controller,
@@ -405,7 +405,7 @@ class _BackupScreenState extends State<BackupScreen> {
     final l10n = AppLocalizations.of(context);
     final ok = await nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l10n.deleteBackup),
         content: NexDialogBody(child: Text(l10n.deleteBackupBody)),
         actions: [
@@ -433,7 +433,7 @@ class _BackupScreenState extends State<BackupScreen> {
     final l10n = AppLocalizations.of(context);
     final ok = await nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l10n.restoreBackup),
         content: NexDialogBody(
           child: Text('${l10n.restoreBody}\n\n${p.basename(backup.path)}'),
@@ -473,7 +473,7 @@ class _BackupScreenState extends State<BackupScreen> {
         await nexShowDialog<void>(
           context: context,
           barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
+          builder: (ctx) => NexAlertDialog(
             title: Text(l10n.restoreBackup),
             content: Text(l10n.restoreFailed(result.error!)),
             actions: [
@@ -558,7 +558,7 @@ class _BackupScreenState extends State<BackupScreen> {
     return PopScope(
       canPop: !_busy,
       child: Scaffold(
-        appBar: AppBar(title: Text(l10n.exportTitle)),
+        appBar: NexAppBar(title: Text(l10n.exportTitle)),
         body: ListenableBuilder(
           listenable: widget.preferences,
           builder: (context, _) => ListView(

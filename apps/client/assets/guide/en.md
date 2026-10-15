@@ -143,7 +143,7 @@ Cycle stays on this phone and in your backups. It never appears in your notes, s
 
 ## Appearance, language and calendar
 
-In Settings → Appearance, **Liquid glass** is a separate optional effect, off by default. It adds frosted depth to floating controls and sheets while keeping note cards opaque. High contrast uses solid surfaces, and reduced motion keeps swipe icons still.
+In Settings → Appearance, **Liquid glass** is a separate optional effect, off by default. It adds frosted depth to page headers, dialogs, menus, sheets, Settings groups and Tools/Library panels while keeping note cards opaque. High contrast uses solid surfaces, and reduced motion keeps swipe icons still.
 
 **Settings → Appearance** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier, Forest retreat, Isfahan turquoise, Saffron, Midnight, Deep sea or Graphite. Each palette is shown as a small window onto it — its own page colour, a note card in its tones and its motif — so you see the look before choosing it. A new look opens out as a circle from where you tapped. Every palette but Nex adds a faint motif of its own rising over the lower half of the screen — paper grain, falling leaves, rose blossoms, contour lines, tile stars, saffron threads, a crescent among the stars, waves and graph paper. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
 

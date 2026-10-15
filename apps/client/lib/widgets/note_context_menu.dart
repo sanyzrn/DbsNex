@@ -99,6 +99,16 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
       );
     }
 
+    final glass = context.nexVisualStyle.liquidGlass;
+    final entries = [
+      for (final entry in widget.entries)
+        item(
+          entry.icon ?? entry.action.icon,
+          entry.label ?? entry.action.label(context),
+          entry.onPressed,
+          destructive: entry.action == NexHoldAction.delete,
+        ),
+    ];
     return MenuAnchor(
       controller: _controller,
       // A tap outside closes the menu and does nothing else, like the date
@@ -108,11 +118,15 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
       onOpen: _opened,
       onClose: _closed,
       style: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainerHigh),
+        backgroundColor: WidgetStatePropertyAll(
+          glass ? Colors.transparent : scheme.surfaceContainerHigh,
+        ),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-        elevation: const WidgetStatePropertyAll(3),
-        padding: const WidgetStatePropertyAll(
-          EdgeInsets.symmetric(vertical: NexSpacing.sm),
+        elevation: WidgetStatePropertyAll(glass ? 0 : 3),
+        padding: WidgetStatePropertyAll(
+          glass
+              ? EdgeInsets.zero
+              : const EdgeInsets.symmetric(vertical: NexSpacing.sm),
         ),
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(
@@ -120,16 +134,20 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
           ),
         ),
       ),
-      menuChildren: [
-        for (final entry in widget.entries)
-          item(
-            entry.icon ?? entry.action.icon,
-            entry.label ?? entry.action.label(context),
-            entry.onPressed,
-            // In the error colour, like every other delete in Nex.
-            destructive: entry.action == NexHoldAction.delete,
-          ),
-      ],
+      menuChildren: glass
+          ? [
+              NexGlassSurface(
+                showShadow: false,
+                fallbackColor: scheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(NexRadius.lg),
+                padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: entries,
+                ),
+              ),
+            ]
+          : entries,
       builder: (context, controller, child) => Shortcuts(
         shortcuts: const {
           SingleActivator(LogicalKeyboardKey.contextMenu): _NoteMenuIntent(),

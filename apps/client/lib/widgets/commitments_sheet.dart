@@ -92,7 +92,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
     final l10n = AppLocalizations.of(context);
     final sure = await nexShowDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => NexAlertDialog(
         title: Text(l10n.commitmentDeleteTitle),
         content: NexDialogBody(child: Text(commitment.title)),
         actions: [
@@ -329,7 +329,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                     );
                     final note = await nexShowDialog<String>(
                       context: ctx,
-                      builder: (dialog) => AlertDialog(
+                      builder: (dialog) => NexAlertDialog(
                         title: Text(
                           nexLabel(
                             dialog,

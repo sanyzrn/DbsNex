@@ -231,7 +231,7 @@ extension _VaultMessages on _VaultScreenState {
       case 'delete':
         final yes = await nexShowDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
+          builder: (ctx) => NexAlertDialog(
             title: Text(l.vaultDelete),
             content: NexDialogBody(child: Text(l.vaultDeleteHint)),
             actions: [

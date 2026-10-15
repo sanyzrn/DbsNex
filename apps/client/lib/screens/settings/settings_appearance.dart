@@ -148,7 +148,7 @@ class _ThemeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.theme)),
+      appBar: NexAppBar(title: Text(l10n.theme)),
       body: ListenableBuilder(
         listenable: preferences,
         builder: (context, _) => ListView(

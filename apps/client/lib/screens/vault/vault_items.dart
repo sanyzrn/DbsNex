@@ -239,7 +239,7 @@ extension _VaultItems on _VaultScreenState {
       );
 
   Widget _itemMenu(AppLocalizations l, VaultEntry entry) =>
-      PopupMenuButton<String>(
+      NexPopupMenuButton<String>(
         tooltip: nexLabel(context, 'More', 'بیشتر'),
         enabled: !busy,
         icon: const Icon(Icons.more_vert),

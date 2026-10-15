@@ -131,7 +131,7 @@ void main() {
           await open(tester, capture: capture);
           await format(tester, label);
           if (label == 'Link') {
-            final dialog = find.byType(AlertDialog);
+            final dialog = find.bySubtype<AlertDialog>();
             expect(dialog, findsOneWidget);
             await tester.enterText(
               find.descendant(of: dialog, matching: find.byType(TextField)),
@@ -141,7 +141,7 @@ void main() {
               find.descendant(of: dialog, matching: find.text('Save')),
             );
             await tester.pumpAndSettle();
-            expect(find.byType(AlertDialog), findsNothing);
+            expect(find.bySubtype<AlertDialog>(), findsNothing);
             final state = tester.state<EditableTextState>(
               find.byType(EditableText),
             );
@@ -170,7 +170,7 @@ void main() {
         await format(tester, 'Link');
         await tester.tap(
           find.descendant(
-            of: find.byType(AlertDialog),
+            of: find.bySubtype<AlertDialog>(),
             matching: find.text('Cancel'),
           ),
         );
@@ -189,7 +189,7 @@ void main() {
   ) async {
     await open(tester, capture: false);
     await format(tester, 'Link');
-    final dialog = find.byType(AlertDialog);
+    final dialog = find.bySubtype<AlertDialog>();
     await tester.enterText(
       find.descendant(of: dialog, matching: find.byType(TextField)),
       'https://example.com',

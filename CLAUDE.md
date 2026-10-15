@@ -1,5 +1,9 @@
 # Working on Nex
 
+- Continue work on the shared `codex/2.0-polish` branch. Do not create a new
+  branch for each change or module unless the owner explicitly requests it.
+- All supplied add-on sources live in `addons/`. Review and activate modules
+  individually; adding their sources does not enable them in the app.
 - **Every new or changed screen follows [`docs/16-design-language.md`](docs/16-design-language.md).**
   Sheets open with `nexShowSheet` (never `showModalBottomSheet`), pages are
   pushed with `NexPageRoute`, spacing and corners come from `NexSpacing` and
