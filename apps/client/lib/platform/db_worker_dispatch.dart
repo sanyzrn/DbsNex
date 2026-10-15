@@ -231,6 +231,7 @@ class _Worker {
       _DbCommand.cycleDeleteAll => NexDbWorker._voided(cycle.deleteAll),
       _DbCommand.attachmentsFor ||
       _DbCommand.attachmentAdd ||
+      _DbCommand.attachmentUpdateImage ||
       _DbCommand.attachmentRemove ||
       _DbCommand.attachmentRestore ||
       _DbCommand.attachmentReorder ||

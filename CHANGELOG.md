@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.3
+
+- **Consistent glass borders.** The settings search field, profile card, birthday row and home-widget settings panels use the shared glass surface and edge.
+- **Clearer floating glass.** Card menus, popup menus and the home navigation/selection bars reveal more of the blurred page beneath them, with readable ink and opaque high-contrast fallbacks.
+- **Save selected text to Nex.** Android's text-selection menu offers **Save to Nex** in compatible apps. It uses quick capture, leaves the source text unchanged and returns to the app you were using.
+
+- **Cleaner text selection.** Android's editor uses native composition and a readable magnifier background instead of an empty floating lens.
+- **A compact module catalog.** Search names and descriptions; tap a card to reveal full details and Add, Open or Remove actions. Browsing leaves modules off.
+- **Edit attached images.** Hold an image attached to a note and choose Edit to crop or annotate it. Saving preserves its position and caption, keeps the original file safe and refreshes image text.
+- **Useful image reading.** AI turns screenshots into organized reports focused on the main content, skipping keyboard keys and routine interface clutter. Documents and receipts keep faithful transcription; unclear details are never guessed.
+
 ## v2.0.2
 
 - **Small, visible swipe feedback.** Standard icons give one brief pulse when revealed and when a full swipe arms. The motion finishes while your finger pauses and stays still with reduced motion.

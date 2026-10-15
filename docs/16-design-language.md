@@ -143,3 +143,10 @@ Swipe actions keep standard Material icons. A short, one-shot scale/lift pulse
 acknowledges reveal and threshold changes, then returns to rest even while the
 finger is held still. No custom icon geometry or drag-scrubbed animation files.
 Reduced motion keeps the glyph still; action thresholds stay independent.
+
+Small floating controls (the home dock, selection bar, card context menus and
+popup menus) use `NexGlassMaterial.floating`: a higher-transmission wash and
+smaller blur reveal the page beneath. Settings groups and reading sheets keep
+the denser panel material. High contrast stays opaque in both cases. Measure
+foreground contrast against `floatingContrastGround`, including destructive
+menu labels; keep one blur around the menu rather than one per entry.

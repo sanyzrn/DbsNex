@@ -249,7 +249,7 @@ class _Panel extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final title = this.title;
-    return Material(
+    return NexSurface(
       color: scheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(NexRadius.lg),
       clipBehavior: Clip.antiAlias,

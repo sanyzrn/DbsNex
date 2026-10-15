@@ -85,6 +85,7 @@ enum _DbCommand {
   cycleDeleteAll,
   attachmentsFor,
   attachmentAdd,
+  attachmentUpdateImage,
   attachmentRemove,
   attachmentRestore,
   attachmentReorder,

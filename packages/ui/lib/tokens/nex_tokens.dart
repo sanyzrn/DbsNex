@@ -934,6 +934,29 @@ ThemeData _theme({
                             : const Color(0xFFD9DDE2))
                         .withValues(alpha: 0.60),
               ),
+        // Small menus and floating bars reveal about 27–28% of the backdrop
+        // instead of 13–19%, without changing the reading material of sheets.
+        floatingGlassWash: dark
+            ? NexGlassWash(
+                films: [
+                  Colors.white.withValues(alpha: 0.02),
+                  Colors.black.withValues(alpha: 0.66),
+                ],
+                lift: const Color(0xFF222222).withValues(alpha: 0.16),
+                anchor: const Color(0xFF262626).withValues(alpha: 0.05),
+              )
+            : NexGlassWash(
+                films: [
+                  Colors.black.withValues(alpha: 0.08),
+                  Colors.white.withValues(alpha: 0.52),
+                ],
+                lift: Colors.white.withValues(alpha: 0.08),
+                anchor:
+                    (comfortMode
+                            ? const Color(0xFFC9BFAF)
+                            : const Color(0xFFD9DDE2))
+                        .withValues(alpha: 0.30),
+              ),
         glassOpaque: card,
         // Apple's #D0D0D0 in light. In dark a grey sliver would vanish, so
         // the rim is white held down to where it reads as a lit edge rather

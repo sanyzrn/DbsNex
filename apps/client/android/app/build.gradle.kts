@@ -165,6 +165,7 @@ kotlin {
 flutter { source = "../.." }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     // The desugaring runtime `isCoreLibraryDesugaringEnabled` above needs.
     // Exactly the version flutter_local_notifications itself declares, so
     // the resolved graph gains no new artifact — Gradle already had this one.

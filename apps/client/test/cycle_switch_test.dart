@@ -75,14 +75,18 @@ void main() {
         find.byKey(const ValueKey('tools-modules')),
         400,
         maxScrolls: 30,
+        scrollable: find.byType(Scrollable).first,
       );
       await tester.tap(find.byKey(const ValueKey('tools-modules')));
       await tester.pumpAndSettle();
       expect(find.byType(ModulesScreen), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('module-cycle')));
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.textContaining('Everything stays on this phone'),
         400,
         maxScrolls: 40,
+        scrollable: find.byType(Scrollable).first,
       );
       expect(find.textContaining('Everything stays on this phone'), findsOne);
       expect(find.byKey(const ValueKey('module-cycle-open')), findsNothing);
@@ -96,6 +100,7 @@ void main() {
         find.byKey(const ValueKey('module-cycle-add')),
         400,
         maxScrolls: 40,
+        scrollable: find.byType(Scrollable).first,
       );
       await Scrollable.ensureVisible(
         tester.element(find.byKey(const ValueKey('module-cycle-add'))),
@@ -110,6 +115,7 @@ void main() {
         find.byKey(const ValueKey('module-cycle-open')),
         -400,
         maxScrolls: 40,
+        scrollable: find.byType(Scrollable).first,
       );
       await Scrollable.ensureVisible(
         tester.element(find.byKey(const ValueKey('module-cycle-open'))),
@@ -129,6 +135,7 @@ void main() {
         find.byKey(const ValueKey('tools-module-cycle')),
         -400,
         maxScrolls: 30,
+        scrollable: find.byType(Scrollable).first,
       );
       await Scrollable.ensureVisible(
         tester.element(find.byKey(const ValueKey('tools-module-cycle'))),
@@ -194,6 +201,8 @@ void main() {
 
     Future<void> turnOff(WidgetTester tester, String choice) async {
       await showModules(tester, harness);
+      await tester.tap(find.byKey(const ValueKey('module-cycle')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('module-cycle-remove')));
       await tester.pumpAndSettle();
       expect(find.text('Turn off Cycle?'), findsOneWidget);

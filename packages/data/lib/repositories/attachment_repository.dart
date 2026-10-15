@@ -1,5 +1,6 @@
 import 'package:nex_core/nex_core.dart';
 import 'package:sqlite3/sqlite3.dart';
+import 'package:path/path.dart' as p;
 
 import '../schema/write_lock.dart';
 import 'note_repository.dart';
@@ -79,6 +80,51 @@ class SqliteAttachmentRepository {
     _insert(attachment);
     _notes.attachmentsChanged(noteId);
     return attachment;
+  });
+
+  /// A new file replaces this attachment's pixels. Shared originals stay on
+  /// disk for reference-aware maintenance. Reset derived text atomically so
+  /// search cannot retain words from the old image.
+  bool updateImageMedia(
+    String id,
+    String mediaUri,
+    String mediaHash, {
+    required String expectedMediaHash,
+  }) => db.together(() {
+    final a = byId(id);
+    if (a == null ||
+        a.deletedAt != null ||
+        a.mediaHash != expectedMediaHash ||
+        db.select('SELECT 1 FROM notes WHERE id = ? AND deleted_at IS NULL', [
+          a.noteId,
+        ]).isEmpty ||
+        (a.kind != AttachmentKind.photo &&
+            !(a.kind == AttachmentKind.file &&
+                NexFileKinds.of(path: a.mediaUri, mimeType: a.mimeType) ==
+                    NexFileKind.image))) {
+      return false;
+    }
+    final ext = p.extension(mediaUri).toLowerCase();
+    final name = a.name;
+    db.execute(
+      'UPDATE note_attachments SET media_uri = ?, media_hash = ?, mime_type = ?, '
+      'name = ?, ocr_text = NULL, transcript_text = NULL, updated_at = ?, '
+      "rev = rev + 1, device_id = ?, sync_state = 'pending' WHERE id = ?",
+      [
+        mediaUri,
+        mediaHash,
+        ext == '.jpg' ? 'image/jpeg' : 'image/png',
+        name == null || p.extension(name).isEmpty
+            ? name
+            : '${p.withoutExtension(name)}$ext',
+        DateTime.now().toUtc().toIso8601String(),
+        localDeviceId,
+        id,
+      ],
+    );
+    _notes.forgetEmbedding(a.noteId);
+    _notes.attachmentsChanged(a.noteId);
+    return true;
   });
 
   void setCaption(String id, String? caption) =>

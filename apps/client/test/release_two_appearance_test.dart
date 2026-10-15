@@ -37,7 +37,14 @@ void main() {
         );
         expect(theme.colorScheme.surface.a, 1);
         expect(theme.colorScheme.surfaceContainerLowest.a, 1);
-        final wash = theme.extension<NexVisualStyle>()!.glassWash;
+        final visual = theme.extension<NexVisualStyle>()!;
+        final ground = visual.floatingContrastGround(theme.brightness);
+        expect(
+          contrast(theme.colorScheme.onSurface, ground),
+          greaterThanOrEqualTo(4.5),
+          reason: '${preset.id}, dark=$dark: floating ink',
+        );
+        final wash = visual.glassWash;
         for (final background in [
           Colors.white,
           Colors.black,

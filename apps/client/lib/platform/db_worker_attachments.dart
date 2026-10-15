@@ -30,6 +30,18 @@ mixin _DbAttachments {
     'caption': caption,
   });
 
+  Future<bool> attachmentUpdateImage(
+    String id,
+    String mediaUri,
+    String mediaHash,
+    String expectedMediaHash,
+  ) => _send<bool>(_DbCommand.attachmentUpdateImage, {
+    'id': id,
+    'mediaUri': mediaUri,
+    'mediaHash': mediaHash,
+    'expectedMediaHash': expectedMediaHash,
+  });
+
   Future<void> attachmentRemove(String id) =>
       _send<void>(_DbCommand.attachmentRemove, {'id': id});
 
@@ -77,6 +89,12 @@ Object? _attachmentCommand(
     mimeType: arg('mimeType') as String?,
     durationMs: arg('durationMs') as int?,
     caption: arg('caption') as String?,
+  ),
+  _DbCommand.attachmentUpdateImage => attachments.updateImageMedia(
+    arg('id')! as String,
+    arg('mediaUri')! as String,
+    arg('mediaHash')! as String,
+    expectedMediaHash: arg('expectedMediaHash')! as String,
   ),
   _DbCommand.attachmentRemove => NexDbWorker._voided(
     () => attachments.remove(arg('id')! as String),

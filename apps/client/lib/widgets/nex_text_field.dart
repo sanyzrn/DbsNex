@@ -462,6 +462,12 @@ class _NativeFieldState extends State<_NativeField> {
       'letterSpacing': style.letterSpacing == null
           ? null
           : scaler.scale(fontSize) / fontSize * style.letterSpacing!,
+      'backgroundColor': Color.alphaBlend(
+        field.decoration.fillColor ??
+            theme.inputDecorationTheme.fillColor ??
+            scheme.surface,
+        scheme.surface,
+      ).toARGB32(),
       'textColor': textColor.toARGB32(),
       'hintColor': hintColor.toARGB32(),
       'selectionColor': selection.toARGB32(),
@@ -542,14 +548,11 @@ class _NativeFieldState extends State<_NativeField> {
             ? value.selection
             : TextSelection.collapsed(offset: value.text.length);
         _native = value;
-        // Texture-layer composition, not hybrid: hybrid composition puts
-        // the editor in the window itself and makes every frame of the whole
-        // app wait on Android's own, which is what made the editor slow to
-        // open and its text slow to scroll. The editor is drawn into a
-        // texture instead, as Flutter draws everything else, and stays a
-        // real view for the keyboard, the handles and the menu. Android
-        // falls back to hybrid only for a view that cannot be drawn so.
-        return PlatformViewsService.initSurfaceAndroidView(
+        // Native handles, toolbar and magnifier use window surfaces. Texture
+        // composition cannot capture this EditText for Android's magnifier
+        // (flutter/flutter#112712), leaving an empty floating pill. Keep this
+        // editor in the native hierarchy so those surfaces share its pixels.
+        return PlatformViewsService.initExpensiveAndroidView(
             id: params.id,
             viewType: NexTextField.viewType,
             layoutDirection: Directionality.of(context),

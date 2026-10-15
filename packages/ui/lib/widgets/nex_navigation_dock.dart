@@ -83,6 +83,7 @@ class NexNavigationDock extends StatelessWidget {
                       ],
               ),
               child: NexGlassSurface(
+                material: NexGlassMaterial.floating,
                 borderRadius: radius,
                 fallbackColor: scheme.surfaceContainerLowest,
                 child: actions,

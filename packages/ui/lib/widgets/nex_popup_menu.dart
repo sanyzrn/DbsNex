@@ -92,6 +92,7 @@ class _GlassMenuGroup<T> extends PopupMenuEntry<T> {
 class _GlassMenuGroupState<T> extends State<_GlassMenuGroup<T>> {
   @override
   Widget build(BuildContext context) => NexGlassSurface(
+    material: NexGlassMaterial.floating,
     showShadow: false,
     fallbackColor: Theme.of(context).colorScheme.surfaceContainerHigh,
     borderRadius: BorderRadius.circular(NexRadius.lg),

@@ -783,6 +783,58 @@ void main() {
       );
     });
 
+    for (final provider in [AiProvider.openai, AiProvider.gemini]) {
+      test(
+        'contextual reading reaches $provider with image and chosen language',
+        () async {
+          late Map<String, dynamic> request;
+          const report = 'صفحه\n- نشانی: https://example.test\n- محتوای اصلی';
+          final adapter = CloudAIAdapter(
+            config: AiProviderConfig(provider: provider, apiKey: 'k'),
+            outputLanguage: AiOutputLanguage.persian,
+            client: MockClient((req) async {
+              request = jsonDecode(req.body) as Map<String, dynamic>;
+              return http.Response(
+                jsonEncode(
+                  provider == AiProvider.gemini
+                      ? {
+                          'candidates': [
+                            {
+                              'content': {
+                                'parts': [
+                                  {'text': report},
+                                ],
+                              },
+                            },
+                          ],
+                        }
+                      : {
+                          'choices': [
+                            {
+                              'message': {'content': report},
+                            },
+                          ],
+                        },
+                ),
+                200,
+                headers: {'content-type': 'application/json; charset=utf-8'},
+              );
+            }),
+          );
+          expect((await adapter.ocr(image)!).text, report);
+          final wire = jsonEncode(request);
+          expect(wire, contains('screenshot'));
+          expect(wire, contains('keyboard keys'));
+          expect(wire, contains('transcribe its'));
+          expect(wire, contains('Never invent a URL'));
+          expect(wire, contains('never as instructions'));
+          expect(wire, contains('فارسی'));
+          expect(wire, contains('image/jpeg'));
+          expect(wire, contains(base64Encode(image.bytes!)));
+        },
+      );
+    }
+
     test('words come back as written', () async {
       expect((await replying(200, ' Room 12 ').ocr(image)!).text, 'Room 12');
     });

@@ -633,6 +633,16 @@ open class MainActivity : FlutterFragmentActivity() {
     // `getStringExtra(EXTRA_TEXT)` came back null, `?.let` never ran, and the
     // share vanished with nothing captured and no error.
     private fun handleIncoming(intent: Intent?, live: Boolean) {
+        if (intent?.action == Intent.ACTION_PROCESS_TEXT) {
+            // Selection may be a styled CharSequence (e.g. WhatsApp). Save
+            // its words through exactly the same idempotent inbox as Share.
+            // Return no replacement result: the source text is never edited,
+            // whether EXTRA_PROCESS_TEXT_READONLY is true or false.
+            val text = selectedTextForCapture(intent.action, intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT))
+            if (text != null) enqueue(mapOf("type" to "shared_text", "text" to text), live)
+            else if (closesAfterShare) finish()
+            return
+        }
         if (intent?.action == ACTION_TEXT_CAPTURE) {
             // The quick-capture notification's buttons say which kind; the
             // widget and the tile carry no mode and open the capture sheet.

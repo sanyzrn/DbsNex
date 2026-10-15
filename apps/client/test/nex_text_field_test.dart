@@ -12,6 +12,7 @@ void main() {
   late List<MethodCall> toNative;
   late Map<String, Object?>? created;
   late int viewId;
+  late bool hybrid;
 
   setUp(() {
     NexTextField.native = true;
@@ -24,6 +25,7 @@ void main() {
     ) async {
       if (call.method == 'create') {
         final args = (call.arguments as Map).cast<String, Object?>();
+        hybrid = args['hybrid'] == true;
         viewId = args['id']! as int;
         final params = args['params'] as Uint8List;
         created =
@@ -93,6 +95,12 @@ void main() {
     );
 
     expect(created, isNotNull);
+    expect(
+      hybrid,
+      isTrue,
+      reason: 'native selection popups need native composition',
+    );
+    expect((created!['backgroundColor']! as int) >> 24, 0xff);
     expect(created!['text'], 'سلام Nex!');
     expect(created!['hint'], 'بنویسید');
     expect(created!['minLines'], 3);

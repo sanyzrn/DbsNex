@@ -4148,11 +4148,18 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get modulesSearchHint => 'جست‌وجوی ماژول‌ها…';
+
+  @override
+  String get modulesSearchEmpty =>
+      'ماژولی پیدا نشد. نام یا واژهٔ دیگری را جست‌وجو کنید.';
+
+  @override
   String get modulesTitle => 'ماژول‌ها';
 
   @override
   String get modulesIntro =>
-      'فقط چیزی را که لازم دارید اضافه کنید. ماژولی که اضافه نشده نه جایی می‌گیرد، نه کاری در پس‌زمینه انجام می‌دهد و نه چیزی می‌خواهد — و موقع حذف می‌پرسد داده‌هایش بماند یا پاک شود.';
+      'برای جزئیات، کارت ماژول را لمس کنید. فقط آنچه نیاز دارید اضافه کنید.';
 
   @override
   String get modulesAdded => 'اضافه‌شده';

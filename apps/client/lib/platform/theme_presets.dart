@@ -223,6 +223,13 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
       ?visual?.copyWith(
         baseColor: colors.surface,
         glassOpaque: colors.surfaceContainerLow,
+        floatingGlassWash: NexGlassWash(
+          films: visual.floatingGlassWash.films,
+          lift: visual.floatingGlassWash.lift,
+          anchor: colors.surfaceContainerLow.withValues(
+            alpha: base.brightness == Brightness.dark ? 0.10 : 0.30,
+          ),
+        ),
         glassWash: NexGlassWash(
           films: [
             colors.surfaceContainerLow.withValues(alpha: 0.72),

@@ -162,6 +162,39 @@ void main() {
     }
   });
 
+  test(
+    'floating glass reveals more backdrop and keeps normal and destructive ink readable',
+    () {
+      for (final theme in [
+        nexLightTheme(liquidGlass: true),
+        nexLightTheme(liquidGlass: true, comfortMode: true),
+        nexDarkTheme(liquidGlass: true),
+        nexDarkTheme(liquidGlass: true, comfortMode: true),
+      ]) {
+        final visual = theme.extension<NexVisualStyle>()!;
+        double transmission(NexGlassWash wash) =>
+            wash.over(Colors.white).r - wash.over(Colors.black).r;
+        expect(
+          transmission(visual.floatingGlassWash),
+          greaterThan(transmission(visual.glassWash) * 1.35),
+        );
+        final ground = visual.floatingContrastGround(theme.brightness);
+        expect(
+          nexContrast(theme.colorScheme.onSurface, ground),
+          greaterThanOrEqualTo(4.5),
+        );
+        final destructive = nexReadableOn(theme.colorScheme.error, ground);
+        expect(nexContrast(destructive, ground), greaterThanOrEqualTo(4.5));
+        // Copies and theme interpolation must not silently lose the new material.
+        expect(visual.copyWith().floatingGlassWash, visual.floatingGlassWash);
+        expect(
+          visual.lerp(visual, 0.5).floatingGlassWash,
+          visual.floatingGlassWash,
+        );
+      }
+    },
+  );
+
   test('a glass panel can be seen against the page it floats on', () {
     // The failure this exists for does not show up in any contrast check:
     // the ink was perfectly legible on a panel nobody could find. Apple's

@@ -79,7 +79,15 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
       VoidCallback? onPressed, {
       bool destructive = false,
     }) {
-      final tint = destructive ? scheme.error : scheme.onSurface;
+      final error =
+          context.nexVisualStyle.liquidGlass &&
+              !MediaQuery.highContrastOf(context)
+          ? nexReadableOn(
+              scheme.error,
+              context.nexVisualStyle.floatingContrastGround(theme.brightness),
+            )
+          : scheme.error;
+      final tint = destructive ? error : scheme.onSurface;
       return MenuItemButton(
         onPressed: onPressed,
         leadingIcon: Icon(icon, size: 20, color: tint),
@@ -137,6 +145,7 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
       menuChildren: glass
           ? [
               NexGlassSurface(
+                material: NexGlassMaterial.floating,
                 showShadow: false,
                 fallbackColor: scheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(NexRadius.lg),

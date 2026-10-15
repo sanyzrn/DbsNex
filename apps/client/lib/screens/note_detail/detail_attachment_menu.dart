@@ -93,6 +93,8 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
                 ),
                 const Divider(height: 1),
                 action('open', Icons.open_in_new, l10n.attachOpen),
+                if (look == AttachmentLook.photo)
+                  action('edit', Icons.edit_outlined, l10n.edit),
                 action(
                   'caption',
                   Icons.short_text,
@@ -151,6 +153,8 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
         await _reorderAttachments(note, order);
       case 'open':
         await _openAttachment(attachment);
+      case 'edit':
+        await _editAttachmentImage(attachment);
       case 'caption':
         final preferences = widget.preferences;
         if (preferences == null) return;
@@ -215,6 +219,44 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
             await _reloadAttachments();
           }()),
         );
+    }
+  }
+
+  Future<void> _editAttachmentImage(NoteAttachment attachment) async {
+    final draftKey = 'attachment-photo-${attachment.id}';
+    try {
+      final original = await File(attachment.mediaUri).readAsBytes();
+      if (!mounted) return;
+      final edited = await Navigator.of(context).push<Uint8List>(
+        NexPageRoute(
+          swipeBackEnabled: false,
+          builder: (_) => PhotoCropScreen(
+            image: original,
+            drafts: widget.preferences?.editorDrafts,
+            draftKey: draftKey,
+          ),
+        ),
+      );
+      if (edited == null || !mounted) return;
+      final encoded = await compute(encodeEditedPhoto, (
+        bytes: edited,
+        wasJpeg:
+            original.length > 2 && original[0] == 0xff && original[1] == 0xd8,
+      ));
+      if (!await widget.services.updateAttachmentImage(attachment, encoded)) {
+        throw StateError('Attachment changed while editing');
+      }
+      widget.preferences?.editorDrafts?.clear('$draftKey-crop');
+      widget.preferences?.editorDrafts?.clear('$draftKey-annotation');
+      await _reloadAttachments();
+    } catch (_) {
+      if (mounted) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).editPhotoFailed,
+          kind: NexBannerKind.failed,
+        );
+      }
     }
   }
 }

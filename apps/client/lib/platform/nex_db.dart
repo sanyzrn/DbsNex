@@ -164,6 +164,15 @@ abstract interface class NexDb {
     String? caption,
   });
 
+  /// Replaces one image without changing its identity, order or caption.
+  /// False if removed or changed while the editor was open.
+  Future<bool> attachmentUpdateImage(
+    String id,
+    String mediaUri,
+    String mediaHash,
+    String expectedMediaHash,
+  );
+
   Future<void> attachmentRemove(String id);
 
   /// Undoes [attachmentRemove]. Whether there was one to put back.

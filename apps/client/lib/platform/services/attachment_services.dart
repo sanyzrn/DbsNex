@@ -108,6 +108,39 @@ extension NexAttachmentServices on NexServices {
     return attachment;
   }
 
+  Future<bool> updateAttachmentImage(
+    NoteAttachment attachment,
+    Uint8List bytes,
+  ) async {
+    final dest = p.join(
+      mediaDir,
+      'edited-attach-${DateTime.now().microsecondsSinceEpoch}${photoExtension(bytes)}',
+    );
+    await File(dest).writeAsBytes(bytes, flush: true);
+    final hash = await compute(sha256OfBytes, bytes);
+    final updated = await worker.attachmentUpdateImage(
+      attachment.id,
+      dest,
+      hash,
+      attachment.mediaHash,
+    );
+    // A failed reply can follow a committed write. Cleanup must stay
+    // reference-aware, so never eagerly remove a potentially referenced file.
+    if (!updated) return false;
+    // Saving is already durable; a failed list refresh is not a failed edit.
+    try {
+      await refreshTimeline();
+    } catch (_) {}
+    if (!_closed) {
+      unawaited(
+        worker
+            .attachmentReadText(attachment.id)
+            .then<void>((_) {}, onError: (Object _) {}),
+      );
+    }
+    return true;
+  }
+
   Future<void> removeAttachment(String id) async {
     await worker.attachmentRemove(id);
     await refreshTimeline();
