@@ -46,7 +46,8 @@ class _ProfileCardState extends State<_ProfileCard> {
     final hasPhoto = photo != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: NexSpacing.lg),
-      child: Material(
+      child: NexSurface(
+        key: const ValueKey('settings-profile-surface'),
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(NexRadius.lg),
         clipBehavior: Clip.antiAlias,

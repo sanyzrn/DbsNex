@@ -67,6 +67,12 @@ class _SettingsSearchState extends State<_SettingsSearch> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final glass = context.nexVisualStyle.liquidGlass;
+    const outline = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(NexRadius.lg)),
+      borderSide: BorderSide.none,
+    );
     final field = Padding(
       padding: const EdgeInsets.fromLTRB(
         NexSpacing.md,
@@ -74,38 +80,52 @@ class _SettingsSearchState extends State<_SettingsSearch> {
         NexSpacing.md,
         NexSpacing.sm,
       ),
-      child: NexAutoDirection(
-        controller: _controller,
-        builder: (context, direction) => TextField(
+      child: NexSurface(
+        key: const ValueKey('settings-search-surface'),
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        child: NexAutoDirection(
           controller: _controller,
-          focusNode: _focus,
-          textDirection: direction,
-          textAlign: TextAlign.start,
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(
-            isDense: true,
-            // The same shape and fill as the cards under it, not the
-            // app's pill: a search box that is the odd one out reads as
-            // belonging to something else.
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            border: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(NexRadius.lg)),
-              borderSide: BorderSide.none,
+          builder: (context, direction) => TextField(
+            controller: _controller,
+            focusNode: _focus,
+            textDirection: direction,
+            textAlign: TextAlign.start,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              isDense: true,
+              // The same shape and fill as the cards under it, not the
+              // app's pill: a search box that is the odd one out reads as
+              // belonging to something else.
+              // Keep the input transparent above its shared optical rim.
+              filled: !glass,
+              fillColor: glass
+                  ? Colors.transparent
+                  : scheme.surfaceContainerHighest,
+              border: outline,
+              enabledBorder: glass ? outline : null,
+              focusedBorder: glass
+                  ? outline.copyWith(
+                      borderSide: BorderSide(
+                        color: scheme.primary,
+                        width: nexFocusRingWidth,
+                      ),
+                    )
+                  : null,
+              prefixIcon: const Icon(Icons.search),
+              hintText: nexLabel(
+                context,
+                'Search settings',
+                'جست‌وجو در تنظیمات',
+              ),
+              suffixIcon: _controller.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: l10n.closeLabel,
+                      icon: const Icon(Icons.close),
+                      onPressed: _controller.clear,
+                    ),
             ),
-            prefixIcon: const Icon(Icons.search),
-            hintText: nexLabel(
-              context,
-              'Search settings',
-              'جست‌وجو در تنظیمات',
-            ),
-            suffixIcon: _controller.text.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: l10n.closeLabel,
-                    icon: const Icon(Icons.close),
-                    onPressed: _controller.clear,
-                  ),
           ),
         ),
       ),

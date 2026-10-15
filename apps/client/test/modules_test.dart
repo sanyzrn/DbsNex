@@ -6,6 +6,7 @@ import 'package:nex_client/modules/module_plans.dart';
 import 'package:nex_client/modules/module_registry.dart';
 import 'package:nex_client/screens/modules_screen.dart';
 import 'package:nex_client/widgets/module_install.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
 
@@ -56,6 +57,67 @@ void main() {
     expect(nexModulesOn(harness.preferences), isEmpty);
   });
 
+  for (final language in ['en', 'fa']) {
+    for (final dark in [false, true]) {
+      testWidgets('compact previews and search ($language, dark=$dark)', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(360, 1000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final l10n = lookupAppLocalizations(Locale(language));
+        final cycle = nexModules.first;
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: Locale(language),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: dark ? nexDarkTheme(liquidGlass: true) : nexLightTheme(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.6)),
+              child: child!,
+            ),
+            home: ModulesScreen(
+              services: harness.services,
+              preferences: harness.preferences,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final card = find.byKey(const ValueKey('module-cycle'));
+        final compactHeight = tester.getSize(card).height;
+        expect(find.text(cycle.about(l10n)), findsNothing);
+        await tester.tap(card);
+        await tester.pumpAndSettle();
+        expect(tester.getSize(card).height, greaterThan(compactHeight));
+        expect(find.text(cycle.about(l10n)), findsOneWidget);
+        expect(harness.preferences.cycleEnabled, isFalse);
+        await tester.tap(find.text(cycle.title(l10n)));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('modules-search')),
+          'xyznomatch',
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.modulesSearchEmpty), findsOneWidget);
+        expect(card, findsNothing);
+        final keyword = language == 'en'
+            ? cycle.title(l10n).toUpperCase()
+            : cycle.title(l10n).replaceAll('ک', 'ك').replaceAll('ی', 'ي');
+        await tester.enterText(
+          find.byKey(const ValueKey('modules-search')),
+          keyword,
+        );
+        await tester.pumpAndSettle();
+        expect(card, findsOneWidget);
+        expect(find.byKey(const ValueKey('module-habits')), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
   testWidgets('the page lists every module, added ones first', (tester) async {
     tester.view.physicalSize = const Size(800, 2000);
     tester.view.devicePixelRatio = 1;
@@ -78,9 +140,15 @@ void main() {
     await show();
     expect(find.text('Nothing added yet'), findsOneWidget);
     for (final module in nexModules) {
-      final add = find.byKey(ValueKey('module-${module.id}-add'));
-      await tester.scrollUntilVisible(add, 400, maxScrolls: 40);
-      expect(add, findsOneWidget);
+      final card = find.byKey(ValueKey('module-${module.id}'));
+      await tester.scrollUntilVisible(
+        card,
+        400,
+        maxScrolls: 40,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(card, findsOneWidget);
+      expect(find.byKey(ValueKey('module-${module.id}-add')), findsNothing);
     }
     tester
         .state<ScrollableState>(find.byType(Scrollable).first)
@@ -91,6 +159,8 @@ void main() {
     await harness.preferences.setCycleEnabled(true);
     await tester.pumpAndSettle();
     expect(find.text('Nothing added yet'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('module-cycle')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('module-cycle-open')), findsOneWidget);
     expect(find.byKey(const ValueKey('module-cycle-remove')), findsOneWidget);
     // Added above Available.
@@ -105,6 +175,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('plan-telegram')),
       300,
+      scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('On the way'), findsOneWidget);
     expect(
@@ -124,6 +195,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('modules-suggest')),
       300,
+      scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Have an idea for a module? Tell us'), findsOneWidget);
 
@@ -157,6 +229,8 @@ void main() {
       await tester.pumpAndSettle();
       final prefs = harness.preferences;
 
+      await tester.tap(find.byKey(const ValueKey('module-cycle')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('module-cycle-add')));
       await tester.pump();
       await tester.pump(moduleInstallTime ~/ 2);
@@ -222,6 +296,8 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('module-cycle')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('module-cycle-add')));
     await tester.pump();

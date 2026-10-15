@@ -11,6 +11,8 @@ import 'package:nex_client/widgets/card_strings.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_client/widgets/photo_viewer.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:image/image.dart' as img;
+import 'package:nex_client/screens/photo_crop_screen.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/nex_harness.dart';
@@ -58,6 +60,96 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+  }
+
+  for (final save in [false, true]) {
+    testWidgets(
+      'attached image editor ${save ? "saves a separate image" : "cancels unchanged"}',
+      (tester) async {
+        final services = harness.services;
+        final original = Uint8List.fromList(
+          img.encodePng(img.Image(width: 40, height: 30)),
+        );
+        final edited = Uint8List.fromList(
+          img.encodePng(img.Image(width: 20, height: 10)),
+        );
+        late Note note;
+        late NoteAttachment attachment;
+        await tester.runAsync(() async {
+          note = (await services.captureText('keep my words'))!;
+          attachment = (await services.attachBytes(
+            note.id,
+            original,
+            kind: AttachmentKind.photo,
+            extension: '.png',
+          ))!;
+          await services.setAttachmentCaption(attachment.id, 'keep my caption');
+        });
+        await openNote(tester, note.id);
+        await tester.longPress(
+          find.byKey(ValueKey('attachment-${attachment.id}')),
+        );
+        await settleHold(tester);
+        expect(find.byKey(const ValueKey('attachment-edit')), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('attachment-edit')));
+        await tester.pumpAndSettle();
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 150));
+        });
+        await tester.pumpAndSettle();
+        for (
+          var i = 0;
+          i < 12 && find.byType(PhotoCropScreen).evaluate().isEmpty;
+          i++
+        ) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 50)),
+          );
+          await tester.pumpAndSettle();
+        }
+        expect(find.byType(PhotoCropScreen), findsOneWidget);
+        // PhotoCropScreen's crop/annotation processing has its own pixel tests;
+        // here exercise its real returned bytes through the attachment save path.
+        Navigator.of(
+          tester.element(find.byType(PhotoCropScreen)),
+        ).pop<Uint8List>(save ? edited : null);
+        await tester.pumpAndSettle();
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 150));
+        });
+        await tester.pumpAndSettle();
+        expect(find.byType(PhotoCropScreen), findsNothing);
+        if (save) {
+          for (var i = 0; i < 40; i++) {
+            if ((await services.attachmentsFor(note.id)).single.mediaUri !=
+                attachment.mediaUri) {
+              break;
+            }
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 50)),
+            );
+            await tester.pumpAndSettle();
+          }
+        }
+        final now = (await services.attachmentsFor(note.id)).single;
+        expect(now.id, attachment.id);
+        expect(now.position, attachment.position);
+        expect(now.caption, 'keep my caption');
+        expect((await services.getById(note.id))!.content, 'keep my words');
+        expect(File(attachment.mediaUri).readAsBytesSync(), original);
+        if (save) {
+          expect(now.mediaUri, isNot(attachment.mediaUri));
+          final decoded = img.decodeImage(
+            File(now.mediaUri).readAsBytesSync(),
+          )!;
+          expect((decoded.width, decoded.height), (20, 10));
+        } else {
+          expect(now.mediaUri, attachment.mediaUri);
+          expect(now.mediaHash, attachment.mediaHash);
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets('a text note shows what it carries, and can carry more', (

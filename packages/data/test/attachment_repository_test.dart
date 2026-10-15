@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:nex_core/nex_core.dart'
@@ -341,6 +342,116 @@ void main() {
   });
 
   group('reshaping', () {
+    test(
+      'editing keeps identity and order, clears old search words and keeps shared original',
+      () {
+        final text = note(NoteType.text, content: 'trip');
+        final a = attach(text.id, 'ticket.jpg', caption: 'return ticket');
+        final other = attach(text.id, 'other.jpg');
+        attachments.setOcrResult(a.id, 'OLDSEAT 14C');
+        attachments.rename(a.id, 'ticket.jpg');
+        final before = attachments.byId(a.id)!;
+        final replacement = file('edited.png', [8, 9]);
+        expect(
+          attachments.updateImageMedia(
+            a.id,
+            replacement,
+            'new-hash',
+            expectedMediaHash: a.mediaHash,
+          ),
+          isTrue,
+        );
+        final edited = attachments.byId(a.id)!;
+        expect(edited.id, a.id);
+        expect(edited.noteId, text.id);
+        expect(edited.position, a.position);
+        expect(edited.caption, 'return ticket');
+        expect(edited.createdAt, a.createdAt);
+        expect(edited.rev, before.rev + 1);
+        expect(edited.mimeType, 'image/png');
+        expect(edited.name, 'ticket.png');
+        expect(edited.ocrText, isNull);
+        expect(edited.mediaHash, 'new-hash');
+        expect(attachments.forNote(text.id).map((a) => a.id), [a.id, other.id]);
+        expect(ftsOf(text.id), isNot(contains('OLDSEAT')));
+        expect(File(a.mediaUri).readAsStringSync(), 'ticket.jpg');
+        // An older editor must not overwrite this replacement.
+        expect(
+          attachments.updateImageMedia(
+            a.id,
+            '/stale.png',
+            'stale',
+            expectedMediaHash: a.mediaHash,
+          ),
+          isFalse,
+        );
+        expect(attachments.byId(a.id)!.mediaUri, replacement);
+        attachments.remove(a.id);
+        expect(
+          attachments.updateImageMedia(
+            a.id,
+            '/removed.png',
+            'removed',
+            expectedMediaHash: 'new-hash',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test('file images can be edited, other files cannot', () {
+      final text = note(NoteType.text, content: 'files');
+      for (final ext in ['png', 'pdf']) {
+        final a = attachments.add(
+          text.id,
+          kind: AttachmentKind.file,
+          mediaUri: file('file.$ext', [1, 2]),
+          mediaHash: ext,
+        )!;
+        expect(
+          attachments.updateImageMedia(
+            a.id,
+            '/new.png',
+            'new',
+            expectedMediaHash: ext,
+          ),
+          ext == 'png',
+        );
+      }
+    });
+
+    test(
+      'an old OCR response cannot repopulate an edited or removed photo',
+      () async {
+        final text = note(NoteType.text, content: 'screen');
+        for (final remove in [false, true]) {
+          final a = attach(text.id, 'screen-$remove.jpg');
+          final reader = _DelayedReader();
+          final service = EnrichmentService(
+            repo: notes,
+            adapter: reader,
+            capabilities: AiCapabilities.allOn,
+          );
+          final pending = AttachmentTextReader(attachments, service).read(a.id);
+          await reader.started.future;
+          if (remove) {
+            attachments.remove(a.id);
+          } else {
+            attachments.updateImageMedia(
+              a.id,
+              file('new.png', [7]),
+              'new-hash',
+              expectedMediaHash: a.mediaHash,
+            );
+          }
+          reader.result.complete(const OCRText(text: 'STALEWORDS'));
+          expect(await pending, isFalse);
+          expect(attachments.byId(a.id)!.ocrText, isNull);
+          expect(ftsOf(text.id), isNot(contains('STALEWORDS')));
+        }
+      },
+    );
+
     test('a file can be renamed, and blank gives its own name back', () {
       final text = note(NoteType.text, content: 'contract');
       final a = attach(text.id, 'scan.jpg');
@@ -480,5 +591,15 @@ class _Reader extends NullAIAdapter {
   Future<Transcript>? transcribe(AudioRef audio) {
     calls++;
     return Future.value(Transcript(text: text));
+  }
+}
+
+class _DelayedReader extends NullAIAdapter {
+  final started = Completer<void>();
+  final result = Completer<OCRText>();
+  @override
+  Future<OCRText>? ocr(ImageRef image) {
+    started.complete();
+    return result.future;
   }
 }

@@ -347,6 +347,19 @@ class InProcessDb implements NexDb {
   );
 
   @override
+  Future<bool> attachmentUpdateImage(
+    String id,
+    String mediaUri,
+    String mediaHash,
+    String expectedMediaHash,
+  ) async => _attachments.updateImageMedia(
+    id,
+    mediaUri,
+    mediaHash,
+    expectedMediaHash: expectedMediaHash,
+  );
+
+  @override
   Future<void> attachmentRemove(String id) async => _attachments.remove(id);
 
   @override

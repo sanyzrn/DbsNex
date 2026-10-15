@@ -17,10 +17,8 @@ import '../widgets/nex_shelf.dart';
 /// Tools → Modules: every optional feature Nex ships, and the one place to
 /// add or remove each — see `docs/17-modules.md`.
 ///
-/// A card per module, in the module's own colour: what it is, what it does
-/// as a few chips, and one action — Add, or Open and Remove. Added modules
-/// come first, so the page answers "what have I got" before "what else is
-/// there".
+/// Compact, searchable cards reveal details and management actions on tap.
+/// Added modules stay first; browsing never enables a module.
 class ModulesScreen extends StatefulWidget {
   const ModulesScreen({
     super.key,
@@ -40,6 +38,15 @@ class _ModulesScreenState extends State<ModulesScreen>
   /// The module whose add or remove is under way, so its buttons do not
   /// take a second tap while the first is still asking its question.
   String? _busy;
+  String? _expanded;
+  String _query = '';
+  final _search = TextEditingController();
+
+  String _searchText(String text) => text
+      .toLowerCase()
+      .replaceAll('ي', 'ی')
+      .replaceAll('ك', 'ک')
+      .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u200C]'), '');
 
   /// The module being put together, or taken apart, on screen — see
   /// [ModuleInstallGlyph]. A module stays in the section it started in until
@@ -56,6 +63,7 @@ class _ModulesScreenState extends State<ModulesScreen>
 
   @override
   void dispose() {
+    _search.dispose();
     _run.dispose();
     super.dispose();
   }
@@ -171,17 +179,38 @@ class _ModulesScreenState extends State<ModulesScreen>
           bool shownOn(NexModule m) =>
               m.id == _removing ||
               (m.isOn(widget.preferences) && m.id != _installing);
+          final terms = _searchText(_query).trim().split(RegExp(r'\s+'));
+          bool matches(String text) {
+            final searchable = _searchText(text);
+            return terms.every(searchable.contains);
+          }
+
+          final visible = nexModules
+              .where(
+                (m) => matches(
+                  '${m.title(l10n)} ${m.tagline(l10n)} ${m.about(l10n)} '
+                  '${m.points(l10n).join(' ')}',
+                ),
+              )
+              .toList();
+          final plans = nexModulePlans
+              .where((p) => matches('${p.title(l10n)} ${p.about(l10n)}'))
+              .toList();
           final added = [
-            for (final m in nexModules)
+            for (final m in visible)
               if (shownOn(m)) m,
           ];
           final available = [
-            for (final m in nexModules)
+            for (final m in visible)
               if (!shownOn(m)) m,
           ];
           Widget card(NexModule module) {
             final body = _ModuleCard(
               module: module,
+              expanded: _expanded == module.id,
+              onToggle: () => setState(() {
+                _expanded = _expanded == module.id ? null : module.id;
+              }),
               on: shownOn(module),
               busy: _busy == module.id,
               phase: _phaseOf(module),
@@ -192,7 +221,7 @@ class _ModulesScreenState extends State<ModulesScreen>
             );
             return Padding(
               key: ValueKey('slot-${module.id}'),
-              padding: const EdgeInsets.only(bottom: NexSpacing.md),
+              padding: const EdgeInsets.only(bottom: NexSpacing.sm),
               child: module.id == _arrived
                   ? ModuleArrival(
                       key: ValueKey('arrive-${module.id}-$_moves'),
@@ -212,25 +241,59 @@ class _ModulesScreenState extends State<ModulesScreen>
               NexSpacing.lg + nexBottomInset(context),
             ),
             children: [
-              _Intro(text: l10n.modulesIntro),
-              const SizedBox(height: NexSpacing.lg),
-              NexShelfHeading(
-                icon: Icons.check_circle_outline,
-                title: l10n.modulesAdded,
-              ),
-              const SizedBox(height: NexSpacing.sm),
-              if (added.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: NexSpacing.md),
-                  child: Text(
-                    l10n.modulesEmpty,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+              NexAutoDirection(
+                controller: _search,
+                builder: (context, direction) => TextField(
+                  controller: _search,
+                  textDirection: direction,
+                  key: const ValueKey('modules-search'),
+                  onChanged: (text) => setState(() => _query = text),
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: l10n.modulesSearchHint,
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: MaterialLocalizations.of(
+                              context,
+                            ).deleteButtonTooltip,
+                            onPressed: () {
+                              _search.clear();
+                              setState(() => _query = '');
+                            },
+                            icon: const Icon(Icons.close),
+                          ),
                   ),
-                )
-              else
-                ...added.map(card),
+                ),
+              ),
+              const SizedBox(height: NexSpacing.md),
+              Text(l10n.modulesIntro, style: theme.textTheme.bodySmall),
+              const SizedBox(height: NexSpacing.md),
+              if (visible.isEmpty && plans.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: NexSpacing.lg),
+                  child: Text(l10n.modulesSearchEmpty),
+                ),
+              if (added.isNotEmpty || _query.trim().isEmpty) ...[
+                NexShelfHeading(
+                  icon: Icons.check_circle_outline,
+                  title: l10n.modulesAdded,
+                ),
+                const SizedBox(height: NexSpacing.sm),
+                if (added.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: NexSpacing.md),
+                    child: Text(
+                      l10n.modulesEmpty,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                else
+                  ...added.map(card),
+              ],
               if (available.isNotEmpty) ...[
                 const SizedBox(height: NexSpacing.sm),
                 NexShelfHeading(
@@ -240,18 +303,20 @@ class _ModulesScreenState extends State<ModulesScreen>
                 const SizedBox(height: NexSpacing.sm),
                 ...available.map(card),
               ],
-              const SizedBox(height: NexSpacing.sm),
-              NexShelfHeading(
-                icon: Icons.schedule_outlined,
-                title: l10n.modulesComing,
-              ),
-              const SizedBox(height: NexSpacing.sm),
-              for (final plan in nexModulePlans)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-                  child: _PlanCard(plan: plan),
+              if (plans.isNotEmpty) ...[
+                const SizedBox(height: NexSpacing.sm),
+                NexShelfHeading(
+                  icon: Icons.schedule_outlined,
+                  title: l10n.modulesComing,
                 ),
-              const SizedBox(height: NexSpacing.sm),
+                const SizedBox(height: NexSpacing.sm),
+                for (final plan in plans)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+                    child: _PlanCard(plan: plan),
+                  ),
+                const SizedBox(height: NexSpacing.sm),
+              ],
               _SuggestRow(onTap: _suggest),
               const SizedBox(height: NexSpacing.md),
               Text(
@@ -269,53 +334,11 @@ class _ModulesScreenState extends State<ModulesScreen>
   }
 }
 
-/// The page's opening lines, on a soft panel with a puzzle-piece glyph.
-class _Intro extends StatelessWidget {
-  const _Intro({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(NexSpacing.md),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(NexRadius.xl),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: scheme.primary,
-              borderRadius: BorderRadius.circular(NexRadius.md + 2),
-            ),
-            child: Icon(Icons.extension_outlined, color: scheme.onPrimary),
-          ),
-          const SizedBox(width: NexSpacing.md),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurface,
-                height: 1.55,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ModuleCard extends StatelessWidget {
   const _ModuleCard({
     required this.module,
+    required this.expanded,
+    required this.onToggle,
     required this.on,
     required this.busy,
     required this.phase,
@@ -326,6 +349,8 @@ class _ModuleCard extends StatelessWidget {
   });
 
   final NexModule module;
+  final bool expanded;
+  final VoidCallback onToggle;
   final bool on;
   final bool busy;
   final ModuleInstallPhase phase;
@@ -362,111 +387,147 @@ class _ModuleCard extends StatelessWidget {
           border: BorderSide(
             color: color.withValues(alpha: 0.25 + 0.2 * inness),
           ),
-          padding: const EdgeInsets.all(NexSpacing.md),
           child: child!,
         );
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              ModuleInstallGlyph(
-                icon: module.icon,
-                color: color,
-                phase: phase,
-                progress: progress,
-              ),
-              const SizedBox(width: NexSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      module.title(l10n),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+          Semantics(
+            expanded: expanded,
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(NexRadius.xl),
+                onTap: busy ? null : onToggle,
+                child: Padding(
+                  padding: const EdgeInsets.all(NexSpacing.md),
+                  child: Row(
+                    children: [
+                      ModuleInstallGlyph(
+                        icon: module.icon,
+                        color: color,
+                        phase: phase,
+                        progress: progress,
                       ),
-                    ),
-                    Text(
-                      module.tagline(l10n),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                      const SizedBox(width: NexSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              module.title(l10n),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              module.tagline(l10n),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      if (on && !working)
+                        Icon(Icons.check_circle, color: color, size: 20),
+                      const SizedBox(width: NexSpacing.xs),
+                      Icon(expanded ? Icons.expand_less : Icons.expand_more),
+                    ],
+                  ),
                 ),
               ),
-              if (on && !working) Icon(Icons.check_circle, color: color),
-            ],
-          ),
-          const SizedBox(height: NexSpacing.md),
-          Text(
-            module.about(l10n),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.6,
             ),
           ),
-          const SizedBox(height: NexSpacing.md),
-          Wrap(
-            spacing: NexSpacing.sm,
-            runSpacing: NexSpacing.sm,
-            children: [
-              for (final point in module.points(l10n))
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(NexRadius.pill),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: NexSpacing.md - 4,
-                      vertical: 5,
-                    ),
-                    child: Text(
-                      point,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurface,
+          if (expanded || working)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NexSpacing.md,
+                0,
+                NexSpacing.md,
+                NexSpacing.md,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (expanded) ...[
+                    Text(
+                      module.about(l10n),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.6,
                       ),
                     ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: NexSpacing.md),
-          if (working)
-            ModuleInstallProgress(
-              color: color,
-              phase: phase,
-              progress: progress,
-            )
-          else if (on)
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    key: ValueKey('module-${module.id}-open'),
-                    onPressed: busy ? null : onOpen,
-                    icon: const Icon(Icons.arrow_forward),
-                    label: Text(l10n.moduleOpen),
-                  ),
-                ),
-                const SizedBox(width: NexSpacing.sm),
-                TextButton(
-                  key: ValueKey('module-${module.id}-remove'),
-                  onPressed: busy ? null : onRemove,
-                  style: TextButton.styleFrom(foregroundColor: scheme.error),
-                  child: Text(l10n.moduleRemove),
-                ),
-              ],
-            )
-          else
-            FilledButton.icon(
-              key: ValueKey('module-${module.id}-add'),
-              onPressed: busy ? null : onAdd,
-              icon: const Icon(Icons.add),
-              label: Text(l10n.moduleAdd),
+                    const SizedBox(height: NexSpacing.md),
+                    Wrap(
+                      spacing: NexSpacing.sm,
+                      runSpacing: NexSpacing.sm,
+                      children: [
+                        for (final point in module.points(l10n))
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(
+                                NexRadius.pill,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: NexSpacing.md - 4,
+                                vertical: 5,
+                              ),
+                              child: Text(
+                                point,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: scheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: NexSpacing.md),
+                  ],
+                  if (working)
+                    ModuleInstallProgress(
+                      color: color,
+                      phase: phase,
+                      progress: progress,
+                    )
+                  else if (on)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.tonalIcon(
+                            key: ValueKey('module-${module.id}-open'),
+                            onPressed: busy ? null : onOpen,
+                            icon: const Icon(Icons.arrow_forward),
+                            label: Text(l10n.moduleOpen),
+                          ),
+                        ),
+                        const SizedBox(width: NexSpacing.sm),
+                        TextButton(
+                          key: ValueKey('module-${module.id}-remove'),
+                          onPressed: busy ? null : onRemove,
+                          style: TextButton.styleFrom(
+                            foregroundColor: scheme.error,
+                          ),
+                          child: Text(l10n.moduleRemove),
+                        ),
+                      ],
+                    )
+                  else
+                    FilledButton.icon(
+                      key: ValueKey('module-${module.id}-add'),
+                      onPressed: busy ? null : onAdd,
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.moduleAdd),
+                    ),
+                ],
+              ),
             ),
         ],
       ),

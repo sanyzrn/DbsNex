@@ -248,6 +248,7 @@ extension _TimelineSelection on TimelineScreenState {
                     ],
             ),
             child: NexGlassSurface(
+              material: NexGlassMaterial.floating,
               borderRadius: radius,
               fallbackColor: scheme.surfaceContainerLowest,
               child: Material(

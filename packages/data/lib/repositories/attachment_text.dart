@@ -54,6 +54,15 @@ class AttachmentTextReader {
         ? await ask()
         : await disclose(attachment.noteId, ask);
     if (text == null) return false;
+    // The editor can replace (or remove) the image while a provider reads it.
+    // Never put the old image's words back onto its replacement.
+    final current = _attachments.byId(id);
+    if (current == null ||
+        current.deletedAt != null ||
+        current.mediaHash != attachment.mediaHash ||
+        current.mediaUri != attachment.mediaUri) {
+      return false;
+    }
     if (photo) {
       _attachments.setOcrResult(id, text);
     } else {

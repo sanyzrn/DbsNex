@@ -20,6 +20,8 @@ Without opening Nex first: add the **Nex capture** tile to your Quick Settings (
 
 ![The capture menu](capture.webp)
 
+**From a text selection.** In compatible Android apps, select words and choose **Save to Nex** from the selection menu (it may be inside **⋮**). Nex saves them through quick capture and returns you to the source app, without replacing the original text. Availability and placement depend on the source app's selection menu.
+
 ## The home timeline
 
 Reminders and attachment counts share a small row below the card’s text. Their position follows the interface language, even when individual notes use another language.
@@ -57,6 +59,8 @@ When you write in two languages, each line keeps its own direction and side whil
 Web addresses in a note or caption become links automatically. Tap a link to open it in your browser; hold it for **Open link** or **Copy link**. Hold ordinary words to select and copy text.
 
 ![A note's details](note-details.webp)
+
+**Editing an attachment.** Hold an attached image and choose **Edit** to crop, rotate or annotate it. Save replaces only that attachment while keeping its caption and order; cancelling leaves it as it was. The original file is kept until unreferenced media is cleaned up. With image reading enabled, the new image is read again.
 
 ## Long notes, Markdown and files
 
@@ -106,9 +110,13 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 ![The assistant opening](assistant.webp)
 
+**Reading screenshots.** With a connected image-capable AI provider and image reading enabled, new screenshots are read as organized reports about their main content, including a visible URL when legible. Keyboard keys and routine controls are skipped. Documents and receipts keep their text and layout relationships. Existing readings are unchanged; output quality depends on the chosen model.
+
 ## Tools and private vault
 
 **Modules** are extra features that stay out of the app until you want them: **Tools → Add modules** lists each one with what it does. **Add** installs it, which you can watch as its pieces gather into its icon, and puts it in Tools under **Modules**; **Remove** takes it out again — with nothing left running — and asks whether to keep its data for later or delete it. Cycle keeps its existing opt-in. Below the modules you can add, **On the way** lists the ones being planned, and the row at the bottom opens a short form that sends us your own idea for one.
+
+**Finding modules.** Search in **Tools → Add modules** by name or keyword. Cards show a brief preview; tap one to expand its details and Add, Open or Remove actions. Opening a preview does not enable it.
 
 **Optional modules.** The eleven modules below are available in **Tools → Add modules**. All start off; use **Add** to put one in Tools and open it. **Remove** hides it again and asks whether to keep its data. Explicit choices survive updates; 2.0.2 also turns off modules that were only enabled by the automatic 2.0.1 preview.
 
@@ -125,7 +133,6 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 - **Smoke Free:** track smoke-free progress, estimated savings and cravings.
 
 Each module stores its own data locally and in backups. These records do not enter notes, search, note widgets or the assistant. These modules have no camera, location, network or background-notification integration yet. Some date pickers currently use explicitly labeled Gregorian dates; further integration will be reviewed module by module.
-
 
 **Tools**, at the left of the bottom bar, holds **Passwords**, **Bank cards**, **Private saved messages** and a **Password generator**. The private tools need your fingerprint or screen lock, and one unlock opens all of them for as long as you are using them. They lock after two minutes without activity — including time spent in another app, so you can copy a password, paste it in your browser and come straight back. Leaving the app always hides their contents from the task switcher, and **Lock** closes them at once. Hold any tool to pin it to the top of the home screen, in its own colour and icon; hold it there to take it off. A pinned private tool shows only its name and still asks for your fingerprint. The lock on a private tool's card shows open while they are unlocked.
 

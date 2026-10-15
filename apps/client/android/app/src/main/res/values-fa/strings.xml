@@ -3,6 +3,7 @@
      عبارت‌های زمان نسبی همان دسته‌بندی کارت‌های خط زمانی را دنبال می‌کنند
      (الان، ۵ دقیقه قبل، ۵ ساعت قبل و بعدتر). نام «Nex» در هر دو زبان یکی است. -->
 <resources>
+    <string name="process_text_save">ذخیره در Nex</string>
     <string name="widget_capture_picker_label">ثبت Nex</string>
     <string name="widget_timeline_picker_label">خط زمانی Nex</string>
     <string name="widget_recap_picker_label">خلاصه هوشمند</string>

@@ -4244,11 +4244,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get modulesSearchHint => 'Search modules…';
+
+  @override
+  String get modulesSearchEmpty =>
+      'No matching modules. Try another name or keyword.';
+
+  @override
   String get modulesTitle => 'Modules';
 
   @override
   String get modulesIntro =>
-      'Add only what you need. A module that is not added takes no room, runs nothing and asks for nothing — and removing one asks whether to keep its data.';
+      'Tap a module for details. Add only what you need.';
 
   @override
   String get modulesAdded => 'Added';

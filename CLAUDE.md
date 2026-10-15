@@ -1,5 +1,8 @@
 # Working on Nex
 
+- Push or change remote pull requests only when the owner explicitly asks.
+  Otherwise finish and verify locally, then ask whether to push; keep later
+  edits together in the requested release.
 - Continue work on the shared `codex/2.0-polish` branch. Do not create a new
   branch for each change or module unless the owner explicitly requests it.
 - All 11 supplied add-ons are integrated under `apps/client/lib/modules/` and

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:nex_core/nex_core.dart' show AttachmentKind;
 
 import 'package:nex_client/platform/db_worker.dart';
 
@@ -99,6 +100,39 @@ void main() {
 
       // Round-trips through the isolate, so the response port is wired too.
       expect((await worker.getById(note.id))?.content, note.content);
+      final original = p.join(mediaDir, 'original.png');
+      final edited = p.join(mediaDir, 'edited.png');
+      File(original).writeAsBytesSync([1, 2]);
+      File(edited).writeAsBytesSync([3, 4]);
+      final attached = (await worker.attachmentAdd(
+        note.id,
+        kind: AttachmentKind.photo,
+        mediaUri: original,
+        mediaHash: 'original',
+        caption: 'keep caption',
+      ))!;
+      expect(
+        await worker.attachmentUpdateImage(
+          attached.id,
+          edited,
+          'edited',
+          'original',
+        ),
+        isTrue,
+      );
+      final fresh = (await worker.attachmentsFor(note.id)).single;
+      expect(fresh.id, attached.id);
+      expect(fresh.mediaUri, edited);
+      expect(fresh.caption, 'keep caption');
+      expect(
+        await worker.attachmentUpdateImage(
+          attached.id,
+          original,
+          'stale',
+          'original',
+        ),
+        isFalse,
+      );
     } finally {
       await worker.close();
     }

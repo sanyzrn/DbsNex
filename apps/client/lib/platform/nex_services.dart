@@ -30,6 +30,7 @@ import 'db_worker.dart';
 import 'package:nex_ai/cloud.dart';
 import 'backup_folder.dart';
 import 'nex_db.dart';
+import 'photo_encoding.dart';
 import 'media_picker_impl.dart';
 import 'crash_reporter.dart';
 import 'nex_preferences.dart';

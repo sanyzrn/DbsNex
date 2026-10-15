@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="process_text_save">Save to Nex</string>
     <!-- Home-screen widgets (FR-8). Persian lives in values-fa; every
          user-facing word the widgets can show is here. Relative-time labels
          mirror the timeline card's buckets (packages/ui nex_relative_time),

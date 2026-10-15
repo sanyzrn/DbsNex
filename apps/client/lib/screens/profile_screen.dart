@@ -360,7 +360,7 @@ class _BirthdayRow extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final onClear = this.onClear;
-    return Material(
+    return NexSurface(
       color: scheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(NexRadius.lg),
       clipBehavior: Clip.antiAlias,
