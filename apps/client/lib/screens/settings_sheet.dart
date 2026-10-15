@@ -373,6 +373,13 @@ class SettingsSheet extends StatelessWidget {
           onChanged: preferences.setEnterSubmitsCapture,
         ),
         _SwitchRow(
+          icon: Icons.photo_size_select_large_outlined,
+          title: l10n.editPhotoBeforeCapture,
+          subtitle: l10n.editPhotoBeforeCaptureSubtitle,
+          value: preferences.editPhotoBeforeCapture,
+          onChanged: preferences.setEditPhotoBeforeCapture,
+        ),
+        _SwitchRow(
           icon: Icons.vibration,
           title: l10n.haptics,
           value: preferences.haptics,

@@ -7,9 +7,15 @@ mixin _AppearancePreferences on _PreferencesStore {
   // where a warmer look lives now.
   bool get comfortMode => false;
 
-  // Temporarily disabled by the owner (1.70.0). Keep stored choice and
-  // rendering code for a later redesign; do not silently re-enable it.
-  bool get liquidGlass => false;
+  // The redesigned material is a fresh opt-in. A preference saved before
+  // glass was retired must not silently enable it after this update.
+  bool get liquidGlass => _prefs.getBool('appearance.liquid_glass_v2') ?? false;
+
+  bool get editPhotoBeforeCapture =>
+      _prefs.getBool('capture.edit_photo_before_save') ?? false;
+
+  Future<void> setEditPhotoBeforeCapture(bool value) =>
+      _setBool('capture.edit_photo_before_save', value);
 
   String get themePreset =>
       _prefs.getString('appearance.theme_preset') ?? 'classic';
@@ -87,7 +93,7 @@ mixin _AppearancePreferences on _PreferencesStore {
       _setBool('appearance.comfort', value);
 
   Future<void> setLiquidGlass(bool value) =>
-      _setBool('appearance.liquid_glass', value);
+      _setBool('appearance.liquid_glass_v2', value);
 
   Future<void> setBackgroundPattern(NexBackgroundPattern value) async {
     await _prefs.setString('appearance.background_pattern', value.wireName);

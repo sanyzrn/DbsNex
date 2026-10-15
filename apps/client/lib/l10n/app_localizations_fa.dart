@@ -766,11 +766,11 @@ class AppLocalizationsFa extends AppLocalizations {
   String get comfortMode => 'حالت آسایش';
 
   @override
-  String get liquidGlass => 'شیشهٔ مایع';
+  String get liquidGlass => 'لیکویید گلس';
 
   @override
   String get liquidGlassSubtitle =>
-      'کنترل‌های نیمه‌شفاف تطبیقی با محوشدگی واقعی پس‌زمینه';
+      'جلوهٔ شیشه‌ای برای کنترل‌های شناور، منوها و شیت‌ها؛ با حفظ تم و خوانایی یادداشت‌ها.';
 
   @override
   String get backgroundStyle => 'پس‌زمینه';
@@ -5158,4 +5158,11 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get assistantVoiceReviewSubtitle =>
       'درخواستی که با صدا می‌گویید، به جای ارسال فوری، برای ویرایش در کادر نوشتن قرار می‌گیرد.';
+
+  @override
+  String get editPhotoBeforeCapture => 'ویرایش تصویر پیش از ثبت';
+
+  @override
+  String get editPhotoBeforeCaptureSubtitle =>
+      'پس از گرفتن یا انتخاب عکس، پیش‌نمایش و ابزارهای ویرایش باز شوند. در حالت خاموش، عکس مستقیم ثبت می‌شود.';
 }

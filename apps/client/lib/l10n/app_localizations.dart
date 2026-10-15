@@ -1325,13 +1325,13 @@ abstract class AppLocalizations {
   /// No description provided for @liquidGlass.
   ///
   /// In en, this message translates to:
-  /// **'Liquid Glass'**
+  /// **'Liquid glass'**
   String get liquidGlass;
 
   /// No description provided for @liquidGlassSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Adaptive translucent controls with real background blur'**
+  /// **'Frosted floating controls, menus and sheets. Your theme and note readability stay intact.'**
   String get liquidGlassSubtitle;
 
   /// No description provided for @backgroundStyle.
@@ -8479,6 +8479,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A spoken request is put in the box to edit instead of being sent straight away.'**
   String get assistantVoiceReviewSubtitle;
+
+  /// No description provided for @editPhotoBeforeCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit photos before capture'**
+  String get editPhotoBeforeCapture;
+
+  /// No description provided for @editPhotoBeforeCaptureSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the preview and editing tools after taking or choosing a photo. Off saves it straight away.'**
+  String get editPhotoBeforeCaptureSubtitle;
 }
 
 class _AppLocalizationsDelegate

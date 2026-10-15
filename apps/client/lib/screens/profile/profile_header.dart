@@ -77,6 +77,7 @@ class ProfileHeader extends StatelessWidget {
     required this.bio,
     required this.birthdayLine,
     required this.onPhoto,
+    this.birthdayColor,
   });
 
   final File? photo;
@@ -85,6 +86,8 @@ class ProfileHeader extends StatelessWidget {
 
   /// The countdown to the next birthday, or null when none is set.
   final String? birthdayLine;
+
+  final Color? birthdayColor;
 
   /// Opens the photo choices.
   final VoidCallback onPhoto;
@@ -167,12 +170,16 @@ class ProfileHeader extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.cake_outlined, size: 16, color: ink),
+                            Icon(
+                              Icons.cake_outlined,
+                              size: 16,
+                              color: birthdayColor ?? ink,
+                            ),
                             const SizedBox(width: NexSpacing.xs),
                             Text(
                               line,
                               style: theme.textTheme.labelLarge?.copyWith(
-                                color: ink,
+                                color: birthdayColor ?? ink,
                               ),
                             ),
                           ],

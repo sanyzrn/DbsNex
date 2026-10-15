@@ -243,3 +243,9 @@ newer PR and release checks pass. The README CI badge reads the Checks API for
 the current `main` commit through Shields' branch checks badge. It reports the
 actual commit's checks, including release verification, without re-running the
 suite or hardcoding a green result. Nightly tracks `main` separately.
+
+## Version policy from 2.0.0
+
+Versions use `MAJOR.MINOR.PATCH` from 2.0.0 onward. A patch fixes behaviour or polish without introducing a new feature (2.0.1). A minor adds compatible features, including optional modules or languages (2.1.0). A major is reserved for a deliberate product-generation change or an incompatible public/data contract (3.0.0). Reset lower components when a higher one increases; never consume minor numbers for fixes. Use `-beta.N` for release candidates and keep prereleases away from the stable update channel.
+
+The coordinated capture/appearance refresh begins the 2.x generation. Keep the source version, changelog and release tag aligned. Android's existing encoding remains unchanged: minor and patch components stay below 100; promote to the next minor before the patch reaches 100. The 2.0.0 code is 200000000, above every 1.99.99 ABI variant. Build metadata does not replace a patch increment for a newly distributed stable build.

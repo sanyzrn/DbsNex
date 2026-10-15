@@ -3307,5 +3307,9 @@
   "vaultAttachPlay": "Play",
   "vaultAttachPause": "Pause",
   "assistantVoiceReview": "Check what I said before sending",
-  "assistantVoiceReviewSubtitle": "A spoken request is put in the box to edit instead of being sent straight away."
+  "assistantVoiceReviewSubtitle": "A spoken request is put in the box to edit instead of being sent straight away.",
+  "editPhotoBeforeCapture": "Edit photos before capture",
+  "editPhotoBeforeCaptureSubtitle": "Open the preview and editing tools after taking or choosing a photo. Off saves it straight away.",
+  "liquidGlass": "Liquid glass",
+  "liquidGlassSubtitle": "Frosted floating controls, menus and sheets. Your theme and note readability stay intact."
 }

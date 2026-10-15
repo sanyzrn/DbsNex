@@ -220,7 +220,19 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
         : colors.surface,
     extensions: [
       ...base.extensions.values.where((e) => e is! NexVisualStyle),
-      ?visual?.copyWith(baseColor: colors.surface),
+      ?visual?.copyWith(
+        baseColor: colors.surface,
+        glassOpaque: colors.surfaceContainerLow,
+        glassWash: NexGlassWash(
+          films: [
+            colors.surfaceContainerLow.withValues(alpha: 0.72),
+            (base.brightness == Brightness.dark ? Colors.white : Colors.black)
+                .withValues(alpha: 0.035),
+          ],
+          lift: colors.surfaceContainerHigh.withValues(alpha: 0.2),
+          anchor: colors.surfaceContainerLow.withValues(alpha: 0.15),
+        ),
+      ),
     ],
     canvasColor: colors.surface,
     cardTheme: base.cardTheme.copyWith(color: colors.surfaceContainerLow),

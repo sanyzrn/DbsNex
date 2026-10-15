@@ -132,20 +132,26 @@ extension _TimelineCapture on TimelineScreenState {
       final more = all.skip(1).toList();
       if (recovered == null && picked == null) return;
       final original = recovered ?? await picked!.readAsBytes();
-      if (widget.preferences.editorDrafts case final drafts?) {
-        unawaited(drafts.writeImage('photo-new', original));
+      final editing =
+          widget.preferences.editPhotoBeforeCapture || recovered != null;
+      if (editing && widget.preferences.editorDrafts != null) {
+        unawaited(
+          widget.preferences.editorDrafts!.writeImage('photo-new', original),
+        );
       }
       if (!mounted) return;
-      // The preview first, not the cropper. Most photos need no edit at all,
-      // and putting one in the path of every capture was the report.
-      final cropped = await Navigator.of(context).push<Uint8List>(
-        NexPageRoute(
-          builder: (_) => PhotoPreviewScreen(
-            image: original,
-            drafts: widget.preferences.editorDrafts,
-          ),
-        ),
-      );
+      // Capture goes straight to the library unless editing was requested.
+      // An interrupted editing session still gets its recovery screen.
+      final cropped = editing
+          ? await Navigator.of(context).push<Uint8List>(
+              NexPageRoute(
+                builder: (_) => PhotoPreviewScreen(
+                  image: original,
+                  drafts: widget.preferences.editorDrafts,
+                ),
+              ),
+            )
+          : original;
       if (cropped == null) {
         for (final key in [
           'photo-new',

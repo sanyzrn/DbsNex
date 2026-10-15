@@ -407,7 +407,7 @@ void main() {
 
       // Centred in the panel, not in the space the swipe opened up.
       expect(
-        tester.getCenter(find.byIcon(Icons.delete_outline)).dx,
+        tester.getCenter(find.byType(NexSwipeActionGlyph)).dx,
         closeTo(tester.getRect(panel).center.dx, 0.5),
       );
     });

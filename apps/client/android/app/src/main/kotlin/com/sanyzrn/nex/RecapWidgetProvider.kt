@@ -81,9 +81,7 @@ class RecapWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_recap)
         views.setInt(R.id.nex_recap_root, "setLayoutDirection", displayContext.resources.configuration.layoutDirection)
         val snapshot = NexWidgetSnapshot.read(context)
-        NexWidgetAppearance.accent(context)?.let {
-            views.setInt(R.id.nex_recap_glyph, "setColorFilter", it)
-        }
+        NexWidgetAppearance.applyTint(views, R.id.nex_recap_glyph, null)
 
         // The header is the logotype alone, common to every state; it opens
         // the app, which gates itself.

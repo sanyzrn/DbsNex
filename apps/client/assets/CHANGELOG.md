@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.0
+
+- **Paste without a keyboard blink.** The capture editor keeps its active focus when pasting in Note, Checklist and Link.
+- **Photos arrive straight away.** Camera and gallery captures save directly by default. Turn on “Edit photos before capture” in Settings → Capture to open the preview first; existing photos remain editable from their detail page.
+- **Swipe icons tell their own story.** The bin lid opens, the tag unfolds, the pin presses down, the bell clapper swings, the share arrow rises and the assistant's stars light up as you swipe. Pull back to reverse the gesture; the action thresholds stay the same. Reduced motion keeps the icons still.
+- **Liquid glass returns as an optional material.** Enable it in Settings → Appearance. Floating controls and sheets gain frosted depth and a fine optical rim while notes stay solid and readable. Off by default, independent of your theme, with opaque surfaces in high contrast.
+- **Widgets refresh their colours completely.** Old custom tints no longer linger after restoring default colours; the logo keeps its own light/dark colours and custom action colours stay legible.
+- **Two finishing touches.** The birthday countdown follows light/dark correctly in Nex and Graphite. Library and Settings now give the same optional haptic tick as the other home-dock destinations.
+
 ## v1.99.99
 
 - **Sponsor cards in both interfaces.** Campaigns prefer the interface language; when none matches, an available campaign still appears in Persian or English. Switching languages no longer hides the cached card.

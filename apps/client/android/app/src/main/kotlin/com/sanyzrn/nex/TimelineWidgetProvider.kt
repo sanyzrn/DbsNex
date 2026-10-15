@@ -77,8 +77,9 @@ class TimelineWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_timeline)
         views.setInt(R.id.nex_widget_timeline_root, "setLayoutDirection", displayContext.resources.configuration.layoutDirection)
         val snapshot = NexWidgetSnapshot.read(context)
-        val accent = NexWidgetAppearance.accent(context)
-        accent?.let { views.setInt(R.id.nex_widget_brand, "setColorFilter", it) }
+        val accent = NexWidgetAppearance.iconAccent(context)
+        // The brand keeps its own light/dark letters and accent detail.
+        NexWidgetAppearance.applyTint(views, R.id.nex_widget_brand, null)
 
         // The header and the capture row are common to every state, and both
         // survive the lock — the logotype opens the app (which gates itself),
@@ -91,9 +92,7 @@ class TimelineWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(button, NexWidgetActions.capture(context, mode))
             views.setContentDescription(button, displayContext.getString(label))
         }
-        accent?.let {
-            for (icon in CAPTURE_ICONS) views.setInt(icon, "setColorFilter", it)
-        }
+        for (icon in CAPTURE_ICONS) NexWidgetAppearance.applyTint(views, icon, accent)
         // The body is one tap away from the timeline from any state.
         views.setOnClickPendingIntent(
             R.id.nex_widget_timeline_root,

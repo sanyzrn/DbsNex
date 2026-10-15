@@ -612,7 +612,7 @@ void main() {
       await preferences.setLiquidGlass(true);
       await preferences.setBackgroundPattern(NexBackgroundPattern.aurora);
 
-      expect(preferences.liquidGlass, isFalse);
+      expect(preferences.liquidGlass, isTrue);
       expect(preferences.backgroundPattern, NexBackgroundPattern.plain);
       expect(preferences.themeMode, ThemeMode.system);
     },
