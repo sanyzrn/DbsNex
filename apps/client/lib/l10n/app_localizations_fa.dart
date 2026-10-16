@@ -5269,4 +5269,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiExtractedText => 'متن استخراج‌شده';
+
+  @override
+  String get chatThinking => 'دارم فکر می‌کنم…';
 }

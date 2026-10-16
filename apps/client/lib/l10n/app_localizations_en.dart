@@ -5406,4 +5406,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiExtractedText => 'Extracted text';
+
+  @override
+  String get chatThinking => 'Thinking it through…';
 }

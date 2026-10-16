@@ -6,7 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 
 /// How tall the search field's sliver is: the field itself plus its padding.
-const nexSearchHeaderExtent = nexMinTapTarget + NexSpacing.xs + NexSpacing.sm;
+const nexSearchHeaderExtent = nexMinTapTarget + NexSpacing.md * 2;
 
 /// Shared [TapRegion.groupId] between the search field and its results — see
 /// the field's own tap-outside handling below for why a result needs to be a
@@ -119,12 +119,8 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
         // reader had chosen, which is the same thing that was wrong with the
         // tag row's and is more obvious here because this strip is taller.
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            NexSpacing.md,
-            NexSpacing.xs,
-            NexSpacing.md,
-            NexSpacing.sm,
-          ),
+          // Leave room for the halo to fade before the scrolling clip.
+          padding: const EdgeInsets.all(NexSpacing.md),
           child: Row(
             children: [
               Expanded(child: _pill(context, l10n, scheme)),
@@ -160,14 +156,14 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     // Lit as it opens: a soft halo in the accent, rather than only a hairline
     // changing colour, which was too slight to read as anything happening.
     builder: (context, focus, _) => DecoratedBox(
+      key: const ValueKey('search-focus-halo'),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(NexRadius.pill),
         boxShadow: [
           if (focus > 0)
             BoxShadow(
               color: scheme.primary.withValues(alpha: 0.22 * focus),
-              blurRadius: 16 * focus,
-              spreadRadius: 1 * focus,
+              blurRadius: 8 * focus,
             ),
         ],
       ),

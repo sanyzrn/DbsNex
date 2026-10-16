@@ -204,8 +204,7 @@ extension _TimelineLayout on TimelineScreenState {
                                                 1.5 +
                                             16,
                                       ) +
-                                      NexSpacing.xs +
-                                      NexSpacing.sm,
+                                      NexSpacing.md * 2,
                                   anchor: _searchAnchor,
                                   controller: _search.query,
                                   focusNode: _searchFocus,

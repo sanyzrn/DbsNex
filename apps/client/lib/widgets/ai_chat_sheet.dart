@@ -34,6 +34,7 @@ import 'nex_text_field.dart';
 import 'recording_sheet.dart';
 
 part 'ai_chat/chat_thread.dart';
+part 'ai_chat/chat_thinking.dart';
 part 'ai_chat/chat_composer.dart';
 part 'ai_chat/chat_panels.dart';
 part 'ai_chat/chat_context.dart';

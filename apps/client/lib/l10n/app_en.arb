@@ -3341,5 +3341,6 @@
   "aiResultCollapse": "Collapse result",
   "aiShowResults": "Show results",
   "aiSwitchResult": "Switch result",
-  "aiExtractedText": "Extracted text"
+  "aiExtractedText": "Extracted text",
+  "chatThinking": "Thinking it through…"
 }

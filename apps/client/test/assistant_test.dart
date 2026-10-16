@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -923,11 +924,20 @@ Sure, here you go:
       WidgetTester tester, {
       required http.Client client,
       Note? focus,
+      Locale locale = const Locale('en'),
+      bool reduceMotion = false,
     }) async {
       await tester.pumpWidget(
         MaterialApp(
+          locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(disableAnimations: reduceMotion),
+            child: child!,
+          ),
           home: Builder(
             builder: (context) => Scaffold(
               body: Center(
@@ -960,6 +970,70 @@ Sure, here you go:
           ),
         )
         .textDirection;
+
+    for (final language in ['en', 'fa']) {
+      for (final reduceMotion in [false, true]) {
+        testWidgets(
+          'thinking status follows a pending reply, $language reduced=$reduceMotion',
+          (tester) async {
+            final response = Completer<http.Response>();
+            await openSheet(
+              tester,
+              client: MockClient((_) => response.future),
+              locale: Locale(language),
+              reduceMotion: reduceMotion,
+            );
+            await tester.enterText(find.byType(TextField), 'hello');
+            await tester.testTextInput.receiveAction(TextInputAction.send);
+            for (var i = 0; i < 10; i++) {
+              await tester.pump(const Duration(milliseconds: 100));
+            }
+            final pending = find.byKey(const ValueKey('assistant-thinking'));
+            expect(pending, findsOneWidget);
+            final label = lookupAppLocalizations(Locale(language)).chatThinking;
+            expect(find.text(label), findsOneWidget);
+            expect(
+              tester.widget<Semantics>(pending).properties.liveRegion,
+              isTrue,
+            );
+            final dots = find.descendant(
+              of: pending,
+              matching: find.byType(Opacity),
+            );
+            final before = tester
+                .widgetList<Opacity>(dots)
+                .map((dot) => dot.opacity)
+                .toList();
+            await tester.pump(const Duration(milliseconds: 250));
+            final after = tester
+                .widgetList<Opacity>(dots)
+                .map((dot) => dot.opacity)
+                .toList();
+            expect(
+              after,
+              reduceMotion ? equals(before) : isNot(equals(before)),
+            );
+            response.complete(
+              http.Response(
+                jsonEncode({
+                  'choices': [
+                    {
+                      'message': {'content': 'Here is your answer'},
+                    },
+                  ],
+                }),
+                200,
+              ),
+            );
+            await tester.pumpAndSettle();
+            expect(pending, findsNothing);
+            expect(find.text('Here is your answer'), findsOneWidget);
+            expect(tester.takeException(), isNull);
+            await tester.pumpWidget(const SizedBox());
+          },
+        );
+      }
+    }
 
     testWidgets('retry keeps the question once and preserves a new draft', (
       tester,
