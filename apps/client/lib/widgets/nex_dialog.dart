@@ -51,7 +51,9 @@ Future<T?> nexShowDialog<T>({
       barrierDismissible: barrierDismissible,
       barrierColor: context.nexVisualStyle.liquidGlass
           ? Colors.black.withValues(alpha: 0.24)
-          : null,
+          // Explicit null disables DialogRoute's scrim instead of using its
+          // default, leaving dialogs visually merged with the sheet below.
+          : Theme.of(context).dialogTheme.barrierColor ?? Colors.black54,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       themes: InheritedTheme.capture(from: context, to: navigator.context),
     ),

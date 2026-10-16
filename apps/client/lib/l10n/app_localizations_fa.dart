@@ -5260,4 +5260,13 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiResultCollapse => 'جمع‌کردن نتیجه';
+
+  @override
+  String get aiShowResults => 'نمایش نتیجه‌ها';
+
+  @override
+  String get aiSwitchResult => 'تغییر نتیجه';
+
+  @override
+  String get aiExtractedText => 'متن استخراج‌شده';
 }

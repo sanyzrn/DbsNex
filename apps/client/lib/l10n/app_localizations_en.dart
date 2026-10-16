@@ -5397,4 +5397,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiResultCollapse => 'Collapse result';
+
+  @override
+  String get aiShowResults => 'Show results';
+
+  @override
+  String get aiSwitchResult => 'Switch result';
+
+  @override
+  String get aiExtractedText => 'Extracted text';
 }

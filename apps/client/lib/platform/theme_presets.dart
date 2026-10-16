@@ -252,6 +252,12 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
     ),
     dialogTheme: base.dialogTheme.copyWith(
       backgroundColor: colors.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(NexRadius.xl),
+        side: visual?.liquidGlass == true
+            ? BorderSide.none
+            : BorderSide(color: colors.outline),
+      ),
     ),
     dividerTheme: base.dividerTheme.copyWith(color: colors.outlineVariant),
     floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(

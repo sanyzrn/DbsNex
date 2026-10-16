@@ -111,7 +111,7 @@ cloud requests may include your preferred name and selected note context. With o
 checklist in one tap) and Recap widgets on Android that follow the
 app's language and accent, and stay private while the app lock is on.
 
-**Per-note AI workspace** — relevant actions appear above the content, and results stay in the same section with previews, expandable text, copy and caption controls. Existing captions offer Cancel, Append or Replace; replacements protect concurrent edits. Translation includes a language picker and Save as note. Media reading is explicit. Similar-note suggestions and their lookups are temporarily paused in 2.0.6; semantic search remains available.
+**Per-note AI workspace** — compact icon actions sit below the content and tags, with long-press labels. Results have previews, expandable text, a source selector and Hide/Show controls that retain existing output. Extracted file text is distinguished from image descriptions, including attachments. Copy is available for all results; Add to caption is offered only for non-text notes. Existing captions offer Cancel, Append or Replace; replacements protect concurrent edits. Translation includes a language picker and Save as note. Media reading is explicit. Similar-note suggestions and their lookups are temporarily paused in 2.0.6; semantic search remains available.
 
 **Persian calendar** — optional Solar Hijri dates for display and every date picker,
 independent of the interface language.

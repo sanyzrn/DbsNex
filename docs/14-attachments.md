@@ -60,14 +60,16 @@ What 1.99.70 has:
   words).
 - **The card.** The reminder and the paperclip sit together at the end of the note's last line, the way a message's time sits at the end of its last line in a chat: a short note carries them on its one line, and a note that fills its lines fades out just before them (`_Tucked` in `packages/ui/lib/widgets/note_card_footnote.dart`). So they cost the card no line and no column. A checklist carries them at the end of its first row, since its last row ends in "+3"; a voice note's length joins them; an expanded card, which grows, keeps them on a line of their own under the note. Before: a column beside the words (too wide), a line under the words (cut off on a compact card, 1.99.93), and that line taking the words' last line (a line of the note lost, 1.99.94).
 
-## Current AI behavior (2.0.4–2.0.6)
+## Current AI behavior (2.0.4–2.0.7)
 
 Since 2.0.4, attachment media is read only by an explicit request, rather than
 the background behavior described in the historical 1.x notes above.
 
 Attachment image readings and transcripts appear in the note's AI workspace
-above its content, labelled by source and attachment position. Copy and Add to
-caption apply to the selected result. An existing caption offers Cancel, Append
+below its content and tags, labelled by source and attachment position. Non-image
+file text is labelled Extracted text. Copy applies to the selected result; Add to
+caption is available only when the parent is not a text note. Hide/Show retains
+existing output. An existing caption offers Cancel, Append
 or Replace; replacement rejects concurrent caption edits. Reading an attachment
 never changes its media or automatically writes its output into the caption.
 Similar-note suggestions are temporarily paused.

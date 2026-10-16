@@ -472,6 +472,11 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
   note. Existing captions offer Cancel, Append and Replace; replace compares the
   confirmed caption against storage in the write transaction, refusing a stale
   overwrite. Original body, media and derived source remain intact.
+- **Amendment (2.0.7):** Return the workspace below the content and tags. Use icon
+  actions with long-press labels, a compact result selector and full Hide/Show.
+  Keep caption acceptance off text notes. Distinguish cached file text from image
+  descriptions by the actual media kind, including attachments. Standard dialogs
+  receive a theme-matched border and their normal scrim; glass remains unchanged.
 - **Temporary pause:** Gate similar-note UI, the effective capability and service
   lookups off; preserve the stored preference and leave semantic search independent.
   Re-enabling suggestions requires a later product decision.

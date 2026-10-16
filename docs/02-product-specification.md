@@ -333,7 +333,7 @@ AI remains additive and post-capture; details are in [`09-ai.md`](./09-ai.md).
 |---|---|
 | Transcription and image reading | Shipped; explicit per-note/attachment action since 2.0.4 |
 | Tag suggestions, semantic search, summarization | Shipped; opt-in |
-| Note AI actions and results | Shared workspace above content in 2.0.6; inline translation, copy and explicit caption append/replace |
+| Note AI actions and results | Compact icon workspace below content and tags in 2.0.7; hideable, source-labelled results, inline translation and copy; caption append/replace only on non-text notes |
 | Related notes | Temporarily paused in 2.0.6; semantic search remains available |
 
 ## Roadmap Summary

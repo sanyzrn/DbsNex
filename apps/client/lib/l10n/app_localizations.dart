@@ -8665,6 +8665,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Collapse result'**
   String get aiResultCollapse;
+
+  /// No description provided for @aiShowResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Show results'**
+  String get aiShowResults;
+
+  /// No description provided for @aiSwitchResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch result'**
+  String get aiSwitchResult;
+
+  /// No description provided for @aiExtractedText.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracted text'**
+  String get aiExtractedText;
 }
 
 class _AppLocalizationsDelegate

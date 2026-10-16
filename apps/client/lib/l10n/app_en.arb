@@ -3338,5 +3338,8 @@
   "aiTagsAction": "Suggest tags",
   "relatedNotesPaused": "Temporarily paused",
   "aiResultExpand": "Show full result",
-  "aiResultCollapse": "Collapse result"
+  "aiResultCollapse": "Collapse result",
+  "aiShowResults": "Show results",
+  "aiSwitchResult": "Switch result",
+  "aiExtractedText": "Extracted text"
 }

@@ -1969,5 +1969,8 @@
   "aiTagsAction": "پیشنهاد برچسب",
   "relatedNotesPaused": "موقتاً غیرفعال است",
   "aiResultExpand": "نمایش کامل نتیجه",
-  "aiResultCollapse": "جمع‌کردن نتیجه"
+  "aiResultCollapse": "جمع‌کردن نتیجه",
+  "aiShowResults": "نمایش نتیجه‌ها",
+  "aiSwitchResult": "تغییر نتیجه",
+  "aiExtractedText": "متن استخراج‌شده"
 }

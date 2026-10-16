@@ -182,6 +182,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Discard unsaved changes?'), findsOneWidget);
+    final confirmation = tester.element(find.text('Discard unsaved changes?'));
+    expect(ModalRoute.of(confirmation)!.barrierColor, Colors.black54);
+    final frame =
+        Theme.of(confirmation).dialogTheme.shape! as RoundedRectangleBorder;
+    expect(frame.side.style, BorderStyle.solid);
+    expect(
+      nexContrastRatio(
+        frame.side.color,
+        Theme.of(confirmation).dialogTheme.backgroundColor!,
+      ),
+      greaterThanOrEqualTo(3),
+    );
     await tester.tap(find.text('Keep editing'));
     await tester.pumpAndSettle();
     expect(

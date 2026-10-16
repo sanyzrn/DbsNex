@@ -145,6 +145,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   ///
   /// Existing output starts folded; explicitly reading media reveals it.
   bool _showAi = false;
+  bool _hideAiResults = false;
   bool _loadingAi = false;
   String? _activeAiResult;
   bool _translationRequested = false;
@@ -398,7 +399,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       ),
                     ),
                     const SizedBox(height: NexSpacing.md),
-                    _aiPanel(note, l10n),
                     ..._typeBody(context, note, l10n),
                     ..._attachmentStrip(context, note, l10n),
                     const SizedBox(height: NexSpacing.md),
@@ -443,6 +443,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           ),
                       ],
                     ),
+                    _aiPanel(note, l10n),
                   ],
                 ),
               ),
