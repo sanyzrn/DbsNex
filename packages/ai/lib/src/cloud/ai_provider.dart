@@ -198,6 +198,14 @@ class AiProviderConfig {
     return '${bare.substring(0, bare.length - chat.length)}/$path';
   }
 
+  /// Custom gateways with an OpenAI-shaped chat URL can expose the sibling
+  /// transcription endpoint. This confirms a route, not remote model support.
+  /// Unknown custom URL layouts must not show a microphone that cannot work.
+  bool get supportsTranscription =>
+      provider.hearsAudio ||
+      (provider == AiProvider.custom &&
+          customSibling('audio/transcriptions') != null);
+
   String get resolvedModel =>
       model.trim().isEmpty ? provider.defaultModel : model.trim();
 
@@ -2287,7 +2295,7 @@ class CloudAIAdapter implements AIAdapter {
 
   @override
   Future<Transcript>? transcribe(AudioRef audio) {
-    if (!config.isUsable || !config.provider.hearsAudio) return null;
+    if (!config.isUsable || !config.supportsTranscription) return null;
     final bytes = audio.bytes ?? _read(audio.mediaUri);
     if (bytes == null) return null;
     return NexDisclosureLog.about(
@@ -2311,12 +2319,14 @@ class CloudAIAdapter implements AIAdapter {
       if (reply == null) throw const AiUnavailableException();
       return Transcript(text: reply.trim());
     }
-    // OpenAI has a dedicated multipart endpoint instead.
-    final request =
-        http.MultipartRequest(
-            'POST',
-            Uri.parse('${config.resolvedBaseUrl}/v1/audio/transcriptions'),
-          )
+    // OpenAI and compatible custom gateways use a separate multipart route.
+    // For Custom, the saved URL is already the full chat endpoint: do not
+    // append /v1 again. Build the transcription sibling from that URL.
+    final endpoint = config.provider == AiProvider.custom
+        ? config.customSibling('audio/transcriptions')
+        : '${config.resolvedBaseUrl}/v1/audio/transcriptions';
+    if (endpoint == null) throw const AiUnavailableException();
+    final request = http.MultipartRequest('POST', Uri.parse(endpoint))
           ..headers['authorization'] = 'Bearer ${config.apiKey.trim()}'
           ..fields['model'] = 'whisper-1'
           ..files.add(

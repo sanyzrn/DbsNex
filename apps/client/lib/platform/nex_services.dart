@@ -120,7 +120,7 @@ class NexServices {
   bool get audioTranscriptionAvailable =>
       _preferences.effectiveAiCapabilities.transcription &&
       _preferences.aiProvider.isUsable &&
-      _preferences.aiProvider.provider.hearsAudio;
+      _preferences.aiProvider.supportsTranscription;
 
   final _timelineController = StreamController<List<Note>>.broadcast();
   Stream<List<Note>> get timelineStream => _timelineController.stream;

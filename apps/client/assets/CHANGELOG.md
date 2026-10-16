@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.10
+
+- **Custom gateway voice transcription.** OpenAI-compatible custom providers with a standard chat endpoint now offer transcription and voice input. Audio is sent to the matching `/audio/transcriptions` endpoint, leaving chat, images and other providers unchanged.
+
 ## v2.0.9
 
 - **Softer card changes.** Deleted and filtered cards fade and fold away, restored cards settle back in, and pinned notes move between their groups. Unchanged cards keep their state; the list stays lazy and off-screen changes skip the animation.

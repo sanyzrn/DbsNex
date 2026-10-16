@@ -174,6 +174,78 @@ void main() {
       );
     });
 
+    test('custom audio uses the transcription sibling of the chat URL', () async {
+      late http.Request seen;
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.custom,
+          apiKey: 'gateway-token',
+          baseUrl: 'https://gateway.example/v1/chat/completions',
+          model: 'gemini-flash-lite',
+        ),
+        client: MockClient((request) async {
+          seen = request;
+          return http.Response.bytes(
+            utf8.encode(jsonEncode({'text': 'سلام دنیا'})),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+      );
+
+      expect(adapter.config.supportsTranscription, isTrue);
+      final transcript = await adapter.transcribe(
+        AudioRef(
+          mediaUri: 'voice.m4a',
+          bytes: Uint8List.fromList([1, 2, 3]),
+        ),
+      )!;
+      expect(transcript.text, 'سلام دنیا');
+      expect(
+        seen.url.toString(),
+        'https://gateway.example/v1/audio/transcriptions',
+      );
+      expect(seen.headers['authorization'], 'Bearer gateway-token');
+      expect(seen.headers['content-type'], startsWith('multipart/form-data;'));
+      expect(seen.body, contains('name="file"'));
+      expect(seen.body, contains('filename="voice.m4a"'));
+      expect(seen.body, contains('name="model"'));
+      expect(seen.body, contains('whisper-1'));
+    });
+
+    test('custom URL without a chat sibling keeps audio unavailable', () {
+      const config = AiProviderConfig(
+        provider: AiProvider.custom,
+        apiKey: 'gateway-token',
+        baseUrl: 'https://gateway.example/generate',
+        model: 'model',
+      );
+      expect(config.supportsTranscription, isFalse);
+      final adapter = CloudAIAdapter(config: config);
+      expect(
+        adapter.transcribe(
+          AudioRef(mediaUri: 'voice.m4a', bytes: Uint8List.fromList([1])),
+        ),
+        isNull,
+      );
+    });
+
+    test('built-in audio capabilities are unchanged', () {
+      expect(
+        const AiProviderConfig(provider: AiProvider.openai).supportsTranscription,
+        isTrue,
+      );
+      expect(
+        const AiProviderConfig(provider: AiProvider.gemini).supportsTranscription,
+        isTrue,
+      );
+      expect(
+        const AiProviderConfig(provider: AiProvider.anthropic)
+            .supportsTranscription,
+        isFalse,
+      );
+    });
+
     test('an unusable config asks for nothing at all', () {
       var called = false;
       final adapter = CloudAIAdapter(

@@ -27,7 +27,7 @@ List<(Widget, bool)> nexAbilityGlance(NexPreferences prefs) {
   return [
     (
       const Icon(Icons.graphic_eq),
-      on && c.transcription && provider.hearsAudio,
+      on && c.transcription && prefs.aiProvider.supportsTranscription,
     ),
     (const Icon(Icons.image_search), on && c.ocr && provider.readsImages),
     (const NexSummariseIcon(), on && c.summarization),
@@ -165,7 +165,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
         title: l10n.transcription,
         subtitle: l10n.transcriptionSubtitle,
         value: capabilities.transcription,
-        supported: provider.hearsAudio,
+        supported: _prefs.aiProvider.supportsTranscription,
         set: (v) => capabilities.copyWith(transcription: v),
       ),
       _Ability(
