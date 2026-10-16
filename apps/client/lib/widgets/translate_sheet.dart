@@ -13,18 +13,18 @@ import 'nex_dialog.dart';
 
 /// A note in the other language, read side by side with itself.
 ///
-/// Deliberately not an edit. Translation here is a reading aid — the note is
-/// in Persian and is being read in English, or the other way round — and
-/// replacing the note's own words with a machine's version of them is the one
-/// outcome nobody can undo. What it offers instead is the two things someone
-/// actually wants with a translation in hand: copy it, or keep it as a note of
-/// its own beside the original.
+/// Translation never changes the source text. The note workspace can offer
+/// an explicit caption update; all callers retain Copy and Save as note.
 class TranslateSheet extends StatefulWidget {
   const TranslateSheet({
     super.key,
     required this.text,
     required this.preferences,
     required this.services,
+    this.embedded = false,
+    this.onAddToCaption,
+    this.addingCaption = false,
+    this.adapter,
   });
 
   /// The note's own words. Already resolved by the caller — a voice note's
@@ -34,6 +34,15 @@ class TranslateSheet extends StatefulWidget {
 
   final NexPreferences preferences;
   final NexServices services;
+
+  /// The note's AI workspace hosts the same translator inline. Other callers
+  /// keep the modal, including its language picker and Save as note action.
+  final bool embedded;
+  final ValueChanged<String>? onAddToCaption;
+  final bool addingCaption;
+
+  /// An injected adapter is owned and closed by this widget, like its default.
+  final CloudAIAdapter? adapter;
 
   /// Whether there is a provider configured to do this at all.
   static bool availableFor(NexPreferences preferences) =>
@@ -59,9 +68,8 @@ class TranslateSheet extends StatefulWidget {
 
 class _TranslateSheetState extends State<TranslateSheet> {
   late AiOutputLanguage _target = _opposite;
-  late final CloudAIAdapter _adapter = CloudAIAdapter(
-    config: widget.preferences.aiProvider,
-  );
+  late final CloudAIAdapter _adapter =
+      widget.adapter ?? CloudAIAdapter(config: widget.preferences.aiProvider);
 
   String? _result;
   bool _loading = false;
@@ -143,7 +151,7 @@ class _TranslateSheetState extends State<TranslateSheet> {
     widget.services.refreshTimeline();
     if (!mounted) return;
     nexBump();
-    Navigator.pop(context);
+    if (!widget.embedded) Navigator.pop(context);
     host?.show(message: message, haptics: widget.preferences.haptics);
   }
 
@@ -152,54 +160,68 @@ class _TranslateSheetState extends State<TranslateSheet> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final result = _result;
-    return NexSheetBody(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    final body = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (!widget.embedded) ...[
           Text(l10n.translate, style: theme.textTheme.titleMedium),
           const SizedBox(height: NexSpacing.md),
-          Text(l10n.translateTo, style: theme.textTheme.bodySmall),
-          const SizedBox(height: NexSpacing.sm),
-          // Two, not three: `auto` means "the language of the notes", which
-          // as a translation target is a request to translate a note into its
-          // own language.
-          Row(
-            children: [
-              for (final language in const [
-                AiOutputLanguage.english,
-                AiOutputLanguage.persian,
-              ]) ...[
-                if (language != AiOutputLanguage.english)
-                  const SizedBox(width: NexSpacing.sm),
-                Expanded(
-                  child: ChoiceChip(
-                    selected: _target == language,
-                    onSelected: _loading ? null : (_) => _retarget(language),
-                    label: Text(
-                      language == AiOutputLanguage.english
-                          ? l10n.aiOutputLanguageEnglish
-                          : l10n.aiOutputLanguagePersian,
-                    ),
+        ],
+        Text(l10n.translateTo, style: theme.textTheme.bodySmall),
+        const SizedBox(height: NexSpacing.sm),
+        // Two, not three: `auto` means "the language of the notes", which
+        // as a translation target is a request to translate a note into its
+        // own language.
+        Row(
+          children: [
+            for (final language in const [
+              AiOutputLanguage.english,
+              AiOutputLanguage.persian,
+            ]) ...[
+              if (language != AiOutputLanguage.english)
+                const SizedBox(width: NexSpacing.sm),
+              Expanded(
+                child: ChoiceChip(
+                  selected: _target == language,
+                  onSelected: _loading ? null : (_) => _retarget(language),
+                  label: Text(
+                    language == AiOutputLanguage.english
+                        ? l10n.aiOutputLanguageEnglish
+                        : l10n.aiOutputLanguagePersian,
                   ),
                 ),
-              ],
-            ],
-          ),
-          const SizedBox(height: NexSpacing.md),
-          if (_loading)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const LinearProgressIndicator(minHeight: 2),
-                  const SizedBox(height: NexSpacing.sm),
-                  Text(l10n.translateWorking, style: theme.textTheme.bodySmall),
-                ],
               ),
+            ],
+          ],
+        ),
+        const SizedBox(height: NexSpacing.md),
+        if (_loading)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const LinearProgressIndicator(minHeight: 2),
+                const SizedBox(height: NexSpacing.sm),
+                Text(l10n.translateWorking, style: theme.textTheme.bodySmall),
+              ],
             ),
-          if (result != null)
+          ),
+        if (result != null)
+          if (widget.embedded)
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240),
+              child: SingleChildScrollView(
+                primary: false,
+                child: NexTextSurface(
+                  result,
+                  style: theme.textTheme.bodyLarge,
+                  selectable: true,
+                ),
+              ),
+            )
+          else
             Flexible(
               child: SingleChildScrollView(
                 child: Opacity(
@@ -218,47 +240,74 @@ class _TranslateSheetState extends State<TranslateSheet> {
                 ),
               ),
             ),
-          if (_failed && !_loading) ...[
-            Text(
-              l10n.translateFailed,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.error,
-              ),
+        if (_failed && !_loading) ...[
+          Text(
+            l10n.translateFailed,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
             ),
-            const SizedBox(height: NexSpacing.sm),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton.icon(
-                onPressed: () => unawaited(_translate()),
-                icon: const Icon(Icons.refresh, size: 18),
-                label: Text(l10n.retry),
-              ),
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () => unawaited(_translate()),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: Text(l10n.retry),
             ),
-          ],
-          if (result != null) ...[
-            const SizedBox(height: NexSpacing.md),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _loading ? null : () => unawaited(_copy()),
-                    icon: const Icon(Icons.copy_outlined, size: 18),
-                    label: Text(l10n.copy),
-                  ),
-                ),
-                const SizedBox(width: NexSpacing.sm),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _loading ? null : () => unawaited(_keep()),
-                    icon: const Icon(Icons.note_add_outlined, size: 18),
-                    label: Text(l10n.translateSaveAsNote),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ],
-      ),
+        if (result != null && widget.embedded) ...[
+          const SizedBox(height: NexSpacing.sm),
+          Wrap(
+            spacing: NexSpacing.sm,
+            runSpacing: NexSpacing.xs,
+            children: [
+              TextButton.icon(
+                onPressed: _loading ? null : () => unawaited(_copy()),
+                icon: const Icon(Icons.copy_outlined, size: 18),
+                label: Text(l10n.copy),
+              ),
+              if (widget.onAddToCaption != null)
+                TextButton.icon(
+                  onPressed: _loading || widget.addingCaption
+                      ? null
+                      : () => widget.onAddToCaption!(result),
+                  icon: const Icon(Icons.playlist_add_outlined, size: 18),
+                  label: Text(l10n.aiAddToCaption),
+                ),
+              TextButton.icon(
+                onPressed: _loading ? null : () => unawaited(_keep()),
+                icon: const Icon(Icons.note_add_outlined, size: 18),
+                label: Text(l10n.translateSaveAsNote),
+              ),
+            ],
+          ),
+        ],
+        if (result != null && !widget.embedded) ...[
+          const SizedBox(height: NexSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _loading ? null : () => unawaited(_copy()),
+                  icon: const Icon(Icons.copy_outlined, size: 18),
+                  label: Text(l10n.copy),
+                ),
+              ),
+              const SizedBox(width: NexSpacing.sm),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _loading ? null : () => unawaited(_keep()),
+                  icon: const Icon(Icons.note_add_outlined, size: 18),
+                  label: Text(l10n.translateSaveAsNote),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
+    return widget.embedded ? body : NexSheetBody(child: body);
   }
 }

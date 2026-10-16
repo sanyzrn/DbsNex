@@ -1287,7 +1287,7 @@
     "description": "Reveals the intelligence panel, naming what it holds",
     "placeholders": { "what": { "type": "String" } }
   },
-  "aiSection": "What Nex read",
+  "aiSection": "Nex AI",
   "@aiSection": {
     "description": "Heading of the revealed intelligence panel"
   },
@@ -3322,11 +3322,21 @@
   "aiMediaEmpty": "No speech or readable content was found.",
   "aiAddToCaption": "Add to caption",
   "aiAppendCaptionTitle": "This item already has a caption",
-  "aiAppendCaptionBody": "Add this text after your existing caption?",
+  "aiAppendCaptionBody": "Keep the existing caption and append this result, or replace the caption completely.",
   "aiAppendCaption": "Append text",
   "aiCaptionAdded": "Added to caption",
   "aiCaptionFailed": "Could not add this text to the caption.",
   "aiTranslateTranscript": "Translate transcript",
   "aiSummarizeTranscript": "Summarize transcript",
-  "aiSummarizeImageText": "Summarize image text"
+  "aiSummarizeImageText": "Summarize image text",
+  "aiReplaceCaption": "Replace caption",
+  "aiCaptionReplaced": "Caption replaced",
+  "aiCaptionChanged": "The caption changed while this dialog was open. Nothing was replaced. Try again.",
+  "aiProcessing": "Working…",
+  "aiResultReady": "Result ready",
+  "aiNoResult": "Choose an action to see its result here.",
+  "aiTagsAction": "Suggest tags",
+  "relatedNotesPaused": "Temporarily paused",
+  "aiResultExpand": "Show full result",
+  "aiResultCollapse": "Collapse result"
 }

@@ -1758,7 +1758,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get aiSection => 'چیزی که Nex خوانده';
+  String get aiSection => 'هوش مصنوعی Nex';
 
   @override
   String get aiNothingYet =>
@@ -5208,7 +5208,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiAppendCaptionTitle => 'این آیتم از قبل کپشن دارد';
 
   @override
-  String get aiAppendCaptionBody => 'این متن به انتهای کپشن فعلی اضافه شود؟';
+  String get aiAppendCaptionBody =>
+      'نتیجه به انتهای کپشن فعلی اضافه شود یا کاملاً جایگزین آن شود؟';
 
   @override
   String get aiAppendCaption => 'افزودن به انتها';
@@ -5227,4 +5228,36 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiSummarizeImageText => 'خلاصهٔ متن تصویر';
+
+  @override
+  String get aiReplaceCaption => 'جایگزینی کامل';
+
+  @override
+  String get aiCaptionReplaced => 'کپشن جایگزین شد';
+
+  @override
+  String get aiCaptionChanged =>
+      'کپشن هنگام باز بودن این پنجره تغییر کرده است؛ چیزی جایگزین نشد. دوباره تلاش کنید.';
+
+  @override
+  String get aiProcessing => 'در حال پردازش…';
+
+  @override
+  String get aiResultReady => 'نتیجه آماده است';
+
+  @override
+  String get aiNoResult =>
+      'یک عملیات را انتخاب کنید؛ نتیجه همین‌جا نمایش داده می‌شود.';
+
+  @override
+  String get aiTagsAction => 'پیشنهاد برچسب';
+
+  @override
+  String get relatedNotesPaused => 'موقتاً غیرفعال است';
+
+  @override
+  String get aiResultExpand => 'نمایش کامل نتیجه';
+
+  @override
+  String get aiResultCollapse => 'جمع‌کردن نتیجه';
 }

@@ -23,7 +23,7 @@ class _MediaAdapter implements AIAdapter {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
-    'manual media, attachment refresh and caption append cross the real worker protocol',
+    'manual media, attachment refresh and caption updates cross the real worker protocol',
     () async {
       final tmp = Directory.systemTemp.createTempSync('nex_manual_worker_');
       final worker = await NexDbWorker.spawn(
@@ -65,6 +65,26 @@ void main() {
           (await worker.getById(photo.id))!.caption,
           'Keep this\n\nA small flower in a pot.',
         );
+        final confirmed = (await worker.getById(photo.id))!.caption;
+        expect(
+          await worker.replaceCaption(
+            photo.id,
+            'Replacement',
+            expectedCaption: confirmed,
+          ),
+          isTrue,
+        );
+        expect((await worker.getById(photo.id))!.caption, 'Replacement');
+        expect(
+          await worker.replaceCaption(
+            photo.id,
+            'Stale overwrite',
+            expectedCaption: confirmed,
+          ),
+          isFalse,
+        );
+        expect((await worker.getById(photo.id))!.caption, 'Replacement');
+        expect((await worker.getById(photo.id))!.mediaHash, photo.mediaHash);
         final attachment = await worker.attachmentAdd(
           photo.id,
           kind: AttachmentKind.photo,

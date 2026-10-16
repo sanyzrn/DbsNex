@@ -2,17 +2,19 @@
 
 > Sequencing detail for [`02-product-specification.md`](./02-product-specification.md#roadmap-summary). Every item below is checked against the [Non-Negotiable Principles](./01-product-vision.md#non-negotiable-principles) before it ships.
 
-**Status:** Living document · **Owner:** Product & Engineering · **Last updated:** 2026
+**Status:** Living document · **Owner:** Product & Engineering · **Last reviewed:** 2.0.6 preparation (2026-10-16)
 
-```mermaid
-timeline
-    title Nex Roadmap
-    Phase 1 - MVP (shipped) : Timeline : Text/Voice/Photo Capture : Tags : Search (text/tag/date/type)
-    Phase 3 - Intelligence Layer (shipped in 1.x) : Speech-to-Text : OCR : Tag Suggestions : Semantic Search : Summarization : Related Notes
-    Phase 2 - Sync & Continuity (in progress for 2.0) : Android <-> Windows Sync : Generic File Attachments : iOS Client
-```
+This is a phase overview. The canonical backlog and dependencies are in
+[`11-roadmap-2.0.md`](./11-roadmap-2.0.md); its filename is historical.
 
-> **Phases, not versions.** Until 1.85 the phases below were called *v1, v2, v3*, which collided with the release numbers: the app is at release 1.8x, has shipped all of Phase 3, and has not yet finished Phase 2. They are **Phase 1, 2 and 3** now. Documents written earlier (the product vision and specification, and some ADR titles) still say *v1/v2/v3* — read those as Phase 1/2/3, never as release numbers. What release 2.0 contains is planned in [`11-roadmap-2.0.md`](./11-roadmap-2.0.md).
+| Phase | Current state |
+|---|---|
+| 1 · Capture | Shipped; stability and performance remain ongoing |
+| 2 · Continuity | Sync infrastructure exists; pairing, automatic/media sync and a released second device remain pending. File attachments already shipped |
+| 3 · Intelligence | Shipped during 1.x. Media reading is explicit since 2.0.4; the note AI workspace is updated in 2.0.6. Similar-note suggestions are temporarily paused |
+
+**Phases are not release numbers.** Older documents use v1/v2/v3 for these
+phases. Release 2.0.x does not mean cross-device continuity is complete.
 
 ---
 
@@ -64,7 +66,7 @@ Ranked by leverage against the core "capture in under 3 seconds" promise — OS-
 
 ## Phase 2 — Sync & Continuity
 
-**Status:** In progress. The sync engine and backend exist; pairing, automatic sync, media sync and a second device are what release 2.0 is for — see items 9–13 in [`11-roadmap-2.0.md`](./11-roadmap-2.0.md). File attachments shipped early.
+**Status:** In progress. The sync engine and backend exist; pairing, automatic sync, media sync and a released second device remain future work — see items 9–13 in [`11-roadmap-2.0.md`](./11-roadmap-2.0.md). File attachments shipped early.
 
 **Theme:** Solve the original motivating problem in full — a user's captures should never be stranded on a single device. Sync ships as the **first** item of Phase 2, not the last.
 
@@ -88,12 +90,12 @@ Ranked by leverage against the core "capture in under 3 seconds" promise — OS-
 
 | Feature | Notes |
 |---|---|
-| **Speech-to-text transcription** | Resolves the voice-search limitation noted since Phase 1; voice notes join full-text search |
-| **OCR** | Photo notes become text-searchable |
+| **Speech-to-text transcription** | Explicit note/attachment action since 2.0.4; saved transcripts join search |
+| **OCR / image description** | Explicit reading since 2.0.4; output remains separate from media and captions |
 | **Tag suggestions** | AI proposes tags post-capture; always optional, always dismissible, never auto-applied silently |
 | **Semantic search** | Search by meaning, not just keyword match |
 | **Summarization** | On-demand summaries for long text notes or clusters of related notes |
-| **Related notes** | Surfaces connections between notes without requiring manual organization |
+| **Related notes** | Temporarily paused in 2.0.6: UI and lookups disabled; stored preference retained |
 
 **Exit criteria:** Voice and photo notes are fully part of unified search without any regression to capture speed; every AI feature is independently toggleable off with zero loss of core (Phase 1) functionality.
 
@@ -108,8 +110,10 @@ Ranked by leverage against the core "capture in under 3 seconds" promise — OS-
 
 ## Versioning Policy
 
-- **Release numbers are ordinary semantic versions** and do not name phases. A major release (2.0) marks a change people will notice across the whole app — for 2.0, continuity across devices — not the start of a phase.
-- **Minor versions** ship features, from any phase that is active.
-- **Patch versions** are reserved for fixes and do not introduce new user-facing behavior.
+- Release numbers identify app updates, not phase completion. The 2.0.x line
+  includes owner-approved behavior changes as well as fixes; consult each release's
+  changelog for scope rather than inferring it from the patch number.
+- Future phase milestones receive a release number when their scope and validation
+  are ready. Sync has no committed release number at present.
 
 Any roadmap change (addition, removal, re-sequencing) must be recorded in [`10-decisions.md`](./10-decisions.md) with rationale.

@@ -60,6 +60,7 @@ part 'note_detail/detail_bodies.dart';
 part 'note_detail/detail_documents.dart';
 part 'note_detail/detail_actions.dart';
 part 'note_detail/detail_ai_panel.dart';
+part 'note_detail/detail_ai_widgets.dart';
 part 'note_detail/detail_type_body.dart';
 part 'note_detail/detail_attachments.dart';
 part 'note_detail/detail_attachment_menu.dart';
@@ -118,7 +119,6 @@ class NoteDetailSheet extends StatefulWidget {
 class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Note? _note;
   List<TagSuggestion> _suggestions = const [];
-  List<SemanticHit> _related = const [];
 
   int _pinnedNoteCount = 0;
 
@@ -146,7 +146,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   /// Existing output starts folded; explicitly reading media reveals it.
   bool _showAi = false;
   bool _loadingAi = false;
-  Map<String, String> _relatedTitles = const {};
+  String? _activeAiResult;
+  bool _translationRequested = false;
+  String _translationText = '';
   AudioPlayer? _player;
   NexSteadyPosition? _steady;
   bool _playerLoading = false;
@@ -200,25 +202,18 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
           case NexHoldAction.details:
             await _showDetails();
           case NexHoldAction.translate:
-            final preferences = widget.preferences;
-            final text = _translatableText(note);
-            if (preferences != null && text.isNotEmpty) {
-              await TranslateSheet.show(
-                context,
-                text: text,
-                preferences: preferences,
-                services: widget.services,
-              );
+            if (widget.preferences case final preferences?
+                when TranslateSheet.availableFor(preferences) &&
+                    _translationSource(note).isNotEmpty) {
+              _openTranslation();
             }
           default:
             break;
         }
       });
     }
-    // Deliberately not loading the intelligence layer's output here. It does
-    // its work on its own, in the background; showing it is the user's call,
-    // and opening a note should not fire two network requests nobody asked
-    // for. See [_revealAi].
+    // Cached derived text is previewed by the workspace without making a
+    // request. Media reads, translation and tag suggestions need an action.
   }
 
   /// [setState], for the extensions in `note_detail/` that carry this
@@ -403,6 +398,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       ),
                     ),
                     const SizedBox(height: NexSpacing.md),
+                    _aiPanel(note, l10n),
                     ..._typeBody(context, note, l10n),
                     ..._attachmentStrip(context, note, l10n),
                     const SizedBox(height: NexSpacing.md),
@@ -447,7 +443,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           ),
                       ],
                     ),
-                    _aiPanel(note, l10n),
                   ],
                 ),
               ),
@@ -605,112 +600,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         label: l10n.threads,
                         onPressed: () => unawaited(_pickThreads(note.id)),
                       ),
-                    ],
-                    // The assistant. Tinted as a group and set off by the
-                    // divider, because "is this the AI one?" is a question no
-                    // single icon in a row of nine can answer on its own.
-                    [
-                      // Only when there is something behind it. The
-                      // assistant's own rule everywhere else in the app: a
-                      // button that can only answer "unavailable" is worse
-                      // than no button.
-                      if (widget.preferences case final preferences?
-                          when AiChatSheet.availableFor(preferences))
-                        _DetailAction(
-                          // The sparkle, which is what this app means by AI
-                          // everywhere else — on the chat sheet's own header
-                          // and on the daily recap. A speech bubble meant
-                          // "chat", and the report was that nobody could tell
-                          // it was the assistant.
-                          icon: Icons.auto_awesome,
-                          label: l10n.askAboutNote,
-                          accent: true,
-                          onPressed: () => unawaited(
-                            AiChatSheet.show(
-                              context,
-                              preferences: preferences,
-                              services: widget.services,
-                              history: preferences.chatHistory,
-                              focus: note,
-                            ),
-                          ),
-                        ),
-                      if (note.isImageMedia &&
-                          widget.services.imageReadingAvailable)
-                        _DetailAction(
-                          icon: Icons.image_search_outlined,
-                          label: l10n.aiDescribeImage,
-                          accent: true,
-                          onPressed: _readingMedia
-                              ? null
-                              : () => unawaited(_readMedia()),
-                        ),
-                      if (note.isAudioMedia &&
-                          widget.services.audioTranscriptionAvailable)
-                        _DetailAction(
-                          icon: Icons.transcribe_outlined,
-                          label: l10n.aiTranscribeAudio,
-                          accent: true,
-                          onPressed: _readingMedia
-                              ? null
-                              : () => unawaited(_readMedia()),
-                        ),
-                      // The transcript and the extracted text count: a
-                      // recording in one language and a photographed sign in
-                      // another are exactly the notes someone needs this for,
-                      // and neither has typed content to offer.
-                      if (widget.preferences case final preferences?
-                          when !note.isImageMedia &&
-                              TranslateSheet.availableFor(preferences) &&
-                              _translatableText(note).isNotEmpty)
-                        _DetailAction(
-                          icon: Icons.translate,
-                          label: note.isAudioMedia
-                              ? l10n.aiTranslateTranscript
-                              : l10n.translate,
-                          accent: true,
-                          onPressed: () => unawaited(
-                            TranslateSheet.show(
-                              context,
-                              text: _translatableText(note),
-                              preferences: preferences,
-                              services: widget.services,
-                            ),
-                          ),
-                        ),
-                      // Only where it can do something. The action used to be
-                      // offered unconditionally, and every path that cannot
-                      // produce a summary — the capability switched off, no
-                      // provider configured, the adapter unavailable —
-                      // returns null from the same call, so tapping it did
-                      // nothing at all and taught the reader that a primary
-                      // action was broken. Gated on the same pair the
-                      // translate action uses, plus the switch that governs
-                      // this one specifically.
-                      if (widget.preferences case final preferences?
-                          when preferences
-                                  .effectiveAiCapabilities
-                                  .summarization &&
-                              aiTextAvailableWith(preferences.aiProvider) &&
-                              (note.aiSourceText?.length ?? 0) > 80)
-                        _DetailAction(
-                          // A page with a sparkle on it. `summarize` is a
-                          // page with lines, which is what the note icons in
-                          // this same row already are — it named the content,
-                          // not the action.
-                          glyph: const NexSummariseIcon(),
-                          label: note.isAudioMedia
-                              ? l10n.aiSummarizeTranscript
-                              : note.isImageMedia
-                              ? l10n.aiSummarizeImageText
-                              : l10n.summarize,
-                          accent: true,
-                          // Null while one is already running, so a slow
-                          // summary cannot be asked for four more times.
-                          onPressed: _summarizing
-                              ? null
-                              : () => unawaited(_summarize(note.id)),
-                        ),
                     ],
                     // What the note is, and getting rid of it.
                     [

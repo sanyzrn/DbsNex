@@ -80,6 +80,12 @@ abstract interface class NexDb {
 
   Future<bool> appendCaption(String id, String text);
 
+  Future<bool> replaceCaption(
+    String id,
+    String text, {
+    required String? expectedCaption,
+  });
+
   /// Null or empty clears the title.
   Future<void> setTitle(String id, String? title);
 

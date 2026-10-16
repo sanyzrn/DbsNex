@@ -460,6 +460,71 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-041 — Keep per-note AI actions with their results; pause similar notes
+
+- **Context:** The owner found per-note AI actions hard to discover and the bottom
+  “See what Nex made of this” result reveal poorly placed. Existing captions also
+  needed a full-replacement option, and similar-note suggestions were requested
+  to be temporarily disabled.
+- **Decision (2.0.6):** Put relevant AI actions above note content and show labelled
+  results directly below them, with a bounded preview/reading area, copy and caption
+  controls. Embed translation here while retaining language selection and Save as
+  note. Existing captions offer Cancel, Append and Replace; replace compares the
+  confirmed caption against storage in the write transaction, refusing a stale
+  overwrite. Original body, media and derived source remain intact.
+- **Temporary pause:** Gate similar-note UI, the effective capability and service
+  lookups off; preserve the stored preference and leave semantic search independent.
+  Re-enabling suggestions requires a later product decision.
+- **Roadmap correction:** `11-roadmap-2.0.md` remains the canonical backlog, with its
+  stable task IDs and LAN/optional Drive-folder decisions intact. Phase 2 continuity
+  is unfinished and no longer labelled as a promise for release 2.0. Historical
+  phase labels do not describe shipped release scope.
+- **Rationale:** An action and its output belong together. Caption changes require
+  an explicit choice and must not discard edits made during confirmation. Pausing
+  recommendations should remove their work as well as their visual footprint.
+- **Validation:** Automated storage/widget checks cover caption races, explicit
+  media actions, bounded results and the related-note guard. Native Android editor
+  and real-device frame timing remain device checks, not widget-test claims.
+- **Status:** Accepted for 2.0.6 at the owner's request.
+
+---
+
+## ADR-042 — Experimental Flutter loupe over the native Android editor
+
+- **Context:** The owner requested a Flutter magnifier in the 2.0.6 GitHub test
+  build and explicitly accepted real-device validation after upload. Stock
+  `TextMagnifier` exists in the pinned Flutter SDK; no additional package or
+  replacement editor is introduced.
+- **Implementation:** Android sends caret/line geometry only during a gesture.
+  Flutter transforms these local coordinates into its overlay and uses its stock
+  magnifier. Android keeps text layout, bidirectional selection, scrolling,
+  keyboard, handles and menus. The root renderer remains the default SurfaceView
+  and editor composition remains `initSurfaceAndroidView`.
+- **Native handle adapter:** Android 10+ `WindowInspector.getGlobalWindowViews`
+  discovers the focused window's AOSP text handle views. A touch listener observes
+  and delegates the original event to the original handle's `onTouchEvent`, rather
+  than implementing selection movement. Unknown/OEM handles retain their normal
+  behavior; older Android versions only have the direct-editor gesture adapter.
+- **Experimental suppression:** AOSP Editor suppresses its own loupe for rotated
+  views (`checkForTransforms`). The adapter applies an identity 360-degree rotation
+  only inside synchronous touch dispatch and restores zero in `finally`, before
+  drawing. This avoids private-field reflection and a renderer switch, but relies
+  on AOSP implementation behavior and must be tested on OEM devices. It is not an
+  official magnifier-disable API or a proven universal fix.
+- **Lifetime:** Release/cancel, typing, focus loss, route changes, keyboard/window
+  metrics changes, app inactivity and disposal remove the Flutter loupe. Only its
+  notifier updates while dragging; native editor configuration is not rebuilt.
+- **Rollback:** Set `NexTextField.flutterMagnifier = false`; the creation/update
+  protocol disables the native adapter as well. This is a development switch and
+  does not add another product setting.
+- **Validation:** Widget tests exercise geometry, selection preservation, repeated
+  updates, invalid input, disable and lifecycle cleanup. Native sources compile
+  against Android 15 and the pinned Flutter embedding. This is not an Android APK
+  build or a substitute for device tests. See `docs/19-magnifier-test.md`.
+- **Status:** Experimental, accepted for the 2.0.6 test build at the owner's request.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:

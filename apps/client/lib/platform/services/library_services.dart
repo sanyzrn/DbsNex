@@ -183,6 +183,24 @@ extension NexLibraryServices on NexServices {
     return saved;
   }
 
+  Future<bool> replaceCaption(
+    String noteId,
+    String text, {
+    required String? expectedCaption,
+  }) async {
+    final saved = await worker.replaceCaption(
+      noteId,
+      text,
+      expectedCaption: expectedCaption,
+    );
+    if (saved) {
+      try {
+        await refreshTimeline();
+      } catch (_) {}
+    }
+    return saved;
+  }
+
   Future<String?> readMediaOnDemand(String noteId) async {
     final text = await worker.readMediaOnDemand(noteId);
     if (text != null) {
@@ -197,7 +215,9 @@ extension NexLibraryServices on NexServices {
       worker.summarizeOnDemand(noteId);
 
   Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) =>
-      worker.relatedNotes(noteId, limit: limit);
+      nexRelatedNotesAvailable
+      ? worker.relatedNotes(noteId, limit: limit)
+      : Future.value(const []);
 
   Future<List<SemanticHit>> semanticSearch(String query, {int limit = 20}) =>
       worker.semanticSearch(query, limit: limit);

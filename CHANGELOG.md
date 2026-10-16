@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.6
+
+- **Experimental text magnifier.** Native Android editing now feeds its selection geometry to Flutter’s built-in magnifier, keeping the app’s surface renderer. Cursor/handle dragging and behavior on individual phones still need real-device testing.
+
+- **AI actions where you can see them.** Each note has an AI workspace above its content, with relevant actions, colored icons and readable labels. Results appear in the same place with a short preview, an expandable reading area, and copy or add-to-caption controls. Translation stays alongside other results, with language selection and Save as note.
+- **Choose how AI updates a caption.** When a caption already exists, choose Cancel, Append or Replace caption. A replacement preserves the original note and media, and refuses to overwrite a caption edited while the confirmation was open.
+- **Similar notes paused.** The similar-notes section and its lookups are temporarily disabled. Your saved preference is retained; semantic search remains available.
+
 ## v2.0.5
 
 - **Lighter everyday screens.** In-page cards, settings controls, chat bubbles and search keep their glass edges and finish without repeatedly blurring the page behind them. Floating menus, sheets and navigation keep their live glass.

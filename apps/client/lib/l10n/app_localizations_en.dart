@@ -1797,7 +1797,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiSection => 'What Nex read';
+  String get aiSection => 'Nex AI';
 
   @override
   String get aiNothingYet =>
@@ -5347,7 +5347,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiAppendCaptionBody =>
-      'Add this text after your existing caption?';
+      'Keep the existing caption and append this result, or replace the caption completely.';
 
   @override
   String get aiAppendCaption => 'Append text';
@@ -5366,4 +5366,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiSummarizeImageText => 'Summarize image text';
+
+  @override
+  String get aiReplaceCaption => 'Replace caption';
+
+  @override
+  String get aiCaptionReplaced => 'Caption replaced';
+
+  @override
+  String get aiCaptionChanged =>
+      'The caption changed while this dialog was open. Nothing was replaced. Try again.';
+
+  @override
+  String get aiProcessing => 'Working…';
+
+  @override
+  String get aiResultReady => 'Result ready';
+
+  @override
+  String get aiNoResult => 'Choose an action to see its result here.';
+
+  @override
+  String get aiTagsAction => 'Suggest tags';
+
+  @override
+  String get relatedNotesPaused => 'Temporarily paused';
+
+  @override
+  String get aiResultExpand => 'Show full result';
+
+  @override
+  String get aiResultCollapse => 'Collapse result';
 }

@@ -86,17 +86,27 @@ void main() {
           final context = tester.element(find.byType(NoteDetailSheet));
           final l10n = AppLocalizations.of(context);
           void expectActionColors(String label) {
-            final row = find.ancestor(
-              of: find.text(label),
-              matching: find.byType(ListTile),
+            final text = find.text(label);
+            final button = find.ancestor(
+              of: text,
+              matching: find.bySubtype<OutlinedButton>(),
             );
-            final tile = tester.widget<ListTile>(row);
+            expect(button, findsOneWidget);
+            final widget = tester.widget<OutlinedButton>(button);
             expect(
-              tester.widget<Text>(find.text(label)).style?.color,
+              widget.style!.foregroundColor!.resolve({}),
               theme.colorScheme.onSurface,
             );
+            final glyph = find
+                .descendant(
+                  of: button,
+                  matching: find.byWidgetPredicate(
+                    (w) => w is Icon || w is NexSummariseIcon,
+                  ),
+                )
+                .first;
             expect(
-              IconTheme.of(tester.element(find.byWidget(tile.leading!))).color,
+              IconTheme.of(tester.element(glyph)).color,
               theme.colorScheme.primary,
             );
           }
@@ -106,8 +116,6 @@ void main() {
             0,
             reason: 'opening a photo must not upload it',
           );
-          await tester.tap(find.byIcon(Icons.more_horiz));
-          await tester.pumpAndSettle();
           expect(find.text(l10n.translate), findsNothing);
           expect(find.text(l10n.summarize), findsNothing);
           await tester.ensureVisible(find.text(l10n.aiDescribeImage));
@@ -125,6 +133,9 @@ void main() {
           await tester.pumpAndSettle();
           if (caption.isNotEmpty) {
             expect(find.text(l10n.aiAppendCaptionTitle), findsOneWidget);
+            expect(find.text(l10n.aiAppendCaption), findsOneWidget);
+            expect(find.text(l10n.aiReplaceCaption), findsOneWidget);
+            expect(find.text(l10n.cancel), findsOneWidget);
             await tester.tap(find.text(l10n.cancel));
             await tester.pumpAndSettle();
             expect((await h.services.getById(note.id))!.caption, caption);
@@ -142,10 +153,29 @@ void main() {
           );
           expect(saved.ocrText, _MediaAi.result);
           expect(saved.mediaHash, note.mediaHash);
-          await tester.tap(find.byIcon(Icons.more_horiz));
+          // A full replacement changes only the caption. A later edit made
+          // while the confirmation is open must win over a stale replacement.
+          await tester.tap(find.text(l10n.aiAddToCaption));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text(l10n.aiSummarizeImageText));
-          expectActionColors(l10n.aiSummarizeImageText);
+          await tester.tap(find.text(l10n.aiReplaceCaption));
+          await tester.pumpAndSettle();
+          expect((await h.services.getById(note.id))!.caption, _MediaAi.result);
+          await tester.tap(find.text(l10n.aiAddToCaption));
+          await tester.pumpAndSettle();
+          await h.services.setCaption(note.id, 'A newer manual edit');
+          await tester.tap(find.text(l10n.aiReplaceCaption));
+          await tester.pumpAndSettle();
+          final preserved = (await h.services.getById(note.id))!;
+          expect(preserved.caption, 'A newer manual edit');
+          expect(preserved.mediaUri, note.mediaUri);
+          expect(preserved.ocrText, _MediaAi.result);
+          expect(await h.services.relatedNotes(note.id), isEmpty);
+          expect(h.db.relatedQueries, 0);
+          expect(h.preferences.aiCapabilities.relatedNotes, isTrue);
+          expect(h.preferences.effectiveAiCapabilities.relatedNotes, isFalse);
+          expect(h.preferences.effectiveAiCapabilities.semanticSearch, isTrue);
+          await tester.ensureVisible(find.text(l10n.summarize));
+          expectActionColors(l10n.summarize);
           expect(tester.takeException(), isNull);
           await tester.pumpWidget(const SizedBox());
           await tester.pumpAndSettle();

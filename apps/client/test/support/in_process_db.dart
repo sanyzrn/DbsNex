@@ -224,6 +224,13 @@ class InProcessDb implements NexDb {
       _repo.appendCaption(id, text);
 
   @override
+  Future<bool> replaceCaption(
+    String id,
+    String text, {
+    required String? expectedCaption,
+  }) async => _repo.replaceCaption(id, text, expectedCaption: expectedCaption);
+
+  @override
   Future<void> setCaption(String id, String caption) async =>
       _repo.setCaption(id, caption);
 
@@ -611,9 +618,13 @@ class InProcessDb implements NexDb {
   Future<Summary?> summarizeOnDemand(String noteId) =>
       _enrichment.summarizeOnDemand(noteId);
 
+  int relatedQueries = 0;
+
   @override
-  Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) =>
-      _enrichment.relatedNotes(noteId, limit: limit);
+  Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) {
+    relatedQueries++;
+    return _enrichment.relatedNotes(noteId, limit: limit);
+  }
 
   @override
   Future<List<SemanticHit>> semanticSearch(String query, {int limit = 20}) =>
