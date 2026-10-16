@@ -211,6 +211,41 @@ void main() {
     expect(load, lessThan(500), reason: 'a frame that loads the next window');
   });
 
+  testWidgets('filtering a window keeps animation work bounded', (
+    tester,
+  ) async {
+    phone(tester);
+    await open(tester);
+    await tester.pumpAndSettle();
+    final timeline = model(tester);
+    var peak = 0;
+    Future<void> sample() async {
+      for (var frame = 0; frame < 25; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        peak = max(peak, find.byType(NoteCard).evaluate().length);
+      }
+      await tester.pumpAndSettle();
+    }
+
+    await timeline.selectTags({'tag-0'});
+    await sample();
+    expect(timeline.notes, isNotEmpty);
+    expect(
+      timeline.notes.every((note) => note.tags.any((tag) => tag.id == 'tag-0')),
+      isTrue,
+    );
+    await timeline.clearFilters();
+    await sample();
+    expect(timeline.notes, hasLength(200));
+    debugPrint('W6.3 filter/clear: peak $peak built cards');
+    expect(
+      peak,
+      lessThanOrEqualTo(40),
+      reason: 'visible rows and bounded previews, not the entire window',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a capture reaches the top of a 5,000-note timeline', (
     tester,
   ) async {

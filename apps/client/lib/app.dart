@@ -616,6 +616,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
             prefs.themePreset,
             prefs.accentSeed,
             prefs.backgroundPattern,
+            prefs.liquidGlass,
           ),
           child: NexCardDensityScope(
             density: prefs.cardDensity,

@@ -105,11 +105,8 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
     );
   }
 
-  /// Works through the notes captured before the layer could read them.
-  ///
-  /// This runs on its own when the layer is switched on; the button is here
-  /// because one pass is bounded, and because a backlog that stalled on a bad
-  /// key should be retryable without toggling the whole thing off and on.
+  /// Builds missing semantic vectors from text that is already available.
+  /// One bounded pass; never transcribes audio or reads an image.
   Future<void> _catchUp() async {
     final l10n = AppLocalizations.of(context);
     final banner = NexBannerHost.of(context);

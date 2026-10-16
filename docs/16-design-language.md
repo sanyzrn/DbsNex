@@ -150,3 +150,16 @@ smaller blur reveal the page beneath. Settings groups and reading sheets keep
 the denser panel material. High contrast stays opaque in both cases. Measure
 foreground contrast against `floatingContrastGround`, including destructive
 menu labels; keep one blur around the menu rather than one per entry.
+
+### Timeline changes (2.0.9)
+
+The timeline uses Flutter's lazy `SliverAnimatedList`. Keyed subsequence matching
+keeps unchanged rows and their local state; only departures and arrivals move.
+Departing previews are inert and excluded from semantics. Entrances are bounded
+to a viewport-sized range, and unbuilt departures use zero duration. Group folds
+keep their existing animation rather than replaying a second removal. Pin moves,
+filter changes, deletion and undo share this motion. Markers have a short pulse
+only after a real change, with no ticker allocated on initial paint. Brief text
+changes cross-fade with a small settle and one border sweep rather than four.
+Glass toggles participate in the existing
+theme reveal. All additions respect reduced motion and settle without idle loops.

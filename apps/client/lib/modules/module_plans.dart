@@ -20,6 +20,7 @@ class NexModulePlan {
 
   String title(AppLocalizations l10n) => switch (id) {
     'pause' => l10n.planPauseTitle,
+    'persian-calendar' => l10n.planPersianCalendarTitle,
     'smoke-free' => l10n.planSmokeFreeTitle,
     'gold' => l10n.planGoldTitle,
     'parking' => l10n.planParkingTitle,
@@ -33,6 +34,7 @@ class NexModulePlan {
 
   String about(AppLocalizations l10n) => switch (id) {
     'pause' => l10n.planPauseAbout,
+    'persian-calendar' => l10n.planPersianCalendarAbout,
     'smoke-free' => l10n.planSmokeFreeAbout,
     'gold' => l10n.planGoldAbout,
     'parking' => l10n.planParkingAbout,
@@ -47,6 +49,12 @@ class NexModulePlan {
 
 /// What is coming, nearest first.
 const List<NexModulePlan> nexModulePlans = [
+  NexModulePlan(
+    'persian-calendar',
+    Icons.calendar_month_outlined,
+    NexHue.sky,
+    NexModuleStage.soon,
+  ),
   NexModulePlan('pause', Icons.air_outlined, NexHue.sky, NexModuleStage.soon),
   NexModulePlan(
     'telegram',

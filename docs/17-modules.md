@@ -105,3 +105,10 @@ of the page opens the feedback sheet, for ideas.
 - `test/modules_test.dart`: the page, adding and removing, and Tools tiles.
 - `test/module_kit_test.dart`, `test/module_kit/tally/`: the gate, and its
   worked example.
+
+### On the way: Persian calendar & prayer times (2.0.9)
+
+`persian-calendar` is a single coming-soon plan: Solar Hijri calendar,
+occasions and date conversion, prayer times for a chosen city, optional adhan
+alerts and per-prayer settings. It is a catalogue preview only, not an enabled
+module: it has no install/open action, location request or scheduled alert yet.

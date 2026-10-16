@@ -347,27 +347,6 @@ extension _TimelineBody on TimelineScreenState {
     // used to replace the whole body whenever a filter matched nothing, taking
     // the filter row with it — so the filter that caused it could not be
     // cleared without restarting the app.
-    if (all.isEmpty && !_model.filtering) {
-      return [
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: EmptyTimeline(
-            onWrite: () => unawaited(openCapture()),
-            onSpeak: () => unawaited(openCapture(kind: CaptureKind.voice)),
-            onPhotograph: () => unawaited(capturePhoto(ImageSource.camera)),
-          ),
-        ),
-      ];
-    }
-    if (_model.notes.isEmpty) {
-      return [
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: _FilteredEmpty(onClear: () => unawaited(_clearFilters())),
-        ),
-      ];
-    }
-
     // Grouped by date, and only by date. Manual arrangement is gone (the
     // repository's ORDER BY says why): a heading that says "Yesterday" has to
     // be telling the truth about every row beneath it, and a hand-placed note
@@ -387,10 +366,27 @@ extension _TimelineBody on TimelineScreenState {
     ];
 
     return [
-      SliverList.builder(
-        itemCount: rows.length,
-        itemBuilder: (context, index) {
-          final row = rows[index];
+      _TimelineList(
+        rows: rows,
+        revision: _model.notes,
+        removedBuilder: (context, row) {
+          if (row.group case final group?) {
+            return _GroupHeader(
+              label: group.label,
+              count: group.notes.length,
+              collapsed: _model.collapsedGroups.contains(group.key),
+              onToggle: () {},
+              onAsk: null,
+              onDelete: () {},
+            );
+          }
+          return NoteCard(
+            note: row.note!,
+            strings: nexCardStrings(context),
+            expanded: widget.preferences.isNoteExpanded(row.note!.id),
+          );
+        },
+        builder: (context, row, index) {
           if (row.group case final group?) {
             // Inert while a card is open: the fold, the menu and Ask all sit
             // in the same list as the swiped card, and the tap that puts it
@@ -480,6 +476,19 @@ extension _TimelineBody on TimelineScreenState {
           );
         },
       ),
+      if (_model.notes.isEmpty)
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: all.isEmpty && !_model.filtering
+              ? EmptyTimeline(
+                  onWrite: () => unawaited(openCapture()),
+                  onSpeak: () =>
+                      unawaited(openCapture(kind: CaptureKind.voice)),
+                  onPhotograph: () =>
+                      unawaited(capturePhoto(ImageSource.camera)),
+                )
+              : _FilteredEmpty(onClear: () => unawaited(_clearFilters())),
+        ),
     ];
   }
 

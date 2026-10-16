@@ -2981,25 +2981,25 @@ abstract class AppLocalizations {
   /// Heading above the backfill control
   ///
   /// In en, this message translates to:
-  /// **'The notes you already have'**
+  /// **'Complete the search index'**
   String get catchUpTitle;
 
   /// Explains what the backfill does and why it is needed
   ///
   /// In en, this message translates to:
-  /// **'Nex reads a note in the background right after it is captured — which means everything captured before this was switched on has never been read. This works through that backlog, oldest requests first, a batch at a time.'**
+  /// **'Builds missing or outdated search vectors from text already saved in your notes, up to 25 notes per pass. Enable semantic search or related notes first. Audio transcription, image reading, summaries and tag suggestions are not run.'**
   String get catchUpBody;
 
   /// Starts a backfill pass
   ///
   /// In en, this message translates to:
-  /// **'Catch up'**
+  /// **'Index existing notes'**
   String get catchUpAction;
 
   /// Result of a backfill pass
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0{Nothing left to read} =1{1 note read} other{{count} notes read}}'**
+  /// **'{count, plural, =0{No notes indexed in this pass} =1{1 note indexed} other{{count} notes indexed}}'**
   String catchUpDone(int count);
 
   /// Screen-reader label naming a note's type
@@ -8689,6 +8689,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Thinking it through…'**
   String get chatThinking;
+
+  /// No description provided for @planPersianCalendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Persian calendar & prayer times'**
+  String get planPersianCalendarTitle;
+
+  /// No description provided for @planPersianCalendarAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'A Solar Hijri calendar with occasions and date conversion. Prayer times for your chosen city, with optional adhan alerts and a separate setting for each prayer.'**
+  String get planPersianCalendarAbout;
 }
 
 class _AppLocalizationsDelegate

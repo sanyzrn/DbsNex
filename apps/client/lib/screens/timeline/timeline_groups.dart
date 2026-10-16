@@ -20,6 +20,8 @@ class _TimelineRow {
   const _TimelineRow.note(this.note, this.groupKey, this.indexInGroup)
     : group = null;
 
+  String get key => group != null ? 'group-${group!.key}' : 'note-${note!.id}';
+
   final _NoteGroup? group;
   final Note? note;
 

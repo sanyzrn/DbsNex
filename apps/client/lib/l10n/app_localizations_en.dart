@@ -1807,14 +1807,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hide => 'Hide';
 
   @override
-  String get catchUpTitle => 'The notes you already have';
+  String get catchUpTitle => 'Complete the search index';
 
   @override
   String get catchUpBody =>
-      'Nex reads a note in the background right after it is captured — which means everything captured before this was switched on has never been read. This works through that backlog, oldest requests first, a batch at a time.';
+      'Builds missing or outdated search vectors from text already saved in your notes, up to 25 notes per pass. Enable semantic search or related notes first. Audio transcription, image reading, summaries and tag suggestions are not run.';
 
   @override
-  String get catchUpAction => 'Catch up';
+  String get catchUpAction => 'Index existing notes';
 
   @override
   String catchUpDone(int count) {
@@ -1825,9 +1825,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$countString notes read',
-      one: '1 note read',
-      zero: 'Nothing left to read',
+      other: '$countString notes indexed',
+      one: '1 note indexed',
+      zero: 'No notes indexed in this pass',
     );
     return '$_temp0';
   }
@@ -5409,4 +5409,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatThinking => 'Thinking it through…';
+
+  @override
+  String get planPersianCalendarTitle => 'Persian calendar & prayer times';
+
+  @override
+  String get planPersianCalendarAbout =>
+      'A Solar Hijri calendar with occasions and date conversion. Prayer times for your chosen city, with optional adhan alerts and a separate setting for each prayer.';
 }

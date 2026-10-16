@@ -1768,14 +1768,14 @@ class AppLocalizationsFa extends AppLocalizations {
   String get hide => 'پنهان کردن';
 
   @override
-  String get catchUpTitle => 'یادداشت‌هایی که از قبل دارید';
+  String get catchUpTitle => 'تکمیل نمایهٔ جست‌وجو';
 
   @override
   String get catchUpBody =>
-      'Nex هر یادداشت را درست بعد از ثبت، در پس‌زمینه می‌خواند؛ یعنی هرچه پیش از روشن کردن این بخش ثبت شده هیچ‌وقت خوانده نشده. این گزینه آن عقب‌ماندگی را دسته‌دسته جبران می‌کند.';
+      'از متن‌های موجود در یادداشت‌ها، نمایه‌های معناییِ ساخته‌نشده یا قدیمی را آماده می‌کند؛ هر بار حداکثر ۲۵ یادداشت. ابتدا جست‌وجوی معنایی یا یادداشت‌های مرتبط را فعال کنید. تبدیل صوت، خواندن تصویر، خلاصه‌سازی و پیشنهاد برچسب انجام نمی‌شود.';
 
   @override
-  String get catchUpAction => 'جبران عقب‌ماندگی';
+  String get catchUpAction => 'نمایه‌سازی یادداشت‌های موجود';
 
   @override
   String catchUpDone(int count) {
@@ -1786,9 +1786,9 @@ class AppLocalizationsFa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$countString یادداشت خوانده شد',
-      one: 'یک یادداشت خوانده شد',
-      zero: 'چیزی برای خواندن نمانده',
+      other: '$countString یادداشت نمایه‌سازی شد',
+      one: 'یک یادداشت نمایه‌سازی شد',
+      zero: 'در این نوبت یادداشتی نمایه‌سازی نشد',
     );
     return '$_temp0';
   }
@@ -5272,4 +5272,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get chatThinking => 'دارم فکر می‌کنم…';
+
+  @override
+  String get planPersianCalendarTitle => 'تقویم شمسی و اوقات شرعی';
+
+  @override
+  String get planPersianCalendarAbout =>
+      'تقویم شمسی همراه مناسبت‌ها و تبدیل تاریخ. اوقات شرعی بر اساس شهر انتخابی، با اعلان اختیاری اذان و تنظیم جداگانه برای هر وعده.';
 }

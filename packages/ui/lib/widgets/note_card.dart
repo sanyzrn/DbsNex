@@ -714,8 +714,81 @@ class _Leading extends StatelessWidget {
 /// nothing. A badge on the leading square is the same information sitting on
 /// an object that is already there, which is what makes it read as part of the
 /// card rather than as something dropped on top of it.
-class _LeadingWithPin extends StatelessWidget {
+class _LeadingWithPin extends StatefulWidget {
   const _LeadingWithPin({required this.note, required this.strings});
+  final Note note;
+  final NexCardStrings strings;
+
+  @override
+  State<_LeadingWithPin> createState() => _LeadingWithPinState();
+}
+
+class _LeadingWithPinState extends State<_LeadingWithPin>
+    with SingleTickerProviderStateMixin {
+  // No ticker until a real marker change; scrolling does not replay a pulse.
+  AnimationController? _pulse;
+
+  Object _markers(Note note) => (
+    note.pinnedAt != null,
+    Object.hashAll(note.tags.map((tag) => (tag.id, tag.color))),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context) || !TickerMode.of(context)) {
+      _pulse?.stop();
+      _pulse?.value = 1;
+    }
+  }
+
+  @override
+  void didUpdateWidget(_LeadingWithPin old) {
+    super.didUpdateWidget(old);
+    if (old.note.id != widget.note.id ||
+        _markers(old.note) == _markers(widget.note)) {
+      return;
+    }
+    if (MediaQuery.disableAnimationsOf(context) || !TickerMode.of(context)) {
+      _pulse?.stop();
+      _pulse?.value = 1;
+      return;
+    }
+    final pulse = _pulse ??= AnimationController(
+      vsync: this,
+      duration: NexMotion.pop,
+    );
+    pulse.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _pulse?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final child = _LeadingMarkers(note: widget.note, strings: widget.strings);
+    final pulse = _pulse;
+    if (pulse == null) return child;
+    return AnimatedBuilder(
+      animation: pulse,
+      child: child,
+      builder: (context, child) {
+        final t = MediaQuery.disableAnimationsOf(context) ? 1.0 : pulse.value;
+        return Transform.scale(
+          key: ValueKey('note-marker-pulse-${widget.note.id}'),
+          scale: 1 + 0.08 * 4 * t * (1 - t),
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class _LeadingMarkers extends StatelessWidget {
+  const _LeadingMarkers({required this.note, required this.strings});
 
   final Note note;
   final NexCardStrings strings;
