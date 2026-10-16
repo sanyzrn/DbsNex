@@ -174,7 +174,6 @@ void main() {
       );
     });
 
-
     test('custom audio uses the transcription sibling of the chat URL', () async {
       late http.Request seen;
       final adapter = CloudAIAdapter(
@@ -186,7 +185,11 @@ void main() {
         ),
         client: MockClient((request) async {
           seen = request;
-          return http.Response(jsonEncode({'text': 'سلام دنیا'}), 200);
+          return http.Response.bytes(
+            utf8.encode(jsonEncode({'text': 'سلام دنیا'})),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
         }),
       );
 
