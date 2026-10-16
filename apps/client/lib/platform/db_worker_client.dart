@@ -139,6 +139,17 @@ mixin _DbClient implements NexDb {
       _send<bool>(_DbCommand.appendCaption, {'id': id, 'text': text});
 
   @override
+  Future<bool> replaceCaption(
+    String id,
+    String text, {
+    required String? expectedCaption,
+  }) => _send<bool>(_DbCommand.replaceCaption, {
+    'id': id,
+    'text': text,
+    'expectedCaption': expectedCaption,
+  });
+
+  @override
   Future<void> setCaption(String id, String caption) =>
       _send<void>(_DbCommand.setCaption, {'id': id, 'caption': caption});
 

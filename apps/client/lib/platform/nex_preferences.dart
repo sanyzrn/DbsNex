@@ -29,6 +29,10 @@ part 'preferences/profile_preferences.dart';
 part 'preferences/security_preferences.dart';
 part 'preferences/service_preferences.dart';
 
+/// Temporarily paused by the owner in 2.0.6. Stored preferences are retained
+/// so the feature can return without rewriting anyone's choices.
+const nexRelatedNotesAvailable = false;
+
 /// When the app lock puts itself back on.
 ///
 /// The lock used to re-arm the instant the app left the screen, which is the

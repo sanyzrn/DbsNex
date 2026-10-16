@@ -49,6 +49,7 @@ enum _DbCommand {
   undelete,
   setCaption,
   appendCaption,
+  replaceCaption,
   setTitle,
   setSummaryText,
   setLinkMetadata,

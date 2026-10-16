@@ -12,6 +12,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'text_format_menu.dart';
+import 'native_text_magnifier.dart';
 
 /// Where a person writes more than one line of their own words.
 ///
@@ -105,6 +106,10 @@ class NexTextField extends StatefulWidget {
   /// Whether the native editor is used. True on Android; tests that drive
   /// the native protocol set it, and must put it back.
   static bool native = !kIsWeb && Platform.isAndroid;
+
+  /// Experimental native-editor loupe, using Flutter’s built-in TextMagnifier.
+  /// Kept independent of the renderer and native editor selection behavior.
+  static bool flutterMagnifier = true;
 
   static const viewType = 'nex/edit_text';
 
@@ -233,7 +238,7 @@ Future<void> nexPrivateCopy(
 /// - from Android: `changed` {text, start, end}, `selection` {start, end},
 ///   `height` {height}, `focus` {focused}, `submit`, `format` {id, start,
 ///   end}, and — for a field with [NexTextField.onCopy] — `copy` {start,
-///   end, cut}.
+///   end, cut}; `magnifier` {show, x, caretX, top, bottom, left, right, width, height}.
 class _NativeField extends StatefulWidget {
   const _NativeField({required this.field});
 
@@ -245,6 +250,8 @@ class _NativeField extends StatefulWidget {
 
 class _NativeFieldState extends State<_NativeField> {
   MethodChannel? _channel;
+  final _viewKey = GlobalKey();
+  final _magnifier = NexNativeTextMagnifier();
   late TextEditingController _controller = widget.field.controller;
   FocusNode? _ownFocus;
   FocusNode get _focus => widget.field.focusNode ?? (_ownFocus ??= FocusNode());
@@ -270,8 +277,15 @@ class _NativeFieldState extends State<_NativeField> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (ModalRoute.isCurrentOf(context) == false) _magnifier.hide();
+  }
+
+  @override
   void didUpdateWidget(_NativeField old) {
     super.didUpdateWidget(old);
+    if (!widget.field.enabled) _magnifier.hide();
     if (old.field.controller != widget.field.controller) {
       old.field.controller.removeListener(_onController);
       _controller = widget.field.controller;
@@ -290,6 +304,7 @@ class _NativeFieldState extends State<_NativeField> {
     _focus.removeListener(_onFocus);
     _ownFocus?.dispose();
     _channel?.setMethodCallHandler(null);
+    _magnifier.dispose();
     super.dispose();
   }
 
@@ -300,6 +315,7 @@ class _NativeFieldState extends State<_NativeField> {
       return;
     }
     _native = value;
+    _magnifier.hide();
     final selection = value.selection.isValid
         ? value.selection
         : TextSelection.collapsed(offset: value.text.length);
@@ -332,7 +348,17 @@ class _NativeFieldState extends State<_NativeField> {
   Future<dynamic> _onNative(MethodCall call) async {
     final args = (call.arguments as Map?)?.cast<String, Object?>() ?? const {};
     switch (call.method) {
+      case 'magnifier':
+        if (!mounted) return;
+        _magnifier.update(
+          context: context,
+          source: _viewKey.currentContext?.findRenderObject() as RenderBox?,
+          geometry: args,
+          enabled:
+              NexTextField.flutterMagnifier && widget.field.enabled && _focused,
+        );
       case 'changed':
+        _magnifier.hide();
         final text = args['text']! as String;
         final value = TextEditingValue(
           text: text,
@@ -370,6 +396,7 @@ class _NativeFieldState extends State<_NativeField> {
         if (height != _height && mounted) setState(() => _height = height);
       case 'focus':
         final focused = args['focused'] == true;
+        if (!focused) _magnifier.hide();
         if (focused == _focused) return;
         _focused = focused;
         // Not a `requestFocus` here: the platform view's own node already
@@ -506,6 +533,7 @@ class _NativeFieldState extends State<_NativeField> {
       'maxLength': field.maxLength ?? 0,
       'autofocus': field.autofocus,
       'privateCopy': field.onCopy != null,
+      'flutterMagnifier': NexTextField.flutterMagnifier,
       'rtl': Directionality.of(context) == TextDirection.rtl,
       'formats': field.formatting ? _formats : const <Map<String, String>>[],
     };
@@ -528,6 +556,7 @@ class _NativeFieldState extends State<_NativeField> {
         (style.height ?? 1.4) *
         (field.minLines ?? 1);
     final view = PlatformViewLink(
+      key: _viewKey,
       viewType: NexTextField.viewType,
       surfaceFactory: (context, controller) => AndroidViewSurface(
         controller: controller as AndroidViewController,
@@ -550,8 +579,8 @@ class _NativeFieldState extends State<_NativeField> {
         // Keep the editor in a texture: forcing hybrid composition stalls
         // the whole Flutter scene while the editor/keyboard opens or scrolls.
         // The app uses its default SurfaceView again. Do not change the
-        // renderer of every page just to feed Android's system magnifier:
-        // that lens still needs device-specific validation with texture views.
+        // renderer of every page just to feed Android’s system magnifier.
+        // The experimental loupe uses Flutter’s stock TextMagnifier instead.
         // InputDecorator alone owns the transparent editor's border and fill.
         return PlatformViewsService.initSurfaceAndroidView(
             id: params.id,

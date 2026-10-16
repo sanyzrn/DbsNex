@@ -101,7 +101,7 @@ killed.
 **Private tools** — a compact Tools page at the left of the home dock holds passwords, bank cards and private saved messages behind device authentication. One unlock opens every private tool and lasts two minutes after the last touch, including time spent in another app; leaving the app always hides the contents. Every field is shown and copyable on the list itself, bank cards take a colour of their own and show their CVV2, each page can be cleared at once, and there is a standalone password generator and a Chrome / Google Password Manager CSV import that brings in every readable row and lists the rest by line. Vault data is excluded from notes, AI and ordinary library backups; encrypted vault export is an explicit option in Complete app backup.
 
 **Intelligence, optional and off by default** — transcription, OCR, summarization, tag
-suggestions, semantic search and related notes, each behind its own switch, against a
+suggestions and semantic search, each behind its own switch, against a
 provider you configure and can test, plus an assistant you can actually talk to about what
 you have written, opened by holding the capture button, that can read a tag's or a thread's notes and act on several notes at once. Its tone is yours to set, including one you write yourself. It is the only
 part of Nex that can send a note off the device, it says so before it is switched on, and
@@ -111,10 +111,12 @@ cloud requests may include your preferred name and selected note context. With o
 checklist in one tap) and Recap widgets on Android that follow the
 app's language and accent, and stay private while the app lock is on.
 
+**Per-note AI workspace** — relevant actions appear above the content, and results stay in the same section with previews, expandable text, copy and caption controls. Existing captions offer Cancel, Append or Replace; replacements protect concurrent edits. Translation includes a language picker and Save as note. Media reading is explicit. Similar-note suggestions and their lookups are temporarily paused in 2.0.6; semantic search remains available.
+
 **Persian calendar** — optional Solar Hijri dates for display and every date picker,
 independent of the interface language.
 
-**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier, Forest, Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite palettes, custom accents, text size and card size; five of the palettes add a faint motif of their own along the bottom of the screen. A change of look opens out as a circle from the tap that asked for it. The Nex logotype is the app icon and the mark on notifications, the Quick Settings tile and the widget; the opening animation keeps the octopus. In-app notices are one capsule that drips out of the top edge (a "gooey" metaball effect, `packages/ui/lib/widgets/nex_gooey.dart`). Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
+**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier, Forest, Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite palettes, custom accents, text size and card size; five of the palettes add a faint motif of their own along the bottom of the screen. A change of look opens out as a circle from the tap that asked for it. The Nex logotype is the app icon and the mark on notifications, the Quick Settings tile and the widget; the opening animation keeps the octopus. In-app notices are one capsule that drips out of the top edge (a "gooey" metaball effect, `packages/ui/lib/widgets/nex_gooey.dart`). Liquid Glass is opt-in in Appearance: in-page panels keep a static glass finish while floating overlays retain live blur. Android uses Flutter’s standard surface renderer (2.0.5); 2.0.6 adds an experimental Flutter loupe over native editing, with device checks tracked in [`docs/19-magnifier-test.md`](./docs/19-magnifier-test.md) (ADR-042). Reduce-motion support and 48px minimum action targets remain.
 
 **Feedback** — a compose sheet with a category and an optional reply address, relayed to
 Telegram by a separate Cloudflare Worker (`apps/feedback-worker`). It stays unavailable

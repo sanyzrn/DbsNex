@@ -78,6 +78,7 @@ class NexEditTextFactory(private val messenger: BinaryMessenger) :
 
 /** An `EditText` that says when its selection moves, and can take Copy. */
 private class NexEditText(context: Context) : EditText(context) {
+    var magnifierBridge: NexMagnifierBridge? = null
     // EditText tracks a drag but does not keep scrolling after a quick flick.
     // Keep Android's own selection/drag handling and add bounded momentum only
     // to a one-finger vertical flick. Long presses and selection handles never
@@ -91,6 +92,7 @@ private class NexEditText(context: Context) : EditText(context) {
 
         override fun onLongPress(e: MotionEvent) {
             flingAllowed = false
+            magnifierBridge?.longPress()
         }
 
         override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
@@ -121,7 +123,8 @@ private class NexEditText(context: Context) : EditText(context) {
                 stopFling()
             }
         }
-        val handled = super.onTouchEvent(event)
+        val handled = magnifierBridge?.touch(event) { super.onTouchEvent(event) }
+            ?: super.onTouchEvent(event)
         scrollGestures.onTouchEvent(event)
         return handled
     }
@@ -137,6 +140,7 @@ private class NexEditText(context: Context) : EditText(context) {
 
     override fun onDetachedFromWindow() {
         stopFling()
+        magnifierBridge?.stop()
         super.onDetachedFromWindow()
     }
 
@@ -184,6 +188,7 @@ private class NexEditTextView(
     private val channel = MethodChannel(messenger, "nex/edit_text/$id")
     private val edit = NexEditText(context)
     private val density = context.resources.displayMetrics.density
+    private val magnifier = NexMagnifierBridge(edit) { channel.invokeMethod("magnifier", it) }
 
     /** True while a value from Dart is written in, so it is not sent back. */
     private var applying = false
@@ -210,6 +215,7 @@ private class NexEditTextView(
 
     init {
         channel.setMethodCallHandler(this)
+        edit.magnifierBridge = magnifier
         edit.background = null
         edit.setPadding(0, 0, 0, 0)
         edit.includeFontPadding = false
@@ -234,6 +240,7 @@ private class NexEditTextView(
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 edit.stopFling()
+                magnifier.hide()
                 if (!applying) {
                     channel.invokeMethod(
                         "changed",
@@ -250,6 +257,7 @@ private class NexEditTextView(
         edit.onSelection = { start, end ->
             if (!applying) {
                 channel.invokeMethod("selection", mapOf("start" to start, "end" to end))
+                magnifier.selectionChanged(start, end)
             }
         }
         edit.onCopy = { cut ->
@@ -271,6 +279,7 @@ private class NexEditTextView(
         }
         edit.setOnFocusChangeListener { _, focused ->
             channel.invokeMethod("focus", mapOf("focused" to focused))
+            if (!focused) magnifier.stop()
         }
         edit.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_NULL || imeAction == "newline") {
@@ -313,6 +322,8 @@ private class NexEditTextView(
         // turning into a recorder — would otherwise leave the keyboard up
         // over a screen with nothing left to type into.
         if (edit.hasFocus()) keyboard()?.hideSoftInputFromWindow(edit.windowToken, 0)
+        magnifier.dispose()
+        edit.magnifierBridge = null
         channel.setMethodCallHandler(null)
         edit.onSelection = null
         edit.onCopy = null
@@ -375,6 +386,7 @@ private class NexEditTextView(
     }
 
     private fun configure(args: Map<*, *>) {
+        magnifier.enabled = args["flutterMagnifier"] == true
         edit.layoutDirection =
             if (args["rtl"] == true) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
         (args["fontSize"] as? Number)?.let {
@@ -479,6 +491,7 @@ private class NexEditTextView(
      */
     private fun selectionMenu(withFormats: Boolean) = object : ActionMode.Callback {
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+            magnifier.discoverHandles()
             if (withFormats) {
                 formats.forEachIndexed { index, (_, label) ->
                     menu.add(Menu.NONE, FORMAT_BASE + index, 200 + index, label)

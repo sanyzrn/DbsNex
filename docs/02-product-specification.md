@@ -312,7 +312,7 @@ erDiagram
 
 ## Sync Strategy
 
-Sync is **not** a v1 user-facing feature, but the data layer is built as if it were arriving next release.
+The following is the original phase design (v1/v2 labels mean phases). Sync infrastructure exists, but user-facing pairing and automatic sync remain pending in the 2.0.x release line; current scope is tracked in the roadmap below.
 
 - **v1:** Local-first storage only. Every record already has a UUIDv7, timestamps, `device_id`, `rev`, and `media_hash`. A minimal backend API surface exists (even if unused by the client) so the contract is proven early.
 - **v2:** Real sync between Android and Windows (first item of v2, not the last).
@@ -325,45 +325,25 @@ See [`04-architecture.md`](./04-architecture.md) for the technical design and [`
 
 ---
 
-## AI Roadmap
+## AI Status
 
-AI capabilities are additive and strictly post-capture; none are part of the v1 MVP capture flow. Full detail in [`09-ai.md`](./09-ai.md).
+AI remains additive and post-capture; details are in [`09-ai.md`](./09-ai.md).
 
-| Capability | Target Version |
+| Capability | Current state |
 |---|---|
-| Speech-to-text transcription | v3 |
-| OCR on photos | v3 |
-| Tag suggestions | v3 |
-| Semantic search | v3 |
-| Summarization | v3 |
-| Related notes | v3 |
-
----
+| Transcription and image reading | Shipped; explicit per-note/attachment action since 2.0.4 |
+| Tag suggestions, semantic search, summarization | Shipped; opt-in |
+| Note AI actions and results | Shared workspace above content in 2.0.6; inline translation, copy and explicit caption append/replace |
+| Related notes | Temporarily paused in 2.0.6; semantic search remains available |
 
 ## Roadmap Summary
 
-- **v1 — Fastest capture experience:** Timeline, text/voice/photo capture, tags, keyword/tag/date/type search, sync-ready architecture.
-- **v2 — Sync & continuity:** Real Android ⇄ Windows sync (first, not last), generic file attachments, iOS client.
-- **v3 — Intelligence layer:** Speech-to-text, OCR, tag suggestions, semantic search, summarization, related notes.
+Phase numbers in the original specification are not release numbers. Phase 1
+capture and Phase 3 intelligence shipped; file attachments also shipped during
+1.x. Phase 2 cross-device continuity remains incomplete: the engine exists, but
+pairing, automatic/media sync, conflict UI and a released second device are still
+future work. iOS remains deferred. No release number is committed for these items.
 
-Full detail in [`08-roadmap.md`](./08-roadmap.md).
-
-## Future Features
-
-Explicitly deferred, tracked for evaluation post-MVP:
-
-- Generic file attachments (v2).
-- Full cross-device sync (v2).
-- Speech-to-text, OCR, AI tag suggestions, semantic search, summarization, Related Notes (v3).
-
-> Export is **no longer deferred** — see [FR-6](#fr-6--export) and [ADR-025](./10-decisions.md#adr-025--data-export-ships-in-v1-not-after-v3). It ships in v1.
-
-## Release Plan
-
-| Release | Scope | Exit Criteria |
-|---|---|---|
-| v1.0 | Timeline, 3 capture types, tags, search (text/tag/date/type filter), **export, backup/restore** | All FRs pass QA; capture and search both consistently feel < 3 s in usability testing; engineering budgets (§ Non-Functional Requirements) met in CI; export round-trip verified (FR-6.3); backup survives simulated DB corruption (FR-7.3) |
-| v1.x | Stability, performance, accessibility polish, **home-screen widget + share-intent capture** | Crash-free session rate > 99.9%; WCAG 2.1 AA audit passed; OS-level capture surfaces (FR-8) shipped and meeting the same capture-speed budget as in-app capture |
-| v2.0 | Cross-device sync (Android ⇄ Windows) | Sync conflict tests pass (including tag union-merge and media dedupe); offline-edit-then-sync scenarios verified |
-| v2.x | Generic file attachments, iOS client | Feature parity with Android/Windows confirmed |
-| v3.0 | Speech-to-text, OCR, tag suggestions, semantic search, summarization, related notes | Voice/photo notes become part of full-text/semantic search without regressing capture speed |
+[`11-roadmap-2.0.md`](./11-roadmap-2.0.md) is the canonical future backlog, with
+stable item IDs and dependencies. [`08-roadmap.md`](./08-roadmap.md) gives the
+phase overview. Release scope belongs in [`CHANGELOG.md`](../CHANGELOG.md).

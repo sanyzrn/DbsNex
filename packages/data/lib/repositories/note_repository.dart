@@ -1074,6 +1074,25 @@ WHERE id = ?
     return true;
   });
 
+  /// Replaces only the caption the person actually approved replacing.
+  /// The comparison and write share a transaction, so a later edit is kept.
+  bool replaceCaption(
+    String noteId,
+    String text, {
+    required String? expectedCaption,
+  }) => db.together(() {
+    final note = getById(noteId);
+    final replacement = text.trim();
+    if (note == null ||
+        replacement.isEmpty ||
+        note.caption != expectedCaption) {
+      return false;
+    }
+    if (note.caption == replacement) return true;
+    setCaption(noteId, replacement);
+    return true;
+  });
+
   /// Optional post-capture caption on photo/voice/file (distinct from OCR/transcript).
   void setCaption(String noteId, String? caption) {
     db.together(() {

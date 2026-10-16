@@ -147,6 +147,11 @@ class _Worker {
         arg('id')! as String,
         arg('text')! as String,
       ),
+      _DbCommand.replaceCaption => repo.replaceCaption(
+        arg('id')! as String,
+        arg('text')! as String,
+        expectedCaption: arg('expectedCaption') as String?,
+      ),
       _DbCommand.setCaption => NexDbWorker._voided(
         () => repo.setCaption(arg('id')! as String, arg('caption')! as String),
       ),

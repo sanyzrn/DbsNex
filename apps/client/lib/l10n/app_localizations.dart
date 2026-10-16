@@ -2963,7 +2963,7 @@ abstract class AppLocalizations {
   /// Heading of the revealed intelligence panel
   ///
   /// In en, this message translates to:
-  /// **'What Nex read'**
+  /// **'Nex AI'**
   String get aiSection;
 
   /// Shown when the intelligence panel has nothing to show
@@ -8567,7 +8567,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAppendCaptionBody.
   ///
   /// In en, this message translates to:
-  /// **'Add this text after your existing caption?'**
+  /// **'Keep the existing caption and append this result, or replace the caption completely.'**
   String get aiAppendCaptionBody;
 
   /// No description provided for @aiAppendCaption.
@@ -8605,6 +8605,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Summarize image text'**
   String get aiSummarizeImageText;
+
+  /// No description provided for @aiReplaceCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace caption'**
+  String get aiReplaceCaption;
+
+  /// No description provided for @aiCaptionReplaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Caption replaced'**
+  String get aiCaptionReplaced;
+
+  /// No description provided for @aiCaptionChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The caption changed while this dialog was open. Nothing was replaced. Try again.'**
+  String get aiCaptionChanged;
+
+  /// No description provided for @aiProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Working…'**
+  String get aiProcessing;
+
+  /// No description provided for @aiResultReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Result ready'**
+  String get aiResultReady;
+
+  /// No description provided for @aiNoResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an action to see its result here.'**
+  String get aiNoResult;
+
+  /// No description provided for @aiTagsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest tags'**
+  String get aiTagsAction;
+
+  /// No description provided for @relatedNotesPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporarily paused'**
+  String get relatedNotesPaused;
+
+  /// No description provided for @aiResultExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Show full result'**
+  String get aiResultExpand;
+
+  /// No description provided for @aiResultCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse result'**
+  String get aiResultCollapse;
 }
 
 class _AppLocalizationsDelegate

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +19,7 @@ void main() {
 
   setUp(() {
     NexTextField.native = true;
+    NexTextField.flutterMagnifier = true;
     toNative = [];
     created = null;
     createCount = 0;
@@ -58,6 +61,7 @@ void main() {
 
   tearDown(() {
     NexTextField.native = false;
+    NexTextField.flutterMagnifier = true;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform_views, null);
   });
@@ -452,6 +456,7 @@ void main() {
     (tester) async {
       tester.view.viewInsets = const FakeViewPadding(bottom: 250);
       addTearDown(tester.view.reset);
+      addTearDown(tester.view.resetViewInsets);
       final controller = TextEditingController(text: 'سلام\nHello');
       final focus = FocusNode();
       addTearDown(controller.dispose);
@@ -537,5 +542,167 @@ void main() {
 
     expect(focus.hasFocus, isTrue);
     expect(toNative.map((c) => c.method), isNot(contains('unfocus')));
+  });
+
+  Map<String, Object?> loupe({bool show = true}) => {
+    'show': show,
+    'x': 100.0,
+    'caretX': 96.0,
+    'top': 4.0,
+    'bottom': 28.0,
+    'left': 12.0,
+    'right': 220.0,
+    'width': 240.0,
+    'height': 100.0,
+  };
+
+  testWidgets(
+    'native caret geometry drives the stock Flutter loupe without editing text',
+    (tester) async {
+      final controller = TextEditingController(
+        text: 'سلام Nex!\nEnglish line.',
+      );
+      addTearDown(controller.dispose);
+      await pump(
+        tester,
+        SizedBox(
+          width: 260,
+          child: NexTextField(controller: controller, minLines: 4),
+        ),
+      );
+      expect(created!['flutterMagnifier'], isTrue);
+      await fromNative(tester, 'focus', {'focused': true});
+      toNative.clear();
+      final original = controller.value;
+      final origin = tester.getTopLeft(find.byType(PlatformViewLink));
+      await fromNative(tester, 'magnifier', loupe());
+      expect(find.byType(TextMagnifier), findsOneWidget);
+      final first = tester.widget<TextMagnifier>(find.byType(TextMagnifier));
+      expect(
+        first.magnifierInfo.value.caretRect.topLeft,
+        origin + const Offset(96, 4),
+      );
+      expect(
+        first.magnifierInfo.value.globalGesturePosition,
+        origin + const Offset(100, 16),
+      );
+      final notifier = first.magnifierInfo;
+      await fromNative(tester, 'selection', {'start': 2, 'end': 7});
+      await fromNative(tester, 'magnifier', {
+        ...loupe(),
+        'x': 135.0,
+        'caretX': 130.0,
+      });
+      expect(
+        tester.widget<TextMagnifier>(find.byType(TextMagnifier)).magnifierInfo,
+        same(notifier),
+      );
+      expect(controller.text, original.text);
+      expect(
+        controller.selection,
+        const TextSelection(baseOffset: 2, extentOffset: 7),
+      );
+      expect(toNative.where((c) => c.method == 'setValue'), isEmpty);
+      expect(createCount, 1);
+      expect(hybrid, isFalse);
+      await fromNative(tester, 'magnifier', loupe(show: false));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextMagnifier), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'the native loupe closes on typing, focus loss and invalid geometry',
+    (tester) async {
+      final controller = TextEditingController(text: 'متن قابل انتخاب');
+      addTearDown(controller.dispose);
+      await pump(tester, NexTextField(controller: controller, minLines: 4));
+      Future<void> show() async {
+        await fromNative(tester, 'focus', {'focused': true});
+        await fromNative(tester, 'magnifier', loupe());
+        expect(find.byType(TextMagnifier), findsOneWidget);
+      }
+
+      await show();
+      await fromNative(tester, 'changed', {
+        'text': 'یک ویرایش',
+        'start': 3,
+        'end': 3,
+      });
+      expect(find.byType(TextMagnifier), findsNothing);
+      await show();
+      await fromNative(tester, 'focus', {'focused': false});
+      expect(find.byType(TextMagnifier), findsNothing);
+      await fromNative(tester, 'magnifier', loupe());
+      expect(find.byType(TextMagnifier), findsNothing);
+      for (final invalid in [
+        {...loupe(), 'x': double.nan},
+        {...loupe(), 'height': 0},
+        {...loupe(), 'bottom': -4},
+        {...loupe(), 'left': 1000},
+      ]) {
+        await show();
+        await fromNative(tester, 'magnifier', invalid);
+        expect(find.byType(TextMagnifier), findsNothing);
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'the loupe leaves with its route, app pause, keyboard resize or field',
+    (tester) async {
+      addTearDown(tester.view.resetViewInsets);
+      final controller = TextEditingController(text: 'سلام\nHello');
+      addTearDown(controller.dispose);
+      await pump(tester, NexTextField(controller: controller, minLines: 4));
+      await fromNative(tester, 'focus', {'focused': true});
+      await fromNative(tester, 'magnifier', loupe());
+      final navigator = Navigator.of(tester.element(find.byType(NexTextField)));
+      unawaited(
+        navigator.push<void>(
+          MaterialPageRoute(
+            builder: (_) => const Scaffold(body: Text('Next route')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(TextMagnifier), findsNothing);
+      navigator.pop();
+      await tester.pumpAndSettle();
+      await fromNative(tester, 'focus', {'focused': true});
+      await fromNative(tester, 'magnifier', loupe());
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      expect(find.byType(TextMagnifier), findsNothing);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      await fromNative(tester, 'magnifier', loupe());
+      tester.view.viewInsets = const FakeViewPadding(bottom: 250);
+      await tester.pumpAndSettle();
+      expect(find.byType(TextMagnifier), findsNothing);
+      tester.view.resetViewInsets();
+      await tester.pump();
+      await fromNative(tester, 'magnifier', loupe());
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      expect(find.byType(TextMagnifier), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('the experimental native loupe can be disabled independently', (
+    tester,
+  ) async {
+    NexTextField.flutterMagnifier = false;
+    final controller = TextEditingController(text: 'متن');
+    addTearDown(controller.dispose);
+    await pump(tester, NexTextField(controller: controller, minLines: 4));
+    expect(created!['flutterMagnifier'], isFalse);
+    await fromNative(tester, 'focus', {'focused': true});
+    await fromNative(tester, 'magnifier', loupe());
+    expect(find.byType(TextMagnifier), findsNothing);
+    expect(hybrid, isFalse);
   });
 }

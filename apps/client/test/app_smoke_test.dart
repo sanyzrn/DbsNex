@@ -1441,40 +1441,52 @@ void main() {
     expect(find.text('Not changed since'), findsNothing);
   });
 
-  testWidgets('what the AI read is behind a tap, not on top of the note', (
-    tester,
-  ) async {
-    final note = await services.captureVoice(
-      mediaUri: p.join(tmp.path, 'media', 'said.m4a'),
-      mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
-      durationMs: 4000,
-    );
-    // As if the background pass had already transcribed it.
-    testWorker.seedTranscript(note.id, 'the machine heard this');
-    await services.refreshTimeline();
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byType(NoteCard).first);
-    await tester.pumpAndSettle();
+  testWidgets(
+    'saved AI output is previewed in its workspace and expands on request',
+    (tester) async {
+      final note = await services.captureVoice(
+        mediaUri: p.join(tmp.path, 'media', 'said.m4a'),
+        mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
+        durationMs: 4000,
+      );
+      // A previously requested transcript remains readable with AI switched off.
+      testWorker.seedTranscript(note.id, 'the machine heard this');
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(NoteCard).first);
+      await tester.pumpAndSettle();
 
-    // Scoped to the sheet: the timeline card behind it previews a voice note
-    // by its transcript, which is the card's job and not what this is about.
-    Finder inSheet(Finder matching) =>
-        find.descendant(of: find.byType(NoteDetailSheet), matching: matching);
+      // Scoped to the sheet: the timeline card behind it previews a voice note
+      // by its transcript, which is the card's job and not what this is about.
+      Finder inSheet(Finder matching) =>
+          find.descendant(of: find.byType(NoteDetailSheet), matching: matching);
 
-    // The work happened on its own, but it does not open on top of the note.
-    expect(inSheet(find.text('the machine heard this')), findsNothing);
-    expect(inSheet(find.textContaining('Transcript')), findsOneWidget);
+      expect(
+        inSheet(find.byKey(const ValueKey('note-ai-workspace'))),
+        findsOneWidget,
+      );
+      expect(inSheet(find.text('the machine heard this')), findsOneWidget);
+      final preview = tester.widget<Text>(
+        inSheet(find.text('the machine heard this')),
+      );
+      expect(preview.maxLines, 3);
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(NoteDetailSheet)),
+      );
+      await tester.ensureVisible(inSheet(find.byTooltip(l10n.aiResultExpand)));
+      await tester.tap(inSheet(find.byTooltip(l10n.aiResultExpand)));
+      await tester.pumpAndSettle();
+      expect(
+        inSheet(find.byKey(const ValueKey('ai-result-transcript'))),
+        findsOneWidget,
+      );
 
-    await tester.ensureVisible(inSheet(find.textContaining('Transcript')));
-    await tester.pumpAndSettle();
-    await tester.tap(inSheet(find.textContaining('Transcript')));
-    await tester.pumpAndSettle();
-
-    expect(inSheet(find.text('the machine heard this')), findsOneWidget);
-  });
+      expect(inSheet(find.text('the machine heard this')), findsOneWidget);
+    },
+  );
 
   testWidgets('a short note is still only as tall as it needs to be', (
     tester,
@@ -1494,7 +1506,7 @@ void main() {
   });
 
   testWidgets(
-    "a voice note's long hidden transcript does not force reading height",
+    "a voice note's transcript preview stays bounded regardless of length",
     (tester) async {
       // Tall enough that 70% of it clearly exceeds this content's natural
       // height — on the default 800x600 test surface the two are close
@@ -1504,17 +1516,8 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
-      // Reported symptom: a rare, unexplained empty gap below Delete. The
-      // sheet's "is this a long note" check counted the transcript even
-      // while the AI panel that shows it was still collapsed — so whichever
-      // recording happened to transcribe past 220 characters forced the
-      // sheet to 70% of the screen for a view that was just a player and a
-      // "Transcript ready" link, with nothing to fill the rest.
-      //
-      // Both notes here carry a transcript — a "Transcript ready" toggle of
-      // its own either way — so only its *length* differs between them, not
-      // whether the row exists at all. The two should still open at the same
-      // height, since neither transcript is actually shown yet.
+      // The AI workspace shows three preview lines. A long transcript may
+      // add those lines, but must not force the old 70% minimum sheet height.
       final plain = await services.captureVoice(
         mediaUri: p.join(tmp.path, 'media', 'plain.m4a'),
         mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
@@ -1546,7 +1549,8 @@ void main() {
       await tester.pumpAndSettle();
       final plainHeight = tester.getSize(find.byType(NoteDetailSheet)).height;
 
-      expect(longHeight, closeTo(plainHeight, 1));
+      expect(longHeight, lessThanOrEqualTo(plainHeight + 90));
+      expect(longHeight, lessThan(1600 * 0.7));
     },
   );
 

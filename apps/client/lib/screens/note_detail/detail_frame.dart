@@ -1,21 +1,7 @@
 part of '../note_detail_sheet.dart';
 
-/// A horizontally scrolling strip of labelled icon actions.
-///
-/// Scrolling rather than wrapping: the number of actions depends on the note's
-/// type, and a strip that silently grows a second row shifts everything below
-/// it as you move between notes. Each action holds the 48px accessibility
-/// floor (see [nexMinTapTarget]), so on a narrow or lower-resolution phone the
-/// full strip — up to eight actions — routinely does not fit; shrinking the
-/// icons to squeeze more in was tried and rejected for exactly the same
-/// reason 48px is the floor everywhere else. A faded edge is the fix: it
-/// only ever hints that a scroll is possible, never claims one is not needed,
-/// which a same-width `Row` that just quietly clips its last icon does not.
-/// The action strip, in groups with a hairline between them.
-///
-/// Keep the three most useful actions visible with labels. The rest are in a
-/// sheet where their names are readable, instead of an icon-only strip that
-/// concealed half its actions past the edge of a phone.
+/// Keeps Edit, Share and Copy visible when available. Secondary note actions
+/// live in the labelled More sheet; AI has its own workspace above the content.
 class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.groups});
 
@@ -35,7 +21,6 @@ class _ActionRow extends StatelessWidget {
       if (find((a) => a.label == AppLocalizations.of(context).edit)
           case final action?)
         action,
-      if (find((a) => a.icon == Icons.auto_awesome) case final action?) action,
       if (find((a) => a.icon == Icons.ios_share) case final action?) action,
     ];
     if (visible.length < 3) {

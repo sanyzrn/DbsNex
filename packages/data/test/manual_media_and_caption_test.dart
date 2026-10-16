@@ -246,4 +246,65 @@ void main() {
       expect(repo.appendCaption(note.id, 'Do not resurrect'), isFalse);
     },
   );
+
+  for (final type in [
+    NoteType.text,
+    NoteType.photo,
+    NoteType.voice,
+    NoteType.file,
+  ]) {
+    test(
+      'replace caption preserves $type and rejects a stale confirmation',
+      () {
+        final note = insert(type);
+        repo.setCaption(note.id, 'Original caption');
+        expect(
+          repo.replaceCaption(
+            note.id,
+            'Replacement result',
+            expectedCaption: 'Original caption',
+          ),
+          isTrue,
+        );
+        final replaced = repo.getById(note.id)!;
+        expect(replaced.caption, 'Replacement result');
+        expect(replaced.content, note.content);
+        expect(replaced.mediaUri, note.mediaUri);
+        expect(replaced.mediaHash, note.mediaHash);
+        expect(
+          repo
+              .search(const SearchFilters(query: 'Replacement'))
+              .map((n) => n.id),
+          contains(note.id),
+        );
+        repo.setCaption(note.id, 'Newer manual edit');
+        expect(
+          repo.replaceCaption(
+            note.id,
+            'Do not overwrite',
+            expectedCaption: 'Replacement result',
+          ),
+          isFalse,
+        );
+        expect(repo.getById(note.id)!.caption, 'Newer manual edit');
+        expect(
+          repo.replaceCaption(
+            note.id,
+            '  ',
+            expectedCaption: 'Newer manual edit',
+          ),
+          isFalse,
+        );
+        repo.softDelete(note.id);
+        expect(
+          repo.replaceCaption(
+            note.id,
+            'Do not resurrect',
+            expectedCaption: 'Newer manual edit',
+          ),
+          isFalse,
+        );
+      },
+    );
+  }
 }

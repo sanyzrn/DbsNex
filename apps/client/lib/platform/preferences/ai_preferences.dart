@@ -88,8 +88,11 @@ mixin _AiPreferences on _PreferencesStore {
     notifyListeners();
   }
 
-  AiCapabilities get effectiveAiCapabilities =>
-      aiEnabled ? aiCapabilities : AiCapabilities.allOff;
+  AiCapabilities get effectiveAiCapabilities => aiEnabled
+      ? aiCapabilities.copyWith(
+          relatedNotes: nexRelatedNotesAvailable && aiCapabilities.relatedNotes,
+        )
+      : AiCapabilities.allOff;
 
   // The key/baseUrl/model are namespaced per provider rather than kept in one
   // shared slot: a single slot meant switching from, say, Claude to OpenAI

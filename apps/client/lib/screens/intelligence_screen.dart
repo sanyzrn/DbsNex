@@ -33,7 +33,10 @@ List<(Widget, bool)> nexAbilityGlance(NexPreferences prefs) {
     (const NexSummariseIcon(), on && c.summarization),
     (const Icon(Icons.label_outline), on && c.tagSuggestions),
     (const Icon(Icons.travel_explore), on && c.semanticSearch && embeds),
-    (const Icon(Icons.hub_outlined), on && c.relatedNotes && embeds),
+    (
+      const Icon(Icons.hub_outlined),
+      nexRelatedNotesAvailable && on && c.relatedNotes && embeds,
+    ),
   ];
 }
 
@@ -203,9 +206,12 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
       _Ability(
         icon: const Icon(Icons.hub_outlined),
         title: l10n.relatedNotes,
-        subtitle: l10n.relatedNotesSubtitle,
-        value: capabilities.relatedNotes,
-        supported: embeds,
+        subtitle: nexRelatedNotesAvailable
+            ? l10n.relatedNotesSubtitle
+            : l10n.relatedNotesPaused,
+        value: nexRelatedNotesAvailable && capabilities.relatedNotes,
+        supported: nexRelatedNotesAvailable && embeds,
+        paused: !nexRelatedNotesAvailable,
         set: (v) => capabilities.copyWith(relatedNotes: v),
       ),
     ];
@@ -571,6 +577,7 @@ class _Ability {
     required this.value,
     required this.supported,
     required this.set,
+    this.paused = false,
   });
 
   final Widget icon;
@@ -578,6 +585,7 @@ class _Ability {
   final String subtitle;
   final bool value;
   final bool supported;
+  final bool paused;
   final AiCapabilities Function(bool value) set;
 }
 
@@ -672,7 +680,7 @@ class _AbilityTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      ability.supported
+                      ability.supported || ability.paused
                           ? ability.subtitle
                           : l10n.notSupportedByProvider,
                       maxLines: 3,
