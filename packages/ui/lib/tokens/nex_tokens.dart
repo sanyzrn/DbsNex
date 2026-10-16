@@ -766,6 +766,9 @@ ThemeData _theme({
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.xl),
+        // A dialog can open over a sheet with the same fill. Its boundary
+        // must remain visible even when the two surfaces match.
+        side: liquidGlass ? BorderSide.none : BorderSide(color: border),
       ),
     ),
     bottomSheetTheme: BottomSheetThemeData(

@@ -595,6 +595,9 @@ class InProcessDb implements NexDb {
   void seedTranscript(String noteId, String text) =>
       _repo.setTranscriptText(noteId, text);
 
+  void seedReadText(String noteId, String text) =>
+      _repo.setOcrText(noteId, text);
+
   /// Moves a note's timestamps back, so a test can have more than one date
   /// group without waiting a day for one.
   ///

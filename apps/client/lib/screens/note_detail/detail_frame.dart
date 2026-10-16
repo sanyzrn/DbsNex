@@ -1,7 +1,7 @@
 part of '../note_detail_sheet.dart';
 
 /// Keeps Edit, Share and Copy visible when available. Secondary note actions
-/// live in the labelled More sheet; AI has its own workspace above the content.
+/// live in the labelled More sheet; AI has its own workspace below the content.
 class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.groups});
 

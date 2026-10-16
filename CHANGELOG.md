@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.7
+
+- **Accurate result names for files.** Cached Markdown and other non-image file text is labelled Extracted text. Image descriptions keep their own title; attached files follow the same rule. Existing content is preserved.
+- **Compact AI tools below your note.** The AI workspace returns below the content and tags. Its actions, including Suggest tags, use icons with long-press labels, and the result status aligns with the edge.
+- **Tidier results, fully hideable.** Results have their own reading area and a compact result selector. Hide removes the output and its controls; Show results brings it back without requesting AI again.
+- **Text notes keep their own body.** Summaries and translations no longer offer Add to caption for text notes. Copy and translation's Save as note remain available.
+- **Clearer dialog boundaries.** Details, caption confirmation, discard confirmation and other standard dialogs now have a visible theme-matched border and dim the content beneath them in light and dark mode. Glass keeps its existing finish.
+- **Orderly caption choices.** Append text, Replace caption and Cancel use equally wide buttons with consistent spacing, including Persian and larger text.
+
 ## v2.0.6
 
 - **Experimental text magnifier.** Native Android editing now feeds its selection geometry to Flutter’s built-in magnifier, keeping the app’s surface renderer. Cursor/handle dragging and behavior on individual phones still need real-device testing.

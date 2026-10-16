@@ -2,7 +2,7 @@ part of '../note_detail_sheet.dart';
 
 enum _CaptionChoice { append, replace }
 
-/// Explicit AI actions and their output, together above the note's content.
+/// Explicit AI actions and their output, together below the note's content.
 /// Related-note retrieval is intentionally paused; opening this section never
 /// invokes a model or performs a semantic-neighbour query.
 extension _DetailAiPanel on _NoteDetailSheetState {
@@ -11,6 +11,7 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     if (note == null || _readingMedia) return;
     _rebuild(() {
       _readingMedia = true;
+      _hideAiResults = false;
       _showAi = true;
       _activeAiResult = note.isImageMedia ? 'image' : 'transcript';
     });
@@ -43,6 +44,7 @@ extension _DetailAiPanel on _NoteDetailSheetState {
             NexFileKind.audio;
     _rebuild(() {
       _readingAttachments.add(attachment.id);
+      _hideAiResults = false;
       _showAi = true;
       _activeAiResult =
           'attachment-${attachment.id}-${audio ? 'transcript' : 'image'}';
@@ -65,31 +67,49 @@ extension _DetailAiPanel on _NoteDetailSheetState {
   }
 
   Future<void> _addDerivedToCaption(String text) async {
-    if (_addingCaption || text.trim().isEmpty) return;
+    if (_note?.type == NoteType.text || _addingCaption || text.trim().isEmpty) {
+      return;
+    }
     final l10n = AppLocalizations.of(context);
     _rebuild(() => _addingCaption = true);
     try {
       final current = await widget.services.getById(widget.noteId);
-      if (!mounted || current == null) return;
+      if (!mounted || current == null || current.type == NoteType.text) return;
       var choice = _CaptionChoice.append;
       if (current.caption?.trim().isNotEmpty == true) {
         final selected = await nexShowDialog<_CaptionChoice>(
           context: context,
           builder: (dialog) => NexAlertDialog(
-            title: Text(l10n.aiAppendCaptionTitle),
+            title: NexDialogBody(child: Text(l10n.aiAppendCaptionTitle)),
+            scrollable: true,
             content: NexDialogBody(child: Text(l10n.aiAppendCaptionBody)),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialog),
-                child: Text(l10n.cancel),
-              ),
-              OutlinedButton(
-                onPressed: () => Navigator.pop(dialog, _CaptionChoice.append),
-                child: Text(l10n.aiAppendCaption),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialog, _CaptionChoice.replace),
-                child: Text(l10n.aiReplaceCaption),
+              // Three labels cannot reliably share a phone-width action
+              // row. Give each choice the full width, including in RTL and
+              // with larger text, rather than OverflowBar's trailing stack.
+              NexDialogBody(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () =>
+                          Navigator.pop(dialog, _CaptionChoice.append),
+                      child: Text(l10n.aiAppendCaption),
+                    ),
+                    const SizedBox(height: NexSpacing.sm),
+                    FilledButton(
+                      onPressed: () =>
+                          Navigator.pop(dialog, _CaptionChoice.replace),
+                      child: Text(l10n.aiReplaceCaption),
+                    ),
+                    const SizedBox(height: NexSpacing.sm),
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialog),
+                      child: Text(l10n.cancel),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -136,6 +156,7 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     if (_summarizing) return;
     _rebuild(() {
       _summarizing = true;
+      _hideAiResults = false;
       _showAi = true;
       _activeAiResult = 'summary';
     });
@@ -159,7 +180,10 @@ extension _DetailAiPanel on _NoteDetailSheetState {
 
   Future<void> _loadTagSuggestions() async {
     if (_loadingAi) return;
-    _rebuild(() => _loadingAi = true);
+    _rebuild(() {
+      _loadingAi = true;
+      _hideAiResults = false;
+    });
     try {
       final suggestions = await widget.services.suggestTags(widget.noteId);
       if (mounted) _rebuild(() => _suggestions = suggestions);
@@ -185,6 +209,7 @@ extension _DetailAiPanel on _NoteDetailSheetState {
       // Keep the explicitly requested source. Caption edits and tab changes
       // must not silently start a new translation request.
       _translationText = source;
+      _hideAiResults = false;
       _translationRequested = true;
       _activeAiResult = 'translation';
     });
@@ -240,6 +265,14 @@ extension _DetailAiPanel on _NoteDetailSheetState {
           ),
         ),
       ),
+    if (widget.preferences?.effectiveAiCapabilities.tagSuggestions == true &&
+        widget.services.aiIsUsable)
+      _DetailAction(
+        icon: Icons.label_outline,
+        label: l10n.aiTagsAction,
+        accent: true,
+        onPressed: _loadingAi ? null : () => unawaited(_loadTagSuggestions()),
+      ),
   ];
 
   String _translationSource(Note note) =>
@@ -249,14 +282,20 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     if (note.transcriptText?.trim().isNotEmpty == true)
       _AiResult('transcript', l10n.transcript, note.transcriptText!.trim()),
     if (note.ocrText?.trim().isNotEmpty == true)
-      _AiResult('image', l10n.aiImageResult, note.ocrText!.trim()),
+      // This column also holds the source of a note converted to Markdown.
+      // Its presence alone does not mean an image was described by AI.
+      _AiResult(
+        note.isImageMedia ? 'image' : 'extracted',
+        note.isImageMedia ? l10n.aiImageResult : l10n.aiExtractedText,
+        note.ocrText!.trim(),
+      ),
     if (_summaryIsMeaningful(note))
       _AiResult('summary', l10n.summary, note.summaryText!.trim()),
     for (var i = 0; i < _attachments.length; i++) ...[
       if (_attachments[i].ocrText?.trim().isNotEmpty == true)
         _AiResult(
           'attachment-${_attachments[i].id}-image',
-          '${l10n.aiImageResult} · ${nexDigits('${i + 1}', persian: l10n.localeName == 'fa')}',
+          '${_attachmentReadLabel(_attachments[i], l10n)} · ${nexDigits('${i + 1}', persian: l10n.localeName == 'fa')}',
           _attachments[i].ocrText!.trim(),
         ),
       if (_attachments[i].transcriptText?.trim().isNotEmpty == true)
@@ -268,6 +307,20 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     ],
   ];
 
+  String _attachmentReadLabel(
+    NoteAttachment attachment,
+    AppLocalizations l10n,
+  ) {
+    final image =
+        attachment.kind == AttachmentKind.photo ||
+        NexFileKinds.of(
+              path: attachment.mediaUri,
+              mimeType: attachment.mimeType,
+            ) ==
+            NexFileKind.image;
+    return image ? l10n.aiImageResult : l10n.aiExtractedText;
+  }
+
   Widget _aiPanel(Note note, AppLocalizations l10n) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -278,10 +331,9 @@ extension _DetailAiPanel on _NoteDetailSheetState {
         _readingAttachments.isNotEmpty ||
         _summarizing ||
         _loadingAi;
-    final canSuggest =
-        widget.preferences?.effectiveAiCapabilities.tagSuggestions == true &&
-        widget.services.aiIsUsable;
-    if (derived.isEmpty && actions.isEmpty && !canSuggest && !busy) {
+    final hasResults =
+        derived.isNotEmpty || _translationRequested || _suggestions.isNotEmpty;
+    if (!hasResults && actions.isEmpty && !busy) {
       return const SizedBox.shrink();
     }
     final translating =
@@ -289,8 +341,17 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     final selected =
         derived.where((r) => r.id == _activeAiResult).firstOrNull ??
         derived.lastOrNull;
+    final choices = [
+      ...derived,
+      if (_translationRequested) _AiResult('translation', l10n.translate, ''),
+    ];
+    final selectedId = translating ? 'translation' : selected?.id;
+    final resultLabel = translating
+        ? l10n.translate
+        : selected?.label ?? l10n.tagSuggestions;
+    final canCaption = note.type != NoteType.text;
     return Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.md),
+      padding: const EdgeInsets.only(top: NexSpacing.md),
       child: NexSurface(
         key: const ValueKey('note-ai-workspace'),
         color: scheme.surfaceContainerLow,
@@ -312,24 +373,29 @@ extension _DetailAiPanel on _NoteDetailSheetState {
                     style: theme.textTheme.titleSmall,
                   ),
                 ),
-                if (busy || (derived.isNotEmpty && !translating))
-                  Flexible(
+                if (busy || (hasResults && !translating)) ...[
+                  const SizedBox(width: NexSpacing.sm),
+                  Expanded(
                     child: Text(
                       busy ? l10n.aiProcessing : l10n.aiResultReady,
+                      key: const ValueKey('note-ai-status'),
+                      textAlign: TextAlign.end,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
+                ],
               ],
             ),
             if (actions.isNotEmpty) ...[
               const SizedBox(height: NexSpacing.sm),
               Wrap(
+                key: const ValueKey('note-ai-tools'),
                 spacing: NexSpacing.sm,
                 runSpacing: NexSpacing.xs,
                 children: [
-                  for (final action in actions) _AiActionPill(action: action),
+                  for (final action in actions) _AiActionIcon(action: action),
                 ],
               ),
             ],
@@ -337,117 +403,218 @@ extension _DetailAiPanel on _NoteDetailSheetState {
               const SizedBox(height: NexSpacing.sm),
               const LinearProgressIndicator(minHeight: 2),
             ],
-            if (derived.isNotEmpty || _translationRequested) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: NexSpacing.sm),
-                child: Divider(height: 1),
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (derived.length + (_translationRequested ? 1 : 0) >
-                            1)
-                          Wrap(
-                            spacing: NexSpacing.xs,
-                            runSpacing: NexSpacing.xs,
-                            children: [
-                              for (final result in derived)
-                                ChoiceChip(
-                                  label: Text(result.label),
-                                  selected:
-                                      !translating && selected?.id == result.id,
-                                  onSelected: (_) => _rebuild(
-                                    () => _activeAiResult = result.id,
+            if (hasResults) ...[
+              const SizedBox(height: NexSpacing.sm),
+              if (_hideAiResults)
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    key: const ValueKey('note-ai-show-results'),
+                    onPressed: () => _rebuild(() => _hideAiResults = false),
+                    icon: const Icon(Icons.visibility_outlined, size: 18),
+                    label: Text(l10n.aiShowResults),
+                  ),
+                ),
+              // Keep an already-requested translation alive while hiding it.
+              // Revealing output or switching results must not call AI again.
+              Visibility(
+                visible: !_hideAiResults,
+                maintainState: true,
+                child: NexSurface(
+                  key: const ValueKey('note-ai-results'),
+                  color: scheme.surface,
+                  border: BorderSide(color: scheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(NexRadius.md),
+                  padding: const EdgeInsets.all(NexSpacing.sm),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: choices.length > 1
+                                ? NexPopupMenuButton<String>(
+                                    key: const ValueKey(
+                                      'note-ai-result-picker',
+                                    ),
+                                    tooltip: l10n.aiSwitchResult,
+                                    initialValue: selectedId,
+                                    onSelected: (id) =>
+                                        _rebuild(() => _activeAiResult = id),
+                                    itemBuilder: (_) => [
+                                      for (final result in choices)
+                                        PopupMenuItem(
+                                          value: result.id,
+                                          child: Text(result.label),
+                                        ),
+                                    ],
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: NexSpacing.sm,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              resultLabel,
+                                              style: theme.textTheme.labelLarge,
+                                            ),
+                                          ),
+                                          const SizedBox(width: NexSpacing.xs),
+                                          const Icon(
+                                            Icons.keyboard_arrow_down,
+                                            size: 18,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    resultLabel,
+                                    style: theme.textTheme.labelLarge,
                                   ),
-                                ),
-                              if (_translationRequested)
-                                ChoiceChip(
-                                  label: Text(l10n.translate),
-                                  selected: translating,
-                                  onSelected: (_) => _rebuild(
-                                    () => _activeAiResult = 'translation',
-                                  ),
-                                ),
-                            ],
-                          )
-                        else if (selected != null)
-                          Text(
-                            selected.label,
-                            style: theme.textTheme.labelLarge,
                           ),
-                      ],
-                    ),
-                  ),
-                  if (!translating && selected != null)
-                    IconButton(
-                      tooltip: _showAi
-                          ? l10n.aiResultCollapse
-                          : l10n.aiResultExpand,
-                      onPressed: () => _rebuild(() => _showAi = !_showAi),
-                      icon: Icon(
-                        _showAi ? Icons.unfold_less : Icons.unfold_more,
-                        size: 20,
+                          if (!translating && selected != null)
+                            IconButton(
+                              tooltip: _showAi
+                                  ? l10n.aiResultCollapse
+                                  : l10n.aiResultExpand,
+                              onPressed: () =>
+                                  _rebuild(() => _showAi = !_showAi),
+                              icon: Icon(
+                                _showAi ? Icons.unfold_less : Icons.unfold_more,
+                                size: 20,
+                              ),
+                            ),
+                          IconButton(
+                            key: const ValueKey('note-ai-hide-results'),
+                            tooltip: l10n.hide,
+                            onPressed: () =>
+                                _rebuild(() => _hideAiResults = true),
+                            icon: const Icon(
+                              Icons.visibility_off_outlined,
+                              size: 20,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                ],
-              ),
-              if (!translating && selected != null) ...[
-                const SizedBox(height: NexSpacing.sm),
-                if (_showAi)
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 240),
-                    child: SingleChildScrollView(
-                      key: ValueKey('ai-result-${selected.id}'),
-                      primary: false,
-                      child: NexTextSurface(selected.text, selectable: true),
-                    ),
-                  )
-                else
-                  NexTextSurface(selected.text, maxLines: 3),
-                Wrap(
-                  spacing: NexSpacing.sm,
-                  runSpacing: NexSpacing.xs,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () =>
-                          unawaited(_copyDerivedText(selected.text)),
-                      icon: const Icon(Icons.copy_outlined, size: 18),
-                      label: Text(l10n.copy),
-                    ),
-                    TextButton.icon(
-                      key: ValueKey('add-derived-caption-${selected.id}'),
-                      onPressed: _addingCaption
-                          ? null
-                          : () =>
-                                unawaited(_addDerivedToCaption(selected.text)),
-                      icon: const Icon(Icons.playlist_add_outlined, size: 18),
-                      label: Text(l10n.aiAddToCaption),
-                    ),
-                  ],
-                ),
-              ],
-              if (widget.preferences case final preferences?
-                  when _translationRequested)
-                Visibility(
-                  visible: translating,
-                  maintainState: true,
-                  child: TranslateSheet(
-                    key: ValueKey(
-                      'note-translation-${note.id}-${_translationText.hashCode}',
-                    ),
-                    text: _translationText,
-                    preferences: preferences,
-                    services: widget.services,
-                    embedded: true,
-                    addingCaption: _addingCaption,
-                    onAddToCaption: (text) =>
-                        unawaited(_addDerivedToCaption(text)),
+                      if (!translating && selected != null) ...[
+                        const SizedBox(height: NexSpacing.xs),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: NexSpacing.sm,
+                          ),
+                          child: _showAi
+                              ? ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxHeight: 240,
+                                  ),
+                                  child: SingleChildScrollView(
+                                    key: ValueKey('ai-result-${selected.id}'),
+                                    primary: false,
+                                    child: NexTextSurface(
+                                      selected.text,
+                                      selectable: true,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(height: 1.65),
+                                    ),
+                                  ),
+                                )
+                              : NexTextSurface(
+                                  selected.text,
+                                  maxLines: 3,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    height: 1.65,
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(height: NexSpacing.xs),
+                        Wrap(
+                          spacing: NexSpacing.xs,
+                          runSpacing: NexSpacing.xs,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () =>
+                                  unawaited(_copyDerivedText(selected.text)),
+                              icon: const Icon(Icons.copy_outlined, size: 18),
+                              label: Text(l10n.copy),
+                            ),
+                            if (canCaption)
+                              TextButton.icon(
+                                key: ValueKey(
+                                  'add-derived-caption-${selected.id}',
+                                ),
+                                onPressed: _addingCaption
+                                    ? null
+                                    : () => unawaited(
+                                        _addDerivedToCaption(selected.text),
+                                      ),
+                                icon: const Icon(
+                                  Icons.playlist_add_outlined,
+                                  size: 18,
+                                ),
+                                label: Text(l10n.aiAddToCaption),
+                              ),
+                          ],
+                        ),
+                      ],
+                      if (widget.preferences case final preferences?
+                          when _translationRequested)
+                        Visibility(
+                          visible: translating,
+                          maintainState: true,
+                          child: TranslateSheet(
+                            key: ValueKey(
+                              'note-translation-${note.id}-${_translationText.hashCode}',
+                            ),
+                            text: _translationText,
+                            preferences: preferences,
+                            services: widget.services,
+                            embedded: true,
+                            addingCaption: _addingCaption,
+                            onAddToCaption: canCaption
+                                ? (text) =>
+                                      unawaited(_addDerivedToCaption(text))
+                                : null,
+                          ),
+                        ),
+                      if (_suggestions.isNotEmpty) ...[
+                        if (selected != null || _translationRequested)
+                          Padding(
+                            padding: const EdgeInsets.all(NexSpacing.sm),
+                            child: Text(
+                              l10n.tagSuggestions,
+                              style: theme.textTheme.labelMedium,
+                            ),
+                          ),
+                        Wrap(
+                          spacing: NexSpacing.xs,
+                          runSpacing: NexSpacing.xs,
+                          children: [
+                            for (final suggestion in _suggestions)
+                              ActionChip(
+                                label: Text(suggestion.name),
+                                onPressed: () async {
+                                  await widget.services.addTag(
+                                    noteId: note.id,
+                                    name: suggestion.name,
+                                  );
+                                  if (!mounted) return;
+                                  _rebuild(
+                                    () => _suggestions = _suggestions
+                                        .where((s) => s.name != suggestion.name)
+                                        .toList(),
+                                  );
+                                  await _reload();
+                                },
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
                 ),
+              ),
             ] else if (!busy) ...[
               const SizedBox(height: NexSpacing.sm),
               Text(
@@ -457,41 +624,6 @@ extension _DetailAiPanel on _NoteDetailSheetState {
                 ),
               ),
             ],
-            if (canSuggest)
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: TextButton.icon(
-                  onPressed: _loadingAi
-                      ? null
-                      : () => unawaited(_loadTagSuggestions()),
-                  icon: const Icon(Icons.label_outline, size: 18),
-                  label: Text(l10n.aiTagsAction),
-                ),
-              ),
-            if (_suggestions.isNotEmpty)
-              Wrap(
-                spacing: NexSpacing.xs,
-                runSpacing: NexSpacing.xs,
-                children: [
-                  for (final suggestion in _suggestions)
-                    ActionChip(
-                      label: Text(suggestion.name),
-                      onPressed: () async {
-                        await widget.services.addTag(
-                          noteId: note.id,
-                          name: suggestion.name,
-                        );
-                        if (!mounted) return;
-                        _rebuild(
-                          () => _suggestions = _suggestions
-                              .where((s) => s.name != suggestion.name)
-                              .toList(),
-                        );
-                        await _reload();
-                      },
-                    ),
-                ],
-              ),
           ],
         ),
       ),
