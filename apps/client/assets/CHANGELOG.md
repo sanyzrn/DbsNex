@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.5
+
+- **Lighter everyday screens.** In-page cards, settings controls, chat bubbles and search keep their glass edges and finish without repeatedly blurring the page behind them. Floating menus, sheets and navigation keep their live glass.
+- **Restore the normal Android renderer.** The main app no longer renders every page into a texture for the selection magnifier. The native editor still preserves mixed Persian/English paragraphs, formatting and private copying. The Android system magnifier remains a device-validation limitation; this update does not claim to fix it.
+- **Less work while writing.** Unchanged editor settings and formatting labels are reused across typing and parent rebuilds, without recreating the editor or sending its text back to Android.
+- **Clearer AI actions.** Image reading, audio transcription and other assistant actions use accent-coloured icons and the theme's normal text colour: dark in light mode, light in dark mode. Destructive and unavailable actions keep their own states.
+
 ## v2.0.4
 
 - **Selection without keyboard surprises.** A small halo around the focused input protects taps near text-selection handles while a farther tap still dismisses the keyboard.

@@ -40,12 +40,24 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
           IconData icon,
           String label, {
           bool danger = false,
+          bool accent = false,
         }) => ListTile(
           key: ValueKey('attachment-$key'),
-          leading: Icon(icon, color: danger ? theme.colorScheme.error : null),
+          leading: Icon(
+            icon,
+            color: danger
+                ? theme.colorScheme.error
+                : accent
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurfaceVariant,
+          ),
           title: Text(
             label,
-            style: danger ? TextStyle(color: theme.colorScheme.error) : null,
+            style: TextStyle(
+              color: danger
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.onSurface,
+            ),
           ),
           onTap: () => Navigator.pop(sheet, key),
         );
@@ -112,6 +124,7 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
                     'read-media',
                     Icons.image_search_outlined,
                     l10n.aiDescribeImage,
+                    accent: true,
                   ),
                 if (audio &&
                     widget.services.audioTranscriptionAvailable &&
@@ -120,6 +133,7 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
                     'read-media',
                     Icons.transcribe_outlined,
                     l10n.aiTranscribeAudio,
+                    accent: true,
                   ),
                 action(
                   'caption',

@@ -118,7 +118,7 @@ void main() {
       theme: nexLightTheme(liquidGlass: true),
       searching: false,
     );
-    expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(find.byType(BackdropFilter), findsNothing);
     final surface = tester.widget<Material>(
       find
           .ancestor(of: find.byType(TextField), matching: find.byType(Material))

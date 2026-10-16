@@ -325,6 +325,7 @@ class NexGlassSurface extends StatelessWidget {
     this.fallbackColor,
     this.showShadow = true,
     this.material = NexGlassMaterial.panel,
+    this.blur = true,
   });
 
   final Widget child;
@@ -332,6 +333,11 @@ class NexGlassSurface extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final bool showShadow;
   final NexGlassMaterial material;
+
+  /// Live backdrop blur is for overlays. In-page cards and nested controls
+  /// keep the same optical finish over a stable tint, without sampling the
+  /// scrolling page or blurring a second time inside a glass sheet.
+  final bool blur;
 
   /// What to draw outside the glass appearance.
   ///
@@ -378,6 +384,31 @@ class NexGlassSurface extends StatelessWidget {
     }
     final floating = material == NexGlassMaterial.floating;
     final opticalStrength = floating ? 0.6 : 1.0;
+    final content = CustomPaint(
+      painter: _GlassWashPainter(
+        floating ? visual.floatingGlassWash : visual.glassWash,
+      ),
+      foregroundPainter: _GlassRimPainter(borderRadius, visual),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            stops: const [0, 0.38, 1],
+            colors: [
+              visual.glassHighlight.withValues(
+                alpha: visual.glassHighlight.a * opticalStrength,
+              ),
+              Colors.transparent,
+              visual.glassDepth.withValues(
+                alpha: visual.glassDepth.a * opticalStrength,
+              ),
+            ],
+          ),
+        ),
+        child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+      ),
+    );
     return CustomPaint(
       painter: _GlassEdgePainter(
         shadows: showShadow
@@ -387,39 +418,15 @@ class NexGlassSurface extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: visual.blurSigma * (floating ? 0.7 : 1),
-            sigmaY: visual.blurSigma * (floating ? 0.7 : 1),
-          ),
-          // Source-over films stay stable when the sliver or refresh indicator
-          // temporarily paints into a fresh layer above the blurred page.
-          child: CustomPaint(
-            painter: _GlassWashPainter(
-              floating ? visual.floatingGlassWash : visual.glassWash,
-            ),
-            foregroundPainter: _GlassRimPainter(borderRadius, visual),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  stops: const [0, 0.38, 1],
-                  colors: [
-                    visual.glassHighlight.withValues(
-                      alpha: visual.glassHighlight.a * opticalStrength,
-                    ),
-                    Colors.transparent,
-                    visual.glassDepth.withValues(
-                      alpha: visual.glassDepth.a * opticalStrength,
-                    ),
-                  ],
+        child: blur
+            ? BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: visual.blurSigma * (floating ? 0.7 : 1),
+                  sigmaY: visual.blurSigma * (floating ? 0.7 : 1),
                 ),
-              ),
-              child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
-            ),
-          ),
-        ),
+                child: content,
+              )
+            : ColoredBox(color: visual.glassOpaque, child: content),
       ),
     );
   }

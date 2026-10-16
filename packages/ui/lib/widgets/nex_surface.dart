@@ -40,6 +40,7 @@ class NexSurface extends StatelessWidget {
       );
     }
     return NexGlassSurface(
+      blur: false,
       showShadow: false,
       borderRadius: borderRadius,
       fallbackColor: color,

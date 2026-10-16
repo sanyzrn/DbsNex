@@ -45,7 +45,7 @@ void main() {
         expect(tester.widget(search), isA<NexSurface>());
         expect(
           find.descendant(of: search, matching: find.byType(BackdropFilter)),
-          highContrast ? findsNothing : findsOneWidget,
+          findsNothing,
         );
         final input = find.descendant(
           of: search,
@@ -56,7 +56,7 @@ void main() {
         expect(tester.widget(profile), isA<NexSurface>());
         expect(
           find.descendant(of: profile, matching: find.byType(BackdropFilter)),
-          highContrast ? findsNothing : findsOneWidget,
+          findsNothing,
         );
         await show(
           WidgetSettingsScreen(
@@ -71,7 +71,7 @@ void main() {
               of: find.byWidget(surface.widget),
               matching: find.byType(BackdropFilter),
             ),
-            highContrast ? findsNothing : findsOneWidget,
+            findsNothing,
           );
         }
         // Filtering remains interactive after the material change.

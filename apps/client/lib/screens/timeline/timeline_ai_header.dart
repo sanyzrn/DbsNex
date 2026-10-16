@@ -522,6 +522,7 @@ extension _TimelineAiHeader on TimelineScreenState {
         active: !_aiSummaryCollapsed,
         token: _aiSummaryLoading ? '…' : _aiSummaryText,
         child: NexGlassSurface(
+          blur: false,
           borderRadius: corner,
           showShadow: false,
           fallbackColor: scheme.surfaceContainerLowest,

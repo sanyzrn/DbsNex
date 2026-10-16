@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' show BoxWidthStyle;
@@ -259,7 +258,9 @@ class _NativeFieldState extends State<_NativeField> {
   bool _fromNative = false;
   bool _focused = false;
   double? _height;
-  String? _lastConfig;
+  Map<String, Object?>? _lastConfig;
+  AppLocalizations? _formatLocale;
+  List<Map<String, String>> _formats = const [];
 
   @override
   void initState() {
@@ -432,6 +433,18 @@ class _NativeFieldState extends State<_NativeField> {
     final scheme = theme.colorScheme;
     final style = theme.textTheme.bodyLarge!.merge(field.style);
     final enabled = field.enabled;
+    // These labels do not change while typing. Reuse their list so a shallow
+    // config comparison does not serialize a full menu on every rebuild.
+    if (field.formatting) {
+      final locale = AppLocalizations.of(context);
+      if (locale != _formatLocale) {
+        _formatLocale = locale;
+        _formats = [
+          for (final command in nexFormatCommands(locale))
+            {'id': command.id, 'label': command.label},
+        ];
+      }
+    }
     final textColor = (style.color ?? scheme.onSurface).withValues(
       alpha: enabled ? null : 0.38,
     );
@@ -494,25 +507,17 @@ class _NativeFieldState extends State<_NativeField> {
       'autofocus': field.autofocus,
       'privateCopy': field.onCopy != null,
       'rtl': Directionality.of(context) == TextDirection.rtl,
-      'formats': field.formatting
-          ? [
-              for (final command in nexFormatCommands(
-                AppLocalizations.of(context),
-              ))
-                {'id': command.id, 'label': command.label},
-            ]
-          : const <Map<String, String>>[],
+      'formats': field.formatting ? _formats : const <Map<String, String>>[],
     };
   }
 
   @override
   Widget build(BuildContext context) {
     final config = _config(context);
-    final encoded = jsonEncode(config);
-    if (_lastConfig != null && encoded != _lastConfig) {
+    if (_lastConfig != null && !mapEquals(config, _lastConfig)) {
       unawaited(_channel?.invokeMethod<void>('update', config));
     }
-    _lastConfig = encoded;
+    _lastConfig = config;
     final field = widget.field;
     final theme = Theme.of(context);
     final style = theme.textTheme.bodyLarge!.merge(field.style);
@@ -544,9 +549,10 @@ class _NativeFieldState extends State<_NativeField> {
         _native = value;
         // Keep the editor in a texture: forcing hybrid composition stalls
         // the whole Flutter scene while the editor/keyboard opens or scrolls.
-        // MainActivity renders Flutter into a TextureView so Android's
-        // magnifier can sample the composed text AND its Flutter decoration.
-        // The native editor stays transparent; InputDecorator owns the fill.
+        // The app uses its default SurfaceView again. Do not change the
+        // renderer of every page just to feed Android's system magnifier:
+        // that lens still needs device-specific validation with texture views.
+        // InputDecorator alone owns the transparent editor's border and fill.
         return PlatformViewsService.initSurfaceAndroidView(
             id: params.id,
             viewType: NexTextField.viewType,

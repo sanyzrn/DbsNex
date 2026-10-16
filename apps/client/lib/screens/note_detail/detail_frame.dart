@@ -79,7 +79,16 @@ class _ActionRow extends StatelessWidget {
             for (final action in actions)
               ListTile(
                 leading: action.glyph ?? Icon(action.icon),
-                title: Text(action.label),
+                title: Text(
+                  action.label,
+                  style: TextStyle(
+                    color: action.onPressed == null
+                        ? Theme.of(sheetContext).disabledColor
+                        : action.destructive
+                        ? Theme.of(sheetContext).colorScheme.error
+                        : Theme.of(sheetContext).colorScheme.onSurface,
+                  ),
+                ),
                 textColor: action.destructive
                     ? Theme.of(context).colorScheme.error
                     : null,
@@ -146,6 +155,9 @@ class _DetailAction extends StatelessWidget {
         : destructive
         ? theme.colorScheme.error
         : theme.colorScheme.onSurfaceVariant;
+    final labelColor = onPressed != null && accent && !destructive
+        ? theme.colorScheme.onSurface
+        : color;
     return Tooltip(
       message: label,
       child: InkWell(
@@ -168,7 +180,7 @@ class _DetailAction extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(color: color),
+                style: theme.textTheme.labelSmall?.copyWith(color: labelColor),
               ),
             ],
           ),
