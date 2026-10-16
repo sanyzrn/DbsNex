@@ -42,7 +42,7 @@ class _GreetingLine extends StatelessWidget {
   Widget build(BuildContext context) {
     if (text.isEmpty && !loading) return const SizedBox.shrink();
     return AnimatedSwitcher(
-      duration: NexMotion.standard,
+      duration: NexMotion.of(context, NexMotion.standard),
       child: Opacity(
         key: ValueKey(text),
         opacity: loading ? 0.45 : 1,
@@ -219,16 +219,42 @@ class _AiDaySummaryPanel extends StatelessWidget {
           // the edge was the header's own margin.
           padding: const EdgeInsets.all(NexSpacing.cardInset),
           child: AnimatedSize(
-            duration: NexMotion.slow,
+            duration: NexMotion.of(context, NexMotion.slow),
             curve: NexMotion.curve,
             alignment: Alignment.topCenter,
             // No rule down the edge any more, and still no heading. The
             // light going round the card says the same thing the rule did —
             // a model wrote this — and two marks for one fact is one mark
             // too many.
-            child: collapsed
-                ? _CollapsedRecap(label: _firstLine ?? emptyLabel)
-                : _body(theme),
+            child: AnimatedSwitcher(
+              duration: NexMotion.of(context, NexMotion.enter),
+              reverseDuration: NexMotion.of(context, NexMotion.exit),
+              switchInCurve: NexMotion.curve,
+              switchOutCurve: NexMotion.exitCurve,
+              layoutBuilder: (current, previous) => Stack(
+                alignment: AlignmentDirectional.topStart,
+                children: [
+                  for (final child in previous)
+                    ExcludeSemantics(child: IgnorePointer(child: child)),
+                  if (current != null) current,
+                ],
+              ),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: animation.drive(
+                    Tween(begin: const Offset(0, 0.025), end: Offset.zero),
+                  ),
+                  child: child,
+                ),
+              ),
+              child: KeyedSubtree(
+                key: ValueKey((collapsed, text)),
+                child: collapsed
+                    ? _CollapsedRecap(label: _firstLine ?? emptyLabel)
+                    : _body(context, theme),
+              ),
+            ),
           ),
         ),
       ),
@@ -243,7 +269,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
     return end == -1 ? value : value.substring(0, end);
   }
 
-  Widget _body(ThemeData theme) {
+  Widget _body(BuildContext context, ThemeData theme) {
     final value = text;
     // Defaulted rather than carried around as a nullable: the lede's size is
     // this one's times a factor, and `base?.copyWith(base.fontSize ...)` does
@@ -259,7 +285,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
       // first one is being written.
       return AnimatedOpacity(
         opacity: loading ? 0.5 : 1,
-        duration: NexMotion.slow,
+        duration: NexMotion.of(context, NexMotion.slow),
         curve: NexMotion.curve,
         child: Text(
           emptyLabel,
@@ -277,7 +303,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
     // different words in it is the honest picture of that.
     return AnimatedOpacity(
       opacity: loading ? 0.45 : 1,
-      duration: NexMotion.slow,
+      duration: NexMotion.of(context, NexMotion.slow),
       curve: NexMotion.curve,
       child: Column(
         // Min, because this sits in an [IntrinsicHeight] row: a column that

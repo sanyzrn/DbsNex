@@ -113,6 +113,27 @@ void main() {
         await tester.pumpAndSettle();
         expect(card, findsOneWidget);
         expect(find.byKey(const ValueKey('module-habits')), findsNothing);
+        await tester.enterText(
+          find.byKey(const ValueKey('modules-search')),
+          language == 'fa' ? 'اذان' : 'prayer',
+        );
+        await tester.pumpAndSettle();
+        final calendar = find.byKey(const ValueKey('plan-persian-calendar'));
+        expect(calendar, findsOneWidget);
+        expect(
+          find.descendant(
+            of: calendar,
+            matching: find.text(l10n.moduleStageSoon),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: calendar,
+            matching: find.byType(ButtonStyleButton),
+          ),
+          findsNothing,
+        );
         expect(tester.takeException(), isNull);
       });
     }

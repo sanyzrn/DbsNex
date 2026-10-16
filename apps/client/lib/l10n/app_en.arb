@@ -1299,19 +1299,19 @@
   "@hide": {
     "description": "Collapses the intelligence panel"
   },
-  "catchUpTitle": "The notes you already have",
+  "catchUpTitle": "Complete the search index",
   "@catchUpTitle": {
     "description": "Heading above the backfill control"
   },
-  "catchUpBody": "Nex reads a note in the background right after it is captured — which means everything captured before this was switched on has never been read. This works through that backlog, oldest requests first, a batch at a time.",
+  "catchUpBody": "Builds missing or outdated search vectors from text already saved in your notes, up to 25 notes per pass. Enable semantic search or related notes first. Audio transcription, image reading, summaries and tag suggestions are not run.",
   "@catchUpBody": {
     "description": "Explains what the backfill does and why it is needed"
   },
-  "catchUpAction": "Catch up",
+  "catchUpAction": "Index existing notes",
   "@catchUpAction": {
     "description": "Starts a backfill pass"
   },
-  "catchUpDone": "{count, plural, =0{Nothing left to read} =1{1 note read} other{{count} notes read}}",
+  "catchUpDone": "{count, plural, =0{No notes indexed in this pass} =1{1 note indexed} other{{count} notes indexed}}",
   "@catchUpDone": {
     "description": "Result of a backfill pass",
     "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
@@ -3342,5 +3342,7 @@
   "aiShowResults": "Show results",
   "aiSwitchResult": "Switch result",
   "aiExtractedText": "Extracted text",
-  "chatThinking": "Thinking it through…"
+  "chatThinking": "Thinking it through…",
+  "planPersianCalendarTitle": "Persian calendar & prayer times",
+  "planPersianCalendarAbout": "A Solar Hijri calendar with occasions and date conversion. Prayer times for your chosen city, with optional adhan alerts and a separate setting for each prayer."
 }

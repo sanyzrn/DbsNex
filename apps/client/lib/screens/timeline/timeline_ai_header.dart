@@ -518,6 +518,7 @@ extension _TimelineAiHeader on TimelineScreenState {
           scheme.primary.withValues(alpha: 0.08),
         ],
         thickness: 0.6,
+        laps: 1,
         strength: _aiSummaryLoading ? 0.4 : 0.25,
         active: !_aiSummaryCollapsed,
         token: _aiSummaryLoading ? '…' : _aiSummaryText,

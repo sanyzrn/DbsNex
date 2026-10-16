@@ -73,6 +73,7 @@ import 'settings_sheet.dart';
 part 'timeline/timeline_header_widgets.dart';
 part 'timeline/timeline_filter_widgets.dart';
 part 'timeline/timeline_groups.dart';
+part 'timeline/timeline_list.dart';
 part 'timeline/timeline_ai_header.dart';
 part 'timeline/timeline_capture.dart';
 part 'timeline/timeline_note_actions.dart';

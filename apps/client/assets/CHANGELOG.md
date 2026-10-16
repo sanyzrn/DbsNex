@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.9
+
+- **Softer card changes.** Deleted and filtered cards fade and fold away, restored cards settle back in, and pinned notes move between their groups. Unchanged cards keep their state; the list stays lazy and off-screen changes skip the animation.
+- **Quiet feedback.** Adding a tag or changing a pin gives the card marker a brief pulse. Updated daily briefs blend into their new text, and switching glass on or off uses the same reveal as a theme change. Reduced motion is respected.
+- **Clear search indexing.** The former Catch up section now explains that it indexes existing note text for semantic search and related notes, up to 25 notes per pass. It does not transcribe audio or read images, and a zero-result pass no longer claims the backlog is complete.
+- **On the way: Persian calendar & prayer times.** A single coming-soon module groups the Solar Hijri calendar, occasions, date conversion, city-based prayer times and optional adhan alerts.
+
 ## v2.0.8
 
 - **Smooth focus outlines.** Settings search and the assistant composer now keep a continuous rounded focus border in light and dark themes. The main search keeps its blue glow with a softer fade and no clipped rectangle.
