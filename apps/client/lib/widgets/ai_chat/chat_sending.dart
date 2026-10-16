@@ -24,7 +24,8 @@ extension _ChatSending on _AiChatSheetState {
   bool get _canSpeak =>
       !kIsWeb &&
       (Platform.isAndroid || Platform.isIOS) &&
-      widget.preferences.aiProvider.provider.hearsAudio;
+      widget.preferences.aiProvider.isUsable &&
+      widget.preferences.aiProvider.supportsTranscription;
 
   /// Record a question instead of typing it.
   ///

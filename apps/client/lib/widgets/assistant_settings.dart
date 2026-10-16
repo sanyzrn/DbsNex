@@ -331,7 +331,7 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                 subtitle: Text(l10n.assistantScopeSubtitle),
               ),
               // Only where the assistant can hear: the provider takes audio.
-              if (preferences.aiProvider.provider.hearsAudio)
+              if (preferences.aiProvider.supportsTranscription)
                 NexSwitchTile(
                   secondary: const Icon(Icons.record_voice_over_outlined),
                   value: preferences.aiVoiceReview,
