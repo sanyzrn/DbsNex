@@ -230,6 +230,40 @@ void main() {
     expect((sent.arguments as Map)['text'], 'rewritten by the assistant');
   });
 
+  testWidgets('typing and parent rebuilds keep the editor and config stable', (
+    tester,
+  ) async {
+    final controller = TextEditingController(text: 'سلام Nex!');
+    addTearDown(controller.dispose);
+    late StateSetter rebuild;
+    await pump(
+      tester,
+      StatefulBuilder(
+        builder: (context, setState) {
+          rebuild = setState;
+          return NexTextField(controller: controller, formatting: true);
+        },
+      ),
+    );
+    final id = viewId;
+    toNative.clear();
+    for (final text in ['سلام Nex! one', 'سلام Nex! one two', 'سلام Nex!']) {
+      await fromNative(tester, 'changed', {
+        'text': text,
+        'start': text.length,
+        'end': text.length,
+      });
+      rebuild(() {});
+      await tester.pump();
+    }
+    expect(controller.text, 'سلام Nex!');
+    expect(viewId, id);
+    expect(createCount, 1);
+    expect(toNative.where((c) => c.method == 'setValue'), isEmpty);
+    expect(toNative.where((c) => c.method == 'update'), isEmpty);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('the field takes the height the editor measured', (tester) async {
     final controller = TextEditingController();
     await pump(tester, NexTextField(controller: controller));

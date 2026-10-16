@@ -181,6 +181,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     ColorScheme scheme,
     double focus,
   ) => NexGlassSurface(
+    blur: false,
     borderRadius: BorderRadius.circular(NexRadius.pill),
     showShadow: false,
     fallbackColor: scheme.surfaceContainerLowest,

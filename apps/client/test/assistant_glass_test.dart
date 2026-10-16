@@ -81,7 +81,7 @@ void main() {
           );
           expect(
             find.byType(BackdropFilter),
-            contrast ? findsNothing : findsNWidgets(2),
+            contrast ? findsNothing : findsOneWidget,
           );
           final l10n = lookupAppLocalizations(locale);
           await tester.tap(find.byTooltip(l10n.assistant));

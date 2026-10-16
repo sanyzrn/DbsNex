@@ -88,13 +88,13 @@ void main() {
           final blurred = mode == 'glass';
           expect(
             find.byType(BackdropFilter),
-            blurred ? findsNWidgets(2) : findsNothing,
+            blurred ? findsOneWidget : findsNothing,
           );
           await tester.tap(find.byIcon(Icons.more_vert));
           await tester.pumpAndSettle();
           expect(
             find.byType(BackdropFilter),
-            blurred ? findsNWidgets(3) : findsNothing,
+            blurred ? findsNWidgets(2) : findsNothing,
           );
           await tester.tap(find.text('Second'));
           await tester.pumpAndSettle();
@@ -109,7 +109,7 @@ void main() {
           expect(find.text('Confirm'), findsOneWidget);
           expect(
             find.byType(BackdropFilter),
-            blurred ? findsNWidgets(3) : findsNothing,
+            blurred ? findsNWidgets(2) : findsNothing,
           );
           await tester.tap(find.text('Done'));
           await tester.pumpAndSettle();
