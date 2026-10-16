@@ -8683,6 +8683,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Extracted text'**
   String get aiExtractedText;
+
+  /// No description provided for @chatThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking it through…'**
+  String get chatThinking;
 }
 
 class _AppLocalizationsDelegate

@@ -68,7 +68,6 @@ class _SettingsSearchState extends State<_SettingsSearch> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final glass = context.nexVisualStyle.liquidGlass;
     const outline = OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(NexRadius.lg)),
       borderSide: BorderSide.none,
@@ -98,20 +97,15 @@ class _SettingsSearchState extends State<_SettingsSearch> {
               // app's pill: a search box that is the odd one out reads as
               // belonging to something else.
               // Keep the input transparent above its shared optical rim.
-              filled: !glass,
-              fillColor: glass
-                  ? Colors.transparent
-                  : scheme.surfaceContainerHighest,
+              filled: false,
               border: outline,
-              enabledBorder: glass ? outline : null,
-              focusedBorder: glass
-                  ? outline.copyWith(
-                      borderSide: BorderSide(
-                        color: scheme.primary,
-                        width: nexFocusRingWidth,
-                      ),
-                    )
-                  : null,
+              enabledBorder: outline,
+              focusedBorder: outline.copyWith(
+                borderSide: BorderSide(
+                  color: scheme.primary,
+                  width: nexFocusRingWidth,
+                ),
+              ),
               prefixIcon: const Icon(Icons.search),
               hintText: nexLabel(
                 context,

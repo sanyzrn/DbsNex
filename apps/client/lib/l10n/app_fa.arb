@@ -1972,5 +1972,6 @@
   "aiResultCollapse": "جمع‌کردن نتیجه",
   "aiShowResults": "نمایش نتیجه‌ها",
   "aiSwitchResult": "تغییر نتیجه",
-  "aiExtractedText": "متن استخراج‌شده"
+  "aiExtractedText": "متن استخراج‌شده",
+  "chatThinking": "دارم فکر می‌کنم…"
 }

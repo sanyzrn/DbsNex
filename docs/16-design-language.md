@@ -93,7 +93,7 @@ and a module being added feel like the same app. The tokens are in
   Taking it out runs the same thing backwards.
 - **Signature pieces** have their own choreography and say so where they are
   defined: the splash, the onboarding scenes, the living wordmark, the top
-  capsule, the assistant's glow, Cycle's light, the recording pulse.
+  capsule, the assistant's glow and thinking dots, Cycle's light, the recording pulse.
   Everything else uses the tokens. `test/motion_test.dart` keeps literal
   durations out of every other file.
 - Short and purposeful; nothing loops forever on its own.

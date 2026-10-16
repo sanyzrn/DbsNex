@@ -118,7 +118,7 @@ class _Thread extends StatelessWidget {
                         color: theme.colorScheme.error,
                       ),
                     )
-                  : const SizedBox(width: 120, child: NexSkeleton(height: 16)),
+                  : const _ThinkingIndicator(),
             ),
           );
         }

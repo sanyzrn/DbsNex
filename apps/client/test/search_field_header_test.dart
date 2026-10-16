@@ -76,6 +76,27 @@ void main() {
     }
   }
 
+  testWidgets('focused halo fades inside the scrolling clip', (tester) async {
+    await effective(tester, theme: nexLightTheme(), searching: true);
+    await tester.pumpAndSettle();
+    final halo = find.byKey(const ValueKey('search-focus-halo'));
+    final decoration =
+        tester.widget<DecoratedBox>(halo).decoration as BoxDecoration;
+    final shadow = decoration.boxShadow!.single;
+    expect(shadow.color.a, greaterThan(0));
+    final bounds = tester.getRect(halo);
+    final clip = tester.getRect(
+      find.ancestor(of: halo, matching: find.byType(ClipRect)).first,
+    );
+    // Three sigma leaves virtually no blue at the clip edge. The old 4/8px
+    // vertical gutters cut through a 16px blur, creating a rectangular band.
+    final fade = shadow.blurSigma * 3 + shadow.spreadRadius;
+    expect(bounds.top - clip.top, greaterThanOrEqualTo(fade));
+    expect(clip.bottom - bounds.bottom, greaterThanOrEqualTo(fade));
+    expect(bounds.left - clip.left, greaterThanOrEqualTo(fade));
+    expect(clip.right - bounds.right, greaterThanOrEqualTo(fade));
+  });
+
   testWidgets('the header lays no band of colour across the background', (
     tester,
   ) async {

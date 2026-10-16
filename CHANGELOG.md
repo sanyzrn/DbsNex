@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v2.0.8
+
+- **Smooth focus outlines.** Settings search and the assistant composer now keep a continuous rounded focus border in light and dark themes. The main search keeps its blue glow with a softer fade and no clipped rectangle.
+- **A livelier assistant wait.** While a reply is on its way, a sparkle, thinking text and three gently moving dots replace the empty loading bar. Reduced motion keeps the indicator still.
+
 ## v2.0.7
 
 - **Accurate result names for files.** Cached Markdown and other non-image file text is labelled Extracted text. Image descriptions keep their own title; attached files follow the same rule. Existing content is preserved.

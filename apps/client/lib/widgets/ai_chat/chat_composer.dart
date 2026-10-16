@@ -46,6 +46,10 @@ class _Composer extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    const outline = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(NexRadius.xl)),
+      borderSide: BorderSide.none,
+    );
     // The larger of the keyboard and the system bar, never their sum: the
     // keyboard covers the navigation bar while it is up, so adding both
     // floats the composer a nav-bar's height above the keyboard. With
@@ -90,11 +94,13 @@ class _Composer extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: l10n.chatHint,
                   filled: false,
-                  border: const OutlineInputBorder(
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(NexRadius.xl),
+                  border: outline,
+                  enabledBorder: outline,
+                  focusedBorder: outline.copyWith(
+                    borderSide: BorderSide(
+                      color: theme.colorScheme.primary,
+                      width: nexFocusRingWidth,
                     ),
-                    borderSide: BorderSide.none,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: NexSpacing.md,

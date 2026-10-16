@@ -42,7 +42,8 @@ void main() {
   test('transitions take their timing from NexMotion', () {
     // The signature animations — the splash, the onboarding scenes, the
     // living wordmark, the top capsule, Cycle's breathing light, the
-    // recording pulse, the camera's flash — are choreographed pieces with
+    // recording pulse, the assistant's thinking dots, the camera's flash —
+    // are choreographed pieces with
     // their own timing, and say so where they are defined. Everything else
     // that arrives, leaves or changes uses the tokens.
     const signature = {
@@ -54,6 +55,7 @@ void main() {
       'lib/widgets/nex_brand.dart',
       'lib/widgets/nex_banner.dart',
       'lib/widgets/recording_sheet.dart',
+      'lib/widgets/ai_chat/chat_thinking.dart',
     };
     final literal = RegExp(
       r'(?:duration|Duration|reverseDuration|transitionDuration)'
