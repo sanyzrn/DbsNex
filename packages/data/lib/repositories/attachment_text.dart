@@ -31,13 +31,23 @@ class AttachmentTextReader {
   /// Reads one attached photo, or transcribes one attached voice clip.
   /// Whether it learned anything: false when it is neither, was read
   /// before, or nothing here reads it.
-  Future<bool> read(String id) async {
+  Future<bool> read(String id, {bool refresh = false}) async {
     final attachment = _attachments.byId(id);
-    if (attachment == null || attachment.deletedAt != null) return false;
-    final photo = attachment.kind == AttachmentKind.photo;
-    final voice = attachment.kind == AttachmentKind.voice;
-    if (!(photo && attachment.ocrText == null) &&
-        !(voice && attachment.transcriptText == null)) {
+    if (attachment == null ||
+        attachment.deletedAt != null ||
+        !_attachments.parentExists(attachment.noteId)) {
+      return false;
+    }
+    final kind = NexFileKinds.of(
+      path: attachment.mediaUri,
+      mimeType: attachment.mimeType,
+    );
+    final photo =
+        attachment.kind == AttachmentKind.photo || kind == NexFileKind.image;
+    final voice =
+        attachment.kind == AttachmentKind.voice || kind == NexFileKind.audio;
+    if (!(photo && (refresh || attachment.ocrText == null)) &&
+        !(voice && (refresh || attachment.transcriptText == null))) {
       return false;
     }
     Future<String?> ask() => photo
@@ -59,6 +69,7 @@ class AttachmentTextReader {
     final current = _attachments.byId(id);
     if (current == null ||
         current.deletedAt != null ||
+        !_attachments.parentExists(attachment.noteId) ||
         current.mediaHash != attachment.mediaHash ||
         current.mediaUri != attachment.mediaUri) {
       return false;

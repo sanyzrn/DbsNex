@@ -254,7 +254,7 @@
   "share": "هم‌رسانی",
   "swipeActions": "کشیدن انگشت",
   "transcription": "تبدیل گفتار به متن",
-  "ocr": "تشخیص متن در تصویر",
+  "ocr": "شرح و متن تصویر",
   "tagSuggestions": "پیشنهاد برچسب",
   "semanticSearch": "جست‌وجوی معنایی",
   "summarization": "خلاصه‌سازی",
@@ -444,7 +444,7 @@
   "@transcript": {
     "description": "Heading above a voice note's transcript"
   },
-  "voiceSearchHint": "فقط با برچسب یا تاریخ پیدا می‌شود",
+  "voiceSearchHint": "از «بیشتر ← تبدیل صدا به متن» این ضبط را قابل جست‌وجو کنید.",
   "@voiceSearchHint": {
     "description": "FR-4.6 — voice notes are not keyword-searchable in v1"
   },
@@ -871,8 +871,8 @@
   "chatSendTooltip": "ارسال",
   "automatic": "خودکار انجام می‌شود",
   "notSupportedByProvider": "سرویسی که انتخاب کرده‌اید این را ندارد",
-  "transcriptionSubtitle": "تبدیل یادداشت صوتی به متنِ قابل جست‌وجو",
-  "ocrSubtitle": "خواندن نوشته‌های داخل عکس",
+  "transcriptionSubtitle": "تبدیل صوت به متن قابل جست‌وجو، با درخواست شما",
+  "ocrSubtitle": "شرح تصویر و خواندن متن مفید، با درخواست شما",
   "summarizationSubtitle": "فشرده کردن یادداشت بلند در یک خط",
   "tagSuggestionsSubtitle": "پیشنهاد برچسب — هیچ‌وقت خودش اعمال نمی‌کند",
   "semanticSearchSubtitle": "پیدا کردن یادداشت بر اساس معنا، نه فقط کلمه",
@@ -1942,5 +1942,22 @@
   "assistantVoiceReview": "بررسی گفته‌ها پیش از ارسال",
   "assistantVoiceReviewSubtitle": "درخواستی که با صدا می‌گویید، به جای ارسال فوری، برای ویرایش در کادر نوشتن قرار می‌گیرد.",
   "editPhotoBeforeCapture": "ویرایش تصویر پیش از ثبت",
-  "editPhotoBeforeCaptureSubtitle": "پس از گرفتن یا انتخاب عکس، پیش‌نمایش و ابزارهای ویرایش باز شوند. در حالت خاموش، عکس مستقیم ثبت می‌شود."
+  "editPhotoBeforeCaptureSubtitle": "پس از گرفتن یا انتخاب عکس، پیش‌نمایش و ابزارهای ویرایش باز شوند. در حالت خاموش، عکس مستقیم ثبت می‌شود.",
+  "planPauseTitle": "مکث",
+  "planPauseAbout": "وقفه‌ای کوتاه برای تنفس با حالت‌های آرامش، تمرکز و ریلکس؛ حرکت ظریف هماهنگ با نفس، ویبرهٔ اختیاری و استفادهٔ آفلاین.",
+  "aiDescribeImage": "شرح و خواندن تصویر",
+  "aiTranscribeAudio": "تبدیل صدا به متن",
+  "aiImageResult": "شرح و متن تصویر",
+  "aiMediaWorking": "در حال خواندن رسانه…",
+  "aiMediaFailed": "خواندن این رسانه انجام نشد. نتیجهٔ قبلی حفظ شده؛ دوباره تلاش کنید.",
+  "aiMediaEmpty": "گفتار یا محتوای خواندنی پیدا نشد.",
+  "aiAddToCaption": "افزودن به کپشن",
+  "aiAppendCaptionTitle": "این آیتم از قبل کپشن دارد",
+  "aiAppendCaptionBody": "این متن به انتهای کپشن فعلی اضافه شود؟",
+  "aiAppendCaption": "افزودن به انتها",
+  "aiCaptionAdded": "به کپشن اضافه شد",
+  "aiCaptionFailed": "افزودن این متن به کپشن انجام نشد.",
+  "aiTranslateTranscript": "ترجمهٔ متن صوت",
+  "aiSummarizeTranscript": "خلاصهٔ متن صوت",
+  "aiSummarizeImageText": "خلاصهٔ متن تصویر"
 }

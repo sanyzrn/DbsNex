@@ -148,7 +148,7 @@ void main() {
 
   test('transcription stores transcript_text and enables FTS', () async {
     final note = insertVoice();
-    await enrichment.enrichNote(note.id);
+    await enrichment.readMediaOnDemand(note.id);
     final updated = repo.getById(note.id)!;
     expect(updated.transcriptText, isNotNull);
     expect(updated.transcriptText, contains('grocery list'));
@@ -158,7 +158,7 @@ void main() {
 
   test('ocr stores ocr_text and enables FTS', () async {
     final note = insertPhoto();
-    await enrichment.enrichNote(note.id);
+    await enrichment.readMediaOnDemand(note.id);
     final updated = repo.getById(note.id)!;
     expect(updated.ocrText, isNotNull);
     expect(updated.ocrText, contains('receipt'));
@@ -166,24 +166,26 @@ void main() {
     expect(hits.map((n) => n.id), contains(note.id));
   });
 
-  test('an adapter that cannot transcribe marks the slot empty, once', () async {
-    // The on-device adapter has no way to hear audio. The note must come out
-    // of the backlog (empty slot, not null) and must never carry fabricated
-    // text — the failure mode the old stub transcript created.
-    final offline = EnrichmentService(
-      repo: repo,
-      adapter: const OnDeviceAIAdapter(),
-      capabilities: const AiCapabilities(transcription: true, ocr: true),
-    );
-    final voice = insertVoice();
-    await offline.enrichNote(voice.id);
-    final updated = repo.getById(voice.id)!;
-    expect(updated.transcriptText, '');
-    expect(
-      repo.listNeedingEnrichment(limit: 10).map((n) => n.id),
-      isNot(contains(voice.id)),
-    );
-  });
+  test(
+    'an adapter that cannot transcribe leaves the slot available for another provider',
+    () async {
+      // An unsupported adapter leaves the slot unwritten, so another provider
+      // can be asked explicitly. No fabricated transcript is stored.
+      final offline = EnrichmentService(
+        repo: repo,
+        adapter: const OnDeviceAIAdapter(),
+        capabilities: const AiCapabilities(transcription: true, ocr: true),
+      );
+      final voice = insertVoice();
+      await offline.readMediaOnDemand(voice.id);
+      final updated = repo.getById(voice.id)!;
+      expect(updated.transcriptText, isNull);
+      expect(
+        repo.listNeedingEnrichment(limit: 10).map((n) => n.id),
+        contains(voice.id),
+      );
+    },
+  );
 
   test('disabled transcription leaves note unchanged', () async {
     final note = insertVoice();

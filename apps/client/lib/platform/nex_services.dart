@@ -112,6 +112,16 @@ class NexServices {
   bool get aiIsUsable =>
       _preferences.aiEnabled && aiTextAvailableWith(_preferences.aiProvider);
 
+  bool get imageReadingAvailable =>
+      _preferences.effectiveAiCapabilities.ocr &&
+      _preferences.aiProvider.isUsable &&
+      _preferences.aiProvider.provider.readsImages;
+
+  bool get audioTranscriptionAvailable =>
+      _preferences.effectiveAiCapabilities.transcription &&
+      _preferences.aiProvider.isUsable &&
+      _preferences.aiProvider.provider.hearsAudio;
+
   final _timelineController = StreamController<List<Note>>.broadcast();
   Stream<List<Note>> get timelineStream => _timelineController.stream;
 
@@ -349,10 +359,8 @@ class NexServices {
     // the last word on which vector space the library is in.
     final searchModel = activeSearchModel(preferences);
     unawaited(worker.setLocalEmbedder(searchModel));
-    // Turning it on has to mean something for the notes that are already here.
-    // Enrichment is a capture-time step, so without this the layer would only
-    // ever read notes captured after the moment it was configured — and every
-    // recording made before that would stay untranscribed for good.
+    // Search can index existing text, but enabling a provider must not upload
+    // photos or recordings. Their reading actions are explicit from 2.0.4.
     if (ai.isUsable) unawaited(backfillEnrichment());
     if (searchModel != null) unawaited(embedLibrary());
   }
@@ -411,16 +419,13 @@ class NexServices {
   /// Fire-and-forget post-capture enrichment — never awaited by capture UI.
   void scheduleEnrichment(String noteId) {
     if (_closed) return;
-    // Nobody awaits it, so nobody may be handed its failure either: a note
-    // with no transcript yet is picked up by the next backfill.
+    // Nobody awaits it, so nobody may be handed its failure either. Media
+    // reading is never scheduled here; only text enrichment and indexing.
     unawaited(worker.enrichNote(noteId).catchError((Object _) {}));
   }
 
-  /// Works through the notes the intelligence layer has never read.
-  ///
-  /// Bounded per call and safe to repeat: each pass takes the newest notes
-  /// still missing their derived text, so calling it again picks up where the
-  /// last one stopped.
+  /// Indexes text already available in the library, without reading media.
+  /// The legacy entrypoint is kept for callers and saved preference flows.
   Future<int> backfillEnrichment({int limit = 25}) async {
     if (_closed) return 0;
     try {

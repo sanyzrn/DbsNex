@@ -22,6 +22,7 @@ import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import io.flutter.embedding.android.FlutterFragmentActivity
+import io.flutter.embedding.android.RenderMode
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
@@ -33,6 +34,17 @@ import java.util.UUID
 import org.json.JSONObject
 
 open class MainActivity : FlutterFragmentActivity() {
+    /**
+     * A texture-composed EditText's magnifier samples the application window.
+     * Flutter's default SurfaceView is outside that window's pixels, leaving
+     * an empty lens. TextureView includes the Flutter scene in that sample,
+     * including the field's fill, without forcing expensive hybrid platform
+     * views for every editor. Keep the EditText itself transparent.
+     * See https://docs.flutter.dev/platform-integration/android/platform-views
+     * (Texture layer). This also preserves ShareActivity's transparent host.
+     */
+    override fun getRenderMode(): RenderMode = RenderMode.texture
+
     /**
      * Whether this window exists only to receive a share, and should take
      * itself down once one has been captured.

@@ -1,3 +1,4 @@
+import '../files/file_kind.dart';
 import 'checklist.dart';
 import 'tag.dart';
 
@@ -173,20 +174,49 @@ class Note {
   List<ChecklistItem> get checklistItems =>
       type == NoteType.checklist ? parseChecklist(content) : const [];
 
+  bool get isImageMedia =>
+      type == NoteType.photo ||
+      (type == NoteType.file &&
+          NexFileKinds.of(path: mediaUri, mimeType: mimeType) ==
+              NexFileKind.image);
+
+  bool get isAudioMedia =>
+      type == NoteType.voice ||
+      (type == NoteType.file &&
+          NexFileKinds.of(path: mediaUri, mimeType: mimeType) ==
+              NexFileKind.audio);
+
+  /// Substance for text-only AI operations; a media filename is not content.
+  String? get aiSourceText {
+    if (isImageMedia) return _joinSearchable([ocrText]);
+    if (isAudioMedia) return _joinSearchable([transcriptText]);
+    return switch (type) {
+      NoteType.text => _joinSearchable([content]),
+      NoteType.checklist => _joinSearchable([
+        for (final item in checklistItems) item.text,
+      ]),
+      NoteType.link => _joinSearchable([content, linkExcerpt, caption]),
+      NoteType.file => _joinSearchable([ocrText, transcriptText, caption]),
+      _ => null,
+    };
+  }
+
   /// Text used for keyword search — original body or AI-derived text.
   String? get searchableDerivedText {
     switch (type) {
       case NoteType.text:
-        return _joinSearchable([title, content]);
+        return _joinSearchable([title, content, caption]);
       case NoteType.voice:
         return _joinSearchable([title, transcriptText, caption]);
       case NoteType.photo:
         return _joinSearchable([title, ocrText, caption]);
       case NoteType.file:
         return _joinSearchable([
-          title, content, caption,
-          // Markdown conversion retains the original body in this text cache.
-          if (mimeType == 'text/markdown') ocrText,
+          title,
+          content,
+          caption,
+          ocrText,
+          transcriptText,
         ]);
       // The markers are stripped: searching for "milk" should find a ticked
       // item, and nobody searches for "[x]".
@@ -194,6 +224,7 @@ class Note {
         return _joinSearchable([
           title,
           for (final item in checklistItems) item.text,
+          caption,
         ]);
       // The URL is searchable too — looking a bookmark up by its domain is
       // the most obvious way to go back to one.

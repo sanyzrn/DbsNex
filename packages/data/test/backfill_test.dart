@@ -6,10 +6,8 @@ import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-/// Enrichment runs once, at capture. The intelligence layer is off by default,
-/// so at the moment a user turns it on, every note they already have was
-/// captured while nothing could read it — and without a backfill, none of them
-/// ever would be.
+/// Existing text can be indexed in the background. Media captured before or
+/// after a provider was configured is read only through an explicit action.
 void main() {
   late Directory tmp;
   late NexDatabase db;
@@ -83,7 +81,7 @@ void main() {
     expect(repo.listNeedingEnrichment(limit: 10), isEmpty);
   });
 
-  test('backfill reads the notes captured before the layer existed', () async {
+  test('backfill leaves media unread until an explicit action', () async {
     final voice = media(NoteType.voice, 'clip.m4a');
     final photo = media(NoteType.photo, 'shot.jpg');
     final service = EnrichmentService(
@@ -94,14 +92,18 @@ void main() {
 
     final done = await service.backfill();
 
-    expect(done, 2);
+    expect(done, 0);
+    expect(repo.getById(voice.id)!.transcriptText, isNull);
+    expect(repo.getById(photo.id)!.ocrText, isNull);
+    expect(await service.readMediaOnDemand(voice.id), 'transcribed');
+    expect(await service.readMediaOnDemand(photo.id), 'read from the image');
     expect(repo.getById(voice.id)!.transcriptText, 'transcribed');
     expect(repo.getById(photo.id)!.ocrText, 'read from the image');
     // And there is nothing left to do, so a second pass is free.
     expect(await service.backfill(), 0);
   });
 
-  test('backfill stops at the first note that produces nothing', () async {
+  test('backfill makes no audio request even with a failing provider', () async {
     // What an exhausted free-tier quota looks like from here. Spending the rest
     // of the backlog to learn the same thing is the failure mode to avoid.
     for (var i = 0; i < 5; i++) {
@@ -121,7 +123,7 @@ void main() {
     final done = await service.backfill();
 
     expect(done, 0);
-    expect(adapter.calls, 1, reason: 'it did not walk the whole backlog');
+    expect(adapter.calls, 0, reason: 'background backfill never uploads media');
   });
 
   test('backfill does nothing while the capabilities are off', () async {

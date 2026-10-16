@@ -33,6 +33,8 @@ class SqliteAttachmentRepository {
       NoteAttachment.fromRow(row),
   ];
 
+  bool parentExists(String noteId) => _notes.getById(noteId) != null;
+
   /// How many attachments each of [noteIds] has — what a card's `+3` reads.
   /// Notes with none are left out.
   Map<String, int> countsFor(Iterable<String> noteIds) =>

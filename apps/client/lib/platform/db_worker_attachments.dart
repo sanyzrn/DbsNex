@@ -60,8 +60,11 @@ mixin _DbAttachments {
   Future<void> attachmentSetOcr(String id, String? text) =>
       _send<void>(_DbCommand.attachmentSetOcr, {'id': id, 'text': text});
 
-  Future<bool> attachmentReadText(String id) =>
-      _send<bool>(_DbCommand.attachmentReadText, {'id': id});
+  Future<bool> attachmentReadText(String id, {bool refresh = false}) =>
+      _send<bool>(_DbCommand.attachmentReadText, {
+        'id': id,
+        'refresh': refresh,
+      });
 
   Future<void> attachmentRename(String id, String? name) =>
       _send<void>(_DbCommand.attachmentRename, {'id': id, 'text': name});

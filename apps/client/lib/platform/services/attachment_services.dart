@@ -7,6 +7,16 @@ part of '../nex_services.dart';
 /// never took it (a capture that failed half way). Every change refreshes
 /// the timeline, where a card shows how many files its note carries.
 extension NexAttachmentServices on NexServices {
+  Future<bool> readAttachmentOnDemand(String id) async {
+    final read = await worker.attachmentReadText(id, refresh: true);
+    if (read) {
+      try {
+        await refreshTimeline();
+      } catch (_) {}
+    }
+    return read;
+  }
+
   Future<List<NoteAttachment>> attachmentsFor(String noteId) =>
       worker.attachmentsFor(noteId);
 
@@ -93,18 +103,6 @@ extension NexAttachmentServices on NexServices {
   Future<NoteAttachment?> _attached(NoteAttachment? attachment) async {
     if (attachment == null) return null;
     await refreshTimeline();
-    // A photo's words are read, and a voice clip transcribed, the way a
-    // photo or voice note's are: afterwards, in the background, and only
-    // when that is switched on. Nobody
-    // waits for it, so nobody is handed its failure; the next backfill
-    // picks up what this missed.
-    if (attachment.kind != AttachmentKind.file && !_closed) {
-      unawaited(
-        worker
-            .attachmentReadText(attachment.id)
-            .then<void>((_) {}, onError: (Object _) {}),
-      );
-    }
     return attachment;
   }
 
@@ -131,13 +129,6 @@ extension NexAttachmentServices on NexServices {
     try {
       await refreshTimeline();
     } catch (_) {}
-    if (!_closed) {
-      unawaited(
-        worker
-            .attachmentReadText(attachment.id)
-            .then<void>((_) {}, onError: (Object _) {}),
-      );
-    }
     return true;
   }
 

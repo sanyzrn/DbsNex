@@ -13,17 +13,20 @@ void main() {
   late Map<String, Object?>? created;
   late int viewId;
   late bool hybrid;
+  late int createCount;
 
   setUp(() {
     NexTextField.native = true;
     toNative = [];
     created = null;
+    createCount = 0;
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(SystemChannels.platform_views, (
       call,
     ) async {
       if (call.method == 'create') {
+        createCount++;
         final args = (call.arguments as Map).cast<String, Object?>();
         hybrid = args['hybrid'] == true;
         viewId = args['id']! as int;
@@ -41,6 +44,13 @@ void main() {
             return null;
           },
         );
+        // Exercise real texture composition, including resizes. Returning
+        // null silently selects hybrid fallback and misses editor regressions.
+        return args['hybrid'] == true ? null : viewId;
+      }
+      if (call.method == 'resize') {
+        final args = call.arguments as Map;
+        return {'width': args['width'], 'height': args['height']};
       }
       return null;
     });
@@ -97,10 +107,14 @@ void main() {
     expect(created, isNotNull);
     expect(
       hybrid,
-      isTrue,
-      reason: 'native selection popups need native composition',
+      isFalse,
+      reason: 'opening an editor must not force hybrid scene composition',
     );
-    expect((created!['backgroundColor']! as int) >> 24, 0xff);
+    expect(created, isNot(contains('backgroundColor')));
+    final surface = tester.widget<AndroidViewSurface>(
+      find.byType(AndroidViewSurface),
+    );
+    expect(surface.controller.requiresViewComposition, isFalse);
     expect(created!['text'], 'سلام Nex!');
     expect(created!['hint'], 'بنویسید');
     expect(created!['minLines'], 3);
@@ -114,6 +128,68 @@ void main() {
       containsAll(['bold', 'italic', 'quote', 'link', 'clear']),
     );
   });
+
+  for (final brightness in Brightness.values) {
+    for (final filled in [false, true]) {
+      testWidgets('${brightness.name}, filled=$filled: the decoration owns '
+          'the fill and the texture survives focus, resize and keyboard', (
+        tester,
+      ) async {
+        final controller = TextEditingController(text: 'سلام\nHello!');
+        addTearDown(controller.dispose);
+        addTearDown(tester.view.reset);
+        const fieldFill = Color(0x1A0088FF);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(
+              brightness: brightness,
+              inputDecorationTheme: const InputDecorationTheme(
+                filled: true,
+                fillColor: Color(0xFFE0E0E0),
+              ),
+            ),
+            home: Scaffold(
+              body: NexTextField(
+                controller: controller,
+                minLines: 3,
+                decoration: InputDecoration(
+                  filled: filled,
+                  fillColor: fieldFill,
+                  suffixIcon: const Icon(Icons.content_paste),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final id = viewId;
+        expect(created, isNot(contains('backgroundColor')));
+        final decoration = tester
+            .widget<InputDecorator>(find.byType(InputDecorator))
+            .decoration;
+        expect(decoration.filled, filled);
+        expect(decoration.fillColor, fieldFill);
+
+        await fromNative(tester, 'focus', {'focused': true});
+        await fromNative(tester, 'height', {'height': 180.0});
+        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+        await tester.pumpAndSettle();
+        final surface = tester.widget<AndroidViewSurface>(
+          find.byType(AndroidViewSurface),
+        );
+        expect(surface.controller.requiresViewComposition, isFalse);
+        expect(viewId, id);
+        expect(createCount, 1);
+        expect(
+          toNative.where((c) => c.method == 'update').map((c) => c.arguments),
+          everyElement(isNot(contains('backgroundColor'))),
+        );
+        expect(controller.text, 'سلام\nHello!');
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      });
+    }
+  }
 
   testWidgets('typing in the editor reaches the controller, and is not echoed '
       'back', (tester) async {
@@ -336,6 +412,56 @@ void main() {
     expect(field.textDirection, TextDirection.rtl);
     expect(field.maxLines, 4);
   });
+
+  testWidgets(
+    'the native child keeps focus while selecting near the decorated edge',
+    (tester) async {
+      tester.view.viewInsets = const FakeViewPadding(bottom: 250);
+      addTearDown(tester.view.reset);
+      final controller = TextEditingController(text: 'سلام\nHello');
+      final focus = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focus.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => NexKeyboardDismisser(child: child!),
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 400,
+                child: NexTextField(
+                  controller: controller,
+                  focusNode: focus,
+                  minLines: 3,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      Focus.of(tester.element(find.byType(AndroidViewSurface))).requestFocus();
+      await tester.pump();
+      await fromNative(tester, 'focus', {'focused': true});
+      final bounds = tester.getRect(find.byType(InputDecorator));
+      toNative.clear();
+      for (final point in [
+        Offset(bounds.left - 6, bounds.center.dy),
+        Offset(bounds.right + 6, bounds.center.dy),
+        Offset(bounds.center.dx, bounds.bottom + 18),
+      ]) {
+        await tester.tapAt(point);
+        await tester.pump();
+        expect(focus.hasFocus, isTrue);
+      }
+      expect(toNative.map((c) => c.method), isNot(contains('unfocus')));
+      await tester.tapAt(Offset(bounds.center.dx, bounds.bottom + 54));
+      await tester.pump();
+      expect(focus.hasFocus, isFalse);
+      expect(toNative.map((c) => c.method), contains('unfocus'));
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('a tap inside the editor with the keyboard up keeps it focused, '
       'in the app as it runs, under the keyboard dismisser', (tester) async {

@@ -824,6 +824,8 @@ void main() {
           expect((await adapter.ocr(image)!).text, report);
           final wire = jsonEncode(request);
           expect(wire, contains('screenshot'));
+          expect(wire, contains('one or two short, factual sentences'));
+          expect(wire, contains('ordinary photo with no words'));
           expect(wire, contains('keyboard keys'));
           expect(wire, contains('transcribe its'));
           expect(wire, contains('Never invent a URL'));
@@ -838,6 +840,17 @@ void main() {
     test('words come back as written', () async {
       expect((await replying(200, ' Room 12 ').ocr(image)!).text, 'Room 12');
     });
+
+    test(
+      'a textless flower photo keeps its short visual description',
+      () async {
+        const description = 'A red flower with green leaves in a small pot.';
+        expect(
+          (await replying(200, description).ocr(image)!).text,
+          description,
+        );
+      },
+    );
   });
 
   _recapGroup();

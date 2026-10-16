@@ -462,12 +462,6 @@ class _NativeFieldState extends State<_NativeField> {
       'letterSpacing': style.letterSpacing == null
           ? null
           : scaler.scale(fontSize) / fontSize * style.letterSpacing!,
-      'backgroundColor': Color.alphaBlend(
-        field.decoration.fillColor ??
-            theme.inputDecorationTheme.fillColor ??
-            scheme.surface,
-        scheme.surface,
-      ).toARGB32(),
       'textColor': textColor.toARGB32(),
       'hintColor': hintColor.toARGB32(),
       'selectionColor': selection.toARGB32(),
@@ -548,11 +542,12 @@ class _NativeFieldState extends State<_NativeField> {
             ? value.selection
             : TextSelection.collapsed(offset: value.text.length);
         _native = value;
-        // Native handles, toolbar and magnifier use window surfaces. Texture
-        // composition cannot capture this EditText for Android's magnifier
-        // (flutter/flutter#112712), leaving an empty floating pill. Keep this
-        // editor in the native hierarchy so those surfaces share its pixels.
-        return PlatformViewsService.initExpensiveAndroidView(
+        // Keep the editor in a texture: forcing hybrid composition stalls
+        // the whole Flutter scene while the editor/keyboard opens or scrolls.
+        // MainActivity renders Flutter into a TextureView so Android's
+        // magnifier can sample the composed text AND its Flutter decoration.
+        // The native editor stays transparent; InputDecorator owns the fill.
+        return PlatformViewsService.initSurfaceAndroidView(
             id: params.id,
             viewType: NexTextField.viewType,
             layoutDirection: Directionality.of(context),

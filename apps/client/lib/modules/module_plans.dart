@@ -19,6 +19,7 @@ class NexModulePlan {
   final NexModuleStage stage;
 
   String title(AppLocalizations l10n) => switch (id) {
+    'pause' => l10n.planPauseTitle,
     'smoke-free' => l10n.planSmokeFreeTitle,
     'gold' => l10n.planGoldTitle,
     'parking' => l10n.planParkingTitle,
@@ -31,6 +32,7 @@ class NexModulePlan {
   };
 
   String about(AppLocalizations l10n) => switch (id) {
+    'pause' => l10n.planPauseAbout,
     'smoke-free' => l10n.planSmokeFreeAbout,
     'gold' => l10n.planGoldAbout,
     'parking' => l10n.planParkingAbout,
@@ -45,6 +47,7 @@ class NexModulePlan {
 
 /// What is coming, nearest first.
 const List<NexModulePlan> nexModulePlans = [
+  NexModulePlan('pause', Icons.air_outlined, NexHue.sky, NexModuleStage.soon),
   NexModulePlan(
     'telegram',
     Icons.send_outlined,

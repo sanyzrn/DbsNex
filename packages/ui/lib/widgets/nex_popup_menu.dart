@@ -3,6 +3,62 @@ import 'package:flutter/material.dart';
 import '../tokens/nex_appearance.dart';
 import '../tokens/nex_tokens.dart';
 
+/// Shared content for a card menu and a link's context menu.
+class NexMenuEntryContent extends StatelessWidget {
+  const NexMenuEntryContent({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 20, color: color),
+      const SizedBox(width: NexSpacing.md),
+      Flexible(
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
+        ),
+      ),
+    ],
+  );
+}
+
+/// The same floating material and corners as the card's hold menu, at a
+/// pointer position rather than a button. A single blur surrounds all rows.
+Future<T?> nexShowContextMenu<T>({
+  required BuildContext context,
+  required RelativeRect position,
+  required List<PopupMenuEntry<T>> items,
+}) {
+  final glass = context.nexVisualStyle.liquidGlass;
+  return showMenu<T>(
+    context: context,
+    position: position,
+    constraints: const BoxConstraints(minWidth: 180, maxWidth: 320),
+    color: glass
+        ? Colors.transparent
+        : Theme.of(context).colorScheme.surfaceContainerHigh,
+    surfaceTintColor: Colors.transparent,
+    elevation: glass ? 0 : 3,
+    menuPadding: glass
+        ? EdgeInsets.zero
+        : const EdgeInsets.symmetric(vertical: NexSpacing.sm),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(NexRadius.lg),
+    ),
+    items: glass ? [_GlassMenuGroup<T>(entries: items)] : items,
+  );
+}
+
 /// One bounded glass surface around a menu, rather than one blur per entry.
 class NexPopupMenuButton<T> extends StatelessWidget {
   const NexPopupMenuButton({

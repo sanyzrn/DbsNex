@@ -545,31 +545,28 @@ Future<void> _showLinkMenu(BuildContext context, String href, Offset at) async {
   final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
   final point = overlay.globalToLocal(at);
   final canOpen = nexFollowableLinkSchemes.contains(Uri.tryParse(href)?.scheme);
-  final action = await showMenu<_LinkAction>(
+  final action = await nexShowContextMenu<_LinkAction>(
     context: context,
     position: RelativeRect.fromRect(
       Rect.fromLTWH(point.dx, point.dy, 1, 1),
       Offset.zero & overlay.size,
     ),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(NexRadius.md),
-    ),
     items: [
       PopupMenuItem(
         value: _LinkAction.open,
         enabled: canOpen,
-        child: ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.open_in_new),
-          title: Text(l10n.openLink),
+        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+        child: NexMenuEntryContent(
+          icon: Icons.open_in_new,
+          label: l10n.openLink,
         ),
       ),
       PopupMenuItem(
         value: _LinkAction.copy,
-        child: ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.copy_outlined),
-          title: Text(l10n.copyLink),
+        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+        child: NexMenuEntryContent(
+          icon: Icons.copy_outlined,
+          label: l10n.copyLink,
         ),
       ),
     ],

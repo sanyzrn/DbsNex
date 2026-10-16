@@ -246,6 +246,20 @@ extension _TimelineNoteActions on TimelineScreenState {
                 () => unawaited(_openNote(note, run: action)),
               )
             : null,
+      NexHoldAction.describeImage =>
+        note.isImageMedia && widget.services.imageReadingAvailable
+            ? NoteMenuEntry(
+                action,
+                () => unawaited(_openNote(note, run: action)),
+              )
+            : null,
+      NexHoldAction.transcribeAudio =>
+        note.isAudioMedia && widget.services.audioTranscriptionAvailable
+            ? NoteMenuEntry(
+                action,
+                () => unawaited(_openNote(note, run: action)),
+              )
+            : null,
       NexHoldAction.ask =>
         !AiChatSheet.availableFor(prefs)
             ? null
@@ -254,8 +268,9 @@ extension _TimelineNoteActions on TimelineScreenState {
                 () => unawaited(_runSwipe(NexSwipeAction.ask, note)),
               ),
       NexHoldAction.translate =>
-        !TranslateSheet.availableFor(prefs) ||
-                (note.displayText ?? words).trim().isEmpty
+        note.isImageMedia ||
+                !TranslateSheet.availableFor(prefs) ||
+                (note.aiSourceText ?? '').trim().isEmpty
             ? null
             : NoteMenuEntry(
                 action,
@@ -263,7 +278,8 @@ extension _TimelineNoteActions on TimelineScreenState {
               ),
       NexHoldAction.summarize =>
         !prefs.effectiveAiCapabilities.summarization ||
-                !aiTextAvailableWith(prefs.aiProvider)
+                !aiTextAvailableWith(prefs.aiProvider) ||
+                (note.aiSourceText?.length ?? 0) <= 80
             ? null
             : NoteMenuEntry(
                 action,

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import '../models/note.dart';
 import '../ports/note_repository.dart';
@@ -77,12 +76,8 @@ class EnrichmentService {
     if (note == null) return;
 
     try {
-      if (_capabilities.transcription && note.type == NoteType.voice) {
-        await _transcribe(note);
-      }
-      if (_capabilities.ocr && note.type == NoteType.photo) {
-        await _ocr(note);
-      }
+      // Media is read only after an explicit action. Capture, launch and a
+      // provider change must not upload a photo or recording in the background.
       if (_capabilities.summarization &&
           note.type == NoteType.text &&
           (note.content?.length ?? 0) > 80) {
@@ -105,40 +100,63 @@ class EnrichmentService {
     }
   }
 
-  /// Enriches notes that were captured before there was anything to read them.
-  ///
-  /// Enrichment is a capture-time step, so turning the intelligence layer on
-  /// used to change nothing about the library that already existed: every
-  /// recording made before that moment stayed untranscribed forever, and the
-  /// app never said so. This walks the backlog instead.
-  ///
-  /// Sequential on purpose. A provider that has just been configured is
-  /// usually a free tier, and firing fifty requests at once is the reliable
-  /// way to be rate-limited into failing all of them. It stops at the first
-  /// note that produces nothing at all, which is what a dead key or an
-  /// exhausted quota looks like from here — continuing would spend the rest of
-  /// the backlog learning the same thing.
-  ///
-  /// Returns how many notes it managed to enrich.
+  /// Backfills search embeddings from text already available in the library.
+  /// Media reading is explicit; enabling a provider must not upload the backlog.
   Future<int> backfill({int limit = 25}) async {
-    final embedded = await _backfillEmbeddings(limit: limit);
-    if (!_capabilities.transcription && !_capabilities.ocr) return embedded;
-    final pending = _repo.listNeedingEnrichment(limit: limit);
-    var done = embedded;
-    for (final note in pending) {
-      try {
-        await enrichNote(note.id);
-      } catch (_) {
-        break;
-      }
-      final after = _repo.getById(note.id);
-      final gained = note.type == NoteType.voice
-          ? after?.transcriptText != null
-          : after?.ocrText != null;
-      if (!gained) break;
-      done++;
+    return _backfillEmbeddings(limit: limit);
+  }
+
+  final _mediaReads = <String, Future<String?>>{};
+
+  /// Explicit image reading or audio transcription, coalesced per note.
+  /// Preserve any earlier result on failure and reject a result for media
+  /// replaced or deleted while the provider was working.
+  Future<String?> readMediaOnDemand(String noteId) async {
+    final pending = _mediaReads[noteId];
+    if (pending != null) return pending;
+    final request = _readMedia(noteId);
+    _mediaReads[noteId] = request;
+    try {
+      return await request;
+    } finally {
+      if (identical(_mediaReads[noteId], request)) _mediaReads.remove(noteId);
     }
-    return done;
+  }
+
+  Future<String?> _readMedia(String noteId) async {
+    final note = _repo.getById(noteId);
+    final uri = note?.mediaUri;
+    if (note == null || uri == null) return null;
+    final image = note.isImageMedia;
+    final audio = note.isAudioMedia;
+    if (!image && !audio) return null;
+    try {
+      final text = image
+          ? await readImage(mediaUri: uri, mediaHash: note.mediaHash)
+          : await transcribeAudio(mediaUri: uri, mediaHash: note.mediaHash);
+      if (text == null) return null;
+      final current = _repo.getById(noteId);
+      if (current == null ||
+          current.mediaUri != uri ||
+          current.mediaHash != note.mediaHash) {
+        return null;
+      }
+      if (image) {
+        _repo.setOcrText(noteId, text);
+      } else {
+        _repo.setTranscriptText(noteId, text);
+      }
+      if (_capabilities.semanticSearch || _capabilities.relatedNotes) {
+        try {
+          await _embed(_repo.getById(noteId) ?? current);
+        } catch (_) {
+          // A search failure must not turn a saved result into a failed read.
+        }
+      }
+      return text;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Embeds the notes that have text and no vector yet.
@@ -199,11 +217,14 @@ class EnrichmentService {
     try {
       final summary = await call;
       // Never persist a pass-through "summary" identical to the source.
-      final source = (note.content ?? note.transcriptText ?? note.ocrText ?? '')
-          .trim();
+      final source = (note.aiSourceText ?? '').trim();
       if (summary.text.trim().isEmpty ||
           summary.text.trim() == source ||
           summary.text.trim().length >= source.length) {
+        return null;
+      }
+      final current = _repo.getById(noteId);
+      if (current == null || current.aiSourceText != note.aiSourceText) {
         return null;
       }
       _repo.setSummaryText(noteId, summary.text);
@@ -270,49 +291,6 @@ class EnrichmentService {
     ];
   }
 
-  Future<void> _transcribe(Note note) async {
-    final uri = note.mediaUri;
-    if (uri == null) return;
-    Uint8List? bytes;
-    final file = File(uri);
-    if (file.existsSync()) bytes = file.readAsBytesSync();
-    final call = _adapter.transcribe(
-      AudioRef(mediaUri: uri, mediaHash: note.mediaHash, bytes: bytes),
-    );
-    if (call == null) {
-      // This adapter has no way to hear audio — a permanent absence, not a
-      // failure. Mark the note so it stops being selected forever, without
-      // writing fabricated text into its transcript slot.
-      _repo.setTranscriptText(note.id, '');
-      return;
-    }
-    // A failure propagates: nothing is written, and the note stays in the
-    // backlog for the next pass. Persisting an empty transcript here is how
-    // a single timed-out request used to make a voice note permanently
-    // untranscribed and unsearchable.
-    final result = await call;
-    _repo.setTranscriptText(note.id, result.text);
-  }
-
-  Future<void> _ocr(Note note) async {
-    final uri = note.mediaUri;
-    if (uri == null) return;
-    Uint8List? bytes;
-    final file = File(uri);
-    if (file.existsSync()) bytes = file.readAsBytesSync();
-    final call = _adapter.ocr(
-      ImageRef(mediaUri: uri, mediaHash: note.mediaHash, bytes: bytes),
-    );
-    if (call == null) {
-      // No way to read images on this adapter — permanent absence, marked
-      // once rather than retried forever, and never fabricated.
-      _repo.setOcrText(note.id, '');
-      return;
-    }
-    final result = await call;
-    _repo.setOcrText(note.id, result.text);
-  }
-
   /// Reads the words in a photo that is not a note of its own — one
   /// attached to a note (`docs/14-attachments.md`).
   ///
@@ -369,6 +347,8 @@ class EnrichmentService {
         result.text.trim().length >= source.length) {
       return;
     }
+    final current = _repo.getById(note.id);
+    if (current == null || current.content != note.content) return;
     _repo.setSummaryText(note.id, result.text);
   }
 
@@ -424,15 +404,26 @@ class EnrichmentService {
   /// that answers "what does the card show", which a title takes over, and an
   /// embedding wants the substance rather than the label.
   String _searchableText(Note note) {
+    String joined(List<String?> parts) => parts
+        .whereType<String>()
+        .where((text) => text.trim().isNotEmpty)
+        .toSet()
+        .join('\n');
     switch (note.type) {
       case NoteType.text:
         return note.content ?? '';
       case NoteType.voice:
-        return note.transcriptText ?? '';
+        return joined([note.transcriptText, note.caption, note.title]);
       case NoteType.photo:
-        return note.ocrText ?? '';
+        return joined([note.ocrText, note.caption, note.title]);
       case NoteType.file:
-        return note.content ?? '';
+        final body = joined([
+          note.ocrText,
+          note.transcriptText,
+          note.caption,
+          note.title,
+        ]);
+        return body.isEmpty ? note.content ?? '' : body;
       // The items without their markers: a list of things to do is about the
       // things, not about which of them happen to be ticked right now.
       case NoteType.checklist:

@@ -48,6 +48,7 @@ enum _DbCommand {
   deleteNote,
   undelete,
   setCaption,
+  appendCaption,
   setTitle,
   setSummaryText,
   setLinkMetadata,
@@ -124,6 +125,7 @@ enum _DbCommand {
   storage,
   // Enrichment.
   enrichNote,
+  readMediaOnDemand,
   backfillEnrichment,
   backfillEmbeddings,
   suggestTags,
@@ -611,6 +613,7 @@ class NexDbWorker
   /// caps itself at 30 seconds for this same reason.
   static const _background = {
     _DbCommand.enrichNote,
+    _DbCommand.readMediaOnDemand,
     _DbCommand.backfillEnrichment,
     // A photo attached to a note is read, and a voice clip transcribed, by
     // the same model with the same three minutes. Left on the chain in

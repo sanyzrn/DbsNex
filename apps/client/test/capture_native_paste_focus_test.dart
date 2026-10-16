@@ -33,6 +33,11 @@ void main() {
               return null;
             },
           );
+          return viewId;
+        }
+        if (call.method == 'resize') {
+          final args = call.arguments as Map;
+          return {'width': args['width'], 'height': args['height']};
         }
         return null;
       });

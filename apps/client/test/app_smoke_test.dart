@@ -501,10 +501,9 @@ void main() {
       );
       await services.backfillEnrichment();
       final withOcr = (await services.getById(photo.id))!;
-      // The on-device adapter cannot read images and no longer pretends to:
-      // the OCR slot is marked attempted-empty rather than filled with a
-      // fabricated reading, and the card shows nothing at all.
-      expect(withOcr.ocrText, '');
+      // Capturing or backfilling does not read media. Until an explicit image
+      // reading or a caption, there is nothing for the card to display.
+      expect(withOcr.ocrText, isNull);
       expect(withOcr.displayText, isNull, reason: 'nothing else to show yet');
 
       await services.setCaption(photo.id, 'the actual point of this photo');

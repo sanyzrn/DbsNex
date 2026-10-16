@@ -142,7 +142,7 @@ void main() {
     });
 
     test(
-      'OCR stub suggestions exclude hash fragments and are not persisted',
+      'unread images do not create stub suggestions or persisted tags',
       () async {
         final now = DateTime.now().toUtc();
         final note = repo.insert(
@@ -160,7 +160,7 @@ void main() {
         );
         await enrichment.enrichNote(note.id);
         final updated = repo.getById(note.id)!;
-        expect(updated.ocrText, isNotNull);
+        expect(updated.ocrText, isNull);
         final suggestions = await enrichment.suggestTags(note.id);
         for (final s in suggestions) {
           expect(RegExp(r'^[0-9a-f]{6,}$').hasMatch(s.name), isFalse);

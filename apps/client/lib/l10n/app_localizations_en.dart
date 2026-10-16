@@ -913,7 +913,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcription => 'Transcription';
 
   @override
-  String get ocr => 'Text in the photo';
+  String get ocr => 'Image description & text';
 
   @override
   String get tagSuggestions => 'Tag suggestions';
@@ -1200,7 +1200,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcript => 'Transcript';
 
   @override
-  String get voiceSearchHint => 'Searchable by tag/date only';
+  String get voiceSearchHint =>
+      'Use Transcribe audio in More to make this recording searchable.';
 
   @override
   String voiceDuration(int seconds) {
@@ -2109,10 +2110,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notSupportedByProvider => 'The provider you chose cannot do this';
 
   @override
-  String get transcriptionSubtitle => 'Turn a voice note into searchable text';
+  String get transcriptionSubtitle =>
+      'Turn audio into searchable text when you ask';
 
   @override
-  String get ocrSubtitle => 'Read the words in a photo';
+  String get ocrSubtitle =>
+      'Describe a picture and read useful text when you ask';
 
   @override
   String get summarizationSubtitle => 'Condense a long note into one line';
@@ -5309,4 +5312,58 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get editPhotoBeforeCaptureSubtitle =>
       'Open the preview and editing tools after taking or choosing a photo. Off saves it straight away.';
+
+  @override
+  String get planPauseTitle => 'Pause';
+
+  @override
+  String get planPauseAbout =>
+      'A brief breathing break with calm, focus and relax modes. Gentle motion follows each breath, with optional vibration and offline use.';
+
+  @override
+  String get aiDescribeImage => 'Describe & read image';
+
+  @override
+  String get aiTranscribeAudio => 'Transcribe audio';
+
+  @override
+  String get aiImageResult => 'Image description & text';
+
+  @override
+  String get aiMediaWorking => 'Reading media…';
+
+  @override
+  String get aiMediaFailed =>
+      'Could not read this media. Your previous result is unchanged; try again.';
+
+  @override
+  String get aiMediaEmpty => 'No speech or readable content was found.';
+
+  @override
+  String get aiAddToCaption => 'Add to caption';
+
+  @override
+  String get aiAppendCaptionTitle => 'This item already has a caption';
+
+  @override
+  String get aiAppendCaptionBody =>
+      'Add this text after your existing caption?';
+
+  @override
+  String get aiAppendCaption => 'Append text';
+
+  @override
+  String get aiCaptionAdded => 'Added to caption';
+
+  @override
+  String get aiCaptionFailed => 'Could not add this text to the caption.';
+
+  @override
+  String get aiTranslateTranscript => 'Translate transcript';
+
+  @override
+  String get aiSummarizeTranscript => 'Summarize transcript';
+
+  @override
+  String get aiSummarizeImageText => 'Summarize image text';
 }

@@ -452,7 +452,7 @@
   "share": "Share",
   "swipeActions": "Swipe actions",
   "transcription": "Transcription",
-  "ocr": "Text in the photo",
+  "ocr": "Image description & text",
   "tagSuggestions": "Tag suggestions",
   "semanticSearch": "Semantic search",
   "summarization": "Summarization",
@@ -710,7 +710,7 @@
   "@transcript": {
     "description": "Heading above a voice note's transcript"
   },
-  "voiceSearchHint": "Searchable by tag/date only",
+  "voiceSearchHint": "Use Transcribe audio in More to make this recording searchable.",
   "@voiceSearchHint": {
     "description": "FR-4.6 — voice notes are not keyword-searchable in v1"
   },
@@ -1607,11 +1607,11 @@
   "@notSupportedByProvider": {
     "description": "Capability unavailable for the selected provider"
   },
-  "transcriptionSubtitle": "Turn a voice note into searchable text",
+  "transcriptionSubtitle": "Turn audio into searchable text when you ask",
   "@transcriptionSubtitle": {
     "description": "Capability explanation"
   },
-  "ocrSubtitle": "Read the words in a photo",
+  "ocrSubtitle": "Describe a picture and read useful text when you ask",
   "@ocrSubtitle": {
     "description": "Capability explanation"
   },
@@ -3311,5 +3311,22 @@
   "assistantVoiceReview": "Check what I said before sending",
   "assistantVoiceReviewSubtitle": "A spoken request is put in the box to edit instead of being sent straight away.",
   "editPhotoBeforeCapture": "Edit photos before capture",
-  "editPhotoBeforeCaptureSubtitle": "Open the preview and editing tools after taking or choosing a photo. Off saves it straight away."
+  "editPhotoBeforeCaptureSubtitle": "Open the preview and editing tools after taking or choosing a photo. Off saves it straight away.",
+  "planPauseTitle": "Pause",
+  "planPauseAbout": "A brief breathing break with calm, focus and relax modes. Gentle motion follows each breath, with optional vibration and offline use.",
+  "aiDescribeImage": "Describe & read image",
+  "aiTranscribeAudio": "Transcribe audio",
+  "aiImageResult": "Image description & text",
+  "aiMediaWorking": "Reading media…",
+  "aiMediaFailed": "Could not read this media. Your previous result is unchanged; try again.",
+  "aiMediaEmpty": "No speech or readable content was found.",
+  "aiAddToCaption": "Add to caption",
+  "aiAppendCaptionTitle": "This item already has a caption",
+  "aiAppendCaptionBody": "Add this text after your existing caption?",
+  "aiAppendCaption": "Append text",
+  "aiCaptionAdded": "Added to caption",
+  "aiCaptionFailed": "Could not add this text to the caption.",
+  "aiTranslateTranscript": "Translate transcript",
+  "aiSummarizeTranscript": "Summarize transcript",
+  "aiSummarizeImageText": "Summarize image text"
 }

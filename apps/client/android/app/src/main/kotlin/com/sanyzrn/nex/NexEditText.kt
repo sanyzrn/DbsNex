@@ -387,7 +387,6 @@ private class NexEditTextView(
             }
         }
         (args["letterSpacing"] as? Number)?.let { edit.letterSpacing = it.toFloat() / fontSize }
-        (args["backgroundColor"] as? Number)?.let { edit.setBackgroundColor(it.toInt()) }
         (args["textColor"] as? Number)?.let { edit.setTextColor(it.toInt()) }
         (args["hintColor"] as? Number)?.let { edit.setHintTextColor(it.toInt()) }
         (args["selectionColor"] as? Number)?.let { edit.highlightColor = it.toInt() }
