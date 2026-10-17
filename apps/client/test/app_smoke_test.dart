@@ -949,7 +949,7 @@ void main() {
     expect(find.text('Nex'), findsWidgets);
   });
 
-  testWidgets('Theme page owns theme mode and whole-app presets', (
+  testWidgets('Appearance owns mode and opens the theme gallery', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(800, 2000);
@@ -962,6 +962,11 @@ void main() {
     await tester.pumpAndSettle();
     // Appearance holds one screen, so it opens that screen directly.
     await openSettingsCategory(tester, 'appearance');
+    final themes = find.byKey(const ValueKey('appearance-themes'));
+    await tester.ensureVisible(themes);
+    await tester.pumpAndSettle();
+    await tester.tap(themes);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Paper notebook'));
     await tester.pumpAndSettle();
     expect(preferences.themePreset, 'paper');
@@ -974,8 +979,9 @@ void main() {
       const Color(0xFFF5EEDC),
     );
     expect(app.theme!.scaffoldBackgroundColor.a, 0);
-    // The mode is chosen in place now, not behind a row that opened a
-    // sheet.
+    // Mode remains on Appearance, outside the palette gallery.
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('Dark'),
       -200,

@@ -127,6 +127,10 @@ void main() {
   testWidgets('a folded summary is still folded when the app comes back', (
     tester,
   ) async {
+    await preferences.setAiDaySummary(
+      text: 'A calm day ahead\nCall the plumber\nFinish the draft',
+      dateKey: 'cached',
+    );
     await preferences.setDaySummaryFolded(true);
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
@@ -136,18 +140,20 @@ void main() {
     }
     final recap = find.byKey(const ValueKey('timeline-recap'));
     expect(recap, findsOneWidget);
-    // The open card's body is the only thing in it that fades.
-    final body = find.descendant(
-      of: recap,
-      matching: find.byType(AnimatedOpacity),
-    );
-    expect(body, findsNothing);
+    final foldedHeight = tester.getSize(recap).height;
 
     await tester.tap(recap);
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(body, findsOneWidget);
-    expect(preferences.daySummaryFolded, isFalse);
+    expect(tester.getSize(recap).height, greaterThan(foldedHeight));
+    final expandedHeight = tester.getSize(recap).height;
+    await tester.tap(recap);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(tester.getSize(recap).height, lessThan(expandedHeight));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(recap).height, closeTo(foldedHeight, 1));
+    expect(preferences.daySummaryFolded, isTrue);
   });
 }

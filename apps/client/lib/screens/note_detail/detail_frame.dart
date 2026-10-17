@@ -145,29 +145,34 @@ class _DetailAction extends StatelessWidget {
         : color;
     return Tooltip(
       message: label,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(NexRadius.lg),
-        child: SizedBox(
-          height: 62,
-          // The theme is for [glyph], which has no parameters of its own
-          // to be told with; the [Icon] keeps being told directly, because
-          // "is this one red" is a thing the tests read off the widget.
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconTheme.merge(
-                data: IconThemeData(size: 22, color: color),
-                child: glyph ?? Icon(icon, size: 22, color: color),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(color: labelColor),
-              ),
-            ],
+      child: NexPress(
+        enabled: onPressed != null,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(NexRadius.lg),
+          child: SizedBox(
+            height: 62,
+            // The theme is for [glyph], which has no parameters of its own
+            // to be told with; the [Icon] keeps being told directly, because
+            // "is this one red" is a thing the tests read off the widget.
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconTheme.merge(
+                  data: IconThemeData(size: 22, color: color),
+                  child: glyph ?? Icon(icon, size: 22, color: color),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: labelColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

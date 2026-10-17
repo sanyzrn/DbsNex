@@ -1971,7 +1971,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiProviderIntro =>
-      'انتخاب کنید درخواست‌های هوش مصنوعی کجا فرستاده شوند. بدون سرویس، همه‌چیز فقط روی همین دستگاه اجرا می‌شود که برای پیشنهاد برچسب کافی است ولی برای خلاصه‌سازی نه.';
+      'انتخاب کنید درخواست‌های هوش مصنوعی کجا فرستاده شوند. تست اتصال موفق، همان تنظیمات آزمایش‌شده را ذخیره می‌کند. قابلیت‌های روی دستگاه به مدل‌های دانلودشده بستگی دارند.';
 
   @override
   String get apiKey => 'کلید API';
@@ -5290,4 +5290,44 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get planSecurityToolsAbout =>
       'رمزگذاری و رمزگشایی متن (AES-256-GCM)، هش، کدگذاری و رمزگشایی، ساخت گذرواژه و عبارت عبور، همراه با نگهداری محلی و رمزگذاری‌شدهٔ اطلاعات محرمانه.';
+
+  @override
+  String get aiResultImageTab => 'تصویر';
+
+  @override
+  String get aiResultTextTab => 'متن';
+
+  @override
+  String get aiModelsCapabilities => 'مدل‌ها و قابلیت‌ها';
+
+  @override
+  String get aiAdvancedHelp =>
+      'تست گفتگو این قابلیت‌ها را تأیید نمی‌کند. فقط قابلیت‌های پشتیبانی‌شدهٔ مدل یا سرویس خود را فعال کنید. صدا و جستجوی OpenRouter تا فعال‌کردن در اینجا خاموش می‌مانند.';
+
+  @override
+  String get aiPolicyDefault => 'پیش‌فرض پروایدر';
+
+  @override
+  String get aiPolicyEnabled => 'فعال برای این مدل';
+
+  @override
+  String get aiPolicyDisabled => 'غیرفعال';
+
+  @override
+  String get aiImageInput => 'ورودی تصویر';
+
+  @override
+  String get aiSpeechModel => 'مدل تبدیل صدا به متن';
+
+  @override
+  String get aiSearchEmbeddings => 'بردارهای جستجو';
+
+  @override
+  String get aiEmbeddingModel => 'مدل بردارسازی';
+
+  @override
+  String get aiSpeechEndpoint => 'آدرس کامل تبدیل صدا (اختیاری)';
+
+  @override
+  String get aiEmbeddingEndpoint => 'آدرس کامل بردارسازی (اختیاری)';
 }

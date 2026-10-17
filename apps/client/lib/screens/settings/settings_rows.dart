@@ -262,6 +262,7 @@ class _IconTile extends StatelessWidget {
 /// One tappable setting: mark, name, current value, chevron.
 class _Row extends StatelessWidget {
   const _Row({
+    super.key,
     required this.icon,
     required this.title,
     this.value,

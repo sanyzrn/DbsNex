@@ -211,6 +211,12 @@ void main() {
             locale: const Locale('en'),
             dark: dark,
             preset: preset.id,
+            showTexture: const {
+              'bauhaus',
+              'porcelain',
+              'circuit',
+              'afterimage',
+            }.contains(preset.id),
             child: Column(
               children: [
                 NoteCard(note: note('a', NoteType.text, english), onTap: () {}),
@@ -249,6 +255,7 @@ Widget _app({
   required bool dark,
   required Widget child,
   String preset = 'classic',
+  bool showTexture = false,
 }) {
   final font = nexFontFor(locale);
   final theme = nexApplyThemePreset(
@@ -262,7 +269,12 @@ Widget _app({
     theme: theme,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: Scaffold(body: SafeArea(child: child)),
+    home: Scaffold(
+      body: NexTextureBackdrop(
+        texture: showTexture ? nexThemeTexture(preset) : NexThemeTexture.none,
+        child: SafeArea(child: child),
+      ),
+    ),
   );
 }
 

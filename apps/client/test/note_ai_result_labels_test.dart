@@ -15,8 +15,9 @@ void main() {
     WidgetTester tester,
     NexTestHarness h,
     String id,
-    String locale,
-  ) async {
+    String locale, {
+    double textScale = 1,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         locale: Locale(locale),
@@ -24,7 +25,10 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          data: MediaQuery.of(context).copyWith(
+            disableAnimations: true,
+            textScaler: TextScaler.linear(textScale),
+          ),
           child: child!,
         ),
         home: Scaffold(
@@ -92,11 +96,11 @@ void main() {
         h.db.seedReadText(note.id, 'Previously extracted or described text.');
         final l10n = await open(tester, h, note.id, locale);
         expect(
-          find.text(image ? l10n.aiImageResult : l10n.aiExtractedText),
+          find.byTooltip(image ? l10n.aiImageResult : l10n.aiExtractedText),
           name.endsWith('.md') ? findsNothing : findsOneWidget,
         );
         expect(
-          find.text(image ? l10n.aiExtractedText : l10n.aiImageResult),
+          find.byTooltip(image ? l10n.aiExtractedText : l10n.aiImageResult),
           findsNothing,
         );
         expect(
@@ -112,6 +116,9 @@ void main() {
     testWidgets(
       '$locale file and image attachments keep distinct result names',
       (tester) async {
+        tester.view.physicalSize = const Size(360, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
         final h = await NexTestHarness.create();
         addTearDown(h.dispose);
         final note = (await h.services.captureText(
@@ -133,18 +140,16 @@ void main() {
           ))!;
           await h.db.attachmentSetOcr(attachment.id, 'Stored text from $name');
         }
-        final l10n = await open(tester, h, note.id, locale);
+        final l10n = await open(tester, h, note.id, locale, textScale: 1.6);
         await tester.ensureVisible(
           find.byKey(const ValueKey('note-ai-result-picker')),
         );
-        await tester.tap(find.byKey(const ValueKey('note-ai-result-picker')));
-        await tester.pumpAndSettle();
         for (var i = 1; i <= 4; i++) {
           final number = nexDigits('$i', persian: locale == 'fa');
           final correct = i <= 2 ? l10n.aiExtractedText : l10n.aiImageResult;
           final wrong = i <= 2 ? l10n.aiImageResult : l10n.aiExtractedText;
-          expect(find.text('$correct · $number'), findsWidgets);
-          expect(find.text('$wrong · $number'), findsNothing);
+          expect(find.byTooltip('$correct · $number'), findsOneWidget);
+          expect(find.byTooltip('$wrong · $number'), findsNothing);
         }
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox());

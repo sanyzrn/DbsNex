@@ -207,21 +207,17 @@ class _AiDaySummaryPanel extends StatelessWidget {
       // has to be spelled out: sighted readers get a paragraph that folds,
       // and there is nothing about a paragraph that needs explaining.
       hint: toggleTooltip,
-      child: GestureDetector(
-        // Not a [NexTappable]: its pressed fill is drawn on the shape it is
-        // given, and the shape here belongs to the glass surface outside it,
-        // which would end up with a grey wash over its own material.
-        behavior: HitTestBehavior.opaque,
+      child: NexTappable(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(NexRadius.lg)),
+        ),
         onTap: onToggle,
         child: Padding(
           // A card's inset now that this is a card. It used to be a
           // paragraph loose on the page, where the only thing keeping it off
           // the edge was the header's own margin.
           padding: const EdgeInsets.all(NexSpacing.cardInset),
-          child: AnimatedSize(
-            duration: NexMotion.of(context, NexMotion.slow),
-            curve: NexMotion.curve,
-            alignment: Alignment.topCenter,
+          child: NexAnimatedSize(
             // No rule down the edge any more, and still no heading. The
             // light going round the card says the same thing the rule did —
             // a model wrote this — and two marks for one fact is one mark
@@ -249,10 +245,8 @@ class _AiDaySummaryPanel extends StatelessWidget {
                 ),
               ),
               child: KeyedSubtree(
-                key: ValueKey((collapsed, text)),
-                child: collapsed
-                    ? _CollapsedRecap(label: _firstLine ?? emptyLabel)
-                    : _body(context, theme),
+                key: ValueKey(text),
+                child: _body(context, theme),
               ),
             ),
           ),
@@ -262,13 +256,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
   }
 
   /// The recap's opening sentence, for the folded state.
-  String? get _firstLine {
-    final value = text?.trim();
-    if (value == null || value.isEmpty) return null;
-    final end = value.indexOf('\n');
-    return end == -1 ? value : value.substring(0, end);
-  }
-
   Widget _body(BuildContext context, ThemeData theme) {
     final value = text;
     // Defaulted rather than carried around as a nullable: the lede's size is
@@ -311,55 +298,44 @@ class _AiDaySummaryPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            lede,
-            style: body.copyWith(fontSize: (base.fontSize ?? 14) * _ledeScale),
-            textDirection: nexDirectionOf(lede),
-            textAlign: nexDirectionOf(lede) == TextDirection.rtl
-                ? TextAlign.right
-                : TextAlign.left,
+          AnimatedDefaultTextStyle(
+            duration: NexMotion.of(context, NexMotion.slow),
+            curve: NexMotion.curve,
+            style: collapsed
+                ? body.copyWith(color: theme.colorScheme.onSurfaceVariant)
+                : body.copyWith(fontSize: (base.fontSize ?? 14) * _ledeScale),
+            child: Text(
+              lede,
+              maxLines: collapsed ? 1 : null,
+              overflow: collapsed ? TextOverflow.ellipsis : TextOverflow.clip,
+              textDirection: nexDirectionOf(lede),
+              textAlign: nexDirectionOf(lede) == TextDirection.rtl
+                  ? TextAlign.right
+                  : TextAlign.left,
+            ),
           ),
-          if (rest.isNotEmpty) ...[
-            const SizedBox(height: NexSpacing.sm),
-            // Per line, because the recap is written in the language of the
-            // notes and the notes are the one place in this app most likely
-            // to be in both at once — see [NexTextSurface].
-            //
-            // Not selectable, unlike the note body in the detail sheet. The
-            // whole card is one button — a tap anywhere on it folds the brief
-            // away — and a `SelectionArea` would claim that tap for clearing
-            // a selection. A paragraph you can select inside a card that
-            // stops responding is the worse of the two trades.
-            NexTextSurface(rest, style: body),
-          ],
+          NexReveal(
+            visible: !collapsed && rest.isNotEmpty,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: NexSpacing.sm),
+                // Per line, because the recap is written in the language of the
+                // notes and the notes are the one place in this app most likely
+                // to be in both at once — see [NexTextSurface].
+                //
+                // Not selectable, unlike the note body in the detail sheet. The
+                // whole card is one button — a tap anywhere on it folds the brief
+                // away — and a `SelectionArea` would claim that tap for clearing
+                // a selection. A paragraph you can select inside a card that
+                // stops responding is the worse of the two trades.
+                NexTextSurface(rest, style: body),
+              ],
+            ),
+          ),
         ],
       ),
-    );
-  }
-}
-
-/// The recap folded away: one line, truncated, with no rule beside it.
-///
-/// The rule stays behind on purpose. Open, it marks a block of generated
-/// prose; closed, there is no block, and a two-pixel accent stripe next to a
-/// single grey line reads as a status colour on a row — which is a different
-/// claim than the one it is there to make.
-class _CollapsedRecap extends StatelessWidget {
-  const _CollapsedRecap({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-      textDirection: nexDirectionOf(label),
     );
   }
 }

@@ -2010,7 +2010,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiProviderIntro =>
-      'Choose where the intelligence features send their requests. Without a provider they run on this device only, which covers tag hints but not summaries.';
+      'Choose where AI requests go. A successful connection test saves the exact settings you tested. On-device features depend on the models downloaded to this phone.';
 
   @override
   String get apiKey => 'API key';
@@ -5427,4 +5427,44 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get planSecurityToolsAbout =>
       'Text encryption and decryption (AES-256-GCM), hashes, encoding and decoding, random passwords and passphrases, with encrypted local secret storage.';
+
+  @override
+  String get aiResultImageTab => 'Image';
+
+  @override
+  String get aiResultTextTab => 'Text';
+
+  @override
+  String get aiModelsCapabilities => 'Models and capabilities';
+
+  @override
+  String get aiAdvancedHelp =>
+      'Chat testing does not verify these features. Enable only what your model or gateway supports. OpenRouter audio and search stay off until enabled here.';
+
+  @override
+  String get aiPolicyDefault => 'Provider default';
+
+  @override
+  String get aiPolicyEnabled => 'Enabled for this model';
+
+  @override
+  String get aiPolicyDisabled => 'Disabled';
+
+  @override
+  String get aiImageInput => 'Image input';
+
+  @override
+  String get aiSpeechModel => 'Transcription model';
+
+  @override
+  String get aiSearchEmbeddings => 'Search embeddings';
+
+  @override
+  String get aiEmbeddingModel => 'Embedding model';
+
+  @override
+  String get aiSpeechEndpoint => 'Transcription endpoint (optional)';
+
+  @override
+  String get aiEmbeddingEndpoint => 'Embedding endpoint (optional)';
 }

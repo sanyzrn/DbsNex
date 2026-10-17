@@ -17,6 +17,10 @@ abstract class NexModule {
   /// Stable and lower-case; keys its preference and its widgets in tests.
   String get id;
 
+  /// Rollout is independent of saved installation and data. Re-enable each
+  /// add-on only after its review; temporarily pausing it must not erase it.
+  bool get available => id == 'cycle';
+
   String title(AppLocalizations l10n);
 
   /// One line, under the title on its card and its Tools tile.

@@ -27,6 +27,10 @@ NexThemeTexture nexThemeTexture(String presetId) => switch (presetId) {
   'forest' => NexThemeTexture.contours,
   'ocean' => NexThemeTexture.waves,
   'midnight' => NexThemeTexture.stars,
+  'bauhaus' => NexThemeTexture.bauhaus,
+  'porcelain' => NexThemeTexture.seams,
+  'circuit' => NexThemeTexture.circuit,
+  'afterimage' => NexThemeTexture.halftone,
   _ => NexThemeTexture.none,
 };
 
@@ -141,6 +145,50 @@ const nexThemePresets = <NexThemePreset>[
     light: Color(0xFFF1F1F1),
     dark: Color(0xFF151515),
   ),
+  (
+    id: 'bauhaus',
+    en: 'Bauhaus',
+    fa: 'باوهاوس',
+    enDescription: 'Ink, vermilion and bold geometry',
+    faDescription: 'جوهر، سرخ شنگرف و هندسهٔ جسور',
+    seed: Color(0xFFBC352C),
+    icon: Icons.category_outlined,
+    light: Color(0xFFF6F3EB),
+    dark: Color(0xFF231A18),
+  ),
+  (
+    id: 'porcelain',
+    en: 'Kintsugi',
+    fa: 'کینتسوگی',
+    enDescription: 'Cool porcelain stitched with gold',
+    faDescription: 'چینی خنک با رگه‌های طلایی',
+    seed: Color(0xFF8C6C22),
+    icon: Icons.diamond_outlined,
+    light: Color(0xFFF3F4FA),
+    dark: Color(0xFF171D2C),
+  ),
+  (
+    id: 'circuit',
+    en: 'Circuit',
+    fa: 'مدار الکترونیک',
+    enDescription: 'Precise cyan routes on a midnight board',
+    faDescription: 'مسیرهای فیروزه‌ای روی برد نیمه‌شب',
+    seed: Color(0xFF007F86),
+    icon: Icons.memory_outlined,
+    light: Color(0xFFEAF7F9),
+    dark: Color(0xFF071E27),
+  ),
+  (
+    id: 'afterimage',
+    en: 'Afterimage',
+    fa: 'پس‌تصویر',
+    enDescription: 'Electric lime and an optical rhythm',
+    faDescription: 'لیمویی الکتریکی و ریتم خطای دید',
+    seed: Color(0xFF637D00),
+    icon: Icons.blur_circular_outlined,
+    light: Color(0xFFF1F4E9),
+    dark: Color(0xFF181B10),
+  ),
 ];
 
 /// The seed a palette brings with it, or null for the classic look, which
@@ -187,7 +235,13 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
     // are taken without chroma, so nothing turns faintly blue.
     dynamicSchemeVariant: id == 'graphite'
         ? DynamicSchemeVariant.monochrome
-        : picked
+        : picked ||
+              const {
+                'bauhaus',
+                'porcelain',
+                'circuit',
+                'afterimage',
+              }.contains(id)
         ? DynamicSchemeVariant.fidelity
         : DynamicSchemeVariant.tonalSpot,
     surface: surface,
@@ -306,7 +360,14 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: colors.primary,
+        disabledForegroundColor: colors.onSurface.withValues(alpha: 0.38),
       ).merge(base.textButtonTheme.style),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+      ).merge(base.filledButtonTheme.style),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: base.outlinedButtonTheme.style?.copyWith(

@@ -14,6 +14,8 @@ import 'package:nex_ai/cloud.dart';
 import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
 
+part 'ai_provider/advanced_options.dart';
+
 /// Where the intelligence features get their answers from.
 ///
 /// Until this existed the Intelligence switches in Settings turned on
@@ -67,6 +69,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   bool _testing = false;
   bool _saving = false;
   AiTestResult? _result;
+  AiProviderConfig? _verified;
 
   @override
   void dispose() {
@@ -101,6 +104,14 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   Future<void> _save([AiProviderConfig? tested]) async {
     if (_saving) return;
     final saving = tested ?? _current;
+    // The exact configuration being persisted must have passed the test.
+    // Choosing on-device only is not a network configuration.
+    if (saving.provider != AiProvider.none &&
+        (_verified == null ||
+            !_sameConfig(saving, _verified!) ||
+            !_sameConfig(saving, _current))) {
+      return;
+    }
     setState(() => _saving = true);
     try {
       await widget.preferences.setAiProvider(saving);
@@ -128,6 +139,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   }
 
   Future<void> _test() async {
+    if (_testing || _saving) return;
     setState(() {
       _testing = true;
       _result = null;
@@ -137,7 +149,10 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
     try {
       final result = await adapter.test();
       if (!mounted || !_sameConfig(_current, testing)) return;
-      setState(() => _result = result);
+      setState(() {
+        _result = result;
+        _verified = result.success ? testing : null;
+      });
       // Only a working configuration is worth keeping.
       if (result.success) await _save(testing);
     } finally {
@@ -151,153 +166,10 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
     return a.toMap().entries.every((entry) => right[entry.key] == entry.value);
   }
 
-  Widget _advanced() {
-    Widget field(
-      String id,
-      String en,
-      String fa,
-      String value,
-      AiProviderConfig Function(String) update, {
-      String? hint,
-    }) => Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.md),
-      child: TextFormField(
-        key: ValueKey('ai-${_config.provider.name}-$id'),
-        initialValue: value,
-        enabled: !_saving,
-        autocorrect: false,
-        enableSuggestions: false,
-        textDirection: TextDirection.ltr,
-        decoration: InputDecoration(
-          labelText: nexLabel(context, en, fa),
-          hintText: hint,
-          border: const OutlineInputBorder(),
-        ),
-        onChanged: (value) => setState(() {
-          _config = update(value);
-          _result = null;
-        }),
-      ),
-    );
-    Widget policy(
-      String id,
-      String en,
-      String fa,
-      AiCapabilityMode value,
-      AiProviderConfig Function(AiCapabilityMode) update,
-    ) => Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.md),
-      child: DropdownButtonFormField<AiCapabilityMode>(
-        key: ValueKey('ai-${_config.provider.name}-$id'),
-        initialValue: value,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: nexLabel(context, en, fa),
-          border: const OutlineInputBorder(),
-        ),
-        items: [
-          DropdownMenuItem(
-            value: AiCapabilityMode.automatic,
-            child: Text(
-              nexLabel(context, 'Provider default', 'پیش‌فرض پروایدر'),
-            ),
-          ),
-          DropdownMenuItem(
-            value: AiCapabilityMode.enabled,
-            child: Text(
-              nexLabel(context, 'Enabled for this model', 'فعال برای این مدل'),
-            ),
-          ),
-          DropdownMenuItem(
-            value: AiCapabilityMode.disabled,
-            child: Text(nexLabel(context, 'Disabled', 'غیرفعال')),
-          ),
-        ],
-        onChanged: _saving
-            ? null
-            : (value) {
-                if (value != null) {
-                  setState(() {
-                    _config = update(value);
-                    _result = null;
-                  });
-                }
-              },
-      ),
-    );
-    return ExpansionTile(
-      key: ValueKey('ai-advanced-${_config.provider.name}'),
-      tilePadding: EdgeInsets.zero,
-      title: Text(
-        nexLabel(context, 'Models and capabilities', 'مدل‌ها و قابلیت‌ها'),
-      ),
-      children: [
-        Text(
-          nexLabel(
-            context,
-            'Chat testing does not verify these features. Enable only what your model or gateway supports. OpenRouter audio and search stay off until enabled here.',
-            'تست گفتگو این قابلیت‌ها را تأیید نمی‌کند. فقط قابلیت‌های پشتیبانی‌شدهٔ مدل یا سرویس خود را فعال کنید. صدا و جستجوی OpenRouter تا فعال‌کردن در اینجا خاموش می‌مانند.',
-          ),
-        ),
-        const SizedBox(height: NexSpacing.md),
-        policy(
-          'images',
-          'Image input',
-          'ورودی تصویر',
-          _config.images,
-          (v) => _config.copyWith(images: v),
-        ),
-        if (_config.provider != AiProvider.anthropic) ...[
-          policy(
-            'audio',
-            'Transcription',
-            'تبدیل صدا به متن',
-            _config.audio,
-            (v) => _config.copyWith(audio: v),
-          ),
-          field(
-            'audio-model',
-            'Transcription model',
-            'مدل تبدیل صدا به متن',
-            _config.transcriptionModel,
-            (v) => _config.copyWith(transcriptionModel: v),
-            hint: _config.resolvedTranscriptionModel,
-          ),
-          policy(
-            'embeddings',
-            'Search embeddings',
-            'بردارهای جستجو',
-            _config.embeddings,
-            (v) => _config.copyWith(embeddings: v),
-          ),
-          field(
-            'embedding-model',
-            'Embedding model',
-            'مدل بردارسازی',
-            _config.embeddingModelId,
-            (v) => _config.copyWith(embeddingModelId: v),
-            hint: _config.embeddingModel,
-          ),
-        ],
-        if (_config.provider == AiProvider.custom) ...[
-          field(
-            'audio-url',
-            'Transcription endpoint (optional)',
-            'آدرس کامل تبدیل صدا (اختیاری)',
-            _config.transcriptionUrl,
-            (v) => _config.copyWith(transcriptionUrl: v),
-          ),
-          field(
-            'embedding-url',
-            'Embedding endpoint (optional)',
-            'آدرس کامل بردارسازی (اختیاری)',
-            _config.embeddingUrl,
-            (v) => _config.copyWith(embeddingUrl: v),
-          ),
-        ],
-      ],
-    );
-  }
+  void _updateAdvanced(AiProviderConfig config) => setState(() {
+    _config = config;
+    _result = null;
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -313,7 +185,12 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
       // looking for.
       bottomNavigationBar: _ActionBar(
         testing: _testing || _saving,
-        canSave: _dirty && !_testing && !_saving,
+        canSave:
+            _dirty &&
+            !_testing &&
+            !_saving &&
+            (provider == AiProvider.none ||
+                (_verified != null && _sameConfig(_verified!, _current))),
         showTest: provider != AiProvider.none,
         onTest: () => unawaited(_test()),
         onSave: () => unawaited(_save()),

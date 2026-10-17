@@ -1,5 +1,7 @@
 # Nex add-on sources
 
+> From 2.1.1 only Cycle is available. The add-ons below are temporarily Soon; source, installation choices and records are preserved pending individual review.
+
 All 11 supplied modules are integrated into the client for individual review. Sources and original READMEs are under `apps/client/lib/modules/<id>/`;
 tests are under `apps/client/test/modules/<id>/`. They were moved from this
 folder with Git history preserved. All 369 supplied files are retained, with the

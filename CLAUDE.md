@@ -6,8 +6,8 @@
 - Continue work on the shared `codex/2.0-polish` branch. Do not create a new
   branch for each change or module unless the owner explicitly requests it.
 - All 11 supplied add-ons are integrated under `apps/client/lib/modules/` and
-  available but off by default from 2.0.2. Keep their data isolated; review and
-  complete them individually. `addons/README.md` tracks scope and limitations.
+  temporarily marked Soon from 2.1.1; only Cycle is available. Preserve all
+  source, installation choices and data; review and re-enable them individually. `addons/README.md` tracks scope and limitations.
 - **Every new or changed screen follows [`docs/16-design-language.md`](docs/16-design-language.md).**
   Sheets open with `nexShowSheet` (never `showModalBottomSheet`), pages are
   pushed with `NexPageRoute`, spacing and corners come from `NexSpacing` and

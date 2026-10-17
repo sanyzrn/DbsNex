@@ -3269,7 +3269,7 @@ abstract class AppLocalizations {
   /// Explains what the screen is for
   ///
   /// In en, this message translates to:
-  /// **'Choose where the intelligence features send their requests. Without a provider they run on this device only, which covers tag hints but not summaries.'**
+  /// **'Choose where AI requests go. A successful connection test saves the exact settings you tested. On-device features depend on the models downloaded to this phone.'**
   String get aiProviderIntro;
 
   /// Field label
@@ -8719,6 +8719,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Text encryption and decryption (AES-256-GCM), hashes, encoding and decoding, random passwords and passphrases, with encrypted local secret storage.'**
   String get planSecurityToolsAbout;
+
+  /// No description provided for @aiResultImageTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get aiResultImageTab;
+
+  /// No description provided for @aiResultTextTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get aiResultTextTab;
+
+  /// No description provided for @aiModelsCapabilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Models and capabilities'**
+  String get aiModelsCapabilities;
+
+  /// No description provided for @aiAdvancedHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat testing does not verify these features. Enable only what your model or gateway supports. OpenRouter audio and search stay off until enabled here.'**
+  String get aiAdvancedHelp;
+
+  /// No description provided for @aiPolicyDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider default'**
+  String get aiPolicyDefault;
+
+  /// No description provided for @aiPolicyEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled for this model'**
+  String get aiPolicyEnabled;
+
+  /// No description provided for @aiPolicyDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get aiPolicyDisabled;
+
+  /// No description provided for @aiImageInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Image input'**
+  String get aiImageInput;
+
+  /// No description provided for @aiSpeechModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription model'**
+  String get aiSpeechModel;
+
+  /// No description provided for @aiSearchEmbeddings.
+  ///
+  /// In en, this message translates to:
+  /// **'Search embeddings'**
+  String get aiSearchEmbeddings;
+
+  /// No description provided for @aiEmbeddingModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Embedding model'**
+  String get aiEmbeddingModel;
+
+  /// No description provided for @aiSpeechEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription endpoint (optional)'**
+  String get aiSpeechEndpoint;
+
+  /// No description provided for @aiEmbeddingEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Embedding endpoint (optional)'**
+  String get aiEmbeddingEndpoint;
 }
 
 class _AppLocalizationsDelegate
