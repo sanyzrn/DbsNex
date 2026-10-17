@@ -75,13 +75,28 @@ class SponsorCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(NexRadius.lg),
                 border: Border.all(color: tint.withValues(alpha: 0.45)),
               ),
-              child: picture == null
-                  ? _Words(sponsor: sponsor, tint: tint, onDismiss: onDismiss)
-                  : _Picture(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (picture == null)
+                    _Words(sponsor: sponsor, tint: tint, onDismiss: onDismiss)
+                  else
+                    _Picture(
                       sponsor: sponsor,
                       picture: picture,
                       onDismiss: onDismiss,
                     ),
+                  if (onDismiss case final dismiss?)
+                    PositionedDirectional(
+                      top: 0,
+                      end: 0,
+                      child: _Dismiss(
+                        onDismiss: dismiss,
+                        onImage: picture != null,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -178,7 +193,7 @@ class _Words extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onDismiss case final dismiss?) _Dismiss(onDismiss: dismiss),
+              if (onDismiss != null) const SizedBox(width: nexMinTapTarget),
             ],
           );
         },
@@ -294,8 +309,7 @@ class _Picture extends StatelessWidget {
                       },
                     ),
                   ),
-                  if (onDismiss case final dismiss?)
-                    _Dismiss(onDismiss: dismiss, onImage: true),
+                  if (onDismiss != null) const SizedBox(width: nexMinTapTarget),
                 ],
               ),
             ),
@@ -319,7 +333,10 @@ class _Dismiss extends StatelessWidget {
   @override
   Widget build(BuildContext context) => IconButton(
     tooltip: AppLocalizations.of(context).sponsorDismiss,
-    icon: const Icon(Icons.close, size: 18),
+    icon: const Icon(Icons.close, size: 16),
+    style: onImage
+        ? IconButton.styleFrom(backgroundColor: Colors.black54)
+        : null,
     color: onImage ? Colors.white : null,
     constraints: const BoxConstraints.tightFor(
       width: nexMinTapTarget,

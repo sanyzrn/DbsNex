@@ -129,7 +129,7 @@ String? nexEmbeddingSpaceFor({
   required bool localSearch,
 }) {
   if (localSearch) return NexLocalEmbedder.embeddingSpace;
-  if (provider != null && provider.isUsable && provider.provider.embeds) {
+  if (provider != null && provider.isUsable && provider.supportsEmbeddings) {
     return provider.embeddingSpace;
   }
   return null;

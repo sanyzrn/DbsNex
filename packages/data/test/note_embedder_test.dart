@@ -200,6 +200,19 @@ void main() {
 
     expect(repo.listEmbeddings(), isEmpty);
   });
+  test('a late query never repopulates a replacement model cache', () async {
+    final held = _HeldEmbedder();
+    final replacement = _RecordingEmbedder();
+    final service = EnrichmentService(repo: repo, capabilities: searching)
+      ..updateEmbedder(held);
+    final first = service.semanticSearch('dentist');
+    await held.asked.future;
+    service.updateEmbedder(replacement);
+    held.answer.complete([1.0, 0.0]);
+    expect(await first, isEmpty);
+    await service.semanticSearch('dentist');
+    expect(replacement.queries, ['dentist']);
+  });
 }
 
 /// A tiny bag-of-letters "model": deterministic, and close for texts that
@@ -291,7 +304,10 @@ class _HeldEmbedder implements NoteEmbedder {
   }
 
   @override
-  Future<List<double>> embedQuery(String text) => answer.future;
+  Future<List<double>> embedQuery(String text) {
+    if (!asked.isCompleted) asked.complete();
+    return answer.future;
+  }
 }
 
 /// Vectors chosen so the query scores 0.8 against "related" and 0.45

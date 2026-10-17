@@ -241,7 +241,10 @@ extension NexScheduledReminders on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: NexReminders.arrivalIdFor(note.id),
-        title: body.isEmpty ? 'Nex' : NexReminders._clamp(body, 60),
+        title: body.isEmpty
+            ? 'Nex'
+            : NexReminders._clamp(body.split('\n').first, 60),
+        body: body.isEmpty ? null : NexReminders._clamp(body, 1200),
         scheduledDate: NexReminders.scheduledDateFor(note.releaseAt),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
@@ -250,6 +253,9 @@ extension NexScheduledReminders on NexReminders {
             channelDescription: NexReminders._text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
+            styleInformation: body.isEmpty
+                ? null
+                : BigTextStyleInformation(NexReminders._clamp(body, 1200)),
             visibility: hideOnLockScreen?.call() ?? false
                 ? NotificationVisibility.secret
                 : null,

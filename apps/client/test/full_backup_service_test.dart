@@ -64,6 +64,10 @@ void main() {
         key,
         includeModel: false,
       );
+      expect(FullBackup.isFullBackup(ordinary), isTrue);
+      final renamed = File(ordinary).copySync('${root.path}/picked.zip');
+      expect(FullBackup.isFullBackup(renamed.path), isTrue);
+      expect(await FullBackup.detect(renamed.path), isTrue);
       final ordinarySettings = FullBackup.unpack(
         ordinary,
         '${root.path}/ordinary',

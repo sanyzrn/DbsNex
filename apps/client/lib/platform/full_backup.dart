@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
@@ -10,6 +11,29 @@ import 'package:path/path.dart' as p;
 /// authenticated WinZip AES-256 with a generated 256-bit recovery key (not a
 /// human password, for which ZIP's inexpensive KDF would be insufficient).
 abstract final class FullBackup {
+  /// Android document providers may rename a .nexfull copy to .zip or .bin.
+  /// Recognize the container by entries, without decrypting or trusting it.
+  /// The actual restore still performs all authentication and validation.
+  static Future<bool> detect(String source) =>
+      Isolate.run(() => isFullBackup(source));
+
+  static bool isFullBackup(String source) {
+    InputFileStream? input;
+    try {
+      input = InputFileStream(source);
+      final archive = ZipDecoder().decodeStream(input);
+      return archive.length >= 3 &&
+          archive.length <= 4 &&
+          archive.findFile('format.json') != null &&
+          archive.findFile('settings.aes.zip') != null &&
+          archive.findFile('library.nexbak') != null;
+    } catch (_) {
+      return false;
+    } finally {
+      input?.closeSync();
+    }
+  }
+
   static String newKey() =>
       base64Url.encode(List.generate(32, (_) => Random.secure().nextInt(256)));
 

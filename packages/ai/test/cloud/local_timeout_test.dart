@@ -8,6 +8,32 @@ import 'package:nex_core/nex_core.dart';
 /// provider and a model on the phone, a request that never came back held
 /// the card's spinner, and every pull behind it, for good.
 void main() {
+  testWidgets('interactive local chat also has a deadline', (tester) async {
+    final model = _SilentModel();
+    final adapter = CloudAIAdapter(
+      config: const AiProviderConfig(),
+      localModel: model,
+      localTimeout: const Duration(seconds: 3),
+    );
+    var done = false;
+    String? result = 'waiting';
+    unawaited(
+      adapter
+          .chat(const [ChatMessage(role: ChatRole.user, content: 'hello')])
+          .then((value) {
+            result = value;
+            done = true;
+          }),
+    );
+    await tester.pump(const Duration(seconds: 4));
+    expect(done, isTrue);
+    expect(result, isNull);
+    expect(adapter.localFailure, contains('TimeoutException'));
+    model.never.complete(const ChatResponse(content: 'late'));
+    await tester.pump();
+    expect(result, isNull);
+  });
+
   testWidgets('an on-device answer that never comes is given up on', (
     tester,
   ) async {

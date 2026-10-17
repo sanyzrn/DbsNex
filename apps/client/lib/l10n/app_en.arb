@@ -1530,7 +1530,7 @@
   "@aiKeyStorage": {
     "description": "Honest note about how the key is kept"
   },
-  "aiCapabilityNote": "Tag suggestions and summaries work with every provider. Semantic search needs an OpenAI-compatible one. Speech-to-text and image text stay on-device for now.",
+  "aiCapabilityNote": "Connection test checks text chat only. Set separate speech/search models and supported features under Models and capabilities. Custom endpoints can be overridden there. OpenRouter audio and search require explicit opt-in.",
   "@aiCapabilityNote": {
     "description": "What each capability can actually reach"
   },
@@ -3344,5 +3344,8 @@
   "aiExtractedText": "Extracted text",
   "chatThinking": "Thinking it through…",
   "planPersianCalendarTitle": "Persian calendar & prayer times",
-  "planPersianCalendarAbout": "A Solar Hijri calendar with occasions and date conversion. Prayer times for your chosen city, with optional adhan alerts and a separate setting for each prayer."
+  "planPersianCalendarAbout": "A Solar Hijri calendar with occasions and date conversion. Prayer times for your chosen city, with optional adhan alerts and a separate setting for each prayer.",
+  "aiProviderSaveFailed": "Could not save the provider. Please try again.",
+  "planSecurityToolsTitle": "Security toolbox",
+  "planSecurityToolsAbout": "Text encryption and decryption (AES-256-GCM), hashes, encoding and decoding, random passwords and passphrases, with encrypted local secret storage."
 }

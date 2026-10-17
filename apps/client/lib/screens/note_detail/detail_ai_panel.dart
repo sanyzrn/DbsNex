@@ -281,8 +281,11 @@ extension _DetailAiPanel on _NoteDetailSheetState {
   List<_AiResult> _derivedAiResults(Note note, AppLocalizations l10n) => [
     if (note.transcriptText?.trim().isNotEmpty == true)
       _AiResult('transcript', l10n.transcript, note.transcriptText!.trim()),
-    if (note.ocrText?.trim().isNotEmpty == true)
-      // This column also holds the source of a note converted to Markdown.
+    if (note.ocrText?.trim().isNotEmpty == true &&
+        !(note.type == NoteType.file &&
+            NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType) ==
+                NexFileKind.markdown))
+      // Markdown source is the document itself, not an AI result.
       // Its presence alone does not mean an image was described by AI.
       _AiResult(
         note.isImageMedia ? 'image' : 'extracted',

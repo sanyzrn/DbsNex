@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter_litert_lm/flutter_litert_lm.dart' show LiteLmEngine;
+import 'package:flutter_litert_lm/flutter_litert_lm.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ai/nex_ai.dart';
 
@@ -132,6 +132,94 @@ void main() {
     expect(LiteRtChatAdapter(modelPath: '').release(), isNull);
   });
 
+  test(
+    'generation serializes conversations, and a failed turn does not poison the queue',
+    () async {
+      final gate = Completer<LiteLmMessage>();
+      final calls = <String>[];
+      final engine = _QueueEngine((text) {
+        calls.add(text);
+        return calls.length == 1
+            ? gate.future
+            : Future.value(LiteLmMessage.model('second'));
+      });
+      final adapter = LiteRtChatAdapter(
+        modelPath: 'test-model',
+        engine: engine,
+        availableForTest: true,
+      );
+      final first = adapter.sendMessage(const [
+        ChatMessage(role: ChatRole.system, content: 'context A'),
+        ChatMessage(role: ChatRole.user, content: 'question A'),
+      ])!;
+      final second = adapter.sendMessage(const [
+        ChatMessage(role: ChatRole.system, content: 'context B'),
+        ChatMessage(role: ChatRole.user, content: 'question B'),
+      ])!;
+      final firstFailure = expectLater(first, throwsStateError);
+      await Future<void>.delayed(Duration.zero);
+      expect(calls, hasLength(1));
+      expect(engine.conversations, hasLength(1));
+      gate.completeError(StateError('first failed'));
+      await firstFailure;
+      expect((await second).content, 'second');
+      expect(calls.last, contains('question B'));
+      expect(calls.last, isNot(contains('context A')));
+      await adapter.close();
+    },
+  );
+
+  testWidgets(
+    'expired queued work is skipped and late native output is discarded',
+    (tester) async {
+      final gate = Completer<LiteLmMessage>();
+      var calls = 0;
+      final engine = _QueueEngine((_) {
+        calls++;
+        return calls == 1
+            ? gate.future
+            : Future.value(LiteLmMessage.model('fresh'));
+      });
+      final adapter = LiteRtChatAdapter(
+        modelPath: 'test-model',
+        engine: engine,
+        availableForTest: true,
+        requestTimeout: const Duration(seconds: 1),
+      );
+      const turns = [ChatMessage(role: ChatRole.user, content: 'question')];
+      final first = adapter.sendMessage(turns)!;
+      final queued = adapter.sendMessage(turns)!;
+      final firstFailure = expectLater(first, throwsA(isA<TimeoutException>()));
+      final queuedFailure = expectLater(
+        queued,
+        throwsA(isA<TimeoutException>()),
+      );
+      await tester.pump();
+      expect(calls, 1);
+      await tester.pump(const Duration(seconds: 2));
+      await firstFailure;
+      await queuedFailure;
+      expect(
+        engine.conversations.single.disposed,
+        isFalse,
+        reason: 'never dispose a native session while it is generating',
+      );
+      gate.complete(LiteLmMessage.model('late'));
+      await tester.pump();
+      expect(calls, 1, reason: 'expired queued inference never starts');
+      expect(engine.conversations.single.disposed, isTrue);
+      final fresh = adapter.sendMessage(turns)!;
+      await tester.pump();
+      expect((await fresh).content, 'fresh');
+      expect(
+        engine.conversations,
+        hasLength(2),
+        reason: 'retry has a clean session',
+      );
+      await adapter.close();
+    },
+  );
+
   group('loading the model', () {
     late Directory dir;
     late String path;
@@ -256,6 +344,55 @@ void main() {
 class _FakeEngine implements LiteLmEngine {
   @override
   Future<void> dispose() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _QueueEngine implements LiteLmEngine {
+  _QueueEngine(this.answer);
+  final Future<LiteLmMessage> Function(String) answer;
+  final conversations = <_QueueConversation>[];
+  @override
+  Future<LiteLmConversation> createConversation([
+    LiteLmConversationConfig? config,
+  ]) async {
+    final conversation = _QueueConversation(answer);
+    conversations.add(conversation);
+    return conversation;
+  }
+
+  @override
+  Future<void> dispose() async {}
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _QueueConversation implements LiteLmConversation {
+  _QueueConversation(this.answer);
+  final Future<LiteLmMessage> Function(String) answer;
+  bool disposed = false;
+  bool busy = false;
+  @override
+  Future<LiteLmMessage> sendMessage(
+    String text, {
+    Map<String, Object>? extraContext,
+  }) async {
+    expectSync(disposed, isFalse);
+    expectSync(busy, isFalse);
+    busy = true;
+    try {
+      return await answer(text);
+    } finally {
+      busy = false;
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    expectSync(busy, isFalse);
+    disposed = true;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

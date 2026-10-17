@@ -23,10 +23,13 @@ class LiteRtChatAdapter implements ChatAdapter {
   LiteRtChatAdapter({
     required String modelPath,
     this.preferGpu = true,
+    this.requestTimeout = const Duration(minutes: 5),
+    @visibleForTesting bool? availableForTest,
     @visibleForTesting LiteLmEngine? engine,
     @visibleForTesting
     Future<LiteLmEngine> Function(LiteLmEngineConfig config)? loadEngine,
-  }) : _path = (() => modelPath),
+  }) : _availableForTest = availableForTest,
+       _path = (() => modelPath),
        _engine = engine,
        _enginePath = engine == null ? null : modelPath,
        _loadEngine = loadEngine ?? LiteLmEngine.create;
@@ -37,7 +40,9 @@ class LiteRtChatAdapter implements ChatAdapter {
   LiteRtChatAdapter.following(
     String Function() modelPath, {
     this.preferGpu = true,
-  }) : _path = modelPath,
+    this.requestTimeout = const Duration(minutes: 5),
+  }) : _availableForTest = null,
+       _path = modelPath,
        _loadEngine = LiteLmEngine.create;
 
   final String Function() _path;
@@ -64,6 +69,9 @@ class LiteRtChatAdapter implements ChatAdapter {
   /// catch. A chat feature is not worth a crash, so this ships GPU-then-CPU
   /// and leaves NPU to a device allowlist that does not exist yet.
   final bool preferGpu;
+  final Duration requestTimeout;
+  final bool? _availableForTest;
+  Future<void> _messageTail = Future<void>.value();
 
   LiteLmEngine? _engine;
   LiteLmConversation? _conversation;
@@ -110,6 +118,7 @@ class LiteRtChatAdapter implements ChatAdapter {
   /// just installed is seen at once, one deleted within [_availabilityTtl].
   @override
   bool get available {
+    if (_availableForTest case final present?) return present;
     if (!supportedPlatform || modelPath.isEmpty) return false;
     final now = DateTime.now();
     final seen = _seenAt;
@@ -146,7 +155,10 @@ class LiteRtChatAdapter implements ChatAdapter {
     if (!available || (_engine != null && _enginePath == modelPath)) {
       return null;
     }
-    return _ensureEngine().whenComplete(_settle);
+    return (_inFlight == 0
+            ? _ensureEngine().then<void>((_) {})
+            : _messageTail.then((_) => _ensureEngine()).then<void>((_) {}))
+        .whenComplete(_settle);
   }
 
   /// How long a loaded model may sit unused before it is released.
@@ -178,11 +190,47 @@ class LiteRtChatAdapter implements ChatAdapter {
     // "unavailable" is a state the caller checks for, not an exception it
     // catches. With no model downloaded yet this is the whole answer.
     if (!available || history.isEmpty) return null;
-    _inFlight++;
-    return _send(withScopeCeiling(history)).whenComplete(() {
-      _inFlight--;
-      _settle();
+    final result = Completer<ChatResponse>();
+    final timer = Timer(requestTimeout, () {
+      if (!result.isCompleted) {
+        result.completeError(
+          TimeoutException('The on-device model timed out.'),
+        );
+      }
     });
+    final prepared = withScopeCeiling(List<ChatMessage>.of(history));
+    _inFlight++;
+    final work = _messageTail.then((_) async {
+      try {
+        // A queued request may have expired while another native call was
+        // finishing. Never run abandoned work in the background.
+        if (result.isCompleted) return;
+        final reply = await _send(prepared);
+        if (!result.isCompleted) {
+          result.complete(reply);
+        } else {
+          // The native API has no cancellation method. Let it settle before
+          // disposing its session; never free native state mid-generation.
+          await _resetConversation();
+        }
+      } catch (error, stack) {
+        try {
+          await _resetConversation();
+        } catch (_) {
+          /* Keep original error. */
+        }
+        if (!result.isCompleted) result.completeError(error, stack);
+      } finally {
+        _inFlight--;
+        _settle();
+      }
+    });
+    // A failed/disposed session must not poison the next queued request.
+    _messageTail = work.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return result.future.whenComplete(timer.cancel);
   }
 
   Future<ChatResponse> _send(List<ChatMessage> conversation) async {
@@ -493,14 +541,21 @@ class LiteRtChatAdapter implements ChatAdapter {
   /// Releases the model. Worth calling: the weights are the largest single
   /// allocation this app ever makes, and Android reclaims the process rather
   /// than asking twice.
-  Future<void> close() async {
-    await _conversation?.dispose();
-    await _engine?.dispose();
+  Future<void> _resetConversation() async {
+    final previous = _conversation;
     _conversation = null;
-    _engine = null;
-    _enginePath = null;
     _sentThroughIndex = 0;
     _sentSignature = 0;
     _systemInstruction = null;
+    await previous?.dispose();
+  }
+
+  Future<void> close() async {
+    _idle?.cancel();
+    _idle = null;
+    await _resetConversation();
+    await _engine?.dispose();
+    _engine = null;
+    _enginePath = null;
   }
 }

@@ -114,7 +114,10 @@ extension NexNoteReminders on NexReminders {
         id: NexReminders._idFor(note.id),
         // The note's own words are the title: a reminder saying "Nex" tells
         // someone nothing at the moment they most need to know what it is.
-        title: body.isEmpty ? 'Nex' : NexReminders._clamp(body, 60),
+        title: body.isEmpty
+            ? 'Nex'
+            : NexReminders._clamp(body.split('\n').first, 60),
+        body: body.isEmpty ? null : NexReminders._clamp(body, 1200),
         scheduledDate: NexReminders.scheduledDateFor(at),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
@@ -123,6 +126,9 @@ extension NexNoteReminders on NexReminders {
             channelDescription: NexReminders._text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
+            styleInformation: body.isEmpty
+                ? null
+                : BigTextStyleInformation(NexReminders._clamp(body, 1200)),
             visibility: hideOnLockScreen?.call() ?? false
                 ? NotificationVisibility.secret
                 : null,

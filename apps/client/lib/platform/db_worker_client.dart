@@ -162,6 +162,14 @@ mixin _DbClient implements NexDb {
       _send<void>(_DbCommand.setSummaryText, {'id': id, 'text': text});
 
   @override
+  Future<bool> saveSummaryIfCurrent(String id, String source, String text) =>
+      _send<bool>(_DbCommand.saveSummaryIfCurrent, {
+        'id': id,
+        'source': source,
+        'text': text,
+      });
+
+  @override
   Future<void> setLinkMetadata(String id, {String? title, String? excerpt}) =>
       _send<void>(_DbCommand.setLinkMetadata, {
         'id': id,

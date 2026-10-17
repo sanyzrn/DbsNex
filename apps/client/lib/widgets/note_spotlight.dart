@@ -95,7 +95,7 @@ class _NoteSpotlightState extends State<NoteSpotlight>
         Positioned.fill(
           child: IgnorePointer(
             child: Padding(
-              padding: nexCardInsets,
+              padding: nexCardInsetsFor(context),
               child: FadeTransition(
                 opacity: CurvedAnimation(
                   parent: _pulseController,

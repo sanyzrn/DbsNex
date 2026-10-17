@@ -3335,7 +3335,7 @@ abstract class AppLocalizations {
   /// What each capability can actually reach
   ///
   /// In en, this message translates to:
-  /// **'Tag suggestions and summaries work with every provider. Semantic search needs an OpenAI-compatible one. Speech-to-text and image text stay on-device for now.'**
+  /// **'Connection test checks text chat only. Set separate speech/search models and supported features under Models and capabilities. Custom endpoints can be overridden there. OpenRouter audio and search require explicit opt-in.'**
   String get aiCapabilityNote;
 
   /// Successful connection test
@@ -8701,6 +8701,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A Solar Hijri calendar with occasions and date conversion. Prayer times for your chosen city, with optional adhan alerts and a separate setting for each prayer.'**
   String get planPersianCalendarAbout;
+
+  /// No description provided for @aiProviderSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the provider. Please try again.'**
+  String get aiProviderSaveFailed;
+
+  /// No description provided for @planSecurityToolsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security toolbox'**
+  String get planSecurityToolsTitle;
+
+  /// No description provided for @planSecurityToolsAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'Text encryption and decryption (AES-256-GCM), hashes, encoding and decoding, random passwords and passphrases, with encrypted local secret storage.'**
+  String get planSecurityToolsAbout;
 }
 
 class _AppLocalizationsDelegate

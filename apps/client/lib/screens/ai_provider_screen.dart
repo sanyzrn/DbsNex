@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -20,7 +21,10 @@ import '../platform/nex_preferences.dart';
 /// and a local heuristic, so "Summarization: on" changed nothing a user could
 /// see. A provider makes those switches mean something.
 class AiProviderScreen extends StatefulWidget {
-  const AiProviderScreen({super.key, required this.preferences});
+  const AiProviderScreen({super.key, required this.preferences, this.client});
+
+  @visibleForTesting
+  final http.Client? client;
 
   final NexPreferences preferences;
 
@@ -61,6 +65,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
 
   bool _obscure = true;
   bool _testing = false;
+  bool _saving = false;
   AiTestResult? _result;
 
   @override
@@ -91,26 +96,35 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   /// one (so Save is how you switch to it), or its fields no longer match
   /// what was last saved for it (so Save is how you update it).
   bool get _dirty =>
-      _activeProvider != _current.provider ||
-      _stored.apiKey != _current.apiKey ||
-      _stored.baseUrl != _current.baseUrl ||
-      _stored.model != _current.model;
+      _activeProvider != _current.provider || !_sameConfig(_stored, _current);
 
-  Future<void> _save() async {
-    final saving = _current;
-    await widget.preferences.setAiProvider(saving);
-    if (!mounted) return;
-    setState(() {
-      _config = saving;
-      _stored = saving;
-      _activeProvider = saving.provider;
-    });
-    // It said nothing at all before — no confirmation, no error, no change in
-    // the button. There was no way to know whether the key had been kept.
-    nexShowBanner(
-      context,
-      message: AppLocalizations.of(context).aiProviderSaved,
-    );
+  Future<void> _save([AiProviderConfig? tested]) async {
+    if (_saving) return;
+    final saving = tested ?? _current;
+    setState(() => _saving = true);
+    try {
+      await widget.preferences.setAiProvider(saving);
+      if (!mounted) return;
+      setState(() {
+        _config = saving;
+        _stored = saving;
+        _activeProvider = saving.provider;
+      });
+      nexShowBanner(
+        context,
+        message: AppLocalizations.of(context).aiProviderSaved,
+      );
+    } catch (_) {
+      if (mounted) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).aiProviderSaveFailed,
+          kind: NexBannerKind.failed,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _test() async {
@@ -118,17 +132,171 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
       _testing = true;
       _result = null;
     });
-    final adapter = CloudAIAdapter(config: _current);
+    final testing = _current;
+    final adapter = CloudAIAdapter(config: testing, client: widget.client);
     try {
       final result = await adapter.test();
-      if (!mounted) return;
+      if (!mounted || !_sameConfig(_current, testing)) return;
       setState(() => _result = result);
       // Only a working configuration is worth keeping.
-      if (result.success) await _save();
+      if (result.success) await _save(testing);
     } finally {
       adapter.close();
       if (mounted) setState(() => _testing = false);
     }
+  }
+
+  static bool _sameConfig(AiProviderConfig a, AiProviderConfig b) {
+    final right = b.toMap();
+    return a.toMap().entries.every((entry) => right[entry.key] == entry.value);
+  }
+
+  Widget _advanced() {
+    Widget field(
+      String id,
+      String en,
+      String fa,
+      String value,
+      AiProviderConfig Function(String) update, {
+      String? hint,
+    }) => Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.md),
+      child: TextFormField(
+        key: ValueKey('ai-${_config.provider.name}-$id'),
+        initialValue: value,
+        enabled: !_saving,
+        autocorrect: false,
+        enableSuggestions: false,
+        textDirection: TextDirection.ltr,
+        decoration: InputDecoration(
+          labelText: nexLabel(context, en, fa),
+          hintText: hint,
+          border: const OutlineInputBorder(),
+        ),
+        onChanged: (value) => setState(() {
+          _config = update(value);
+          _result = null;
+        }),
+      ),
+    );
+    Widget policy(
+      String id,
+      String en,
+      String fa,
+      AiCapabilityMode value,
+      AiProviderConfig Function(AiCapabilityMode) update,
+    ) => Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.md),
+      child: DropdownButtonFormField<AiCapabilityMode>(
+        key: ValueKey('ai-${_config.provider.name}-$id'),
+        initialValue: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: nexLabel(context, en, fa),
+          border: const OutlineInputBorder(),
+        ),
+        items: [
+          DropdownMenuItem(
+            value: AiCapabilityMode.automatic,
+            child: Text(
+              nexLabel(context, 'Provider default', 'پیش‌فرض پروایدر'),
+            ),
+          ),
+          DropdownMenuItem(
+            value: AiCapabilityMode.enabled,
+            child: Text(
+              nexLabel(context, 'Enabled for this model', 'فعال برای این مدل'),
+            ),
+          ),
+          DropdownMenuItem(
+            value: AiCapabilityMode.disabled,
+            child: Text(nexLabel(context, 'Disabled', 'غیرفعال')),
+          ),
+        ],
+        onChanged: _saving
+            ? null
+            : (value) {
+                if (value != null) {
+                  setState(() {
+                    _config = update(value);
+                    _result = null;
+                  });
+                }
+              },
+      ),
+    );
+    return ExpansionTile(
+      key: ValueKey('ai-advanced-${_config.provider.name}'),
+      tilePadding: EdgeInsets.zero,
+      title: Text(
+        nexLabel(context, 'Models and capabilities', 'مدل‌ها و قابلیت‌ها'),
+      ),
+      children: [
+        Text(
+          nexLabel(
+            context,
+            'Chat testing does not verify these features. Enable only what your model or gateway supports. OpenRouter audio and search stay off until enabled here.',
+            'تست گفتگو این قابلیت‌ها را تأیید نمی‌کند. فقط قابلیت‌های پشتیبانی‌شدهٔ مدل یا سرویس خود را فعال کنید. صدا و جستجوی OpenRouter تا فعال‌کردن در اینجا خاموش می‌مانند.',
+          ),
+        ),
+        const SizedBox(height: NexSpacing.md),
+        policy(
+          'images',
+          'Image input',
+          'ورودی تصویر',
+          _config.images,
+          (v) => _config.copyWith(images: v),
+        ),
+        if (_config.provider != AiProvider.anthropic) ...[
+          policy(
+            'audio',
+            'Transcription',
+            'تبدیل صدا به متن',
+            _config.audio,
+            (v) => _config.copyWith(audio: v),
+          ),
+          field(
+            'audio-model',
+            'Transcription model',
+            'مدل تبدیل صدا به متن',
+            _config.transcriptionModel,
+            (v) => _config.copyWith(transcriptionModel: v),
+            hint: _config.resolvedTranscriptionModel,
+          ),
+          policy(
+            'embeddings',
+            'Search embeddings',
+            'بردارهای جستجو',
+            _config.embeddings,
+            (v) => _config.copyWith(embeddings: v),
+          ),
+          field(
+            'embedding-model',
+            'Embedding model',
+            'مدل بردارسازی',
+            _config.embeddingModelId,
+            (v) => _config.copyWith(embeddingModelId: v),
+            hint: _config.embeddingModel,
+          ),
+        ],
+        if (_config.provider == AiProvider.custom) ...[
+          field(
+            'audio-url',
+            'Transcription endpoint (optional)',
+            'آدرس کامل تبدیل صدا (اختیاری)',
+            _config.transcriptionUrl,
+            (v) => _config.copyWith(transcriptionUrl: v),
+          ),
+          field(
+            'embedding-url',
+            'Embedding endpoint (optional)',
+            'آدرس کامل بردارسازی (اختیاری)',
+            _config.embeddingUrl,
+            (v) => _config.copyWith(embeddingUrl: v),
+          ),
+        ],
+      ],
+    );
   }
 
   @override
@@ -144,8 +312,8 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
       // — the two buttons the screen exists for were the two you had to go
       // looking for.
       bottomNavigationBar: _ActionBar(
-        testing: _testing,
-        canSave: _dirty && !_testing,
+        testing: _testing || _saving,
+        canSave: _dirty && !_testing && !_saving,
         showTest: provider != AiProvider.none,
         onTest: () => unawaited(_test()),
         onSave: () => unawaited(_save()),
@@ -190,9 +358,9 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                   ? (_localModelReady
                         ? l10n.aiProviderNoneSubtitleLocal
                         : l10n.aiProviderNoneSubtitle)
-                  : candidate.defaultModel,
+                  : candidate.exampleModel,
               onTap: () {
-                if (candidate == provider) return;
+                if (_saving || candidate == provider) return;
                 // Whatever was saved for this provider before, not whatever
                 // is still sitting in the fields from the one just left —
                 // switching to OpenAI used to keep showing Claude's key,
@@ -238,6 +406,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
           if (provider != AiProvider.none) ...[
             const SizedBox(height: NexSpacing.sm),
             TextField(
+              enabled: !_saving,
               controller: _key,
               selectionWidthStyle: BoxWidthStyle.tight,
               contextMenuBuilder: nexReadingMenu,
@@ -269,6 +438,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
             if (needsEndpoint) ...[
               const SizedBox(height: NexSpacing.md),
               TextField(
+                enabled: !_saving,
                 controller: _baseUrl,
                 selectionWidthStyle: BoxWidthStyle.tight,
                 contextMenuBuilder: nexReadingMenu,
@@ -299,6 +469,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
             ],
             const SizedBox(height: NexSpacing.md),
             TextField(
+              enabled: !_saving,
               controller: _model,
               selectionWidthStyle: BoxWidthStyle.tight,
               contextMenuBuilder: nexReadingMenu,
@@ -330,6 +501,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               textAlign: TextAlign.start,
             ),
           ],
+          if (provider != AiProvider.none) _advanced(),
           if (_result != null) ...[
             const SizedBox(height: NexSpacing.lg),
             _ResultBanner(result: _result!),

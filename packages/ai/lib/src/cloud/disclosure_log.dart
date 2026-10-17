@@ -219,15 +219,50 @@ class DisclosureClient extends http.BaseClient {
 
   final http.Client _inner;
   final String provider;
+  var _requests = 0;
+  var _retiring = false;
+  var _closed = false;
+  Timer? _retireLimit;
+
+  /// Stop accepting new work; existing response bodies may finish normally.
+  void retire() {
+    if (_retiring || _closed) return;
+    _retiring = true;
+    if (_requests == 0) {
+      close();
+    } else {
+      // A body that never finishes must not retain a retired socket forever.
+      _retireLimit = Timer(const Duration(minutes: 4), close);
+    }
+  }
+
+  void _finished() {
+    _requests--;
+    if (_retiring && _requests == 0) close();
+  }
+
+  Stream<List<int>> _body(Stream<List<int>> source) async* {
+    try {
+      yield* source;
+    } finally {
+      _finished();
+    }
+  }
 
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (_retiring || _closed) {
+      throw http.ClientException(
+        'This AI connection has been closed.',
+        request.url,
+      );
+    }
     final content = <DisclosureContent>{DisclosureContent.text};
     var bytes = request.contentLength ?? 0;
     if (request is http.Request) {
       bytes = request.bodyBytes.length;
       try {
-        if (_carriesImage(request.body)) content.add(DisclosureContent.image);
+        content.addAll(_mediaContent(request.body));
       } on FormatException {
         // Not text at all; what it was for still gets recorded.
       }
@@ -254,16 +289,48 @@ class DisclosureClient extends http.BaseClient {
       bytes: bytes,
       content: content,
     );
-    return _inner.send(request);
+    _requests++;
+    final http.StreamedResponse response;
+    try {
+      response = await _inner.send(request);
+    } catch (_) {
+      _finished();
+      rethrow;
+    }
+    return http.StreamedResponse(
+      _body(response.stream),
+      response.statusCode,
+      contentLength: response.contentLength,
+      request: response.request,
+      headers: response.headers,
+      isRedirect: response.isRedirect,
+      persistentConnection: response.persistentConnection,
+      reasonPhrase: response.reasonPhrase,
+    );
   }
 
-  /// Inline media in any of the three wire formats.
-  static bool _carriesImage(String body) =>
-      body.contains('"image_url"') ||
-      body.contains('"inline_data"') ||
-      body.contains('"inlineData"') ||
-      body.contains('"type":"image"');
+  /// Inspect serialized MIME metadata without decoding/copying base64 media.
+  static Set<DisclosureContent> _mediaContent(String body) {
+    final found = <DisclosureContent>{};
+    if (body.contains('"image_url"') ||
+        RegExp(r'"type"\s*:\s*"image"').hasMatch(body)) {
+      found.add(DisclosureContent.image);
+    }
+    for (final match in RegExp(
+      r'"(?:mime_type|mimeType)"\s*:\s*"(audio|image)/',
+    ).allMatches(body)) {
+      found.add(
+        match[1] == 'audio' ? DisclosureContent.audio : DisclosureContent.image,
+      );
+    }
+    return found;
+  }
 
   @override
-  void close() => _inner.close();
+  void close() {
+    if (_closed) return;
+    _closed = true;
+    _retireLimit?.cancel();
+    _inner.close();
+  }
 }

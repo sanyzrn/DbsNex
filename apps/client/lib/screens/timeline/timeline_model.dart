@@ -221,6 +221,22 @@ class TimelineModel extends ChangeNotifier {
     );
   }
 
+  Future<bool> ensureLoaded(String noteId) async {
+    if (_all == null) await load();
+    if (byId(noteId) != null) return true;
+    final note = await services.worker.getById(noteId);
+    if (note == null || note.deletedAt != null) return false;
+    // Reuse the service’s full window after a filter or first-read snapshot.
+    // An exhausted page must not hide rows that were already loaded earlier.
+    await services.refreshTimeline();
+    if (_disposed) return false;
+    while (!_disposed && byId(noteId) == null) {
+      final more = await services.loadMoreTimeline();
+      if (!more) return byId(noteId) != null;
+    }
+    return !_disposed;
+  }
+
   /// Folds away or opens up date groups, and remembers it.
   void setCollapsedGroups(Set<String> keys) {
     _collapsedGroups = keys;
@@ -274,7 +290,8 @@ class TimelineModel extends ChangeNotifier {
   }
 
   Future<void> _applyFilters() async {
-    final loaded = await services.timeline(limit: 200);
+    final count = _all?.length ?? 0;
+    final loaded = await services.timeline(limit: count > 200 ? count : 200);
     if (_disposed) return;
     _take(loaded);
   }

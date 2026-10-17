@@ -37,27 +37,27 @@ void main() {
   }
 
   for (final locale in ['en', 'fa']) {
-    testWidgets(
-      '$locale converted Markdown is extracted text, not an image result',
-      (tester) async {
-        final h = await NexTestHarness.create();
-        addTearDown(h.dispose);
-        const source = '# A Markdown note\n\n- Keep the source unchanged.';
-        final note = (await h.services.captureText(source))!;
-        await tester.runAsync(() => h.services.convertMarkdown(note));
-        final converted = (await h.services.getById(note.id))!;
-        expect(converted.type, NoteType.file);
-        expect(converted.mimeType, 'text/markdown');
-        expect(converted.ocrText, source);
-        expect(File(converted.mediaUri!).readAsStringSync(), source);
-        final l10n = await open(tester, h, note.id, locale);
-        expect(find.text(l10n.aiExtractedText), findsOneWidget);
-        expect(find.text(l10n.aiImageResult), findsNothing);
-        expect(tester.takeException(), isNull);
-        await tester.pumpWidget(const SizedBox());
-        await tester.pumpAndSettle();
-      },
-    );
+    testWidgets('$locale converted Markdown source is absent from AI results', (
+      tester,
+    ) async {
+      final h = await NexTestHarness.create();
+      addTearDown(h.dispose);
+      const source = '# A Markdown note\n\n- Keep the source unchanged.';
+      final note = (await h.services.captureText(source))!;
+      await tester.runAsync(() => h.services.convertMarkdown(note));
+      final converted = (await h.services.getById(note.id))!;
+      expect(converted.type, NoteType.file);
+      expect(converted.mimeType, 'text/markdown');
+      expect(converted.ocrText, source);
+      expect(File(converted.mediaUri!).readAsStringSync(), source);
+      final l10n = await open(tester, h, note.id, locale);
+      expect(find.text(l10n.aiExtractedText), findsNothing);
+      expect(find.byKey(const ValueKey('note-ai-results')), findsNothing);
+      expect(find.text(l10n.aiImageResult), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
 
     for (final (name, mime, image) in [
       ('report.md', 'text/markdown', false),
@@ -93,7 +93,7 @@ void main() {
         final l10n = await open(tester, h, note.id, locale);
         expect(
           find.text(image ? l10n.aiImageResult : l10n.aiExtractedText),
-          findsOneWidget,
+          name.endsWith('.md') ? findsNothing : findsOneWidget,
         );
         expect(
           find.text(image ? l10n.aiExtractedText : l10n.aiImageResult),

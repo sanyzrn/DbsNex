@@ -121,41 +121,68 @@ extension _TimelineNavigation on TimelineScreenState {
     _rebuild(() {
       if (_searching) _exitSearch();
       _spotlightId = noteId;
+      _spotlightReady = false;
     });
-    unawaited(_revealSpotlight(noteId));
+    unawaited(_revealSpotlight(noteId).catchError((Object _) {}));
   }
 
   Future<void> _revealSpotlight(String noteId) async {
-    // The group is expanded before the frame that would have to contain the
-    // card is built, or the anchor below has nothing to find. Everything that
-    // reads context happens here, ahead of the first await.
+    final l10n = AppLocalizations.of(context);
+    final rowHeight =
+        nexCardHeightFor(context) + nexCardInsetsFor(context).vertical;
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    final generation = ++_revealGeneration;
+    bool current() =>
+        mounted && generation == _revealGeneration && _spotlightId == noteId;
+    await _model.clearFilters();
+    if (!current() || !await _model.ensureLoaded(noteId) || !current()) return;
     final note = _model.byId(noteId);
     final now = DateTime.now();
     final key = note == null
         ? null
-        : _bucketFor(
-            note,
-            DateTime(now.year, now.month, now.day),
-            AppLocalizations.of(context),
-          ).$1;
+        : _bucketFor(note, DateTime(now.year, now.month, now.day), l10n).$1;
     if (key != null && _model.collapsedGroups.contains(key)) {
       await _toggleGroup(key);
     }
     await WidgetsBinding.instance.endOfFrame;
-    if (!mounted) return;
-    final anchor = _spotlightAnchor.currentContext;
-    // Absent when the note is far enough down that the list has not built its
-    // row yet. The border still runs when scrolling brings the card into
-    // view; this only saves the reader the scroll when it can.
-    // `anchor.mounted`, not this State's: the row is its own element and can
-    // have left the tree while the frame was being waited for.
-    if (anchor != null && anchor.mounted) {
-      await Scrollable.ensureVisible(
-        anchor,
-        duration: NexMotion.slow,
-        curve: NexMotion.curve,
-        alignment: 0.3,
+    if (!current() || !_scroll.hasClients) return;
+    // Start at a lower-bound estimate. Headers, footnotes and expanded cards
+    // can only add height, then viewport steps materialize the lazy target.
+    final index = _model.notes.indexWhere((n) => n.id == noteId);
+    if (_spotlightAnchor.currentContext == null && index >= 0) {
+      final estimate = index * rowHeight;
+      _scroll.jumpTo(estimate.clamp(0.0, _scroll.position.maxScrollExtent));
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    // The estimated sliver extent can itself change as rows are laid out.
+    // If an estimate overshot, restart from the top once; no eager full list.
+    var restarted = false;
+    for (var step = 0; current() && step <= _model.notes.length + 10; step++) {
+      final anchor = _spotlightAnchor.currentContext;
+      if (anchor != null && anchor.mounted) {
+        await Scrollable.ensureVisible(
+          anchor,
+          duration: reducedMotion ? Duration.zero : NexMotion.slow,
+          curve: NexMotion.curve,
+          alignment: 0.3,
+        );
+        if (current()) _rebuild(() => _spotlightReady = true);
+        return;
+      }
+      if (!_scroll.hasClients) return;
+      final position = _scroll.position;
+      final next = (position.pixels + position.viewportDimension * 0.8).clamp(
+        0.0,
+        position.maxScrollExtent,
       );
+      if (next <= position.pixels) {
+        if (restarted) return;
+        restarted = true;
+        _scroll.jumpTo(0);
+      } else {
+        _scroll.jumpTo(next);
+      }
+      await WidgetsBinding.instance.endOfFrame;
     }
   }
 

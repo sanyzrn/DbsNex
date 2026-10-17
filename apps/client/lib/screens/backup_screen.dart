@@ -454,7 +454,10 @@ class _BackupScreenState extends State<BackupScreen> {
     try {
       // The restore invalidates the whole service graph; the returned token
       // is the contract that the caller must rebuild it.
-      final full = backup.path.endsWith('.nexfull');
+      final path = backup.path;
+      final full =
+          path.toLowerCase().endsWith('.nexfull') ||
+          await FullBackup.detect(path);
       final key = full ? await _askRecoveryKey() : null;
       if (full && (key == null || key.isEmpty)) return;
       final result = full
@@ -525,15 +528,20 @@ class _BackupScreenState extends State<BackupScreen> {
   /// backup, or an export. Which one it is decides what happens to it.
   Future<void> _restoreFromFile() async {
     final file = await openFile(
-      acceptedTypeGroups: const [
-        XTypeGroup(
-          label: 'Nex',
-          extensions: ['nexfull', 'nexbak', 'sqlite', 'zip'],
-        ),
-      ],
+      // Android document providers cannot consistently map Nex's private
+      // extensions to MIME types. Let the file format validator decide.
+      acceptedTypeGroups: Platform.isAndroid
+          ? const []
+          : const [
+              XTypeGroup(
+                label: 'Nex',
+                extensions: ['nexfull', 'nexbak', 'sqlite', 'zip'],
+              ),
+            ],
     );
     if (file == null) return;
-    if (file.path.toLowerCase().endsWith('.zip')) {
+    final path = file.path;
+    if (path.toLowerCase().endsWith('.zip') && !await FullBackup.detect(path)) {
       await _import(file.path);
       return;
     }

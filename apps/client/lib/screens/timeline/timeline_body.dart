@@ -425,7 +425,7 @@ extension _TimelineBody on TimelineScreenState {
               order: row.indexInGroup,
               child: NoteSpotlight(
                 key: _spotlightId == note.id ? _spotlightAnchor : null,
-                active: _spotlightId == note.id,
+                active: _spotlightId == note.id && _spotlightReady,
                 onDone: () {
                   if (mounted && _spotlightId == note.id) {
                     _rebuild(() => _spotlightId = null);

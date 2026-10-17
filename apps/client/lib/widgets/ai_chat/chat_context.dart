@@ -296,7 +296,7 @@ extension _ChatContext on _AiChatSheetState {
   /// answers well; the note somebody opened the assistant *on* is the one
   /// they are asking about.
   List<NexChatAttachment> _imagesFor(Note note) {
-    if (!widget.preferences.aiProvider.provider.readsImages) {
+    if (!widget.preferences.aiProvider.supportsImages) {
       return const [];
     }
     final path = note.mediaUri;

@@ -19,17 +19,20 @@ import '../widgets/nex_dialog.dart';
 /// on, and something the chosen provider (or the search model) can do. For
 /// the glance on the Settings page.
 List<(Widget, bool)> nexAbilityGlance(NexPreferences prefs) {
-  final provider = prefs.aiProvider.provider;
   final c = prefs.aiCapabilities;
   final on = prefs.aiEnabled;
   final embeds =
-      provider.embeds || NexServices.activeSearchModel(prefs) != null;
+      prefs.aiProvider.supportsEmbeddings ||
+      NexServices.activeSearchModel(prefs) != null;
   return [
     (
       const Icon(Icons.graphic_eq),
       on && c.transcription && prefs.aiProvider.supportsTranscription,
     ),
-    (const Icon(Icons.image_search), on && c.ocr && provider.readsImages),
+    (
+      const Icon(Icons.image_search),
+      on && c.ocr && prefs.aiProvider.supportsImages,
+    ),
     (const NexSummariseIcon(), on && c.summarization),
     (const Icon(Icons.label_outline), on && c.tagSuggestions),
     (const Icon(Icons.travel_explore), on && c.semanticSearch && embeds),
@@ -158,7 +161,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
     // The on-device search model makes these two work whatever the provider
     // is, and with none at all.
     final searchModel = NexServices.activeSearchModel(_prefs) != null;
-    final embeds = provider.embeds || searchModel;
+    final embeds = _prefs.aiProvider.supportsEmbeddings || searchModel;
     final abilities = <_Ability>[
       _Ability(
         icon: const Icon(Icons.graphic_eq),
@@ -173,7 +176,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
         title: l10n.ocr,
         subtitle: l10n.ocrSubtitle,
         value: capabilities.ocr,
-        supported: provider.readsImages,
+        supported: _prefs.aiProvider.supportsImages,
         set: (v) => capabilities.copyWith(ocr: v),
       ),
       _Ability(

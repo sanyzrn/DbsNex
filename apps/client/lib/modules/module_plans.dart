@@ -19,6 +19,7 @@ class NexModulePlan {
   final NexModuleStage stage;
 
   String title(AppLocalizations l10n) => switch (id) {
+    'security-tools' => l10n.planSecurityToolsTitle,
     'pause' => l10n.planPauseTitle,
     'persian-calendar' => l10n.planPersianCalendarTitle,
     'smoke-free' => l10n.planSmokeFreeTitle,
@@ -33,6 +34,7 @@ class NexModulePlan {
   };
 
   String about(AppLocalizations l10n) => switch (id) {
+    'security-tools' => l10n.planSecurityToolsAbout,
     'pause' => l10n.planPauseAbout,
     'persian-calendar' => l10n.planPersianCalendarAbout,
     'smoke-free' => l10n.planSmokeFreeAbout,
@@ -49,6 +51,12 @@ class NexModulePlan {
 
 /// What is coming, nearest first.
 const List<NexModulePlan> nexModulePlans = [
+  NexModulePlan(
+    'security-tools',
+    Icons.security_outlined,
+    NexHue.sky,
+    NexModuleStage.soon,
+  ),
   NexModulePlan(
     'persian-calendar',
     Icons.calendar_month_outlined,
