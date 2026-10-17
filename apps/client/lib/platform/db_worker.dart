@@ -52,6 +52,7 @@ enum _DbCommand {
   replaceCaption,
   setTitle,
   setSummaryText,
+  saveSummaryIfCurrent,
   setLinkMetadata,
   toggleChecklistItem,
   pinNote,

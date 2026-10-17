@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -76,6 +77,14 @@ extension AiProviderWire on AiProvider {
     AiProvider.custom => '',
   };
 
+  /// Examples in the provider picker; saved and fallback models stay intact.
+  String get exampleModel => switch (this) {
+    AiProvider.openai => 'gpt-6.1-sol',
+    AiProvider.gemini => 'gemini-4-argon',
+    AiProvider.openrouter => 'openrouter/free',
+    _ => defaultModel,
+  };
+
   /// Whether the endpoint has to be typed in.
   ///
   /// Only Custom does. Every other provider has exactly one host, and offering
@@ -88,25 +97,9 @@ extension AiProviderWire on AiProvider {
   /// Whether the provider can read an image, so photo notes can be OCR'd.
   bool get readsImages => this != AiProvider.none;
 
-  /// Whether the provider can listen to audio directly.
-  ///
-  /// Gemini takes audio inline. OpenAI has a separate transcription endpoint.
-  /// Anthropic has neither, and OpenRouter's passthrough is not dependable
-  /// enough to claim — "unavailable" beats a wrong answer.
+  /// Automatic defaults. Router speech/search require explicit configuration
+  /// so an upgrade cannot start new uploads from existing feature switches.
   bool get hearsAudio => this == AiProvider.gemini || this == AiProvider.openai;
-
-  /// Whether embeddings are available, for semantic search.
-  ///
-  /// OpenRouter is deliberately not on this list, by the same rule
-  /// [hearsAudio] states one line up: unavailable beats a wrong answer. It
-  /// routes chat completions across many models, and `_embed` asks for one
-  /// specific OpenAI embedding model by name — nothing makes that model
-  /// reachable through the router. Claiming the capability turned that into
-  /// a request that fails when somebody searches, rather than a feature that
-  /// says up front it is not offered here, which is what FR-8b.4 asks for.
-  ///
-  /// Custom stays: its endpoint is one the user chose and declared
-  /// OpenAI-shaped, and the app has no way to know better than they do.
   bool get embeds =>
       this == AiProvider.openai ||
       this == AiProvider.custom ||
@@ -127,6 +120,8 @@ bool anthropicTakesTemperature(String model) => !RegExp(
   r'^claude-(?:opus|sonnet|fable|mythos)-(?:[5-9]|4-[7-9])\b',
 ).hasMatch(model.trim());
 
+enum AiCapabilityMode { automatic, enabled, disabled }
+
 /// Everything needed to reach a provider.
 @immutable
 class AiProviderConfig {
@@ -135,12 +130,103 @@ class AiProviderConfig {
     this.apiKey = '',
     this.baseUrl = '',
     this.model = '',
+    this.transcriptionModel = '',
+    this.embeddingModelId = '',
+    this.transcriptionUrl = '',
+    this.embeddingUrl = '',
+    this.images = AiCapabilityMode.automatic,
+    this.audio = AiCapabilityMode.automatic,
+    this.embeddings = AiCapabilityMode.automatic,
   });
 
   final AiProvider provider;
   final String apiKey;
   final String baseUrl;
   final String model;
+  final String transcriptionModel;
+  final String embeddingModelId;
+  final String transcriptionUrl;
+  final String embeddingUrl;
+  final AiCapabilityMode images;
+  final AiCapabilityMode audio;
+  final AiCapabilityMode embeddings;
+
+  Map<String, String> toMap() => {
+    'provider': provider.wireName,
+    'apiKey': apiKey,
+    'baseUrl': baseUrl,
+    'model': model,
+    'transcriptionModel': transcriptionModel,
+    'embeddingModelId': embeddingModelId,
+    'transcriptionUrl': transcriptionUrl,
+    'embeddingUrl': embeddingUrl,
+    'images': images.name,
+    'audio': audio.name,
+    'embeddings': embeddings.name,
+  };
+
+  factory AiProviderConfig.fromMap(Map<String, String> raw) {
+    AiCapabilityMode mode(String key) => AiCapabilityMode.values.firstWhere(
+      (v) => v.name == raw[key],
+      orElse: () => AiCapabilityMode.automatic,
+    );
+    return AiProviderConfig(
+      provider: AiProviderWire.fromWire(raw['provider']),
+      apiKey: raw['apiKey'] ?? '',
+      baseUrl: raw['baseUrl'] ?? '',
+      model: raw['model'] ?? '',
+      transcriptionModel: raw['transcriptionModel'] ?? '',
+      embeddingModelId: raw['embeddingModelId'] ?? '',
+      transcriptionUrl: raw['transcriptionUrl'] ?? '',
+      embeddingUrl: raw['embeddingUrl'] ?? '',
+      images: mode('images'),
+      audio: mode('audio'),
+      embeddings: mode('embeddings'),
+    );
+  }
+
+  bool _enabled(AiCapabilityMode mode, bool fallback) => switch (mode) {
+    AiCapabilityMode.automatic => fallback,
+    AiCapabilityMode.enabled => true,
+    AiCapabilityMode.disabled => false,
+  };
+  bool get supportsImages =>
+      provider != AiProvider.none && _enabled(images, provider.readsImages);
+  bool get supportsEmbeddings =>
+      _enabled(embeddings, provider.embeds) && embeddingEndpoint != null;
+  String get resolvedTranscriptionModel => transcriptionModel.trim().isNotEmpty
+      ? transcriptionModel.trim()
+      : provider == AiProvider.gemini
+      ? resolvedModel
+      : provider == AiProvider.openrouter
+      ? 'openai/whisper-large-v3'
+      : 'whisper-1';
+  String? get transcriptionEndpoint {
+    if (provider == AiProvider.custom) {
+      return transcriptionUrl.trim().isNotEmpty
+          ? transcriptionUrl.trim()
+          : customSibling('audio/transcriptions');
+    }
+    if (provider == AiProvider.openai || provider == AiProvider.openrouter) {
+      return '$resolvedBaseUrl/v1/audio/transcriptions';
+    }
+    return null;
+  }
+
+  String? get embeddingEndpoint {
+    if (provider == AiProvider.custom) {
+      return embeddingUrl.trim().isNotEmpty
+          ? embeddingUrl.trim()
+          : customSibling('embeddings');
+    }
+    if (provider == AiProvider.openai || provider == AiProvider.openrouter) {
+      return '$resolvedBaseUrl/v1/embeddings';
+    }
+    if (provider == AiProvider.gemini) {
+      return '$resolvedBaseUrl/v1beta/models/$embeddingModel:embedContent';
+    }
+    return null;
+  }
 
   /// The model this provider's embeddings actually come from.
   ///
@@ -153,10 +239,13 @@ class AiProviderConfig {
   /// `text-embedding-004` was shut down in January 2026 (AI-01). Changing
   /// this changes [embeddingSpace], so vectors from the old model are
   /// cleared and rebuilt rather than compared with new ones.
-  String get embeddingModel => switch (provider.format) {
-    AiWireFormat.gemini => 'gemini-embedding-001',
-    _ => 'text-embedding-3-small',
-  };
+  String get embeddingModel => embeddingModelId.trim().isNotEmpty
+      ? embeddingModelId.trim()
+      : switch (provider) {
+          AiProvider.gemini => 'gemini-embedding-001',
+          AiProvider.openrouter => 'openai/text-embedding-3-small',
+          _ => 'text-embedding-3-small',
+        };
 
   /// What decides whether two sets of stored vectors are comparable.
   ///
@@ -165,7 +254,7 @@ class AiProviderConfig {
   /// self-hosted or proxied endpoint is free to serve something else
   /// entirely under a familiar name.
   String get embeddingSpace =>
-      '${provider.wireName}|$resolvedBaseUrl|$embeddingModel';
+      '${provider.wireName}|${provider == AiProvider.custom && embeddingUrl.trim().isNotEmpty ? embeddingEndpoint : resolvedBaseUrl}|$embeddingModel';
 
   String get resolvedBaseUrl {
     final value = baseUrl.trim().isEmpty
@@ -202,9 +291,12 @@ class AiProviderConfig {
   /// transcription endpoint. This confirms a route, not remote model support.
   /// Unknown custom URL layouts must not show a microphone that cannot work.
   bool get supportsTranscription =>
-      provider.hearsAudio ||
-      (provider == AiProvider.custom &&
-          customSibling('audio/transcriptions') != null);
+      _enabled(
+        audio,
+        provider.hearsAudio ||
+            (provider == AiProvider.custom && transcriptionEndpoint != null),
+      ) &&
+      (provider == AiProvider.gemini || transcriptionEndpoint != null);
 
   String get resolvedModel =>
       model.trim().isEmpty ? provider.defaultModel : model.trim();
@@ -220,11 +312,25 @@ class AiProviderConfig {
     String? apiKey,
     String? baseUrl,
     String? model,
+    String? transcriptionModel,
+    String? embeddingModelId,
+    String? transcriptionUrl,
+    String? embeddingUrl,
+    AiCapabilityMode? images,
+    AiCapabilityMode? audio,
+    AiCapabilityMode? embeddings,
   }) => AiProviderConfig(
     provider: provider ?? this.provider,
     apiKey: apiKey ?? this.apiKey,
     baseUrl: baseUrl ?? this.baseUrl,
     model: model ?? this.model,
+    transcriptionModel: transcriptionModel ?? this.transcriptionModel,
+    embeddingModelId: embeddingModelId ?? this.embeddingModelId,
+    transcriptionUrl: transcriptionUrl ?? this.transcriptionUrl,
+    embeddingUrl: embeddingUrl ?? this.embeddingUrl,
+    images: images ?? this.images,
+    audio: audio ?? this.audio,
+    embeddings: embeddings ?? this.embeddings,
   );
 }
 
@@ -635,7 +741,10 @@ bool aiTextAvailableWith(AiProviderConfig config) =>
 class CloudAIAdapter implements AIAdapter {
   CloudAIAdapter({
     required this.config,
-    this.outputLanguage = AiOutputLanguage.auto,
+    AiOutputLanguage outputLanguage = AiOutputLanguage.auto,
+    AiOutputLanguage Function()? outputLanguageProvider,
+    @visibleForTesting Duration? mediaTimeout,
+    @visibleForTesting Duration? localTimeout,
     this.unlimitedSummary = false,
     http.Client? client,
     @visibleForTesting ChatAdapter? localModel,
@@ -643,6 +752,10 @@ class CloudAIAdapter implements AIAdapter {
          client ?? _defaultClient(),
          provider: config.provider.label,
        ),
+       _outputLanguage = outputLanguage,
+       _outputLanguageProvider = outputLanguageProvider,
+       _mediaBudget = mediaTimeout ?? _mediaTimeout,
+       _localBudget = localTimeout ?? const Duration(minutes: 5),
        _ownsClient = client == null,
        _localOverride = localModel;
 
@@ -694,7 +807,7 @@ class CloudAIAdapter implements AIAdapter {
     // the model was deleted between the check above and here, for instance.
     if (pending == null) return null;
     try {
-      final reply = await pending;
+      final reply = await pending.timeout(_localBudget);
       final text = _answerOnly(reply.content) ?? '';
       return text.isEmpty ? null : text;
     } catch (error) {
@@ -709,8 +822,13 @@ class CloudAIAdapter implements AIAdapter {
   /// Which language every generated string comes back in. Defaults to the
   /// behaviour that predates the setting, so a caller that has no opinion —
   /// every test, and the connection check — is unaffected.
-  final AiOutputLanguage outputLanguage;
-  final http.Client _client;
+  final AiOutputLanguage _outputLanguage;
+  final AiOutputLanguage Function()? _outputLanguageProvider;
+  AiOutputLanguage get outputLanguage =>
+      _outputLanguageProvider?.call() ?? _outputLanguage;
+  final Duration _mediaBudget;
+  final Duration _localBudget;
+  final DisclosureClient _client;
   final bool _ownsClient;
 
   /// Generous on purpose. A free tier can take the better part of a minute to
@@ -752,6 +870,11 @@ class CloudAIAdapter implements AIAdapter {
     if (_ownsClient) _client.close();
   }
 
+  /// For provider replacement only: preserve already requested reads briefly.
+  void retire() {
+    if (_ownsClient) _client.retire();
+  }
+
   static String _fileName(String path) => path.split(RegExp(r'[/\\]')).last;
 
   /// What a question carries besides its own words: the notes put in front
@@ -784,6 +907,12 @@ class CloudAIAdapter implements AIAdapter {
       'authorization': 'Bearer ${config.apiKey.trim()}',
     },
   };
+
+  // Keep tested gateway payloads unchanged. Only OpenAI's native o-series
+  // needs this parameter policy; a proxy may implement a different contract.
+  bool get _openAiReasoning =>
+      config.provider == AiProvider.openai &&
+      RegExp(r'^o[1-9](?:[-.]|$)').hasMatch(config.resolvedModel);
 
   Uri get _chatUri => switch (config.provider.format) {
     AiWireFormat.anthropic => Uri.parse(
@@ -830,6 +959,7 @@ class CloudAIAdapter implements AIAdapter {
     Uint8List? media,
     String? mediaMimeType,
     Duration? timeout,
+    String? modelOverride,
   }) async {
     if (!config.isUsable) {
       // No provider. If a model is on the phone this still has an answer —
@@ -902,7 +1032,10 @@ class CloudAIAdapter implements AIAdapter {
       },
       AiWireFormat.openai => {
         'model': config.resolvedModel,
-        'max_tokens': ?maxTokens,
+        if (_openAiReasoning)
+          'max_completion_tokens': ?maxTokens
+        else
+          'max_tokens': ?maxTokens,
         'messages': [
           {'role': 'system', 'content': system},
           {
@@ -925,7 +1058,15 @@ class CloudAIAdapter implements AIAdapter {
     };
 
     final response = await _client
-        .post(_chatUri, headers: _headers, body: jsonEncode(body))
+        .post(
+          modelOverride != null && config.provider == AiProvider.gemini
+              ? Uri.parse(
+                  '${config.resolvedBaseUrl}/v1beta/models/$modelOverride:generateContent',
+                )
+              : _chatUri,
+          headers: _headers,
+          body: jsonEncode(body),
+        )
         .timeout(timeout ?? (media == null ? _textTimeout : _mediaTimeout));
     if (response.statusCode != 200) {
       _lastFailure = (
@@ -1947,7 +2088,7 @@ class CloudAIAdapter implements AIAdapter {
       ]);
       if (pending == null) return null;
       try {
-        final reply = await pending;
+        final reply = await pending.timeout(_localBudget);
         final text = reply.content.trim();
         return text.isEmpty ? null : text;
       } catch (error) {
@@ -1980,7 +2121,7 @@ class CloudAIAdapter implements AIAdapter {
     // text-only model is a request that fails on the wire and reads to the
     // user as the assistant refusing, which is the bug this feature exists
     // to fix rather than a new shape of it.
-    final media = config.provider.readsImages
+    final media = config.supportsImages
         ? options.attachments
         : const <NexChatAttachment>[];
     // Attached to the newest question rather than to the turn that first
@@ -2051,8 +2192,11 @@ class CloudAIAdapter implements AIAdapter {
       },
       AiWireFormat.openai => {
         'model': config.resolvedModel,
-        'max_tokens': maxTokens,
-        'temperature': temperature,
+        if (_openAiReasoning)
+          'max_completion_tokens': maxTokens
+        else
+          'max_tokens': maxTokens,
+        if (!_openAiReasoning) 'temperature': temperature,
         'messages': [
           {'role': 'system', 'content': system},
           for (final (index, turn) in turns.indexed)
@@ -2231,7 +2375,7 @@ class CloudAIAdapter implements AIAdapter {
 
   @override
   Future<OCRText>? ocr(ImageRef image) {
-    if (!config.isUsable || !config.provider.readsImages) return null;
+    if (!config.isUsable || !config.supportsImages) return null;
     final bytes = image.bytes ?? _read(image.mediaUri);
     if (bytes == null) return null;
     return NexDisclosureLog.about(
@@ -2306,6 +2450,7 @@ class CloudAIAdapter implements AIAdapter {
   }
 
   Future<Transcript> _transcribe(Uint8List bytes, String uri) async {
+    _lastFailure = null;
     // Gemini takes audio inline, in the same call shape as everything else.
     if (config.provider.format == AiWireFormat.gemini) {
       final reply = await _complete(
@@ -2315,6 +2460,7 @@ class CloudAIAdapter implements AIAdapter {
         maxTokens: 2000,
         media: bytes,
         mediaMimeType: _audioMime(uri),
+        modelOverride: config.resolvedTranscriptionModel,
       );
       if (reply == null) throw const AiUnavailableException();
       return Transcript(text: reply.trim());
@@ -2322,35 +2468,89 @@ class CloudAIAdapter implements AIAdapter {
     // OpenAI and compatible custom gateways use a separate multipart route.
     // For Custom, the saved URL is already the full chat endpoint: do not
     // append /v1 again. Build the transcription sibling from that URL.
-    final endpoint = config.provider == AiProvider.custom
-        ? config.customSibling('audio/transcriptions')
-        : '${config.resolvedBaseUrl}/v1/audio/transcriptions';
+    final endpoint = config.transcriptionEndpoint;
     if (endpoint == null) throw const AiUnavailableException();
     final request = http.MultipartRequest('POST', Uri.parse(endpoint))
-          ..headers['authorization'] = 'Bearer ${config.apiKey.trim()}'
-          ..fields['model'] = 'whisper-1'
-          ..files.add(
-            http.MultipartFile.fromBytes(
-              'file',
-              bytes,
-              filename: uri.split(Platform.pathSeparator).last,
-            ),
+      ..headers['authorization'] = 'Bearer ${config.apiKey.trim()}'
+      ..fields['model'] = config.resolvedTranscriptionModel
+      ..fields['response_format'] = 'json'
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: uri.split(Platform.pathSeparator).last,
+        ),
+      );
+    // A separate owned client lets a deadline actually close a stalled audio
+    // socket without interrupting the chat's pooled connection. Injected test
+    // clients remain borrowed and are never closed here.
+    final client = _ownsClient
+        ? DisclosureClient(_defaultClient(), provider: config.provider.label)
+        : _client;
+    StreamSubscription<List<int>>? subscription;
+    try {
+      return await (() async {
+        final response = await client.send(request);
+        final bytes = BytesBuilder(copy: false);
+        final body = Completer<String>();
+        subscription = response.stream.listen(
+          (chunk) {
+            if (body.isCompleted) return;
+            if (bytes.length + chunk.length > 1024 * 1024) {
+              body.completeError(
+                const AiUnavailableException(
+                  'The transcription response was too large.',
+                ),
+              );
+              return;
+            }
+            bytes.add(chunk);
+          },
+          onError: (Object error, StackTrace stack) {
+            if (!body.isCompleted) body.completeError(error, stack);
+          },
+          onDone: () {
+            if (!body.isCompleted) {
+              body.complete(
+                utf8.decode(bytes.takeBytes(), allowMalformed: true),
+              );
+            }
+          },
+          cancelOnError: true,
+        );
+        final textBody = await body.future;
+        if (response.statusCode != 200) {
+          _lastFailure = (
+            status: response.statusCode,
+            message: _extractError(textBody),
           );
-    final streamed = await _client.send(request).timeout(_mediaTimeout);
-    if (streamed.statusCode != 200) {
-      throw const AiUnavailableException();
+          throw AiUnavailableException(
+            _describe(response.statusCode, _lastFailure!.message),
+          );
+        }
+        final Object? decoded;
+        try {
+          decoded = jsonDecode(textBody);
+        } on FormatException {
+          throw const AiUnavailableException(
+            'Unreadable transcription response.',
+          );
+        }
+        if (decoded is! Map || decoded['text'] is! String) {
+          throw const AiUnavailableException('The response had no transcript.');
+        }
+        _lastFailure = null;
+        return Transcript(text: (decoded['text'] as String).trim());
+      })().timeout(_mediaBudget);
+    } finally {
+      unawaited(subscription?.cancel());
+      if (_ownsClient) client.close();
     }
-    final body = await streamed.stream.bytesToString();
-    final decoded = jsonDecode(body);
-    final text = decoded is Map && decoded['text'] is String
-        ? decoded['text'] as String
-        : '';
-    return Transcript(text: text.trim());
   }
 
   @override
   Future<Vector>? embed(String text) {
-    if (!config.isUsable || !config.provider.embeds) return null;
+    if (!config.isUsable || !config.supportsEmbeddings) return null;
     return NexDisclosureLog.about(
       () => _embed(text),
       purpose: DisclosurePurpose.searchIndex,
@@ -2399,9 +2599,7 @@ class CloudAIAdapter implements AIAdapter {
       if (values is! List) throw const AiUnavailableException();
       return Vector([for (final value in values) (value as num).toDouble()]);
     }
-    final embeddings = config.provider == AiProvider.custom
-        ? config.customSibling('embeddings')
-        : '${config.resolvedBaseUrl}/v1/embeddings';
+    final embeddings = config.embeddingEndpoint;
     if (embeddings == null) throw const AiUnavailableException();
     final response = await _client
         .post(

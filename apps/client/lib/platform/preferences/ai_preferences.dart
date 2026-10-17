@@ -109,12 +109,13 @@ mixin _AiPreferences on _PreferencesStore {
   /// What is stored for [provider] specifically, whether or not it is the
   /// active one — how the provider screen fills its fields in when the user
   /// is only looking at (not yet saving) a different provider.
-  AiProviderConfig configFor(AiProvider provider) => AiProviderConfig(
-    provider: provider,
-    apiKey: _secureApiKeys[provider.wireName] ?? '',
-    baseUrl: _prefs.getString('ai.baseUrl.${provider.wireName}') ?? '',
-    model: _prefs.getString('ai.model.${provider.wireName}') ?? '',
-  );
+  AiProviderConfig configFor(AiProvider provider) => AiProviderConfig.fromMap({
+    'provider': provider.wireName,
+    'apiKey': _secureApiKeys[provider.wireName] ?? '',
+    for (final name in const AiProviderConfig().toMap().keys)
+      if (name != 'provider' && name != 'apiKey')
+        name: _prefs.getString('ai.$name.${provider.wireName}') ?? '',
+  });
 
   /// Which language the model answers in — independent of [locale].
   ///
@@ -140,23 +141,70 @@ mixin _AiPreferences on _PreferencesStore {
   Future<void> setAiProvider(AiProviderConfig config) async {
     final wireName = config.provider.wireName;
     final key = 'ai.key.$wireName';
-    await _prefs.setString('ai.provider', wireName);
-    if (config.apiKey.isEmpty) {
-      // An empty field is not proof the key is gone: when secure storage
-      // could not be read at launch the field simply had nothing to show,
-      // and saving the screen then deleted the one copy of a key that was
-      // still stored. Only a key this session actually read can be cleared.
-      if (!secureStorageUnavailable || _secureApiKeys.containsKey(wireName)) {
-        await _secureStorage.delete(key: key);
-      }
-      _secureApiKeys.remove(wireName);
-    } else {
-      await _secureStorage.write(key: key, value: config.apiKey);
-      _secureApiKeys[wireName] = config.apiKey;
+    final settings = Map<String, String>.of(config.toMap())
+      ..remove('provider')
+      ..remove('apiKey');
+    final previous = {
+      for (final name in [
+        'ai.provider',
+        key,
+        for (final name in settings.keys) 'ai.$name.$wireName',
+      ])
+        name: _prefs.getString(name),
+    };
+    final changeKey =
+        config.provider != AiProvider.none &&
+        (config.apiKey.isNotEmpty ||
+            !secureStorageUnavailable ||
+            _secureApiKeys.containsKey(wireName));
+    // Read before replacing: if an existing key is unreadable, never overwrite
+    // the only copy while preparing a configuration we cannot roll back.
+    final oldKey = changeKey ? await _secureStorage.read(key: key) : null;
+    Future<void> put(String name, String? value) async {
+      final saved = value == null
+          ? await _prefs.remove(name)
+          : await _prefs.setString(name, value);
+      if (!saved) throw StateError('Provider settings could not be saved');
     }
-    await _prefs.remove(key);
-    await _prefs.setString('ai.baseUrl.$wireName', config.baseUrl);
-    await _prefs.setString('ai.model.$wireName', config.model);
+
+    try {
+      if (changeKey) {
+        if (config.apiKey.isEmpty) {
+          await _secureStorage.delete(key: key);
+        } else {
+          await _secureStorage.write(key: key, value: config.apiKey);
+        }
+      }
+      await put(key, null);
+      for (final entry in settings.entries) {
+        await put('ai.${entry.key}.$wireName', entry.value);
+      }
+      // Activate last, after the credential and configuration have succeeded.
+      await put('ai.provider', wireName);
+    } catch (_) {
+      try {
+        if (changeKey) {
+          if (oldKey == null) {
+            await _secureStorage.delete(key: key);
+          } else {
+            await _secureStorage.write(key: key, value: oldKey);
+          }
+        }
+        for (final entry in previous.entries) {
+          await put(entry.key, entry.value);
+        }
+      } catch (_) {
+        secureStorageUnavailable = true;
+      }
+      rethrow;
+    }
+    if (changeKey) {
+      if (config.apiKey.isEmpty) {
+        _secureApiKeys.remove(wireName);
+      } else {
+        _secureApiKeys[wireName] = config.apiKey;
+      }
+    }
     notifyListeners();
   }
 

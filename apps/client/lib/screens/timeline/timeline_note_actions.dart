@@ -76,9 +76,19 @@ extension _TimelineNoteActions on TimelineScreenState {
     }
   }
 
+  void _armSponsorReturn() {
+    _sponsorReturn?.cancel();
+    final until = _sponsor.dismissedUntil;
+    if (until == null || !mounted) return;
+    _sponsorReturn = Timer(until.difference(DateTime.now()), () {
+      if (mounted) _rebuild(() {});
+    });
+  }
+
   Future<void> _dismissSponsor(NexSponsor sponsor) async {
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
     await _sponsor.dismiss(sponsor.id);
+    _armSponsorReturn();
     if (mounted) _rebuild(() {});
   }
 

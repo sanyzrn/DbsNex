@@ -180,9 +180,7 @@ void main() {
       preferences = await NexPreferences.load();
     });
 
-    // Dismissals are tested with the close button on, the way the card is
-    // built to run; it is off by default only while the owner tests the
-    // card's display (see `dismissibleByDefault`).
+    // Exercise persistent dismissal with the close control enabled.
     NexSponsorService serviceReturning(
       http.Response Function(http.Request request) respond, {
       DateTime? at,
@@ -193,13 +191,53 @@ void main() {
       dismissible: true,
     );
 
+    test(
+      'hourly revalidation updates installed devices and close repeats every eight hours',
+      () async {
+        var clock = now;
+        var requests = 0;
+        NexSponsorService service() => NexSponsorService(
+          preferences: preferences,
+          now: () => clock,
+          client: MockClient((request) async {
+            requests++;
+            expect(request.headers['Cache-Control'], 'no-cache');
+            return http.Response(
+              card(id: requests == 1 ? 'old' : 'current'),
+              200,
+            );
+          }),
+        );
+        final first = service();
+        expect(first.dismissible, isTrue);
+        await first.refresh();
+        clock = now.add(const Duration(minutes: 59));
+        await service().refresh();
+        expect(requests, 1);
+        clock = now.add(const Duration(hours: 1));
+        final updated = service();
+        await updated.refresh();
+        expect(updated.visible()?.id, 'current');
+        await updated.dismiss('current');
+        clock = clock.add(const Duration(hours: 7, minutes: 59));
+        expect(service().visible(), isNull);
+        clock = clock.add(const Duration(minutes: 1));
+        expect(service().visible()?.id, 'current');
+        await service().dismiss('current');
+        expect(service().visible(), isNull);
+        clock = clock.add(const Duration(hours: 8));
+        expect(service().visible()?.id, 'current');
+      },
+    );
+
     test('with the close button off, a dismissed card still shows', () async {
       final service = NexSponsorService(
         preferences: preferences,
+        dismissible: false,
         client: MockClient((_) async => http.Response(card(), 200)),
         now: () => now,
       );
-      expect(service.dismissible, NexSponsorService.dismissibleByDefault);
+      expect(service.dismissible, isFalse);
       await service.refresh();
       await service.dismiss('c1');
       expect(service.visible()?.id, 'c1');
@@ -494,7 +532,7 @@ void main() {
       // does not get it back.
       final sameDay = serviceReturning(
         (_) => http.Response(card(), 200),
-        at: now.add(const Duration(hours: 23)),
+        at: now.add(const Duration(hours: 7)),
       );
       expect(sameDay.visible(), isNull);
 

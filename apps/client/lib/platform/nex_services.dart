@@ -115,7 +115,7 @@ class NexServices {
   bool get imageReadingAvailable =>
       _preferences.effectiveAiCapabilities.ocr &&
       _preferences.aiProvider.isUsable &&
-      _preferences.aiProvider.provider.readsImages;
+      _preferences.aiProvider.supportsImages;
 
   bool get audioTranscriptionAvailable =>
       _preferences.effectiveAiCapabilities.transcription &&
@@ -345,10 +345,7 @@ class NexServices {
         : const AiProviderConfig();
     unawaited(
       worker.setAiProvider({
-        'provider': ai.provider.wireName,
-        'apiKey': ai.apiKey,
-        'baseUrl': ai.baseUrl,
-        'model': ai.model,
+        ...ai.toMap(),
         // Not part of AiProviderConfig — see `aiOutputLanguage` — but it has
         // to reach the isolate that builds the adapter, and this is the one
         // message that already carries everything else the adapter needs.
@@ -491,8 +488,34 @@ class NexServices {
 
   /* ---------------------------------------------------------- enrichment */
 
-  Future<List<TagSuggestion>> suggestTags(String noteId) =>
-      worker.suggestTags(noteId);
+  bool get _manualLocalAi =>
+      _preferences.aiEnabled &&
+      !_preferences.aiProvider.isUsable &&
+      ChatAdapterBinding.instance.available;
+
+  Future<List<TagSuggestion>> suggestTags(String noteId) async {
+    if (!_preferences.effectiveAiCapabilities.tagSuggestions) return const [];
+    if (!_manualLocalAi) return worker.suggestTags(noteId);
+    final note = await worker.getById(noteId);
+    if (note == null) return const [];
+    final adapter = CloudAIAdapter(
+      config: const AiProviderConfig(),
+      outputLanguage: _preferences.aiOutputLanguage,
+    );
+    try {
+      final result = await adapter.suggestTags(note);
+      final current = await worker.getById(noteId);
+      return _manualLocalAi &&
+              _preferences.effectiveAiCapabilities.tagSuggestions &&
+              current?.aiSourceText == note.aiSourceText
+          ? result ?? const []
+          : const [];
+    } catch (_) {
+      return const [];
+    } finally {
+      adapter.close();
+    }
+  }
 
   /// How many notes [refreshTimeline] keeps in the stream.
   ///
@@ -509,6 +532,7 @@ class NexServices {
   List<Note>? _lastTimeline;
 
   int _timelineReads = 0;
+  Future<bool>? _timelinePage;
 
   Future<void>? _backingUp;
 

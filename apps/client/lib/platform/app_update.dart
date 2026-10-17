@@ -155,6 +155,17 @@ class UpdateCheck {
   final int? sizeBytes;
   final String? notes;
 
+  UpdateCheck _withNotes(String? value) => UpdateCheck._(
+    status,
+    version: version,
+    downloadUrl: downloadUrl,
+    assetName: assetName,
+    checksumsUrl: checksumsUrl,
+    checksumSha256: checksumSha256,
+    sizeBytes: sizeBytes,
+    notes: value,
+  );
+
   UpdateCheck _withChecksum(String hash) => UpdateCheck._(
     status,
     version: version,
@@ -279,7 +290,9 @@ class UpdateChecker {
       final hash = await _fetchChecksum(url, asset);
       return hash == null
           ? const UpdateCheck.unavailable()
-          : result._withChecksum(hash);
+          : result
+                ._withChecksum(hash)
+                ._withNotes(await _notesSince(installed, result));
     } on TimeoutException {
       return const UpdateCheck.unavailable();
     } catch (_) {
@@ -287,6 +300,84 @@ class UpdateChecker {
       // outcome to the user, and none of them should reach the UI as a crash.
       return const UpdateCheck.unavailable();
     }
+  }
+
+  /// History is optional: failure here never hides a verified installer.
+  Future<String?> _notesSince(NexVersion installed, UpdateCheck latest) async {
+    final releases = <Object?>[];
+    try {
+      for (var page = 1; page <= 5; page++) {
+        final response = await _client
+            .get(
+              Uri.parse(
+                'https://api.github.com/repos/$repository/releases?per_page=100&page=$page',
+              ),
+              headers: const {'Accept': 'application/vnd.github+json'},
+            )
+            .timeout(const Duration(seconds: 10));
+        if (response.statusCode != 200) break;
+        final rows = jsonDecode(response.body);
+        if (rows is! List) break;
+        releases.addAll(rows);
+        if (rows.length < 100 ||
+            rows.any(
+              (row) =>
+                  row is Map &&
+                  NexVersion.tryParse('${row['tag_name']}') == installed,
+            )) {
+          break;
+        }
+      }
+    } catch (_) {
+      /* Keep collected notes and the latest release. */
+    }
+    return notesSince(releases, installed: installed, latest: latest);
+  }
+
+  @visibleForTesting
+  static String? notesSince(
+    List<Object?> releases, {
+    required NexVersion installed,
+    required UpdateCheck latest,
+  }) {
+    final notes = <NexVersion, String>{
+      if (latest.version != null && latest.notes?.trim().isNotEmpty == true)
+        latest.version!: latest.notes!.trim(),
+    };
+    for (final raw in releases) {
+      if (raw is! Map || raw['draft'] == true || raw['prerelease'] == true) {
+        continue;
+      }
+      final version = NexVersion.tryParse('${raw['tag_name']}');
+      final body = raw['body'];
+      if (version == null ||
+          version.isPreRelease ||
+          !(version > installed) ||
+          latest.version == null ||
+          version > latest.version! ||
+          body is! String ||
+          body.trim().isEmpty) {
+        continue;
+      }
+      notes.putIfAbsent(version, () => body.trim());
+    }
+    if (notes.isEmpty ||
+        notes.length == 1 && notes.containsKey(latest.version)) {
+      return latest.notes;
+    }
+    const marker = '<!-- nex:fa -->';
+    final versions = notes.keys.toList()..sort((a, b) => b.compareTo(a));
+    final english = <String>[];
+    final persian = <String>[];
+    for (final version in versions) {
+      final body = notes[version]!;
+      final at = body.indexOf(marker);
+      final en = (at < 0 ? body : body.substring(0, at)).trim();
+      final fa = at < 0 ? en : body.substring(at + marker.length).trim();
+      english.add('## $version\n\n$en');
+      persian.add('## $version\n\n${fa.isEmpty ? en : fa}');
+    }
+    return '${english.join('\n\n')}\n\n$marker\n\n${persian.join('\n\n')}';
   }
 
   /// Looks up [assetName]'s line in the `SHA256SUMS` text file at [url].

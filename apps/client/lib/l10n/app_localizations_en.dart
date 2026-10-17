@@ -2048,7 +2048,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiCapabilityNote =>
-      'Tag suggestions and summaries work with every provider. Semantic search needs an OpenAI-compatible one. Speech-to-text and image text stay on-device for now.';
+      'Connection test checks text chat only. Set separate speech/search models and supported features under Models and capabilities. Custom endpoints can be overridden there. OpenRouter audio and search require explicit opt-in.';
 
   @override
   String connectionOk(String model) {
@@ -5416,4 +5416,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get planPersianCalendarAbout =>
       'A Solar Hijri calendar with occasions and date conversion. Prayer times for your chosen city, with optional adhan alerts and a separate setting for each prayer.';
+
+  @override
+  String get aiProviderSaveFailed =>
+      'Could not save the provider. Please try again.';
+
+  @override
+  String get planSecurityToolsTitle => 'Security toolbox';
+
+  @override
+  String get planSecurityToolsAbout =>
+      'Text encryption and decryption (AES-256-GCM), hashes, encoding and decoding, random passwords and passphrases, with encrypted local secret storage.';
 }

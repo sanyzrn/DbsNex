@@ -243,6 +243,18 @@ class InProcessDb implements NexDb {
       _repo.setSummaryText(id, text);
 
   @override
+  Future<bool> saveSummaryIfCurrent(
+    String id,
+    String source,
+    String text,
+  ) async {
+    final note = _repo.getById(id);
+    if (note == null || note.aiSourceText != source) return false;
+    _repo.setSummaryText(id, text);
+    return true;
+  }
+
+  @override
   Future<void> setLinkMetadata(
     String id, {
     String? title,

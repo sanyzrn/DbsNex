@@ -1367,7 +1367,9 @@ void main() {
       // tapped reminder opened the app onto the same list as always and left
       // the reader to find the note themselves.
       services.reminders.onOpenNote!(target.id);
-      await tester.pump();
+      for (var i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       final marked = tester
           .widgetList<NoteSpotlight>(find.byType(NoteSpotlight))

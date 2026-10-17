@@ -171,6 +171,9 @@ class TimelineScreenState extends State<TimelineScreen>
   /// named the note, and the timeline then showed the same list it always
   /// shows, leaving the reader to find it.
   String? _spotlightId;
+  bool _spotlightReady = false;
+  int _revealGeneration = 0;
+  Timer? _sponsorReturn;
 
   /// The spotlighted card, so it can be scrolled into view.
   ///
@@ -283,7 +286,7 @@ class TimelineScreenState extends State<TimelineScreen>
   bool _aiSummaryRequested = false;
 
   /// The card that is not a note. Read from cache on the first frame so it
-  /// never pops in under a thumb, then refreshed at most once a day — see
+  /// never pops in under a thumb, then refreshed at most hourly — see
   /// [NexSponsorService].
   late final NexSponsorService _sponsor = NexSponsorService(
     preferences: widget.preferences,
@@ -298,7 +301,7 @@ class TimelineScreenState extends State<TimelineScreen>
     // is already cached draws on this frame, and a fetch that never comes
     // back changes nothing on screen.
     // The picture from last time first, so a card fetched yesterday draws on
-    // this frame instead of a second later; then the network, at most daily.
+    // this frame instead of a second later; then the network, at most hourly.
     unawaited(
       _sponsor
           .restoreCachedImage()
@@ -307,7 +310,10 @@ class TimelineScreenState extends State<TimelineScreen>
             return _sponsor.refresh();
           })
           .then((_) {
-            if (mounted) setState(() {});
+            if (mounted) {
+              _armSponsorReturn();
+              setState(() {});
+            }
           }),
     );
     _model.listen((delivered) {
@@ -697,12 +703,15 @@ class TimelineScreenState extends State<TimelineScreen>
     if (state == AppLifecycleState.resumed) {
       // A failed sponsor fetch is retried on a real return to the app rather
       // than by leaving timers behind in the timeline. The service's
-      // 30-minute failure cool-off and 24-hour success interval still apply.
+      // 30-minute failure cool-off and hourly success interval still apply.
       // Only a card that actually changed redraws the timeline: a resume is
       // usually a no-op here, and rebuilding the whole list for it is not.
       unawaited(
         _sponsor.refresh().then((changed) {
-          if (changed && mounted) setState(() {});
+          if (mounted) {
+            _armSponsorReturn();
+            setState(() {});
+          }
         }),
       );
     }
@@ -717,6 +726,7 @@ class TimelineScreenState extends State<TimelineScreen>
     // whatever came next with nothing able to dismiss it.
     _tour?.remove();
     _tour = null;
+    _sponsorReturn?.cancel();
     _model.removeListener(_onModelChanged);
     _model.dispose();
     _swipe.removeListener(_onSwipeChanged);

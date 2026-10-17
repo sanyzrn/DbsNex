@@ -252,7 +252,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     if (resumed != null) _turns.addAll(resumed.messages);
     _adapter = CloudAIAdapter(
       config: widget.preferences.aiProvider,
-      outputLanguage: widget.preferences.aiOutputLanguage,
+      outputLanguageProvider: () => widget.preferences.aiOutputLanguage,
       client: widget.client,
     );
     unawaited(_loadNotesContext());

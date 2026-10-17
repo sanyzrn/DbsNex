@@ -211,8 +211,36 @@ extension NexLibraryServices on NexServices {
     return text;
   }
 
-  Future<Summary?> summarizeOnDemand(String noteId) =>
-      worker.summarizeOnDemand(noteId);
+  Future<Summary?> summarizeOnDemand(String noteId) async {
+    if (!_preferences.effectiveAiCapabilities.summarization) return null;
+    if (!_manualLocalAi) return worker.summarizeOnDemand(noteId);
+    final note = await worker.getById(noteId);
+    final source = note?.aiSourceText;
+    if (note == null || source == null || source.trim().isEmpty) return null;
+    final adapter = CloudAIAdapter(
+      config: const AiProviderConfig(),
+      outputLanguage: _preferences.aiOutputLanguage,
+    );
+    try {
+      final result = await adapter.summarize(note);
+      final text = result?.text.trim() ?? '';
+      if (!_manualLocalAi ||
+          !_preferences.effectiveAiCapabilities.summarization ||
+          text.isEmpty ||
+          text == source.trim() ||
+          text.length >= source.trim().length) {
+        return null;
+      }
+      final saved = await worker.saveSummaryIfCurrent(noteId, source, text);
+      if (!saved) return null;
+      await refreshTimeline();
+      return Summary(text: text);
+    } catch (_) {
+      return null;
+    } finally {
+      adapter.close();
+    }
+  }
 
   Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) =>
       nexRelatedNotesAvailable
@@ -253,7 +281,17 @@ extension NexLibraryServices on NexServices {
   /// page at five thousand notes. The order is stable between changes, so
   /// appending is the same list; when anything was re-read while the page
   /// was being fetched, the full read stays the answer.
-  Future<bool> loadMoreTimeline({int by = 50}) async {
+  Future<bool> loadMoreTimeline({int by = 50}) {
+    final active = _timelinePage;
+    if (active != null) return active;
+    final work = _loadMoreTimelinePage(by: by);
+    _timelinePage = work;
+    return work.whenComplete(() {
+      if (identical(_timelinePage, work)) _timelinePage = null;
+    });
+  }
+
+  Future<bool> _loadMoreTimelinePage({required int by}) async {
     if (_closed) return false;
     final base = _lastTimeline;
     final reads = _timelineReads;

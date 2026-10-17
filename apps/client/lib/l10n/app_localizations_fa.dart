@@ -2010,7 +2010,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiCapabilityNote =>
-      'پیشنهاد برچسب و خلاصه‌سازی با همهٔ سرویس‌ها کار می‌کنند. جست‌وجوی معنایی به سرویس سازگار با OpenAI نیاز دارد. تبدیل گفتار به متن و تشخیص متن تصویر فعلاً روی خود دستگاه می‌مانند.';
+      'تست اتصال فقط گفتگوی متنی را بررسی می‌کند. مدل‌های جداگانهٔ صدا و جستجو و قابلیت‌های پشتیبانی‌شده را در «مدل‌ها و قابلیت‌ها» تنظیم کنید. آدرس‌های سفارشی هم در همان بخش قابل تغییرند. صدا و جستجوی OpenRouter نیاز به فعال‌سازی جداگانه دارند.';
 
   @override
   String connectionOk(String model) {
@@ -5279,4 +5279,15 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get planPersianCalendarAbout =>
       'تقویم شمسی همراه مناسبت‌ها و تبدیل تاریخ. اوقات شرعی بر اساس شهر انتخابی، با اعلان اختیاری اذان و تنظیم جداگانه برای هر وعده.';
+
+  @override
+  String get aiProviderSaveFailed =>
+      'ذخیرهٔ سرویس انجام نشد. دوباره تلاش کنید.';
+
+  @override
+  String get planSecurityToolsTitle => 'جعبه‌ابزار امنیت';
+
+  @override
+  String get planSecurityToolsAbout =>
+      'رمزگذاری و رمزگشایی متن (AES-256-GCM)، هش، کدگذاری و رمزگشایی، ساخت گذرواژه و عبارت عبور، همراه با نگهداری محلی و رمزگذاری‌شدهٔ اطلاعات محرمانه.';
 }

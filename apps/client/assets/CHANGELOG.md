@@ -34,6 +34,20 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.0
+
+- **Safer AI settings.** A delayed connection test cannot save a different provider; a failed credential save keeps the previous setup and reports the failure. Connection-test guidance now distinguishes chat from media and search.
+- **Reliable AI requests.** Audio deadlines cover the full response, provider errors remain retriable, and switching the search model discards late query vectors. OpenAI o-series requests use their supported token parameter while existing gateway payloads stay unchanged.
+- **Orderly on-device answers.** Local generation runs one request at a time. Expired work is skipped and late answers are discarded without freeing a native session mid-generation.
+- **Accurate assistant state.** Output-language changes reach the next chat turn, retired provider connections finish active reads before closing, and Gemini audio is recorded correctly in the local disclosure log.
+
+- **Models and capabilities.** Separate speech/search models and custom endpoints, per-model feature controls, and opt-in OpenRouter transcription and embeddings. Manual summaries and tag suggestions can use the downloaded model; capture stays quick. Provider-picker examples are current without replacing saved models.
+- **Fresh sponsor cards.** Campaigns revalidate hourly on launch/resume; closing a card hides it for eight hours, including across restarts, and it can be closed again when it returns.
+- **Complete backups import again.** Android can select `.nexfull` files, and complete backups are recognized even when the document provider renames the selected copy.
+- **Clearer reminders.** Expanded notifications include up to 1,200 characters. Tapping a reminder scrolls to its card, even beyond the first page, with an outline matching Compact, Standard and Easy Read cards.
+- **Cleaner note results.** Converting text to a Markdown document no longer presents its source as a Nex AI result.
+- **All missed release notes.** Updating across several versions shows their changes together, in the selected language. The security toolbox joins Modules as Coming soon.
+
 ## v2.0.10
 
 - **Custom gateway voice transcription.** OpenAI-compatible custom providers with a standard chat endpoint now offer transcription and voice input. Audio is sent to the matching `/audio/transcriptions` endpoint, leaving chat, images and other providers unchanged.

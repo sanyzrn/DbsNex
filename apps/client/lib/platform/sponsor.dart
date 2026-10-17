@@ -136,9 +136,8 @@ class NexSponsor {
 
 /// Fetches [NexSponsor] and remembers the answer.
 ///
-/// On the same daily cadence as the update check and for the same reason: the
-/// thing being asked about changes at most daily, and an app that phones home
-/// on every launch is one that costs battery to learn nothing.
+/// The small campaign document is revalidated hourly on launch/resume. A
+/// manual refresh can revalidate sooner; failures share a short cooldown.
 ///
 /// The cache is what makes the card appear instantly rather than a second
 /// after the timeline draws. A card that pops in under the reader's thumb is
@@ -165,8 +164,8 @@ class NexSponsorService {
   ///
   /// The pick prefers cards in the interface language (or with no language
   /// preference), falling back to any active campaign when none matches.
-  /// It is made once per refresh, about once a day, and kept until
-  /// the next: one phone sees one card for the day, and across phones each
+  /// It is made once per refresh, at most hourly, and kept until
+  /// the next: one phone keeps its card until revalidation, and across phones each
   /// card is seen about as often as the others. Answers the card's own JSON,
   /// which is what is cached; null when the file is not a card or a list of
   /// them, and an empty string for a list with nothing to show here.
@@ -199,15 +198,8 @@ class NexSponsorService {
     return available[_random.nextInt(available.length)];
   }
 
-  /// Whether the card carries a close button, and whether a dismissal hides
-  /// it.
-  ///
-  /// Off for now, at the owner's request: while the card's display is being
-  /// tested every phone should keep showing it, including the ones that
-  /// waved an earlier card off. Turning it back on restores the close button
-  /// and [dismissalCoolOff] exactly as they were; the dismissals stored in
-  /// the meantime are kept.
-  static const dismissibleByDefault = false;
+  /// Closing a campaign hides it temporarily on this device.
+  static const dismissibleByDefault = true;
 
   final bool dismissible;
 
@@ -216,7 +208,7 @@ class NexSponsorService {
   /// working exactly as intended.
   static const defaultEndpoint = 'https://saeedzarrini.ir/banner.json';
 
-  static const refreshInterval = Duration(hours: 24);
+  static const refreshInterval = Duration(hours: 1);
 
   /// After a failed refresh, do not turn every app open/resume into another
   /// request. Half an hour still recovers the same day, while keeping the
@@ -236,25 +228,12 @@ class NexSponsorService {
   /// rather than a campaign that ended last month sitting in somebody's
   /// timeline because their data has been off since then.
   ///
-  /// Twice the refresh interval, so one missed check is not enough to lose a
-  /// card that is still running.
+  /// Preserve two days of offline tolerance; a missed hourly check is not
+  /// enough to lose a campaign that is still running.
   static const maxAge = Duration(hours: 48);
 
-  /// How long hiding a card keeps it hidden.
-  ///
-  /// A close button on a banner means "not now". It used to mean "never" —
-  /// one tap and that card was gone from that phone for good, which is both
-  /// more than anybody intends by it and, for the one card paying for a free
-  /// app, an expensive misreading.
-  ///
-  /// A day, matched to [refreshInterval]: long enough that dismissing it is
-  /// worth doing — it stays gone for the rest of the session and the evening
-  /// after it, however many times Android restarts the app in between —
-  /// and short enough that a campaign someone waved off on Monday is not
-  /// invisible to them for the rest of its run.
-  ///
-  /// Per card, by id, so waving off one campaign says nothing about the next.
-  static const dismissalCoolOff = Duration(hours: 24);
+  /// Per campaign, persisted across restarts; each close starts a new window.
+  static const dismissalCoolOff = Duration(hours: 8);
 
   /// The ceiling on a picture. Half a megabyte is a generous animated WebP
   /// and a very large still; a card is not worth more of somebody's data
@@ -322,7 +301,11 @@ class NexSponsorService {
     Future<http.Response> fetch(String target) async {
       final clock = Stopwatch()..start();
       final response = await client
-          .send(http.Request('GET', Uri.parse(target)))
+          .send(
+            http.Request('GET', Uri.parse(target))
+              ..headers['Cache-Control'] = 'no-cache'
+              ..headers['Pragma'] = 'no-cache',
+          )
           .timeout(timeout);
       if (response.statusCode != 200 || (response.contentLength ?? 0) > limit) {
         // StreamIterator subscribes lazily. Discarded responses still need
@@ -462,6 +445,13 @@ class NexSponsorService {
     return text.startsWith('\uFEFF') ? text.substring(1) : text;
   }
 
+  DateTime? get dismissedUntil {
+    final at = preferences.sponsorDismissals[cached?.id];
+    if (at == null || at.isAfter(_now())) return null;
+    final until = at.add(dismissalCoolOff);
+    return until.isAfter(_now()) ? until : null;
+  }
+
   /// The cards still inside their [dismissalCoolOff].
   ///
   /// Read through rather than stored as a set: the answer changes with the
@@ -493,13 +483,13 @@ class NexSponsorService {
     } finally {
       // Settled means "we looked", not "a file exists". Leaving this false
       // when a previous picture fetch failed made a perfectly valid cached
-      // card disappear after the next app restart until the 24-hour refresh.
+      // card disappear after the next app restart until the next refresh.
       _imageSettled = true;
     }
   }
 
-  /// Refreshes at most once a day after success. A due automatic check gets
-  /// one immediate retry, then a 30-minute cool-off shared across app launches
+  /// Refreshes hourly after success; manual refresh can revalidate sooner.
+  /// A due automatic check gets one retry, then a 30-minute cool-off across launches
   /// and foreground resumes.
   ///
   /// Never throws and never reports: a card that could not be fetched is
@@ -528,7 +518,7 @@ class NexSponsorService {
       // as recent, or the card would wait out the wrong year to refresh.
       bool within(DateTime? at, Duration window) =>
           at != null && !now.isBefore(at) && now.difference(at) < window;
-      if (within(preferences.sponsorFetchedAt, refreshInterval)) {
+      if (!manual && within(preferences.sponsorFetchedAt, refreshInterval)) {
         final sponsor = cached;
         if (sponsor?.image != null &&
             _image == null &&

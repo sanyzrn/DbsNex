@@ -125,6 +125,9 @@ class NexCardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final lineHeight = NexCardDensity.of(context) == NexCardDensity.compact
+        ? 12.0
+        : 14.0;
     return Padding(
       padding: nexCardInsetsFor(context),
       child: SizedBox(
@@ -148,23 +151,23 @@ class NexCardSkeleton extends StatelessWidget {
                   radius: NexRadius.cardLeading,
                 ),
                 const SizedBox(width: NexSpacing.contentGap),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Sized to fit nexCardLeadingSize's own height, same as
                       // the real preview-plus-timestamp column beside it —
                       // shrinking the icon box shrinks the room this has too.
-                      NexSkeleton(height: 14),
-                      SizedBox(height: NexSpacing.xs),
+                      NexSkeleton(height: lineHeight),
+                      const SizedBox(height: NexSpacing.xs),
                       // Short, the way a second line of a preview usually is.
                       FractionallySizedBox(
                         alignment: AlignmentDirectional.centerStart,
                         widthFactor: 0.6,
-                        child: NexSkeleton(height: 14),
+                        child: NexSkeleton(height: lineHeight),
                       ),
-                      Spacer(),
-                      NexSkeleton(width: 72, height: 12),
+                      const Spacer(),
+                      const NexSkeleton(width: 72, height: 12),
                     ],
                   ),
                 ),

@@ -1,3 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,14 +27,15 @@ void main() {
     );
   });
 
-  Future<void> pump(WidgetTester tester) => tester.pumpWidget(
-    MaterialApp(
-      theme: nexLightTheme(),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: AiProviderScreen(preferences: preferences),
-    ),
-  );
+  Future<void> pump(WidgetTester tester, {http.Client? client}) =>
+      tester.pumpWidget(
+        MaterialApp(
+          theme: nexLightTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: AiProviderScreen(preferences: preferences, client: client),
+        ),
+      );
 
   // The action bar is pinned, so the button is on screen whatever the list
   // above it is scrolled to.
@@ -50,6 +56,100 @@ void main() {
 
   bool saveEnabled(WidgetTester tester) =>
       tester.widget<OutlinedButton>(saveButton()).onPressed != null;
+
+  for (final locale in ['en', 'fa']) {
+    testWidgets(
+      '$locale advanced model routes save on a small large-text screen',
+      (tester) async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await preferences.setAiProvider(
+          const AiProviderConfig(
+            provider: AiProvider.custom,
+            apiKey: 'key',
+            baseUrl: 'https://example.com/chat',
+            model: 'chat',
+          ),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: Locale(locale),
+            theme: locale == 'fa' ? nexDarkTheme() : nexLightTheme(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.6)),
+              child: child!,
+            ),
+            home: AiProviderScreen(preferences: preferences),
+          ),
+        );
+        final title = find.text(
+          locale == 'fa' ? 'مدل‌ها و قابلیت‌ها' : 'Models and capabilities',
+        );
+        await tester.scrollUntilVisible(
+          title,
+          250,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(title);
+        await tester.pumpAndSettle();
+        final url = find.byKey(const ValueKey('ai-custom-audio-url'));
+        await tester.scrollUntilVisible(
+          url,
+          250,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.enterText(url, 'https://example.com/transcribe');
+        await tester.pump();
+        await tester.tap(
+          find.widgetWithText(
+            OutlinedButton,
+            locale == 'fa' ? 'ذخیره' : 'Save',
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          preferences.aiProvider.transcriptionUrl,
+          'https://example.com/transcribe',
+        );
+        expect(preferences.aiProvider.supportsTranscription, isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'a delayed successful test never saves a newly selected provider',
+    (tester) async {
+      final pending = Completer<http.Response>();
+      final client = MockClient((_) => pending.future);
+      await pump(tester, client: client);
+      await tester.tap(find.text('Test connection'));
+      await tester.pump();
+      await tester.tap(find.text(AiProvider.gemini.label));
+      await tester.pump();
+      pending.complete(
+        http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'message': {'content': 'ok'},
+              },
+            ],
+          }),
+          200,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(preferences.aiProvider.provider, AiProvider.openai);
+      expect(preferences.configFor(AiProvider.gemini).apiKey, isEmpty);
+      expect(find.textContaining('Connected. Model'), findsNothing);
+    },
+  );
 
   testWidgets('save is unavailable until an input changes', (tester) async {
     await pump(tester);

@@ -26,6 +26,7 @@ class EnrichmentService {
   void updateAdapter(AIAdapter adapter) {
     _adapter = adapter;
     // A different provider is a different vector space.
+    _queryGeneration++;
     _queryVectors.clear();
   }
 
@@ -37,6 +38,7 @@ class EnrichmentService {
   void updateEmbedder(NoteEmbedder? embedder) {
     _embedder = embedder;
     // Its own space, so the cached query vectors are from another one.
+    _queryGeneration++;
     _queryVectors.clear();
   }
 
@@ -45,10 +47,12 @@ class EnrichmentService {
   /// in a row would spend a request, and its latency, to learn nothing new.
   final _queryVectors = <String, List<double>>{};
   static const _queryVectorCache = 32;
+  int _queryGeneration = 0;
 
   Future<List<double>?> _queryVector(String query) async {
     final cached = _queryVectors.remove(query);
     if (cached != null) return _queryVectors[query] = cached;
+    final generation = _queryGeneration;
     final List<double> vector;
     if (_embedder case final embedder?) {
       vector = await embedder.embedQuery(query);
@@ -57,7 +61,11 @@ class EnrichmentService {
       if (call == null) return null;
       vector = (await call).values;
     }
-    if (vector.isEmpty) return null;
+    if (generation != _queryGeneration ||
+        !_capabilities.semanticSearch && !_capabilities.relatedNotes ||
+        vector.isEmpty) {
+      return null;
+    }
     _queryVectors[query] = vector;
     while (_queryVectors.length > _queryVectorCache) {
       _queryVectors.remove(_queryVectors.keys.first);

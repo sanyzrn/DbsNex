@@ -24,6 +24,7 @@ class _Worker {
       adapter: boot.adapter,
       capabilities: boot.capabilities,
     );
+    if (boot.adapter case final CloudAIAdapter initial) _cloudAdapter = initial;
   }
 
   final _WorkerBoot boot;
@@ -49,6 +50,7 @@ class _Worker {
   );
 
   AiProviderConfig? provider;
+  CloudAIAdapter? _cloudAdapter;
   var localSearch = false;
 
   // What decides the library's vector space between them: the provider
@@ -158,6 +160,13 @@ class _Worker {
       _DbCommand.setTitle => NexDbWorker._voided(
         () => repo.setTitle(arg('id')! as String, arg('title') as String?),
       ),
+      _DbCommand.saveSummaryIfCurrent => () {
+        final id = arg('id')! as String;
+        final note = repo.getById(id);
+        if (note == null || note.aiSourceText != arg('source')) return false;
+        repo.setSummaryText(id, arg('text')! as String);
+        return true;
+      }(),
       _DbCommand.setSummaryText => NexDbWorker._voided(
         () => repo.setSummaryText(arg('id')! as String, arg('text')! as String),
       ),
@@ -412,24 +421,22 @@ class _Worker {
       ),
       _DbCommand.setAiProvider => NexDbWorker._voided(() {
         final raw = (arg('config')! as Map).cast<String, String>();
-        final config = AiProviderConfig(
-          provider: AiProviderWire.fromWire(raw['provider']),
-          apiKey: raw['apiKey'] ?? '',
-          baseUrl: raw['baseUrl'] ?? '',
-          model: raw['model'] ?? '',
-        );
+        final config = AiProviderConfig.fromMap(raw);
         // No provider, or an incomplete one, falls back to the local
         // heuristics rather than to nothing: tag hints keep working.
-        enrichment.updateAdapter(
-          config.isUsable
-              ? CloudAIAdapter(
-                  config: config,
-                  outputLanguage: AiOutputLanguage.fromWire(
-                    raw['outputLanguage'],
-                  ),
-                )
-              : const OnDeviceAIAdapter(),
-        );
+        final previous = _cloudAdapter;
+        _cloudAdapter = config.isUsable
+            ? CloudAIAdapter(
+                config: config,
+                outputLanguage: AiOutputLanguage.fromWire(
+                  raw['outputLanguage'],
+                ),
+              )
+            : null;
+        enrichment.updateAdapter(_cloudAdapter ?? const OnDeviceAIAdapter());
+        // Retires after pending response bodies finish, so a provider change
+        // neither leaks its client nor aborts an already requested read.
+        previous?.retire();
         // A vector is only comparable to vectors from the same model and
         // the same endpoint. Swap either and every stored embedding becomes
         // a number from a different space — which `_cosine` will still
@@ -463,7 +470,10 @@ class _Worker {
           client.close();
         }
       }(),
-      _DbCommand.close => null,
+      _DbCommand.close => NexDbWorker._voided(() {
+        _cloudAdapter?.close();
+        _cloudAdapter = null;
+      }),
     };
   }
 }
