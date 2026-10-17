@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import 'draft_guard.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/crash_reporter.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
 import 'nex_text_field.dart';
@@ -181,7 +182,8 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
     String? edited;
     try {
       edited = await adapter.rewrite(before, style: style);
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('editor.rewrite', error));
       edited = null;
     } finally {
       adapter.close();
@@ -191,7 +193,9 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
     if (_text.text != original.text) return;
     if (edited == null) {
       NexBannerHost.of(context)?.show(
-        message: AppLocalizations.of(context).aiEditFailed,
+        message: adapter.lastReplyTruncated
+            ? AppLocalizations.of(context).aiIncompleteReply
+            : AppLocalizations.of(context).aiEditFailed,
         kind: NexBannerKind.failed,
       );
       return;

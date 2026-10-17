@@ -284,6 +284,31 @@ List<Widget> searchResultSlivers({
         return _Arrive(key: ValueKey(note.id), index: index, child: result);
       },
     ),
+    if (search.hasMore)
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(NexSpacing.md),
+          child: Column(
+            children: [
+              if (search.pageFailed)
+                Text(l10n.searchFailed, style: theme.textTheme.bodySmall),
+              TextButton.icon(
+                onPressed: search.loadingMore
+                    ? null
+                    : () => unawaited(search.loadMore()),
+                icon: search.loadingMore
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.expand_more),
+                label: Text(search.pageFailed ? l10n.retry : l10n.searchMore),
+              ),
+            ],
+          ),
+        ),
+      ),
   ];
 }
 

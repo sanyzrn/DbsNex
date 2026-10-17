@@ -11,6 +11,8 @@ import 'package:path/path.dart' as p;
 import 'package:nex_ai/cloud.dart';
 import 'local_embedder.dart';
 import 'nex_db.dart';
+import 'db_worker_error.dart';
+import 'crash_reporter.dart';
 
 part 'db_worker_client.dart';
 part 'db_worker_attachments.dart';
@@ -201,10 +203,11 @@ class _WorkerBoot {
 /// a first-class reply, and it becomes a bootstrap error the user can see
 /// and retry.
 class _WorkerOpenFailure {
-  const _WorkerOpenFailure(this.message, this.stack);
+  const _WorkerOpenFailure(this.message, this.stack, this.error);
 
   final String message;
   final String stack;
+  final DbWorkerException error;
 }
 
 /// Async facade over a dedicated database isolate.
@@ -312,7 +315,7 @@ class NexDbWorker
         bootstrap.cancel();
       } else if (message is _WorkerOpenFailure) {
         ready.completeError(
-          StateError('nex-db failed to open: ${message.message}'),
+          message.error,
           StackTrace.fromString(message.stack),
         );
         bootstrap.cancel();
@@ -390,8 +393,11 @@ class NexDbWorker
     if (completer == null) return;
 
     if (message.error != null) {
+      unawaited(NexCrashLog.handled('database.request', message.error!));
       completer.completeError(
-        StateError('nex-db worker failed: ${message.error}'),
+        message.error is DbWorkerException
+            ? message.error!
+            : StateError('nex-db worker failed: ${message.error}'),
         StackTrace.fromString(message.stack ?? ''),
       );
     } else {
@@ -485,7 +491,7 @@ class NexDbWorker
     );
   }
 
-  static void _entryPoint(_WorkerBoot boot) {
+  static void _entryPoint(_WorkerBoot boot) async {
     final requests = ReceivePort();
     if (boot.rootToken case final token?) {
       try {
@@ -508,7 +514,13 @@ class NexDbWorker
       // open: the awaiting side is parked on a Completer that only a
       // message through this port can complete. This turns "splash screen
       // forever" into a bootstrap error the user can see and retry.
-      boot.sendPort.send(_WorkerOpenFailure(e.toString(), stack.toString()));
+      boot.sendPort.send(
+        _WorkerOpenFailure(
+          e.toString(),
+          stack.toString(),
+          DbWorkerException.from(e, prefix: 'nex-db failed to open'),
+        ),
+      );
       return;
     }
     boot.sendPort.send(requests.sendPort);
@@ -519,7 +531,7 @@ class NexDbWorker
     // lookups), and the difference between findable and silently missing
     // when it is not — a crash between paired FTS statements used to
     // strand a note out of search until it was next edited.
-    worker.repo.repairSearchIndex();
+    await worker.repo.repairSearchIndexInBatches();
 
     // One request handled at a time — with one exception, below. The listener
     // is not `async` because several handlers await (import reads a file,
@@ -543,7 +555,12 @@ class NexDbWorker
         boot.sendPort.send(_DbResponse(message.id, result, null, null));
       } catch (e, stack) {
         boot.sendPort.send(
-          _DbResponse(message.id, null, e.toString(), stack.toString()),
+          _DbResponse(
+            message.id,
+            null,
+            DbWorkerException.from(e),
+            stack.toString(),
+          ),
         );
       }
     }

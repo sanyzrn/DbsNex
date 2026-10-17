@@ -22,6 +22,7 @@ import '../platform/cycle_summary.dart';
 import '../platform/app_guide.dart';
 import '../platform/assistant_citations.dart';
 import '../platform/chat_history.dart';
+import '../platform/crash_reporter.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/theme_presets.dart';
@@ -182,6 +183,8 @@ class _AiChatSheetState extends State<AiChatSheet> {
   ScrollController? _scroll;
 
   bool _sending = false;
+  int _sendGeneration = 0;
+  String _activeQuestion = '';
 
   /// True from the moment the recording stops until the transcript is back.
   ///
@@ -537,6 +540,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
                   sending: _sending,
                   transcribing: _transcribing,
                   onSend: () => unawaited(_send(_input.text)),
+                  onStop: _adapter.answersOnDevice ? null : _stopSending,
                   onSpeak: _canSpeak ? () => unawaited(_speak()) : null,
                   recorder: _voice,
                   onVoiceDone: () => unawaited(_finishSpeaking()),

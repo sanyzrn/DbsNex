@@ -167,4 +167,56 @@ void main() {
     expect(before, after);
     expect(searchIds('healthy'), contains(note.id));
   });
+  test(
+    'versioned repair rebuilds old existing rows across batch boundaries',
+    () async {
+      for (var i = 0; i < 405; i++) {
+        insert(makeText('upgradedword $i'));
+      }
+      repo.db.execute("UPDATE notes_fts SET content = 'legacy'");
+      expect(repo.search(const SearchFilters(query: 'upgradedword')), isEmpty);
+      await repo.repairSearchIndexInBatches();
+      expect(
+        repo.db
+            .select(
+              "SELECT COUNT(*) n FROM notes_fts WHERE content LIKE '%upgradedword%'",
+            )
+            .first['n'],
+        405,
+      );
+      expect(
+        repo.db
+            .select(
+              "SELECT value FROM nex_meta WHERE key = 'search_text_version'",
+            )
+            .single['value'],
+        '${SqliteNoteRepository.searchTextVersion}',
+      );
+    },
+  );
+  test(
+    'filter pages are bounded and exhaustive; nonpaged tool callers keep all matches',
+    () {
+      for (var i = 0; i < 205; i++) {
+        insert(makeText('paged $i'));
+      }
+      final all = repo.search(const SearchFilters(types: [NoteType.text]));
+      final a = repo.search(
+        const SearchFilters(types: [NoteType.text], pageSize: 100),
+      );
+      final b = repo.search(
+        const SearchFilters(types: [NoteType.text], pageSize: 100, offset: 100),
+      );
+      final c = repo.search(
+        const SearchFilters(types: [NoteType.text], pageSize: 100, offset: 200),
+      );
+      expect(a.length, 100);
+      expect(b.length, 100);
+      expect(c.length, 5);
+      expect(
+        [...a, ...b, ...c].map((n) => n.id),
+        orderedEquals(all.map((n) => n.id)),
+      );
+    },
+  );
 }

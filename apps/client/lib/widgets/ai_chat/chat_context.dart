@@ -388,6 +388,7 @@ extension _ChatContext on _AiChatSheetState {
   /// recent ones. Skipped for a chat about one note or one day: there the
   /// reader has already said what the question is about.
   Future<void> _retrieveFor(String question) async {
+    final generation = _sendGeneration;
     if (widget.focus != null || widget.scope != null) return;
     List<Note> found;
     try {
@@ -395,7 +396,9 @@ extension _ChatContext on _AiChatSheetState {
     } catch (_) {
       found = const [];
     }
+    if (!mounted || generation != _sendGeneration) return;
     await _knowThreads(found.take(_AiChatSheetState._retrievedCount));
+    if (!mounted || generation != _sendGeneration) return;
     final lines = <String>[
       for (final note in found.take(_AiChatSheetState._retrievedCount))
         if (_contextLine(note) case final line?) line,

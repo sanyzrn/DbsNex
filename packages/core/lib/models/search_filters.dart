@@ -8,6 +8,8 @@ class SearchFilters {
     this.createdFrom,
     this.createdTo,
     this.types = const [],
+    this.pageSize,
+    this.offset = 0,
   });
 
   final String query;
@@ -15,6 +17,11 @@ class SearchFilters {
   final DateTime? createdFrom;
   final DateTime? createdTo;
   final List<NoteType> types;
+
+  /// Optional filter-only paging. Null preserves callers which need the full
+  /// filtered set (assistant tools); the interactive search always supplies it.
+  final int? pageSize;
+  final int offset;
 
   bool get isEmpty =>
       query.trim().isEmpty &&

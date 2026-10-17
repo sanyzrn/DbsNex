@@ -87,6 +87,27 @@ void main() {
   });
 
   test(
+    'filter-only search adds all result pages without dropping loaded rows',
+    () async {
+      for (var i = 0; i < 205; i++) {
+        await services.captureText('page item $i');
+      }
+      final search = NoteSearchController(services: services);
+      addTearDown(search.dispose);
+      search.types.add(NoteType.text);
+      await search.run();
+      expect(search.results.length, 100);
+      expect(search.hasMore, isTrue);
+      await search.loadMore();
+      expect(search.results.length, 200);
+      await search.loadMore();
+      expect(search.results.length, 205);
+      expect(search.hasMore, isFalse);
+      expect(search.results.map((n) => n.id).toSet().length, 205);
+    },
+  );
+
+  test(
     'a query with no keyword overlap still finds the note about the same thing',
     () async {
       await services.worker.setAiCapabilities(

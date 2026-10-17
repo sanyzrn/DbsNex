@@ -12,6 +12,7 @@ import 'package:nex_core/nex_core.dart';
 import 'assistant_actions.dart';
 import 'disclosure_log.dart';
 import 'local_budget.dart';
+import 'cloud_budget.dart';
 
 /// The cloud services Nex can talk to.
 ///
@@ -793,7 +794,11 @@ class CloudAIAdapter implements AIAdapter {
   /// The system text becomes a [ChatRole.system] message rather than being
   /// glued to the front of the user's words, because the adapter on the other
   /// side maps that role onto LiteRT-LM's own system-instruction slot.
-  Future<String?> _completeLocally(String system, String user) async {
+  Future<String?> _completeLocally(
+    String system,
+    String user, {
+    bool preserveMarkup = false,
+  }) async {
     // Held to the on-device window like the chat is. What is asked comes
     // first in every source this path is given — the brief's DUE lines, the
     // newest notes — so a cut takes the least important end.
@@ -808,7 +813,11 @@ class CloudAIAdapter implements AIAdapter {
     if (pending == null) return null;
     try {
       final reply = await pending.timeout(_localBudget);
-      final text = _answerOnly(reply.content) ?? '';
+      final text =
+          (preserveMarkup
+              ? reply.content.trim()
+              : _answerOnly(reply.content)) ??
+          '';
       return text.isEmpty ? null : text;
     } catch (error) {
       // A model that fails to load, or a backend that dies mid-answer. Treated
@@ -830,6 +839,15 @@ class CloudAIAdapter implements AIAdapter {
   final Duration _localBudget;
   final DisclosureClient _client;
   final bool _ownsClient;
+  Completer<void>? _chatAbort;
+
+  /// Aborts only this chat request; the adapter remains usable for Retry.
+  void cancelChat() {
+    final abort = _chatAbort;
+    if (abort != null && !abort.isCompleted) abort.complete();
+  }
+
+  bool lastReplyTruncated = false;
 
   /// Generous on purpose. A free tier can take the better part of a minute to
   /// answer, and a request that is still in flight is not a failure — the
@@ -867,6 +885,7 @@ class CloudAIAdapter implements AIAdapter {
   static const _mediaTimeout = Duration(minutes: 3);
 
   void close() {
+    cancelChat();
     if (_ownsClient) _client.close();
   }
 
@@ -960,20 +979,37 @@ class CloudAIAdapter implements AIAdapter {
     String? mediaMimeType,
     Duration? timeout,
     String? modelOverride,
+    bool requireComplete = false,
+    bool preserveMarkup = false,
   }) async {
+    lastReplyTruncated = false;
     if (!config.isUsable) {
       // No provider. If a model is on the phone this still has an answer —
       // unless the request carries an image, which is the one thing the local
       // path cannot take, so that stays unavailable rather than silently
       // dropping the picture and answering about nothing.
       if (_preferLocal && media == null) {
+        if (requireComplete &&
+            LocalBudget.estimate(system) + LocalBudget.estimate(user) >
+                LocalBudget.input) {
+          lastReplyTruncated = true;
+          _lastFailure = (
+            status: 0,
+            message: 'The complete source does not fit the local context.',
+          );
+          return null;
+        }
         // Bounded too (PERF-01): the caller's timeout used to apply to the
         // network only, so a cold on-device model held the brief's spinner,
         // and every pull behind it, for as long as it took. Never less than
         // [localTimeoutFloor], though: loading the weights alone can take
         // longer than a network budget, and a summary the phone was always
         // going to finish should not be thrown away at twenty seconds.
-        final local = _completeLocally(system, user);
+        final local = _completeLocally(
+          system,
+          user,
+          preserveMarkup: preserveMarkup,
+        );
         if (timeout == null) return local;
         return local.timeout(
           timeout > localTimeoutFloor ? timeout : localTimeoutFloor,
@@ -1076,7 +1112,11 @@ class CloudAIAdapter implements AIAdapter {
       return null;
     }
     _lastFailure = null;
-    return _extractText(_bodyText(response));
+    return _extractText(
+      _bodyText(response),
+      requireComplete: requireComplete,
+      preserveMarkup: preserveMarkup,
+    );
   }
 
   /// The provider's own explanation, whichever shape it arrived in.
@@ -1109,9 +1149,15 @@ class CloudAIAdapter implements AIAdapter {
   }
 
   @visibleForTesting
-  String? extractTextForTest(String body) => _extractText(body);
+  String? extractTextForTest(String body) =>
+      _extractText(body, requireComplete: true);
 
-  String? _extractText(String body) {
+  String? _extractText(
+    String body, {
+    bool requireComplete = false,
+    bool preserveMarkup = false,
+  }) {
+    lastReplyTruncated = false;
     final Object? decoded;
     try {
       decoded = jsonDecode(body);
@@ -1120,16 +1166,41 @@ class CloudAIAdapter implements AIAdapter {
     }
     if (decoded is! Map<String, dynamic>) return null;
 
+    final choices = decoded['choices'];
+    final candidates = decoded['candidates'];
+    final reason = switch (config.provider.format) {
+      AiWireFormat.anthropic => decoded['stop_reason'],
+      AiWireFormat.openai =>
+        choices is List && choices.isNotEmpty && choices.first is Map
+            ? (choices.first as Map)['finish_reason']
+            : null,
+      AiWireFormat.gemini =>
+        candidates is List && candidates.isNotEmpty && candidates.first is Map
+            ? (candidates.first as Map)['finishReason']
+            : null,
+    };
+    if (requireComplete &&
+        const {'length', 'max_tokens', 'MAX_TOKENS'}.contains(reason)) {
+      lastReplyTruncated = true;
+      _lastFailure = (
+        status: 0,
+        message: 'Incomplete AI response: output limit reached.',
+      );
+      return null;
+    }
+    String? answer(String text) => preserveMarkup
+        ? (text.trim().isEmpty ? null : text.trim())
+        : _answerOnly(text);
     switch (config.provider.format) {
       case AiWireFormat.anthropic:
         final content = decoded['content'];
         if (content is! List) return null;
-        for (final part in content) {
-          if (part is Map && part['type'] == 'text' && part['text'] is String) {
-            return _answerOnly(part['text'] as String);
-          }
-        }
-        return null;
+        final text = [
+          for (final part in content)
+            if (part is Map && part['type'] == 'text' && part['text'] is String)
+              part['text'] as String,
+        ].join('');
+        return answer(text);
       case AiWireFormat.gemini:
         final candidates = decoded['candidates'];
         if (candidates is! List || candidates.isEmpty) return null;
@@ -1148,35 +1219,58 @@ class CloudAIAdapter implements AIAdapter {
           }
         }
         final text = buffer.toString();
-        return _answerOnly(text);
+        return answer(text);
       case AiWireFormat.openai:
         final choices = decoded['choices'];
         if (choices is! List || choices.isEmpty) return null;
         final message = (choices.first as Map)['message'];
         return message is Map && message['content'] is String
-            ? _answerOnly(message['content'] as String)
+            ? answer(message['content'] as String)
             : null;
+    }
+  }
+
+  Future<http.Response> _postChat(Map<String, Object?> body) async {
+    final abort = Completer<void>();
+    _chatAbort = abort;
+    final request =
+        http.AbortableRequest('POST', _chatUri, abortTrigger: abort.future)
+          ..headers.addAll(_headers)
+          ..body = jsonEncode(body);
+    try {
+      return await Future.any<http.Response>([
+        _client.send(request).then(http.Response.fromStream),
+        abort.future.then<http.Response>(
+          (_) => throw http.RequestAbortedException(_chatUri),
+        ),
+      ]).timeout(
+        _textTimeout,
+        onTimeout: () {
+          if (!abort.isCompleted) abort.complete();
+          throw TimeoutException('AI chat response timed out', _textTimeout);
+        },
+      );
+    } finally {
+      if (identical(_chatAbort, abort)) _chatAbort = null;
     }
   }
 
   /// Explicit reasoning envelopes are not user-facing answer content.
   static String? _answerOnly(String raw) {
-    final text = raw
-        .replaceAll(
-          RegExp(
-            r'<(?:think|thinking|analysis)>[\s\S]*?</(?:think|thinking|analysis)>',
-            caseSensitive: false,
-          ),
-          '',
-        )
-        .replaceAll(
-          RegExp(
-            r'<(?:think|thinking|analysis)>[\s\S]*$',
-            caseSensitive: false,
-          ),
-          '',
-        )
-        .trim();
+    var text = raw.trim();
+    final envelope = RegExp(
+      r'^<(think|thinking|analysis)>[\s\S]*?</\1>\s*',
+      caseSensitive: false,
+    );
+    while (envelope.hasMatch(text)) {
+      text = text.replaceFirst(envelope, '').trimLeft();
+    }
+    if (RegExp(
+      r'^<(?:think|thinking|analysis)>',
+      caseSensitive: false,
+    ).hasMatch(text)) {
+      return null;
+    }
     return text.isEmpty ? null : text;
   }
 
@@ -1725,6 +1819,11 @@ class CloudAIAdapter implements AIAdapter {
       // enough in tokens-per-character that a tighter ratio clips one
       // direction and not the other.
       maxTokens: math.min(4000, 200 + source.length),
+      requireComplete: true,
+      preserveMarkup: RegExp(
+        r'<(?:think|thinking|analysis)>',
+        caseSensitive: false,
+      ).hasMatch(source),
     );
     final translated = reply?.trim();
     if (translated == null || translated.isEmpty) return null;
@@ -1752,6 +1851,11 @@ class CloudAIAdapter implements AIAdapter {
       style.prompt,
       source,
       maxTokens: math.min(4000, 300 + source.length),
+      requireComplete: true,
+      preserveMarkup: RegExp(
+        r'<(?:think|thinking|analysis)>',
+        caseSensitive: false,
+      ).hasMatch(source),
       // A person is watching this one and waiting on it, so it gets the full
       // budget rather than the ambient one.
     );
@@ -2073,6 +2177,7 @@ class CloudAIAdapter implements AIAdapter {
     List<ChatMessage> history, {
     required AiChatOptions options,
   }) async {
+    lastReplyTruncated = false;
     _lastFailure = null;
     if (history.isEmpty) return null;
     if (!config.isUsable) {
@@ -2131,6 +2236,17 @@ class CloudAIAdapter implements AIAdapter {
         ? -1
         : turns.lastIndexWhere((turn) => turn.role != ChatRole.assistant);
 
+    final fitted = CloudBudget.fit(system, turns);
+    if (fitted == null) {
+      _lastFailure = (
+        status: 413,
+        message: 'The newest question exceeds the chat context budget.',
+      );
+      return null;
+    }
+    turns
+      ..clear()
+      ..addAll(fitted);
     final body = switch (config.provider.format) {
       AiWireFormat.anthropic => {
         'model': config.resolvedModel,
@@ -2221,9 +2337,7 @@ class CloudAIAdapter implements AIAdapter {
       },
     };
 
-    final response = await _client
-        .post(_chatUri, headers: _headers, body: jsonEncode(body))
-        .timeout(_textTimeout);
+    final response = await _postChat(body);
     if (response.statusCode != 200) {
       _lastFailure = (
         status: response.statusCode,
@@ -2232,7 +2346,7 @@ class CloudAIAdapter implements AIAdapter {
       return null;
     }
     _lastFailure = null;
-    return _extractText(_bodyText(response))?.trim();
+    return _extractText(_bodyText(response), requireComplete: true)?.trim();
   }
 
   /// The response body, decoded as UTF-8 whatever the provider said.
@@ -2416,6 +2530,7 @@ class CloudAIAdapter implements AIAdapter {
           'For the opening description and screenshot reports: ${outputLanguage == AiOutputLanguage.auto ? "Write in the language of the main visible content, when present." : outputLanguage.leadRule}',
       'Briefly describe this image, then read any useful text in the appropriate format.',
       maxTokens: 2000,
+      requireComplete: true,
       media: bytes,
       mediaMimeType: _imageMime(uri),
     );

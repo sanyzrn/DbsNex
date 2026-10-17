@@ -3360,5 +3360,10 @@
   "aiSearchEmbeddings": "Search embeddings",
   "aiEmbeddingModel": "Embedding model",
   "aiSpeechEndpoint": "Transcription endpoint (optional)",
-  "aiEmbeddingEndpoint": "Embedding endpoint (optional)"
+  "aiEmbeddingEndpoint": "Embedding endpoint (optional)",
+  "aiIncompleteReply": "A complete answer could not be obtained. Your original text is kept. Try a shorter text or a model with a larger limit.",
+  "chatStop": "Stop response",
+  "chatStopped": "Response stopped. Your question is saved; you can try again.",
+  "chatContextLimit": "This question is too long for one request. Shorten it or start a new conversation.",
+  "searchMore": "Load more results"
 }

@@ -7,6 +7,7 @@ class _Composer extends StatelessWidget {
     required this.sending,
     required this.transcribing,
     required this.onSend,
+    required this.onStop,
     required this.onSpeak,
     required this.recorder,
     required this.onVoiceDone,
@@ -26,6 +27,7 @@ class _Composer extends StatelessWidget {
   /// is the state people tap through twice.
   final bool transcribing;
   final VoidCallback onSend;
+  final VoidCallback? onStop;
 
   /// Null where speech cannot work: a desktop build, or a provider that does
   /// not hear audio. The button is then absent rather than disabled — there
@@ -123,7 +125,14 @@ class _Composer extends StatelessWidget {
                 duration: NexMotion.standard,
                 transitionBuilder: (child, animation) =>
                     ScaleTransition(scale: animation, child: child),
-                child: speak
+                child: sending && onStop != null
+                    ? IconButton.filled(
+                        key: const ValueKey('stop-chat'),
+                        onPressed: onStop,
+                        tooltip: l10n.chatStop,
+                        icon: const Icon(Icons.stop_rounded),
+                      )
+                    : speak
                     ? IconButton.filled(
                         key: const ValueKey('mic'),
                         onPressed: sending ? null : onSpeak,

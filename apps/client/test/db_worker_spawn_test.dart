@@ -5,6 +5,8 @@ import 'package:path/path.dart' as p;
 import 'package:nex_core/nex_core.dart' show AttachmentKind;
 
 import 'package:nex_client/platform/db_worker.dart';
+import 'package:nex_client/platform/db_worker_error.dart';
+import 'package:nex_data/nex_data.dart' show NexDatabase;
 
 /// The real database isolate, actually spawned.
 ///
@@ -29,6 +31,26 @@ void main() {
   tearDown(() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
+
+  test(
+    'newer-library error retains its category across the real isolate',
+    () async {
+      final dbPath = p.join(tmp.path, 'newer.sqlite');
+      final db = NexDatabase.open(dbPath);
+      db.db.execute('PRAGMA user_version = 999');
+      db.close();
+      await expectLater(
+        NexDbWorker.spawn(dbPath: dbPath, deviceId: 'test', mediaDir: tmp.path),
+        throwsA(
+          isA<DbWorkerException>().having(
+            (e) => e.kind,
+            'kind',
+            DbFailureKind.newerLibrary,
+          ),
+        ),
+      );
+    },
+  );
 
   test('two engines receiving the same request create one note', () async {
     final mediaDir = p.join(tmp.path, 'media');
