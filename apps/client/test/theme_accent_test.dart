@@ -31,6 +31,31 @@ void main() {
     });
   }
 
+  test(
+    'palette colours reach text and filled buttons in both brightnesses',
+    () {
+      for (final preset in nexThemePresets.where((p) => p.id != 'classic')) {
+        for (final base in [nexLightTheme(), nexDarkTheme()]) {
+          final theme = nexApplyThemePreset(base, preset.id, null);
+          expect(
+            theme.textButtonTheme.style!.foregroundColor!.resolve({}),
+            theme.colorScheme.primary,
+            reason: '${preset.id}: text button',
+          );
+          expect(
+            theme.filledButtonTheme.style!.backgroundColor!.resolve({}),
+            theme.colorScheme.primary,
+            reason: '${preset.id}: filled button',
+          );
+          expect(
+            theme.filledButtonTheme.style!.foregroundColor!.resolve({}),
+            theme.colorScheme.onPrimary,
+          );
+        }
+      }
+    },
+  );
+
   test('a palette with its own seed keeps its own muted look', () {
     final seed = nexThemePresetSeed('paper')!;
     final own = nexApplyThemePreset(nexLightTheme(), 'paper', seed);

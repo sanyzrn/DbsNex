@@ -35,5 +35,5 @@ const List<NexModule> nexModules = [
 /// The modules that are part of the app right now.
 List<NexModule> nexModulesOn(NexPreferences preferences) => [
   for (final module in nexModules)
-    if (module.isOn(preferences)) module,
+    if (module.available && module.isOn(preferences)) module,
 ];

@@ -355,279 +355,269 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     final canCaption = note.type != NoteType.text;
     return Padding(
       padding: const EdgeInsets.only(top: NexSpacing.md),
-      child: NexSurface(
-        key: const ValueKey('note-ai-workspace'),
-        color: scheme.surfaceContainerLow,
-        padding: const EdgeInsets.all(NexSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.auto_awesome_outlined,
-                  size: 18,
-                  color: scheme.primary,
-                ),
-                const SizedBox(width: NexSpacing.sm),
-                Expanded(
-                  child: Text(
-                    l10n.aiSection,
-                    style: theme.textTheme.titleSmall,
+      child: NexAnimatedSize(
+        child: NexSurface(
+          key: const ValueKey('note-ai-workspace'),
+          color: scheme.surfaceContainerLow,
+          padding: const EdgeInsets.all(NexSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.auto_awesome_outlined,
+                    size: 18,
+                    color: scheme.primary,
                   ),
-                ),
-                if (busy || (hasResults && !translating)) ...[
                   const SizedBox(width: NexSpacing.sm),
                   Expanded(
                     child: Text(
-                      busy ? l10n.aiProcessing : l10n.aiResultReady,
-                      key: const ValueKey('note-ai-status'),
-                      textAlign: TextAlign.end,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                      l10n.aiSection,
+                      style: theme.textTheme.titleSmall,
                     ),
                   ),
-                ],
-              ],
-            ),
-            if (actions.isNotEmpty) ...[
-              const SizedBox(height: NexSpacing.sm),
-              Wrap(
-                key: const ValueKey('note-ai-tools'),
-                spacing: NexSpacing.sm,
-                runSpacing: NexSpacing.xs,
-                children: [
-                  for (final action in actions) _AiActionIcon(action: action),
+                  if (busy || (hasResults && !translating)) ...[
+                    const SizedBox(width: NexSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        busy ? l10n.aiProcessing : l10n.aiResultReady,
+                        key: const ValueKey('note-ai-status'),
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-            ],
-            if (busy) ...[
-              const SizedBox(height: NexSpacing.sm),
-              const LinearProgressIndicator(minHeight: 2),
-            ],
-            if (hasResults) ...[
-              const SizedBox(height: NexSpacing.sm),
-              if (_hideAiResults)
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton.icon(
-                    key: const ValueKey('note-ai-show-results'),
-                    onPressed: () => _rebuild(() => _hideAiResults = false),
-                    icon: const Icon(Icons.visibility_outlined, size: 18),
-                    label: Text(l10n.aiShowResults),
-                  ),
+              if (actions.isNotEmpty) ...[
+                const SizedBox(height: NexSpacing.sm),
+                Wrap(
+                  key: const ValueKey('note-ai-tools'),
+                  spacing: NexSpacing.sm,
+                  runSpacing: NexSpacing.xs,
+                  children: [
+                    for (final action in actions) _AiActionIcon(action: action),
+                  ],
                 ),
-              // Keep an already-requested translation alive while hiding it.
-              // Revealing output or switching results must not call AI again.
-              Visibility(
-                visible: !_hideAiResults,
-                maintainState: true,
-                child: NexSurface(
-                  key: const ValueKey('note-ai-results'),
-                  color: scheme.surface,
-                  border: BorderSide(color: scheme.outlineVariant),
-                  borderRadius: BorderRadius.circular(NexRadius.md),
-                  padding: const EdgeInsets.all(NexSpacing.sm),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: choices.length > 1
-                                ? NexPopupMenuButton<String>(
-                                    key: const ValueKey(
-                                      'note-ai-result-picker',
-                                    ),
-                                    tooltip: l10n.aiSwitchResult,
-                                    initialValue: selectedId,
-                                    onSelected: (id) =>
-                                        _rebuild(() => _activeAiResult = id),
-                                    itemBuilder: (_) => [
-                                      for (final result in choices)
-                                        PopupMenuItem(
-                                          value: result.id,
-                                          child: Text(result.label),
-                                        ),
-                                    ],
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: NexSpacing.sm,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Flexible(
-                                            child: Text(
-                                              resultLabel,
-                                              style: theme.textTheme.labelLarge,
+              ],
+              if (busy) ...[
+                const SizedBox(height: NexSpacing.sm),
+                const LinearProgressIndicator(minHeight: 2),
+              ],
+              if (hasResults) ...[
+                const SizedBox(height: NexSpacing.sm),
+                if (_hideAiResults)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton.icon(
+                      key: const ValueKey('note-ai-show-results'),
+                      onPressed: () => _rebuild(() => _hideAiResults = false),
+                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      label: Text(l10n.aiShowResults),
+                    ),
+                  ),
+                // Keep an already-requested translation alive while hiding it.
+                // Revealing output or switching results must not call AI again.
+                NexReveal(
+                  visible: !_hideAiResults,
+                  maintainState: true,
+                  child: Padding(
+                    key: const ValueKey('note-ai-results'),
+                    padding: const EdgeInsets.only(top: NexSpacing.sm),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: choices.length > 1
+                                  ? _AiResultTabs(
+                                      choices: choices,
+                                      selected: selectedId,
+                                      onSelected: (id) =>
+                                          _rebuild(() => _activeAiResult = id),
+                                    )
+                                  : Tooltip(
+                                      message: resultLabel,
+                                      child: Text(
+                                        !translating && selected != null
+                                            ? _AiResultTabs.label(
+                                                selected,
+                                                l10n,
+                                              )
+                                            : resultLabel,
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
                                             ),
-                                          ),
-                                          const SizedBox(width: NexSpacing.xs),
-                                          const Icon(
-                                            Icons.keyboard_arrow_down,
-                                            size: 18,
-                                          ),
-                                        ],
                                       ),
                                     ),
-                                  )
-                                : Text(
-                                    resultLabel,
-                                    style: theme.textTheme.labelLarge,
+                            ),
+                            if (!translating && selected != null)
+                              IconButton(
+                                tooltip: _showAi
+                                    ? l10n.aiResultCollapse
+                                    : l10n.aiResultExpand,
+                                onPressed: () =>
+                                    _rebuild(() => _showAi = !_showAi),
+                                icon: AnimatedRotation(
+                                  turns: _showAi ? 0.5 : 0,
+                                  duration: NexMotion.of(
+                                    context,
+                                    NexMotion.standard,
                                   ),
-                          ),
-                          if (!translating && selected != null)
+                                  curve: NexMotion.curve,
+                                  child: const Icon(
+                                    Icons.expand_more,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
                             IconButton(
-                              tooltip: _showAi
-                                  ? l10n.aiResultCollapse
-                                  : l10n.aiResultExpand,
+                              key: const ValueKey('note-ai-hide-results'),
+                              tooltip: l10n.hide,
                               onPressed: () =>
-                                  _rebuild(() => _showAi = !_showAi),
-                              icon: Icon(
-                                _showAi ? Icons.unfold_less : Icons.unfold_more,
+                                  _rebuild(() => _hideAiResults = true),
+                              icon: const Icon(
+                                Icons.visibility_off_outlined,
                                 size: 20,
                               ),
                             ),
-                          IconButton(
-                            key: const ValueKey('note-ai-hide-results'),
-                            tooltip: l10n.hide,
-                            onPressed: () =>
-                                _rebuild(() => _hideAiResults = true),
-                            icon: const Icon(
-                              Icons.visibility_off_outlined,
-                              size: 20,
+                          ],
+                        ),
+                        if (!translating && selected != null) ...[
+                          const SizedBox(height: NexSpacing.xs),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: NexSpacing.sm,
                             ),
-                          ),
-                        ],
-                      ),
-                      if (!translating && selected != null) ...[
-                        const SizedBox(height: NexSpacing.xs),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: NexSpacing.sm,
-                          ),
-                          child: _showAi
-                              ? ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxHeight: 240,
-                                  ),
-                                  child: SingleChildScrollView(
-                                    key: ValueKey('ai-result-${selected.id}'),
-                                    primary: false,
-                                    child: NexTextSurface(
-                                      selected.text,
-                                      selectable: true,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(height: 1.65),
+                            child: _showAi
+                                ? ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxHeight: 240,
+                                    ),
+                                    child: SingleChildScrollView(
+                                      key: ValueKey('ai-result-${selected.id}'),
+                                      primary: false,
+                                      child: NexTextSurface(
+                                        selected.text,
+                                        selectable: true,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(height: 1.65),
+                                      ),
+                                    ),
+                                  )
+                                : NexTextSurface(
+                                    selected.text,
+                                    maxLines: 3,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      height: 1.65,
                                     ),
                                   ),
-                                )
-                              : NexTextSurface(
-                                  selected.text,
-                                  maxLines: 3,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    height: 1.65,
-                                  ),
-                                ),
-                        ),
-                        const SizedBox(height: NexSpacing.xs),
-                        Wrap(
-                          spacing: NexSpacing.xs,
-                          runSpacing: NexSpacing.xs,
-                          children: [
-                            TextButton.icon(
-                              onPressed: () =>
-                                  unawaited(_copyDerivedText(selected.text)),
-                              icon: const Icon(Icons.copy_outlined, size: 18),
-                              label: Text(l10n.copy),
-                            ),
-                            if (canCaption)
+                          ),
+                          const SizedBox(height: NexSpacing.xs),
+                          Wrap(
+                            spacing: NexSpacing.xs,
+                            runSpacing: NexSpacing.xs,
+                            children: [
                               TextButton.icon(
-                                key: ValueKey(
-                                  'add-derived-caption-${selected.id}',
-                                ),
-                                onPressed: _addingCaption
-                                    ? null
-                                    : () => unawaited(
-                                        _addDerivedToCaption(selected.text),
-                                      ),
-                                icon: const Icon(
-                                  Icons.playlist_add_outlined,
-                                  size: 18,
-                                ),
-                                label: Text(l10n.aiAddToCaption),
+                                onPressed: () =>
+                                    unawaited(_copyDerivedText(selected.text)),
+                                icon: const Icon(Icons.copy_outlined, size: 18),
+                                label: Text(l10n.copy),
                               ),
-                          ],
-                        ),
-                      ],
-                      if (widget.preferences case final preferences?
-                          when _translationRequested)
-                        Visibility(
-                          visible: translating,
-                          maintainState: true,
-                          child: TranslateSheet(
-                            key: ValueKey(
-                              'note-translation-${note.id}-${_translationText.hashCode}',
-                            ),
-                            text: _translationText,
-                            preferences: preferences,
-                            services: widget.services,
-                            embedded: true,
-                            addingCaption: _addingCaption,
-                            onAddToCaption: canCaption
-                                ? (text) =>
-                                      unawaited(_addDerivedToCaption(text))
-                                : null,
+                              if (canCaption)
+                                TextButton.icon(
+                                  key: ValueKey(
+                                    'add-derived-caption-${selected.id}',
+                                  ),
+                                  onPressed: _addingCaption
+                                      ? null
+                                      : () => unawaited(
+                                          _addDerivedToCaption(selected.text),
+                                        ),
+                                  icon: const Icon(
+                                    Icons.playlist_add_outlined,
+                                    size: 18,
+                                  ),
+                                  label: Text(l10n.aiAddToCaption),
+                                ),
+                            ],
                           ),
-                        ),
-                      if (_suggestions.isNotEmpty) ...[
-                        if (selected != null || _translationRequested)
-                          Padding(
-                            padding: const EdgeInsets.all(NexSpacing.sm),
-                            child: Text(
-                              l10n.tagSuggestions,
-                              style: theme.textTheme.labelMedium,
+                        ],
+                        if (widget.preferences case final preferences?
+                            when _translationRequested)
+                          Visibility(
+                            visible: translating,
+                            maintainState: true,
+                            child: TranslateSheet(
+                              key: ValueKey(
+                                'note-translation-${note.id}-${_translationText.hashCode}',
+                              ),
+                              text: _translationText,
+                              preferences: preferences,
+                              services: widget.services,
+                              embedded: true,
+                              addingCaption: _addingCaption,
+                              onAddToCaption: canCaption
+                                  ? (text) =>
+                                        unawaited(_addDerivedToCaption(text))
+                                  : null,
                             ),
                           ),
-                        Wrap(
-                          spacing: NexSpacing.xs,
-                          runSpacing: NexSpacing.xs,
-                          children: [
-                            for (final suggestion in _suggestions)
-                              ActionChip(
-                                label: Text(suggestion.name),
-                                onPressed: () async {
-                                  await widget.services.addTag(
-                                    noteId: note.id,
-                                    name: suggestion.name,
-                                  );
-                                  if (!mounted) return;
-                                  _rebuild(
-                                    () => _suggestions = _suggestions
-                                        .where((s) => s.name != suggestion.name)
-                                        .toList(),
-                                  );
-                                  await _reload();
-                                },
+                        if (_suggestions.isNotEmpty) ...[
+                          if (selected != null || _translationRequested)
+                            Padding(
+                              padding: const EdgeInsets.all(NexSpacing.sm),
+                              child: Text(
+                                l10n.tagSuggestions,
+                                style: theme.textTheme.labelMedium,
                               ),
-                          ],
-                        ),
+                            ),
+                          Wrap(
+                            spacing: NexSpacing.xs,
+                            runSpacing: NexSpacing.xs,
+                            children: [
+                              for (final suggestion in _suggestions)
+                                ActionChip(
+                                  label: Text(suggestion.name),
+                                  onPressed: () async {
+                                    await widget.services.addTag(
+                                      noteId: note.id,
+                                      name: suggestion.name,
+                                    );
+                                    if (!mounted) return;
+                                    _rebuild(
+                                      () => _suggestions = _suggestions
+                                          .where(
+                                            (s) => s.name != suggestion.name,
+                                          )
+                                          .toList(),
+                                    );
+                                    await _reload();
+                                  },
+                                ),
+                            ],
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ] else if (!busy) ...[
-              const SizedBox(height: NexSpacing.sm),
-              Text(
-                l10n.aiNoResult,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
+              ] else if (!busy) ...[
+                const SizedBox(height: NexSpacing.sm),
+                Text(
+                  l10n.aiNoResult,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

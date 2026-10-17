@@ -177,11 +177,9 @@ void main() {
             same(translationState),
           );
           await tester.ensureVisible(
-            find.byKey(const ValueKey('note-ai-result-picker')),
+            find.byKey(const ValueKey('note-ai-tab-summary')),
           );
-          await tester.tap(find.byKey(const ValueKey('note-ai-result-picker')));
-          await tester.pumpAndSettle();
-          await tester.tap(find.text(l10n.summary));
+          await tester.tap(find.byKey(const ValueKey('note-ai-tab-summary')));
           await tester.pumpAndSettle();
           expect(find.text(_MediaAi.summary), findsOneWidget);
           expect(find.text(l10n.aiAddToCaption), findsNothing);

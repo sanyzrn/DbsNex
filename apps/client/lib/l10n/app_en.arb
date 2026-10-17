@@ -1488,7 +1488,7 @@
   "@aiProvider": {
     "description": "Screen title and dropdown label"
   },
-  "aiProviderIntro": "Choose where the intelligence features send their requests. Without a provider they run on this device only, which covers tag hints but not summaries.",
+  "aiProviderIntro": "Choose where AI requests go. A successful connection test saves the exact settings you tested. On-device features depend on the models downloaded to this phone.",
   "@aiProviderIntro": {
     "description": "Explains what the screen is for"
   },
@@ -3347,5 +3347,18 @@
   "planPersianCalendarAbout": "A Solar Hijri calendar with occasions and date conversion. Prayer times for your chosen city, with optional adhan alerts and a separate setting for each prayer.",
   "aiProviderSaveFailed": "Could not save the provider. Please try again.",
   "planSecurityToolsTitle": "Security toolbox",
-  "planSecurityToolsAbout": "Text encryption and decryption (AES-256-GCM), hashes, encoding and decoding, random passwords and passphrases, with encrypted local secret storage."
+  "planSecurityToolsAbout": "Text encryption and decryption (AES-256-GCM), hashes, encoding and decoding, random passwords and passphrases, with encrypted local secret storage.",
+  "aiResultImageTab": "Image",
+  "aiResultTextTab": "Text",
+  "aiModelsCapabilities": "Models and capabilities",
+  "aiAdvancedHelp": "Chat testing does not verify these features. Enable only what your model or gateway supports. OpenRouter audio and search stay off until enabled here.",
+  "aiPolicyDefault": "Provider default",
+  "aiPolicyEnabled": "Enabled for this model",
+  "aiPolicyDisabled": "Disabled",
+  "aiImageInput": "Image input",
+  "aiSpeechModel": "Transcription model",
+  "aiSearchEmbeddings": "Search embeddings",
+  "aiEmbeddingModel": "Embedding model",
+  "aiSpeechEndpoint": "Transcription endpoint (optional)",
+  "aiEmbeddingEndpoint": "Embedding endpoint (optional)"
 }

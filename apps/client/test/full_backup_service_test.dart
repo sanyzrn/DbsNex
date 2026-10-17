@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:nex_ai/cloud.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,6 +51,14 @@ void main() {
       addTearDown(services.dispose);
       await preferences.attachProfileMirror(media.path);
       await preferences.setDisplayName('Original profile');
+      await preferences.setAiProvider(
+        const AiProviderConfig(
+          provider: AiProvider.custom,
+          apiKey: 'backup-secret',
+          baseUrl: 'https://gateway.example/v1',
+          model: 'tested-model',
+        ),
+      );
       final note = (await services.captureText('Original text'))!;
       final key = FullBackup.newKey();
       VaultEntry secret(String value) => VaultEntry(
@@ -84,6 +93,14 @@ void main() {
       await vault.save(secret('changed-vault-secret'));
       await services.updateNote(note.id, 'Changed text');
       await preferences.setDisplayName('Changed profile');
+      await preferences.setAiProvider(
+        const AiProviderConfig(
+          provider: AiProvider.custom,
+          apiKey: 'changed-secret',
+          baseUrl: 'https://different.example/v1',
+          model: 'different-model',
+        ),
+      );
       await expectLater(
         services.restoreFullBackup(File(backup), key),
         throwsA(isA<VaultAuthenticationRequired>()),
@@ -103,6 +120,17 @@ void main() {
         'original-vault-secret',
       );
       expect(result.error, isNull);
+      final reloaded = await NexPreferences.load();
+      addTearDown(reloaded.dispose);
+      expect(reloaded.aiProvider.apiKey, 'backup-secret');
+      expect(reloaded.aiProvider.baseUrl, 'https://gateway.example/v1');
+      expect(reloaded.aiProvider.model, 'tested-model');
+      await reloaded.setAiProvider(
+        reloaded.aiProvider.copyWith(apiKey: 'new-tested-secret'),
+      );
+      final afterSave = await NexPreferences.load();
+      addTearDown(afterSave.dispose);
+      expect(afterSave.aiProvider.apiKey, 'new-tested-secret');
       expect(preferences.displayName, 'Original profile');
       expect(await preferences.pendingRestoreRecovery(), isNull);
       final restored = NexDatabase.open(db);

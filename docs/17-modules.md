@@ -13,6 +13,15 @@ Modules**: each module's card says what it is, in a few lines, and how its
 data is kept. Removing a module asks once whether to keep its data, so that
 adding it back finds everything where it was, or to delete it.
 
+## Temporary rollout pause (2.1.1)
+
+Only Cycle is currently available. All eleven stored add-ons remain compiled
+and registered but appear as Soon plans without add/open/remove controls.
+Their records and saved installation flags are unchanged. `NexModule.available`
+controls rollout independently of `isOn`; `nexModulesOn` applies both gates,
+so Tools and pinned tools cannot open a paused module. Re-enable each add-on
+only after its review. Newly planned modules also use the Soon badge.
+
 ## Two layers
 
 | | Layer 1: modules | Layer 2: tracker templates |
@@ -51,7 +60,8 @@ promise that nothing reaches the phone unless asked.
 | `id` | Stable and lower-case (`cycle`). It keys the preference and the tests. |
 | `title`, `tagline`, `about`, `points` | The words on the module's card, from the ARB files. |
 | `icon`, `hue` | The module's glyph and its `NexHue`: the same colour on its card and its Tools tile. |
-| `isOn(preferences)` | Whether the module is part of the app right now. |
+| `available` | Whether this release permits use of the module, independent of saved installation. |
+| `isOn(preferences)` | The saved installation choice; effective availability also requires `available`. |
 | `turnOn(context, …)` | Adding it. Applies whatever it needs: reminders, its first-run questions. |
 | `turnOff(context, …)` | Removing it. Asks keep-or-delete, cancels its reminders and work. Resolves to `false` if the person backed out. |
 | `open(services, preferences)` | The module's own screen, opened from its tile in Tools. |

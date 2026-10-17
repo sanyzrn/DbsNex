@@ -17,7 +17,12 @@ class _PaletteGallery extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const gap = NexSpacing.sm;
-        final columns = constraints.maxWidth >= 560 ? 3 : 2;
+        final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+        final columns = textScale > 1.4 && constraints.maxWidth < 560
+            ? 1
+            : constraints.maxWidth >= 560
+            ? 3
+            : 2;
         final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
         return Wrap(
           spacing: gap,
@@ -85,7 +90,7 @@ class _PaletteTile extends StatelessWidget {
       label: name,
       excludeSemantics: true,
       child: AnimatedContainer(
-        duration: NexMotion.fast,
+        duration: NexMotion.of(context, NexMotion.fast),
         curve: NexMotion.curve,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(NexRadius.lg),
@@ -105,7 +110,9 @@ class _PaletteTile extends StatelessWidget {
               onTap();
             },
             child: AspectRatio(
-              aspectRatio: 0.92,
+              aspectRatio: MediaQuery.textScalerOf(context).scale(14) > 20
+                  ? 1.15
+                  : 0.92,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -115,7 +122,11 @@ class _PaletteTile extends StatelessWidget {
                         texture: texture,
                         // A little stronger than on the full screen: the
                         // tile is small, and the motif is what it shows.
-                        ink: ink.withValues(alpha: dark ? 0.2 : 0.16),
+                        ink:
+                            (nexTextureUsesAccent(texture)
+                                    ? scheme.primary
+                                    : ink)
+                                .withValues(alpha: dark ? 0.24 : 0.2),
                         extent: 0.7,
                       ),
                     ),
@@ -142,7 +153,7 @@ class _PaletteTile extends StatelessWidget {
                             const Spacer(),
                             AnimatedScale(
                               scale: selected ? 1 : 0,
-                              duration: NexMotion.fast,
+                              duration: NexMotion.of(context, NexMotion.fast),
                               curve: NexMotion.popCurve,
                               child: Icon(
                                 Icons.check_circle,

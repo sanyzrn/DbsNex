@@ -148,7 +148,7 @@ class _ThemeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: NexAppBar(title: Text(l10n.theme)),
+      appBar: NexAppBar(title: Text(l10n.appearance)),
       body: ListenableBuilder(
         listenable: preferences,
         builder: (context, _) => ListView(
@@ -248,21 +248,35 @@ class _ThemeScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: NexSpacing.md),
-            Text(
-              nexLabel(
-                context,
-                'Your everyday atmosphere',
-                'حال‌وهوای روزمرهٔ شما',
-              ),
-              style: Theme.of(context).textTheme.titleLarge,
+            _SettingsCard(
+              children: [
+                _Row(
+                  key: const ValueKey('appearance-themes'),
+                  icon: Icons.palette_outlined,
+                  title: l10n.theme,
+                  value: nexThemePresetLabel(context, preferences.themePreset),
+                  onTap: () => Navigator.push(
+                    context,
+                    NexPageRoute<void>(
+                      builder: (_) =>
+                          _ThemeGalleryScreen(preferences: preferences),
+                    ),
+                  ),
+                ),
+                if (NexAppIcons.supported)
+                  _Row(
+                    key: const ValueKey('appearance-app-icon'),
+                    icon: Icons.apps_outlined,
+                    title: nexLabel(context, 'App icon', 'آیکون برنامه'),
+                    onTap: () => Navigator.push(
+                      context,
+                      NexPageRoute<void>(
+                        builder: (_) => const _AppIconScreen(),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 12),
-            _PaletteGallery(preferences: preferences),
-            const SizedBox(height: NexSpacing.lg),
-            // Last on the page: the icon on the home screen is part of how
-            // the app looks, but it is the one choice that is not about the
-            // inside of it.
-            if (NexAppIcons.supported) const _AppIconPicker(),
           ],
         ),
       ),
@@ -270,7 +284,47 @@ class _ThemeScreen extends StatelessWidget {
   }
 }
 
-/// Six launcher icons to choose from, at the end of the Theme page.
+class _ThemeGalleryScreen extends StatelessWidget {
+  const _ThemeGalleryScreen({required this.preferences});
+  final NexPreferences preferences;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: NexAppBar(title: Text(AppLocalizations.of(context).theme)),
+    body: ListenableBuilder(
+      listenable: preferences,
+      builder: (context, _) => SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          NexSpacing.md,
+          NexSpacing.md,
+          NexSpacing.md,
+          NexSpacing.lg + nexBottomInset(context),
+        ),
+        child: _PaletteGallery(preferences: preferences),
+      ),
+    ),
+  );
+}
+
+class _AppIconScreen extends StatelessWidget {
+  const _AppIconScreen();
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: NexAppBar(
+      title: Text(nexLabel(context, 'App icon', 'آیکون برنامه')),
+    ),
+    body: SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        NexSpacing.md,
+        NexSpacing.md,
+        NexSpacing.md,
+        NexSpacing.lg + nexBottomInset(context),
+      ),
+      child: const _AppIconPicker(),
+    ),
+  );
+}
+
+/// Launcher icons shown on their own page.
 class _AppIconPicker extends StatefulWidget {
   const _AppIconPicker();
 
@@ -324,12 +378,6 @@ class _AppIconPickerState extends State<_AppIconPicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 12),
-        Text(
-          nexLabel(context, 'App icon', 'آیکون برنامه'),
-          style: theme.textTheme.titleLarge,
-        ),
-        const SizedBox(height: NexSpacing.xs),
         Text(
           nexLabel(
             context,
@@ -358,7 +406,7 @@ class _AppIconPickerState extends State<_AppIconPicker> {
                     : nexLabel(
                         context,
                         'Icon ${index + 1}',
-                        'آیکون ${index + 1}',
+                        'آیکون ${nexDigits('${index + 1}', persian: true)}',
                       ),
                 selected: _current == id,
                 onTap: _busy ? null : () => unawaited(_choose(id)),
@@ -396,7 +444,7 @@ class _AppIconTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(NexRadius.lg),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: NexMotion.standard,
+          duration: NexMotion.of(context, NexMotion.standard),
           padding: const EdgeInsets.all(NexSpacing.sm),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(NexRadius.lg),

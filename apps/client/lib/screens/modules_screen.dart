@@ -78,7 +78,7 @@ class _ModulesScreenState extends State<ModulesScreen>
   }
 
   Future<void> _add(NexModule module) async {
-    if (_busy != null) return;
+    if (_busy != null || !module.available) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = _installing = module.id);
     try {
@@ -109,7 +109,7 @@ class _ModulesScreenState extends State<ModulesScreen>
   }
 
   Future<void> _remove(NexModule module) async {
-    if (_busy != null) return;
+    if (_busy != null || !module.available) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = module.id);
     try {
@@ -143,17 +143,20 @@ class _ModulesScreenState extends State<ModulesScreen>
       ? ModuleInstallPhase.removing
       : ModuleInstallPhase.idle;
 
-  void _open(NexModule module) => unawaited(
-    Navigator.push(
-      context,
-      NexPageRoute<void>(
-        builder: (_) => module.open(
-          services: widget.services,
-          preferences: widget.preferences,
+  void _open(NexModule module) {
+    if (!module.available) return;
+    unawaited(
+      Navigator.push(
+        context,
+        NexPageRoute<void>(
+          builder: (_) => module.open(
+            services: widget.services,
+            preferences: widget.preferences,
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
   /// An idea for a module goes the way any other word to the developer
   /// does, through the feedback service, in a sheet that only asks for the
@@ -186,6 +189,7 @@ class _ModulesScreenState extends State<ModulesScreen>
           }
 
           final visible = nexModules
+              .where((m) => m.available)
               .where(
                 (m) => matches(
                   '${m.title(l10n)} ${m.tagline(l10n)} ${m.about(l10n)} '
@@ -193,9 +197,11 @@ class _ModulesScreenState extends State<ModulesScreen>
                 ),
               )
               .toList();
-          final plans = nexModulePlans
-              .where((p) => matches('${p.title(l10n)} ${p.about(l10n)}'))
-              .toList();
+          final plans = [
+            for (final m in nexModules)
+              if (!m.available) NexModulePlan.forModule(m),
+            ...nexModulePlans,
+          ].where((p) => matches('${p.title(l10n)} ${p.about(l10n)}')).toList();
           final added = [
             for (final m in visible)
               if (shownOn(m)) m,

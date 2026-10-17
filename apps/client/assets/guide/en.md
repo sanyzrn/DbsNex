@@ -123,7 +123,7 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 **Finding modules.** Search in **Tools → Add modules** by name or keyword. Cards show a brief preview; tap one to expand its details and Add, Open or Remove actions. Opening a preview does not enable it.
 
-**Optional modules.** The eleven modules below are available in **Tools → Add modules**. All start off; use **Add** to put one in Tools and open it. **Remove** hides it again and asks whether to keep its data. Explicit choices survive updates; 2.0.2 also turns off modules that were only enabled by the automatic 2.0.1 preview.
+**Modules under review.** From 2.1.1 only **Cycle** is available. All eleven modules listed below appear as **Soon**, with no install or open action. Their source, saved installation choices and records stay intact while each module is reviewed.
 
 - **Habits:** daily/weekly check-ins, history and streaks.
 - **Price Lens:** compare unit prices across differently sized offers; save comparisons.
@@ -174,9 +174,9 @@ Cycle stays on this phone and in your backups. It never appears in your notes, s
 
 In Settings → Appearance, **Liquid glass** is a separate optional effect, off by default. It adds frosted depth to page headers, dialogs, menus, sheets, Settings groups and Tools/Library panels while keeping note cards opaque. High contrast uses solid surfaces, and reduced motion keeps swipe icons still.
 
-**Settings → Appearance** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier, Forest retreat, Isfahan turquoise, Saffron, Midnight, Deep sea or Graphite. Each palette is shown as a small window onto it — its own page colour, a note card in its tones and its motif — so you see the look before choosing it. A new look opens out as a circle from where you tapped. Every palette but Nex adds a faint motif of its own rising over the lower half of the screen — paper grain, falling leaves, rose blossoms, contour lines, tile stars, saffron threads, a crescent among the stars, waves and graph paper. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
+**Settings → Appearance** keeps light, dark or system mode, text size, card size, accent colour and optional glass on the main page. Below accent and glass, **Theme** opens the palette gallery and **App icon** opens its own picker. Existing themes keep their saved IDs. Four new themes — **Bauhaus**, **Kintsugi**, **Circuit** and **Afterimage** — add geometric forms, gold seams, electronic routes and an optical dot rhythm. Their static motifs fade behind the lower part of the page; note reading surfaces stay opaque. Choosing a theme brings its own accent, which you can change afterwards.
 
-At the end of the Theme page, **App icon** changes the icon on your home screen to one of six — on dark, the Nex logotype (the default), the octopus and the swirl, and below them the same three on light; a home-screen shortcut may need adding again afterwards.
+In **Appearance → App icon**, the picker changes the icon on your home screen to one of six — on dark, the Nex logotype (the default), the octopus and the swirl, and below them the same three on light; a home-screen shortcut may need adding again afterwards.
 
 Settings opens as a page of its own, like Tools and the Library, on a list of categories — Appearance, Language and calendar, Capture, Gestures and menus, Reminders and notifications, Home screen widget, Intelligence, Security and privacy, Data and backup, About — and each opens on its own page. The field at the top of Settings finds any setting by name, or by something on the page it opens — "accent" finds Theme. The Persian calendar changes how dates are shown and picked, independently of the interface language; what is stored never changes. **Language and calendar** shows today's date in each calendar, previews how a day heading and a note will look, and also sets the language AI answers in.
 
@@ -268,3 +268,6 @@ Swiping the capture **+** button gradually changes its fill to the selected shor
 In **AI provider → Models and capabilities**, choose a separate transcription or embedding model, disable features your chat model does not support, or enter full custom speech/search endpoints. Leaving fields empty keeps existing defaults. OpenRouter speech and search are off until you explicitly enable them here. With a downloaded model and no usable cloud provider, a note’s manual **Summary** and **Tags** actions use the local model; capturing a note never waits for it.
 
 The small close button on a sponsor card hides that campaign for **eight hours**, across app restarts. It returns after that window and may be closed again. Campaign updates are checked hourly when opening or returning to Nex. Complete backups (`.nexfull`) can be selected from Android’s document picker; enter the recovery key saved when exporting. The update screen includes changes from the versions between your installed build and the available update.
+
+
+Cloud provider changes require **Test connection** to succeed for those exact settings before they can be saved. Failed or outdated tests keep the previous setup. Full-backup restoration reopens the library inside the app, including stored credentials; there is no need to force-close it. Nex AI result choices are compact tabs rather than a dropdown. Resizing the note editor keeps the same draft, and closing it dismisses the keyboard.

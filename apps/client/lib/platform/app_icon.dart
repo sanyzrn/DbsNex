@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-/// The launcher icon, chosen from six in Settings → Appearance → Theme.
+/// The launcher icon, chosen from six in Settings → Appearance → App icon.
 ///
 /// Android only: the icon is switched by enabling one of six manifest aliases
 /// (see `NexAppIcon.kt`). Everywhere else the choice is simply not offered.

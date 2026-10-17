@@ -40,9 +40,9 @@ void main() {
       final reloaded = await NexPreferences.load();
       addTearDown(reloaded.dispose);
       expect(reloaded.isModuleOn('habits'), isFalse);
-      expect(nexModulesOn(reloaded), hasLength(10));
+      expect(nexModulesOn(reloaded), isEmpty);
       await reloaded.setModuleOn('habits', true);
-      expect(nexModulesOn(reloaded), hasLength(11));
+      expect(nexModulesOn(reloaded), isEmpty);
     },
   );
 
@@ -68,45 +68,38 @@ void main() {
   );
 
   for (final locale in ['en', 'fa']) {
-    testWidgets('all eleven open from Tools and return ($locale)', (
-      tester,
-    ) async {
-      for (final id in moduleIds) {
-        await harness.preferences.setModuleOn(id, true);
-      }
-      tester.view.physicalSize = const Size(400, 900);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: Locale(locale),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: locale == 'fa'
-              ? nexDarkTheme(liquidGlass: true)
-              : nexLightTheme(),
-          home: ToolsScreen(
-            services: harness.services,
-            preferences: harness.preferences,
+    testWidgets(
+      'paused add-ons remain stored but have no Tools entry ($locale)',
+      (tester) async {
+        for (final id in moduleIds) {
+          await harness.preferences.setModuleOn(id, true);
+        }
+        tester.view.physicalSize = const Size(400, 900);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: Locale(locale),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: locale == 'fa'
+                ? nexDarkTheme(liquidGlass: true)
+                : nexLightTheme(),
+            home: ToolsScreen(
+              services: harness.services,
+              preferences: harness.preferences,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      for (final id in moduleIds) {
-        final tile = find.byKey(ValueKey('tool-module.$id'));
-        await tester.scrollUntilVisible(tile, 350, maxScrolls: 30);
-        await tester.ensureVisible(tile);
+        );
         await tester.pumpAndSettle();
-        await tester.tap(tile);
-        await tester.pumpAndSettle();
-        expect(find.byType(ToolsScreen).hitTestable(), findsNothing);
-        expect(tester.takeException(), isNull, reason: id);
-        expect(find.byType(BackButton), findsOneWidget, reason: '$locale:$id');
-        await tester.tap(find.byType(BackButton));
-        await tester.pumpAndSettle();
-        expect(find.byType(ToolsScreen), findsOneWidget);
-      }
-      expect(await harness.services.timeline(), isEmpty);
-    });
+        expect(nexModulesOn(harness.preferences), isEmpty);
+        for (final id in moduleIds) {
+          expect(harness.preferences.isModuleOn(id), isTrue);
+          expect(find.byKey(ValueKey('tool-module.$id')), findsNothing);
+        }
+        expect(tester.takeException(), isNull);
+        expect(await harness.services.timeline(), isEmpty);
+      },
+    );
   }
 }

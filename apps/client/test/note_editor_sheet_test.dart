@@ -161,6 +161,8 @@ void main() {
       client: MockClient((_) async => http.Response('nope', 500)),
     );
 
+    await tester.ensureVisible(find.text('Shorter'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Shorter'));
     await tester.pumpAndSettle();
 

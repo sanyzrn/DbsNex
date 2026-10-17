@@ -23,7 +23,11 @@ import 'widgets/nex_banner.dart';
 import 'widgets/nex_splash.dart';
 
 class NexBootstrapHost extends StatefulWidget {
-  const NexBootstrapHost({super.key});
+  const NexBootstrapHost({super.key, this.load});
+
+  /// Test seam for replacing a service graph without OS bootstrap plugins.
+  @visibleForTesting
+  final Future<NexBootstrapSession> Function()? load;
 
   @override
   State<NexBootstrapHost> createState() => _NexBootstrapHostState();
@@ -42,8 +46,9 @@ class NexBootstrapHost extends StatefulWidget {
 const _minimumSplashDuration = Duration(milliseconds: 2000);
 
 class _NexBootstrapHostState extends State<NexBootstrapHost> {
-  late Future<_Ready> _future;
-  _Ready? _ready;
+  late Future<NexBootstrapSession> _future;
+  NexBootstrapSession? _ready;
+  int _generation = 0;
 
   /// Whether this launch is the invisible window a share arrives through.
   ///
@@ -60,7 +65,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     // Started here rather than lazily from `build`. The silent share window
     // never builds anything at all, and the note still has to be written: a
     // `late` field initialised on first read would simply never run there.
-    _future = _start();
+    _future = _load();
     unawaited(
       _silentFuture.then((value) {
         if (mounted) setState(() => _silent = value);
@@ -68,7 +73,10 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     );
   }
 
-  Future<_Ready> _start() async {
+  Future<NexBootstrapSession> _load() async =>
+      _ready = await (widget.load?.call() ?? _start());
+
+  Future<NexBootstrapSession> _start() async {
     final silent = await _silentFuture;
     // The floor exists so a warm start does not flash the brand mark for one
     // frame. A window that never draws has no mark to flash, and holding it
@@ -158,7 +166,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     }
 
     await delay;
-    return _ready = _Ready(preferences, services, bridge, widgets);
+    return _ready = NexBootstrapSession(preferences, services, bridge, widgets);
   }
 
   /// Says what became of the share and takes the window down.
@@ -217,23 +225,35 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
 
   /// Teardown is asynchronous now (the worker isolate must be joined). It must
   /// not block the rebuild and must never throw into the widget tree.
-  void _teardown(_Ready? target) {
+  Future<void> _teardown(NexBootstrapSession? target) async {
     if (target == null) return;
-    target.bridge.dispose();
-    target.widgets.dispose();
-    target.services.dispose().catchError((Object _) {});
+    target.bridge?.dispose();
+    target.widgets?.dispose();
+    try {
+      await target.services.dispose();
+    } catch (_) {}
+    target.preferences.dispose();
+  }
+
+  Future<NexBootstrapSession> _replace(NexBootstrapSession? previous) async {
+    // Remove the old Navigator/listeners before closing their service graph.
+    await WidgetsBinding.instance.endOfFrame;
+    await _teardown(previous);
+    return _load();
   }
 
   void _restart() {
     final previous = _ready;
     _ready = null;
-    _teardown(previous);
-    setState(() => _future = _start());
+    setState(() {
+      _generation++;
+      _future = _replace(previous);
+    });
   }
 
   @override
   void dispose() {
-    _teardown(_ready);
+    unawaited(_teardown(_ready));
     _ready = null;
     super.dispose();
   }
@@ -250,7 +270,10 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     return _app();
   }
 
-  Widget _app() => FutureBuilder<_Ready>(
+  Widget _app() => FutureBuilder<NexBootstrapSession>(
+    // FutureBuilder otherwise retains the old data during a new future.
+    // A restore must remove every route/listener tied to the closed graph.
+    key: ValueKey(_generation),
     future: _future,
     builder: (context, snapshot) {
       if (snapshot.hasData) {
@@ -258,6 +281,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
         return NexRestartScope(
           restart: _restart,
           child: NexApp(
+            key: ObjectKey(value.services),
             services: value.services,
             preferences: value.preferences,
             osCapture: value.bridge,
@@ -270,7 +294,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
         return _host(
           child: _OpenFailed(
             error: snapshot.error,
-            onRetry: () => setState(() => _future = _start()),
+            onRetry: () => setState(() => _future = _load()),
             onRestored: _restart,
           ),
         );
@@ -440,11 +464,16 @@ class _OpenFailed extends StatelessWidget {
   }
 }
 
-class _Ready {
-  const _Ready(this.preferences, this.services, this.bridge, this.widgets);
+class NexBootstrapSession {
+  const NexBootstrapSession(
+    this.preferences,
+    this.services, [
+    this.bridge,
+    this.widgets,
+  ]);
 
   final NexPreferences preferences;
   final NexServices services;
-  final OsCaptureBridge bridge;
-  final NexWidgetBridge widgets;
+  final OsCaptureBridge? bridge;
+  final NexWidgetBridge? widgets;
 }

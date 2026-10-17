@@ -161,7 +161,9 @@ void main() {
     await show();
     expect(find.text('Nothing added yet'), findsOneWidget);
     for (final module in nexModules) {
-      final card = find.byKey(ValueKey('module-${module.id}'));
+      final card = find.byKey(
+        ValueKey('${module.available ? 'module' : 'plan'}-${module.id}'),
+      );
       await tester.scrollUntilVisible(
         card,
         400,
@@ -198,11 +200,10 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('On the way'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('plan-telegram')),
-        matching: find.text('Planned'),
+        matching: find.text('Soon'),
       ),
       findsOneWidget,
     );

@@ -84,7 +84,21 @@ void main() {
               ).copyWith(textScaler: const TextScaler.linear(1.6)),
               child: child!,
             ),
-            home: AiProviderScreen(preferences: preferences),
+            home: AiProviderScreen(
+              preferences: preferences,
+              client: MockClient(
+                (_) async => http.Response(
+                  jsonEncode({
+                    'choices': [
+                      {
+                        'message': {'content': 'ok'},
+                      },
+                    ],
+                  }),
+                  200,
+                ),
+              ),
+            ),
           ),
         );
         final title = find.text(
@@ -95,6 +109,8 @@ void main() {
           250,
           scrollable: find.byType(Scrollable).first,
         );
+        await tester.ensureVisible(title);
+        await tester.pumpAndSettle();
         await tester.tap(title);
         await tester.pumpAndSettle();
         final url = find.byKey(const ValueKey('ai-custom-audio-url'));
@@ -106,10 +122,7 @@ void main() {
         await tester.enterText(url, 'https://example.com/transcribe');
         await tester.pump();
         await tester.tap(
-          find.widgetWithText(
-            OutlinedButton,
-            locale == 'fa' ? 'ذخیره' : 'Save',
-          ),
+          find.text(locale == 'fa' ? 'تست اتصال' : 'Test connection'),
         );
         await tester.pumpAndSettle();
         expect(
@@ -151,7 +164,9 @@ void main() {
     },
   );
 
-  testWidgets('save is unavailable until an input changes', (tester) async {
+  testWidgets('editing credentials cannot bypass connection testing', (
+    tester,
+  ) async {
     await pump(tester);
     expect(
       saveEnabled(tester),
@@ -161,27 +176,43 @@ void main() {
 
     await tester.enterText(await keyField(tester), 'second');
     await tester.pump();
-    expect(saveEnabled(tester), isTrue);
+    expect(saveEnabled(tester), isFalse);
+    expect(preferences.aiProvider.apiKey, 'first');
   });
 
-  testWidgets('saving confirms, stores, and disables itself again', (
-    tester,
-  ) async {
-    await pump(tester);
-    await tester.enterText(await keyField(tester), 'second');
-    await tester.pump();
+  testWidgets(
+    'successful testing confirms, stores, and disables itself again',
+    (tester) async {
+      await pump(
+        tester,
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'ok'},
+                },
+              ],
+            }),
+            200,
+          ),
+        ),
+      );
+      await tester.enterText(await keyField(tester), 'second');
+      await tester.pump();
+      expect(saveEnabled(tester), isFalse);
+      await tester.tap(find.text('Test connection'));
+      await tester.pumpAndSettle();
 
-    await tester.tap(saveButton());
-    await tester.pumpAndSettle();
-
-    expect(find.text('Provider saved.'), findsOneWidget);
-    expect(preferences.aiProvider.apiKey, 'second');
-    expect(
-      saveEnabled(tester),
-      isFalse,
-      reason: 'what is on screen is now what is in effect',
-    );
-  });
+      expect(find.text('Provider saved.'), findsOneWidget);
+      expect(preferences.aiProvider.apiKey, 'second');
+      expect(
+        saveEnabled(tester),
+        isFalse,
+        reason: 'what is on screen is now what is in effect',
+      );
+    },
+  );
 
   testWidgets('choosing no provider can be saved', (tester) async {
     // The save button used to live inside the block that only renders when a
@@ -220,9 +251,8 @@ void main() {
         'gemini-key',
         reason: 'Gemini\'s own saved key, not OpenAI\'s',
       );
-      // It is not the active provider yet, so Save is how you would switch to
-      // it — even though nothing about it needs editing.
-      expect(saveEnabled(tester), isTrue);
+      // Selecting even an already stored cloud provider requires a fresh test.
+      expect(saveEnabled(tester), isFalse);
 
       await tester.tap(find.text(AiProvider.openai.label));
       await tester.pumpAndSettle();
@@ -236,6 +266,33 @@ void main() {
         isFalse,
         reason: 'already active, and its fields still match what is stored',
       );
+    },
+  );
+  testWidgets(
+    'empty or rejected credentials never change the active provider',
+    (tester) async {
+      var requests = 0;
+      await pump(
+        tester,
+        client: MockClient((_) async {
+          requests++;
+          return http.Response('Unauthorized', 401);
+        }),
+      );
+      await tester.enterText(await keyField(tester), '');
+      await tester.pump();
+      expect(saveEnabled(tester), isFalse);
+      await tester.tap(find.text('Test connection'));
+      await tester.pumpAndSettle();
+      expect(requests, 0);
+      expect(preferences.aiProvider.apiKey, 'first');
+      await tester.enterText(await keyField(tester), 'rejected');
+      await tester.pump();
+      await tester.tap(find.text('Test connection'));
+      await tester.pumpAndSettle();
+      expect(requests, 1);
+      expect(preferences.aiProvider.apiKey, 'first');
+      expect(saveEnabled(tester), isFalse);
     },
   );
 }

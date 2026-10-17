@@ -22,7 +22,20 @@ enum NexThemeTexture {
   petals,
   threads,
   grid,
+  bauhaus,
+  seams,
+  circuit,
+  halftone,
 }
+
+/// The new motifs use the selected theme's accent, keeping gold seams gold
+/// and circuit traces cyan while established neutral textures stay unchanged.
+bool nexTextureUsesAccent(NexThemeTexture texture) => const {
+  NexThemeTexture.bauhaus,
+  NexThemeTexture.seams,
+  NexThemeTexture.circuit,
+  NexThemeTexture.halftone,
+}.contains(texture);
 
 /// Paints [texture] behind [child], in the lower [extent] of the box.
 class NexTextureBackdrop extends StatelessWidget {
@@ -44,9 +57,12 @@ class NexTextureBackdrop extends StatelessWidget {
     if (texture == NexThemeTexture.none) return child;
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
-    final ink = theme.colorScheme.onSurface.withValues(
-      alpha: dark ? 0.13 : 0.10,
-    );
+    final colored = nexTextureUsesAccent(texture);
+    final ink =
+        (colored ? theme.colorScheme.primary : theme.colorScheme.onSurface)
+            .withValues(
+              alpha: colored ? (dark ? 0.22 : 0.18) : (dark ? 0.13 : 0.10),
+            );
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -118,6 +134,14 @@ class NexTexturePainter extends CustomPainter {
         _threads(canvas, band, stroke);
       case NexThemeTexture.grid:
         _grid(canvas, band, stroke);
+      case NexThemeTexture.bauhaus:
+        _bauhaus(canvas, band, stroke);
+      case NexThemeTexture.seams:
+        _seams(canvas, band, stroke);
+      case NexThemeTexture.circuit:
+        _circuit(canvas, band, stroke);
+      case NexThemeTexture.halftone:
+        _halftone(canvas, band, stroke);
     }
     canvas.drawRect(
       band,
@@ -252,13 +276,12 @@ class NexTexturePainter extends CustomPainter {
       Path.combine(
         PathOperation.difference,
         Path()..addOval(Rect.fromCircle(center: moon, radius: r)),
-        Path()
-          ..addOval(
-            Rect.fromCircle(
-              center: moon + const Offset(r * 0.45, -r * 0.3),
-              radius: r * 0.9,
-            ),
+        Path()..addOval(
+          Rect.fromCircle(
+            center: moon + const Offset(r * 0.45, -r * 0.3),
+            radius: r * 0.9,
           ),
+        ),
       ),
       fill,
     );
@@ -393,6 +416,96 @@ class NexTexturePainter extends CustomPainter {
         Offset(x, band.bottom),
         column % 5 == 0 ? major : minor,
       );
+    }
+  }
+
+  // Four static motifs. Bounded geometry, no blur, timer or animated shader.
+  static void _bauhaus(Canvas canvas, Rect band, Paint stroke) {
+    final unit = band.width / 4;
+    final fill = Paint()..color = stroke.color;
+    canvas.drawRect(
+      Rect.fromLTWH(
+        band.left - unit * .3,
+        band.bottom - unit * 1.3,
+        unit,
+        unit * 1.3,
+      ),
+      fill,
+    );
+    canvas.drawCircle(
+      Offset(band.right - unit * .6, band.bottom - unit * .6),
+      unit * .8,
+      stroke..strokeWidth = 2,
+    );
+    final path = Path()
+      ..moveTo(band.center.dx - unit * .6, band.bottom)
+      ..lineTo(band.center.dx + unit * .8, band.bottom)
+      ..lineTo(band.center.dx + unit * .8, band.bottom - unit * 1.8)
+      ..close();
+    canvas.drawPath(path, fill);
+    for (var i = 0; i < 5; i++) {
+      final x = band.left + unit * .25 + i * unit * .18;
+      canvas.drawLine(
+        Offset(x, band.bottom - unit * 1.5),
+        Offset(x, band.bottom - unit * 2.3),
+        stroke,
+      );
+    }
+  }
+
+  static void _seams(Canvas canvas, Rect band, Paint stroke) {
+    final random = math.Random(31);
+    for (var route = 0; route < 4; route++) {
+      var point = Offset(
+        band.left + band.width * (route + .4) / 4,
+        band.bottom,
+      );
+      final path = Path()..moveTo(point.dx, point.dy);
+      for (var i = 0; i < 7; i++) {
+        final next = Offset(
+          point.dx + (random.nextDouble() - .5) * 72,
+          point.dy - band.height / 7,
+        );
+        path.lineTo(next.dx, next.dy);
+        if (i == 2 || i == 4) {
+          canvas.drawLine(
+            next,
+            next + Offset(route.isEven ? 35 : -35, -28),
+            stroke,
+          );
+        }
+        point = next;
+      }
+      canvas.drawPath(path, stroke..strokeWidth = 1.5);
+    }
+  }
+
+  static void _circuit(Canvas canvas, Rect band, Paint stroke) {
+    final gap = band.width / 9;
+    for (var i = 0; i < 9; i++) {
+      final x = band.left + gap * (i + .5);
+      final turn = band.bottom - band.height * (.2 + (i % 4) * .14);
+      final end = Offset(x + gap * .45, turn - gap * .45);
+      final path = Path()
+        ..moveTo(x, band.bottom)
+        ..lineTo(x, turn)
+        ..lineTo(end.dx, end.dy)
+        ..lineTo(end.dx, end.dy - gap * .8);
+      canvas.drawPath(path, stroke);
+      canvas.drawCircle(end - Offset(0, gap * .8), 3, stroke);
+    }
+  }
+
+  static void _halftone(Canvas canvas, Rect band, Paint stroke) {
+    final fill = Paint()..color = stroke.color;
+    // At most a few hundred dots, cached by the backdrop's repaint boundary.
+    const step = 18.0;
+    for (var y = band.top; y < band.bottom; y += step) {
+      for (var x = band.left; x < band.right; x += step) {
+        final wave = math.sin(x / 45 + y / 55);
+        final radius = .6 + (wave + 1) * 1.35;
+        canvas.drawCircle(Offset(x + math.sin(y / 60) * 6, y), radius, fill);
+      }
     }
   }
 

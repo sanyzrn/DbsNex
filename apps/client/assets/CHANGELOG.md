@@ -34,6 +34,16 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.1
+
+- **A calmer Appearance page.** Themes and app icons have their own pages. Four new looks — Bauhaus, Kintsugi, Circuit and Afterimage — bring distinct static motifs, with readable colours and room for larger text.
+- **Connection before saving.** Cloud provider changes are saved only after a successful test of those exact settings. Credential writes are verified; Models and capabilities follows the app’s normal type and spacing.
+- **Restore without closing the app.** Full-backup restoration rebuilds the library and settings screens together so restored notes and credentials are available immediately.
+- **A reliable note editor.** Changing between full screen and compact keeps the same Android text field, text and selection. Saving or discarding closes the keyboard; AI undo restores the original spacing and selection.
+- **Gentle transitions.** The smart summary folds smoothly, AI edits acknowledge progress and completion, and detail actions have a subtle press response. Effects respect reduced motion and stop when finished.
+- **Direct AI results.** Compact result tabs replace the dropdown and extra nested panel. Previously requested translations keep their state while switching or hiding results.
+- **Modules under review.** Only Cycle stays available. All other modules show Soon; their code, saved installation choices and data are retained for a later return.
+
 ## v2.1.0
 
 - **Safer AI settings.** A delayed connection test cannot save a different provider; a failed credential save keeps the previous setup and reports the failure. Connection-test guidance now distinguishes chat from media and search.

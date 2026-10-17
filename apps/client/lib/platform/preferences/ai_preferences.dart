@@ -173,6 +173,9 @@ mixin _AiPreferences on _PreferencesStore {
           await _secureStorage.delete(key: key);
         } else {
           await _secureStorage.write(key: key, value: config.apiKey);
+          if (await _secureStorage.read(key: key) != config.apiKey) {
+            throw StateError('Provider credential could not be verified');
+          }
         }
       }
       await put(key, null);

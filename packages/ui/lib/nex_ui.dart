@@ -35,3 +35,7 @@ export 'widgets/nex_toast_pop.dart';
 export 'widgets/note_card.dart';
 export 'widgets/swipeable_note_card.dart';
 export 'widgets/tag_filter_row.dart';
+
+export 'widgets/nex_reveal.dart';
+export 'widgets/nex_press.dart';
+export 'widgets/nex_animated_size.dart';
