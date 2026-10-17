@@ -15,6 +15,7 @@ import 'platform/metrics.dart';
 import 'platform/app_lock.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
+import 'platform/db_worker_error.dart';
 import 'platform/nex_widget.dart';
 import 'platform/os_capture_bridge.dart';
 import 'platform/share_window.dart';
@@ -401,7 +402,10 @@ class _OpenFailed extends StatelessWidget {
   /// A library written by a newer build (DATA-06). It is fine; this app is
   /// the old one. Restoring a backup over it would be the one way to lose
   /// something, so that is not offered.
-  bool get _newer => '$error'.contains('NewerLibraryException');
+  bool get _newer =>
+      error is NewerLibraryException ||
+      (error is DbWorkerException &&
+          (error as DbWorkerException).kind == DbFailureKind.newerLibrary);
 
   @override
   Widget build(BuildContext context) {

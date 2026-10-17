@@ -8797,6 +8797,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Embedding endpoint (optional)'**
   String get aiEmbeddingEndpoint;
+
+  /// No description provided for @aiIncompleteReply.
+  ///
+  /// In en, this message translates to:
+  /// **'A complete answer could not be obtained. Your original text is kept. Try a shorter text or a model with a larger limit.'**
+  String get aiIncompleteReply;
+
+  /// No description provided for @chatStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop response'**
+  String get chatStop;
+
+  /// No description provided for @chatStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Response stopped. Your question is saved; you can try again.'**
+  String get chatStopped;
+
+  /// No description provided for @chatContextLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'This question is too long for one request. Shorten it or start a new conversation.'**
+  String get chatContextLimit;
+
+  /// No description provided for @searchMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more results'**
+  String get searchMore;
 }
 
 class _AppLocalizationsDelegate

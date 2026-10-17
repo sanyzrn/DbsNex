@@ -174,6 +174,14 @@ extension _ChatSending on _AiChatSheetState {
     final trimmed = text.trim();
     if (trimmed.isEmpty || _sending) return;
     final l10n = AppLocalizations.of(context);
+    final generation = ++_sendGeneration;
+    _activeQuestion = trimmed;
+    if (retry) {
+      final question = _turns.lastIndexWhere(
+        (turn) => turn.role == ChatRole.user && turn.content == trimmed,
+      );
+      if (question >= 0) _turns.removeRange(question + 1, _turns.length);
+    }
 
     _rebuild(() {
       if (!retry) {
@@ -188,13 +196,18 @@ extension _ChatSending on _AiChatSheetState {
     });
     _toBottom();
 
+    await _saveTurns();
+    if (!mounted || generation != _sendGeneration) return;
     await _retrieveFor(trimmed);
+    if (!mounted || generation != _sendGeneration) return;
     // How the app works, for a question about the app: a short passage on
     // the phone's model, a few on a cloud one.
-    _guide = await NexAppGuide.forQuestion(
+    final guide = await NexAppGuide.forQuestion(
       trimmed,
       budget: _adapter.answersOnDevice ? 1200 : 3500,
     );
+    if (!mounted || generation != _sendGeneration) return;
+    _guide = guide;
     try {
       _gentle = await nexCycleGentleToday(
         services: widget.services,
@@ -204,7 +217,7 @@ extension _ChatSending on _AiChatSheetState {
       _gentle = false;
     }
     await _readCycleFirst(trimmed);
-    if (!mounted) return;
+    if (!mounted || generation != _sendGeneration) return;
 
     String? reply;
     String? requestError;
@@ -216,10 +229,11 @@ extension _ChatSending on _AiChatSheetState {
       requestError = l10n.chatNetworkError;
     } on http.ClientException {
       requestError = l10n.chatNetworkError;
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('chat.answer', error));
       reply = null;
     }
-    if (!mounted) return;
+    if (!mounted || generation != _sendGeneration) return;
 
     _rebuild(() {
       _sending = false;
@@ -231,12 +245,14 @@ extension _ChatSending on _AiChatSheetState {
         final local = _adapter.localFailure;
         _failure =
             requestError ??
+            (_adapter.lastReplyTruncated ? l10n.aiIncompleteReply : null) ??
             (local != null
                 // The runtime's own words under the sentence: which backend,
                 // and what it said. Without them every cause of a model that
                 // will not start looked the same from the outside.
                 ? '${l10n.localModelLoadFailed}\n\n$local'
                 : switch (_adapter.lastFailureStatus) {
+                    413 => l10n.chatContextLimit,
                     401 || 403 => l10n.chatAuthError,
                     429 => l10n.chatRateLimited,
                     final status? when status >= 500 => l10n.chatServiceError,
@@ -328,6 +344,7 @@ extension _ChatSending on _AiChatSheetState {
   /// is the only role every one of the three wire formats agrees on for
   /// something that is neither the system prompt nor the model's own words.
   Future<void> _runLookups() async {
+    final generation = _sendGeneration;
     final queries = _lookups;
     _lookups = const [];
     if (_searchRounds >= 2 || queries.isEmpty) return;
@@ -462,7 +479,7 @@ extension _ChatSending on _AiChatSheetState {
         }
       }
     }
-    if (!mounted) return;
+    if (!mounted || generation != _sendGeneration) return;
 
     _rebuild(() {
       _sending = true;
@@ -484,11 +501,11 @@ extension _ChatSending on _AiChatSheetState {
     } catch (_) {
       reply = null;
     }
-    if (!mounted) return;
+    if (!mounted || generation != _sendGeneration) return;
     _rebuild(() {
       _sending = false;
       if (reply == null || reply.isEmpty) {
-        _retryText = _turns.last.content;
+        _retryText = _activeQuestion;
         _failure = AppLocalizations.of(context).chatFailed;
         return;
       }
@@ -614,7 +631,28 @@ extension _ChatSending on _AiChatSheetState {
 
   /// Writes the conversation after every exchange. Fire-and-forget: a thread
   /// that fails to save is not worth interrupting the conversation over.
-  void _persist() => unawaited(widget.history.save(_threadId, _turns));
+  void _persist() => unawaited(_saveTurns());
+
+  Future<void> _saveTurns() async {
+    try {
+      await widget.history.save(_threadId, List.of(_turns));
+    } catch (error) {
+      unawaited(NexCrashLog.handled('chat.history', error));
+    }
+  }
+
+  void _stopSending() {
+    if (!_sending) return;
+    ++_sendGeneration;
+    _adapter.cancelChat();
+    _rebuild(() {
+      _sending = false;
+      _retryText = _activeQuestion;
+      _failure = AppLocalizations.of(context).chatStopped;
+      _lookups = const [];
+    });
+    _persist();
+  }
 
   /// Opens the assistant's own settings over the chat.
   ///

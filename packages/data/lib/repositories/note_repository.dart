@@ -1229,32 +1229,59 @@ WHERE id = ? AND deleted_at IS NULL
   /// queries return nothing and the cost is two set lookups; on a damaged
   /// one it is the difference between a note that is findable and one that
   /// silently is not until the next time it is edited.
+  static const searchTextVersion = 1;
+
+  /// Synchronous entry point for maintenance/tests.
   void repairSearchIndex() {
-    // Stale rows: the note row is gone, or it is in the trash. Search never
-    // reads past `deleted_at IS NULL`, but a trashed note's row would come
-    // back wrong on restore if this list were allowed to stand in for one.
+    for (final _ in _repairSearchIndexSteps()) {}
+  }
+
+  /// Startup repair yields between transactions so large libraries don't
+  /// monopolize the database isolate. The version is committed only at the end.
+  Future<void> repairSearchIndexInBatches() async {
+    for (final _ in _repairSearchIndexSteps()) {
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+
+  Iterable<int> _repairSearchIndexSteps() sync* {
     db.execute('''
-DELETE FROM notes_fts
-WHERE note_id IN (
-  SELECT f.note_id FROM notes_fts f
-  LEFT JOIN notes n ON n.id = f.note_id AND n.deleted_at IS NULL
-  WHERE n.id IS NULL
+DELETE FROM notes_fts WHERE note_id IN (
+ SELECT f.note_id FROM notes_fts f LEFT JOIN notes n
+ ON n.id = f.note_id AND n.deleted_at IS NULL WHERE n.id IS NULL
 )
 ''');
-
-    // Missing rows: re-derive in Dart, where the same [Note.searchableDerivedText]
-    // every writer uses decides what belongs in the index. Notes with nothing
-    // searchable (a photo with no caption or OCR yet) correctly stay out.
-    final missing = db
-        .select('''
-SELECT id FROM notes
-WHERE deleted_at IS NULL
-  AND id NOT IN (SELECT note_id FROM notes_fts)
-''')
-        .map((row) => row['id']! as String)
-        .toList();
-    for (final id in missing) {
-      _reindex(id);
+    final version = db.select(
+      "SELECT value FROM nex_meta WHERE key = 'search_text_version'",
+    );
+    final rebuild =
+        version.isEmpty ||
+        (int.tryParse('${version.first['value']}') ?? 0) < searchTextVersion;
+    var cursor = '';
+    while (true) {
+      final ids = db
+          .select(
+            'SELECT id FROM notes WHERE deleted_at IS NULL AND id > ? '
+            "${rebuild ? '' : 'AND id NOT IN (SELECT note_id FROM notes_fts) '}"
+            'ORDER BY id LIMIT 200',
+            [cursor],
+          )
+          .map((row) => row['id']! as String)
+          .toList();
+      if (ids.isEmpty) break;
+      db.together(() {
+        for (final id in ids) {
+          _reindex(id);
+        }
+      });
+      cursor = ids.last;
+      yield ids.length;
+    }
+    if (rebuild) {
+      db.execute(
+        "INSERT OR REPLACE INTO nex_meta (key, value) VALUES ('search_text_version', ?)",
+        ['$searchTextVersion'],
+      );
     }
   }
 
@@ -1657,7 +1684,11 @@ LIMIT ?
 SELECT n.* FROM notes n
 WHERE ${where.join(' AND ')}
 ORDER BY n.created_at DESC, n.rowid DESC
-${unnarrowed ? 'LIMIT $rankedLimit' : ''}
+${filters.pageSize != null
+            ? 'LIMIT ${filters.pageSize!.clamp(1, 500)} OFFSET ${filters.offset < 0 ? 0 : filters.offset}'
+            : unnarrowed
+            ? 'LIMIT $rankedLimit'
+            : ''}
 ''';
     return _withTags(db.select(sql, args));
   }

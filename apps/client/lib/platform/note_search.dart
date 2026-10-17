@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'nex_services.dart';
+import 'crash_reporter.dart';
 
 /// The date windows the filter sheet offers. Presets rather than a calendar:
 /// every fielded request for "find that thing" is about recency, and a
@@ -70,6 +71,12 @@ class NoteSearchController extends ChangeNotifier {
   /// yet" are different states rather than the same empty list.
   bool get hasRun => _hasRun;
   bool _hasRun = false;
+  static const _pageSize = 100;
+  SearchFilters? _pageFilters;
+  int _nextOffset = 0;
+  bool hasMore = false;
+  bool loadingMore = false;
+  bool pageFailed = false;
 
   /// Why the last search did not run, or null if it ran.
   ///
@@ -176,6 +183,10 @@ class NoteSearchController extends ChangeNotifier {
 
   Future<void> run() async {
     final current = ++_request;
+    _pageFilters = null;
+    hasMore = false;
+    loadingMore = false;
+    pageFailed = false;
     // `tag:` and `type:` typed into the box mean the same as the chips above
     // it, and combine with them rather than replacing them: someone who has
     // tapped a tag and then types `type:link` wants both.
@@ -190,6 +201,7 @@ class NoteSearchController extends ChangeNotifier {
       types: {...types, ...typed.types}.toList(),
       createdFrom: range?.start,
       createdTo: range?.end.add(const Duration(days: 1)),
+      pageSize: typed.text.trim().isEmpty ? _pageSize + 1 : null,
     );
     final trimmed = typed.text.trim();
     try {
@@ -202,7 +214,12 @@ class NoteSearchController extends ChangeNotifier {
       // flashing up before the meaning search answers would be wrong half
       // the time.
       if (found.isNotEmpty || trimmed.isEmpty) {
-        results = found;
+        results = trimmed.isEmpty ? found.take(_pageSize).toList() : found;
+        if (trimmed.isEmpty) {
+          _pageFilters = filters;
+          _nextOffset = _pageSize;
+          hasMore = found.length > _pageSize;
+        }
         meaningOnly = const {};
         nearest = null;
         _failure = null;
@@ -242,6 +259,7 @@ class NoteSearchController extends ChangeNotifier {
       nearest = null;
       meaningOnly = const {};
       _failure = '$error';
+      unawaited(NexCrashLog.handled('search.read', error));
     }
     // Either way the search has now been *attempted*, which is what stops the
     // skeletons. Reached only by the paths that did not return early above.
@@ -249,8 +267,51 @@ class NoteSearchController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadMore() async {
+    final filters = _pageFilters;
+    if (filters == null || !hasMore || loadingMore) return;
+    final request = _request;
+    loadingMore = true;
+    pageFailed = false;
+    notifyListeners();
+    try {
+      final page = await services.search(
+        SearchFilters(
+          tagIds: filters.tagIds,
+          types: filters.types,
+          createdFrom: filters.createdFrom,
+          createdTo: filters.createdTo,
+          pageSize: _pageSize + 1,
+          offset: _nextOffset,
+        ),
+      );
+      if (request != _request) return;
+      final seen = {for (final note in results) note.id};
+      results = [
+        ...results,
+        ...page.take(_pageSize).where((note) => seen.add(note.id)),
+      ];
+      _nextOffset += _pageSize;
+      hasMore = page.length > _pageSize;
+    } catch (error) {
+      if (request != _request) return;
+      pageFailed = true;
+      unawaited(NexCrashLog.handled('search.page', error));
+    } finally {
+      if (request == _request) {
+        loadingMore = false;
+        notifyListeners();
+      }
+    }
+  }
+
   /// Back to a blank search, without disposing anything.
   void clear() {
+    ++_request;
+    _pageFilters = null;
+    hasMore = false;
+    loadingMore = false;
+    pageFailed = false;
     _debounce?.cancel();
     query.clear();
     tags.clear();
@@ -266,6 +327,7 @@ class NoteSearchController extends ChangeNotifier {
 
   @override
   void dispose() {
+    ++_request;
     _debounce?.cancel();
     query.dispose();
     super.dispose();

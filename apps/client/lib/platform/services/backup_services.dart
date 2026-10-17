@@ -40,7 +40,8 @@ extension NexBackupServices on NexServices {
       await worker.backup(backupDir, mediaDir: mediaDir);
       await _backupPolicy.markDone();
       return true;
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('backup.automatic', error));
       // Fail open — never block or crash the app on backup.
       return false;
     }

@@ -1035,6 +1035,107 @@ Sure, here you go:
       }
     }
 
+    testWidgets(
+      'pending question is saved; Stop ignores a late answer and permits Retry',
+      (tester) async {
+        final pending = Completer<http.Response>();
+        var calls = 0;
+        await openSheet(
+          tester,
+          client: MockClient((_) async {
+            if (++calls == 1) return pending.future;
+            return http.Response(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {'content': 'Retried answer'},
+                  },
+                ],
+              }),
+              200,
+            );
+          }),
+        );
+        final field = find.descendant(
+          of: find.byType(AiChatSheet),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(field, 'Keep this pending question');
+        await tester.testTextInput.receiveAction(TextInputAction.send);
+        for (var i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(calls, 1);
+        expect(
+          ChatHistory(
+            await SharedPreferences.getInstance(),
+          ).threads.single.messages.single.content,
+          'Keep this pending question',
+        );
+        await tester.tap(find.byKey(const ValueKey('stop-chat')));
+        await tester.pumpAndSettle();
+        pending.complete(
+          http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'Late answer'},
+                },
+              ],
+            }),
+            200,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Late answer'), findsNothing);
+        await tester.tap(find.text('Try again'));
+        await tester.pumpAndSettle();
+        expect(find.text('Retried answer'), findsOneWidget);
+        expect(calls, 2);
+      },
+    );
+    testWidgets(
+      'lookup retry sends the original question, not the injected notes block',
+      (tester) async {
+        final sent = <Map<String, dynamic>>[];
+        await openSheet(
+          tester,
+          client: MockClient((request) async {
+            sent.add(jsonDecode(request.body) as Map<String, dynamic>);
+            if (sent.length == 2) return http.Response('{}', 503);
+            final content = sent.length == 1
+                ? '```nex\n{"action":"cycle"}\n```'
+                : 'Recovered lookup answer';
+            return http.Response(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {'content': content},
+                  },
+                ],
+              }),
+              200,
+            );
+          }),
+        );
+        final field = find.descendant(
+          of: find.byType(AiChatSheet),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(field, 'when is my period?');
+        await tester.testTextInput.receiveAction(TextInputAction.send);
+        await tester.pumpAndSettle();
+        expect(sent.length, 2);
+        await tester.tap(find.text('Try again'));
+        await tester.pumpAndSettle();
+        expect(sent.length, 3);
+        expect(
+          (sent.last['messages'] as List).last['content'],
+          'when is my period?',
+        );
+        expect(find.text('Recovered lookup answer'), findsOneWidget);
+      },
+    );
     testWidgets('retry keeps the question once and preserves a new draft', (
       tester,
     ) async {

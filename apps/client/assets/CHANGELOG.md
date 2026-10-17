@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.2
+
+- Incomplete AI translations, rewrites and image readings no longer replace complete text; authored markup is preserved.
+- Switching translation language clears the previous result, so a failed request cannot show the wrong language.
+- Assistant questions are saved before waiting; Retry repeats the original question. Cloud responses can be stopped and long conversations use bounded context.
+- Search upgrades rebuild outdated indexed text in batches. Filtered results load in pages, and nearby-match suggestions avoid repeated tag reads.
+- Important handled failures enter bounded, redacted local diagnostics; database errors retain their category across the worker boundary.
+
 ## v2.1.1
 
 - **A calmer Appearance page.** Themes and app icons have their own pages. Four new looks — Bauhaus, Kintsugi, Circuit and Afterimage — bring distinct static motifs, with readable colours and room for larger text.

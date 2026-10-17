@@ -7,6 +7,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/crash_reporter.dart';
 import '../platform/nex_services.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
@@ -74,6 +75,7 @@ class _TranslateSheetState extends State<TranslateSheet> {
   String? _result;
   bool _loading = false;
   bool _failed = false;
+  int _request = 0;
 
   /// The language the note is *not* in.
   ///
@@ -99,6 +101,7 @@ class _TranslateSheetState extends State<TranslateSheet> {
   }
 
   Future<void> _translate() async {
+    final request = ++_request;
     setState(() {
       _loading = true;
       _failed = false;
@@ -106,10 +109,11 @@ class _TranslateSheetState extends State<TranslateSheet> {
     String? text;
     try {
       text = await _adapter.translate(widget.text, target: _target);
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('translation', error));
       text = null;
     }
-    if (!mounted) return;
+    if (!mounted || request != _request) return;
     setState(() {
       _loading = false;
       _failed = text == null || text.isEmpty;
@@ -122,7 +126,10 @@ class _TranslateSheetState extends State<TranslateSheet> {
 
   void _retarget(AiOutputLanguage value) {
     if (value == _target) return;
-    setState(() => _target = value);
+    setState(() {
+      _target = value;
+      _result = null;
+    });
     unawaited(_translate());
   }
 
@@ -242,7 +249,9 @@ class _TranslateSheetState extends State<TranslateSheet> {
             ),
         if (_failed && !_loading) ...[
           Text(
-            l10n.translateFailed,
+            _adapter.lastReplyTruncated
+                ? l10n.aiIncompleteReply
+                : l10n.translateFailed,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.error,
             ),

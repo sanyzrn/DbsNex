@@ -284,10 +284,7 @@ class LibraryMaintenance {
       '''SELECT * FROM notes WHERE deleted_at IS NULL
                                         AND content IS NOT NULL ORDER BY created_at DESC LIMIT 500''',
     )) {
-      final note = Note.fromRow(
-        row,
-        tags: repo.tagsForNote(row['id'] as String),
-      );
+      final note = Note.fromRow(row, tags: const []);
       final candidate = _dice(
         needle,
         _normal(note.searchableDerivedText ?? ''),
@@ -297,7 +294,7 @@ class LibraryMaintenance {
         best = note;
       }
     }
-    return score >= 0.22 ? best : null;
+    return score >= 0.22 && best != null ? repo.getById(best.id) : null;
   }
 
   static String _normal(String value) => value

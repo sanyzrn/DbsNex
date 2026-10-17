@@ -5467,4 +5467,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiEmbeddingEndpoint => 'Embedding endpoint (optional)';
+
+  @override
+  String get aiIncompleteReply =>
+      'A complete answer could not be obtained. Your original text is kept. Try a shorter text or a model with a larger limit.';
+
+  @override
+  String get chatStop => 'Stop response';
+
+  @override
+  String get chatStopped =>
+      'Response stopped. Your question is saved; you can try again.';
+
+  @override
+  String get chatContextLimit =>
+      'This question is too long for one request. Shorten it or start a new conversation.';
+
+  @override
+  String get searchMore => 'Load more results';
 }

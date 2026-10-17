@@ -5330,4 +5330,22 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiEmbeddingEndpoint => 'آدرس کامل بردارسازی (اختیاری)';
+
+  @override
+  String get aiIncompleteReply =>
+      'پاسخ کامل دریافت نشد. متن اصلی حفظ شده است. متن کوتاه‌تر یا مدلی با ظرفیت بیشتر را امتحان کنید.';
+
+  @override
+  String get chatStop => 'توقف پاسخ';
+
+  @override
+  String get chatStopped =>
+      'پاسخ متوقف شد. پرسش شما ذخیره شده و می‌توانید دوباره تلاش کنید.';
+
+  @override
+  String get chatContextLimit =>
+      'این پرسش برای یک درخواست بیش از حد طولانی است. آن را کوتاه‌تر کنید یا گفت‌وگوی تازه‌ای بسازید.';
+
+  @override
+  String get searchMore => 'نمایش نتایج بیشتر';
 }

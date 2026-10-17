@@ -13,6 +13,62 @@ import 'package:nex_client/widgets/translate_sheet.dart';
 import 'support/nex_harness.dart';
 
 void main() {
+  testWidgets(
+    'a failed language switch cannot retain the old-language result',
+    (tester) async {
+      final h = await NexTestHarness.create();
+      addTearDown(h.dispose);
+      var calls = 0;
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'k',
+        ),
+        client: MockClient((_) async {
+          if (++calls > 1) return http.Response('{}', 503);
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'Previous language result'},
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: TranslateSheet(
+                text: 'Source',
+                preferences: h.preferences,
+                services: h.services,
+                embedded: true,
+                adapter: adapter,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Previous language result'), findsOneWidget);
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(TranslateSheet)),
+      );
+      await tester.tap(find.text(l10n.aiOutputLanguageEnglish));
+      await tester.pumpAndSettle();
+      expect(find.text('Previous language result'), findsNothing);
+      expect(find.text(l10n.translateFailed), findsOneWidget);
+      expect(find.text(l10n.translateSaveAsNote), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   for (final locale in ['en', 'fa']) {
     testWidgets('$locale inline translation keeps its host and source intact', (
       tester,

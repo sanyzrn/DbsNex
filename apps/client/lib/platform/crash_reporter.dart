@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../app_version.dart';
+import 'db_worker_error.dart';
 
 /// A local-only crash log: no network call, no third-party SDK, ever.
 ///
@@ -17,6 +19,23 @@ class NexCrashLog {
   const NexCrashLog(this.file);
 
   final File file;
+  static Future<void> _handledTail = Future<void>.value();
+
+  /// Only a stable code location and exception type: never SQL, note content,
+  /// credentials or provider response bodies. Existing bounds/dedup apply.
+  static Future<void> handled(String where, Object error) {
+    final type = error is DbWorkerException
+        ? '${error.kind.name}/${error.sourceType}'
+        : error.runtimeType.toString();
+    final next = _handledTail.then((_) async {
+      try {
+        (await open()).note('Handled $where: $type');
+      } catch (_) {
+        // Diagnostics must never break the original recovery path.
+      }
+    });
+    return _handledTail = next;
+  }
 
   /// Bounds on what the file keeps, so it never grows forever.
   ///
