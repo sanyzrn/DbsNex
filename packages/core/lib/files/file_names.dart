@@ -72,3 +72,7 @@ String markdownFileNameFor(String text) {
       : firstLine;
   return safeFileName(short, extension: '.md') ?? 'note.md';
 }
+
+/// A library path can come from Windows, Android or an iOS sandbox.
+String nexPortableBasename(String path) =>
+    path.replaceAll(r'\', '/').split('/').last;

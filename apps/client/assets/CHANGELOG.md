@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+- Backups from Nex Windows can restore shared appearance without resetting mobile credentials, private preferences or device identity. Portable exports now recognize Windows media paths for notes and attachments.
+
 ## v2.1.6
 
 - **Swipe through a PDF.** Pages turn by swiping sideways, the way the interface reads, and the page you are heading for is prepared while you swipe. The slider under the page is gone: a small capsule over the page holds the arrows and the page count, and tapping the count opens a sheet of page numbers to jump straight to one. Double-tap zooms in where you tapped, and a white page now has a visible edge.

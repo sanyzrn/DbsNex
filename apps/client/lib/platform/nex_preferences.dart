@@ -207,6 +207,13 @@ class NexPreferences extends _PreferencesStore
   }
 
   static void validateBackupSettings(Map<String, dynamic> value) {
+    if (value['scope'] == 'shared') {
+      PortablePreferences.validateScopedBackup(value);
+      return;
+    }
+    if (value.containsKey('scope')) {
+      throw const FormatException('Unsupported settings scope');
+    }
     if (value.containsKey('vault')) {
       VaultSnapshot.fromJson(Map<String, dynamic>.from(value['vault'] as Map));
     }
@@ -266,6 +273,31 @@ class NexPreferences extends _PreferencesStore
 
   Future<void> restoreSettings(Map<String, dynamic> value) async {
     validateBackupSettings(value);
+    if (value['scope'] == 'shared') {
+      // A Windows/iOS appearance transfer is not an Android preferences reset.
+      // Keep credentials, vault, permissions, device identity and private modules.
+      for (final key in (value['clearedPreferences'] as List? ?? const [])) {
+        if (!await _prefs.remove(key as String)) {
+          throw StateError('Preference restore failed');
+        }
+      }
+      for (final entry in (value['preferences'] as Map).entries) {
+        final key = entry.key as String;
+        final v = entry.value;
+        final bool saved;
+        if (v is String) {
+          saved = await _prefs.setString(key, v);
+        } else if (v is bool) {
+          saved = await _prefs.setBool(key, v);
+        } else if (v is num) {
+          saved = await _prefs.setDouble(key, v.toDouble());
+        } else {
+          saved = await _prefs.setStringList(key, List<String>.from(v as List));
+        }
+        if (!saved) throw StateError('Preference restore failed');
+      }
+      return;
+    }
     // Older/library-only backups must never clear or modify a newer vault.
     if (value.containsKey('vault')) {
       await VaultStore().restore(
