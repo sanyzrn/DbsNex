@@ -180,6 +180,26 @@ void main() {
       'z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
     );
 
+    Future<void> openPdf(
+      WidgetTester tester,
+      String name, {
+      required String text,
+    }) async {
+      await openFile(tester, name, text: text, mimeType: 'application/pdf');
+      // The reader now decodes before displaying a page. Give the native
+      // decoder real event-loop time, then pump its fake-zone continuations.
+      // Wait for the page itself, with a bound, rather than a fixed delay.
+      final page = find.text('Page 1 of 1');
+      for (var i = 0; i < 1000 && page.evaluate().isEmpty; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+      expect(page, findsOneWidget);
+    }
+
     testWidgets('an image shared as a file is shown, not just named', (
       tester,
     ) async {
@@ -253,14 +273,10 @@ void main() {
         return {'bytes': pngBytes, 'pageCount': 1};
       });
       addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
-      await openFile(
-        tester,
-        'shared-document',
-        text: '%PDF-1.4',
-        mimeType: 'application/pdf',
-      );
+      await openPdf(tester, 'shared-document', text: '%PDF-1.4');
       expect(read, isTrue);
       expect(find.byKey(const ValueKey('inline-pdf')), findsOneWidget);
+      expect(find.text('Page 1 of 1'), findsOneWidget);
     });
 
     testWidgets('a PDF shows its first page, drawn by the platform', (
@@ -282,16 +298,11 @@ void main() {
               null,
             ),
       );
-      await openFile(
-        tester,
-        'report.pdf',
-        text: '%PDF-1.4 not really',
-        mimeType: 'application/pdf',
-      );
-      await tester.pumpAndSettle();
+      await openPdf(tester, 'report.pdf', text: '%PDF-1.4 not really');
 
       expect(find.text('report.pdf'), findsOneWidget);
       expect(find.byType(Image), findsOneWidget);
+      expect(find.text('Page 1 of 1'), findsOneWidget);
       // A picture of the page, not a reader: nothing is parsed out of it.
       expect(find.byType(NexMarkdown), findsNothing);
     });
