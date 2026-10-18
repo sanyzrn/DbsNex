@@ -19,3 +19,5 @@ export '../widgets/nex_text_field.dart' show NexTextField;
 export 'nex_module_store.dart';
 export 'nex_module_strings.dart';
 export 'nex_stored_module.dart';
+export 'module_dates.dart';
+export 'module_reminder_control.dart';

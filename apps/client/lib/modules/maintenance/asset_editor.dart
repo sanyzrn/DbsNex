@@ -282,7 +282,11 @@ class _AssetEditorSheetState extends State<AssetEditorSheet> {
                           ),
                         ),
                       Text(
-                        s(context, 'gregorian'),
+                        NexModuleCalendar.solarOf(context)
+                            ? (NexModuleStrings.persian(context)
+                                  ? 'شمسی'
+                                  : 'Solar Hijri')
+                            : s(context, 'gregorian'),
                         style: theme.textTheme.bodySmall,
                       ),
                       const SizedBox(height: NexSpacing.md),

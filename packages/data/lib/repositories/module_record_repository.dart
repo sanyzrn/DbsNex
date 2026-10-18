@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:sqlite3/sqlite3.dart';
+import 'package:nex_core/nex_core.dart' show newUuidV7;
 
 import '../schema/database.dart';
 import '../schema/write_lock.dart';
@@ -43,7 +44,7 @@ class SqliteModuleRecordRepository {
       'ORDER BY updated_at DESC, id',
       [module, kind],
     ))
-      _record(row),
+      if (_read(row) case final record?) record,
   ];
 
   ModuleRecord? get(String module, String kind, String id) {
@@ -51,7 +52,7 @@ class SqliteModuleRecordRepository {
       'SELECT * FROM module_records WHERE module = ? AND kind = ? AND id = ?',
       [module, kind, id],
     );
-    return rows.isEmpty ? null : _record(rows.first);
+    return rows.isEmpty ? null : _read(rows.first);
   }
 
   /// Saves [body] as [id], replacing what was there.
@@ -102,6 +103,43 @@ class SqliteModuleRecordRepository {
             module,
           ]).first['n']
           as int;
+
+  /// Bad JSON or metadata affects only that row. Copy its exact bytes inside
+  /// the same transaction before removing it from the active shelf; backups
+  /// retain the recovery envelope. Storage errors are deliberately not hidden.
+  ModuleRecord? _read(Row row) {
+    try {
+      return _record(row);
+    } on FormatException {
+      _quarantine(row);
+    } on TypeError {
+      _quarantine(row);
+    }
+    return null;
+  }
+
+  void _quarantine(Row row) => db.together(() {
+    final module = row['module'] as String;
+    final kind = row['kind'] as String;
+    if (kind == '__recovery') return;
+    final id = row['id'] as String;
+    final rawBody = row['body'] as String;
+    final stamp = row['updated_at'] as String;
+    // Each original gets its own key, including its raw bytes. Never replace
+    // a different damaged version of the same record.
+    final recoveryId = newUuidV7();
+    put(module, '__recovery', recoveryId, {
+      'kind': kind,
+      'id': id,
+      'rawBody': rawBody,
+      'updatedAt': stamp,
+    });
+    db.execute(
+      'DELETE FROM module_records WHERE module = ? AND kind = ? AND id = ? '
+      'AND body = ? AND updated_at = ?',
+      [module, kind, id, rawBody, stamp],
+    );
+  });
 
   ModuleRecord _record(Row row) => ModuleRecord(
     module: row['module'] as String,

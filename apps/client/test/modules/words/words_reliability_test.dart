@@ -18,6 +18,41 @@ class FaultStore implements NexModuleStore {
   String? failWordOnce;
   bool failAfterReview = false;
   @override
+  Future<void> quarantine(ModuleRecord record) async {
+    await put('__recovery', newId(), {
+      'kind': record.kind,
+      'id': record.id,
+      'body': record.body,
+      'updatedAt': record.updatedAt.toIso8601String(),
+    });
+    await delete(record.kind, record.id);
+  }
+
+  @override
+  Stream<void> get draftChanges => inner.draftChanges;
+  @override
+  bool get remindersEnabled => inner.remindersEnabled;
+  @override
+  bool get solarCalendar => inner.solarCalendar;
+  @override
+  Future<bool> setReminder(
+    String key, {
+    required String sourceKind,
+    required String sourceId,
+    required DateTime at,
+    required String title,
+    required String body,
+  }) => inner.setReminder(
+    key,
+    sourceKind: sourceKind,
+    sourceId: sourceId,
+    at: at,
+    title: title,
+    body: body,
+  );
+  @override
+  Future<void> clearReminder(String key) => inner.clearReminder(key);
+  @override
   String get module => inner.module;
   @override
   Stream<void> get changes => inner.changes;
@@ -171,7 +206,7 @@ void main() {
     expect(await inner.list('card'), hasLength(2));
     expect(
       tester
-          .widget<EditableText>(find.byKey(const ValueKey('words-batch-text')))
+          .widget<NexTextField>(find.byKey(const ValueKey('words-batch-text')))
           .controller
           .text,
       'beta\tMeaning B',

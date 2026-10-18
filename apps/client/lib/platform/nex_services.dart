@@ -38,6 +38,7 @@ import 'profile_photo.dart';
 import 'local_ai_support.dart';
 import 'model_store.dart';
 import 'reminders.dart';
+import '../modules/module_registry.dart';
 
 part 'folder_backup.dart';
 part 'module_services.dart';
@@ -142,9 +143,27 @@ class NexServices {
   final _moduleController = StreamController<String>.broadcast();
   Stream<String> get moduleChanges => _moduleController.stream;
 
-  Future<T> _moduleWrite<T>(String module, Future<T> write) async {
+  final _moduleDraftController = StreamController<String>.broadcast();
+  Stream<String> get moduleDraftChanges => _moduleDraftController.stream;
+
+  Future<T> _moduleWrite<T>(
+    String module,
+    Future<T> write, {
+    String? kind,
+  }) async {
     final result = await write;
-    if (!_moduleController.isClosed) _moduleController.add(module);
+    if (kind == 'draft') {
+      if (!_moduleDraftController.isClosed) _moduleDraftController.add(module);
+    } else if (kind != 'operation' && kind != '__recovery') {
+      if (!_moduleController.isClosed) _moduleController.add(module);
+      if (moduleRemindersEnabled(module) && kind != '__reminder') {
+        try {
+          await restoreModuleReminders();
+        } catch (_) {
+          reminders.onDiagnostic?.call('module reminder reconciliation failed');
+        }
+      }
+    }
     return result;
   }
 
@@ -589,6 +608,7 @@ class NexServices {
     await _timelineController.close();
     await _cycleController.close();
     await _moduleController.close();
+    await _moduleDraftController.close();
     await _closeOnce();
   }
 }

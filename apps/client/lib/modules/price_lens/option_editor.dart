@@ -328,8 +328,7 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
                       borderRadius: BorderRadius.circular(NexRadius.md),
                       child: InputDecorator(
                         decoration: InputDecoration(
-                          labelText:
-                              '${s(context, 'dateLabel')} · ${s(context, 'gregorian')}',
+                          labelText: s(context, 'dateLabel'),
                           errorText: _showErrors && !_dateConfirmed
                               ? s(context, 'dateRequired')
                               : null,

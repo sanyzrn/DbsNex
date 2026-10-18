@@ -76,6 +76,12 @@ extension _MedicineDetailBody on _MedicineDetailSheetState {
               Text(strength, style: theme.textTheme.bodyLarge),
             const SizedBox(height: NexSpacing.md),
             MedicineInfoSection(body: body),
+            if (!MedicineModels.readArchived(body))
+              NexModuleReminderControl(
+                store: widget.store,
+                sourceKind: MedicineModels.medicine,
+                sourceId: widget.record.id,
+              ),
             Row(
               children: [
                 Expanded(

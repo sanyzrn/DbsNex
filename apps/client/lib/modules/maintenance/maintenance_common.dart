@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'strings.dart';
-import 'units.dart';
 
 /// The pieces the maintenance editors share: the asset-type pill row,
 /// the meter-kind toggles, the discard guard, and small labels.
@@ -115,13 +114,8 @@ String maintenanceTypeLabel(BuildContext context, String type) =>
     );
 
 /// "13 October 2026" for pickers and info lines.
-String maintenanceFullDate(BuildContext context, DateTime date) {
-  final persian = NexModuleStrings.persian(context);
-  final month = maintenanceStrings(context, 'month${date.month.clamp(1, 12)}');
-  final day = persian ? persianDigits('${date.day}') : '${date.day}';
-  final year = persian ? persianDigits('${date.year}') : '${date.year}';
-  return '$day $month $year';
-}
+String maintenanceFullDate(BuildContext context, DateTime date) =>
+    nexModuleDateLabel(context, date);
 
 /// A labelled switch row, 48dp.
 class MaintenanceToggleRow extends StatelessWidget {

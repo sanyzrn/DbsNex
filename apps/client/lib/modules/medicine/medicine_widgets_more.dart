@@ -73,17 +73,20 @@ class MedicineNumberFields extends StatelessWidget {
           ),
         ),
         const SizedBox(height: NexSpacing.sm),
-        MedicineFields.line(
-          fieldKey: const ValueKey('medicine-field-expiry'),
-          keyboard: TextInputType.datetime,
-          hint: strings(context, 'dateHint'),
+        NexModuleDateEntry(
           controller: expiry,
-          label: strings(context, 'expiry'),
-          helper:
-              showErrors &&
-                  MedicineParse.expiry(expiry.text) == MedicineParse.invalid
-              ? badNumber
-              : strings(context, 'expiryNote'),
+          child: MedicineFields.line(
+            fieldKey: const ValueKey('medicine-field-expiry'),
+            keyboard: TextInputType.datetime,
+            hint: strings(context, 'dateHint'),
+            controller: expiry,
+            label: strings(context, 'expiry'),
+            helper:
+                showErrors &&
+                    MedicineParse.expiry(expiry.text) == MedicineParse.invalid
+                ? badNumber
+                : strings(context, 'expiryNote'),
+          ),
         ),
       ],
     );

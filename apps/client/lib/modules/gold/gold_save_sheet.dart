@@ -87,27 +87,31 @@ class _GoldSaveSheetState extends State<_GoldSaveSheet> {
               controller: widget.shop,
             ),
             const SizedBox(height: NexSpacing.sm),
-            TextFormField(
-              key: const ValueKey('gold-save-date'),
+            NexModuleDateEntry(
               controller: widget.quoteDate,
-              textDirection: TextDirection.ltr,
-              keyboardType: TextInputType.datetime,
-              decoration: InputDecoration(
-                labelText: strings(context, 'quoteDate'),
-                helperText: strings(context, 'quoteDateHint'),
-                counterText: '',
+              hyphenated: true,
+              child: TextFormField(
+                key: const ValueKey('gold-save-date'),
+                controller: widget.quoteDate,
+                textDirection: TextDirection.ltr,
+                keyboardType: TextInputType.datetime,
+                decoration: InputDecoration(
+                  labelText: strings(context, 'quoteDate'),
+                  helperText: strings(context, 'quoteDateHint'),
+                  counterText: '',
+                ),
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: (text) {
+                  final value = (text ?? '').trim();
+                  if (value.isEmpty) return strings(context, 'required');
+                  if (!isIsoDate(value)) {
+                    return RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value)
+                        ? strings(context, 'dateNotReal')
+                        : strings(context, 'dateBadFormat');
+                  }
+                  return null;
+                },
               ),
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              validator: (text) {
-                final value = (text ?? '').trim();
-                if (value.isEmpty) return strings(context, 'required');
-                if (!isIsoDate(value)) {
-                  return RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value)
-                      ? strings(context, 'dateNotReal')
-                      : strings(context, 'dateBadFormat');
-                }
-                return null;
-              },
             ),
             const SizedBox(height: NexSpacing.sm),
             GoldNoteField(

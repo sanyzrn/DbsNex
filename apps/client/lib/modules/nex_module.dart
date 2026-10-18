@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import 'module_rollout.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../widgets/nex_shelf.dart';
@@ -19,7 +20,7 @@ abstract class NexModule {
 
   /// Rollout is independent of saved installation and data. Re-enable each
   /// add-on only after its review; temporarily pausing it must not erase it.
-  bool get available => id == 'cycle';
+  bool get available => nexModuleAvailable(id);
 
   String title(AppLocalizations l10n);
 

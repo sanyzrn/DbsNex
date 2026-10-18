@@ -3,13 +3,11 @@ part of 'option_editor.dart';
 extension _OfferActions on _OptionEditorSheetState {
   Future<void> _pickDate() async {
     final now = DateTime.now(), candidate = _date ?? DateTime.now();
-    final picked = await nexShowDialog<DateTime>(
-      context: context,
-      builder: (_) => DatePickerDialog(
-        initialDate: candidate.isAfter(now) ? now : candidate,
-        firstDate: DateTime(1),
-        lastDate: now,
-      ),
+    final picked = await nexPickModuleDate(
+      context,
+      initial: candidate.isAfter(now) ? now : candidate,
+      first: DateTime(1),
+      last: now,
     );
     if (picked == null || !mounted) return;
     _paint(() {

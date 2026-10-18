@@ -133,14 +133,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<TextField>(
-            find.byWidgetPredicate(
-              (widget) =>
-                  widget is TextField &&
-                  widget.key == const ValueKey('warranty-claim-field'),
+          .widget<NexTextField>(
+            find.descendant(
+              of: find.byKey(const ValueKey('warranty-claim-field')),
+              matching: find.byType(NexTextField),
             ),
           )
-          .controller!
+          .controller
           .text,
       'Draft a',
     );

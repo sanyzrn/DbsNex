@@ -62,7 +62,7 @@ class _NexTappableState extends State<NexTappable> {
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
-              (widget.onLongPress ?? widget.onTap)();
+              widget.onTap();
               return null;
             },
           ),

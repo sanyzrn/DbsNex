@@ -11,6 +11,7 @@ import 'package:timezone/timezone.dart' as tz;
 part 'reminders/scheduled_reminders.dart';
 part 'reminders/notice_reminders.dart';
 part 'reminders/note_reminders.dart';
+part 'reminders/module_reminders.dart';
 
 /// Brings a note back up at the time its owner asked for.
 ///
@@ -315,7 +316,11 @@ class NexReminders {
           onOpenUpdate?.call();
           return;
         }
-        if (payload != null && payload.isNotEmpty) onOpenNote?.call(payload);
+        if (payload != null &&
+            payload.isNotEmpty &&
+            !payload.startsWith('nex:module:')) {
+          onOpenNote?.call(payload);
+        }
       },
     );
     await _createChannels();
@@ -349,7 +354,9 @@ class NexReminders {
         // phone was in a pocket and the app was not running.
         if (payload == _updatePayload) {
           _launchedFromUpdate = true;
-        } else if (payload != null && payload.isNotEmpty) {
+        } else if (payload != null &&
+            payload.isNotEmpty &&
+            !payload.startsWith('nex:module:')) {
           _launchNoteId = payload;
         }
       }

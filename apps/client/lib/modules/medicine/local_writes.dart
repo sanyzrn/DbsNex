@@ -34,6 +34,7 @@ class LocalWrites {
     if (raw is! Map ||
         raw['kind'] is! String ||
         raw['id'] is! String ||
+        !raw.containsKey('body') ||
         (raw['body'] != null && raw['body'] is! Map)) {
       throw StateError('Invalid journal');
     }
@@ -48,12 +49,31 @@ class LocalWrites {
 
   static Future<void> _recover(NexModuleStore store) async {
     for (final op in await store.list('operation')) {
-      if (op.body['v'] != 1 || op.body['before'] is! List) {
-        throw StateError('Unknown operation');
+      List<LocalChange> before;
+      try {
+        if (op.body['v'] != 1 ||
+            op.body['before'] is! List ||
+            (op.body.containsKey('committed') &&
+                op.body['committed'] is! bool)) {
+          throw const FormatException('Unknown operation');
+        }
+        before = (op.body['before'] as List).map(_decoded).toList();
+        if (before.any(
+          (c) =>
+              c.kind == 'operation' ||
+              c.kind == '__recovery' ||
+              c.kind.isEmpty ||
+              c.id.isEmpty,
+        )) {
+          throw const FormatException('Invalid recovery target');
+        }
+      } catch (_) {
+        await store.quarantine(op);
+        continue;
       }
       if (op.body['committed'] != true) {
-        for (final raw in (op.body['before'] as List).reversed) {
-          await _write(store, _decoded(raw));
+        for (final change in before.reversed) {
+          await _write(store, change);
         }
       }
       await store.delete('operation', op.id);

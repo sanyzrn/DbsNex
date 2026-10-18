@@ -5,6 +5,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../widgets/nex_dialog.dart';
 import 'nex_module.dart';
+import 'module_dates.dart';
 import 'nex_module_store.dart';
 import 'nex_module_strings.dart';
 
@@ -86,6 +87,7 @@ abstract class NexStoredModule extends NexModule {
     );
     if (choice == null) return false;
     if (choice == 'delete') await services.moduleDeleteAll(id);
+    await services.cancelModuleReminders(id);
     await preferences.setModuleOn(id, false);
     return true;
   }
@@ -94,5 +96,8 @@ abstract class NexStoredModule extends NexModule {
   Widget open({
     required NexServices services,
     required NexPreferences preferences,
-  }) => screen(NexModuleStore(services, id));
+  }) => NexModuleCalendar(
+    solar: preferences.solarCalendar,
+    child: screen(NexModuleStore(services, id)),
+  );
 }

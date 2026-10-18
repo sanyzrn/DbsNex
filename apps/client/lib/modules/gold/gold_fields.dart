@@ -4,8 +4,8 @@
 /// One line a person types follows ADR-037 as far as the module API
 /// allows: amounts and dates run left to right inside an explicit
 /// `textDirection`, titles and shops follow the typed script through
-/// [NexAutoDirection], and the multi-line note uses the module's local
-/// stand-in for `NexTextField` (see README Platform requests).
+/// [NexAutoDirection], and the multi-line note uses the shared
+/// `NexTextField`.
 library;
 
 import 'dart:async';
@@ -131,13 +131,8 @@ class GoldAutoTextField extends StatelessWidget {
   );
 }
 
-/// The module's stand-in for the platform's `NexTextField`: a real local
-/// editor for multi-line text, built on `EditableText` with its own focus
-/// and decoration — the same shape `NexTextField` itself uses off-Android
-/// (a field under [NexAutoDirection]). The platform's own editor — with
-/// per-paragraph direction and the system's handles — is not exported
-/// through the module API; that request is in the README.
-class GoldNoteField extends StatefulWidget {
+/// Multiline text uses Nex's shared platform editor.
+class GoldNoteField extends StatelessWidget {
   const GoldNoteField({
     super.key,
     required this.controller,
@@ -152,60 +147,18 @@ class GoldNoteField extends StatefulWidget {
   final int minLines;
 
   @override
-  State<GoldNoteField> createState() => _GoldNoteFieldState();
-}
+  Widget build(BuildContext context) => NexTextField(
+    key: fieldKey,
+    controller: controller,
+    minLines: minLines,
+    maxLines: null,
+    decoration: InputDecoration(
+      labelText: label,
 
-class _GoldNoteFieldState extends State<GoldNoteField> {
-  final _focus = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    _focus.addListener(_changed);
-    widget.controller.addListener(_changed);
-  }
-
-  @override
-  void dispose() {
-    _focus.removeListener(_changed);
-    widget.controller.removeListener(_changed);
-    _focus.dispose();
-    super.dispose();
-  }
-
-  void _changed() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return NexAutoDirection(
-      controller: widget.controller,
-      builder: (context, direction) => InputDecorator(
-        decoration: InputDecoration(
-          labelText: widget.label,
-          alignLabelWithHint: true,
-          counterText: '',
-        ),
-        isFocused: _focus.hasFocus,
-        isEmpty: widget.controller.text.isEmpty,
-        child: EditableText(
-          key: widget.fieldKey,
-          controller: widget.controller,
-          focusNode: _focus,
-          style: theme.textTheme.bodyLarge ?? const TextStyle(),
-          cursorColor: theme.colorScheme.primary,
-          backgroundCursorColor: theme.colorScheme.onSurfaceVariant,
-          maxLines: null,
-          minLines: widget.minLines,
-          keyboardType: TextInputType.multiline,
-          textInputAction: TextInputAction.newline,
-          textDirection: direction,
-        ),
-      ),
-    );
-  }
+      alignLabelWithHint: true,
+      counterText: '',
+    ),
+  );
 }
 
 /// A picker on a plain 48dp touch target that shows what is chosen.

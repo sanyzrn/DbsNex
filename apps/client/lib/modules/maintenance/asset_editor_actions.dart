@@ -3,13 +3,11 @@ part of 'asset_editor.dart';
 extension _EditorActions on _AssetEditorSheetState {
   Future<void> _pickDate() async {
     final candidate = _purchased ?? DateTime.now();
-    final picked = await nexShowDialog<DateTime>(
-      context: context,
-      builder: (_) => DatePickerDialog(
-        initialDate: candidate.year > 2100 ? DateTime(2100, 12, 31) : candidate,
-        firstDate: DateTime(1),
-        lastDate: DateTime(2100, 12, 31),
-      ),
+    final picked = await nexPickModuleDate(
+      context,
+      initial: candidate.year > 2100 ? DateTime(2100, 12, 31) : candidate,
+      first: DateTime(1),
+      last: DateTime(2100, 12, 31),
     );
     if (picked == null || !mounted) return;
     _paint(() {

@@ -299,7 +299,11 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
                       ),
                       const SizedBox(height: NexSpacing.md),
                       Text(
-                        expenseStrings(context, 'gregorian'),
+                        NexModuleCalendar.solarOf(context)
+                            ? (NexModuleStrings.persian(context)
+                                  ? 'تاریخ شمسی'
+                                  : 'Solar Hijri date')
+                            : expenseStrings(context, 'gregorian'),
                         style: theme.textTheme.bodySmall,
                       ),
                       const SizedBox(height: NexSpacing.sm),

@@ -55,4 +55,50 @@ void main() {
     records = SqliteModuleRecordRepository(db);
     expect(records.get('parking', 'spot', 'a')!.body['note'], 'here');
   });
+  test(
+    'damaged JSON and timestamps are isolated without losing raw originals',
+    () {
+      records.put('medicine', 'medicine', 'healthy', {'name': 'Healthy'});
+      for (final (id, body, stamp) in [
+        ('bad-json', '{broken', '2026-10-18T00:00:00Z'),
+        ('bad-shape', '[]', '2026-10-18T00:00:00Z'),
+        ('bad-date', '{"name":"Keep"}', 'not-a-date'),
+      ]) {
+        db.db.execute('INSERT INTO module_records VALUES (?, ?, ?, ?, ?)', [
+          'medicine',
+          'medicine',
+          id,
+          body,
+          stamp,
+        ]);
+      }
+      expect(records.list('medicine', 'medicine').map((r) => r.id), [
+        'healthy',
+      ]);
+      final recovery = records.list('medicine', '__recovery');
+      expect(recovery, hasLength(3));
+      expect(
+        recovery.map((r) => r.body['rawBody']),
+        containsAll(['{broken', '[]', '{"name":"Keep"}']),
+      );
+      expect(records.list('medicine', 'medicine'), hasLength(1));
+      expect(records.list('medicine', '__recovery'), hasLength(3));
+      expect(records.list('parking', '__recovery'), isEmpty);
+    },
+  );
+
+  test('direct read of a damaged row keeps its exact body for recovery', () {
+    db.db.execute('INSERT INTO module_records VALUES (?, ?, ?, ?, ?)', [
+      'parking',
+      'session',
+      'bad',
+      'null',
+      '2026-10-18T00:00:00Z',
+    ]);
+    expect(records.get('parking', 'session', 'bad'), isNull);
+    expect(
+      records.list('parking', '__recovery').single.body['rawBody'],
+      'null',
+    );
+  });
 }

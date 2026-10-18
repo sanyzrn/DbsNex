@@ -100,6 +100,7 @@ extension NexScheduledServices on NexServices {
         commitments: await worker.listCommitments(),
         // Their arrival alarms too, for the same reason.
         scheduled: await worker.scheduledNotes(),
+        moduleReminderIds: await restoreModuleReminders(),
       );
     } catch (_) {
       // A library that cannot be read here is a library the timeline will

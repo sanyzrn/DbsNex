@@ -18,6 +18,7 @@ class FormDraft {
   Future<void> _tail = Future.value();
   Map<String, Object?>? _pending;
   bool _draining = false;
+  Timer? _debounce;
   bool _closed = false;
   bool _started = false;
   bool _touched = false;
@@ -77,7 +78,14 @@ class FormDraft {
     }
     _lastSnapshot = encoded;
     _pending = snapshot;
-    if (_draining) return;
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), _drain);
+  }
+
+  void _drain() {
+    _debounce?.cancel();
+    _debounce = null;
+    if (_draining || _pending == null) return;
     _draining = true;
     _tail = _tail
         .then((_) async {
@@ -114,6 +122,8 @@ class FormDraft {
   Future<bool> clear() async {
     _closed = true;
     _detach();
+    _debounce?.cancel();
+    _debounce = null;
     _pending = null;
     await _tail;
     try {
@@ -135,6 +145,7 @@ class FormDraft {
     if (_touched) changed();
     _closed = true;
     _detach();
+    _drain();
   }
 
   Future<bool> finish() async {

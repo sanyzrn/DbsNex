@@ -42,7 +42,10 @@ class RecordBundle {
     try {
       for (final operation in await store.list('operation')) {
         final raw = operation.body['records'];
-        if (raw is! List) continue;
+        if (operation.body['v'] != 1 || raw is! List) {
+          await store.quarantine(operation);
+          continue;
+        }
         final records =
             <({String kind, String id, Map<String, Object?> body})>[];
         for (final entry in raw) {
@@ -60,7 +63,18 @@ class RecordBundle {
             body: {for (final key in body.keys) key as String: body[key]},
           ));
         }
-        if (records.length != raw.length || records.isEmpty) continue;
+        if (records.length != raw.length ||
+            records.isEmpty ||
+            records.any(
+              (r) =>
+                  r.kind.isEmpty ||
+                  r.id.isEmpty ||
+                  r.kind == 'operation' ||
+                  r.kind == '__recovery',
+            )) {
+          await store.quarantine(operation);
+          continue;
+        }
         await RecordBundle(store, records).restore();
         await store.delete('operation', operation.id);
       }

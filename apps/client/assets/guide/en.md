@@ -1,5 +1,8 @@
 # Using Nex
 
+**Text size and module preparation (2.1.3).** System text enlargement is no longer capped at 1.9×; the app size setting composes with the system accessibility curve. Enter activates a focused control's normal tap. Module drafts save after a short pause and on close. Module calendar buttons use your calendar setting (Jalali or Gregorian) and keep the existing stored dates. The shared editor supports Persian/English text. Damaged rows and unknown recovery operations are preserved separately for recovery. An explicit one-time OS reminder control is prepared for Medicine; it requests notification permission and uses a generic lock-screen message, independently of reference dose times. Removing or archiving its record cancels its alert; removing the module cancels its alerts. **Only Cycle is available; other modules remain Soon and schedule no reminders.**
+
+
 Nex is the fastest way to put something down and find it again: a thought, a photo, a recording, a file or a link, all in one stream. Everything stays on this phone unless you choose otherwise, and the library works completely without AI.
 
 The first time you open Nex, four short pages show what it does, and a last one asks for your name, theme and language — with the greeting your name buys drawn above them as you type. Nothing there is required: **Skip** goes straight to the timeline, and every choice is in **Settings** later.
@@ -137,7 +140,7 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 - **Maintenance:** log equipment services, costs, meter readings and service intervals.
 - **Smoke Free:** track smoke-free progress, estimated savings and cravings.
 
-Each module stores its own data locally and in backups. These records do not enter notes, search, note widgets or the assistant. These modules have no camera, location, network or background-notification integration yet. Some date pickers currently use explicitly labeled Gregorian dates; further integration will be reviewed module by module.
+Each module stores its own data locally and in backups. These records do not enter notes, search, note widgets or the assistant. These modules have no camera, location or network integration. Shared calendar entry and explicitly chosen OS reminders are prepared, but the Soon modules remain inaccessible and silent. Existing typed civil-date fields retain their Gregorian labels and formats.
 
 **Tools**, at the left of the bottom bar, holds **Passwords**, **Bank cards**, **Private saved messages** and a **Password generator**. The private tools need your fingerprint or screen lock, and one unlock opens all of them for as long as you are using them. They lock after two minutes without activity — including time spent in another app, so you can copy a password, paste it in your browser and come straight back. Leaving the app always hides their contents from the task switcher, and **Lock** closes them at once. Hold any tool to pin it to the top of the home screen, in its own colour and icon; hold it there to take it off. A pinned private tool shows only its name and still asks for your fingerprint. The lock on a private tool's card shows open while they are unlocked.
 

@@ -50,16 +50,13 @@ class ExpensesDateButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final persian = NexModuleStrings.persian(context);
-    final month = expenseStrings(context, 'month${date.month.clamp(1, 12)}');
-    final day = persian ? persianDigits('${date.day}') : '${date.day}';
     return OutlinedButton.icon(
       key: const ValueKey('expenses-date'),
       onPressed: onTap,
       icon: const Icon(Icons.calendar_today_outlined),
       label: Text(
         confirmed
-            ? '$day $month ${persian ? persianDigits('${date.year}') : date.year}'
+            ? nexModuleDateLabel(context, date)
             : expenseStrings(context, 'dateRequired'),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
