@@ -14,8 +14,14 @@ extension _TimelineCapture on TimelineScreenState {
     NexBannerHost.of(context)?.show(
       message: AppLocalizations.of(context).shareTooLarge(
         rejection.filename,
-        nexFormatBytes(rejection.bytes),
-        nexFormatBytes(rejection.limit),
+        nexDigits(
+          nexFormatBytes(rejection.bytes),
+          persian: Localizations.localeOf(context).languageCode == 'fa',
+        ),
+        nexDigits(
+          nexFormatBytes(rejection.limit),
+          persian: Localizations.localeOf(context).languageCode == 'fa',
+        ),
       ),
       kind: NexBannerKind.failed,
     );

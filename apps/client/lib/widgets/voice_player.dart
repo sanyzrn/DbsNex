@@ -216,7 +216,9 @@ class _NexVoicePlayerState extends State<NexVoicePlayer>
                         const Spacer(),
                         _SpeedChip(
                           label: nexDigits(
-                            '${_speedLabel(NexVoicePlayer._speeds[_speed])}×',
+                            // 1.5 is «۱٫۵» in Persian, with the Persian
+                            // decimal mark rather than a full stop.
+                            '${_speedLabel(NexVoicePlayer._speeds[_speed], persian)}×',
                             persian: persian,
                           ),
                           onTap: ready ? _nextSpeed : null,
@@ -241,8 +243,12 @@ class _NexVoicePlayerState extends State<NexVoicePlayer>
     );
   }
 
-  static String _speedLabel(double speed) =>
-      speed == speed.roundToDouble() ? '${speed.round()}' : '$speed';
+  static String _speedLabel(double speed, bool persian) {
+    final label = speed == speed.roundToDouble()
+        ? '${speed.round()}'
+        : '$speed';
+    return persian ? label.replaceAll('.', '٫') : label;
+  }
 }
 
 /// Play and pause in one shape that turns into the other, glowing softly

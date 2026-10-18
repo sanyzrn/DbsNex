@@ -623,6 +623,7 @@ extension _DetailAiPanel on _NoteDetailSheetState {
                               text: _translationText,
                               preferences: preferences,
                               services: widget.services,
+                              noteId: note.id,
                               embedded: true,
                               addingCaption: _addingCaption,
                               onAddToCaption: canCaption

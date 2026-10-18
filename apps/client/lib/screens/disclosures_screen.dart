@@ -147,7 +147,7 @@ class _EntryTile extends StatelessWidget {
     ].join(Localizations.localeOf(context).languageCode == 'fa' ? '، ' : ', ');
     final details = [
       '${entry.provider} · ${entry.host}',
-      '$what · ${nexFormatBytes(entry.bytes)}',
+      '$what · ${nexDigits(nexFormatBytes(entry.bytes), persian: l10n.localeName == 'fa')}',
       if (entry.noteIds.isNotEmpty)
         l10n.disclosuresFromNotes(entry.noteIds.length),
       ?entry.media,

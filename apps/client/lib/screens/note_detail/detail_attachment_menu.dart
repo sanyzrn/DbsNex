@@ -206,6 +206,7 @@ extension _DetailAttachmentMenu on _NoteDetailSheetState {
           preferences: preferences,
           draftKey: 'caption-${attachment.id}',
           allowEmpty: true,
+          noteId: attachment.noteId,
         );
         if (caption == null) return;
         await services.setAttachmentCaption(attachment.id, caption);

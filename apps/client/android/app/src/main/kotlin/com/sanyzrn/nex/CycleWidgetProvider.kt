@@ -16,7 +16,7 @@ import java.time.LocalDate
  * word for the day — in Cycle's own blush and lavender.
  *
  * Reads [NexCycleSnapshot], never the database. Locked, it says to open Nex
- * and shows nothing else; with Cycle off it points to the profile. A tap
+ * and shows nothing else; with Cycle off it points to Tools → Modules. A tap
  * opens «Cycle» behind the app lock. Android wakes it every few hours
  * (`updatePeriodMillis`) so the day's count rolls over on its own.
  */

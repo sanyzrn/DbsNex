@@ -61,7 +61,7 @@
 
     <!-- The two Cycle widgets. -->
     <string name="cycle_widget_picker_label">چرخه</string>
-    <string name="cycle_discreet_widget_picker_label">چرخه، محتاطانه</string>
+    <string name="cycle_discreet_widget_picker_label">چرخه، محرمانه</string>
     <string name="cycle_widget_description">جایی که در چرخه هستی، در یک نگاه.</string>
     <string name="cycle_discreet_widget_description">فقط حلقه و یک عدد، بدون کلمه.</string>
     <string name="cycle_discreet_widget_a11y">Nex</string>
@@ -77,7 +77,7 @@
     <string name="cycle_widget_pregnant">هفتهٔ %1$s، روز %2$s</string>
     <string name="cycle_widget_quiet">برای ثبت امروز بزن</string>
     <string name="cycle_widget_first">اولین پریودت را ثبت کن</string>
-    <string name="cycle_widget_off">«چرخه» را در پروفایل روشن کن</string>
+    <string name="cycle_widget_off">«چرخه» را در ابزارها ← ماژول‌ها روشن کنید</string>
     <string name="cycle_widget_setup">چند سؤال برای شروع</string>
     <string name="cycle_widget_locked">برای دیدن، Nex را باز کن</string>
     <string name="cycle_widget_whisper_period">امروز با خودت مهربان‌تر باش.</string>

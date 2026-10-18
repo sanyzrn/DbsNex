@@ -468,16 +468,17 @@ extension _TimelineLayout on TimelineScreenState {
             onTap: () => widget.preferences.dismissCaptureHoldHint(),
             child: Container(
               constraints: const BoxConstraints(maxWidth: 230),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: NexSpacing.md,
+                vertical: NexSpacing.sm,
+              ),
+              margin: const EdgeInsets.only(bottom: NexSpacing.sm),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.inverseSurface,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(NexRadius.xl),
               ),
               child: Text(
-                Localizations.localeOf(context).languageCode == 'fa'
-                    ? 'برای دستیار + را نگه دار • فهمیدم'
-                    : 'Hold + for the assistant • Got it',
+                AppLocalizations.of(context).assistantHoldHint,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onInverseSurface,

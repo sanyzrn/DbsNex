@@ -137,7 +137,10 @@ extension _BackupSections on _BackupScreenState {
       p.basename(backup.parent.path) == 'before-restore';
 
   String _detail(AppLocalizations l10n, File backup) => [
-    nexFormatBytes(_metadata[backup.path]?.size ?? 0),
+    nexDigits(
+      nexFormatBytes(_metadata[backup.path]?.size ?? 0),
+      persian: l10n.localeName == 'fa',
+    ),
     if (_beforeRestore(backup)) l10n.backupBeforeRestore,
   ].join(' · ');
 

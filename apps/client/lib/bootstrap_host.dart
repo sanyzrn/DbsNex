@@ -3,6 +3,7 @@ import 'dart:isolate';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
@@ -201,8 +202,14 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
         ? l10n.shareSaved
         : l10n.shareTooLarge(
             refused.filename,
-            nexFormatBytes(refused.bytes),
-            nexFormatBytes(refused.limit),
+            nexDigits(
+              nexFormatBytes(refused.bytes),
+              persian: l10n.localeName == 'fa',
+            ),
+            nexDigits(
+              nexFormatBytes(refused.limit),
+              persian: l10n.localeName == 'fa',
+            ),
           );
     // Only once the platform confirms the window is really going. If it is
     // not — this was the ordinary app after all — the refusal is still owed to

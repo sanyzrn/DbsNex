@@ -93,7 +93,7 @@
     <string name="cycle_widget_pregnant">Week %1$s, day %2$s</string>
     <string name="cycle_widget_quiet">Tap to log today</string>
     <string name="cycle_widget_first">Log your first period</string>
-    <string name="cycle_widget_off">Turn on Cycle in your profile</string>
+    <string name="cycle_widget_off">Turn on Cycle in Tools → Modules</string>
     <string name="cycle_widget_setup">A few questions to begin</string>
     <string name="cycle_widget_locked">Open Nex to see</string>
     <string name="cycle_widget_whisper_period">Be gentle with yourself today.</string>

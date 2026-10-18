@@ -1,6 +1,6 @@
 ## Nex privacy policy
 
-Last updated: version 1.99.7 · Developer: DbsStudio (DbsStudio.ir)
+Last updated: version 2.1.7 · Developer: DbsStudio (DbsStudio.ir)
 
 Nex is built so that what you write stays yours. This page says what is kept where, and when anything leaves your phone.
 
@@ -9,7 +9,7 @@ Nex is built so that what you write stays yours. This page says what is kept whe
 - Nex has no account and no server that holds your notes. Notes, photos, recordings, files, tags, reminders and your conversations with the assistant are stored on this phone only.
 - The **private vault** (passwords, bank cards and private messages) is encrypted with a key kept in Android's secure Keystore and opens only with your fingerprint or screen lock. Vault content is never given to the assistant, search or widgets.
 - **Cycle** is off by default. Its data stays on the phone, and only if you turn on "Let the assistant read Cycle" is a short summary of it given to the assistant — never its day notes. "Delete all cycle data" removes it, and the backups on this phone that held it.
-- Backups are stored on the phone or in a folder you choose. The complete backup is encrypted with a recovery code only you have.
+- Backups are stored on the phone or in a folder you choose. In a complete backup, settings and service keys are encrypted with a recovery code only you have; the notes and files in it are not, so they can always be opened — keep it somewhere you trust.
 - Speed metrics, if you turn them on, stay on the phone. Nex has no advertising or tracking code.
 
 ### When something leaves your phone

@@ -26,7 +26,11 @@ class TranslateSheet extends StatefulWidget {
     this.onAddToCaption,
     this.addingCaption = false,
     this.adapter,
+    this.noteId,
   });
+
+  /// The note [text] came from, named in the log of what left the phone.
+  final String? noteId;
 
   /// The note's own words. Already resolved by the caller — a voice note's
   /// transcript and a photo's extracted text are as translatable as anything
@@ -54,12 +58,14 @@ class TranslateSheet extends StatefulWidget {
     required String text,
     required NexPreferences preferences,
     required NexServices services,
+    String? noteId,
   }) => nexShowSheet<void>(
     context: context,
     builder: (_) => TranslateSheet(
       text: text,
       preferences: preferences,
       services: services,
+      noteId: noteId,
     ),
   );
 
@@ -108,7 +114,10 @@ class _TranslateSheetState extends State<TranslateSheet> {
     });
     String? text;
     try {
-      text = await _adapter.translate(widget.text, target: _target);
+      text = await NexDisclosureLog.about(
+        notes: [?widget.noteId],
+        () => _adapter.translate(widget.text, target: _target),
+      );
     } catch (error) {
       unawaited(NexCrashLog.handled('translation', error));
       text = null;

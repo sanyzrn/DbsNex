@@ -301,8 +301,15 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                 children: [
                   // The shapes, as a row of pills that scrolls sideways on a
                   // narrow phone and sits centred on a wide one.
+                  // A finger's height at least, and taller with the text: a
+                  // fixed 40 was under the touch floor and clipped the
+                  // labels at large text sizes.
                   SizedBox(
-                    height: 40,
+                    height: math.max(
+                      nexMinTapTarget,
+                      MediaQuery.textScalerOf(context).scale(20) +
+                          NexSpacing.sm * 3,
+                    ),
                     child: Center(
                       child: ListView(
                         shrinkWrap: true,

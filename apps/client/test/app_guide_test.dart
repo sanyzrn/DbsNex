@@ -41,6 +41,34 @@ void main() {
     expect(trash, contains('سطل زباله'));
   });
 
+  // From the 1.99.96 reviews (UX-11, AI-15/16): a budget one past the first
+  // passage's length used to throw, and the throw was swallowed into "no
+  // guide"; a contraction or a colloquial Persian question found nothing.
+  test('any budget is safe, and casual questions still find the guide', () {
+    final line = en.relevant(
+      'How do I pin a tool to the home screen?',
+      budget: 3500,
+    );
+    final first = line.split('\n\n').first;
+    for (final budget in [first.length - 1, first.length, first.length + 1]) {
+      expect(
+        () => en.relevant(
+          'How do I pin a tool to the home screen?',
+          budget: budget,
+        ),
+        returnsNormally,
+      );
+    }
+    expect(
+      en.relevant("how's the app lock turned on?", budget: 3500),
+      contains('lock'),
+    );
+    expect(
+      fa.relevant('قفل برنامه رو چجوری روشن کنم؟', budget: 3500),
+      contains('قفل برنامه'),
+    );
+  });
+
   test('a question about the notes brings no guide', () {
     expect(
       en.relevant('What did I write about the boiler?', budget: 3500),

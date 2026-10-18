@@ -1871,7 +1871,7 @@ abstract class AppLocalizations {
   /// Banner when re-generating the daily recap fails; the old text stays on screen
   ///
   /// In en, this message translates to:
-  /// **'The recap could not be refreshed. The one below is the last one Nex made.'**
+  /// **'The smart summary could not be refreshed. The one below is the last one Nex made.'**
   String get recapRefreshFailed;
 
   /// No description provided for @shareSaved.
@@ -2573,7 +2573,7 @@ abstract class AppLocalizations {
   /// Retention notice at the top of the trash
   ///
   /// In en, this message translates to:
-  /// **'Items here are removed permanently after 30 days.'**
+  /// **'Notes here are removed permanently after 30 days.'**
   String get trashRetention;
 
   /// Hard-deletes one trashed note
@@ -3011,7 +3011,7 @@ abstract class AppLocalizations {
   /// No description provided for @fullBackupSub.
   ///
   /// In en, this message translates to:
-  /// **'One encrypted file with your settings and keys — for a new phone'**
+  /// **'One file for a new phone: your notes, with settings and keys encrypted'**
   String get fullBackupSub;
 
   /// No description provided for @exportNotes.
@@ -3023,7 +3023,7 @@ abstract class AppLocalizations {
   /// No description provided for @exportSub.
   ///
   /// In en, this message translates to:
-  /// **'A ZIP of Markdown and JSON, readable without Nex'**
+  /// **'Notes as Markdown and JSON in a ZIP, readable without Nex. Cycle and module data are only in backups.'**
   String get exportSub;
 
   /// No description provided for @restoreFromFile.
@@ -6941,7 +6941,7 @@ abstract class AppLocalizations {
   /// Onboarding page body about privacy
   ///
   /// In en, this message translates to:
-  /// **'No account and no server: your notes live on this phone and work offline. Lock the app with your fingerprint, keep passwords and cards in a private vault, and back up — encrypted — to a folder you choose. No streaks, no nagging.'**
+  /// **'No account and no server: your notes live on this phone and work offline. Lock the app with your fingerprint, keep passwords and cards in a private vault, and back up to a folder you choose — your keys and settings encrypted, your notes in files you can always open. No streaks, no nagging.'**
   String get onboardingYoursBody;
 
   /// Heading above the guide link on the last onboarding step
@@ -7025,7 +7025,7 @@ abstract class AppLocalizations {
   /// Point on the onboarding privacy page
   ///
   /// In en, this message translates to:
-  /// **'Encrypted backup'**
+  /// **'Your own backups'**
   String get onboardingYoursBackup;
 
   /// Caption over the live greeting preview on the last onboarding step
@@ -7435,6 +7435,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That search could not be run.'**
   String get searchFailed;
+
+  /// Tooltip on the minus button of a Cycle length stepper.
+  ///
+  /// In en, this message translates to:
+  /// **'One day fewer'**
+  String get cycleStepFewer;
+
+  /// Tooltip on the plus button of a Cycle length stepper.
+  ///
+  /// In en, this message translates to:
+  /// **'One day more'**
+  String get cycleStepMore;
+
+  /// One-time capsule over the + button; tapping it dismisses it.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold + for the assistant • Got it'**
+  String get assistantHoldHint;
 
   /// AI tool on a YouTube link: watch the video and summarise what is in it.
   ///

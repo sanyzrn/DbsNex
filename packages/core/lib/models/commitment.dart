@@ -327,16 +327,27 @@ DateTime nexAdvance(NexCommitment commitment, {required DateTime after}) {
   }
   final period = commitment.period;
   if (period != null) {
-    var next = commitment.dueAt.add(period);
+    // Days and weeks step on the calendar, so "eight every morning" stays at
+    // eight across a daylight-saving change; adding a raw Duration of 24
+    // hours moved it to seven or nine (1.99.96 reviews, DATA-11). Hours are
+    // elapsed time, and stay a Duration.
+    final days = switch (commitment.cadence) {
+      NexCadence.days => commitment.every,
+      NexCadence.weeks => 7 * commitment.every,
+      _ => null,
+    };
+    DateTime step(DateTime from) =>
+        days == null ? from.add(period) : _addCalendarDays(from, days);
+    var next = step(commitment.dueAt);
     var guard = 0;
     while (!next.isAfter(after)) {
       if (++guard > _maxSteps) {
         // Missed for so long that continuing the old cycle is no service to
         // anybody. Start again from the moment it was met.
-        next = after.add(period);
+        next = step(after);
         break;
       }
-      next = next.add(period);
+      next = step(next);
     }
     return _intoWindow(commitment, next);
   }
@@ -409,6 +420,29 @@ int _daysInMonth(int year, int month) => DateTime(year, month + 1, 0).day;
 ///
 /// Only the hourly cadence has a window, and only the hourly cadence needs
 /// one: it is the one fine enough to fire while somebody is asleep.
+/// [from] moved [days] calendar days, at the same wall-clock time.
+DateTime _addCalendarDays(DateTime from, int days) => from.isUtc
+    ? DateTime.utc(
+        from.year,
+        from.month,
+        from.day + days,
+        from.hour,
+        from.minute,
+        from.second,
+        from.millisecond,
+        from.microsecond,
+      )
+    : DateTime(
+        from.year,
+        from.month,
+        from.day + days,
+        from.hour,
+        from.minute,
+        from.second,
+        from.millisecond,
+        from.microsecond,
+      );
+
 DateTime _intoWindow(NexCommitment commitment, DateTime when) {
   if (commitment.cadence != NexCadence.hours) return when;
   final start = commitment.windowStart;

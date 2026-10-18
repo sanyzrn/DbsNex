@@ -512,4 +512,22 @@ void main() {
       );
     });
   });
+
+  // 1.99.96 reviews, SEC-01: the brief is now logged with the notes it was
+  // written from, and those are exactly the ones its lines came from.
+  test('the notes named are the notes the lines came from', () {
+    final notes = [
+      note(
+        id: 'due',
+        content: 'call the plumber',
+        due: const Duration(hours: 3),
+      ),
+      note(id: 'old', content: 'an old thought', age: const Duration(days: 40)),
+      note(id: 'empty', content: '   '),
+      note(id: 'gone', content: 'deleted', deletedAt: now),
+    ];
+    final ids = nexRecapNoteIds(notes, now: now, limit: 2);
+    expect(ids, ['due', 'old']);
+    expect(linesOf(notes, limit: 2), hasLength(ids.length));
+  });
 }

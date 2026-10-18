@@ -43,9 +43,14 @@ class NoteEditorSheet extends StatefulWidget {
     this.client,
     this.draftKey,
     this.allowEmpty = false,
+    this.noteId,
   });
 
   final String initial;
+
+  /// The note being edited, named in the log of what left the phone when
+  /// the text is sent for a rewrite.
+  final String? noteId;
   final String? draftKey;
   final bool allowEmpty;
   final NexPreferences preferences;
@@ -61,6 +66,7 @@ class NoteEditorSheet extends StatefulWidget {
     CloudAIAdapter Function()? client,
     String? draftKey,
     bool allowEmpty = false,
+    String? noteId,
   }) async {
     try {
       return await nexShowSheet<String>(
@@ -73,6 +79,7 @@ class NoteEditorSheet extends StatefulWidget {
           client: client,
           draftKey: draftKey,
           allowEmpty: allowEmpty,
+          noteId: noteId,
         ),
       );
     } finally {
@@ -181,7 +188,10 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
     final adapter = _adapter();
     String? edited;
     try {
-      edited = await adapter.rewrite(before, style: style);
+      edited = await NexDisclosureLog.about(
+        notes: [?widget.noteId],
+        () => adapter.rewrite(before, style: style),
+      );
     } catch (error) {
       unawaited(NexCrashLog.handled('editor.rewrite', error));
       edited = null;

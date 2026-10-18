@@ -236,20 +236,28 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String portraitLocked(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count یادداشت دیگر تا باز شدن پرتره',
+      other: '$countString یادداشت دیگر تا باز شدن پرتره',
     );
     return '$_temp0';
   }
 
   @override
   String portraitLockedDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '…و یادداشت در $count روز دیگر.',
+      other: '…و یادداشت در $countString روز دیگر.',
     );
     return '$_temp0';
   }
@@ -1257,7 +1265,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get attachOpen => 'باز کردن';
 
   @override
-  String get attachFailed => 'پیوست کردن این فایل نشد';
+  String get attachFailed => 'این فایل پیوست نشد';
 
   @override
   String attachedMore(int count) {
@@ -1490,7 +1498,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get trashRetention =>
-      'موارد اینجا بعد از ۳۰ روز برای همیشه پاک می‌شوند.';
+      'یادداشت‌های اینجا بعد از ۳۰ روز برای همیشه پاک می‌شوند.';
 
   @override
   String get deleteForever => 'حذف همیشگی';
@@ -1777,13 +1785,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get fullBackupSub =>
-      'یک فایل رمزگذاری‌شده همراه تنظیمات و کلیدها — برای گوشی جدید';
+      'یک فایل برای گوشی جدید: یادداشت‌ها، همراه تنظیمات و کلیدهای رمزگذاری‌شده';
 
   @override
   String get exportNotes => 'خروجی گرفتن از یادداشت‌ها';
 
   @override
-  String get exportSub => 'فایل ZIP شامل Markdown و JSON، خواندنی بدون نکس';
+  String get exportSub =>
+      'یادداشت‌ها به‌صورت Markdown و JSON در یک ZIP، خواندنی بدون نکس. داده‌های چرخه و ماژول‌ها فقط در پشتیبان‌ها هستند.';
 
   @override
   String get restoreFromFile => 'بازیابی یا وارد کردن از فایل';
@@ -2599,7 +2608,15 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String assistantActionPartlyDone(int done, int total) {
-    return '$done تغییر از $total انجام شد و بعد یکی ناموفق ماند. پیش از درخواست دوباره، یادداشت‌ها را ببینید.';
+    final intl.NumberFormat doneNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String doneString = doneNumberFormat.format(done);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String totalString = totalNumberFormat.format(total);
+
+    return '$doneString تغییر از $totalString انجام شد و بعد یکی ناموفق ماند. پیش از درخواست دوباره، یادداشت‌ها را ببینید.';
   }
 
   @override
@@ -3411,7 +3428,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cycleDays(int count) {
-    return '$count روز';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString روز';
   }
 
   @override
@@ -3424,7 +3445,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cycleDaysUntil(int count) {
-    return '$count روز تا پریود بعدی';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString روز تا پریود بعدی';
   }
 
   @override
@@ -3432,7 +3457,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cycleLate(int count) {
-    return '$count روز تأخیر';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString روز تأخیر';
   }
 
   @override
@@ -3759,7 +3788,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cycleUntilFertile(int count) {
-    return '$count روز تا پنجرهٔ باروری';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString روز تا پنجرهٔ باروری';
   }
 
   @override
@@ -3784,7 +3817,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cycleDaysToGo(int count) {
-    return '$count روز مانده';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString روز مانده';
   }
 
   @override
@@ -4232,7 +4269,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get onboardingYoursBody =>
-      'نه حساب کاربری، نه سرور: یادداشت‌ها روی همین گوشی می‌مانند و بی‌اینترنت هم کار می‌کنند. اپ را با اثر انگشت قفل کنید، رمزها و کارت‌ها را در صندوق خصوصی نگه دارید و از همه‌چیز نسخهٔ پشتیبانِ رمزگذاری‌شده در پوشه‌ای که خودتان انتخاب می‌کنید بگیرید. بدون امتیاز و یادآوری‌های مزاحم.';
+      'نه حساب کاربری، نه سرور: یادداشت‌ها روی همین گوشی می‌مانند و بی‌اینترنت هم کار می‌کنند. اپ را با اثر انگشت قفل کنید، رمزها و کارت‌ها را در خزانهٔ خصوصی نگه دارید و در پوشه‌ای که خودتان انتخاب می‌کنید پشتیبان بگیرید — کلیدها و تنظیمات رمزگذاری‌شده، یادداشت‌ها در فایل‌هایی که همیشه باز می‌شوند. بدون امتیاز و یادآوری‌های مزاحم.';
 
   @override
   String get onboardingGuideTitle => 'نمی‌دانید چیزی کجاست؟';
@@ -4274,10 +4311,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get onboardingYoursLock => 'قفل اثر انگشت';
 
   @override
-  String get onboardingYoursVault => 'صندوق خصوصی';
+  String get onboardingYoursVault => 'خزانهٔ خصوصی';
 
   @override
-  String get onboardingYoursBackup => 'پشتیبانِ رمزگذاری‌شده';
+  String get onboardingYoursBackup => 'پشتیبان شخصی';
 
   @override
   String get onboardingSetupPreview => 'نکس این‌طور به شما سلام می‌کند';
@@ -4545,6 +4582,15 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get searchFailed => 'این جست‌وجو انجام نشد.';
+
+  @override
+  String get cycleStepFewer => 'یک روز کمتر';
+
+  @override
+  String get cycleStepMore => 'یک روز بیشتر';
+
+  @override
+  String get assistantHoldHint => 'برای دستیار + را نگه دارید • فهمیدم';
 
   @override
   String get aiAnalyzeVideo => 'تحلیل ویدئو';
@@ -5239,10 +5285,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String assistantMoreNotes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'و $count مورد دیگر',
+      other: 'و $countString مورد دیگر',
       one: 'و ۱ مورد دیگر',
     );
     return '$_temp0';

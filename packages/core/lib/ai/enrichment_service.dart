@@ -15,11 +15,20 @@ class EnrichmentService {
     required NoteRepository repo,
     AIAdapter adapter = const NullAIAdapter(),
     AiCapabilities capabilities = AiCapabilities.allOff,
+    Future<void> Function(String noteId, Future<void> Function() send)?
+    disclose,
   }) : _repo = repo,
        _adapter = adapter,
-       _capabilities = capabilities;
+       _capabilities = capabilities,
+       _disclose = disclose;
 
   final NoteRepository _repo;
+
+  /// Runs one send on behalf of a note, so whoever logs what leaves the
+  /// phone can say which note it came from. The search index's own pass
+  /// used to be logged with no note at all (1.99.96 reviews, SEC-01).
+  final Future<void> Function(String noteId, Future<void> Function() send)?
+  _disclose;
   AIAdapter _adapter;
   AiCapabilities _capabilities;
 
@@ -193,7 +202,12 @@ class EnrichmentService {
     var done = 0;
     for (final note in _repo.listNeedingEmbedding(limit: limit)) {
       try {
-        await _embed(note);
+        final disclose = _disclose;
+        if (disclose == null) {
+          await _embed(note);
+        } else {
+          await disclose(note.id, () => _embed(note));
+        }
       } catch (_) {
         break;
       }

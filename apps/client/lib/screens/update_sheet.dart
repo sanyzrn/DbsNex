@@ -391,7 +391,10 @@ class _UpdateSheetState extends State<UpdateSheet> {
       if (_result!.sizeBytes != null) ...[
         const SizedBox(height: NexSpacing.xs),
         Text(
-          nexFormatBytes(_result!.sizeBytes!),
+          nexDigits(
+            nexFormatBytes(_result!.sizeBytes!),
+            persian: l10n.localeName == 'fa',
+          ),
           style: theme.textTheme.bodySmall,
         ),
       ],

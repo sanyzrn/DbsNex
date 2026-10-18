@@ -118,6 +118,12 @@ extension _TimelineAiHeader on TimelineScreenState {
     }
     final source = _aiRecapSource();
     if (source.isEmpty) return;
+    // Which notes the brief is written from, for the log of what left the
+    // phone: it used to name none (1.99.96 reviews, SEC-01).
+    final sourceNotes = nexRecapNoteIds(
+      _model.all ?? _model.notes,
+      commitments: _model.commitments,
+    );
     final style = prefs.briefStyle;
     final length = prefs.briefLength;
     final budget = nexBriefLines(
@@ -167,19 +173,22 @@ extension _TimelineAiHeader on TimelineScreenState {
             unlimitedSummary: unlimited,
           );
           try {
-            final answer = await adapter.digest(
-              source,
-              lines: budget,
-              style: style,
-              tone: tone,
-              instruction: instruction,
-              written: written ?? '',
-              words: length.words,
-              timeout: force
-                  ? const Duration(minutes: 5)
-                  : unlimited
-                  ? const Duration(minutes: 3)
-                  : CloudAIAdapter.ambientTimeout,
+            final answer = await NexDisclosureLog.about(
+              notes: sourceNotes,
+              () => adapter.digest(
+                source,
+                lines: budget,
+                style: style,
+                tone: tone,
+                instruction: instruction,
+                written: written ?? '',
+                words: length.words,
+                timeout: force
+                    ? const Duration(minutes: 5)
+                    : unlimited
+                    ? const Duration(minutes: 3)
+                    : CloudAIAdapter.ambientTimeout,
+              ),
             );
             // Local facts are useful fallback text, never an AI success stamp.
             if (answer == null || answer.trim().isEmpty) return null;
@@ -249,12 +258,15 @@ extension _TimelineAiHeader on TimelineScreenState {
         request: () async {
           final adapter = _aiAdapter();
           try {
-            return await adapter.headline(
-              _aiHeadlineSource(),
-              language: language,
-              timeout: force || prefs.aiSummaryUnlimited
-                  ? const Duration(minutes: 5)
-                  : CloudAIAdapter.ambientTimeout,
+            return await NexDisclosureLog.about(
+              notes: _aiHeadlineNotes().map((note) => note.id),
+              () => adapter.headline(
+                _aiHeadlineSource(),
+                language: language,
+                timeout: force || prefs.aiSummaryUnlimited
+                    ? const Duration(minutes: 5)
+                    : CloudAIAdapter.ambientTimeout,
+              ),
             );
           } finally {
             adapter.close();
@@ -375,14 +387,16 @@ extension _TimelineAiHeader on TimelineScreenState {
   /// it wants to know roughly what someone has been writing about and
   /// nothing else, and telling it what is due would turn a greeting into a
   /// second recap.
-  String _aiHeadlineSource() {
-    final recent = (_model.all ?? _model.notes).take(20);
-    final lines = <String>[
-      for (final note in recent)
-        (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim(),
-    ]..removeWhere((line) => line.isEmpty);
-    return lines.join('\n');
-  }
+  String _aiHeadlineSource() =>
+      [for (final note in _aiHeadlineNotes()) _headlineText(note)].join('\n');
+
+  /// The notes the headline reads: the newest twenty with words in them.
+  Iterable<Note> _aiHeadlineNotes() => (_model.all ?? _model.notes)
+      .take(20)
+      .where((note) => _headlineText(note).isNotEmpty);
+
+  static String _headlineText(Note note) =>
+      (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim();
 
   /// The recap's source: the library's state, not a slice of its prose.
   ///

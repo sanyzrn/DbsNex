@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
 import 'package:flutter/rendering.dart';
 
@@ -333,7 +334,11 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
       // Captured at the source photo's own resolution, not the screen's —
       // otherwise every annotated photo would be downgraded to whatever the
       // device happened to render it at.
-      final pixelRatio = _nativeWidth! / boundary.size.width;
+      //
+      // A hair under the exact ratio: the capture is sized by rounding
+      // width × ratio *up*, and a ratio that came out a rounding error high
+      // gave a photo one pixel wider than it went in.
+      final pixelRatio = (_nativeWidth! - 0.01) / boundary.size.width;
       rendered = await boundary.toImage(pixelRatio: pixelRatio);
       final bytes = await rendered.toByteData(format: ui.ImageByteFormat.png);
       if (!mounted) return;
@@ -540,7 +545,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
                                 child: InkResponse(
                                   onTap: () => setState(() => _color = swatch),
                                   child: SizedBox.square(
-                                    dimension: 44,
+                                    dimension: nexMinTapTarget,
                                     child: Center(
                                       child: AnimatedContainer(
                                         duration: NexMotion.fast,
@@ -603,7 +608,8 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
                             Expanded(
                               child: Slider(
                                 semanticFormatterCallback: (value) =>
-                                    '${drawing ? l10n.annotateStrokeWidth : l10n.annotateSize}: ${value.round()}',
+                                    '${drawing ? l10n.annotateStrokeWidth : l10n.annotateSize}: '
+                                    '${nexDigits('${value.round()}', persian: l10n.localeName == 'fa')}',
                                 value: drawing ? _strokeWidth : _textSize,
                                 min: drawing ? 2 : 14,
                                 max: drawing ? 24 : 56,

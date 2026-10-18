@@ -443,7 +443,12 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
                           style: theme.textTheme.bodyMedium,
                         ),
                         Text(
-                          nexFormatBytes(size),
+                          nexDigits(
+                            nexFormatBytes(size),
+                            persian:
+                                Localizations.localeOf(context).languageCode ==
+                                'fa',
+                          ),
                           style: theme.textTheme.bodySmall,
                         ),
                       ],

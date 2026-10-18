@@ -26,9 +26,13 @@ extension NexModuleServices on NexServices {
 
   /// Everything [module] saved, gone — and, as with Cycle, the backups on
   /// this phone that still held it replaced by one that does not.
+  ///
+  /// Whether or not this removed anything: a module that emptied its own
+  /// records from its own screen left nothing here to count, while the
+  /// older backups still held them (1.99.96 reviews, SEC-07).
   Future<void> moduleDeleteAll(String module) async {
-    final removed = await _moduleWrite(module, worker.moduleDeleteAll(module));
-    if (removed > 0) await _replaceBackupsHoldingDeleted();
+    await _moduleWrite(module, worker.moduleDeleteAll(module));
+    await _replaceBackupsHoldingDeleted();
   }
 
   bool moduleRemindersEnabled(String module) => nexModules.any(

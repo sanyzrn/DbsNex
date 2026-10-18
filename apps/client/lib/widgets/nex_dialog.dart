@@ -184,25 +184,31 @@ Future<T?> nexShowSheet<T>({
         top: Radius.circular(NexRadius.xl),
       ),
       fallbackColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (dismissible) handle,
-          if (guarded) _SwipeHandle(child: handle),
-          Flexible(
-            child: SafeArea(
-              top: false,
-              // Every dismissible sheet closes when its content is pulled
-              // down past the top, not only from the handle: a scrolling
-              // body wins the drag before the sheet sees it, and a sheet
-              // that cannot be swiped away reads as stuck. Here, once, so a
-              // new sheet cannot forget it (the Cycle settings did).
-              child: dismissible
-                  ? NexDismissOnOverscroll(child: builder(context))
-                  : builder(context),
+      // A Material above the glass's painted colour: a list row's ripple is
+      // drawn on the nearest Material, and the one the route provides sits
+      // underneath that colour, so every tap in a sheet rippled out of sight.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (dismissible) handle,
+            if (guarded) _SwipeHandle(child: handle),
+            Flexible(
+              child: SafeArea(
+                top: false,
+                // Every dismissible sheet closes when its content is pulled
+                // down past the top, not only from the handle: a scrolling
+                // body wins the drag before the sheet sees it, and a sheet
+                // that cannot be swiped away reads as stuck. Here, once, so a
+                // new sheet cannot forget it (the Cycle settings did).
+                child: dismissible
+                    ? NexDismissOnOverscroll(child: builder(context))
+                    : builder(context),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
     final framed = guarded ? _SwipeToClose(child: sheet) : sheet;

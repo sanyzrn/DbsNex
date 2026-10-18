@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -61,7 +62,10 @@ class StoragePanel extends StatelessWidget {
               Text(l10n.storage, style: theme.textTheme.titleSmall),
               const Spacer(),
               Text(
-                nexFormatBytes(total),
+                nexDigits(
+                  nexFormatBytes(total),
+                  persian: l10n.localeName == 'fa',
+                ),
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -111,7 +115,10 @@ class StoragePanel extends StatelessWidget {
                     child: Text(label, style: theme.textTheme.bodyMedium),
                   ),
                   Text(
-                    nexFormatBytes(bytes),
+                    nexDigits(
+                      nexFormatBytes(bytes),
+                      persian: l10n.localeName == 'fa',
+                    ),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -139,6 +146,12 @@ class _Bar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The legend under it says the same thing in words, figure by figure;
+    // a screen reader reads that, not a bar of colours.
+    return ExcludeSemantics(child: _bar());
+  }
+
+  Widget _bar() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(NexRadius.xs),
       child: SizedBox(

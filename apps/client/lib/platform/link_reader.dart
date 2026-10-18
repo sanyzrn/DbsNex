@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show InternetAddress, InternetAddressType;
+import 'dart:io' show HttpOverrides, InternetAddress, InternetAddressType;
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -29,12 +29,43 @@ class LinkPreview {
 /// unusual — a link note with no preview is a working link note, and this is
 /// decoration on top of something already saved.
 class LinkReader {
-  LinkReader({http.Client? client})
-    : _client = client ?? http.Client(),
-      _ownsClient = client == null;
+  /// [resolve] looks a host's addresses up before anything is fetched from
+  /// it. Left out, it is the system's own lookup — unless a [client] is
+  /// given or HTTP itself is overridden, which is a test talking to no
+  /// network, with no names to look up (and a real lookup there would never
+  /// answer). The app never overrides HTTP.
+  LinkReader({
+    http.Client? client,
+    Future<List<InternetAddress>> Function(String host)? resolve,
+  }) : _client = client ?? http.Client(),
+       _ownsClient = client == null,
+       _resolve =
+           resolve ??
+           (client == null && HttpOverrides.current == null
+               ? InternetAddress.lookup
+               : null);
 
   final http.Client _client;
   final bool _ownsClient;
+  final Future<List<InternetAddress>> Function(String host)? _resolve;
+
+  /// Whether every address [uri]'s host has is a public one.
+  ///
+  /// [isPublicWebUrl] can only judge an address it is given. A name — an
+  /// intranet host, or any name someone pointed at 192.168.1.1 — passed it
+  /// and the preview went to a machine inside the phone's own network
+  /// (1.99.96 reviews, SEC-06). So the name is looked up first, and every
+  /// address it has must pass the same test.
+  Future<bool> _resolvesPublic(Uri uri) async {
+    final resolve = _resolve;
+    final host = uri.host;
+    if (resolve == null || InternetAddress.tryParse(host) != null) return true;
+    final addresses = await resolve(host).timeout(_timeout);
+    return addresses.isNotEmpty &&
+        addresses.every(
+          (address) => isPublicWebUrl(uri.replace(host: address.address)),
+        );
+  }
 
   /// How much of the document to read before giving up on finding a title.
   ///
@@ -57,6 +88,7 @@ class LinkReader {
       // walk the preview straight onto the phone's own services.
       for (var hop = 0; hop <= _maxRedirects; hop++) {
         if (!isPublicWebUrl(target)) return const LinkPreview();
+        if (!await _resolvesPublic(target)) return const LinkPreview();
         final request = http.Request('GET', target)
           ..followRedirects = false
           ..headers.addAll({
@@ -115,9 +147,8 @@ class LinkReader {
 /// router at `192.168.1.1` would be a request from inside the phone's
 /// network that nobody asked for.
 ///
-/// Names are not resolved here, so a public name that resolves to a private
-/// address is not caught; the request still goes nowhere the user did not
-/// type, and nothing it returns leaves the device.
+/// Names are not resolved here; [LinkReader] looks them up and runs each
+/// address they resolve to back through this.
 bool isPublicWebUrl(Uri uri) {
   if (uri.scheme != 'https' && uri.scheme != 'http') return false;
   final host = uri.host.toLowerCase();

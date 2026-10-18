@@ -37,7 +37,7 @@ Save button, it gets out of your way: tap, capture, done. Organize later, if you
 | ⚡ **Capture never waits** | Text, voice, photos, files and checklists, with no Save button anywhere. A note exists the moment it has content. |
 | 🔎 **Find in seconds** | SQLite FTS5 full-text search with Persian-aware folding, plus tag, type and date filters. |
 | 🌐 **Persian first** | Persian and English, full right-to-left layout, the Persian calendar and Persian digits throughout. |
-| 🔒 **Local-first and private** | Your notes live in a database on your device. Encrypted backups, an app lock and a vault. |
+| 🔒 **Local-first and private** | Your notes live in a database on your device. Backups you keep (settings and keys encrypted, notes readable anywhere), an app lock and an encrypted vault. |
 | 🔔 **Comes back to you** | One-off and repeating reminders, and recurring items with their own calendar. |
 | ✨ **AI that stays optional** | Transcription, OCR, summaries and a grounded assistant — off by default, with a provider you choose. |
 
@@ -112,6 +112,8 @@ checklist in one tap) and Recap widgets on Android that follow the
 app's language and accent, and stay private while the app lock is on.
 
 **Per-note AI workspace** — compact icon actions sit below the content and tags, with long-press labels. Results have previews, expandable text, a source selector and Hide/Show controls that retain existing output. Extracted file text is distinguished from image descriptions, including attachments. Copy is available for all results; Add to caption is offered only for non-text notes. Existing captions offer Cancel, Append or Replace; replacements protect concurrent edits. Translation includes a language picker and Save as note. With Gemini, a link note holding a YouTube video offers **Analyze video**: the video itself is watched and summarised with timestamps, and kept as the note's summary. Media reading is explicit. Similar-note suggestions and their lookups are temporarily paused in 2.0.6; semantic search remains available.
+
+**Cycle** — an optional module in Tools → Modules (the one available today; the others are marked Soon): a period and cycle tracker with predictions, a daily log, modes for trying to conceive, pregnancy, breastfeeding and menopause, recurring symptom patterns, a one-page report for a doctor, discreet reminders and two home-screen widgets. Its data stays on the phone and in your backups; the assistant reads a short summary of it only if you allow it.
 
 **Writing portrait** — at the foot of the profile, once there are 30 notes on 7 days: when in the day you write, how many of the last 30 days you wrote on, how much of your checklists you tick, the kinds of notes you keep and your top tags, all counted on the phone. With a provider, an opt-in portrait in words (a headline, a few sentences, five traits, strengths and one suggestion) is read from a sample of up to 80 notes and logged like every other request. A reflection, not a test or a diagnosis.
 

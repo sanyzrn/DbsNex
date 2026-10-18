@@ -136,7 +136,11 @@ class NexAppGuide {
       final passage = _passages[index];
       final line = '[${passage.section}] ${passage.text}';
       if (out.length + line.length + 2 > budget) {
-        if (out.isEmpty) out.write(line.substring(0, math.max(0, budget)));
+        if (out.isEmpty) {
+          out.write(
+            line.substring(0, math.min(line.length, math.max(0, budget))),
+          );
+        }
         break;
       }
       if (out.isNotEmpty) out.write('\n\n');
@@ -147,14 +151,19 @@ class NexAppGuide {
 
   /// Whether a question reads as one about using the app.
   static bool _cued(String question) {
-    final text = ' ${_fold(question)} ';
+    // "how's" is "hows" here, so a contraction is still a question.
+    final text = ' ${_fold(question).replaceAll(RegExp("['’]"), '')} ';
     return _cues.any(text.contains);
   }
 
   static const _cues = [
     ' how ',
+    ' hows ',
     ' where ',
+    ' wheres ',
     ' why ',
+    ' whys ',
+    ' whats ',
     ' can i ',
     ' what is ',
     ' what does ',
@@ -170,6 +179,8 @@ class NexAppGuide {
     ' does not work',
     ' not working',
     ' چطور',
+    ' چجوری',
+    ' چیکار',
     ' چگونه',
     ' کجا',
     ' چرا',

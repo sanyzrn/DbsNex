@@ -203,7 +203,12 @@ extension NexScheduledReminders on NexReminders {
             channelDescription: NexReminders._text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
-            visibility: NotificationVisibility.private,
+            // Under the app lock a Cycle reminder hides from the lock screen
+            // the way a note's does: its words give nothing away, but a
+            // daily one is itself a pattern someone could notice.
+            visibility: hideOnLockScreen?.call() ?? false
+                ? NotificationVisibility.secret
+                : NotificationVisibility.private,
           ),
           iOS: const DarwinNotificationDetails(),
         ),

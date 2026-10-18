@@ -33,6 +33,29 @@ void main() {
   );
 
   group('rolling forward', () {
+    // 1.99.96 reviews, DATA-11: a daily one stepped by 24 hours, so across a
+    // daylight-saving change "eight every morning" became seven or nine. It
+    // can only fail in a zone that has the change — run with
+    // TZ=Europe/Berlin to see it — and it holds trivially in UTC.
+    test('a daily one stays at its hour across a daylight-saving change', () {
+      var item = make(
+        cadence: NexCadence.days,
+        every: 1,
+        dueAt: DateTime(2026, 3, 20, 8),
+      );
+      for (var i = 0; i < 20; i++) {
+        final next = nexAdvance(item, after: item.dueAt);
+        expect(next.hour, 8, reason: 'after ${item.dueAt}');
+        item = item.copyWith(dueAt: next);
+      }
+      final weekly = make(
+        cadence: NexCadence.weeks,
+        every: 1,
+        dueAt: DateTime(2026, 10, 20, 8),
+      );
+      expect(nexAdvance(weekly, after: weekly.dueAt).hour, 8);
+    });
+
     test('keeps its place in the cycle, not the day it was done', () {
       // Rent due on the 1st, paid on the 3rd. Next month it is still the 1st.
       // Counting from the moment it was met would walk it two days later

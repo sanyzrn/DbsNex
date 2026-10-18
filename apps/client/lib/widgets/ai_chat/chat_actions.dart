@@ -158,6 +158,10 @@ extension _ChatActions on _AiChatSheetState {
     ];
     if (ok && searches.isNotEmpty) {
       if (mounted) _rebuild(() => _sending = false);
+      // The person asked for these by confirming them: the cap on rounds
+      // the model may spend looking on its own is not theirs to hit, and a
+      // confirmed search used to vanish once it was (1.99.96 reviews, AI-14).
+      _searchRounds = 0;
       _lookups = searches;
       await _runLookups();
       if (searches.length == actions.length) return;

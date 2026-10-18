@@ -252,10 +252,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String portraitLocked(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count more notes to unlock your portrait',
+      other: '$countString more notes to unlock your portrait',
       one: '1 more note to unlock your portrait',
     );
     return '$_temp0';
@@ -263,10 +267,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String portraitLockedDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '…and notes on $count more days.',
+      other: '…and notes on $countString more days.',
       one: '…and notes on 1 more day.',
     );
     return '$_temp0';
@@ -1112,7 +1120,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recapRefreshFailed =>
-      'The recap could not be refreshed. The one below is the last one Nex made.';
+      'The smart summary could not be refreshed. The one below is the last one Nex made.';
 
   @override
   String get shareSaved => 'Saved to Nex.';
@@ -1281,10 +1289,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String attachedMore(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count more files',
+      other: '$countString more files',
       one: '1 more file',
     );
     return '$_temp0';
@@ -1527,7 +1539,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trashRetention =>
-      'Items here are removed permanently after 30 days.';
+      'Notes here are removed permanently after 30 days.';
 
   @override
   String get deleteForever => 'Delete permanently';
@@ -1818,13 +1830,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fullBackupSub =>
-      'One encrypted file with your settings and keys — for a new phone';
+      'One file for a new phone: your notes, with settings and keys encrypted';
 
   @override
   String get exportNotes => 'Export notes';
 
   @override
-  String get exportSub => 'A ZIP of Markdown and JSON, readable without Nex';
+  String get exportSub =>
+      'Notes as Markdown and JSON in a ZIP, readable without Nex. Cycle and module data are only in backups.';
 
   @override
   String get restoreFromFile => 'Restore or import from a file';
@@ -2662,7 +2675,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String assistantActionPartlyDone(int done, int total) {
-    return '$done of $total changes were made before one failed. Check the notes before asking again.';
+    final intl.NumberFormat doneNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String doneString = doneNumberFormat.format(done);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String totalString = totalNumberFormat.format(total);
+
+    return '$doneString of $totalString changes were made before one failed. Check the notes before asking again.';
   }
 
   @override
@@ -3481,10 +3502,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String cycleDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days',
+      other: '$countString days',
       one: '1 day',
     );
     return '$_temp0';
@@ -3500,10 +3525,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String cycleDaysUntil(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days until your period',
+      other: '$countString days until your period',
       one: '1 day until your period',
     );
     return '$_temp0';
@@ -3514,10 +3543,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String cycleLate(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days late',
+      other: '$countString days late',
       one: '1 day late',
     );
     return '$_temp0';
@@ -3848,10 +3881,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String cycleUntilFertile(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days to your fertile window',
+      other: '$countString days to your fertile window',
       one: '1 day to your fertile window',
     );
     return '$_temp0';
@@ -3879,10 +3916,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String cycleDaysToGo(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days to go',
+      other: '$countString days to go',
       one: '1 day to go',
     );
     return '$_temp0';
@@ -4332,7 +4373,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingYoursBody =>
-      'No account and no server: your notes live on this phone and work offline. Lock the app with your fingerprint, keep passwords and cards in a private vault, and back up — encrypted — to a folder you choose. No streaks, no nagging.';
+      'No account and no server: your notes live on this phone and work offline. Lock the app with your fingerprint, keep passwords and cards in a private vault, and back up to a folder you choose — your keys and settings encrypted, your notes in files you can always open. No streaks, no nagging.';
 
   @override
   String get onboardingGuideTitle => 'Not sure where something is?';
@@ -4377,14 +4418,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingYoursVault => 'Private vault';
 
   @override
-  String get onboardingYoursBackup => 'Encrypted backup';
+  String get onboardingYoursBackup => 'Your own backups';
 
   @override
   String get onboardingSetupPreview => 'How Nex will greet you';
 
   @override
   String onboardingStep(int step, int total) {
-    return 'Step $step of $total';
+    final intl.NumberFormat stepNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String stepString = stepNumberFormat.format(step);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String totalString = totalNumberFormat.format(total);
+
+    return 'Step $stepString of $totalString';
   }
 
   @override
@@ -4645,6 +4694,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchFailed => 'That search could not be run.';
+
+  @override
+  String get cycleStepFewer => 'One day fewer';
+
+  @override
+  String get cycleStepMore => 'One day more';
+
+  @override
+  String get assistantHoldHint => 'Hold + for the assistant • Got it';
 
   @override
   String get aiAnalyzeVideo => 'Analyze video';
@@ -5069,10 +5127,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String disclosuresFromNotes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'From $count notes',
+      other: 'From $countString notes',
       one: 'From 1 note',
     );
     return '$_temp0';
@@ -5080,10 +5142,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String disclosuresNotesGone(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count notes have since been deleted.',
+      other: '$countString notes have since been deleted.',
       one: '1 note has since been deleted.',
     );
     return '$_temp0';
@@ -5226,10 +5292,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String metricsCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count times',
+      other: '$countString times',
       one: '1 time',
     );
     return '$_temp0';
@@ -5302,10 +5372,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String selectionCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count selected',
+      other: '$countString selected',
       one: '1 selected',
     );
     return '$_temp0';
@@ -5316,10 +5390,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String selectionCopied(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Copied $count notes',
+      other: 'Copied $countString notes',
       one: 'Copied 1 note',
     );
     return '$_temp0';
@@ -5327,10 +5405,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String selectionTagged(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Tagged $count notes',
+      other: 'Tagged $countString notes',
       one: 'Tagged 1 note',
     );
     return '$_temp0';
@@ -5338,10 +5420,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String selectionPinned(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Pinned $count notes',
+      other: 'Pinned $countString notes',
       one: 'Pinned 1 note',
     );
     return '$_temp0';
@@ -5349,10 +5435,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String selectionUnpinned(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Unpinned $count notes',
+      other: 'Unpinned $countString notes',
       one: 'Unpinned 1 note',
     );
     return '$_temp0';
@@ -5380,10 +5470,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String assistantMoreNotes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'and $count more',
+      other: 'and $countString more',
       one: 'and 1 more',
     );
     return '$_temp0';
