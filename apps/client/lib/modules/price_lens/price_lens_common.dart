@@ -240,10 +240,5 @@ Future<void> confirmPriceLensDiscard(BuildContext context) async {
 }
 
 /// "13 October 2026" for pickers and info lines.
-String lensFullDate(BuildContext context, DateTime date) {
-  final persian = NexModuleStrings.persian(context);
-  final month = priceLensStrings(context, 'month${date.month.clamp(1, 12)}');
-  final day = persian ? persianLocal('${date.day}') : '${date.day}';
-  final year = persian ? persianLocal('${date.year}') : '${date.year}';
-  return '$day $month $year';
-}
+String lensFullDate(BuildContext context, DateTime date) =>
+    nexModuleDateLabel(context, date);

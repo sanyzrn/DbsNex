@@ -404,8 +404,7 @@ const nexCardHeight = nexCardLeadingSize + NexSpacing.cardInset * 2;
 /// and the glyph both come to 48. Past that the lines outgrow the glyph and
 /// the card follows them, because the alternative is a fixed box clipping the
 /// text of whoever turned the size up. The app's own UI-scale setting composes
-/// with the system's and clamps at 1.9, so this can be asked for nearly twice
-/// the default.
+/// with the system's accessibility curve, so this follows the actual text size.
 double nexCardHeightFor(BuildContext context, {bool withFootnote = false}) {
   final density = NexCardDensity.of(context);
   final lines = nexCardPreviewLineHeightFor(context) * density.lines;
@@ -505,7 +504,7 @@ class NexCardDensityScope extends InheritedWidget {
 /// [nexCardHeightFor] or the card gets taller around text that is still being
 /// squeezed into 24 logical pixels. They were literal `24`s, which held only
 /// at scale 1.0: the app's own UI-size setting composes with the system's and
-/// clamps at 1.9, so bodyLarge can ask for 45 in a box built for 24.
+/// can grow beyond 1.9, so the row must follow the actual scaled height.
 double nexCardPreviewLineHeightFor(BuildContext context) =>
     MediaQuery.textScalerOf(
       context,

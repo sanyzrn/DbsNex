@@ -8,13 +8,11 @@ extension _ScreenActions on _PriceLensScreenState {
       var date = option.date;
       if (date == null) {
         final now = DateTime.now();
-        date = await nexShowDialog<DateTime>(
-          context: context,
-          builder: (_) => DatePickerDialog(
-            initialDate: now,
-            firstDate: DateTime(1),
-            lastDate: now,
-          ),
+        date = await nexPickModuleDate(
+          context,
+          initial: now,
+          first: DateTime(1),
+          last: now,
         );
       }
       if (date == null || !mounted) return;

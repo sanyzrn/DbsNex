@@ -11,7 +11,7 @@ import 'package:nex_ui/nex_ui.dart';
 /// each `SizedBox(height: 24)`, which is one bodyLarge line at scale 1.0 and
 /// nothing like one at 1.9 — so the card got taller while the text inside it
 /// stayed squeezed into a box built for the default size. The app's own
-/// UI-size setting composes with the system's and clamps at 1.9, and its own
+/// UI-size setting composes with the system's accessibility curve, and its own
 /// "Larger" step is 1.3, so this is reachable from the settings screen without
 /// touching Android's.
 ///
@@ -50,7 +50,7 @@ void main() {
     );
   }
 
-  for (final scale in <double>[1.0, 1.3, 1.9]) {
+  for (final scale in <double>[1.0, 1.3, 1.9, 3.2]) {
     testWidgets('checklist rows are one scaled line apart at $scale', (
       tester,
     ) async {

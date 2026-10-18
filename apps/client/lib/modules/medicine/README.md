@@ -74,7 +74,7 @@ meanings are not conflated. Missing dates are never invented.
 ## Guide
 
 EN: Add the name and details you know, optionally quantity and consistent units.
-Reference times are notes, not scheduled reminders. Taken or Skipped records your
+Reference times remain notes. A separate explicit one-time OS reminder control uses the shared module API; it does not infer a dose schedule. The module remains Soon, so no reminders run until its rollout is enabled. Taken or Skipped records your
 choice. Delete a mistaken log to correct it; Undo restores it if data has not
 changed. A recount starts a fresh inventory baseline. A clinician or pharmacist
 is the source for medication instructions.

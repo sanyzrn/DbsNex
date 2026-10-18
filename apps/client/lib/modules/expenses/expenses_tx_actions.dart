@@ -114,17 +114,15 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
   }
 
   Future<void> _pickDate() async {
-    final picked = await nexShowDialog<DateTime>(
-      context: context,
-      builder: (_) => DatePickerDialog(
-        initialDate: !_dateConfirmed
-            ? DateTime.now()
-            : _date.year > 2100
-            ? DateTime(2100, 12, 31)
-            : _date,
-        firstDate: DateTime(1),
-        lastDate: DateTime(2100, 12, 31),
-      ),
+    final picked = await nexPickModuleDate(
+      context,
+      initial: !_dateConfirmed
+          ? DateTime.now()
+          : _date.year > 2100
+          ? DateTime(2100, 12, 31)
+          : _date,
+      first: DateTime(1),
+      last: DateTime(2100, 12, 31),
     );
     if (picked == null || !mounted) return;
     _paint(() {

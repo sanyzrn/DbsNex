@@ -35,6 +35,45 @@ class NexModuleStore {
   Future<void> delete(String kind, String id) =>
       _services.moduleDelete(module, kind, id);
 
+  /// Preserves an unrecognised record before taking it out of active recovery.
+  /// A failed copy leaves the original untouched and the error visible.
+  Future<void> quarantine(ModuleRecord record) async {
+    await put('__recovery', newId(), {
+      'kind': record.kind,
+      'id': record.id,
+      'body': record.body,
+      'updatedAt': record.updatedAt.toIso8601String(),
+    });
+    await delete(record.kind, record.id);
+  }
+
+  Stream<void> get draftChanges => _services.moduleDraftChanges
+      .where((changed) => changed == module)
+      .map((_) {});
+
+  bool get remindersEnabled => _services.moduleRemindersEnabled(module);
+  bool get solarCalendar => _services.solarCalendar;
+
+  Future<bool> setReminder(
+    String key, {
+    required String sourceKind,
+    required String sourceId,
+    required DateTime at,
+    required String title,
+    required String body,
+  }) => _services.setModuleReminder(
+    module,
+    key,
+    sourceKind: sourceKind,
+    sourceId: sourceId,
+    at: at,
+    title: title,
+    body: body,
+  );
+
+  Future<void> clearReminder(String key) =>
+      _services.clearModuleReminder(module, key);
+
   /// A new, unique, time-ordered id for a record.
   String newId() => newUuidV7();
 

@@ -175,11 +175,14 @@ class WarrantyCoverageFields extends StatelessWidget {
             ),
             const SizedBox(width: NexSpacing.sm),
             Expanded(
-              child: WarrantyFields.line(
-                fieldKey: const ValueKey('warranty-field-end'),
+              child: NexModuleDateEntry(
                 controller: endDate,
-                label: strings(context, 'orEndDate'),
-                hint: strings(context, 'dateHint'),
+                child: WarrantyFields.line(
+                  fieldKey: const ValueKey('warranty-field-end'),
+                  controller: endDate,
+                  label: strings(context, 'orEndDate'),
+                  hint: strings(context, 'dateHint'),
+                ),
               ),
             ),
           ],

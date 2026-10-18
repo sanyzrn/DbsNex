@@ -316,11 +316,13 @@ extension NexScheduledReminders on NexReminders {
     List<Note> upcoming, {
     List<NexCommitment> commitments = const [],
     List<ScheduledNote> scheduled = const [],
+    Set<int> moduleReminderIds = const {},
   }) async {
     if (!NexReminders.supported) return;
     await initialise();
 
     final wanted = <int>{
+      ...moduleReminderIds,
       for (final note in upcoming) NexReminders._idFor(note.id),
       for (final commitment in commitments)
         if (commitment.notify && !commitment.paused)

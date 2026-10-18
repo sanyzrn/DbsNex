@@ -114,6 +114,8 @@ Records are:
 - the shelf widgets (`NexPanel`, `NexShelfHeading`, `NexHue`, …);
 - `nexShowSheet`, `nexShowDialog` and `NexDialogBody`;
 - `NexTextField`, the shared multiline editor (native on Android);
+- `nexPickModuleDate`, `NexModuleDateEntry` and `nexModuleDateLabel`, using the saved calendar while retaining civil dates at the storage boundary;
+- `NexModuleReminderControl` and store reminder methods for explicit one-time OS alerts. Only available, installed modules may schedule them; removing a source record, archiving it or removing the module cancels its alarms. Requests are restored at launch. All stored modules remain Soon and silent in 2.1.3;
 - `AppLocalizations`, for the shared words such as `cancel`;
 - the module classes above.
 
@@ -146,7 +148,6 @@ it. Copying that is the fastest way to start.
 
 The following are deliberately outside the API until a module needs them:
 
-- reminders and notifications;
 - location;
 - the camera and photos;
 - network access;
@@ -180,3 +181,10 @@ on. The platform grows only by what a real module asked for.
 
 The prompt to give the agent that writes a module is
 [`prompts/11-module-builder.md`](prompts/11-module-builder.md).
+
+Draft writes have their own `draftChanges` stream; `changes` is for saved data.
+Journal and `__recovery` writes do not wake list readers. Draft helpers coalesce
+typing for 250 ms and flush on close; final save/discard waits for in-flight
+writes before cleanup. Unknown or malformed journals are copied to
+`__recovery` before leaving the active queue; raw undecodable database bodies
+are preserved there byte-for-byte. Never replay a partly validated journal.

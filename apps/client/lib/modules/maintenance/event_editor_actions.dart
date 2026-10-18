@@ -24,13 +24,11 @@ extension _EditorActions on _EventEditorSheetState {
     final candidate = !_dateConfirmed || dayOf(_date).isAfter(dayOf(today))
         ? today
         : _date;
-    final picked = await nexShowDialog<DateTime>(
-      context: context,
-      builder: (_) => DatePickerDialog(
-        initialDate: candidate,
-        firstDate: DateTime(1),
-        lastDate: dayOf(today),
-      ),
+    final picked = await nexPickModuleDate(
+      context,
+      initial: candidate,
+      first: DateTime(1),
+      last: dayOf(today),
     );
     if (picked == null || !mounted) return;
     _paint(() {

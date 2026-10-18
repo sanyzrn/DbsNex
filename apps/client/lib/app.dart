@@ -1,3 +1,5 @@
+import 'modules/module_dates.dart';
+import 'platform/ui_text_scaler.dart';
 export 'widgets/app_lock_gate.dart' show appLockBarrierKey;
 
 import 'platform/theme_presets.dart';
@@ -598,12 +600,8 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
         );
         // The user's own multiplier composes with the system's, rather than
         // replacing it — someone with a larger system font can still nudge
-        // Nex a little further in either direction on top of that. The floor
-        // and ceiling widen from the system-only clamp below to leave that
-        // combination room to actually move.
-        final scaled =
-            TextScaler.linear(prefs.uiScale).scale(1) *
-            media.textScaler.scale(1);
+        // Nex a little further in either direction on top of that. Keep the
+        // system's nonlinear curve and do not cap accessibility text.
         final brightness = switch (prefs.themeMode) {
           ThemeMode.light => Brightness.light,
           ThemeMode.dark => Brightness.dark,
@@ -626,63 +624,64 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
               child: MediaQuery(
                 data: media.copyWith(
                   disableAnimations: media.disableAnimations,
-                  textScaler: TextScaler.linear(
-                    scaled,
-                  ).clamp(minScaleFactor: 0.75, maxScaleFactor: 1.9),
+                  textScaler: NexUiTextScaler(media.textScaler, prefs.uiScale),
                 ),
-                child: Shortcuts(
-                  shortcuts: const {
-                    SingleActivator(LogicalKeyboardKey.keyN, control: true):
-                        _CaptureIntent(),
-                    SingleActivator(LogicalKeyboardKey.keyF, control: true):
-                        _SearchIntent(),
-                  },
-                  child: Actions(
-                    actions: {
-                      _CaptureIntent: CallbackAction<_CaptureIntent>(
-                        onInvoke: (_) =>
-                            timelineKey.currentState?.openCapture(),
-                      ),
-                      // Reveals the field on the timeline rather than pushing a
-                      // screen: search is one surface now, and Ctrl+F should land on
-                      // the same one the pull-down does.
-                      _SearchIntent: CallbackAction<_SearchIntent>(
-                        onInvoke: (_) =>
-                            timelineKey.currentState?.revealSearch(),
-                      ),
+                child: NexModuleCalendar(
+                  solar: prefs.solarCalendar,
+                  child: Shortcuts(
+                    shortcuts: const {
+                      SingleActivator(LogicalKeyboardKey.keyN, control: true):
+                          _CaptureIntent(),
+                      SingleActivator(LogicalKeyboardKey.keyF, control: true):
+                          _SearchIntent(),
                     },
-                    // A bare Scaffold above the Navigator, not inside it. Every
-                    // screen's own Scaffold is nested under this one, and
-                    // ScaffoldMessenger shows a SnackBar on only the root of a
-                    // nested set — so toasts now paint above whatever the
-                    // Navigator is showing, dialog or bottom sheet included,
-                    // instead of being scoped to whichever page happened to be
-                    // underneath when they were raised.
-                    child: NexKeyboardDismisser(
-                      child: Stack(
-                        children: [
-                          Scaffold(
-                            backgroundColor: Colors.transparent,
-                            resizeToAvoidBottomInset: false,
-                            body: ExcludeSemantics(
-                              excluding: _locked,
-                              child: IgnorePointer(
-                                ignoring: _locked,
-                                child: FocusTraversalGroup(child: child!),
+                    child: Actions(
+                      actions: {
+                        _CaptureIntent: CallbackAction<_CaptureIntent>(
+                          onInvoke: (_) =>
+                              timelineKey.currentState?.openCapture(),
+                        ),
+                        // Reveals the field on the timeline rather than pushing a
+                        // screen: search is one surface now, and Ctrl+F should land on
+                        // the same one the pull-down does.
+                        _SearchIntent: CallbackAction<_SearchIntent>(
+                          onInvoke: (_) =>
+                              timelineKey.currentState?.revealSearch(),
+                        ),
+                      },
+                      // A bare Scaffold above the Navigator, not inside it. Every
+                      // screen's own Scaffold is nested under this one, and
+                      // ScaffoldMessenger shows a SnackBar on only the root of a
+                      // nested set — so toasts now paint above whatever the
+                      // Navigator is showing, dialog or bottom sheet included,
+                      // instead of being scoped to whichever page happened to be
+                      // underneath when they were raised.
+                      child: NexKeyboardDismisser(
+                        child: Stack(
+                          children: [
+                            Scaffold(
+                              backgroundColor: Colors.transparent,
+                              resizeToAvoidBottomInset: false,
+                              body: ExcludeSemantics(
+                                excluding: _locked,
+                                child: IgnorePointer(
+                                  ignoring: _locked,
+                                  child: FocusTraversalGroup(child: child!),
+                                ),
                               ),
                             ),
-                          ),
-                          if (_locked)
-                            Positioned.fill(
-                              child: AppLockGate(
-                                busy: _unlocking,
-                                error: _lockError,
-                                onSettings: () =>
-                                    unawaited(_appLock.openDeviceSecurity()),
-                                onUnlock: () => unawaited(_unlock()),
+                            if (_locked)
+                              Positioned.fill(
+                                child: AppLockGate(
+                                  busy: _unlocking,
+                                  error: _lockError,
+                                  onSettings: () =>
+                                      unawaited(_appLock.openDeviceSecurity()),
+                                  onUnlock: () => unawaited(_unlock()),
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

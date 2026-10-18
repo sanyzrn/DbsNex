@@ -43,26 +43,29 @@ extension _WarrantyEditorBody on _WarrantyEditorSheetState {
                       ? strings(context, 'productRequired')
                       : null,
                 ),
-                WarrantyFields.line(
-                  fieldKey: const ValueKey('warranty-field-purchase'),
+                NexModuleDateEntry(
                   controller: _purchaseDate,
-                  label: strings(context, 'purchaseDate'),
-                  hint: strings(context, 'dateHint'),
-                  helper: _showErrors && _purchaseBad
-                      ? strings(context, 'purchaseRequired')
-                      : null,
-                  suffix: Padding(
-                    padding: const EdgeInsetsDirectional.only(
-                      end: NexSpacing.xs,
-                    ),
-                    child: ActionChip(
-                      key: const ValueKey('warranty-today'),
-                      label: Text(strings(context, 'today')),
-                      onPressed: () {
-                        final now = DateTime.now();
-                        _purchaseDate.text =
-                            '${now.year}/${now.month}/${now.day}';
-                      },
+                  child: WarrantyFields.line(
+                    fieldKey: const ValueKey('warranty-field-purchase'),
+                    controller: _purchaseDate,
+                    label: strings(context, 'purchaseDate'),
+                    hint: strings(context, 'dateHint'),
+                    helper: _showErrors && _purchaseBad
+                        ? strings(context, 'purchaseRequired')
+                        : null,
+                    suffix: Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        end: NexSpacing.xs,
+                      ),
+                      child: ActionChip(
+                        key: const ValueKey('warranty-today'),
+                        label: Text(strings(context, 'today')),
+                        onPressed: () {
+                          final now = DateTime.now();
+                          _purchaseDate.text =
+                              '${now.year}/${now.month}/${now.day}';
+                        },
+                      ),
                     ),
                   ),
                 ),

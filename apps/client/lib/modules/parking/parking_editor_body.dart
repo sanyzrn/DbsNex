@@ -146,15 +146,18 @@ extension _ParkingEditorBody on _ParkingEditorSheetState {
                 Row(
                   children: [
                     Expanded(
-                      child: ParkingFields.line(
-                        fieldKey: const ValueKey('parking-field-expiry-date'),
+                      child: NexModuleDateEntry(
                         controller: _expiryDate,
-                        label: strings(context, 'expiryDate'),
-                        hint: strings(context, 'dateHint'),
-                        keyboard: TextInputType.datetime,
-                        helper: _showErrors && expiry == ParkingParse.invalid
-                            ? strings(context, 'badNumber')
-                            : null,
+                        child: ParkingFields.line(
+                          fieldKey: const ValueKey('parking-field-expiry-date'),
+                          controller: _expiryDate,
+                          label: strings(context, 'expiryDate'),
+                          hint: strings(context, 'dateHint'),
+                          keyboard: TextInputType.datetime,
+                          helper: _showErrors && expiry == ParkingParse.invalid
+                              ? strings(context, 'badNumber')
+                              : null,
+                        ),
                       ),
                     ),
                     const SizedBox(width: NexSpacing.sm),

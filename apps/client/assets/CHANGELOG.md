@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.3
+
+- Larger system text keeps its accessibility scaling, including nonlinear font sizes. Keyboard activation now performs the normal tap.
+- Module drafts save after a brief typing pause and flush on close, without reloading saved lists for every keystroke.
+- Module editors use Nex's shared bilingual text editor. Shared date entry offers the saved Jalali/Gregorian calendar while preserving existing record formats.
+- Shared OS reminders support explicitly chosen one-time alerts and rebuild from saved requests. Medicine has an explicit reminder control for its future rollout; reference dose times remain unchanged.
+- Malformed module rows and unsupported recovery journals are isolated with their originals preserved for recovery. Healthy records remain accessible.
+- Only Cycle remains available; all other modules stay Soon, retaining installation choices and data.
+
 ## v2.1.2
 
 - Incomplete AI translations, rewrites and image readings no longer replace complete text; authored markup is preserved.

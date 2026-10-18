@@ -259,17 +259,13 @@ class EventDateRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = maintenanceStrings;
-    final persian = NexModuleStrings.persian(context);
-    final day = persian ? persianDigits('${date.day}') : '${date.day}';
-    final month = s(context, 'month${date.month.clamp(1, 12)}');
-    final year = persian ? persianDigits('${date.year}') : '${date.year}';
     return InkWell(
       key: const ValueKey('maintenance-event-date'),
       onTap: onTap,
       borderRadius: BorderRadius.circular(NexRadius.md),
       child: InputDecorator(
         decoration: InputDecoration(
-          labelText: '${s(context, 'dateLabel')} · ${s(context, 'gregorian')}',
+          labelText: s(context, 'dateLabel'),
           contentPadding: const EdgeInsetsDirectional.symmetric(
             horizontal: NexSpacing.md,
             vertical: NexSpacing.md,
@@ -279,7 +275,9 @@ class EventDateRow extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                confirmed ? '$day $month $year' : s(context, 'dateRequired'),
+                confirmed
+                    ? nexModuleDateLabel(context, date)
+                    : s(context, 'dateRequired'),
               ),
             ),
             const Icon(Icons.calendar_today_outlined, size: 20),
