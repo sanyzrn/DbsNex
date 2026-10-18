@@ -34,8 +34,6 @@ Working convention:
 
 ## Unreleased
 
-- Backups from Nex Windows can restore shared appearance without resetting mobile credentials, private preferences or device identity. Portable exports now recognize Windows media paths for notes and attachments.
-
 ## v2.1.6
 
 - **Swipe through a PDF.** Pages turn by swiping sideways, the way the interface reads, and the page you are heading for is prepared while you swipe. The slider under the page is gone: a small capsule over the page holds the arrows and the page count, and tapping the count opens a sheet of page numbers to jump straight to one. Double-tap zooms in where you tapped, and a white page now has a visible edge.
@@ -49,6 +47,7 @@ Working convention:
 - **Suggest tags says when there is nothing new.** A tap that finds no new tags now explains it instead of appearing to do nothing.
 - **Links end where the address ends.** Persian written straight after a web address, without a space, is no longer read as part of the domain; Persian paths such as Wikipedia articles still open in full.
 - **Tap to pause a video.** Tap a playing video to pause it and tap again to resume.
+- **Restore a Windows backup without losing the phone's settings.** A backup made in Nex for Windows brings back only the shared appearance — theme, accent, language, calendar, text and card size — and leaves this phone's AI keys, private settings and device identity as they were. Exports and imports also find the files of notes and attachments saved on Windows.
 
 ## v2.1.5
 
