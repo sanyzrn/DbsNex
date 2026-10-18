@@ -1807,8 +1807,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSection => 'Nex AI';
 
   @override
-  String get aiNothingYet =>
-      'Nothing yet. Nex reads a note in the background after it is captured.';
+  String get aiNoTagSuggestions =>
+      'No new tags to suggest for this note right now.';
 
   @override
   String get hide => 'Hide';
@@ -3051,6 +3051,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String briefLineDue(String title, String span) {
     return '$title — due in $span';
+  }
+
+  @override
+  String briefLineAt(String title, String when) {
+    return '$title — $when';
+  }
+
+  @override
+  String briefWhenToday(String time) {
+    return 'today at $time';
+  }
+
+  @override
+  String briefWhenTomorrow(String time) {
+    return 'tomorrow at $time';
+  }
+
+  @override
+  String briefWhenOn(String day, String time) {
+    return '$day at $time';
   }
 
   @override
@@ -5523,6 +5543,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetZoom => 'Reset zoom';
+
+  @override
+  String pdfPageShort(String page, String total) {
+    return '$page / $total';
+  }
+
+  @override
+  String get pdfGoToPage => 'Go to page';
 
   @override
   String pdfPageCount(String page, String total) {

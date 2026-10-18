@@ -821,7 +821,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get accentColorPickerTitle => 'رنگ تاکید';
 
   @override
-  String get uiScale => 'اندازه‌ی متن و رابط';
+  String get uiScale => 'اندازهٔ متن و رابط';
 
   @override
   String get uiScaleSmall => 'کوچک';
@@ -1768,8 +1768,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiSection => 'هوش مصنوعی Nex';
 
   @override
-  String get aiNothingYet =>
-      'هنوز چیزی نیست. Nex بعد از ثبت، یادداشت را در پس‌زمینه می‌خواند.';
+  String get aiNoTagSuggestions =>
+      'فعلاً برچسب تازه‌ای برای پیشنهاد به این یادداشت پیدا نشد.';
 
   @override
   String get hide => 'پنهان کردن';
@@ -2332,7 +2332,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String localModelDownloadingPart(int index, int count) {
-    return 'دانلود تکه‌ی ‏$index از ‏$count';
+    return 'دانلود تکهٔ ‏$index از ‏$count';
   }
 
   @override
@@ -2382,7 +2382,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get localModelBlockedArchitecture =>
-      'پردازنده‌ی این گوشی از آن‌هایی نیست که مدل رویش اجرا می‌شود. به یک دستگاه ARM شصت‌وچهار بیتی نیاز دارد.';
+      'پردازندهٔ این گوشی از آن‌هایی نیست که مدل رویش اجرا می‌شود. به یک دستگاه ARM شصت‌وچهار بیتی نیاز دارد.';
 
   @override
   String localModelBlockedStorage(String size) {
@@ -2431,7 +2431,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'اسم، پوسته، زبان، پشتیبان‌گیری، و سرویس هوشی که خلاصه‌ها را می‌نویسد.';
 
   @override
-  String get tourCardsTitle => 'یک نکته‌ی آخر';
+  String get tourCardsTitle => 'یک نکتهٔ آخر';
 
   @override
   String get tourCardsBody =>
@@ -2987,6 +2987,26 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String briefLineDue(String title, String span) {
     return '$title — تا $span دیگر';
+  }
+
+  @override
+  String briefLineAt(String title, String when) {
+    return '$title — $when';
+  }
+
+  @override
+  String briefWhenToday(String time) {
+    return 'امروز ساعت $time';
+  }
+
+  @override
+  String briefWhenTomorrow(String time) {
+    return 'فردا ساعت $time';
+  }
+
+  @override
+  String briefWhenOn(String day, String time) {
+    return '$day ساعت $time';
   }
 
   @override
@@ -5386,6 +5406,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get resetZoom => 'اندازهٔ اصلی';
+
+  @override
+  String pdfPageShort(String page, String total) {
+    return '$page از $total';
+  }
+
+  @override
+  String get pdfGoToPage => 'رفتن به صفحه';
 
   @override
   String pdfPageCount(String page, String total) {

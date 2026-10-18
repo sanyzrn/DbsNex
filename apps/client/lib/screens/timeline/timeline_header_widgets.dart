@@ -271,9 +271,12 @@ class _AiDaySummaryPanel extends StatelessWidget {
         ),
       );
     }
-    final lines = value.trim().split('\n');
-    final lede = lines.first;
-    final rest = lines.skip(1).join('\n').trim();
+    final lines = [
+      for (final line in value.trim().split('\n'))
+        if (line.trim().isNotEmpty) line.trim(),
+    ];
+    if (lines.isEmpty) lines.add(value.trim());
+    final muted = body.copyWith(color: theme.colorScheme.onSurfaceVariant);
     // A refresh keeps the last successful text fully readable.
     return AnimatedOpacity(
       opacity: 1,
@@ -285,43 +288,114 @@ class _AiDaySummaryPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Every line the same widget, the same type and the same gap
+          // (2.1.6). The first one used to be a plain `Text` with a wider gap
+          // under it and the rest one paragraph below, and the first line of
+          // the brief read as a heading over a list it is simply the top of.
           AnimatedDefaultTextStyle(
             duration: NexMotion.of(context, NexMotion.slow),
             curve: NexMotion.curve,
-            style: collapsed
-                ? body.copyWith(color: theme.colorScheme.onSurfaceVariant)
-                : body,
-            child: Text(
-              lede,
-              maxLines: collapsed ? 1 : null,
-              overflow: collapsed ? TextOverflow.ellipsis : TextOverflow.clip,
-              textDirection: nexDirectionOf(lede),
-              textAlign: nexDirectionOf(lede) == TextDirection.rtl
-                  ? TextAlign.right
-                  : TextAlign.left,
-            ),
+            style: collapsed ? muted : body,
+            child: _BriefLine(lines.first, folded: collapsed),
           ),
           NexReveal(
-            visible: !collapsed && rest.isNotEmpty,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: NexSpacing.sm),
-                // Per line, because the recap is written in the language of the
-                // notes and the notes are the one place in this app most likely
-                // to be in both at once — see [NexTextSurface].
-                //
-                // Not selectable, unlike the note body in the detail sheet. The
-                // whole card is one button — a tap anywhere on it folds the brief
-                // away — and a `SelectionArea` would claim that tap for clearing
-                // a selection. A paragraph you can select inside a card that
-                // stops responding is the worse of the two trades.
-                NexTextSurface(rest, style: body),
-              ],
+            visible: !collapsed && lines.length > 1,
+            child: DefaultTextStyle.merge(
+              style: body,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Per line, because the recap is written in the language
+                  // of the notes and the notes are the one place in this app
+                  // most likely to be in both at once — each line takes its
+                  // own direction.
+                  //
+                  // Not selectable, unlike the note body in the detail
+                  // sheet. The whole card is one button — a tap anywhere on
+                  // it folds the brief away — and a `SelectionArea` would
+                  // claim that tap for clearing a selection.
+                  for (final line in lines.skip(1)) ...[
+                    const SizedBox(height: NexSpacing.xs + 2),
+                    _BriefLine(line),
+                  ],
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// One line of the brief: its emoji in a column of its own, the words beside
+/// it.
+///
+/// A hanging mark, the way a list is set. With the emoji inline, a line that
+/// wrapped put its second row under the emoji rather than under the words,
+/// and the width of each emoji — a phone and a stopwatch are not the same
+/// width, and one drawn from the text font is narrower again — moved where
+/// every line's words began. A column one emoji wide lines all of them up.
+///
+/// The line takes its own direction, so a Persian line in an English
+/// interface puts its mark on the right.
+class _BriefLine extends StatelessWidget {
+  const _BriefLine(this.text, {this.folded = false});
+
+  final String text;
+
+  /// The folded card shows the first line on one row.
+  final bool folded;
+
+  /// The leading emoji, when the line starts with one: a first character that
+  /// is neither a letter nor a digit, followed by a space.
+  static (String, String)? split(String line) {
+    final characters = line.characters;
+    if (characters.length < 3) return null;
+    final mark = characters.first;
+    if (RegExp(r'[\p{L}\p{N}]', unicode: true).hasMatch(mark)) return null;
+    if (RegExp(r'^[\p{P}\s]', unicode: true).hasMatch(mark)) return null;
+    final words = characters.skip(1).toString().trim();
+    return words.isEmpty ? null : (mark, words);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final direction = nexDirectionOf(text);
+    final parts = split(text);
+    final words = parts?.$2 ?? text;
+    final paragraph = Text(
+      words,
+      maxLines: folded ? 1 : null,
+      overflow: folded ? TextOverflow.ellipsis : TextOverflow.clip,
+      textAlign: TextAlign.start,
+      textDirection: direction,
+    );
+    final line = parts == null
+        ? paragraph
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                // An emoji is about one and a quarter ems wide; the column
+                // grows with the text size so a large setting does not clip
+                // it.
+                width: MediaQuery.textScalerOf(context).scale(
+                  (DefaultTextStyle.of(context).style.fontSize ?? 14) * 1.4,
+                ),
+                child: Text(parts.$1, textAlign: TextAlign.center),
+              ),
+              const SizedBox(width: NexSpacing.sm),
+              Expanded(child: paragraph),
+            ],
+          );
+    return Semantics(
+      label: text,
+      excludeSemantics: true,
+      child: Directionality(
+        textDirection: direction ?? Directionality.of(context),
+        child: line,
       ),
     );
   }

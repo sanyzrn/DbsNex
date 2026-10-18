@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'platform/crash_reporter.dart';
 import 'platform/metrics.dart';
+import 'platform/share_window.dart';
 
 /// The setup every Dart entry point (`main.dart`, `main_ai.dart` — ADR-031)
 /// needs before binding its adapters and calling `runApp`. Factored out so
@@ -73,11 +74,18 @@ https://github.com/google-ai-edge/LiteRT-LM''',
 }
 
 /// Temporary portrait policy shared by both app entry points.
-Future<void> lockNexPhoneOrientation() async {
+///
+/// Not for the share window: it is translucent and draws nothing, Android 8.0
+/// refuses — and crashes — a fixed orientation on a translucent activity, and
+/// on later versions it would turn the app being shared from.
+Future<void> lockNexPhoneOrientation({
+  Future<bool> Function() isShareWindow = NexShareWindow.isSilent,
+}) async {
   if (kIsWeb ||
       (defaultTargetPlatform != TargetPlatform.android &&
           defaultTargetPlatform != TargetPlatform.iOS)) {
     return;
   }
+  if (await isShareWindow()) return;
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 }

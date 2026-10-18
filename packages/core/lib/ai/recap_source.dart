@@ -13,11 +13,20 @@ import '../models/note.dart';
 /// So this sends facts. One line per note:
 ///
 /// ```
-/// DUE overdue 2d | checklist 1/3 left | milk · bread · call the plumber
-/// DUE in 6h | text | pick up the prescription
+/// DUE overdue 2 days, was Sunday 09:00 | checklist 1/3 left | milk · bread
+/// DUE today 15:00 | text | pick up the prescription
+/// DUE Friday 09:00, in 3 days | text | edit the tax file
 /// today | photo | receipt from the garage
-/// 4d ago | text | the flat above is being rewired on the 14th
+/// 4 days ago | text | the flat above is being rewired on the 14th
 /// ```
+///
+/// A DUE line says the day and the clock time rather than a count of hours,
+/// and counts days by the calendar (2.1.6). "DUE in 4d" for a reminder on
+/// Wednesday at 9, read on Friday evening, was four days by the clock and
+/// five by the calendar; the brief said "four days", and with nothing but a
+/// span to go on it also read the reminder as a deadline. The day and time
+/// are also what stays true while a brief sits cached for an hour: "in 15
+/// hours" is wrong for most of that hour, "tomorrow at 9" for none of it.
 ///
 /// The shape is repeated to the model in the prompt, so the abbreviations do
 /// not have to be guessed at. It is deliberately terse: every character here
@@ -69,6 +78,10 @@ String nexRecapSource(
 }) {
   final local = now ?? DateTime.now();
   final at = local.toUtc();
+  // Calendar days are counted in the zone [now] is in: the phone's own in the
+  // app, UTC in a test that passes a UTC clock.
+  DateTime zoned(DateTime value) =>
+      local.isUtc ? value.toUtc() : value.toLocal();
   final live = [
     for (final note in notes)
       if (note.deletedAt == null) note,
@@ -115,19 +128,24 @@ String nexRecapSource(
       forFingerprint
           ? '${commitment.id}|${commitment.dueAt.toUtc().toIso8601String()}|'
                 '${commitment.dueAt.isBefore(local) ? 'overdue' : 'upcoming'}|'
+                '${_dayGap(local, zoned(commitment.dueAt))}|'
                 '${_cadenceLabel(commitment)}|${commitment.timesPerDay}|'
                 '${commitment.metOn(local)}|${_oneLine(commitment.title, 80)}'
-          : _commitmentLine(commitment, local),
+          : _commitmentLine(commitment, local, zoned(commitment.dueAt)),
     );
   }
 
   String? line(Note note) {
     final text = _oneLine(note.displayText, maxTextLength);
     if (text.isEmpty) return null;
+    // The day a reminder falls on is part of the fingerprint, so a brief that
+    // says "tomorrow at 9" is written again once the calendar turns and that
+    // has become "today at 9". Only for what is waiting: a note nobody is
+    // waiting on asks for no new brief at midnight.
     final when = forFingerprint
         ? '${note.id}|${note.dueAt?.toUtc().toIso8601String() ?? ''}|'
-              '${waiting(note) ? (note.dueAt!.toUtc().isBefore(at) ? 'overdue' : 'upcoming') : ''}'
-        : _when(note, at, due: waiting(note));
+              '${waiting(note) ? '${note.dueAt!.toUtc().isBefore(at) ? 'overdue' : 'upcoming'}|${_dayGap(local, zoned(note.dueAt!))}' : ''}'
+        : _when(note, local, zoned, due: waiting(note));
     return '$when | ${_kind(note)}${_tags(note)} | $text';
   }
 
@@ -169,8 +187,8 @@ String _tags(Note note) {
 /// One commitment, in the same three-column shape the notes use.
 ///
 /// ```
-/// DUE in 5d | every year | car insurance
-/// DUE overdue 2d | every month | rent
+/// DUE Sunday 09:00, in 5 days | every year | car insurance
+/// DUE overdue 2 days, was Sunday 09:00 | every month | rent
 /// DUE now | every 2h · 3 of 7 today | drink water
 /// ```
 ///
@@ -182,13 +200,8 @@ String _tags(Note note) {
 /// The hourly ones carry their tally and are deliberately one line, not one
 /// line per glass. Six identical entries saying water is due is not a brief,
 /// it is a broken one.
-String _commitmentLine(NexCommitment commitment, DateTime now) {
-  final away = commitment.dueAt.difference(now);
-  final when = away.isNegative
-      ? 'DUE overdue ${_span(-away)}'
-      : away.inMinutes < 1
-      ? 'DUE now'
-      : 'DUE in ${_span(away)}';
+String _commitmentLine(NexCommitment commitment, DateTime now, DateTime due) {
+  final when = _due(due, now);
   final cadence = _cadenceLabel(commitment);
   final tally = commitment.timesPerDay;
   final middle = tally == null
@@ -224,31 +237,87 @@ String _cadenceLabel(NexCommitment commitment) {
 /// carries a reminder past the horizon — and is therefore sorted with the
 /// ordinary ones — must not be marked DUE either. It is described by when it
 /// was written, like anything else nobody is waiting on.
-String _when(Note note, DateTime at, {required bool due}) {
-  final moment = note.dueAt?.toUtc();
-  if (due && moment != null) {
-    final away = moment.difference(at);
-    if (away.isNegative) return 'DUE overdue ${_span(-away)}';
-    return 'DUE in ${_span(away)}';
-  }
-  final age = at.difference(note.updatedAt.toUtc());
-  final written = age.inHours < 24 ? 'today' : '${_span(age)} ago';
+///
+/// "today" and "yesterday" are calendar days, not the last 24 hours. A note
+/// written at eleven last night that says "tomorrow" means today, and the
+/// prompt tells the model to count such words from the day it was written.
+String _when(
+  Note note,
+  DateTime now,
+  DateTime Function(DateTime) zoned, {
+  required bool due,
+}) {
+  final moment = note.dueAt == null ? null : zoned(note.dueAt!);
+  if (due && moment != null) return _due(moment, now);
+  final gap = _dayGap(zoned(note.updatedAt), now);
+  final written = gap <= 0
+      ? 'today'
+      : gap == 1
+      ? 'yesterday'
+      : '$gap days ago';
   // A reminder past the horizon is still a reminder. Without this the brief
   // saw an important date with nothing set for it and advised setting a
   // reminder that was already there, a week ahead.
-  if (moment != null && moment.isAfter(at)) {
-    return '$written · reminder in ${_span(moment.difference(at))}';
+  if (moment != null && moment.isAfter(now)) {
+    return '$written · reminder in ${_dayGap(now, moment)} days';
   }
   return written;
 }
 
-/// Whole units only. A recap does not need to know something is due in four
-/// hours and eleven minutes, and the minutes cost tokens to say.
-String _span(Duration span) {
-  if (span.inHours < 1) return '${span.inMinutes.clamp(1, 59)}m';
-  if (span.inHours < 48) return '${span.inHours}h';
-  return '${span.inDays}d';
+/// When a reminder or a commitment falls due: the calendar day and the clock.
+///
+/// ```
+/// DUE today 15:00
+/// DUE tomorrow 09:00
+/// DUE Friday 09:00, in 3 days
+/// DUE next Tuesday 09:00, in 7 days
+/// DUE overdue, was yesterday 09:00
+/// DUE overdue 2 days, was Sunday 09:00
+/// DUE overdue 12 days
+/// ```
+///
+/// The weekday and the count together past tomorrow: the weekday is how
+/// somebody says it, the count is what stops a model working it out wrong.
+/// [due] and [now] are in the same zone — see `zoned` in [nexRecapSource].
+String _due(DateTime due, DateTime now) {
+  final days = _dayGap(now, due);
+  final clock = '${_two(due.hour)}:${_two(due.minute)}';
+  final weekday = _weekdays[due.weekday - 1];
+  if (due.isBefore(now)) {
+    final ago = -days;
+    if (ago <= 0) return 'DUE overdue, was today $clock';
+    if (ago == 1) return 'DUE overdue, was yesterday $clock';
+    if (ago < 7) return 'DUE overdue $ago days, was $weekday $clock';
+    return 'DUE overdue $ago days';
+  }
+  if (due.difference(now).inMinutes < 1) return 'DUE now';
+  if (days <= 0) return 'DUE today $clock';
+  if (days == 1) return 'DUE tomorrow $clock';
+  if (days < 7) return 'DUE $weekday $clock, in $days days';
+  return 'DUE next $weekday $clock, in $days days';
 }
+
+/// Whole calendar days from [from] to [to], negative when [to] is earlier.
+///
+/// Through UTC midnights so that a clock change in between cannot make a day
+/// 23 hours long and the count come out one short.
+int _dayGap(DateTime from, DateTime to) => DateTime.utc(
+  to.year,
+  to.month,
+  to.day,
+).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
+
+String _two(int value) => value.toString().padLeft(2, '0');
+
+const _weekdays = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
 
 /// The middle column: what sort of note, and for a checklist how much of it
 /// is still outstanding — which is the one thing about a checklist that says

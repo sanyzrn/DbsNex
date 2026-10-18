@@ -2978,11 +2978,11 @@ abstract class AppLocalizations {
   /// **'Nex AI'**
   String get aiSection;
 
-  /// Shown when the intelligence panel has nothing to show
+  /// Shown when Suggest tags finds nothing new for a note
   ///
   /// In en, this message translates to:
-  /// **'Nothing yet. Nex reads a note in the background after it is captured.'**
-  String get aiNothingYet;
+  /// **'No new tags to suggest for this note right now.'**
+  String get aiNoTagSuggestions;
 
   /// Collapses the intelligence panel
   ///
@@ -4867,6 +4867,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{title} — due in {span}'**
   String briefLineDue(String title, String span);
+
+  /// A brief line for a reminder coming up, said by its day and time.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} — {when}'**
+  String briefLineAt(String title, String when);
+
+  /// When a reminder in the brief is: later today.
+  ///
+  /// In en, this message translates to:
+  /// **'today at {time}'**
+  String briefWhenToday(String time);
+
+  /// When a reminder in the brief is: tomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'tomorrow at {time}'**
+  String briefWhenTomorrow(String time);
+
+  /// When a reminder in the brief is: a weekday this week, e.g. Wednesday at 09:00.
+  ///
+  /// In en, this message translates to:
+  /// **'{day} at {time}'**
+  String briefWhenOn(String day, String time);
 
   /// A brief line for a checklist with items unticked.
   ///
@@ -8899,6 +8923,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reset zoom'**
   String get resetZoom;
+
+  /// The page counter over a PDF page, e.g. 3 / 12.
+  ///
+  /// In en, this message translates to:
+  /// **'{page} / {total}'**
+  String pdfPageShort(String page, String total);
+
+  /// Title of the sheet that jumps to a PDF page, and the hint on the page counter.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to page'**
+  String get pdfGoToPage;
 
   /// No description provided for @pdfPageCount.
   ///
