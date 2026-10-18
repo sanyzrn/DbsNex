@@ -122,17 +122,22 @@ class SqliteModuleRecordRepository {
     final module = row['module'] as String;
     final kind = row['kind'] as String;
     if (kind == '__recovery') return;
-    final id = row['id'] as String;
-    final rawBody = row['body'] as String;
-    final stamp = row['updated_at'] as String;
+    // SQLite's TEXT affinity still permits BLOB values. A malformed field
+    // must not throw again while we are trying to preserve the damaged row.
+    final id = row['id'];
+    final rawBody = row['body'];
+    final stamp = row['updated_at'];
+    Object? preserve(Object? value) => value is List<int>
+        ? {'encoding': 'base64', 'value': base64Encode(value)}
+        : value;
     // Each original gets its own key, including its raw bytes. Never replace
     // a different damaged version of the same record.
     final recoveryId = newUuidV7();
     put(module, '__recovery', recoveryId, {
       'kind': kind,
-      'id': id,
-      'rawBody': rawBody,
-      'updatedAt': stamp,
+      'id': preserve(id),
+      'rawBody': preserve(rawBody),
+      'updatedAt': preserve(stamp),
     });
     db.execute(
       'DELETE FROM module_records WHERE module = ? AND kind = ? AND id = ? '

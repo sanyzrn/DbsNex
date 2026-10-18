@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
@@ -101,4 +103,35 @@ void main() {
       'null',
     );
   });
+
+  test(
+    'binary corruption in a body or metadata preserves bytes and healthy rows',
+    () {
+      final bytes = Uint8List.fromList([0, 255, 128, 1]);
+      records.put('parking', 'session', 'healthy', {'note': 'Keep me'});
+      for (final row in <List<Object?>>[
+        ['body', bytes, '2026-10-18T00:00:00Z'],
+        [bytes, '{"note":"Keep"}', '2026-10-18T00:00:00Z'],
+        ['date', '{"note":"Keep"}', bytes],
+      ]) {
+        db.db.execute('INSERT INTO module_records VALUES (?, ?, ?, ?, ?)', [
+          'parking',
+          'session',
+          ...row,
+        ]);
+      }
+      expect(records.list('parking', 'session').map((r) => r.id), ['healthy']);
+      final recovery = records.list('parking', '__recovery');
+      expect(recovery, hasLength(3));
+      final encoded = {'encoding': 'base64', 'value': base64Encode(bytes)};
+      expect(recovery.map((r) => r.body['rawBody']), contains(equals(encoded)));
+      expect(recovery.map((r) => r.body['id']), contains(equals(encoded)));
+      expect(
+        recovery.map((r) => r.body['updatedAt']),
+        contains(equals(encoded)),
+      );
+      expect(records.list('parking', 'session'), hasLength(1));
+      expect(records.list('parking', '__recovery'), hasLength(3));
+    },
+  );
 }

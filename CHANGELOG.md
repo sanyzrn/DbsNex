@@ -36,7 +36,11 @@ Working convention:
 
 ## v2.1.3
 
-- Larger system text keeps its accessibility scaling, including nonlinear font sizes. Keyboard activation now performs the normal tap.
+- Stop remains available during assistant lookups and context refresh; cancelled work cannot start a later cloud request.
+- A late timeline refresh is ignored after restore/restart closes its old library session.
+- Translations, rewrites and media readings keep existing text when a provider returns a filtered, paused or unfinished response, including truncated Gemini transcripts.
+- Damaged binary module fields are isolated without interrupting healthy records; their original bytes are preserved for recovery.
+- Larger system text keeps its accessibility scaling, including nonlinear font sizes. Detail actions and Tools headings grow to fit larger text. Keyboard activation now performs the normal tap.
 - Module drafts save after a brief typing pause and flush on close, without reloading saved lists for every keystroke.
 - Module editors use Nex's shared bilingual text editor. Shared date entry offers the saved Jalali/Gregorian calendar while preserving existing record formats.
 - Shared OS reminders support explicitly chosen one-time alerts and rebuild from saved requests. Medicine has an explicit reminder control for its future rollout; reference dose times remain unchanged.
