@@ -243,10 +243,12 @@ class _FileBody extends StatelessWidget {
     required this.kind,
     required this.player,
     required this.onOpen,
+    this.mimeType,
   });
 
   final String path;
   final NexFileKind kind;
+  final String? mimeType;
 
   /// Hands the file to the operating system — the same thing the row above
   /// does when tapped. A preview is a picture of the file, and tapping the
@@ -263,18 +265,20 @@ class _FileBody extends StatelessWidget {
   Widget build(BuildContext context) {
     if (kind.isText) return _FileTextBody(path: path, kind: kind);
     if (kind == NexFileKind.document) {
-      // The two document formats this app can show anything of, and they are
-      // shown in opposite ways: a `.docx` is converted to text, a `.pdf` is a
-      // picture of a page. Anything else is named and left alone.
+      // DOCX becomes Markdown; PDF uses the bounded native page reader.
+      if (mimeType?.split(';').first.trim().toLowerCase() ==
+          'application/pdf') {
+        return NexPdfReader(path: path, onOpen: onOpen);
+      }
       return switch (NexFileKinds.extensionOf(path)) {
         'docx' => _DocumentBody(path: path),
-        'pdf' => _PdfBody(path: path, onOpen: onOpen),
+        'pdf' => NexPdfReader(path: path, onOpen: onOpen),
         _ => const SizedBox.shrink(),
       };
     }
     if (kind == NexFileKind.image) return _ImageFileBody(path: path);
     if (kind == NexFileKind.video) {
-      return _VideoBody(path: path, onOpen: onOpen);
+      return NexVideoPlayer(path: path, onOpen: onOpen);
     }
     if (kind == NexFileKind.audio) {
       return Padding(

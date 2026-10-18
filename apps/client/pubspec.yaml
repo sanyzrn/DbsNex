@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 2.1.3
+version: 2.1.4
 
 environment:
   sdk: ^3.9.0
@@ -45,6 +45,8 @@ dependencies:
   # installed at build time.
   intl: ^0.20.2
   meta: ^1.16.0
+  # Official player uses platform decoders; no bundled FFmpeg/codec pack.
+  video_player: ^2.10.0
   just_audio: ^0.10.0
   # Endorses the Windows implementation. Without it every playback call throws
   # MissingPluginException on a first-class v1 target.
@@ -109,6 +111,7 @@ dev_dependencies:
   # registered under flutter_test for getApplicationSupportDirectory either.
   path_provider_platform_interface: ^2.1.2
   plugin_platform_interface: ^2.1.8
+  video_player_platform_interface: ^6.3.0
 
 flutter:
   uses-material-design: true

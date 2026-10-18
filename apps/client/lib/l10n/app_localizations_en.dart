@@ -5485,4 +5485,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchMore => 'Load more results';
+
+  @override
+  String get playVideo => 'Play video';
+
+  @override
+  String get pauseVideo => 'Pause video';
+
+  @override
+  String get muteVideo => 'Mute video';
+
+  @override
+  String get unmuteVideo => 'Unmute video';
+
+  @override
+  String get openInOtherApp => 'Open in another app';
+
+  @override
+  String get inlineMediaUnavailable =>
+      'This file cannot be shown here. Try opening it in another app.';
+
+  @override
+  String get previousPdfPage => 'Previous page';
+
+  @override
+  String get nextPdfPage => 'Next page';
+
+  @override
+  String get zoomIn => 'Zoom in';
+
+  @override
+  String get resetZoom => 'Reset zoom';
+
+  @override
+  String pdfPageCount(String page, String total) {
+    return 'Page $page of $total';
+  }
 }

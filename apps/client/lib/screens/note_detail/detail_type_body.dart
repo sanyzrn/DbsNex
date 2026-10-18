@@ -149,6 +149,7 @@ extension _DetailTypeBody on _NoteDetailSheetState {
         _FileBody(
           path: note.mediaUri!,
           kind: NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType),
+          mimeType: note.mimeType,
           player: _steady,
           onOpen: _openExternally,
         ),

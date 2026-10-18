@@ -7,11 +7,11 @@ part of '../note_detail_sheet.dart';
 /// a photo full screen, a file in whatever opens it — and a hold offers its
 /// caption and removing it, with an Undo.
 extension _DetailAttachments on _NoteDetailSheetState {
-  /// Notes that can carry files: text gains them, photo and file notes gain
-  /// more of their own kind. A checklist, a link and a voice note do not,
+  /// Notes that can carry files: text and links gain them, photo and file
+  /// notes gain more. A checklist and a voice note do not,
   /// yet (docs/14-attachments.md, "Later").
   bool _canAttach(Note note) => switch (note.type) {
-    NoteType.text || NoteType.photo || NoteType.file => true,
+    NoteType.text || NoteType.link || NoteType.photo || NoteType.file => true,
     _ => false,
   };
 
@@ -26,6 +26,9 @@ extension _DetailAttachments on _NoteDetailSheetState {
   ) {
     if (_attachments.isEmpty) return const [];
     final theme = Theme.of(context);
+    final preview = _attachments
+        .where((a) => a.id == _previewAttachmentId)
+        .firstOrNull;
     return [
       const SizedBox(height: NexSpacing.md),
       Row(
@@ -55,6 +58,37 @@ extension _DetailAttachments on _NoteDetailSheetState {
         onHold: (attachment) => unawaited(_attachmentMenu(attachment)),
         onReorder: (order) => unawaited(_reorderAttachments(note, order)),
       ),
+      if (preview != null) ...[
+        const SizedBox(height: NexSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                preview.name ?? p.basename(preview.mediaUri),
+                style: theme.textTheme.labelLarge,
+              ),
+            ),
+            IconButton(
+              key: const ValueKey('attachment-preview-close'),
+              tooltip: l10n.closeLabel,
+              onPressed: () => _rebuild(() => _previewAttachmentId = null),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        KeyedSubtree(
+          key: ValueKey('attachment-reader-${preview.id}'),
+          child: _isVideo(preview)
+              ? NexVideoPlayer(
+                  path: preview.mediaUri,
+                  onOpen: () => unawaited(_openAttachmentExternally(preview)),
+                )
+              : NexPdfReader(
+                  path: preview.mediaUri,
+                  onOpen: () => unawaited(_openAttachmentExternally(preview)),
+                ),
+        ),
+      ],
     ];
   }
 
@@ -249,11 +283,31 @@ extension _DetailAttachments on _NoteDetailSheetState {
       await VoiceClipSheet.show(context, attachment: attachment);
       return;
     }
+    if (_isVideo(attachment) ||
+        NexFileKinds.extensionOf(attachment.mediaUri) == 'pdf' ||
+        attachment.mimeType == 'application/pdf') {
+      await _player?.pause();
+      if (mounted) _rebuild(() => _previewAttachmentId = attachment.id);
+      return;
+    }
+    await _openAttachmentExternally(attachment);
+  }
+
+  bool _isVideo(NoteAttachment attachment) =>
+      NexFileKinds.of(
+        path: attachment.mediaUri,
+        mimeType: attachment.mimeType,
+      ) ==
+      NexFileKind.video;
+
+  Future<void> _openAttachmentExternally(NoteAttachment attachment) async {
     final result = await nexOpenFile(
       attachment.mediaUri,
       mimeType: attachment.mimeType,
     );
-    if (mounted && result != FileOpenOutcome.opened) _toast(l10n.cannotOpen);
+    if (mounted && result != FileOpenOutcome.opened) {
+      _toast(AppLocalizations.of(context).cannotOpen);
+    }
   }
 
   /// Every photo the note holds — its own first, then each attached one in

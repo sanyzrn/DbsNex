@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 /// A single frame of a video, pulled out by the operating system.
 ///
@@ -12,6 +13,18 @@ import 'package:flutter/services.dart';
 /// anywhere: a platform with no retriever shows the file row it always showed,
 /// and the file still opens in whatever does play it.
 abstract final class NexVideoPreview {
+  /// The official player's registered native implementations. Keep desktop
+  /// targets without one on the external-opening path, before allocating a
+  /// controller that cannot initialize.
+  static bool get canPlay =>
+      !kIsWeb &&
+      switch (defaultTargetPlatform) {
+        TargetPlatform.android ||
+        TargetPlatform.iOS ||
+        TargetPlatform.macOS => true,
+        _ => false,
+      };
+
   /// The same channel the share intent, the file picker and the PDF preview
   /// use. A second one would be a second thing to register and forget to
   /// register.

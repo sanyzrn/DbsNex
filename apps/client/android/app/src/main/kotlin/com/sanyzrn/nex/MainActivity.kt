@@ -519,6 +519,14 @@ open class MainActivity : FlutterFragmentActivity() {
                     type = "*/*"; addCategory(Intent.CATEGORY_OPENABLE)
                 }, 9911)
             }
+            "pdfPage" -> {
+                val path = call.argument<String>("path")
+                val index = call.argument<Int>("index") ?: 0
+                val width = call.argument<Int>("width") ?: 1400
+                replyAsync(result) {
+                    renderPdfPage(inAppStorage(path)?.path, index, width)
+                }
+            }
             "pdfPreview" -> {
                 // Arguments are read here, on the main thread, so the call
                 // object is never touched from the render thread.
@@ -842,6 +850,44 @@ open class MainActivity : FlutterFragmentActivity() {
             if (roots.any { file.path.startsWith(it + File.separator) }) file else null
         } catch (_: Exception) {
             null
+        }
+    }
+
+    private fun renderPdfPage(path: String?, index: Int, width: Int): Map<String, Any>? {
+        if (path.isNullOrEmpty() || index < 0) return null
+        val file = File(path)
+        if (!file.isFile) return null
+        ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { fd ->
+            PdfRenderer(fd).use { renderer ->
+                if (index >= renderer.pageCount) return null
+                renderer.openPage(index).use { page ->
+                    if (page.width < 1 || page.height < 1) return null
+                    // Bound BOTH dimensions through a pixel budget. An unusually
+                    // tall page must not allocate an unbounded bitmap.
+                    val scale = minOf(
+                        width.coerceIn(200, 1600).toDouble() / page.width,
+                        kotlin.math.sqrt(3_000_000.0 / (page.width.toDouble() * page.height)),
+                        4096.0 / page.width,
+                        4096.0 / page.height,
+                    ).toFloat()
+                    val bitmap = Bitmap.createBitmap(
+                        (page.width * scale).toInt().coerceAtLeast(1),
+                        (page.height * scale).toInt().coerceAtLeast(1),
+                        Bitmap.Config.ARGB_8888,
+                    )
+                    try {
+                        Canvas(bitmap).drawColor(Color.WHITE)
+                        page.render(bitmap, null,
+                            Matrix().apply { setScale(scale, scale) },
+                            PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        val out = ByteArrayOutputStream()
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                        return mapOf("bytes" to out.toByteArray(), "pageCount" to renderer.pageCount)
+                    } finally {
+                        bitmap.recycle()
+                    }
+                }
+            }
         }
     }
 

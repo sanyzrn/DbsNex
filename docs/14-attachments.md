@@ -60,6 +60,20 @@ What 1.99.70 has:
   words).
 - **The card.** The reminder and the paperclip sit together at the end of the note's last line, the way a message's time sits at the end of its last line in a chat: a short note carries them on its one line, and a note that fills its lines fades out just before them (`_Tucked` in `packages/ui/lib/widgets/note_card_footnote.dart`). So they cost the card no line and no column. A checklist carries them at the end of its first row, since its last row ends in "+3"; a voice note's length joins them; an expanded card, which grows, keeps them on a line of their own under the note. Before: a column beside the words (too wide), a line under the words (cut off on a compact card, 1.99.93), and that line taking the words' last line (a line of the note lost, 1.99.94).
 
+## Inline readers and link notes (2.1.4)
+
+Link notes now support the same Attach action as text/photo/file notes; the
+existing attachment table, backup and search paths require no schema change.
+PDF and video attachments open below their strip in the note detail sheet.
+The note's own PDF or video opens inline too. External opening is always
+available. Videos use Flutter's official video_player with platform decoders,
+allocated only after Play, paused on cover/background, and disposed on close.
+PDF pages use Android's existing PdfRenderer on the render worker, bounded to
+three million pixels, with one current page and no retained renderer session.
+The viewer supports page buttons, page seeking and zoom; it does not promise
+PDF text selection, search, annotation or password entry. Unsupported/encrypted
+files show a fallback instead of pretending to have rendered successfully.
+
 ## Current AI behavior (2.0.4–2.0.7)
 
 Since 2.0.4, attachment media is read only by an explicit request, rather than

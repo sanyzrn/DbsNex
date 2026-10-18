@@ -88,9 +88,11 @@ Future<bool> nexShareNote(
   if ((uri != null && File(uri).existsSync()) || extra.isNotEmpty) {
     final staged = <Directory>[];
     try {
-      final words = note.type == NoteType.text
-          ? note.displayText?.trim()
-          : note.caption?.trim();
+      final words = switch (note.type) {
+        NoteType.text => note.displayText?.trim(),
+        NoteType.link => _linkShareText(note),
+        _ => note.caption?.trim(),
+      };
       await SharePlus.instance.share(
         ShareParams(
           files: [
@@ -117,11 +119,20 @@ Future<bool> nexShareNote(
     }
     return true;
   }
-  final text = note.displayText?.trim() ?? '';
+  final text = note.type == NoteType.link
+      ? _linkShareText(note)
+      : note.displayText?.trim() ?? '';
   if (text.isEmpty) return false;
   await SharePlus.instance.share(ShareParams(text: text));
   return true;
 }
+
+// A link's display text may be its caption or page title. Sharing must keep
+// the actual address too, especially now that a link can carry attachments.
+String _linkShareText(Note note) => [
+  if (note.linkUrl?.isNotEmpty == true) note.linkUrl!,
+  if (note.caption?.trim().isNotEmpty == true) note.caption!.trim(),
+].join('\n\n');
 
 /// Hands several notes to the share sheet at once, from the selection bar.
 ///
@@ -149,7 +160,9 @@ Future<bool> nexShareNotes(List<Note> notes) async {
       if (caption.isNotEmpty) words.add(caption);
       continue;
     }
-    final text = note.displayText?.trim() ?? '';
+    final text = note.type == NoteType.link
+        ? _linkShareText(note)
+        : note.displayText?.trim() ?? '';
     if (text.isNotEmpty) words.add(text);
   }
   if (files.isEmpty && words.isEmpty) return false;

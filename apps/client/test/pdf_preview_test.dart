@@ -56,6 +56,40 @@ void main() {
     expect(await NexPdfPreview.firstPage('/x/report.pdf'), isNull);
   });
 
+  test(
+    'complete-page reader requests one page and validates its page count',
+    () async {
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      answer((_) async => {'bytes': bytes, 'pageCount': 7});
+      final page = await NexPdfPreview.page('/x/report.pdf', index: 2);
+      expect(page?.bytes, bytes);
+      expect(page?.pageCount, 7);
+      expect(seen?.method, 'pdfPage');
+      expect(seen?.arguments, {
+        'path': '/x/report.pdf',
+        'index': 2,
+        'width': 1400,
+      });
+      answer((_) async => {'bytes': bytes, 'pageCount': 2});
+      expect(await NexPdfPreview.page('/x/report.pdf', index: 2), isNull);
+    },
+  );
+
+  test(
+    'complete-page reader treats absent, empty and invalid pages as unavailable',
+    () async {
+      expect(await NexPdfPreview.page('/x/report.pdf'), isNull);
+      answer((_) async => throw PlatformException(code: 'invalid_pdf'));
+      expect(await NexPdfPreview.page('/x/report.pdf'), isNull);
+      answer((_) async => {'bytes': Uint8List(0), 'pageCount': 1});
+      expect(await NexPdfPreview.page('/x/report.pdf'), isNull);
+      seen = null;
+      expect(await NexPdfPreview.page('', index: 0), isNull);
+      expect(await NexPdfPreview.page('/x/report.pdf', index: -1), isNull);
+      expect(seen, isNull);
+    },
+  );
+
   test('an empty path never reaches the platform', () async {
     answer((_) async => Uint8List(0));
     expect(await NexPdfPreview.firstPage(''), isNull);
