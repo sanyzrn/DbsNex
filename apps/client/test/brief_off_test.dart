@@ -74,6 +74,44 @@ void main() {
     expect(purposes, isNot(contains(DisclosurePurpose.greeting)));
   });
 
+  testWidgets(
+    'background deliveries wait until the app returns before asking AI',
+    (tester) async {
+      await preferences.setShowDaySummary(false);
+      await preferences.setShowGreeting(false);
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await preferences.setShowDaySummary(true);
+      await services.captureText('new related information in the background');
+      await services.refreshTimeline();
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      var entries = await tester.runAsync(NexDisclosureLog.read) ?? const [];
+      expect(
+        entries.where((e) => e.purpose == DisclosurePurpose.dailySummary),
+        isEmpty,
+      );
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      entries = await tester.runAsync(NexDisclosureLog.read) ?? const [];
+      expect(
+        entries.where((e) => e.purpose == DisclosurePurpose.dailySummary),
+        hasLength(1),
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('the Smart summary page turns it off in one switch', (
     tester,
   ) async {

@@ -52,6 +52,9 @@ String nexRecapSource(
   DateTime? now,
   int limit = 20,
 
+  /// Absolute facts for cache identity; relative age alone is not new data.
+  bool forFingerprint = false,
+
   /// How far ahead a reminder still counts as "waiting". Past this it is
   /// simply a note with a date on it: something due in three months is not
   /// what anyone opening the app this morning needs told.
@@ -108,13 +111,23 @@ String nexRecapSource(
       if (commitment.isWaiting(local)) commitment,
   ]..sort((a, b) => a.dueAt.compareTo(b.dueAt));
   for (final commitment in waitingNow) {
-    pressing.add(_commitmentLine(commitment, local));
+    pressing.add(
+      forFingerprint
+          ? '${commitment.id}|${commitment.dueAt.toUtc().toIso8601String()}|'
+                '${commitment.dueAt.isBefore(local) ? 'overdue' : 'upcoming'}|'
+                '${_cadenceLabel(commitment)}|${commitment.timesPerDay}|'
+                '${commitment.metOn(local)}|${_oneLine(commitment.title, 80)}'
+          : _commitmentLine(commitment, local),
+    );
   }
 
   String? line(Note note) {
     final text = _oneLine(note.displayText, maxTextLength);
     if (text.isEmpty) return null;
-    final when = _when(note, at, due: waiting(note));
+    final when = forFingerprint
+        ? '${note.id}|${note.dueAt?.toUtc().toIso8601String() ?? ''}|'
+              '${waiting(note) ? (note.dueAt!.toUtc().isBefore(at) ? 'overdue' : 'upcoming') : ''}'
+        : _when(note, at, due: waiting(note));
     return '$when | ${_kind(note)}${_tags(note)} | $text';
   }
 
@@ -138,7 +151,9 @@ String nexRecapSource(
     ...pressing.take((limit - kept).clamp(0, limit)),
     for (final entry in others) entry.$1,
   ];
-  return lines.take(limit).join('\n');
+  final selected = lines.take(limit).toList();
+  if (forFingerprint) selected.sort();
+  return selected.join('\n');
 }
 
 /// The note's tags, as ` #name` each, after the kind. Spaces inside a name

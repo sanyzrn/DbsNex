@@ -31,6 +31,7 @@ class NexModulePlan {
   String title(AppLocalizations l10n) =>
       _module?.title(l10n) ??
       switch (id) {
+        'occasions' => l10n.planOccasionsTitle,
         'security-tools' => l10n.planSecurityToolsTitle,
         'pause' => l10n.planPauseTitle,
         'persian-calendar' => l10n.planPersianCalendarTitle,
@@ -48,6 +49,7 @@ class NexModulePlan {
   String about(AppLocalizations l10n) =>
       _module?.about(l10n) ??
       switch (id) {
+        'occasions' => l10n.planOccasionsAbout,
         'security-tools' => l10n.planSecurityToolsAbout,
         'pause' => l10n.planPauseAbout,
         'persian-calendar' => l10n.planPersianCalendarAbout,
@@ -65,6 +67,12 @@ class NexModulePlan {
 
 /// What is coming, nearest first.
 const List<NexModulePlan> nexModulePlans = [
+  NexModulePlan(
+    'occasions',
+    Icons.cake_outlined,
+    NexHue.rose,
+    NexModuleStage.soon,
+  ),
   NexModulePlan(
     'security-tools',
     Icons.security_outlined,

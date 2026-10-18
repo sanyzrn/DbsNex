@@ -112,10 +112,10 @@ void main() {
       now: now,
     );
 
-    test('nothing on file is always worth asking for', () {
+    test('missing cache still respects a known successful generation time', () {
       expect(needs(ago: null), isTrue);
-      expect(needs(text: null), isTrue);
-      expect(needs(text: ''), isTrue);
+      expect(needs(text: null), isFalse);
+      expect(needs(text: ''), isFalse);
     });
 
     test('notes that have not moved are never re-summarised', () {

@@ -98,6 +98,18 @@ abstract class AppLocalizations {
     Locale('fa'),
   ];
 
+  /// No description provided for @planOccasionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthdays & occasions'**
+  String get planOccasionsTitle;
+
+  /// No description provided for @planOccasionsAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthdays, anniversaries and your own occasions, with Persian and Gregorian dates, age and anniversary counts, advance reminders and gift notes.'**
+  String get planOccasionsAbout;
+
   /// No description provided for @reminderDailyShort.
   ///
   /// In en, this message translates to:

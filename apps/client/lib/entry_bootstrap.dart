@@ -15,6 +15,7 @@ Future<void> bootstrapEntry() async {
   // on (W3.4).
   NexMetrics.markLaunched();
   WidgetsFlutterBinding.ensureInitialized();
+  await lockNexPhoneOrientation();
   LicenseRegistry.addLicense(() async* {
     yield LicenseEntryWithLineBreaks([
       'jalaali-js',
@@ -69,4 +70,14 @@ https://github.com/google-ai-edge/LiteRT-LM''',
       systemNavigationBarContrastEnforced: false,
     ),
   );
+}
+
+/// Temporary portrait policy shared by both app entry points.
+Future<void> lockNexPhoneOrientation() async {
+  if (kIsWeb ||
+      (defaultTargetPlatform != TargetPlatform.android &&
+          defaultTargetPlatform != TargetPlatform.iOS)) {
+    return;
+  }
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 }

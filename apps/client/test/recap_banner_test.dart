@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -121,6 +123,56 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(l10n.recapRefreshFailed), findsNothing);
   });
+
+  testWidgets(
+    'cached text stays opaque during refresh and all lines use the same type',
+    (tester) async {
+      await preferences.setAiDaySummary(
+        text: 'First line\nSecond line',
+        dateKey: 'today',
+      );
+      final reply = Completer<String?>();
+      final flight = services.briefRefresh.refresh(
+        fingerprint: 'pending',
+        dateKey: 'today',
+        force: true,
+        request: () => reply.future,
+      );
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+      TextStyle styleOf(String text) {
+        final element = tester.element(find.text(text));
+        return DefaultTextStyle.of(
+          element,
+        ).style.merge((element.widget as Text).style);
+      }
+
+      final first = styleOf('First line');
+      final rest = styleOf('Second line');
+      expect(first.fontSize, rest.fontSize);
+      expect(first.fontWeight, rest.fontWeight);
+      final refresh = tester
+          .widget<RefreshIndicator>(find.byType(RefreshIndicator))
+          .onRefresh();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      final opacity = tester.widget<AnimatedOpacity>(
+        find.descendant(
+          of: find.byKey(const ValueKey('timeline-recap')),
+          matching: find.byType(AnimatedOpacity),
+        ),
+      );
+      expect(opacity.opacity, 1);
+      expect(find.text('First line'), findsOneWidget);
+      reply.complete('Updated line');
+      await flight;
+      await refresh;
+      await tester.pumpAndSettle();
+      expect(find.text('Updated line'), findsOneWidget);
+    },
+  );
 
   // Folded stays folded when the app comes back: the timeline is built anew
   // then, and it used to start the card open every time.

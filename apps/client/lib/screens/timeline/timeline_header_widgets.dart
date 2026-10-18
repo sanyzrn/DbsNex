@@ -45,7 +45,7 @@ class _GreetingLine extends StatelessWidget {
       duration: NexMotion.of(context, NexMotion.standard),
       child: Opacity(
         key: ValueKey(text),
-        opacity: loading ? 0.45 : 1,
+        opacity: 1,
         // A Text, not a Row of one. The Row existed to place a mark at the
         // trailing end of the words; with the mark gone it was a layout
         // holding a single child and deciding nothing.
@@ -188,13 +188,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
   final String toggleTooltip;
   final VoidCallback onToggle;
 
-  /// What the first line is set at, relative to the rest.
-  ///
-  /// A lede, not a heading: the same face and the same weight, one step up in
-  /// size. Anything more and it becomes the title this deliberately does not
-  /// have.
-  static const _ledeScale = 1.12;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -258,10 +251,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
   /// The recap's opening sentence, for the folded state.
   Widget _body(BuildContext context, ThemeData theme) {
     final value = text;
-    // Defaulted rather than carried around as a nullable: the lede's size is
-    // this one's times a factor, and `base?.copyWith(base.fontSize ...)` does
-    // not compile — a `?.` does not promote its own receiver inside its
-    // arguments.
     final base = theme.textTheme.bodyMedium ?? const TextStyle(fontSize: 14);
     final body = base.copyWith(height: 1.45);
     if (value == null) {
@@ -285,11 +274,9 @@ class _AiDaySummaryPanel extends StatelessWidget {
     final lines = value.trim().split('\n');
     final lede = lines.first;
     final rest = lines.skip(1).join('\n').trim();
-    // Cross-faded rather than dimmed and left in place: a rewrite replaces
-    // the text, and a paragraph that goes translucent and comes back with
-    // different words in it is the honest picture of that.
+    // A refresh keeps the last successful text fully readable.
     return AnimatedOpacity(
-      opacity: loading ? 0.45 : 1,
+      opacity: 1,
       duration: NexMotion.of(context, NexMotion.slow),
       curve: NexMotion.curve,
       child: Column(
@@ -303,7 +290,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
             curve: NexMotion.curve,
             style: collapsed
                 ? body.copyWith(color: theme.colorScheme.onSurfaceVariant)
-                : body.copyWith(fontSize: (base.fontSize ?? 14) * _ledeScale),
+                : body,
             child: Text(
               lede,
               maxLines: collapsed ? 1 : null,

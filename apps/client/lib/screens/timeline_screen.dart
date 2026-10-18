@@ -30,6 +30,7 @@ import 'timeline/timeline_model.dart';
 import 'cycle_screen.dart';
 import 'update_sheet.dart';
 import '../platform/brief_report.dart';
+import '../platform/brief_refresh.dart';
 import '../platform/nex_services.dart';
 import '../platform/nex_widget.dart';
 import '../platform/sponsor.dart';
@@ -240,6 +241,11 @@ class TimelineScreenState extends State<TimelineScreen>
   /// The brief being asked for right now, so a pull that arrives while one
   /// is running waits for it instead of being dropped.
   Future<void>? _aiSummaryInFlight;
+  Timer? _aiSummaryWake;
+  bool _aiSummaryManualRequested = false;
+  bool _briefPreferencesQueued = false;
+  Locale? _briefLocale;
+  late final Future<void> _briefCommitmentsReady;
 
   /// The AI-generated line across the top — see [_loadAiHeadline].
   String? _aiHeadlineText;
@@ -295,8 +301,10 @@ class TimelineScreenState extends State<TimelineScreen>
   @override
   void initState() {
     super.initState();
+    _briefCommitmentsReady = _model.loadCommitments();
     _swipe.addListener(_onSwipeChanged);
     _model.addListener(_onModelChanged);
+    widget.preferences.addListener(_onBriefPreferencesChanged);
     // Fire and forget, and deliberately not awaited anywhere: the card that
     // is already cached draws on this frame, and a fetch that never comes
     // back changes nothing on screen.
@@ -408,7 +416,6 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     unawaited(_loadTimeline());
     unawaited(_model.loadFilterTags());
-    unawaited(_model.loadCommitments());
     // After the first frame, because every stop measures a real widget and
     // none of them has been laid out yet at this point.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -439,7 +446,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// The interval is a floor, not a schedule. Nothing is asked for unless the
   /// notes being summarised have actually changed, so an app left open all
   /// afternoon with nothing written into it makes no requests at all.
-  static const recapInterval = Duration(hours: 1);
+  static const recapInterval = NexBriefRefresh.successInterval;
 
   /// Whether the recap on file has stopped describing the notes it was made
   /// from, long enough ago to be worth asking again.
@@ -460,12 +467,13 @@ class TimelineScreenState extends State<TimelineScreen>
     required String fingerprint,
     required DateTime now,
   }) {
-    // Nothing on file, or nothing that says when — either way there is
-    // nothing to measure against.
-    if (at == null || text == null || text.isEmpty) return true;
-    if (storedSource == fingerprint) return false;
-    return !now.difference(at).isNegative &&
-        now.difference(at) >= recapInterval;
+    return NexBriefRefresh.needsRefresh(
+      at: at,
+      text: text,
+      storedSource: storedSource,
+      fingerprint: fingerprint,
+      now: now,
+    );
   }
 
   /// A stable fingerprint of what a recap was written from.
@@ -563,7 +571,20 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   void _onModelChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    // Commitments and notes can arrive independently of the timeline stream.
+    unawaited(_loadAiSummary());
+  }
+
+  void _onBriefPreferencesChanged() {
+    if (!mounted || _briefPreferencesQueued) return;
+    _briefPreferencesQueued = true;
+    // Let the app apply locale/settings dependencies before capturing input.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _briefPreferencesQueued = false;
+      if (mounted) unawaited(_loadAiSummary());
+    });
   }
 
   /// [setState], for the extensions in `timeline/` that carry this screen's
@@ -660,6 +681,11 @@ class TimelineScreenState extends State<TimelineScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final locale = Localizations.localeOf(context);
+    if (_briefLocale != locale) {
+      _briefLocale = locale;
+      _onBriefPreferencesChanged();
+    }
     final route = ModalRoute.of(context);
     if (route is ModalRoute<void>) nexRouteObserver.subscribe(this, route);
   }
@@ -697,10 +723,12 @@ class TimelineScreenState extends State<TimelineScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
+      _aiSummaryWake?.cancel();
       unawaited(_model.retireSpentReminders());
       return;
     }
     if (state == AppLifecycleState.resumed) {
+      unawaited(_loadAiSummary());
       // A failed sponsor fetch is retried on a real return to the app rather
       // than by leaving timers behind in the timeline. The service's
       // 30-minute failure cool-off and hourly success interval still apply.
@@ -727,6 +755,8 @@ class TimelineScreenState extends State<TimelineScreen>
     _tour?.remove();
     _tour = null;
     _sponsorReturn?.cancel();
+    _aiSummaryWake?.cancel();
+    widget.preferences.removeListener(_onBriefPreferencesChanged);
     _model.removeListener(_onModelChanged);
     _model.dispose();
     _swipe.removeListener(_onSwipeChanged);

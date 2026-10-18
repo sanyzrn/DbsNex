@@ -41,6 +41,51 @@ void main() {
     limit: limit,
   ).split('\n').where((line) => line.isNotEmpty).toList();
 
+  test(
+    'cache input ignores relative ages but tracks content, tags and due status',
+    () {
+      final notes = [
+        note(id: 'a', content: 'read this', due: const Duration(hours: 6)),
+      ];
+      String signature(List<Note> value, DateTime time) =>
+          nexRecapSource(value, now: time, forFingerprint: true);
+      expect(
+        signature(notes, now),
+        signature(notes, now.add(const Duration(hours: 2))),
+      );
+      expect(
+        nexRecapSource(notes, now: now),
+        isNot(nexRecapSource(notes, now: now.add(const Duration(hours: 2)))),
+      );
+      expect(
+        signature(notes, now),
+        isNot(signature(notes, now.add(const Duration(hours: 7)))),
+      );
+      expect(
+        signature(notes, now),
+        isNot(signature([note(id: 'a', content: 'edited')], now)),
+      );
+      expect(
+        signature(notes, now),
+        isNot(
+          signature([
+            note(id: 'a', content: 'read this', tags: ['work']),
+          ], now),
+        ),
+      );
+      expect(
+        signature([
+          note(id: 'b', content: 'same'),
+          note(id: 'c', content: 'other'),
+        ], now),
+        signature([
+          note(id: 'c', content: 'other'),
+          note(id: 'b', content: 'same'),
+        ], now),
+      );
+    },
+  );
+
   test('a note that is due is first, however old it is', () {
     // The case the old source could not represent at all. A reminder set last
     // month for tomorrow morning is the single most worth mentioning thing in

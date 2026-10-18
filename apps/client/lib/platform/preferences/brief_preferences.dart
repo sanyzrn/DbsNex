@@ -93,6 +93,15 @@ mixin _BriefPreferences on _PreferencesStore {
 
   String? get aiDaySummarySource => _prefs.getString('ai.daySummary.source');
 
+  DateTime? get aiDaySummaryFailedAt {
+    final value = _prefs.getInt('ai.daySummary.failedAt');
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
+  }
+
+  Future<void> setAiDaySummaryFailure(DateTime at) async {
+    await _prefs.setInt('ai.daySummary.failedAt', at.millisecondsSinceEpoch);
+  }
+
   /// [at] and [source] default to "written now, from notes this does not
   /// claim to recognise": a caller that only has a string to file — a test,
   /// or any future path that is not the timeline's own — gets a recap that is
@@ -111,6 +120,7 @@ mixin _BriefPreferences on _PreferencesStore {
       (at ?? DateTime.now()).millisecondsSinceEpoch,
     );
     await _prefs.setString('ai.daySummary.source', source);
+    await _prefs.remove('ai.daySummary.failedAt');
   }
 
   /// The most recent recap there is, whatever day it was written for.
@@ -142,6 +152,15 @@ mixin _BriefPreferences on _PreferencesStore {
   String? get aiHeadlineText => _prefs.getString('ai.headline.text');
   String? get aiHeadlineDate => _prefs.getString('ai.headline.date');
 
+  DateTime? get aiHeadlineFailedAt {
+    final value = _prefs.getInt('ai.headline.failedAt');
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
+  }
+
+  Future<void> setAiHeadlineFailure(DateTime at) async {
+    await _prefs.setInt('ai.headline.failedAt', at.millisecondsSinceEpoch);
+  }
+
   /// Which language the cached line was written in.
   ///
   /// The headline is joined onto the greeting as one sentence, and the
@@ -157,6 +176,7 @@ mixin _BriefPreferences on _PreferencesStore {
   }) async {
     await _prefs.setString('ai.headline.text', text);
     await _prefs.setString('ai.headline.date', dateKey);
+    await _prefs.remove('ai.headline.failedAt');
     if (lang == null) {
       await _prefs.remove('ai.headline.lang');
     } else {

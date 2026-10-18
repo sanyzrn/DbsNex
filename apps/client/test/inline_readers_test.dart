@@ -137,12 +137,23 @@ void main() {
     VideoPlayerPlatform.instance = original;
   });
 
+  Future<void> settleReader(WidgetTester tester) async {
+    await tester.pump();
+    // Let native PNG decoding finish outside the fake clock before settling
+    // loading animations; no platform operation is replaced by this wait.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pumpAndSettle();
+  }
+
   Future<void> show(
     WidgetTester tester,
     Widget child, {
     String language = 'en',
     double scale = 1,
     bool dark = false,
+    bool animations = false,
   }) async {
     tester.view.physicalSize = const Size(380, 900);
     tester.view.devicePixelRatio = 1;
@@ -156,7 +167,7 @@ void main() {
         theme: dark ? nexDarkTheme() : nexLightTheme(),
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            disableAnimations: true,
+            disableAnimations: !animations,
             textScaler: TextScaler.linear(scale),
           ),
           child: child!,
@@ -164,8 +175,82 @@ void main() {
         home: Scaffold(body: SingleChildScrollView(child: child)),
       ),
     );
-    await tester.pumpAndSettle();
+    await settleReader(tester);
   }
+
+  readerTest(
+    'PDF keeps its page, viewport and controls stable while loading or failing',
+    (tester) async {
+      await show(tester, NexPdfReader(path: '/report.pdf', onOpen: () {}));
+      final bounds = tester.getRect(find.byKey(const ValueKey('pdf-viewport')));
+      final controls = tester.getRect(find.byKey(const ValueKey('pdf-next')));
+      final current = tester.widget<Image>(find.byType(Image)).image;
+      final next = Completer<Object?>();
+      messenger.setMockMethodCallHandler(channel, (_) => next.future);
+      await tester.tap(find.byKey(const ValueKey('pdf-next')));
+      await tester.pump();
+      expect(
+        tester.getRect(find.byKey(const ValueKey('pdf-viewport'))),
+        bounds,
+      );
+      expect(tester.getRect(find.byKey(const ValueKey('pdf-next'))), controls);
+      expect(tester.widget<Image>(find.byType(Image)).image, current);
+      expect(find.text('Page 1 of 3'), findsOneWidget);
+      next.complete(null);
+      await settleReader(tester);
+      expect(tester.getRect(find.byKey(const ValueKey('pdf-next'))), controls);
+      expect(tester.widget<Image>(find.byType(Image)).image, current);
+      expect(find.text('Try again'), findsOneWidget);
+      messenger.setMockMethodCallHandler(
+        channel,
+        (_) async => {'bytes': png, 'pageCount': 3},
+      );
+      await tester.tap(find.text('Try again'));
+      await settleReader(tester);
+      expect(find.text('Page 2 of 3'), findsOneWidget);
+      expect(tester.getRect(find.byKey(const ValueKey('pdf-next'))), controls);
+    },
+  );
+
+  readerTest('PDF decodes before a smooth swap and respects reduced motion', (
+    tester,
+  ) async {
+    await show(
+      tester,
+      NexPdfReader(path: '/report.pdf', onOpen: () {}),
+      animations: true,
+    );
+    final bounds = tester.getRect(find.byKey(const ValueKey('pdf-viewport')));
+    await tester.tap(find.byKey(const ValueKey('pdf-next')));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump();
+    expect(tester.getRect(find.byKey(const ValueKey('pdf-viewport'))), bounds);
+    final switcher = tester.widget<AnimatedSwitcher>(
+      find.descendant(
+        of: find.byKey(const ValueKey('inline-pdf')),
+        matching: find.byType(AnimatedSwitcher),
+      ),
+    );
+    expect(switcher.duration, greaterThan(Duration.zero));
+    expect(find.byType(Image), findsNWidgets(2));
+    await settleReader(tester);
+    expect(find.byType(Image), findsOneWidget);
+    await show(tester, NexPdfReader(path: '/report.pdf', onOpen: () {}));
+    expect(
+      tester
+          .widget<AnimatedSwitcher>(
+            find.descendant(
+              of: find.byKey(const ValueKey('inline-pdf')),
+              matching: find.byType(AnimatedSwitcher),
+            ),
+          )
+          .duration,
+      Duration.zero,
+    );
+  });
 
   readerTest(
     'PDF pages navigate inline, reset zoom, and do not preload the document',
@@ -178,10 +263,10 @@ void main() {
       expect(pdfCalls.map((call) => call['index']), [0]);
       expect(find.text('Page 1 of 3'), findsOneWidget);
       await tester.tap(find.byTooltip('Zoom in'));
-      await tester.pumpAndSettle();
+      await settleReader(tester);
       expect(find.byTooltip('Reset zoom'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('pdf-next')));
-      await tester.pumpAndSettle();
+      await settleReader(tester);
       expect(pdfCalls.map((call) => call['index']), [0, 1]);
       expect(find.text('Page 2 of 3'), findsOneWidget);
       expect(find.byTooltip('Zoom in'), findsOneWidget);
@@ -189,7 +274,7 @@ void main() {
         find.byKey(const ValueKey('pdf-page-slider')),
       );
       slider.onChangeEnd!(3);
-      await tester.pumpAndSettle();
+      await settleReader(tester);
       expect(find.text('Page 3 of 3'), findsOneWidget);
       expect(
         tester
@@ -215,7 +300,7 @@ void main() {
     await show(tester, NexPdfReader(path: '/old.pdf', onOpen: () {}));
     await show(tester, NexPdfReader(path: '/new.pdf', onOpen: () {}));
     old.complete({'bytes': png, 'pageCount': 50});
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(find.text('Page 1 of 2'), findsOneWidget);
     expect(find.textContaining('50'), findsNothing);
   });
@@ -241,28 +326,28 @@ void main() {
     await show(tester, NexVideoPlayer(path: '/clip.mp4', onOpen: () {}));
     expect(platform.created, 0);
     await tester.tap(find.byKey(const ValueKey('video-cover-play')));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.created, 1);
     expect(platform.playing, {1});
     await tester.tap(find.byKey(const ValueKey('video-speed')));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.speeds.last, 1.5);
     await tester.tap(find.byTooltip('Mute video'));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.volumes.last, 0);
     final slider = tester.widget<Slider>(
       find.byKey(const ValueKey('video-seek')),
     );
     slider.onChangeEnd!(45000);
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.positions[1], const Duration(seconds: 45));
     await tester.tap(find.byKey(const ValueKey('video-play')));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.playing, isEmpty);
     await tester.pumpWidget(const SizedBox());
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.disposed, [1]);
   });
 
@@ -271,7 +356,7 @@ void main() {
   ) async {
     await show(tester, NexVideoPlayer(path: '/clip.mp4', onOpen: () {}));
     await tester.tap(find.byKey(const ValueKey('video-cover-play')));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     final context = tester.element(find.byType(NexVideoPlayer));
     unawaited(
       Navigator.of(context).push<void>(
@@ -280,13 +365,13 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.playing, isEmpty);
     Navigator.of(context).pop();
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.playing, isEmpty);
     await tester.pumpWidget(const SizedBox());
-    await tester.pumpAndSettle();
+    await settleReader(tester);
   });
 
   readerTest('unsupported video retains a usable external fallback', (
@@ -299,13 +384,13 @@ void main() {
       NexVideoPlayer(path: '/unsupported.mp4', onOpen: () => external++),
     );
     await tester.tap(find.byKey(const ValueKey('video-cover-play')));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(find.textContaining('cannot be shown'), findsOneWidget);
     await tester.tap(find.byTooltip('Open in another app'));
     expect(external, 1);
     expect(platform.playing, isEmpty);
     await tester.pumpWidget(const SizedBox());
-    await tester.pumpAndSettle();
+    await settleReader(tester);
   });
 
   readerTest('two inline videos cannot play over one another', (tester) async {
@@ -319,22 +404,22 @@ void main() {
       ),
     );
     await tester.tap(find.byKey(const ValueKey('video-cover-play')).first);
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.playing, {1});
     await tester.ensureVisible(
       find.byKey(const ValueKey('video-cover-play')).first,
     );
     await tester.tap(find.byKey(const ValueKey('video-cover-play')).first);
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.playing, {2});
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.playing, isEmpty);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.playing, isEmpty);
     await tester.pumpWidget(const SizedBox());
-    await tester.pumpAndSettle();
+    await settleReader(tester);
   });
 
   readerTest(
@@ -347,11 +432,11 @@ void main() {
       await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       platform.initialize(1);
-      await tester.pumpAndSettle();
+      await settleReader(tester);
       expect(platform.playing, isEmpty);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
+      await settleReader(tester);
     },
   );
 
@@ -365,7 +450,7 @@ void main() {
       await tester.pump();
       expect(platform.created, 1);
       await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
+      await settleReader(tester);
       await tester.runAsync(() => Future<void>.delayed(Duration.zero));
       expect(platform.disposed, [1]);
       expect(platform.playing, isEmpty);
@@ -377,7 +462,7 @@ void main() {
     (tester) async {
       await show(tester, NexVideoPlayer(path: '/clip.mp4', onOpen: () {}));
       await tester.tap(find.byKey(const ValueKey('video-cover-play')));
-      await tester.pumpAndSettle();
+      await settleReader(tester);
       expect(platform.created, 0);
       expect(find.textContaining('cannot be shown'), findsOneWidget);
     },
@@ -389,18 +474,18 @@ void main() {
   ) async {
     await show(tester, NexVideoPlayer(path: '/first.mp4', onOpen: () {}));
     await tester.tap(find.byKey(const ValueKey('video-cover-play')));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     await show(tester, NexVideoPlayer(path: '/second.mp4', onOpen: () {}));
     expect(platform.playing, isEmpty);
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.disposed, [1]);
     expect(platform.created, 1);
     await tester.tap(find.byKey(const ValueKey('video-cover-play')));
-    await tester.pumpAndSettle();
+    await settleReader(tester);
     expect(platform.playing, {2});
     await tester.pumpWidget(const SizedBox());
-    await tester.pumpAndSettle();
+    await settleReader(tester);
   });
 
   for (final language in ['en', 'fa']) {

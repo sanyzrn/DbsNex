@@ -30,54 +30,85 @@ extension _TimelineAiHeader on TimelineScreenState {
     unlimitedSummary: widget.preferences.aiSummaryUnlimited,
   );
 
-  /// Fetches (or restores) the recap. Called on every timeline delivery; what
-  /// keeps that from being a provider call per keystroke is [_recapIsStale].
-  ///
-  /// Silently does nothing when AI is off or unconfigured: this panel is
-  /// additive chrome, never a reason to show an error on the app's home
-  /// screen. A failed or empty reply leaves the card's empty line showing.
-  ///
-  /// [force] skips the cache — it is what the card's refresh button does.
-  /// Without it, tapping refresh on a day whose text was already stored would
-  /// have re-read the same string and looked broken.
-  /// Asks for the brief, or — when one is already being written — waits for
-  /// that one.
-  ///
-  /// A pull used to be dropped outright while any brief was in flight. With
-  /// the token ceiling lifted, the one asked for on launch had no time limit
-  /// either, and a model that thinks before answering kept it in flight for
-  /// minutes: every pull in that time did nothing at all, and the card
-  /// looked as if it could not be refreshed by hand.
-  Future<void> _loadAiSummary({bool force = false}) async {
-    final running = _aiSummaryInFlight;
-    if (running != null) {
-      final before = _aiSummaryText;
-      await running;
-      // The one waited for came back with nothing new — usually the quiet
-      // launch-time kind, which never says it failed: the pull still gets
-      // its own, which does.
-      if (!force || !mounted || _aiSummaryText != before) return;
-      if (_aiSummaryInFlight != null) return _aiSummaryInFlight;
-    }
+  /// All deliveries share one request, including manual taps during a flight.
+  Future<void> _loadAiSummary({bool force = false}) {
+    if (force) _aiSummaryManualRequested = true;
+    final pending = _aiSummaryInFlight;
+    if (pending != null) return pending;
     final work = _askAiSummary(force: force);
-    _aiSummaryInFlight = work;
-    return work.whenComplete(() {
-      if (identical(_aiSummaryInFlight, work)) _aiSummaryInFlight = null;
+    final flight = work.whenComplete(() {
+      _aiSummaryInFlight = null;
+      _aiSummaryManualRequested = false;
+      if (mounted) _armBriefRefresh();
+    });
+    _aiSummaryInFlight = flight;
+    return flight;
+  }
+
+  String _briefFingerprint() {
+    final prefs = widget.preferences;
+    final config = prefs.aiProvider;
+    final stableSource = _aiRecapSource(forFingerprint: true);
+    final budget = nexBriefLines(
+      '\n'.allMatches(stableSource).length + 1,
+      ceiling: prefs.briefLength.lines,
+    );
+    final facts = prefs.briefStyle.statesFacts
+        ? nexBriefFactsSignature(
+            nexBriefFacts(
+              _model.all ?? _model.notes,
+              commitments: _model.commitments,
+            ),
+            maxLines: (budget - 1).clamp(1, budget),
+          )
+        : '';
+    return TimelineScreenState.recapFingerprint(
+      nexBriefSignature(
+        source:
+            '$stableSource\n$facts\n'
+            '${config.provider.wireName}|${config.resolvedBaseUrl}|${config.resolvedModel}|'
+            '${prefs.aiSummaryUnlimited}|${prefs.briefStyle.statesFacts ? Localizations.localeOf(context) : ''}',
+        style: prefs.briefStyle,
+        tone: prefs.briefTone,
+        length: prefs.briefLength,
+        language: prefs.aiOutputLanguage,
+        instruction: prefs.briefInstruction,
+      ),
+    );
+  }
+
+  bool get _briefForeground {
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    return lifecycle == null || lifecycle == AppLifecycleState.resumed;
+  }
+
+  void _armBriefRefresh() {
+    _aiSummaryWake?.cancel();
+    final prefs = widget.preferences;
+    if (!_aiHeaderAvailable ||
+        !prefs.showDaySummary ||
+        !prefs.briefStyle.usesModel ||
+        _aiRecapSource().isEmpty ||
+        !_briefForeground) {
+      return;
+    }
+    final fingerprint = _briefFingerprint();
+    // No recurring timer: unchanged information never generates another brief.
+    if (prefs.aiDaySummarySource == fingerprint) return;
+    final next = widget.services.briefRefresh.nextAllowedAt();
+    final wait = next.difference(DateTime.now());
+    // A changed input arriving during a flight also gets checked here.
+    _aiSummaryWake = Timer(wait.isNegative ? Duration.zero : wait, () {
+      if (mounted) unawaited(_loadAiSummary());
     });
   }
 
   Future<void> _askAiSummary({required bool force}) async {
+    await _briefCommitmentsReady;
+    if (!mounted) return;
+    force = force || _aiSummaryManualRequested;
     final prefs = widget.preferences;
-    if (!_aiHeaderAvailable) return;
-    // Switched off means no request at all, not a request whose answer is
-    // hidden: the card used to be written in the background while turned
-    // off, spending tokens on text nobody could see (1.94.0). A refresh
-    // asked for by name — the recap widget's button — still runs.
-    if (!force && !prefs.showDaySummary) return;
-    final today = _aiSummaryDateKey();
-    // Whatever is on file goes up first, stale or not. A recap from this
-    // morning is worth reading while a newer one is being written, and it is
-    // certainly worth more than an empty card.
+    if (!_briefAvailable || (!force && !prefs.showDaySummary)) return;
     final cached = CloudAIAdapter.cleanDecorativeReply(prefs.aiDaySummaryText);
     if (mounted &&
         cached != null &&
@@ -88,18 +119,11 @@ extension _TimelineAiHeader on TimelineScreenState {
     final source = _aiRecapSource();
     if (source.isEmpty) return;
     final style = prefs.briefStyle;
-    // Counted off the source rather than off the library — what the brief is
-    // allowed to say follows what it was actually given — and then held to
-    // whatever the reader asked for. The two are a floor and a ceiling, not
-    // two opinions: a quiet day is short under "long", and a busy one does
-    // not overflow under "short".
+    final length = prefs.briefLength;
     final budget = nexBriefLines(
       '\n'.allMatches(source).length + 1,
-      ceiling: prefs.briefLength.lines,
+      ceiling: length.lines,
     );
-    // What the app knows for itself. Written before anything is asked of
-    // anybody, and under `report` it is the entire brief — which is why that
-    // style needs no provider, no key and no signal.
     final written = style.statesFacts
         ? nexBriefReport(
             nexBriefFacts(
@@ -107,137 +131,81 @@ extension _TimelineAiHeader on TimelineScreenState {
               commitments: _model.commitments,
             ),
             AppLocalizations.of(context),
-            // One line kept back for the model to answer with, under the two
-            // styles that ask it for one.
             maxLines: style.usesModel ? (budget - 1).clamp(1, budget) : budget,
           )
         : null;
     if (!style.usesModel) {
-      if (!mounted) return;
-      _rebuild(() {
-        _aiSummaryLoading = false;
-        if (written != null && written.isNotEmpty) _aiSummaryText = written;
-      });
-      // Deliberately not filed and not pushed to the widget. This one is
-      // rebuilt from the database every time the timeline moves, costs
-      // nothing, and is never stale — storing it would only give the home
-      // screen an older copy of something it can have fresh.
+      if (mounted) {
+        _rebuild(() {
+          _aiSummaryLoading = false;
+          _aiSummaryText = written;
+        });
+      }
       _refreshDailyNudge();
       return;
     }
-    // The settings that shape the brief are part of what it was made from,
-    // exactly as the notes are. Without them on file, changing the style, the
-    // tone, the length or the language left yesterday's brief on the card
-    // until somebody happened to write a note — the setting appeared to do
-    // nothing, because nothing asked for a new brief.
-    //
-    // The headline beside this one has always keyed its cache on the language
-    // and so came back in English the moment it was chosen; the brief did
-    // not, which is how an English greeting ended up sitting over a Persian
-    // brief on the same screen.
-    final fingerprint = TimelineScreenState.recapFingerprint(
-      nexBriefSignature(
-        source: source,
-        style: style,
-        tone: prefs.briefTone,
-        length: prefs.briefLength,
-        language: prefs.aiOutputLanguage,
-        instruction: prefs.briefInstruction,
-      ),
-    );
-    if (!force && !_recapIsStale(fingerprint)) return;
+    if (!force && !_briefForeground) return;
+    final fingerprint = _briefFingerprint();
+    final refresh = widget.services.briefRefresh;
+    if (!force && !refresh.needs(fingerprint)) return;
+    final config = prefs.aiProvider;
+    final language = prefs.aiOutputLanguage;
+    final unlimited = prefs.aiSummaryUnlimited;
+    final tone = prefs.briefTone;
+    final instruction = prefs.briefInstruction;
     if (mounted) _rebuild(() => _aiSummaryLoading = true);
-    final adapter = _aiAdapter();
-    String? text;
-    // Kept apart from `text`, because under the styles that state their own
-    // facts a failed request still leaves something on the card — and a tap
-    // that quietly half-worked is the same broken control as one that did
-    // nothing at all.
-    var refused = false;
     try {
-      final answer = await adapter.digest(
-        source,
-        lines: budget,
-        style: style,
-        tone: prefs.briefTone,
-        instruction: prefs.briefInstruction,
-        written: written ?? '',
-        words: prefs.briefLength.words,
-        // A tap gets the full budget; the one that runs itself on launch does
-        // not. On a network that is joined but not connected, ninety seconds
-        // of spinner at the top of the timeline is what "the app loads slowly"
-        // turns out to mean.
-        // With the ceiling lifted the model is one that thinks first, and
-        // twenty seconds is rarely enough for it even on launch.
-        //
-        // Never unbounded, though: a brief that never comes back holds the
-        // card's spinner, and every pull behind it, for as long as it hangs.
-        timeout: force
-            ? const Duration(minutes: 5)
-            : prefs.aiSummaryUnlimited
-            ? const Duration(minutes: 3)
-            : CloudAIAdapter.ambientTimeout,
+      final result = await refresh.refresh(
+        fingerprint: fingerprint,
+        dateKey: _aiSummaryDateKey(),
+        force: force,
+        request: () async {
+          final adapter = CloudAIAdapter(
+            config: config,
+            outputLanguage: language,
+            unlimitedSummary: unlimited,
+          );
+          try {
+            final answer = await adapter.digest(
+              source,
+              lines: budget,
+              style: style,
+              tone: tone,
+              instruction: instruction,
+              written: written ?? '',
+              words: length.words,
+              timeout: force
+                  ? const Duration(minutes: 5)
+                  : unlimited
+                  ? const Duration(minutes: 3)
+                  : CloudAIAdapter.ambientTimeout,
+            );
+            // Local facts are useful fallback text, never an AI success stamp.
+            if (answer == null || answer.trim().isEmpty) return null;
+            return [
+              if (written != null && written.isNotEmpty) written,
+              answer,
+            ].join('\n');
+          } finally {
+            adapter.close();
+          }
+        },
       );
-      // The app's lines stand whether or not the model answered. That is the
-      // point of stating them separately: a brief that loses the rent being
-      // overdue because a request timed out is a brief that cannot be relied
-      // on for the one thing it is for.
-      text = [
-        if (written != null && written.isNotEmpty) written,
-        if (answer != null && answer.isNotEmpty) answer,
-      ].join('\n');
-      if (text.isEmpty) text = null;
-      refused = answer == null || answer.isEmpty;
-    } catch (_) {
-      text = written;
-      refused = true;
-    } finally {
-      adapter.close();
-    }
-    if (!mounted) return;
-    _rebuild(() {
-      _aiSummaryLoading = false;
-      // A failed refresh keeps whatever was already on screen. Blanking a
-      // recap that is still perfectly readable because the network dropped
-      // would be the tap actively destroying something.
-      if (text != null && text.isNotEmpty) _aiSummaryText = text;
-    });
-    // Keeping the old line is right; saying nothing about the *tap* is not —
-    // silence is what a broken button looks like. A quiet banner says the
-    // refresh did not happen, and the old text stays.
-    //
-    // Only for the tap. This also runs once by itself, the first time the
-    // timeline delivers any notes, and there the banner was an error nobody
-    // asked for: it arrived seconds after launch, over whatever screen the
-    // user had opened by then, about a card they may not even have looked at.
-    // This method's own rule at the top says why that is wrong — the panel is
-    // additive chrome, never a reason to show an error. A failure with no tap
-    // behind it leaves yesterday's recap on the card and says nothing.
-    if (force && (refused || text == null || text.isEmpty)) {
+      if (result.updated) unawaited(widget.widgets?.refresh());
       if (!mounted) return;
-      NexBannerHost.of(context)?.show(
-        message: AppLocalizations.of(context).recapRefreshFailed,
-        kind: NexBannerKind.failed,
-      );
+      _rebuild(() {
+        _aiSummaryText = result.text ?? _aiSummaryText ?? written;
+      });
+      if ((force || _aiSummaryManualRequested) && result.failed) {
+        NexBannerHost.of(context)?.show(
+          message: AppLocalizations.of(context).recapRefreshFailed,
+          kind: NexBannerKind.failed,
+        );
+      }
+      _refreshDailyNudge();
+    } finally {
+      if (mounted) _rebuild(() => _aiSummaryLoading = false);
     }
-    if (text != null && text.isNotEmpty) {
-      unawaited(
-        prefs
-            .setAiDaySummary(
-              text: text,
-              dateKey: today,
-              at: DateTime.now(),
-              source: fingerprint,
-            )
-            // After it is on file, not before: the bridge reads the
-            // preference rather than being handed the string, so pushing
-            // first would write the snapshot from the old brief. This is the
-            // whole of how a new recap reaches the home screen — the recap
-            // is filed without notifying listeners, so nothing else would.
-            .then((_) => widget.widgets?.refresh()),
-      );
-    }
-    _refreshDailyNudge();
   }
 
   /// Which language the generated line has to be written in.
@@ -270,45 +238,35 @@ extension _TimelineAiHeader on TimelineScreenState {
     final today = _aiSummaryDateKey();
     final language = _headlineLanguage;
     final langKey = language?.wireName;
-    // A renamed user changes the greeting's language mid-day, so the day key
-    // alone is not enough to decide the cached line still fits beside it.
-    if (!force &&
-        prefs.aiHeadlineDate == today &&
-        prefs.aiHeadlineLang == langKey) {
-      final cached = CloudAIAdapter.cleanDecorativeReply(prefs.aiHeadlineText);
-      if (mounted && cached != null && cached.isNotEmpty) {
-        _rebuild(() => _aiHeadlineText = cached);
-        return;
-      }
-    }
-    if (mounted) _rebuild(() => _aiHeadlineLoading = true);
-    final adapter = _aiAdapter();
-    String? text;
+    if (_aiHeadlineLoading) return;
+    _rebuild(() => _aiHeadlineLoading = true);
     try {
-      // Unlike the recap, an empty library is not a reason to skip this: the
-      // line is a mood, and "you have not written anything yet" is a mood the
-      // prompt handles on its own.
-      text = await adapter.headline(
-        _aiHeadlineSource(),
-        language: language,
-        // Same rule as the recap: a tap waits, a launch does not — unless
-        // the ceiling is lifted for a model that thinks first.
-        timeout: force || widget.preferences.aiSummaryUnlimited
-            ? null
-            : CloudAIAdapter.ambientTimeout,
+      final text = await widget.services.briefRefresh.headline(
+        dateKey: today,
+        language: langKey,
+        force: force,
+        request: () async {
+          final adapter = _aiAdapter();
+          try {
+            return await adapter.headline(
+              _aiHeadlineSource(),
+              language: language,
+              timeout: force || prefs.aiSummaryUnlimited
+                  ? const Duration(minutes: 5)
+                  : CloudAIAdapter.ambientTimeout,
+            );
+          } finally {
+            adapter.close();
+          }
+        },
       );
-    } catch (_) {
-      text = null;
+      if (mounted && text != null && text.isNotEmpty) {
+        _rebuild(
+          () => _aiHeadlineText = CloudAIAdapter.cleanDecorativeReply(text),
+        );
+      }
     } finally {
-      adapter.close();
-    }
-    if (!mounted) return;
-    _rebuild(() {
-      _aiHeadlineLoading = false;
-      if (text != null && text.isNotEmpty) _aiHeadlineText = text;
-    });
-    if (text != null && text.isNotEmpty) {
-      unawaited(prefs.setAiHeadline(text: text, dateKey: today, lang: langKey));
+      if (mounted) _rebuild(() => _aiHeadlineLoading = false);
     }
   }
 
@@ -391,17 +349,6 @@ extension _TimelineAiHeader on TimelineScreenState {
   String _aiSummaryDateKey() =>
       NexPreferences.daySummaryDateKey(DateTime.now());
 
-  bool _recapIsStale(String fingerprint) =>
-      TimelineScreenState.recapNeedsRefresh(
-        at: widget.preferences.aiDaySummaryAt,
-        text: CloudAIAdapter.cleanDecorativeReply(
-          widget.preferences.aiDaySummaryText,
-        ),
-        storedSource: widget.preferences.aiDaySummarySource,
-        fingerprint: fingerprint,
-        now: DateTime.now(),
-      );
-
   /// Re-arms the once-a-day notification with whatever Nex knows right now.
   ///
   /// Every open, not once at setup. The notification repeats daily on its own
@@ -451,9 +398,10 @@ extension _TimelineAiHeader on TimelineScreenState {
   /// put a query on a path that mostly concludes "nothing has changed". They
   /// are refreshed when the screen loads and whenever the commitments screen
   /// closes, which is every moment they can have changed.
-  String _aiRecapSource() => nexRecapSource(
+  String _aiRecapSource({bool forFingerprint = false}) => nexRecapSource(
     _model.all ?? _model.notes,
     commitments: _model.commitments,
+    forFingerprint: forFingerprint,
   );
 
   /// The screen used to seed `notes` synchronously from the repository. The
@@ -478,7 +426,7 @@ extension _TimelineAiHeader on TimelineScreenState {
   /// So the trigger goes where the data does. Both paths call this, the flag
   /// makes it once, and whichever gets there first wins.
   void _requestAiHeader(List<Note> delivered) {
-    if (delivered.isEmpty) return;
+    if (delivered.isEmpty && _model.commitments.isEmpty) return;
     // The recap is allowed to re-ask. Its own gate decides whether the notes
     // have moved on and whether an hour has passed, so calling it on every
     // delivery costs a hash and buys a recap that keeps up with the day.
@@ -519,9 +467,9 @@ extension _TimelineAiHeader on TimelineScreenState {
         ],
         thickness: 0.6,
         laps: 1,
-        strength: _aiSummaryLoading ? 0.4 : 0.25,
+        strength: 0.25,
         active: !_aiSummaryCollapsed,
-        token: _aiSummaryLoading ? '…' : _aiSummaryText,
+        token: _aiSummaryText,
         child: NexGlassSurface(
           blur: false,
           borderRadius: corner,
