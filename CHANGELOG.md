@@ -34,13 +34,15 @@ Working convention:
 
 ## Unreleased
 
-## v2.1.4
+## v2.1.5
 
 - Smart summaries refresh automatically only after relevant information changes and at least one hour after the last successful generation. Failed requests wait 15 minutes before retrying; manual refresh remains available immediately. Existing text stays readable, concurrent requests are shared, and every summary line uses the same type size.
 - Show in full appears only when expanding a card reveals more content, taking its width and text size into account.
 - PDF pages stay visible while the next page loads, with a steady viewer height and smoother transitions. A failed page keeps the current page and offers retry.
 - Birthdays & occasions joins the Soon module catalogue, with planned Persian/Gregorian dates, anniversaries, advance reminders and gift notes.
 - Phone screens stay in portrait until the landscape layout is redesigned.
+
+## v2.1.4
 
 - Link cards can now carry photos, recordings and files through Attach, like text notes. Sharing keeps the URL alongside its caption and files.
 - Videos play inside note details in a rounded player, with seeking, speed and mute controls. Playback starts only when requested and pauses when leaving or covering the note.
