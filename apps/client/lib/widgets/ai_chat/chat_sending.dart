@@ -208,14 +208,17 @@ extension _ChatSending on _AiChatSheetState {
     );
     if (!mounted || generation != _sendGeneration) return;
     _guide = guide;
+    bool gentle;
     try {
-      _gentle = await nexCycleGentleToday(
+      gentle = await nexCycleGentleToday(
         services: widget.services,
         preferences: widget.preferences,
       );
     } catch (_) {
-      _gentle = false;
+      gentle = false;
     }
+    if (!mounted || generation != _sendGeneration) return;
+    _gentle = gentle;
     await _readCycleFirst(trimmed);
     if (!mounted || generation != _sendGeneration) return;
 
@@ -278,6 +281,7 @@ extension _ChatSending on _AiChatSheetState {
         for (final action in actions)
           if (action.isRead && _asked(action)) action,
       ];
+      _sending = _lookups.isNotEmpty && _searchRounds < 2;
     });
     _persist();
     unawaited(_resolveCitations());
@@ -298,6 +302,7 @@ extension _ChatSending on _AiChatSheetState {
   /// the phone, which is why this is not done for a provider: there the
   /// model decides, and only what it asks for is sent.
   Future<void> _readCycleFirst(String question) async {
+    final generation = _sendGeneration;
     if (!_adapter.answersOnDevice || !looksLikeCycleQuestion(question)) return;
     // A retry of the same question: it was read for already.
     if (_turns.isNotEmpty &&
@@ -314,7 +319,7 @@ extension _ChatSending on _AiChatSheetState {
     } catch (_) {
       return;
     }
-    if (!mounted) return;
+    if (!mounted || generation != _sendGeneration) return;
     final found = summary
         .trim()
         .replaceAll('<<<NOTES', '<<NOTES')
@@ -352,6 +357,7 @@ extension _ChatSending on _AiChatSheetState {
 
     final findings = StringBuffer();
     for (final lookup in queries) {
+      if (!mounted || generation != _sendGeneration) return;
       // The library's threads, by name — what "summarise the Trip thread"
       // needs first when the model was not told which threads there are.
       // «Cycle»: a summary only when it was allowed; otherwise a line that
@@ -527,6 +533,7 @@ extension _ChatSending on _AiChatSheetState {
         for (final action in actions)
           if (action.isRead && _asked(action)) action,
       ];
+      _sending = _lookups.isNotEmpty && _searchRounds < 2;
     });
     _persist();
     unawaited(_resolveCitations());
@@ -593,10 +600,16 @@ extension _ChatSending on _AiChatSheetState {
     }
   }
 
-  Future<String?> _ask() => NexDisclosureLog.about(() async {
-    final turns = await _cycleAsOfNow(List.of(_turns));
-    return _adapter.chat(turns, options: _options);
-  }, notes: _given);
+  Future<String?> _ask() {
+    final generation = _sendGeneration;
+    return NexDisclosureLog.about(() async {
+      final turns = await _cycleAsOfNow(List.of(_turns));
+      // Stop may arrive while local context is being refreshed, before an
+      // HTTP request exists to abort. Never start that cancelled request.
+      if (!mounted || generation != _sendGeneration) return null;
+      return _adapter.chat(turns, options: _options);
+    }, notes: _given);
+  }
 
   /// [turns] with every «Cycle» lookup in them brought up to date — see
   /// [nexCycleFindingsAsOfNow]. Only what is sent changes; the thread on

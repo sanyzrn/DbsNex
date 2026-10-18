@@ -256,9 +256,12 @@ extension NexLibraryServices on NexServices {
       worker.fusedSearch(filters);
 
   Future<void> refreshTimeline() async {
-    if (_closed) return;
+    if (_closed || _timelineController.isClosed) return;
     _timelineReads++;
     final notes = await worker.timeline(limit: _timelineWindow);
+    // A restore/restart may have closed this graph while the worker's
+    // response was in flight. Its old snapshot has no listeners to update.
+    if (_closed || _timelineController.isClosed) return;
     _lastTimeline = notes;
     _timelineController.add(notes);
   }

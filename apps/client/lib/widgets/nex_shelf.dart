@@ -36,10 +36,12 @@ class NexShelfHeading extends StatelessWidget {
             children: [
               Icon(icon, size: 18, color: scheme.primary),
               const SizedBox(width: NexSpacing.xs + 2),
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],

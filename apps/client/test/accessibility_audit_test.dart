@@ -103,5 +103,18 @@ void main() {
     testWidgets('${entry.key}: Persian, dark, largest text', (tester) async {
       await audit(tester, entry.value, locale: 'fa', dark: true, textScale: 2);
     });
+    for (final (locale, dark) in [('en', false), ('fa', true)]) {
+      testWidgets('${entry.key}: $locale, accessibility text at 3.2', (
+        tester,
+      ) async {
+        await audit(
+          tester,
+          entry.value,
+          locale: locale,
+          dark: dark,
+          textScale: 3.2,
+        );
+      });
+    }
   }
 }

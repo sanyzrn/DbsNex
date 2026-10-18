@@ -1179,12 +1179,25 @@ class CloudAIAdapter implements AIAdapter {
             ? (candidates.first as Map)['finishReason']
             : null,
     };
-    if (requireComplete &&
-        const {'length', 'max_tokens', 'MAX_TOKENS'}.contains(reason)) {
-      lastReplyTruncated = true;
+    final completed = switch (config.provider.format) {
+      AiWireFormat.openai => const {'stop'},
+      AiWireFormat.anthropic => const {'end_turn', 'stop_sequence'},
+      AiWireFormat.gemini => const {'STOP'},
+    };
+    // Filtering, paused turns and continuation chunks can carry text too.
+    // None is a complete replacement for the person's original. Older
+    // compatible gateways that omit finish metadata remain supported.
+    if (requireComplete && reason != null && !completed.contains(reason)) {
+      lastReplyTruncated = const {
+        'length',
+        'max_tokens',
+        'MAX_TOKENS',
+        'model_context_window_exceeded',
+        'CONTINUATION',
+      }.contains(reason);
       _lastFailure = (
         status: 0,
-        message: 'Incomplete AI response: output limit reached.',
+        message: 'Incomplete AI response: generation did not finish normally.',
       );
       return null;
     }
@@ -2576,6 +2589,7 @@ class CloudAIAdapter implements AIAdapter {
         media: bytes,
         mediaMimeType: _audioMime(uri),
         modelOverride: config.resolvedTranscriptionModel,
+        requireComplete: true,
       );
       if (reply == null) throw const AiUnavailableException();
       return Transcript(text: reply.trim());
