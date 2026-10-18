@@ -37,9 +37,9 @@ import '../widgets/nex_dialog.dart';
 import '../widgets/rename_file_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
-import '../platform/pdf_preview.dart';
+import '../widgets/pdf_reader.dart';
 import '../platform/reminders.dart';
-import '../platform/video_preview.dart';
+import '../widgets/video_player.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/note_editor_sheet.dart';
 import '../widgets/photo_viewer.dart';
@@ -127,6 +127,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   /// The files it carries after its own (docs/14-attachments.md).
   List<NoteAttachment> _attachments = const [];
+  String? _previewAttachmentId;
 
   /// Whether the first read has come back, whatever it found.
   ///

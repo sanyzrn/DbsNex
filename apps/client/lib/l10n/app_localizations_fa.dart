@@ -5348,4 +5348,40 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get searchMore => 'نمایش نتایج بیشتر';
+
+  @override
+  String get playVideo => 'پخش ویدئو';
+
+  @override
+  String get pauseVideo => 'مکث ویدئو';
+
+  @override
+  String get muteVideo => 'قطع صدای ویدئو';
+
+  @override
+  String get unmuteVideo => 'وصل صدای ویدئو';
+
+  @override
+  String get openInOtherApp => 'باز کردن با برنامه‌ای دیگر';
+
+  @override
+  String get inlineMediaUnavailable =>
+      'نمایش این فایل در اینجا ممکن نیست. آن را با برنامه‌ای دیگر باز کنید.';
+
+  @override
+  String get previousPdfPage => 'صفحهٔ قبل';
+
+  @override
+  String get nextPdfPage => 'صفحهٔ بعد';
+
+  @override
+  String get zoomIn => 'بزرگ‌نمایی';
+
+  @override
+  String get resetZoom => 'اندازهٔ اصلی';
+
+  @override
+  String pdfPageCount(String page, String total) {
+    return 'صفحهٔ $page از $total';
+  }
 }

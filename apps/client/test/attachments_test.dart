@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
+import 'package:nex_client/widgets/pdf_reader.dart';
+import 'package:nex_client/widgets/video_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
@@ -377,6 +379,92 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'a link offers Attach and retains its files without changing the URL',
+    (tester) async {
+      late Note note;
+      await tester.runAsync(() async {
+        note = (await harness.services.captureLink(
+          'https://example.com/reference',
+        ))!;
+      });
+      await openNote(tester, note.id);
+      await tester.tap(find.byKey(const ValueKey('attachment-add')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('attach-file')), findsOneWidget);
+      Navigator.of(
+        tester.element(find.byKey(const ValueKey('attach-file'))),
+      ).pop();
+      await tester.pumpAndSettle();
+      late NoteAttachment file;
+      await tester.runAsync(() async {
+        final source = File(p.join(harness.mediaDir, 'reference.pdf'))
+          ..writeAsBytesSync(bytes);
+        file = (await harness.services.attachFile(
+          note.id,
+          source.path,
+          kind: AttachmentKind.file,
+          name: 'reference.pdf',
+          mimeType: 'application/pdf',
+        ))!;
+        final saved = (await harness.services.getById(note.id))!;
+        expect(saved.type, NoteType.link);
+        expect(saved.linkUrl, 'https://example.com/reference');
+        expect(
+          (await harness.services.attachmentsFor(note.id)).single.id,
+          file.id,
+        );
+      });
+      // Reopen from storage, rather than relying on the detail sheet's state.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      await openNote(tester, note.id);
+      expect(find.byKey(ValueKey('attachment-${file.id}')), findsOneWidget);
+    },
+  );
+
+  for (final extension in ['pdf', 'mp4']) {
+    testWidgets(
+      '$extension attachment opens inside the existing details and closes in place',
+      (tester) async {
+        late Note note;
+        late NoteAttachment file;
+        await tester.runAsync(() async {
+          note = (await harness.services.captureText('meeting'))!;
+          final source = File(p.join(harness.mediaDir, 'reference.$extension'))
+            ..writeAsBytesSync(bytes);
+          file = (await harness.services.attachFile(
+            note.id,
+            source.path,
+            kind: AttachmentKind.file,
+            name: 'reference.$extension',
+            mimeType: extension == 'pdf' ? 'application/pdf' : 'video/mp4',
+          ))!;
+        });
+        await openNote(tester, note.id);
+        await tester.tap(find.byKey(ValueKey('attachment-${file.id}')));
+        await tester.pumpAndSettle();
+        expect(find.byType(NoteDetailSheet), findsOneWidget);
+        expect(
+          find.byType(extension == 'pdf' ? NexPdfReader : NexVideoPlayer),
+          findsOneWidget,
+        );
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('attachment-preview-close')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('attachment-preview-close')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byType(extension == 'pdf' ? NexPdfReader : NexVideoPlayer),
+          findsNothing,
+        );
+        expect(find.byKey(ValueKey('attachment-${file.id}')), findsOneWidget);
+      },
+    );
+  }
 
   testWidgets('a checklist offers no attachments', (tester) async {
     late Note note;

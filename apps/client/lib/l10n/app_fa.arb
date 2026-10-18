@@ -1996,5 +1996,26 @@
   "chatStop": "توقف پاسخ",
   "chatStopped": "پاسخ متوقف شد. پرسش شما ذخیره شده و می‌توانید دوباره تلاش کنید.",
   "chatContextLimit": "این پرسش برای یک درخواست بیش از حد طولانی است. آن را کوتاه‌تر کنید یا گفت‌وگوی تازه‌ای بسازید.",
-  "searchMore": "نمایش نتایج بیشتر"
+  "searchMore": "نمایش نتایج بیشتر",
+  "playVideo": "پخش ویدئو",
+  "pauseVideo": "مکث ویدئو",
+  "muteVideo": "قطع صدای ویدئو",
+  "unmuteVideo": "وصل صدای ویدئو",
+  "openInOtherApp": "باز کردن با برنامه‌ای دیگر",
+  "inlineMediaUnavailable": "نمایش این فایل در اینجا ممکن نیست. آن را با برنامه‌ای دیگر باز کنید.",
+  "previousPdfPage": "صفحهٔ قبل",
+  "nextPdfPage": "صفحهٔ بعد",
+  "zoomIn": "بزرگ‌نمایی",
+  "resetZoom": "اندازهٔ اصلی",
+  "pdfPageCount": "صفحهٔ {page} از {total}",
+  "@pdfPageCount": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  }
 }

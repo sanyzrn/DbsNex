@@ -8827,6 +8827,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Load more results'**
   String get searchMore;
+
+  /// No description provided for @playVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Play video'**
+  String get playVideo;
+
+  /// No description provided for @pauseVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause video'**
+  String get pauseVideo;
+
+  /// No description provided for @muteVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute video'**
+  String get muteVideo;
+
+  /// No description provided for @unmuteVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute video'**
+  String get unmuteVideo;
+
+  /// No description provided for @openInOtherApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in another app'**
+  String get openInOtherApp;
+
+  /// No description provided for @inlineMediaUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This file cannot be shown here. Try opening it in another app.'**
+  String get inlineMediaUnavailable;
+
+  /// No description provided for @previousPdfPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get previousPdfPage;
+
+  /// No description provided for @nextPdfPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get nextPdfPage;
+
+  /// No description provided for @zoomIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom in'**
+  String get zoomIn;
+
+  /// No description provided for @resetZoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset zoom'**
+  String get resetZoom;
+
+  /// No description provided for @pdfPageCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page} of {total}'**
+  String pdfPageCount(String page, String total);
 }
 
 class _AppLocalizationsDelegate

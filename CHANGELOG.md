@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.4
+
+- Link cards can now carry photos, recordings and files through Attach, like text notes. Sharing keeps the URL alongside its caption and files.
+- Videos play inside note details in a rounded player, with seeking, speed and mute controls. Playback starts only when requested and pauses when leaving or covering the note.
+- PDFs open inside note details with page navigation, a page slider and pinch or button zoom. PDF and video attachments open in the same detail sheet; Open in another app remains available.
+
 ## v2.1.3
 
 - Stop remains available during assistant lookups and context refresh; cancelled work cannot start a later cloud request.

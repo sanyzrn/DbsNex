@@ -240,6 +240,29 @@ void main() {
       expect(find.textContaining('# Chapter one'), findsNothing);
     });
 
+    testWidgets('a PDF with no extension is recognized by its MIME type', (
+      tester,
+    ) async {
+      var read = false;
+      const channel = MethodChannel('nex/os_capture');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method != 'pdfPage') return null;
+        read = true;
+        return {'bytes': pngBytes, 'pageCount': 1};
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      await openFile(
+        tester,
+        'shared-document',
+        text: '%PDF-1.4',
+        mimeType: 'application/pdf',
+      );
+      expect(read, isTrue);
+      expect(find.byKey(const ValueKey('inline-pdf')), findsOneWidget);
+    });
+
     testWidgets('a PDF shows its first page, drawn by the platform', (
       tester,
     ) async {
@@ -248,7 +271,9 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
             const MethodChannel('nex/os_capture'),
-            (call) async => call.method == 'pdfPreview' ? pngBytes : null,
+            (call) async => call.method == 'pdfPage'
+                ? {'bytes': pngBytes, 'pageCount': 1}
+                : null,
           );
       addTearDown(
         () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -274,9 +299,7 @@ void main() {
     testWidgets('a video shows a frame of itself, drawn by the platform', (
       tester,
     ) async {
-      // A cover, not a player. Playing video in a note means a codec plugin
-      // and a render surface; the question a note raises about a video is
-      // which one it is, and one frame answers it.
+      // The cover loads immediately; the decoder is allocated only on Play.
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
             const MethodChannel('nex/os_capture'),
@@ -301,13 +324,13 @@ void main() {
       expect(find.byType(Image), findsOneWidget);
       // What tells the still from the video, and the reason the frame is
       // worth showing at all rather than being mistaken for a photo.
-      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      expect(find.byKey(const ValueKey('video-cover-play')), findsOneWidget);
       // Nothing is parsed out of it, and the bytes never reach the text
       // reader.
       expect(find.byType(NexMarkdown), findsNothing);
     });
 
-    testWidgets('a video with no retriever is named and left alone', (
+    testWidgets('a video with no poster still offers inline playback', (
       tester,
     ) async {
       // No mock handler, so the channel throws MissingPluginException — an
@@ -321,11 +344,11 @@ void main() {
 
       expect(find.text('clip.mp4'), findsOneWidget);
       expect(find.byType(Image), findsNothing);
-      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+      expect(find.byKey(const ValueKey('video-cover-play')), findsOneWidget);
       expect(find.byType(NexMarkdown), findsNothing);
     });
 
-    testWidgets('a PDF with no renderer is named and left alone', (
+    testWidgets('a PDF with no renderer offers an explicit fallback', (
       tester,
     ) async {
       // No mock handler, so the channel throws MissingPluginException — which

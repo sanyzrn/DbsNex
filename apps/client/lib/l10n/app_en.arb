@@ -3365,5 +3365,26 @@
   "chatStop": "Stop response",
   "chatStopped": "Response stopped. Your question is saved; you can try again.",
   "chatContextLimit": "This question is too long for one request. Shorten it or start a new conversation.",
-  "searchMore": "Load more results"
+  "searchMore": "Load more results",
+  "playVideo": "Play video",
+  "pauseVideo": "Pause video",
+  "muteVideo": "Mute video",
+  "unmuteVideo": "Unmute video",
+  "openInOtherApp": "Open in another app",
+  "inlineMediaUnavailable": "This file cannot be shown here. Try opening it in another app.",
+  "previousPdfPage": "Previous page",
+  "nextPdfPage": "Next page",
+  "zoomIn": "Zoom in",
+  "resetZoom": "Reset zoom",
+  "pdfPageCount": "Page {page} of {total}",
+  "@pdfPageCount": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  }
 }

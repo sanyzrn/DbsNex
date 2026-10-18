@@ -1,20 +1,41 @@
 import 'package:flutter/services.dart';
 
-/// The first page of a PDF, rendered by the operating system.
-///
-/// Android has drawn PDFs itself since API 21 — `android.graphics.pdf` — and
-/// this app's minimum is 24, so the whole of the native half is a few lines
-/// on the method channel the app already has. Every Flutter PDF package ships
-/// its own copy of PDFium instead: several megabytes in the APK to do what the
-/// platform already does, on a screen that only ever wanted one thumbnail.
-///
-/// So this is Android only, deliberately, and the absence is not an error
-/// anywhere: a platform with no renderer shows the file row it always showed,
-/// and the file still opens in whatever does handle it.
+/// PDF thumbnails and complete pages rendered by Android's own PdfRenderer.
+/// Other platforms can still hand the original file to an external reader.
 abstract final class NexPdfPreview {
   /// The same channel the share intent and the file picker use. A second one
   /// would be a second thing to register and forget to register.
   static const _channel = MethodChannel('nex/os_capture');
+
+  /// One complete page, never the whole document in memory. The Android
+  /// renderer bounds its bitmap to three million pixels and closes the file
+  /// and renderer before replying. No bundled PDF engine is needed.
+  static Future<NexPdfPage?> page(
+    String path, {
+    int index = 0,
+    int width = 1400,
+  }) async {
+    if (path.isEmpty || index < 0) return null;
+    try {
+      final result = await _channel.invokeMapMethod<String, Object?>(
+        'pdfPage',
+        {'path': path, 'index': index, 'width': width},
+      );
+      final bytes = result?['bytes'];
+      final count = result?['pageCount'];
+      if (bytes is! Uint8List ||
+          bytes.isEmpty ||
+          count is! int ||
+          count <= index) {
+        return null;
+      }
+      return NexPdfPage(bytes: bytes, pageCount: count);
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
 
   /// The first page of the PDF at [path] as PNG bytes, or null when there is
   /// no preview to be had — no renderer on this platform, a file that is not
@@ -54,4 +75,11 @@ abstract final class NexPdfPreview {
       return null;
     }
   }
+}
+
+class NexPdfPage {
+  const NexPdfPage({required this.bytes, required this.pageCount});
+
+  final Uint8List bytes;
+  final int pageCount;
 }

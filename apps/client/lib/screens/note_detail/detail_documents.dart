@@ -21,9 +21,7 @@ Future<NexDocxText?> Function(List<int> bytes) nexDocxReader = (bytes) =>
 /// of a frame the way reading half a megabyte of plain text is. So this one
 /// waits, and shows that it is waiting.
 ///
-/// Only `.docx` for now. The other document kinds — PDF above all — reach this
-/// widget and render nothing, exactly as they did before, because showing them
-/// needs a renderer this app does not carry.
+/// Only `.docx` here; PDFs use the inline native page reader instead.
 class _DocumentBody extends StatefulWidget {
   const _DocumentBody({required this.path});
 
