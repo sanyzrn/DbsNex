@@ -12,54 +12,93 @@ import 'package:nex_core/nex_core.dart';
 void main() {
   const history = [ChatMessage(role: ChatRole.user, content: 'hello')];
 
-  test(
-    'only native OpenAI o-series changes its request parameter policy',
-    () async {
-      for (final provider in [
-        AiProvider.openai,
-        AiProvider.custom,
-        AiProvider.openrouter,
-      ]) {
-        final bodies = <Map<String, dynamic>>[];
-        final adapter = CloudAIAdapter(
-          config: AiProviderConfig(
-            provider: provider,
-            apiKey: 'k',
-            model: 'o3',
-            baseUrl: provider == AiProvider.custom
-                ? 'https://gateway.example/v1/chat/completions'
-                : '',
-          ),
-          client: MockClient((request) async {
-            bodies.add(jsonDecode(request.body) as Map<String, dynamic>);
-            return http.Response(
-              jsonEncode({
-                'choices': [
-                  {
-                    'message': {'content': 'ok'},
-                  },
-                ],
-              }),
-              200,
-            );
-          }),
-        );
-        expect((await adapter.test()).success, isTrue);
-        expect(await adapter.chat(history), 'ok');
-        for (final body in bodies) {
-          expect(
-            body.containsKey('max_completion_tokens'),
-            provider == AiProvider.openai,
+  test('native OpenAI takes max_completion_tokens; reasoning models drop the '
+      'temperature', () async {
+    for (final (model, reasoning) in [
+      ('gpt-4o-mini', false),
+      ('gpt-4.1', false),
+      ('o3', true),
+      ('gpt-5-mini', true),
+      ('gpt-5.1', true),
+      ('gpt-6.1-sol', true),
+    ]) {
+      final bodies = <Map<String, dynamic>>[];
+      final adapter = CloudAIAdapter(
+        config: AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'k',
+          model: model,
+        ),
+        client: MockClient((request) async {
+          bodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'ok'},
+                  'finish_reason': 'stop',
+                },
+              ],
+            }),
+            200,
           );
-          expect(body.containsKey('max_tokens'), provider != AiProvider.openai);
-        }
-        expect(
-          bodies.last.containsKey('temperature'),
-          provider != AiProvider.openai,
-        );
+        }),
+      );
+      expect((await adapter.test()).success, isTrue, reason: model);
+      expect(await adapter.chat(history), 'ok', reason: model);
+      for (final body in bodies) {
+        expect(body.containsKey('max_completion_tokens'), isTrue);
+        expect(body.containsKey('max_tokens'), isFalse, reason: model);
       }
-    },
-  );
+      expect(bodies.last.containsKey('temperature'), !reasoning, reason: model);
+    }
+  });
+
+  test('only native OpenAI changes its request parameter policy', () async {
+    for (final provider in [
+      AiProvider.openai,
+      AiProvider.custom,
+      AiProvider.openrouter,
+    ]) {
+      final bodies = <Map<String, dynamic>>[];
+      final adapter = CloudAIAdapter(
+        config: AiProviderConfig(
+          provider: provider,
+          apiKey: 'k',
+          model: 'o3',
+          baseUrl: provider == AiProvider.custom
+              ? 'https://gateway.example/v1/chat/completions'
+              : '',
+        ),
+        client: MockClient((request) async {
+          bodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'ok'},
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+      expect((await adapter.test()).success, isTrue);
+      expect(await adapter.chat(history), 'ok');
+      for (final body in bodies) {
+        expect(
+          body.containsKey('max_completion_tokens'),
+          provider == AiProvider.openai,
+        );
+        expect(body.containsKey('max_tokens'), provider != AiProvider.openai);
+      }
+      expect(
+        bodies.last.containsKey('temperature'),
+        provider != AiProvider.openai,
+      );
+    }
+  });
 
   test('the next chat request uses the current output language', () async {
     var language = AiOutputLanguage.english;

@@ -179,10 +179,12 @@ class _RecurringScreenState extends State<RecurringScreen> {
   }
 
   Future<void> _actions(NexCommitment c) async {
-    final choice = await showModalBottomSheet<String>(
-      sheetAnimationStyle: NexMotion.sheet,
+    // The app's own sheet (2.1.6): the handle, the glass and the swipe to
+    // close that every other sheet has, and the safe area it supplies.
+    final choice = await nexShowSheet<String>(
       context: context,
-      builder: (ctx) => SafeArea(
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.only(bottom: NexSpacing.sm),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -281,15 +283,14 @@ class _RecurringScreenState extends State<RecurringScreen> {
   }
 
   Future<void> _history(NexCommitment c) async {
-    await showModalBottomSheet<void>(
-      sheetAnimationStyle: NexMotion.sheet,
+    await nexShowSheet<void>(
       context: context,
-      isScrollControlled: true,
-      builder: (ctx) => SafeArea(
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.only(top: NexSpacing.xs),
         child: SizedBox(
           height: MediaQuery.sizeOf(ctx).height * .65,
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(NexSpacing.lg),
             children: [
               Text(
                 nexLabel(

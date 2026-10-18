@@ -25,7 +25,7 @@ void main() {
           () =>
               messenger.setMockMethodCallHandler(SystemChannels.platform, null),
         );
-        await lockNexPhoneOrientation();
+        await lockNexPhoneOrientation(isShareWindow: () async => false);
         final orientation = calls.where(
           (call) => call.method == 'SystemChrome.setPreferredOrientations',
         );
@@ -40,4 +40,28 @@ void main() {
       variant: TargetPlatformVariant.only(platform),
     );
   }
+
+  testWidgets(
+    'the translucent share window keeps whatever orientation it is given',
+    (tester) async {
+      final calls = <MethodCall>[];
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        calls.add(call);
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      await lockNexPhoneOrientation(isShareWindow: () async => true);
+      expect(
+        calls.where(
+          (call) => call.method == 'SystemChrome.setPreferredOrientations',
+        ),
+        isEmpty,
+      );
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.android),
+  );
 }

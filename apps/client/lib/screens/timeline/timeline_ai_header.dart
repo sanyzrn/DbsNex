@@ -132,6 +132,7 @@ extension _TimelineAiHeader on TimelineScreenState {
             ),
             AppLocalizations.of(context),
             maxLines: style.usesModel ? (budget - 1).clamp(1, budget) : budget,
+            clock: (local) => nexDueClock(context, local),
           )
         : null;
     if (!style.usesModel) {
@@ -560,8 +561,15 @@ extension _TimelineAiHeader on TimelineScreenState {
       final comma = nexDirectionOf(name) == TextDirection.rtl ? '،' : ',';
       return '$aiPhrase$comma $name';
     }
-    return name == null
-        ? text[v]('').replaceFirst(RegExp(r'[,،]\s*$'), '').trim()
-        : text[v](name);
+    return name == null ? nexUnnamedGreeting(text[v]) : text[v](name);
   }
 }
+
+/// A greeting written with a slot for a name, said without one.
+///
+/// The slot goes, and the comma before it: "Still up?", not "Still up, ?".
+/// A marker rather than an empty string, because the slot is not always last
+/// — two of the phrasings in each language end in a question mark, and only
+/// a trailing comma used to be taken off.
+String nexUnnamedGreeting(String Function(String name) phrase) =>
+    phrase('\u0000').replaceFirst(RegExp('[,،]?\\s*\u0000'), '').trim();

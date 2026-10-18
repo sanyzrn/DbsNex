@@ -34,6 +34,20 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.6
+
+- **Swipe through a PDF.** Pages turn by swiping sideways, the way the interface reads, and the page you are heading for is prepared while you swipe. The slider under the page is gone: a small capsule over the page holds the arrows and the page count, and tapping the count opens a sheet of page numbers to jump straight to one. Double-tap zooms in where you tapped, and a white page now has a visible edge.
+- **A smart summary that knows what a reminder is.** A reminder you set is said as when to do the thing — "call the plumber tomorrow at 9" — instead of as a deadline counting down hours. Days are counted by the calendar, so a reminder five days away is no longer "four days". The summary never suggests a reminder you already have, and a deadline written in the note itself (such as "until 1405/08/07") is kept apart from the reminder's time; it now knows today's Solar Hijri date to read such dates. The plain report says reminders the same way: "dentist — tomorrow at 09:00".
+- **Every summary line alike.** Each line's emoji sits in a column of its own with the words lined up beside it, and the first line no longer reads as a heading over the rest.
+- **The greeting without a name reads properly.** With no name set, "What have you got, ?" is now "What have you got?".
+- **Smaller polish.** The Nex AI section of a note is a visible card rather than an unexplained indent; the actions and history sheets of a recurring item have the handle, swipe-to-close and glass of every other sheet; a few Persian labels now use one spelling.
+- **Gemini works again without a model typed.** Nex now uses Google's current Flash model (the `gemini-flash-latest` alias) when the model field is empty. The previous default, Gemini 2.5 Flash, was retired in October 2026, so a Gemini key with the field left empty could fail on every request.
+- **Newer OpenAI models answer.** GPT-5 and later reasoning models, including the suggested `gpt-6.1-sol`, now receive the request format OpenAI requires for them (`max_completion_tokens`, no custom temperature) instead of failing on the first message.
+- **Sharing into Nex is safe on every Android version.** The invisible share window no longer requests a fixed orientation, which Android 8.0 refuses with a crash and which could turn the app you were sharing from. "Save to Nex" from selected text uses the same window.
+- **Suggest tags says when there is nothing new.** A tap that finds no new tags now explains it instead of appearing to do nothing.
+- **Links end where the address ends.** Persian written straight after a web address, without a space, is no longer read as part of the domain; Persian paths such as Wikipedia articles still open in full.
+- **Tap to pause a video.** Tap a playing video to pause it and tap again to resume.
+
 ## v2.1.5
 
 - Smart summaries refresh automatically only after relevant information changes and at least one hour after the last successful generation. Failed requests wait 15 minutes before retrying; manual refresh remains available immediately. Existing text stays readable, concurrent requests are shared, and every summary line uses the same type size.

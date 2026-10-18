@@ -174,6 +174,38 @@ void main() {
     },
   );
 
+  testWidgets('every brief line hangs its emoji and starts its words in one '
+      'place', (tester) async {
+    // 2.1.6: the first line read larger than the others. It was the only
+    // line drawn on its own, with a wider gap under it, and each line's words
+    // began wherever its emoji happened to end.
+    await preferences.setAiDaySummary(
+      text: '📞 Call the bank at 9\n⏱️ Booth overtime tonight\n⚠️ Tax file',
+      dateKey: 'today',
+    );
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    final words = ['Call the bank at 9', 'Booth overtime tonight', 'Tax file'];
+    final starts = {
+      for (final text in words) tester.getTopLeft(find.text(text)).dx,
+    };
+    expect(starts, hasLength(1));
+    final sizes = {
+      for (final text in words)
+        DefaultTextStyle.of(tester.element(find.text(text))).style.fontSize,
+    };
+    expect(sizes, hasLength(1));
+    // A screen reader still hears each line whole, emoji and all.
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == '📞 Call the bank at 9',
+      ),
+      findsOneWidget,
+    );
+  });
+
   // Folded stays folded when the app comes back: the timeline is built anew
   // then, and it used to start the card open every time.
   testWidgets('a folded summary is still folded when the app comes back', (

@@ -186,12 +186,23 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     });
     try {
       final suggestions = await widget.services.suggestTags(widget.noteId);
-      if (mounted) _rebuild(() => _suggestions = suggestions);
+      if (!mounted) return;
+      _rebuild(() => _suggestions = suggestions);
+      // Said, not left blank: a tap that ends with nothing on screen reads
+      // as a button that does not work. The service answers an empty list
+      // for "nothing new to suggest" and for a request that failed alike.
+      if (suggestions.isEmpty) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).aiNoTagSuggestions,
+          haptics: false,
+        );
+      }
     } catch (_) {
       if (mounted) {
         nexShowBanner(
           context,
-          message: AppLocalizations.of(context).aiNothingYet,
+          message: AppLocalizations.of(context).aiNoTagSuggestions,
           kind: NexBannerKind.failed,
         );
       }
@@ -358,7 +369,18 @@ extension _DetailAiPanel on _NoteDetailSheetState {
       child: NexAnimatedSize(
         child: NexSurface(
           key: const ValueKey('note-ai-workspace'),
-          color: scheme.surfaceContainerLow,
+          // A faint wash of the accent and a hairline (2.1.6). It was
+          // `surfaceContainerLow`, which every theme makes the same colour as
+          // the sheet it sits on, so the workspace's inset read as the AI
+          // block being indented further than the note above it for no
+          // reason.
+          color: Color.alphaBlend(
+            scheme.primary.withValues(alpha: 0.05),
+            scheme.surfaceContainerLow,
+          ),
+          border: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.6),
+          ),
           padding: const EdgeInsets.all(NexSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

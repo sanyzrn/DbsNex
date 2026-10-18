@@ -40,6 +40,24 @@ void main() {
         );
       },
     );
+
+    test(
+      'Persian straight after an address ends it; a Persian path does not',
+      () {
+        const glued = 'سایت https://example.comسلام را ببین';
+        final link = nexTextLinks(glued).single;
+        expect(link.url, 'https://example.com');
+        expect(glued.substring(link.end), startsWith('سلام'));
+        expect(
+          nexTextLinks('www.example.irدیدم').single.url,
+          'https://www.example.ir',
+        );
+        expect(
+          nexTextLinks('https://fa.wikipedia.org/wiki/ایران').single.url,
+          Uri.parse('https://fa.wikipedia.org/wiki/ایران').toString(),
+        );
+      },
+    );
   });
 
   group('normaliseUrl', () {

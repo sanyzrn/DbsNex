@@ -391,6 +391,13 @@ jobs:
       # Gradle config and native plugin wiring, none of which a Dart-only
       # change touches. Always true for a release (workflow_call), where the
       # real signed build has to be preceded by a full check.
+      # The NDK pinned in android/app/build.gradle.kts is not on the runner
+      # image. Gradle installed it itself, mid-build and once only, and a
+      # truncated download ("Archive is not a ZIP archive") failed 2.1.6 ten
+      # minutes in. Installed here first, a bad download is retried.
+      - name: Install the pinned Android NDK
+        if: needs.changes.outputs.android == 'true'
+        run: bash ../../tools/install_android_ndk.sh
       - run: flutter build apk --debug --flavor standard
         if: needs.changes.outputs.android == 'true'
       # The artifact that actually ships — the ai flavor, release mode, as an
