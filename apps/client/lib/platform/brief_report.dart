@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:nex_core/nex_core.dart';
 
 import '../l10n/app_localizations.dart';
@@ -20,14 +21,30 @@ import 'package:nex_ai/cloud.dart';
 /// items can take the whole card. That is the right failure: a brief that
 /// drops the third overdue bill to make room for an unticked shopping list
 /// has its priorities the wrong way round.
+///
+/// A reminder coming up is said by its day and time — "call the plumber —
+/// tomorrow at 09:00" — not as a countdown (2.1.7). Most reminders are when
+/// somebody means to do a thing, not a deadline, and "due in 15 hours" said
+/// the opposite; it was also wrong for most of the hour a brief stays on the
+/// card. [clock] writes the time the way the phone does; left out, it is
+/// 24-hour in the interface's digits.
 String? nexBriefReport(
   NexBriefFacts facts,
   AppLocalizations l10n, {
   int maxLines = 4,
   DateTime? now,
+  String Function(DateTime local)? clock,
 }) {
   if (facts.nothingWaiting || maxLines <= 0) return null;
   final at = now ?? DateTime.now();
+  final persian = l10n.localeName == 'fa';
+  String time(DateTime local) =>
+      clock?.call(local) ??
+      nexDigits(
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}',
+        persian: persian,
+      );
   final lines = <String>[];
 
   void add(String line) {
@@ -40,8 +57,26 @@ String? nexBriefReport(
     );
   }
   for (final entry in facts.dueSoon) {
+    final due = entry.dueAt!.toLocal();
+    final days = _calendarDays(at.toLocal(), due);
+    // A standing commitment — the rent, a renewal — is said by how far off it
+    // is, by the calendar: its time of day is mostly the hour it was entered.
+    // A reminder is said by when it is. Past six days a weekday would name
+    // today's, so the count comes back.
+    final when = entry.recurring || days >= 7
+        ? null
+        : days <= 0
+        ? l10n.briefWhenToday(time(due))
+        : days == 1
+        ? l10n.briefWhenTomorrow(time(due))
+        : l10n.briefWhenOn(
+            DateFormat.EEEE(l10n.localeName).format(due),
+            time(due),
+          );
     add(
-      '📅 ${l10n.briefLineDue(entry.title, nexRelativeSpan(l10n, entry.dueAt!.difference(at)))}',
+      when != null
+          ? '📅 ${l10n.briefLineAt(entry.title, when)}'
+          : '📅 ${l10n.briefLineDue(entry.title, days >= 1 ? l10n.spanDays(days) : nexRelativeSpan(l10n, entry.dueAt!.difference(at)))}',
     );
   }
   for (final entry in facts.unfinished) {
@@ -52,6 +87,14 @@ String? nexBriefReport(
 
   return lines.isEmpty ? null : lines.join('\n');
 }
+
+/// Whole calendar days from [from] to [to], through UTC midnights so a clock
+/// change in between cannot shorten a day.
+int _calendarDays(DateTime from, DateTime to) => DateTime.utc(
+  to.year,
+  to.month,
+  to.day,
+).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
 
 /// The facts actually written alongside a model reply, without relative ages.
 String nexBriefFactsSignature(NexBriefFacts facts, {required int maxLines}) => [

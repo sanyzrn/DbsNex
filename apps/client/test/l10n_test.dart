@@ -34,6 +34,9 @@ void main() {
     'nudgeGreetingPlain',
     'remindRepeatingAt',
     'vaultCvv2',
+    // A layout template like `remindRepeatingAt`: a brief line's title and
+    // when it is, both already in the reader's language.
+    'briefLineAt',
   };
 
   test('every English message has a Persian one', () {

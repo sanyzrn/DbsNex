@@ -1189,7 +1189,7 @@ void _recapGroup() {
         await adapter(
           '⏰ a line',
           onSend: (r) => seen = r,
-        ).digest('DUE in 6h | text | pick up the prescription', lines: 3);
+        ).digest('DUE today 15:00 | text | pick up the prescription', lines: 3);
 
         final prompt = jsonEncode(
           (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
@@ -1221,6 +1221,37 @@ void _recapGroup() {
       },
     );
 
+    test('a DUE line is a reminder already set, said as a time to act and '
+        'kept apart from a deadline in the text', () async {
+      // 2.1.7. A reminder set for Wednesday at 9 came back as "the deadline
+      // is four days away; maybe set a reminder for it": the reminder read as
+      // a deadline, the deadline in the note read as the reminder, the days
+      // counted by the clock, and a reminder suggested for itself.
+      late http.Request seen;
+      await adapter('⏰ a line', onSend: (r) => seen = r).digest(
+        'DUE Wednesday 09:00, in 5 days | text | edit the tax file until '
+        '1405/08/07',
+        lines: 3,
+      );
+
+      final prompt = jsonEncode(
+        (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
+      );
+      expect(prompt, contains('a reminder the person has already set'));
+      expect(prompt, contains('It is not a deadline.'));
+      expect(prompt, contains('take the day counts as given'));
+      expect(prompt, contains('the DUE time is only when they will be '));
+      expect(
+        prompt,
+        contains('Never suggest setting a reminder for a DUE line'),
+      );
+      // The tone, in the reader's language too.
+      expect(prompt, contains('no «مهلت» or «موعد» for it'));
+      // And the rule about dates in the text no longer covers a note that
+      // already carries a reminder.
+      expect(prompt, contains('A note with no DUE and no reminder'));
+    });
+
     test('it is allowed to notice what the reader cannot', () async {
       // The other half of the same change. The model sees the whole set at
       // once, which is the one thing the reader does not: a clash between two
@@ -1229,7 +1260,7 @@ void _recapGroup() {
       // about relationships.
       late http.Request seen;
       await adapter('⏰ a line', onSend: (r) => seen = r).digest(
-        'DUE in 6h | text | dentist\nDUE in 6h | text | school run',
+        'DUE today 15:00 | text | dentist\nDUE today 15:00 | text | school run',
         lines: 3,
       );
 
@@ -1258,7 +1289,16 @@ void _recapGroup() {
       final prompt = jsonEncode(
         (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
       );
-      expect(prompt, contains('Today is Thursday, 8 October 2026.'));
+      // The Solar Hijri date as well: a Persian note writes "until
+      // 1405/08/07", and only today's date in that calendar says how far off
+      // that is.
+      expect(
+        prompt,
+        contains(
+          'Today is Thursday, 8 October 2026 — 16 Mehr 1405 (1405/07/16) in '
+          'the Solar Hijri calendar.',
+        ),
+      );
       expect(prompt, contains('is a tag the person gave that note'));
       expect(prompt, contains('suggest a reminder for it'));
       expect(prompt, contains('say where they left off'));
@@ -1276,8 +1316,10 @@ void _recapGroup() {
       final prompt = jsonEncode(
         (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
       );
-      expect(prompt, contains('Today is Thursday, 8 October 2026.'));
+      expect(prompt, contains('Today is Thursday, 8 October 2026 —'));
       expect(prompt, contains('is a tag the person gave that note'));
+      // The same key for what a reminder is, too.
+      expect(prompt, contains('a reminder the person has already set'));
     });
 
     test('"long" is longer than "medium", in lines and in each line', () async {
@@ -1299,7 +1341,7 @@ void _recapGroup() {
           'ring him first thing.';
       final reply = List.filled(8, line).join('\n');
       final brief = await adapter(reply, onSend: (r) => seen = r).digest(
-        'DUE overdue 2d | text | call the plumber',
+        'DUE overdue 2 days, was Sunday 09:00 | text | call the plumber',
         lines: NexBriefLength.long.lines,
         words: NexBriefLength.long.words,
       );
@@ -1324,7 +1366,7 @@ void _recapGroup() {
         '⏰ یک خط',
         onSend: (r) => seen = r,
         language: AiOutputLanguage.persian,
-      ).digest('DUE in 6h | text | tax filing', lines: 3);
+      ).digest('DUE today 15:00 | text | tax filing', lines: 3);
 
       final messages =
           (jsonDecode(seen.body) as Map<String, dynamic>)['messages'] as List;

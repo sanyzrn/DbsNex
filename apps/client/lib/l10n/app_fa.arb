@@ -230,7 +230,7 @@
   "accentColorSetting": "رنگ تاکید",
   "accentColorSettingSubtitle": "رنگ نشانگر، حلقهٔ فوکوس و حالت‌های فعال را در سراسر اپ تغییر می‌دهد",
   "accentColorPickerTitle": "رنگ تاکید",
-  "uiScale": "اندازه‌ی متن و رابط",
+  "uiScale": "اندازهٔ متن و رابط",
   "uiScaleSmall": "کوچک",
   "uiScaleDefault": "پیش‌فرض",
   "uiScaleLarge": "بزرگ",
@@ -1056,7 +1056,7 @@
     "placeholders": {"size": {"type": "String"}}
   },
   "localModelDownloading": "در حال دانلود…",
-  "localModelDownloadingPart": "دانلود تکه‌ی ‏{index} از ‏{count}",
+  "localModelDownloadingPart": "دانلود تکهٔ ‏{index} از ‏{count}",
   "@localModelDownloadingPart": {
     "placeholders": {"index": {"type": "int"}, "count": {"type": "int"}}
   },
@@ -1076,7 +1076,7 @@
   "localModelLicenseRead": "متن کامل شرایط",
   "localModelLicenseAccept": "این شرایط را خوانده‌ام و می‌پذیرم",
   "localModelBlockedPlatform": "چت روی دستگاه فقط روی اندروید و آیفون کار می‌کند. این نسخه نمی‌تواند از آن استفاده کند.",
-  "localModelBlockedArchitecture": "پردازنده‌ی این گوشی از آن‌هایی نیست که مدل رویش اجرا می‌شود. به یک دستگاه ARM شصت‌وچهار بیتی نیاز دارد.",
+  "localModelBlockedArchitecture": "پردازندهٔ این گوشی از آن‌هایی نیست که مدل رویش اجرا می‌شود. به یک دستگاه ARM شصت‌وچهار بیتی نیاز دارد.",
   "localModelBlockedStorage": "فضای کافی نیست. دانلود موقع نصب حدود ‏{size} گیگابایت فضای خالی لازم دارد.",
   "@localModelBlockedStorage": {
     "placeholders": {"size": {"type": "String"}}
@@ -1093,7 +1093,7 @@
   "tourLibraryBody": "برچسب‌هایتان اینجاست، و هر چیزی که پاک کرده‌اید هم — تا مدتی.",
   "tourSettingsTitle": "به سلیقهٔ خودتان",
   "tourSettingsBody": "اسم، پوسته، زبان، پشتیبان‌گیری، و سرویس هوشی که خلاصه‌ها را می‌نویسد.",
-  "tourCardsTitle": "یک نکته‌ی آخر",
+  "tourCardsTitle": "یک نکتهٔ آخر",
   "tourCardsBody": "یادداشت را از هر طرف که بکشید، کارهای سریعش می‌آید. هر طرف را در تنظیمات خودتان انتخاب می‌کنید.",
   "translate": "ترجمه",
   "translateTo": "به",
@@ -1219,6 +1219,10 @@
   "briefLengthLabel": "چقدر باشد",
   "briefLineOverdue": "{title} — {span} عقب افتاده",
   "briefLineDue": "{title} — تا {span} دیگر",
+  "briefLineAt": "{title} — {when}",
+  "briefWhenToday": "امروز ساعت {time}",
+  "briefWhenTomorrow": "فردا ساعت {time}",
+  "briefWhenOn": "{day} ساعت {time}",
   "briefLineChecklist": "{title} — {remaining} از {total} باقی مانده",
   "commitmentsAbout": "نکس تاریخ بعدی هر کدام را نگه می‌دارد، در خلاصهٔ روز می‌آوردشان، و می‌تواند پیش از رسیدن موعد اعلان بفرستد.",
   "commitmentsOverdue": "عقب‌افتاده",
@@ -2009,6 +2013,8 @@
   "nextPdfPage": "صفحهٔ بعد",
   "zoomIn": "بزرگ‌نمایی",
   "resetZoom": "اندازهٔ اصلی",
+  "pdfPageShort": "{page} از {total}",
+  "pdfGoToPage": "رفتن به صفحه",
   "pdfPageCount": "صفحهٔ {page} از {total}",
   "@pdfPageCount": {
     "placeholders": {

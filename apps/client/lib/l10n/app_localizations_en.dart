@@ -3054,6 +3054,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String briefLineAt(String title, String when) {
+    return '$title — $when';
+  }
+
+  @override
+  String briefWhenToday(String time) {
+    return 'today at $time';
+  }
+
+  @override
+  String briefWhenTomorrow(String time) {
+    return 'tomorrow at $time';
+  }
+
+  @override
+  String briefWhenOn(String day, String time) {
+    return '$day at $time';
+  }
+
+  @override
   String briefLineChecklist(String title, int remaining, int total) {
     final intl.NumberFormat remainingNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -5523,6 +5543,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetZoom => 'Reset zoom';
+
+  @override
+  String pdfPageShort(String page, String total) {
+    return '$page / $total';
+  }
+
+  @override
+  String get pdfGoToPage => 'Go to page';
 
   @override
   String pdfPageCount(String page, String total) {

@@ -47,7 +47,7 @@ void main() {
     unawaited(
       adapter
           .digest(
-            'DUE in 6h | text | tax filing',
+            'DUE today 15:00 | text | tax filing',
             lines: 2,
             timeout: CloudAIAdapter.ambientTimeout,
           )

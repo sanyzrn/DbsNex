@@ -1453,10 +1453,37 @@ class CloudAIAdapter implements AIAdapter {
   /// and a small model copied the labels — "DUE in 6h:" opened the reply —
   /// and then carried on in the language they were in.
   static const _briefLabelsRule =
-      'The labels in those lines — DUE, overdue, in, ago, today, text, '
-      'checklist, left, done, every, reminder — are markers for you, not words to '
-      'copy: never write them, and say what they mean in the language of '
-      'your reply.';
+      'The labels in those lines — DUE, overdue, was, in, days, ago, today, '
+      'tomorrow, yesterday, next, text, checklist, left, done, every, '
+      'reminder — are markers for you, not words to copy: never write them, '
+      'and say what they mean in the language of your reply.';
+
+  /// What a DUE line is, said once for every brief prompt.
+  ///
+  /// 2.1.7. Told only "DUE in 4d", a model read a reminder somebody had set
+  /// for Wednesday at 9 as a deadline, said "four days" on a Friday evening
+  /// when the calendar said five, mixed the reminder up with the date written
+  /// inside the note, and suggested setting the reminder that was already
+  /// there. It also called every reminder a deadline — "15 hours left to
+  /// call" — when most reminders are simply the time somebody means to do a
+  /// thing.
+  static const _briefDueKey =
+      'A line starting DUE is a reminder the person has already set, and '
+      'those lines come first: "DUE today 18:30", "DUE tomorrow 09:00", '
+      '"DUE Wednesday 09:00, in 5 days", "DUE overdue, was yesterday 09:00". '
+      'The day and the time are when they chose to be reminded, which is '
+      'usually when they mean to do the thing. It is not a deadline. Say it '
+      'as what to do and when — "call the plumber tomorrow at 9", "the '
+      'booth overtime is tonight at 9:30" — never as time running out: no '
+      '"deadline", no "you have 15 hours left", and in Persian no «مهلت» or '
+      '«موعد» for it. Name the day and the clock time rather than counting '
+      'hours, and take the day counts as given; do not work them out again. '
+      'Speak of a deadline only when the text of the note names one, and then '
+      'keep the two apart: a date written in the text — "until 1405/08/07", '
+      '"by Friday" — is the deadline, and the DUE time is only when they will '
+      'be reminded. A line whose first column says "reminder in 9 days" has a '
+      'reminder set for later. Never suggest setting a reminder for a DUE '
+      'line or for one that already has a reminder.';
 
   /// Today's date, said to the model so that "tomorrow" in a note written
   /// two days ago can be read as the day before yesterday.
@@ -1488,8 +1515,32 @@ class CloudAIAdapter implements AIAdapter {
       'November',
       'December',
     ];
+    // The Solar Hijri date beside it, always: notes written in Persian date
+    // things in that calendar ("until 1405/08/07"), and a model that knows
+    // only the Gregorian date cannot tell whether that is tomorrow or next
+    // month. In both languages, because it is the note's calendar that
+    // decides, not the reply's.
+    const solar = [
+      'Farvardin',
+      'Ordibehesht',
+      'Khordad',
+      'Tir',
+      'Mordad',
+      'Shahrivar',
+      'Mehr',
+      'Aban',
+      'Azar',
+      'Dey',
+      'Bahman',
+      'Esfand',
+    ];
+    final hijri = nexPersianDate(now);
+    String two(int value) => value.toString().padLeft(2, '0');
     return 'Today is ${days[now.weekday - 1]}, ${now.day} '
-        '${months[now.month - 1]} ${now.year}.';
+        '${months[now.month - 1]} ${now.year} — ${hijri.day} '
+        '${solar[hijri.month - 1]} ${hijri.year} '
+        '(${hijri.year}/${two(hijri.month)}/${two(hijri.day)}) in the Solar '
+        'Hijri calendar.';
   }
 
   /// The recap the timeline shows when the app is opened.
@@ -1565,11 +1616,7 @@ class CloudAIAdapter implements AIAdapter {
       // are abbreviated to save tokens, and an abbreviation a model has to
       // guess at is one it will eventually guess wrong.
       'Each line you are given is one note, written as `when | kind | text`. '
-      'A line starting DUE carries a reminder — "DUE in 6h", "DUE overdue '
-      '2d" — and those lines come first; the rest are newest first. A line '
-      'whose first column says "reminder in 9d" already has a reminder set '
-      'for later. Never suggest setting a reminder for a line that has '
-      'one. On a '
+      '$_briefDueKey The rest are newest first. On a '
       'checklist, "3/5 left" means three of its five items are still '
       'unticked. A middle column reading "every month", "every 2h" and so on '
       'is a standing commitment rather than a note — a bill, a renewal, a '
@@ -1608,8 +1655,8 @@ class CloudAIAdapter implements AIAdapter {
       // model was told only about what is waiting, and passed over the plan
       // written an hour ago as if it were not there.
       'Two more things are worth a line, after what is overdue or due. A '
-      'note with no reminder whose text names a day or a time that is still '
-      'ahead — "tomorrow", "on the 14th", "Friday at 5" — counted from when '
+      'note with no DUE and no reminder whose text names a day or a time that '
+      'is still ahead — "tomorrow", "on the 14th", "Friday at 5" — counted from when '
       'the note was written, not from today: say what it is and suggest a '
       'reminder for it. And what they were in the middle of: if a note from '
       'today or yesterday is a plan, an idea or a half-made list, say where '
@@ -1715,10 +1762,8 @@ class CloudAIAdapter implements AIAdapter {
       // The same key as the whole-brief prompt above, because the lines
       // handed over are the same lines.
       'Each line you are given is one note or one standing commitment, '
-      'written as `when | kind | text`. A line starting DUE carries a '
-      'reminder — "DUE in 6h", "DUE overdue 2d" — and one whose first '
-      'column says "reminder in 9d" has one set for later; never suggest a '
-      'reminder for either. On a checklist, "3/5 left" '
+      'written as `when | kind | text`. $_briefDueKey On a checklist, '
+      '"3/5 left" '
       'means three of its five items are still unticked. '
       '$_briefTagsKey '
       '$_briefLabelsRule '

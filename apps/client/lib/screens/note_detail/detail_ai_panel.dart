@@ -369,7 +369,18 @@ extension _DetailAiPanel on _NoteDetailSheetState {
       child: NexAnimatedSize(
         child: NexSurface(
           key: const ValueKey('note-ai-workspace'),
-          color: scheme.surfaceContainerLow,
+          // A faint wash of the accent and a hairline (2.1.7). It was
+          // `surfaceContainerLow`, which every theme makes the same colour as
+          // the sheet it sits on, so the workspace's inset read as the AI
+          // block being indented further than the note above it for no
+          // reason.
+          color: Color.alphaBlend(
+            scheme.primary.withValues(alpha: 0.05),
+            scheme.surfaceContainerLow,
+          ),
+          border: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.6),
+          ),
           padding: const EdgeInsets.all(NexSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

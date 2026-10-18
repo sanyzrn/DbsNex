@@ -195,7 +195,7 @@ void main() {
       );
       expect(tester.getRect(find.byKey(const ValueKey('pdf-next'))), controls);
       expect(tester.widget<Image>(find.byType(Image)).image, current);
-      expect(find.text('Page 1 of 3'), findsOneWidget);
+      expect(find.text('1 / 3'), findsOneWidget);
       next.complete(null);
       await settleReader(tester);
       expect(tester.getRect(find.byKey(const ValueKey('pdf-next'))), controls);
@@ -207,7 +207,7 @@ void main() {
       );
       await tester.tap(find.text('Try again'));
       await settleReader(tester);
-      expect(find.text('Page 2 of 3'), findsOneWidget);
+      expect(find.text('2 / 3'), findsOneWidget);
       expect(tester.getRect(find.byKey(const ValueKey('pdf-next'))), controls);
     },
   );
@@ -253,36 +253,44 @@ void main() {
   });
 
   readerTest(
-    'PDF pages navigate inline, reset zoom, and do not preload the document',
+    'PDF pages navigate inline, reset zoom, and render ahead only while reading',
     (tester) async {
       var external = 0;
       await show(
         tester,
         NexPdfReader(path: '/report.pdf', onOpen: () => external++),
       );
+      // Opening renders the one page on screen and nothing else.
       expect(pdfCalls.map((call) => call['index']), [0]);
-      expect(find.text('Page 1 of 3'), findsOneWidget);
+      expect(find.text('1 / 3'), findsOneWidget);
       await tester.tap(find.byTooltip('Zoom in'));
       await settleReader(tester);
       expect(find.byTooltip('Reset zoom'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('pdf-next')));
       await settleReader(tester);
-      expect(pdfCalls.map((call) => call['index']), [0, 1]);
-      expect(find.text('Page 2 of 3'), findsOneWidget);
+      // Turning a page says somebody is reading through: the next page that
+      // way is rendered ahead, and only that one.
+      expect(pdfCalls.map((call) => call['index']), [0, 1, 2]);
+      expect(find.text('2 / 3'), findsOneWidget);
       expect(find.byTooltip('Zoom in'), findsOneWidget);
-      final slider = tester.widget<Slider>(
-        find.byKey(const ValueKey('pdf-page-slider')),
-      );
-      // One stop per page, so the drag bubble can name the page.
-      expect(slider.divisions, 2);
-      expect(slider.label, 'Page 2 of 3');
-      // Letting go on the page already open asks for nothing.
-      slider.onChangeEnd!(2);
+
+      // The count opens the page picker, scrolled to and marking this page.
+      await tester.tap(find.byKey(const ValueKey('pdf-page-counter')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('pdf-page-picker')), findsOneWidget);
+      expect(find.text('Go to page'), findsOneWidget);
+      // Choosing the page already open asks for nothing.
+      await tester.tap(find.byKey(const ValueKey('pdf-page-2')));
       await settleReader(tester);
-      expect(pdfCalls.map((call) => call['index']), [0, 1]);
-      slider.onChangeEnd!(3);
+      expect(pdfCalls.map((call) => call['index']), [0, 1, 2]);
+      await tester.tap(find.byKey(const ValueKey('pdf-page-counter')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('pdf-page-3')));
       await settleReader(tester);
-      expect(find.text('Page 3 of 3'), findsOneWidget);
+      expect(find.byKey(const ValueKey('pdf-page-picker')), findsNothing);
+      expect(find.text('3 / 3'), findsOneWidget);
+      // Page 3 had been rendered ahead; nothing new was asked for it.
+      expect(pdfCalls.map((call) => call['index']), [0, 1, 2]);
       expect(
         tester
             .widget<IconButton>(find.byKey(const ValueKey('pdf-next')))
@@ -293,6 +301,60 @@ void main() {
       expect(external, 1);
     },
   );
+
+  for (final language in ['en', 'fa']) {
+    readerTest('$language: PDF pages turn by swiping, the way the interface '
+        'reads', (tester) async {
+      await show(
+        tester,
+        NexPdfReader(path: '/report.pdf', onOpen: () {}),
+        language: language,
+      );
+      // Towards the next page: the finger moves left in English, right in
+      // Persian.
+      final next = language == 'fa' ? 1.0 : -1.0;
+      final surface = find.byKey(const ValueKey('pdf-surface'));
+      String counter(int page) =>
+          language == 'fa' ? '${'۰۱۲۳'[page]} از ۳' : '$page / 3';
+
+      // Back from the first page there is nothing; the page springs back.
+      await tester.drag(surface, Offset(-next * 220, 0));
+      await settleReader(tester);
+      expect(find.text(counter(1)), findsOneWidget);
+      expect(pdfCalls.map((call) => call['index']), [0]);
+
+      await tester.drag(surface, Offset(next * 220, 0));
+      await settleReader(tester);
+      expect(find.text(counter(2)), findsOneWidget);
+
+      // A short, slow drag is not a turn.
+      await tester.timedDrag(
+        surface,
+        Offset(next * 30, 0),
+        const Duration(milliseconds: 600),
+      );
+      await settleReader(tester);
+      expect(find.text(counter(2)), findsOneWidget);
+
+      await tester.drag(surface, Offset(-next * 220, 0));
+      await settleReader(tester);
+      expect(find.text(counter(1)), findsOneWidget);
+
+      // Zoomed in, a sideways drag moves around the page instead.
+      final double tap = tester.getCenter(surface).dx;
+      await tester.tapAt(Offset(tap, tester.getCenter(surface).dy));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(Offset(tap, tester.getCenter(surface).dy));
+      await settleReader(tester);
+      expect(
+        find.byTooltip(language == 'fa' ? 'اندازهٔ اصلی' : 'Reset zoom'),
+        findsOneWidget,
+      );
+      await tester.drag(surface, Offset(next * 220, 0));
+      await settleReader(tester);
+      expect(find.text(counter(1)), findsOneWidget);
+    });
+  }
 
   readerTest('PDF late result cannot overwrite a different path', (
     tester,
@@ -308,7 +370,7 @@ void main() {
     await show(tester, NexPdfReader(path: '/new.pdf', onOpen: () {}));
     old.complete({'bytes': png, 'pageCount': 50});
     await settleReader(tester);
-    expect(find.text('Page 1 of 2'), findsOneWidget);
+    expect(find.text('1 / 2'), findsOneWidget);
     expect(find.textContaining('50'), findsNothing);
   });
 

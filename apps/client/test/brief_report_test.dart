@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
@@ -19,6 +20,9 @@ void main() {
 
   setUp(() async {
     en = await AppLocalizations.delegate.load(const Locale('en'));
+    // What the app's Material localizations do on startup; the weekday in
+    // a line is the locale's own.
+    await initializeDateFormatting('en');
   });
 
   Note note({
@@ -74,6 +78,49 @@ void main() {
     expect(lines[0], contains('overdue'));
     expect(lines[1], contains('dentist'));
     expect(lines[2], contains('1 of 2 left'));
+  });
+
+  test('a reminder coming up is said by its day and time, not a countdown', () {
+    // 2.1.7. "Call the plumber — due in 9 hours" read as a deadline, and most
+    // reminders are simply when somebody means to do the thing. Days by the
+    // calendar: Tuesday at 9 to Sunday at midnight is four days and fifteen
+    // hours by the clock and five on the calendar.
+    final report = nexBriefReport(
+      nexBriefFacts(
+        [
+          note(
+            id: '1',
+            text: 'call the plumber',
+            dueAt: DateTime(2026, 3, 10, 18, 30),
+          ),
+          note(id: '2', text: 'dentist', dueAt: DateTime(2026, 3, 11, 9)),
+          note(id: '3', text: 'tax file', dueAt: DateTime(2026, 3, 14, 9)),
+        ],
+        commitments: [
+          NexCommitment(
+            id: 'c1',
+            title: 'rent',
+            cadence: NexCadence.months,
+            every: 1,
+            dueAt: DateTime(2026, 3, 15),
+            lead: const Duration(days: 7),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+        now: now,
+      ),
+      en,
+      now: now,
+    );
+    expect(report!.split('\n'), [
+      '📅 call the plumber — today at 18:30',
+      '📅 dentist — tomorrow at 09:00',
+      '📅 tax file — Saturday at 09:00',
+      // A standing commitment by how far off it is: its time of day is
+      // mostly the hour it was entered.
+      '📅 rent — due in 5 days',
+    ]);
   });
 
   test('the budget is spent from the top', () {
