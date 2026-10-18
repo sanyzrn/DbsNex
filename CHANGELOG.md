@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+- Backups from Nex Windows can restore shared appearance without resetting mobile credentials, private preferences or device identity. Portable exports now recognize Windows media paths for notes and attachments.
+
 ## v2.1.5
 
 - Smart summaries refresh automatically only after relevant information changes and at least one hour after the last successful generation. Failed requests wait 15 minutes before retrying; manual refresh remains available immediately. Existing text stays readable, concurrent requests are shared, and every summary line uses the same type size.

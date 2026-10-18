@@ -1933,7 +1933,7 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
             // the archive looked complete and had one fewer photo in it.
             // On a collision the note's id goes in front, which is unique by
             // construction; the importer knows to look for both spellings.
-            final name = p.basename(note.mediaUri!);
+            final name = nexPortableBasename(note.mediaUri!);
             final firstUse = usedMediaNames.add(name);
             final entryName = firstUse ? name : '${note.id}-$name';
             addBoundedZipFile(encoder, src, 'media/$entryName');
@@ -1947,7 +1947,7 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
       for (final attachment in attachments) {
         final src = File(attachment.mediaUri);
         if (!src.existsSync()) continue;
-        final name = p.basename(attachment.mediaUri);
+        final name = nexPortableBasename(attachment.mediaUri);
         final firstUse = usedMediaNames.add(name);
         final entryName = firstUse ? name : '${attachment.id}-$name';
         addBoundedZipFile(encoder, src, 'media/$entryName');
@@ -2025,7 +2025,7 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
 
           String? mediaUri;
           if (note.mediaUri != null) {
-            final name = p.basename(note.mediaUri!);
+            final name = nexPortableBasename(note.mediaUri!);
             // The id-prefixed spelling first, and that order is the fix. The
             // exporter writes it *only* when the bare name was already taken by
             // another note — so a note that has an id-prefixed entry is exactly
@@ -2130,7 +2130,7 @@ WHERE EXISTS (SELECT 1 FROM notes WHERE id = ?)
         for (final raw in (payload['attachments'] as List? ?? const [])) {
           final json = raw as Map<String, dynamic>;
           final attachment = NoteAttachment.fromRow(json);
-          final name = p.basename(attachment.mediaUri);
+          final name = nexPortableBasename(attachment.mediaUri);
           var entry = archive.findFile('media/${attachment.id}-$name');
           entry ??= archive.findFile('media/$name');
           if (entry == null) continue;
@@ -2358,7 +2358,7 @@ WHERE id = ?
           buffer.writeln('Duration: ${note.durationMs} ms');
         }
         if (note.mediaUri != null) {
-          buffer.writeln('Media: ${p.basename(note.mediaUri!)}');
+          buffer.writeln('Media: ${nexPortableBasename(note.mediaUri!)}');
         }
         if (note.transcriptText != null) {
           buffer.writeln('Transcript: ${note.transcriptText}');
@@ -2366,7 +2366,7 @@ WHERE id = ?
       case NoteType.photo:
         buffer.writeln('_Photo note_');
         if (note.mediaUri != null) {
-          buffer.writeln('![photo](../media/${p.basename(note.mediaUri!)})');
+          buffer.writeln('![photo](../media/${nexPortableBasename(note.mediaUri!)})');
         }
         if (note.ocrText != null) {
           buffer.writeln('OCR: ${note.ocrText}');
@@ -2374,7 +2374,7 @@ WHERE id = ?
       case NoteType.file:
         buffer.writeln('_File attachment_');
         if (note.mediaUri != null) {
-          buffer.writeln('File: ${p.basename(note.mediaUri!)}');
+          buffer.writeln('File: ${nexPortableBasename(note.mediaUri!)}');
         }
       // Written out as the markdown task list it already is, so an exported
       // checklist opens as a working checklist in any markdown editor rather

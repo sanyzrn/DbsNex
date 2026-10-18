@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "librarySchema": 1,
+  "fullBackupVersion": 1,
+  "libraryArchiveFormats": [
+    1,
+    2
+  ],
+  "portableLibraryFormat": 1,
+  "exportVersion": 3,
+  "noteTypes": [
+    "text",
+    "voice",
+    "photo",
+    "file",
+    "checklist",
+    "link"
+  ],
+  "sharedPreferences": [
+    "appearance.theme",
+    "appearance.theme_preset",
+    "appearance.accent_seed",
+    "appearance.recent_colors",
+    "appearance.locale",
+    "appearance.card_density",
+    "appearance.ui_scale",
+    "appearance.solar_calendar"
+  ],
+  "palettes": [
+    {
+      "id": "classic",
+      "seed": "#287EC0",
+      "light": null,
+      "dark": null,
+      "texture": "none"
+    },
+    {
+      "id": "paper",
+      "seed": "#8A6A36",
+      "light": "#F5EEDC",
+      "dark": "#27231C",
+      "texture": "fibre"
+    },
+    {
+      "id": "autumn",
+      "seed": "#AC4F2C",
+      "light": "#FFF0E5",
+      "dark": "#291D18",
+      "texture": "leaves"
+    },
+    {
+      "id": "blossom",
+      "seed": "#AE497C",
+      "light": "#FFF1F7",
+      "dark": "#291D28",
+      "texture": "petals"
+    },
+    {
+      "id": "forest",
+      "seed": "#367568",
+      "light": "#EDF4EB",
+      "dark": "#172722",
+      "texture": "contours"
+    },
+    {
+      "id": "turquoise",
+      "seed": "#00838F",
+      "light": "#E8F6F5",
+      "dark": "#0D2226",
+      "texture": "girih"
+    },
+    {
+      "id": "saffron",
+      "seed": "#C77700",
+      "light": "#FFF6E6",
+      "dark": "#2A1F0E",
+      "texture": "threads"
+    },
+    {
+      "id": "midnight",
+      "seed": "#6750D8",
+      "light": "#F1EEFC",
+      "dark": "#14112A",
+      "texture": "stars"
+    },
+    {
+      "id": "ocean",
+      "seed": "#1565A8",
+      "light": "#EAF2FA",
+      "dark": "#0B1A2A",
+      "texture": "waves"
+    },
+    {
+      "id": "graphite",
+      "seed": "#5E6166",
+      "light": "#F1F1F1",
+      "dark": "#151515",
+      "texture": "grid"
+    },
+    {
+      "id": "bauhaus",
+      "seed": "#BC352C",
+      "light": "#F6F3EB",
+      "dark": "#231A18",
+      "texture": "bauhaus"
+    },
+    {
+      "id": "porcelain",
+      "seed": "#8C6C22",
+      "light": "#F3F4FA",
+      "dark": "#171D2C",
+      "texture": "seams"
+    },
+    {
+      "id": "circuit",
+      "seed": "#007F86",
+      "light": "#EAF7F9",
+      "dark": "#071E27",
+      "texture": "circuit"
+    },
+    {
+      "id": "afterimage",
+      "seed": "#637D00",
+      "light": "#F1F4E9",
+      "dark": "#181B10",
+      "texture": "halftone"
+    }
+  ],
+  "colors": {
+    "bgPrimaryLight": "#F5F6F6",
+    "bgCardLight": "#FFFFFF",
+    "bgElevatedLight": "#E0E0E0",
+    "textPrimaryLight": "#262626",
+    "textSecondaryLight": "#5C5C5C",
+    "borderLight": "#959494",
+    "borderSoftLight": "#F5F6F6",
+    "bgPrimaryDark": "#131312",
+    "bgCardDark": "#1E1E1E",
+    "bgElevatedDark": "#323232",
+    "textPrimaryDark": "#F2F2F3",
+    "textSecondaryDark": "#ABABAB",
+    "borderDark": "#686965",
+    "borderSoftDark": "#000000",
+    "bgPrimaryLightComfort": "#EFE7D8",
+    "bgCardLightComfort": "#FBF6EC",
+    "bgElevatedLightComfort": "#DFD5C1",
+    "textPrimaryLightComfort": "#2E2A22",
+    "textSecondaryLightComfort": "#5E574A",
+    "borderLightComfort": "#978C76",
+    "borderSoftLightComfort": "#DDD3BF",
+    "bgPrimaryDarkComfort": "#14100C",
+    "bgCardDarkComfort": "#221D16",
+    "bgElevatedDarkComfort": "#3C342A",
+    "textPrimaryDarkComfort": "#E4DACA",
+    "textSecondaryDarkComfort": "#ADA290",
+    "borderDarkComfort": "#746A5B",
+    "borderSoftDarkComfort": "#332C22",
+    "accentLight": "#0084F7",
+    "accentStrongLight": "#006DCC",
+    "accentDark": "#74BCFB",
+    "accentStrongDark": "#A7D4FB",
+    "danger": "#C0392B",
+    "error": "#B3261E",
+    "errorDark": "#F2B8B5",
+    "swipeAddTag": "#4A5568",
+    "swipePin": "#8A6D1F",
+    "swipeRemind": "#2F6F5E",
+    "swipeShare": "#3D5A80",
+    "swipeAsk": "#5B4B8A"
+  }
+}
