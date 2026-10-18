@@ -18,6 +18,9 @@ enum DisclosurePurpose {
   photoText,
   searchIndex,
   connectionTest,
+
+  /// The writing portrait in the profile (2.1.7).
+  portrait,
   other,
 }
 

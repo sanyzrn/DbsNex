@@ -164,6 +164,14 @@ extension _TimelineBody on TimelineScreenState {
     );
   }
 
+  /// A finger off the list. The gesture stays a multi-touch one until the
+  /// last finger is up, so the finger left behind after a pinch cannot turn
+  /// into a pull.
+  void _pinchLift(PointerEvent event) {
+    _pinchPointers.remove(event.pointer);
+    if (_pinchPointers.isEmpty) _multiTouch = false;
+  }
+
   void _pinchMove(PointerMoveEvent event) {
     if (!_pinchPointers.containsKey(event.pointer)) return;
     _pinchPointers[event.pointer] = event.localPosition;
@@ -220,6 +228,7 @@ extension _TimelineBody on TimelineScreenState {
     child = Listener(
       onPointerDown: (event) {
         _pinchPointers[event.pointer] = event.localPosition;
+        if (_pinchPointers.length >= 2) _multiTouch = true;
         if (_pinchPointers.length == 2) {
           final points = _pinchPointers.values.toList();
           _pinchDistance = (points[0] - points[1]).distance;
@@ -227,8 +236,8 @@ extension _TimelineBody on TimelineScreenState {
         }
       },
       onPointerMove: _pinchMove,
-      onPointerUp: (event) => _pinchPointers.remove(event.pointer),
-      onPointerCancel: (event) => _pinchPointers.remove(event.pointer),
+      onPointerUp: _pinchLift,
+      onPointerCancel: _pinchLift,
       child: child,
     );
     if (!enabled) return child;
@@ -236,6 +245,15 @@ extension _TimelineBody on TimelineScreenState {
     return RefreshIndicator(
       color: scheme.primary,
       backgroundColor: scheme.surfaceContainerLowest,
+      // Not while two fingers are on the list (2.1.7). A pinch at the top
+      // of the timeline moves one finger down, which the list reads as a
+      // pull, and the refresh started under the pinch that was folding the
+      // days. The end of the gesture still gets through, so a pull that was
+      // already under way when the second finger landed is put away rather
+      // than left half drawn.
+      notificationPredicate: (notification) =>
+          notification.depth == 0 &&
+          (!_multiTouch || notification is ScrollEndNotification),
       // Not `force: true` for the sponsor: the gesture must not bypass its
       // daily success interval or failed-refresh cool-off.
       onRefresh: () async {

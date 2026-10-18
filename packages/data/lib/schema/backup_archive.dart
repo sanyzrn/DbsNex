@@ -188,7 +188,7 @@ class NexBackupArchive {
       rethrow;
     }
 
-    _prune(dir, retention);
+    _prune(dir, retention, keep: target);
     return target;
   }
 
@@ -481,7 +481,13 @@ class NexBackupArchive {
     }
   }
 
-  static void _prune(Directory dir, int retention) {
+  /// Keeps the newest [retention] backups by name, and always [keep].
+  ///
+  /// Names are the clock, so after the clock moves back — a dead RTC, a
+  /// network time correction — the backup just written sorts oldest and was
+  /// its own rotation's first victim, and every one after it the same
+  /// (1.99.96 reviews, DATA-13).
+  static void _prune(Directory dir, int retention, {File? keep}) {
     final existing =
         dir
             .listSync()
@@ -489,8 +495,13 @@ class NexBackupArchive {
             .where((file) => isBackupFile(file.path))
             .toList()
           ..sort((a, b) => b.path.compareTo(a.path));
-    for (final stale in existing.skip(retention)) {
-      stale.deleteSync();
+    final kept = {if (keep != null) p.normalize(keep.absolute.path)};
+    for (final file in existing) {
+      if (kept.length >= retention) break;
+      kept.add(p.normalize(file.absolute.path));
+    }
+    for (final file in existing) {
+      if (!kept.contains(p.normalize(file.absolute.path))) file.deleteSync();
     }
     collectUnusedMedia(dir.path);
   }

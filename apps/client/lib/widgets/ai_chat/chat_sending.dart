@@ -421,6 +421,9 @@ extension _ChatSending on _AiChatSheetState {
         try {
           final gone = await widget.services.deletedNotes(limit: 30);
           if (gone.isEmpty) findings.writeln('(empty)');
+          // What it read goes in the log of what left the phone, like any
+          // other lookup's notes (1.99.96 reviews, AI-13).
+          _remember(gone);
           await _knowThreads(gone);
           for (final note in gone) {
             if (_contextLine(note) case final line?) findings.writeln(line);

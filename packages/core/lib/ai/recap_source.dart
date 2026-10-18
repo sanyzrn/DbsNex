@@ -48,6 +48,47 @@ import '../models/note.dart';
 /// "three things left for the trip" rather than list them one by one.
 String nexRecapSource(
   List<Note> notes, {
+  List<NexCommitment> commitments = const [],
+  DateTime? now,
+  int limit = 20,
+  bool forFingerprint = false,
+  Duration horizon = const Duration(days: 7),
+  int maxTextLength = 160,
+  Duration recentWindow = const Duration(hours: 48),
+}) => _recapLines(
+  notes,
+  commitments: commitments,
+  now: now,
+  limit: limit,
+  forFingerprint: forFingerprint,
+  horizon: horizon,
+  maxTextLength: maxTextLength,
+  recentWindow: recentWindow,
+).map((line) => line.$1).join('\n');
+
+/// The notes [nexRecapSource] chose its lines from, with the same arguments —
+/// what the disclosure log names for the brief that is written from them.
+List<String> nexRecapNoteIds(
+  List<Note> notes, {
+  List<NexCommitment> commitments = const [],
+  DateTime? now,
+  int limit = 20,
+  Duration horizon = const Duration(days: 7),
+  Duration recentWindow = const Duration(hours: 48),
+}) => [
+  for (final (_, id) in _recapLines(
+    notes,
+    commitments: commitments,
+    now: now,
+    limit: limit,
+    horizon: horizon,
+    recentWindow: recentWindow,
+  ))
+    ?id,
+];
+
+List<(String, String?)> _recapLines(
+  List<Note> notes, {
 
   /// The recurring obligations — the insurance, the rent, the tablet — that
   /// are not notes and are not on the timeline, but are exactly the sort of
@@ -113,7 +154,7 @@ String nexRecapSource(
       if (!waiting(note) && !unfinished(note)) note,
   ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
-  final pressing = <String>[];
+  final pressing = <(String, String?)>[];
   // Commitments first, unconditionally. Every one that reaches this point is
   // already past its lead time — that is what put it here — so it is by
   // construction more pressing than a note somebody wrote on Tuesday. They
@@ -124,7 +165,7 @@ String nexRecapSource(
       if (commitment.isWaiting(local)) commitment,
   ]..sort((a, b) => a.dueAt.compareTo(b.dueAt));
   for (final commitment in waitingNow) {
-    pressing.add(
+    pressing.add((
       forFingerprint
           ? '${commitment.id}|${commitment.dueAt.toUtc().toIso8601String()}|'
                 '${commitment.dueAt.isBefore(local) ? 'overdue' : 'upcoming'}|'
@@ -132,7 +173,8 @@ String nexRecapSource(
                 '${_cadenceLabel(commitment)}|${commitment.timesPerDay}|'
                 '${commitment.metOn(local)}|${_oneLine(commitment.title, 80)}'
           : _commitmentLine(commitment, local, zoned(commitment.dueAt)),
-    );
+      null,
+    ));
   }
 
   String? line(Note note) {
@@ -150,7 +192,7 @@ String nexRecapSource(
   }
 
   for (final note in [...due, ...open]) {
-    if (line(note) case final text?) pressing.add(text);
+    if (line(note) case final text?) pressing.add((text, note.id));
   }
   final others = [
     for (final note in rest)
@@ -167,11 +209,11 @@ String nexRecapSource(
   final kept = recent.clamp(0, limit ~/ 4);
   final lines = [
     ...pressing.take((limit - kept).clamp(0, limit)),
-    for (final entry in others) entry.$1,
+    for (final entry in others) (entry.$1, entry.$2.id),
   ];
   final selected = lines.take(limit).toList();
-  if (forFingerprint) selected.sort();
-  return selected.join('\n');
+  if (forFingerprint) selected.sort((a, b) => a.$1.compareTo(b.$1));
+  return selected;
 }
 
 /// The note's tags, as ` #name` each, after the kind. Spaces inside a name

@@ -76,6 +76,79 @@ class BadModule extends NexStoredModule {
       expect(problems, contains('nex_services.dart'));
       expect(problems, contains('open('));
     });
+
+    // The 1.99.96 reviews' escapes (SEC-05/SEC-13): a second URI behind
+    // `if (...)`, on one line or two, and a `part of` pointing out.
+    test('nor one that hides an import behind a condition', () {
+      final dir = Directory.systemTemp.createTempSync('nex_sly_module_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File(p.join(dir.path, 'stub.dart')).writeAsStringSync('');
+      File(p.join(dir.path, 'module.dart')).writeAsStringSync('''
+import 'stub.dart' if (dart.library.io) 'package:nex_client/platform/nex_services.dart';
+import 'stub.dart'
+    if (dart.library.io) 'dart:io';
+import '../module_api.dart';
+''');
+      File(p.join(dir.path, 'piece.dart')).writeAsStringSync('''
+part of '../../platform/nex_services.dart';
+''');
+      final problems = moduleKitProblems(dir).join('\n');
+      expect(problems, contains('conditional import'));
+      expect(
+        problems,
+        contains('package:nex_client/platform/nex_services.dart'),
+      );
+      expect(problems, contains('dart:io'));
+      expect(problems, contains('piece.dart imports ../../platform'));
+    });
+
+    // A module is a folder, and the gate reads folders. The files beside
+    // them are the platform's own (and Cycle, built in and exempt by
+    // design, docs/17); a new one is a reviewed change, not a module that
+    // walked in unread. The same for what the API hands a module.
+    test(
+      'the platform files and what the API exports are the reviewed ones',
+      () {
+        final loose = Directory(
+          p.join('lib', 'modules'),
+        ).listSync().whereType<File>().map((f) => p.basename(f.path)).toSet();
+        expect(loose, {
+          'cycle_module.dart',
+          'module_api.dart',
+          'module_dates.dart',
+          'module_plans.dart',
+          'module_registry.dart',
+          'module_reminder_control.dart',
+          'module_rollout.dart',
+          'nex_module.dart',
+          'nex_module_store.dart',
+          'nex_module_strings.dart',
+          'nex_stored_module.dart',
+        });
+        final exports =
+            RegExp(r'''^export\s+['"]([^'"]+)['"]''', multiLine: true)
+                .allMatches(
+                  File(
+                    p.join('lib', 'modules', 'module_api.dart'),
+                  ).readAsStringSync(),
+                )
+                .map((m) => m.group(1)!)
+                .toSet();
+        expect(exports, {
+          'package:nex_data/nex_data.dart',
+          'package:nex_ui/nex_ui.dart',
+          '../l10n/app_localizations.dart',
+          '../widgets/nex_dialog.dart',
+          '../widgets/nex_shelf.dart',
+          '../widgets/nex_text_field.dart',
+          'nex_module_store.dart',
+          'nex_module_strings.dart',
+          'nex_stored_module.dart',
+          'module_dates.dart',
+          'module_reminder_control.dart',
+        });
+      },
+    );
   });
 
   group('words', () {
@@ -220,10 +293,14 @@ List<String> moduleKitProblems(Directory folder) {
     RegExp(r'\bshowModalBottomSheet\b'): 'uses showModalBottomSheet',
     RegExp(r'(?<![A-Za-z_])showDialog\b'): 'uses showDialog',
   };
+  // A whole directive, up to its semicolon, so every URI in it is read: a
+  // conditional import names a second URI after `if (...)`, and reading only
+  // the first is how one slipped past this gate (1.99.96 reviews, SEC-05).
   final directive = RegExp(
-    r'''^\s*(?:import|export|part)\s+['"]([^'"]+)['"]''',
+    r'''^\s*(?:import|export|part)\b[^;]*;''',
     multiLine: true,
   );
+  final quoted = RegExp(r'''['"]([^'"]+)['"]''');
   final files = folder
       .listSync(recursive: true)
       .whereType<File>()
@@ -232,18 +309,25 @@ List<String> moduleKitProblems(Directory folder) {
     final name = p.relative(file.path, from: folder.path);
     final source = file.readAsStringSync();
     for (final match in directive.allMatches(source)) {
-      final uri = match.group(1)!;
-      if (uri.startsWith('dart:')) {
-        if (!darts.contains(uri)) problems.add('$name imports $uri');
-      } else if (uri.startsWith('package:')) {
-        if (!packages.contains(uri)) problems.add('$name imports $uri');
-      } else {
-        final target = p.normalize(p.join(file.parent.absolute.path, uri));
-        final api = p.normalize(
-          p.join(folder.parent.absolute.path, 'module_api.dart'),
-        );
-        if (!p.isWithin(root, target) && target != api) {
-          problems.add('$name imports $uri, outside its folder');
+      final statement = match.group(0)!;
+      // A module has one platform to build for; a conditional import is
+      // only ever a way to say something this gate does not read.
+      if (RegExp(r'\bif\s*\(').hasMatch(statement)) {
+        problems.add('$name uses a conditional import');
+      }
+      for (final uri in quoted.allMatches(statement).map((m) => m.group(1)!)) {
+        if (uri.startsWith('dart:')) {
+          if (!darts.contains(uri)) problems.add('$name imports $uri');
+        } else if (uri.startsWith('package:')) {
+          if (!packages.contains(uri)) problems.add('$name imports $uri');
+        } else {
+          final target = p.normalize(p.join(file.parent.absolute.path, uri));
+          final api = p.normalize(
+            p.join(folder.parent.absolute.path, 'module_api.dart'),
+          );
+          if (!p.isWithin(root, target) && target != api) {
+            problems.add('$name imports $uri, outside its folder');
+          }
         }
       }
     }

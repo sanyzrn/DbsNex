@@ -9,6 +9,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/app.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/backup_policy.dart';
@@ -94,7 +95,7 @@ void main() {
         l10n.greetingNight,
         l10n.greetingNightB,
         l10n.greetingNightC,
-      ].map((f) => f('').replaceFirst(RegExp(r'[,،]\s*$'), '').trim()).toSet();
+      ].map(nexUnnamedGreeting).toSet();
       expect(
         tester
             .widgetList<Text>(find.byType(Text))
@@ -141,6 +142,58 @@ void main() {
       expect(preferences.collapsedTimelineGroups, isEmpty);
     },
   );
+
+  testWidgets('a pinch at the top of the list is not a pull to refresh', (
+    tester,
+  ) async {
+    // 2.1.7: spreading two fingers up and down at the top of the timeline
+    // moved one of them down, which the list took for a pull, and a refresh
+    // started under the pinch.
+    // Pull-to-refresh exists only while there is a brief to refresh.
+    await preferences.setAiEnabled(true);
+    await preferences.setAiProvider(
+      const AiProviderConfig(provider: AiProvider.openai, apiKey: 'k'),
+    );
+    await services.captureText('Pinch at the top');
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    final list = find.byType(CustomScrollView).first;
+    final top = tester.getTopLeft(list) + const Offset(200, 160);
+
+    Future<bool> refreshing() async {
+      var seen = false;
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        seen |= find.byType(RefreshProgressIndicator).evaluate().isNotEmpty;
+      }
+      await tester.pumpAndSettle();
+      return seen;
+    }
+
+    final upper = await tester.startGesture(top, pointer: 11);
+    final lower = await tester.startGesture(
+      top + const Offset(0, 60),
+      pointer: 12,
+    );
+    for (var i = 1; i <= 10; i++) {
+      await lower.moveTo(top + Offset(0, 60.0 + i * 25));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await lower.up();
+    await upper.up();
+    expect(await refreshing(), isFalse);
+
+    // One finger pulling the same distance is still a refresh.
+    final pull = await tester.startGesture(top, pointer: 13);
+    for (var i = 1; i <= 10; i++) {
+      await pull.moveTo(top + Offset(0, i * 25.0));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await pull.up();
+    expect(await refreshing(), isTrue);
+  });
 
   testWidgets('a cold launch with notes never flashes the onboarding screen', (
     tester,

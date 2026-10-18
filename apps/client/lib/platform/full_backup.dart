@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'dart:math';
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
+import 'package:nex_data/nex_data.dart' show NexBackupArchive;
 import 'package:nex_data/schema/zip_file_writer.dart';
 import 'package:path/path.dart' as p;
 
@@ -133,6 +134,14 @@ abstract final class FullBackup {
           library == null) {
         throw const FormatException('Invalid full backup entries');
       }
+      // The outer layer too, before anything is written: the inner archive's
+      // own bound only runs once the library entry has been unpacked to
+      // disk, and a hostile file could fill the phone first (1.99.96
+      // reviews, SEC-11).
+      NexBackupArchive.assertReasonableSize(
+        archive,
+        File(source).lengthSync(),
+      );
       final format = jsonDecode(utf8.decode(meta.content)) as Map;
       if (format['version'] != 1) {
         throw const FormatException('Unsupported backup');

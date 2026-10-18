@@ -267,7 +267,7 @@ class _HoldMenuChoices extends StatelessWidget {
     final chosen = preferences.holdMenuActions.toSet();
     final muted = theme.colorScheme.onSurfaceVariant;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
+      padding: const EdgeInsetsDirectional.fromSTEB(
         NexSpacing.md,
         NexSpacing.sm,
         NexSpacing.sm,

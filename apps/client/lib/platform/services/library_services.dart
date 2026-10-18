@@ -242,6 +242,88 @@ extension NexLibraryServices on NexServices {
     }
   }
 
+  /// Whether "Analyze video" belongs on [note] (2.1.7): a YouTube video, a
+  /// provider that can watch one from its address, and summaries switched on
+  /// — the result is kept as the note's summary.
+  bool canAnalyzeVideo(Note note) =>
+      _preferences.effectiveAiCapabilities.summarization &&
+      CloudAIAdapter.watchesYouTube(_preferences.aiProvider) &&
+      nexYouTubeWatchUrl(note.linkUrl) != null;
+
+  /// Has the provider watch the YouTube video [noteId] links to, and keeps
+  /// what it says as that note's summary — the page text of a YouTube link
+  /// is a title and little else, so this is the summary worth having.
+  ///
+  /// Null when it is not possible or nothing came back; the note is not
+  /// touched then. Not saved if the note changed while the video was being
+  /// watched.
+  Future<String?> analyzeVideo(String noteId) async {
+    final note = await worker.getById(noteId);
+    final url = note?.linkUrl;
+    if (note == null || url == null || !canAnalyzeVideo(note)) return null;
+    final adapter = CloudAIAdapter(
+      config: _preferences.aiProvider,
+      outputLanguage: _preferences.aiOutputLanguage,
+    );
+    try {
+      final text = await adapter.analyzeYouTubeVideo(
+        url,
+        title: note.title ?? '',
+        notes: [note.id],
+      );
+      if (text == null) return null;
+      final saved = await worker.saveSummaryIfCurrent(
+        noteId,
+        note.aiSourceText ?? '',
+        text,
+      );
+      if (!saved) return null;
+      await refreshTimeline();
+      return text;
+    } catch (_) {
+      return null;
+    } finally {
+      adapter.close();
+    }
+  }
+
+  /// What the profile's portrait is counted from: the newest 2,000 notes,
+  /// years of most libraries and a quick read for any.
+  Future<List<Note>> portraitNotes() => worker.timeline(limit: 2000);
+
+  /// Whether a written portrait can be asked for: a model to write it.
+  bool get portraitWritable =>
+      _preferences.aiEnabled && aiTextAvailableWith(_preferences.aiProvider);
+
+  /// Writes the profile's portrait from a sample of the notes and keeps it
+  /// (2.1.7). Asked for by the person, never in the background. Null when
+  /// nothing usable came back; the portrait already kept stays then.
+  Future<NexPortrait?> writePortrait() async {
+    if (!portraitWritable) return null;
+    final notes = await portraitNotes();
+    final stats = nexWritingStats(notes);
+    final source = nexPortraitSource(notes);
+    if (source.ids.isEmpty) return null;
+    final adapter = CloudAIAdapter(
+      config: _preferences.aiProvider,
+      outputLanguage: _preferences.aiOutputLanguage,
+    );
+    try {
+      final portrait = await adapter.writePortrait(
+        source.text,
+        facts: nexWritingFacts(stats),
+        basedOn: source.ids.length,
+        notes: source.ids,
+      );
+      if (portrait != null) await _preferences.setProfilePortrait(portrait);
+      return portrait;
+    } catch (_) {
+      return null;
+    } finally {
+      adapter.close();
+    }
+  }
+
   Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) =>
       nexRelatedNotesAvailable
       ? worker.relatedNotes(noteId, limit: limit)

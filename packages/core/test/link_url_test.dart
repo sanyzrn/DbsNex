@@ -60,6 +60,41 @@ void main() {
     );
   });
 
+  group('nexYouTubeWatchUrl', () {
+    test('every way a video is shared comes back as one watch address', () {
+      const watch = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+      for (final url in [
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        'youtube.com/watch?v=dQw4w9WgXcQ&t=42s',
+        'https://m.youtube.com/watch?feature=share&v=dQw4w9WgXcQ',
+        'https://youtu.be/dQw4w9WgXcQ?si=abcdef',
+        'https://www.youtube.com/shorts/dQw4w9WgXcQ',
+        'https://www.youtube.com/live/dQw4w9WgXcQ?feature=share',
+        'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
+        '  https://youtu.be/dQw4w9WgXcQ  ',
+      ]) {
+        expect(nexYouTubeWatchUrl(url), watch, reason: url);
+      }
+    });
+
+    test('channels, playlists, other sites and broken ids are not videos', () {
+      for (final url in [
+        null,
+        '',
+        'https://www.youtube.com/@somechannel',
+        'https://www.youtube.com/playlist?list=PL123',
+        'https://www.youtube.com/results?search_query=x',
+        'https://www.youtube.com/watch?v=short',
+        'https://vimeo.com/123456',
+        'https://notyoutube.com/watch?v=dQw4w9WgXcQ',
+        'javascript:alert(1)',
+      ]) {
+        expect(nexYouTubeWatchUrl(url), isNull, reason: url);
+      }
+    });
+  });
+
   group('normaliseUrl', () {
     test('adds https to what people actually type', () {
       expect(normaliseUrl('example.com'), 'https://example.com');

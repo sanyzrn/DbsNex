@@ -994,6 +994,7 @@ class CloudAIAdapter implements AIAdapter {
     String? modelOverride,
     bool requireComplete = false,
     bool preserveMarkup = false,
+    String? fileUri,
   }) async {
     lastReplyTruncated = false;
     if (!config.isUsable) {
@@ -1066,6 +1067,13 @@ class CloudAIAdapter implements AIAdapter {
           {
             'role': 'user',
             'parts': [
+              // A file the provider fetches itself — a YouTube video, by its
+              // address — before the words about it, which is the order
+              // Google's own examples use.
+              if (fileUri != null)
+                {
+                  'file_data': {'file_uri': fileUri},
+                },
               if (base64Media != null)
                 {
                   'inline_data': {
@@ -1116,7 +1124,10 @@ class CloudAIAdapter implements AIAdapter {
           headers: _headers,
           body: jsonEncode(body),
         )
-        .timeout(timeout ?? (media == null ? _textTimeout : _mediaTimeout));
+        .timeout(
+          timeout ??
+              (media == null && fileUri == null ? _textTimeout : _mediaTimeout),
+        );
     if (response.statusCode != 200) {
       _lastFailure = (
         status: response.statusCode,
@@ -1424,6 +1435,122 @@ class CloudAIAdapter implements AIAdapter {
         final summary = await _summarize(text);
         return summary.text.isEmpty ? null : summary.text;
       }, purpose: DisclosurePurpose.summary);
+
+  /// Whether this provider can watch a YouTube video from its address.
+  ///
+  /// Gemini only, today: it fetches a public YouTube video by URL and reads
+  /// its picture and sound. The others would be handed a link to a page
+  /// they cannot open, and answer from the title — a summary of a video
+  /// nobody watched.
+  bool get canWatchYouTube => watchesYouTube(config);
+
+  /// [canWatchYouTube] for a configuration, without opening a client.
+  static bool watchesYouTube(AiProviderConfig config) =>
+      config.isUsable && config.provider == AiProvider.gemini;
+
+  /// What is in a YouTube video somebody saved (2.1.7), in a few lines: what
+  /// it is, its main points in order with timestamps, and who it is for.
+  ///
+  /// Null when this provider cannot watch one, [url] is not a video, or no
+  /// answer came back. [title] is the page title the note already has, given
+  /// as a hint only — the prompt says to report what is in the video.
+  Future<String?> analyzeYouTubeVideo(
+    String url, {
+    String title = '',
+    Iterable<String> notes = const [],
+  }) => NexDisclosureLog.about(
+    () async {
+      final watch = nexYouTubeWatchUrl(url);
+      if (!canWatchYouTube || watch == null) return null;
+      final reply = await _complete(
+        '${outputLanguage.leadRule} '
+        'You watch a YouTube video for someone who saved it in their notes, '
+        'and tell them what is in it so they can keep what matters without '
+        'watching it again. First one sentence saying what the video is. '
+        'Then up to seven short lines, each starting with "- ", with its main '
+        'points, steps or claims in the order they come, with a timestamp '
+        '(m:ss) where it helps. Last, one line on who it is for or what to do '
+        'with it, if that is clear from the video. Only what is in the video: '
+        'nothing guessed from the title, no opinions of your own. If you '
+        'cannot watch it, say so in one sentence and nothing else. Plain '
+        'text: no headings, no bold, no markdown other than the "- ". '
+        '${outputLanguage.promptRule}',
+        title.trim().isEmpty
+            ? 'The video is attached.'
+            : 'The video is attached. Its page title, as a hint only: '
+                  '${title.trim()}',
+        fileUri: watch,
+        // No ceiling: a model that thinks first spends its budget before it
+        // writes, and a cut-off analysis is worse than a long one.
+        maxTokens: null,
+        preserveMarkup: true,
+      );
+      final text = reply?.trim() ?? '';
+      return text.isEmpty ? null : text;
+    },
+    purpose: DisclosurePurpose.summary,
+    notes: notes,
+    content: {DisclosureContent.text},
+  );
+
+  /// A portrait of the person who wrote [source] — lines from
+  /// `nexPortraitSource` — asked for from their profile (2.1.7).
+  ///
+  /// A reflection, not an assessment, and the prompt draws that line hard:
+  /// no psychology labels or test types, nothing on health, religion,
+  /// politics, sexuality or money troubles unless it is plainly a theme of
+  /// the notes themselves, and no private details repeated back. [facts] are
+  /// the counts the app already made (when they write, what they keep), so
+  /// the model does not have to guess them from a sample.
+  ///
+  /// Null when there is no answer, or the answer is not a whole portrait.
+  Future<NexPortrait?> writePortrait(
+    String source, {
+    required String facts,
+    required int basedOn,
+    Iterable<String> notes = const [],
+    DateTime? now,
+  }) => NexDisclosureLog.about(
+    () async {
+      if (!canAnswerText || source.trim().isEmpty) return null;
+      final reply = await _complete(
+        '${outputLanguage.leadRule} '
+            'You write a short, warm and perceptive portrait of a person from a '
+            'sample of their own notes: what they write about, how they plan and '
+            'follow through, what they care about, how they think. It is a '
+            'reflection for them to enjoy and recognise themselves in, not an '
+            'assessment. Never use psychology labels, disorders or personality '
+            'test types. Say nothing about health, religion, politics, sexuality, '
+            'money troubles or relationships unless it is plainly a theme they '
+            'write about themselves, and then gently. Never repeat private '
+            'details: no names, numbers, addresses, passwords or quotes. Ground '
+            'every claim in a pattern across the notes, not one note. Be '
+            'specific and kind, never flattering, never harsh. '
+            'Reply with one JSON object and nothing else, no markdown: '
+            '{"headline": "2 to 6 words naming who they are as someone who '
+            'writes things down", "portrait": "3 or 4 sentences, speaking to them '
+            'as you", "traits": [exactly 5 of {"name": "one or two words", '
+            '"score": 0 to 100 for how strongly it shows, "line": "one short '
+            'sentence of evidence"}], "strengths": [3 short phrases], '
+            '"invitation": "one gentle, practical suggestion"}. Every text value '
+            'in the language of your reply. ${outputLanguage.promptRule}',
+        'Counted on the device:\n$facts\n\n'
+            'The notes, spread across their library, one per line as '
+            '`when | kind | text`:\n$source',
+        maxTokens: null,
+        requireComplete: true,
+        preserveMarkup: true,
+      );
+      return NexPortrait.parse(
+        reply,
+        writtenAt: (now ?? DateTime.now()).toUtc(),
+        basedOn: basedOn,
+      );
+    },
+    purpose: DisclosurePurpose.portrait,
+    notes: notes,
+    content: {DisclosureContent.text},
+  );
 
   Future<Summary> _summarize(String text) async {
     final reply = await _complete(

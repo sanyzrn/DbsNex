@@ -184,6 +184,10 @@ class NexPreferences extends _PreferencesStore
       key != 'sponsor.image_path' &&
       key != 'sponsor.attempted_at' &&
       key != _kSyncBearerToken &&
+      // Sync has no screen yet; an address restored from another phone's
+      // settings would have pull-to-refresh send the library to a server
+      // nothing on this one shows (1.99.96 reviews, SEC-14).
+      key != _kSyncBaseUrl &&
       !key.startsWith('ai.key.') &&
       !key.startsWith('restore.') &&
       // A folder grant belongs to the phone that was given it.

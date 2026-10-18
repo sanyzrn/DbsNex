@@ -265,6 +265,7 @@ extension _DetailActions on _NoteDetailSheetState {
       initial: note.content ?? '',
       draftKey: 'note-${note.id}',
       preferences: preferences,
+      noteId: note.id,
     );
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) return;
@@ -399,6 +400,7 @@ extension _DetailActions on _NoteDetailSheetState {
       preferences: preferences,
       draftKey: 'caption-${note.id}',
       allowEmpty: true,
+      noteId: note.id,
     );
     if (value == null) return;
     await widget.services.setCaption(widget.noteId, value);

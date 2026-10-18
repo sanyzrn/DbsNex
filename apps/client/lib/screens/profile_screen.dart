@@ -19,6 +19,7 @@ import '../platform/display_date.dart';
 import '../widgets/nex_text_field.dart';
 import 'camera_sheet.dart';
 import 'profile/profile_header.dart';
+import 'profile/profile_portrait.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -337,6 +338,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                 hintText: l10n.profileBioHint,
                 alignLabelWithHint: true,
               ),
+            ),
+            const SizedBox(height: NexSpacing.xl),
+            ProfilePortrait(
+              services: widget.services,
+              preferences: widget.preferences,
             ),
           ],
         ),

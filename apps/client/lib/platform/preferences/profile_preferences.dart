@@ -88,6 +88,21 @@ mixin _ProfilePreferences on _PreferencesStore {
 
   String get profileBio => _prefs.getString('profile.bio') ?? '';
 
+  /// The written half of the profile's portrait, as last written (2.1.7).
+  /// Kept on this phone only: it is read from the notes, and the notes are
+  /// where it can be written from again.
+  NexPortrait? get profilePortrait =>
+      NexPortrait.decode(_prefs.getString('profile.portrait'));
+
+  Future<void> setProfilePortrait(NexPortrait? value) async {
+    if (value == null) {
+      await _prefs.remove('profile.portrait');
+    } else {
+      await _prefs.setString('profile.portrait', value.encode());
+    }
+    notifyListeners();
+  }
+
   /// [displayName] cut to its first two words, for the places that render it
   /// inside a line of running text.
   ///

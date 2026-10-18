@@ -23,6 +23,7 @@ class _Worker {
       repo: repo,
       adapter: boot.adapter,
       capabilities: boot.capabilities,
+      disclose: (noteId, send) => NexDisclosureLog.about(send, notes: [noteId]),
     );
     if (boot.adapter case final CloudAIAdapter initial) _cloudAdapter = initial;
   }

@@ -505,10 +505,25 @@ class NexCardDensityScope extends InheritedWidget {
 /// squeezed into 24 logical pixels. They were literal `24`s, which held only
 /// at scale 1.0: the app's own UI-size setting composes with the system's and
 /// can grow beyond 1.9, so the row must follow the actual scaled height.
-double nexCardPreviewLineHeightFor(BuildContext context) =>
-    MediaQuery.textScalerOf(
-      context,
-    ).scale(NexCardDensity.of(context).lineHeight);
+///
+/// Never less than a line of the preview's own text (2.1.7). Scaling the
+/// budget and scaling the text agree only while the text scaler is linear;
+/// Android's non-linear font scaling grows the 14-point preview more than
+/// the 20-point budget, so two compact lines came out taller than the two
+/// rows reserved for them, and with a reminder or a paperclip underneath —
+/// where the preview sits in a box of exactly that height — the bottom of
+/// the second line was cut off. Standard and readable had a couple of
+/// pixels of slack and never showed it.
+double nexCardPreviewLineHeightFor(BuildContext context) {
+  final density = NexCardDensity.of(context);
+  final scaler = MediaQuery.textScalerOf(context);
+  final budget = scaler.scale(density.lineHeight);
+  final style = density.previewStyle(Theme.of(context));
+  final size = style?.fontSize;
+  final height = style?.height;
+  if (size == null || height == null) return budget;
+  return math.max(budget, scaler.scale(size) * height);
+}
 
 /// The typeface used everywhere except in Persian.
 ///

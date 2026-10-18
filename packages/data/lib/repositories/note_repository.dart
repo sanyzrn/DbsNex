@@ -659,21 +659,27 @@ ORDER BY t.name COLLATE NOCASE
 
   @override
   void attachTag({required String noteId, required String tagId}) {
-    db.execute(
-      'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
-      [noteId, tagId],
-    );
-    // Filing, not editing: the note still says exactly what it said.
-    _bumpNote(noteId, edited: false);
+    // The tag and the note's sync stamp together: apart, a process killed
+    // between them left a tag the outbox would never send (DATA-06).
+    db.together(() {
+      db.execute(
+        'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
+        [noteId, tagId],
+      );
+      // Filing, not editing: the note still says exactly what it said.
+      _bumpNote(noteId, edited: false);
+    });
   }
 
   @override
   void detachTag({required String noteId, required String tagId}) {
-    db.execute('DELETE FROM note_tags WHERE note_id = ? AND tag_id = ?', [
-      noteId,
-      tagId,
-    ]);
-    _bumpNote(noteId, edited: false);
+    db.together(() {
+      db.execute('DELETE FROM note_tags WHERE note_id = ? AND tag_id = ?', [
+        noteId,
+        tagId,
+      ]);
+      _bumpNote(noteId, edited: false);
+    });
   }
 
   @override
@@ -1537,15 +1543,17 @@ WHERE n.deleted_at IS NULL AND e.note_id IN ($placeholders)
   bool setEmbeddingSpace(String fingerprint) {
     final current = embeddingSpace;
     if (current == fingerprint) return false;
-    if (current != null) {
-      db.execute('DELETE FROM note_embeddings');
-      _vectors = null;
-    }
-    db.execute(
-      "INSERT OR REPLACE INTO nex_meta (key, value) "
-      "VALUES ('embedding_space', ?)",
-      [fingerprint],
-    );
+    // The wipe and the new stamp together: apart, a crash between them left
+    // the old vectors labelled as the new model's (DATA-08).
+    db.together(() {
+      if (current != null) db.execute('DELETE FROM note_embeddings');
+      db.execute(
+        "INSERT OR REPLACE INTO nex_meta (key, value) "
+        "VALUES ('embedding_space', ?)",
+        [fingerprint],
+      );
+    });
+    if (current != null) _vectors = null;
     return current != null;
   }
 
@@ -2366,7 +2374,9 @@ WHERE id = ?
       case NoteType.photo:
         buffer.writeln('_Photo note_');
         if (note.mediaUri != null) {
-          buffer.writeln('![photo](../media/${nexPortableBasename(note.mediaUri!)})');
+          buffer.writeln(
+            '![photo](../media/${nexPortableBasename(note.mediaUri!)})',
+          );
         }
         if (note.ocrText != null) {
           buffer.writeln('OCR: ${note.ocrText}');

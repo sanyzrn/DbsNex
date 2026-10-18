@@ -96,7 +96,7 @@ extension _VaultMessages on _VaultScreenState {
   /// The box, with the attach button on one side and send on the other —
   /// each with room around it, the way the assistant's composer has.
   Widget _composer(AppLocalizations l, ThemeData theme) => Padding(
-    padding: const EdgeInsets.fromLTRB(
+    padding: const EdgeInsetsDirectional.fromSTEB(
       NexSpacing.sm,
       NexSpacing.sm,
       NexSpacing.md,

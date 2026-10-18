@@ -337,7 +337,7 @@ class CycleStepper extends StatelessWidget {
       children: [
         Expanded(child: Text(label, style: theme.textTheme.bodyLarge)),
         IconButton.outlined(
-          tooltip: '−',
+          tooltip: l10n.cycleStepFewer,
           onPressed: value > min ? () => onChanged(value - 1) : null,
           icon: const Icon(Icons.remove),
         ),
@@ -350,7 +350,7 @@ class CycleStepper extends StatelessWidget {
           ),
         ),
         IconButton.outlined(
-          tooltip: '+',
+          tooltip: l10n.cycleStepMore,
           onPressed: value < max ? () => onChanged(value + 1) : null,
           icon: const Icon(Icons.add),
         ),

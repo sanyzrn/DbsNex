@@ -116,7 +116,11 @@ ORDER BY n.created_at ASC, n.rowid ASC
     );
   }
 
-  void add(String threadId, String noteId) => _add(threadId, noteId, _now());
+  /// The membership and the thread's stamp in one transaction, so a process
+  /// killed between them cannot leave a thread that holds a note and still
+  /// sorts as if it did not (1.99.96 reviews, DATA-06).
+  void add(String threadId, String noteId) =>
+      db.together(() => _add(threadId, noteId, _now()));
 
   void _add(String threadId, String noteId, String now) {
     db.execute(

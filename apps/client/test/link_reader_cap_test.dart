@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -63,6 +64,30 @@ void main() {
     final preview = await LinkReader(client: client).read('https://e.x/');
     expect(preview.title, 'Home');
     expect(client.requested, ['https://e.x/', 'https://www.e.x/home']);
+  });
+
+  // 1.99.96 reviews, SEC-06: a name passed the literal-address check whatever
+  // it resolved to, so an intranet host was fetched from inside the network.
+  test('a name that resolves to a private address is not fetched', () async {
+    final client = _RedirectClient('https://www.e.x/home');
+    final preview = await LinkReader(
+      client: client,
+      resolve: (host) async => [InternetAddress('10.0.0.5')],
+    ).read('https://intranet.e.x/');
+    expect(preview.isEmpty, isTrue);
+    expect(client.requested, isEmpty);
+  });
+
+  test('nor is a redirect to one, while a public name is', () async {
+    final client = _RedirectClient('https://router.e.x/');
+    final preview = await LinkReader(
+      client: client,
+      resolve: (host) async => [
+        InternetAddress(host == 'router.e.x' ? '192.168.1.1' : '93.184.216.34'),
+      ],
+    ).read('https://e.x/');
+    expect(preview.isEmpty, isTrue);
+    expect(client.requested, ['https://e.x/']);
   });
 
   test('an endless HTML page still yields a preview', () async {

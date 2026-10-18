@@ -367,6 +367,27 @@ void main() {
     expect(File(p.join(mediaDir, 'a.jpg')).readAsBytesSync(), marker);
   });
 
+  // 1.99.96 reviews, DATA-13: backups are named by the clock, so after the
+  // clock moved back the one just written sorted oldest and was pruned by
+  // its own rotation, and so was every one after it.
+  test('the backup just written survives a clock that moved back', () {
+    Directory(backupDir).createSync(recursive: true);
+    for (var i = 0; i < NexDatabase.backupRetention; i++) {
+      File(
+        p.join(
+          backupDir,
+          'nex-2099010${i}T000000Z${NexBackupArchive.extension}',
+        ),
+      ).writeAsBytesSync([0]);
+    }
+    final made = repo.backup(backupDir, mediaDir: mediaDir);
+    expect(made.existsSync(), isTrue);
+    final kept = Directory(backupDir).listSync().whereType<File>().where(
+      (f) => NexBackupArchive.isBackupFile(f.path),
+    );
+    expect(kept.length, NexDatabase.backupRetention);
+  });
+
   test('retention prunes both formats together', () {
     for (var i = 0; i < NexDatabase.backupRetention + 3; i++) {
       repo.backup(backupDir, mediaDir: mediaDir);
