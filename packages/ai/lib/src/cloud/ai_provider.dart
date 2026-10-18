@@ -1460,7 +1460,7 @@ class CloudAIAdapter implements AIAdapter {
 
   /// What a DUE line is, said once for every brief prompt.
   ///
-  /// 2.1.7. Told only "DUE in 4d", a model read a reminder somebody had set
+  /// 2.1.6. Told only "DUE in 4d", a model read a reminder somebody had set
   /// for Wednesday at 9 as a deadline, said "four days" on a Friday evening
   /// when the calendar said five, mixed the reminder up with the date written
   /// inside the note, and suggested setting the reminder that was already

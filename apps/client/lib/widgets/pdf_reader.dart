@@ -12,7 +12,7 @@ import 'nex_dialog.dart';
 /// The current page stays visible until its replacement is decoded. Only the
 /// current and outgoing page are retained during the short transition.
 ///
-/// Pages turn by swiping, the way every reader turns them (2.1.7), and by the
+/// Pages turn by swiping, the way every reader turns them (2.1.6), and by the
 /// two arrows in the capsule over the bottom of the page. The capsule's
 /// count opens a sheet of page numbers to jump to. It replaced a slider under
 /// the page, which cost the card a row of its own, was hard to land on one

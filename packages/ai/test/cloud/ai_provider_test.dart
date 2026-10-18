@@ -1223,7 +1223,7 @@ void _recapGroup() {
 
     test('a DUE line is a reminder already set, said as a time to act and '
         'kept apart from a deadline in the text', () async {
-      // 2.1.7. A reminder set for Wednesday at 9 came back as "the deadline
+      // 2.1.6. A reminder set for Wednesday at 9 came back as "the deadline
       // is four days away; maybe set a reminder for it": the reminder read as
       // a deadline, the deadline in the note read as the reminder, the days
       // counted by the clock, and a reminder suggested for itself.

@@ -176,7 +176,7 @@ void main() {
 
   testWidgets('every brief line hangs its emoji and starts its words in one '
       'place', (tester) async {
-    // 2.1.7: the first line read larger than the others. It was the only
+    // 2.1.6: the first line read larger than the others. It was the only
     // line drawn on its own, with a wider gap under it, and each line's words
     // began wherever its emoji happened to end.
     await preferences.setAiDaySummary(

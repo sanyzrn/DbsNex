@@ -289,7 +289,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Every line the same widget, the same type and the same gap
-          // (2.1.7). The first one used to be a plain `Text` with a wider gap
+          // (2.1.6). The first one used to be a plain `Text` with a wider gap
           // under it and the rest one paragraph below, and the first line of
           // the brief read as a heading over a list it is simply the top of.
           AnimatedDefaultTextStyle(

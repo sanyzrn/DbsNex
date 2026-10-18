@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 
-/// 2.1.7: with no name set, "What have you got, {name}?" came out as "What
+/// 2.1.6: with no name set, "What have you got, {name}?" came out as "What
 /// have you got, ?" — only a comma at the very end used to be taken off.
 void main() {
   for (final language in ['en', 'fa']) {

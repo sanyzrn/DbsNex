@@ -179,7 +179,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
   }
 
   Future<void> _actions(NexCommitment c) async {
-    // The app's own sheet (2.1.7): the handle, the glass and the swipe to
+    // The app's own sheet (2.1.6): the handle, the glass and the swipe to
     // close that every other sheet has, and the safe area it supplies.
     final choice = await nexShowSheet<String>(
       context: context,

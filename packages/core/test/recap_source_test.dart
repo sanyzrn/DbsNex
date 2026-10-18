@@ -139,7 +139,7 @@ void main() {
   });
 
   test('days are counted by the calendar, with the day and the clock', () {
-    // 2.1.7. Friday evening, a reminder for Wednesday at 9: four days and
+    // 2.1.6. Friday evening, a reminder for Wednesday at 9: four days and
     // fifteen hours by the clock, five by the calendar. The brief said "four
     // days", and with only a span to go on it also called the reminder a
     // deadline. Local time, the way the app calls it.

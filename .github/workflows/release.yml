@@ -173,6 +173,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      # Before Gradle needs it, with retries: see the same step in ci.yml.
+      - name: Install the pinned Android NDK
+        run: bash ../../tools/install_android_ndk.sh
+
       - name: Require Android signing secrets
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

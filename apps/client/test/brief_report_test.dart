@@ -81,7 +81,7 @@ void main() {
   });
 
   test('a reminder coming up is said by its day and time, not a countdown', () {
-    // 2.1.7. "Call the plumber — due in 9 hours" read as a deadline, and most
+    // 2.1.6. "Call the plumber — due in 9 hours" read as a deadline, and most
     // reminders are simply when somebody means to do the thing. Days by the
     // calendar: Tuesday at 9 to Sunday at midnight is four days and fifteen
     // hours by the clock and five on the calendar.

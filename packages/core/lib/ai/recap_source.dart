@@ -21,7 +21,7 @@ import '../models/note.dart';
 /// ```
 ///
 /// A DUE line says the day and the clock time rather than a count of hours,
-/// and counts days by the calendar (2.1.7). "DUE in 4d" for a reminder on
+/// and counts days by the calendar (2.1.6). "DUE in 4d" for a reminder on
 /// Wednesday at 9, read on Friday evening, was four days by the clock and
 /// five by the calendar; the brief said "four days", and with nothing but a
 /// span to go on it also read the reminder as a deadline. The day and time

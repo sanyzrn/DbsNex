@@ -23,7 +23,7 @@ import 'package:nex_ai/cloud.dart';
 /// has its priorities the wrong way round.
 ///
 /// A reminder coming up is said by its day and time — "call the plumber —
-/// tomorrow at 09:00" — not as a countdown (2.1.7). Most reminders are when
+/// tomorrow at 09:00" — not as a countdown (2.1.6). Most reminders are when
 /// somebody means to do a thing, not a deadline, and "due in 15 hours" said
 /// the opposite; it was also wrong for most of the hour a brief stays on the
 /// card. [clock] writes the time the way the phone does; left out, it is
