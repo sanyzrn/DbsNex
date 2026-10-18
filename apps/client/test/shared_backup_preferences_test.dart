@@ -11,7 +11,7 @@ void main() {
     Map<String, dynamic> preferences, {
     List<String> cleared = const [],
   }) => {
-    'version': 1,
+    'version': 2,
     'scope': 'shared',
     'preferences': preferences,
     'credentials': <String, String>{},
@@ -74,6 +74,7 @@ void main() {
       FlutterSecureStorage.setMockInitialValues({});
       final prefs = await NexPreferences.load();
       for (final invalid in [
+        {...backup({'appearance.theme_preset': 'circuit'}), 'version': 1},
         {
           ...backup({'appearance.theme_preset': 'circuit'}),
           'credentials': {'openai': 'overwrite'},

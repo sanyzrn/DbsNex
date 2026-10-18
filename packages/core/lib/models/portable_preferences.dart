@@ -1,6 +1,9 @@
 /// Platform-neutral appearance keys, using the existing Android wire names.
 /// OS integration, credentials and private modules are deliberately outside it.
 abstract final class PortablePreferences {
+  // Older mobile receivers treat version 1 as a full preference replacement.
+  // A distinct version makes them reject a scoped transfer before restoring.
+  static const settingsVersion = 2;
   static const defaults = <String, dynamic>{
     'appearance.theme': 'system',
     'appearance.theme_preset': 'classic',
@@ -51,7 +54,7 @@ abstract final class PortablePreferences {
   }
 
   static void validateScopedBackup(Map<String, dynamic> settings) {
-    if (settings['version'] != 1 ||
+    if (settings['version'] != settingsVersion ||
         settings['scope'] != 'shared' ||
         settings['preferences'] is! Map ||
         settings['credentials'] is! Map ||

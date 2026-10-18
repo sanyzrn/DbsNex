@@ -167,5 +167,6 @@
     "swipeRemind": "#2F6F5E",
     "swipeShare": "#3D5A80",
     "swipeAsk": "#5B4B8A"
-  }
+  },
+  "sharedSettingsVersion": 2
 }

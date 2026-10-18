@@ -17,7 +17,11 @@ void main() {
         PortablePreferences.keys,
         unorderedEquals(contract['sharedPreferences'] as List),
       );
-      PortablePreferences.validate(PortablePreferences.defaults);
+      expect(
+      PortablePreferences.settingsVersion,
+      contract['sharedSettingsVersion'],
+    );
+    PortablePreferences.validate(PortablePreferences.defaults);
     },
   );
 }
