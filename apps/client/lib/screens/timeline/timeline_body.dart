@@ -456,7 +456,8 @@ extension _TimelineBody on TimelineScreenState {
                           ),
                     onAction: (action) => unawaited(_runSwipe(action, note)),
                     child: NoteContextMenu(
-                      entries: _holdEntries(note),
+                      entriesBuilder: (menuContext, width) =>
+                          _holdEntries(note, menuContext, width),
                       child: NoteCard(
                         note: note,
                         strings: nexCardStrings(context),

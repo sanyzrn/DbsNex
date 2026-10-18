@@ -128,13 +128,9 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiOutputLanguage(AiOutputLanguage value) async {
     await _prefs.setString('ai.outputLanguage', value.wireName);
-    // The two cached AI strings on the timeline were written in the old
-    // language; leaving them would show the setting as having done nothing
-    // until tomorrow.
-    await _prefs.remove('ai.daySummary.text');
-    await _prefs.remove('ai.daySummary.date');
-    await _prefs.remove('ai.headline.text');
-    await _prefs.remove('ai.headline.date');
+    // Output language is part of the brief fingerprint. Keep its readable
+    // cache and success time until a permitted automatic or manual refresh.
+    // The greeting independently keys its language on the user's name.
     notifyListeners();
   }
 

@@ -167,7 +167,11 @@ extension _TimelineNoteActions on TimelineScreenState {
     if (text != null) await Clipboard.setData(ClipboardData(text: text));
   }
 
-  List<NoteMenuEntry> _holdEntries(Note note) {
+  List<NoteMenuEntry> _holdEntries(
+    Note note,
+    BuildContext menuContext,
+    double width,
+  ) {
     final prefs = widget.preferences;
     final l10n = AppLocalizations.of(context);
     final words = note.copyText ?? '';
@@ -207,7 +211,7 @@ extension _TimelineNoteActions on TimelineScreenState {
         () => unawaited(_addTagTo(note)),
       ),
       NexHoldAction.expand =>
-        note.displayText == null && note.type != NoteType.checklist
+        !expanded && !nexNoteCanExpand(menuContext, note, cardWidth: width)
             ? null
             : NoteMenuEntry(
                 action,

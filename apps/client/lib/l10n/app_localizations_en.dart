@@ -9,6 +9,13 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get planOccasionsTitle => 'Birthdays & occasions';
+
+  @override
+  String get planOccasionsAbout =>
+      'Birthdays, anniversaries and your own occasions, with Persian and Gregorian dates, age and anniversary counts, advance reminders and gift notes.';
+
+  @override
   String get reminderDailyShort => 'Daily';
 
   @override

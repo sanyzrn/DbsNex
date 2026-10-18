@@ -9,6 +9,13 @@ class AppLocalizationsFa extends AppLocalizations {
   AppLocalizationsFa([String locale = 'fa']) : super(locale);
 
   @override
+  String get planOccasionsTitle => 'تولدها و مناسبت‌ها';
+
+  @override
+  String get planOccasionsAbout =>
+      'تولد، سالگرد و مناسبت‌های دلخواه با تاریخ شمسی و میلادی، محاسبهٔ سن و سالگرد، یادآوری زودهنگام و یادداشت هدیه‌ها.';
+
+  @override
   String get reminderDailyShort => 'روزانه';
 
   @override

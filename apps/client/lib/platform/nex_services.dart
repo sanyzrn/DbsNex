@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
+import 'brief_refresh.dart';
 import 'install_source.dart';
 import 'full_backup.dart';
 import 'vault_store.dart';
@@ -105,6 +106,7 @@ class NexServices {
 
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;
+  late final briefRefresh = NexBriefRefresh(_preferences);
   EditorDrafts? get editorDrafts => _preferences.editorDrafts;
   bool get solarCalendar => _preferences.solarCalendar;
 

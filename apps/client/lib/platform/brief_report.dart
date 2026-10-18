@@ -53,6 +53,17 @@ String? nexBriefReport(
   return lines.isEmpty ? null : lines.join('\n');
 }
 
+/// The facts actually written alongside a model reply, without relative ages.
+String nexBriefFactsSignature(NexBriefFacts facts, {required int maxLines}) => [
+  for (final entry in [
+    for (final value in facts.overdue) ('overdue', value),
+    for (final value in facts.dueSoon) ('soon', value),
+    for (final value in facts.unfinished) ('unfinished', value),
+  ].take(maxLines))
+    '${entry.$1}|${entry.$2.title}|${entry.$2.dueAt?.toUtc().toIso8601String()}|'
+        '${entry.$2.remaining}|${entry.$2.total}',
+].join('\n');
+
 /// Everything a brief was made from, as one string to fingerprint.
 ///
 /// The notes are the obvious half and were the only half for a while, which

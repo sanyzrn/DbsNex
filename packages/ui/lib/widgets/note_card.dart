@@ -97,6 +97,62 @@ class NexCardStrings {
   final String? Function(DateTime due, NoteRepeat repeat)? dueCompactLabel;
 }
 
+/// Whether expansion reveals content beyond this card's compact preview.
+/// Measured at the real width, font and text scale, only when its menu opens.
+bool nexNoteCanExpand(
+  BuildContext context,
+  Note note, {
+  required double cardWidth,
+}) {
+  final density = NexCardDensity.of(context);
+  if (note.type == NoteType.checklist && note.checklistItems.isNotEmpty) {
+    return note.checklistItems.length > density.lines;
+  }
+  // Both layouts already show title + site at every current density.
+  if (note.type == NoteType.link) return false;
+  final text = NexMarkdownText.preview(note.displayText ?? '');
+  if (text.trim().isEmpty) return false;
+  final width =
+      cardWidth -
+      nexCardInsetsFor(context).horizontal -
+      density.inset * 2 -
+      density.leading -
+      NexSpacing.contentGap;
+  if (width <= 0) return true;
+  final budget = note.type == NoteType.voice && (note.durationMs ?? 0) > 0
+      ? 1
+      : density.lines;
+  final lines = text
+      .split('\n')
+      .where((line) => line.trim().isNotEmpty)
+      .toList();
+  final directions = {for (final line in lines) nexDirectionOf(line)}
+    ..remove(null);
+  var left = budget;
+  final paragraphs = directions.length > 1 ? lines : [lines.join('\n')];
+  for (final paragraph in paragraphs) {
+    if (left <= 0) return true;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: paragraph,
+        style: DefaultTextStyle.of(
+          context,
+        ).style.merge(density.previewStyle(Theme.of(context))),
+      ),
+      textDirection: nexDirectionOf(paragraph) ?? Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      locale: Localizations.maybeLocaleOf(context),
+      maxLines: left,
+    )..layout(maxWidth: width);
+    final overflow = painter.didExceedMaxLines;
+    left -= painter.computeLineMetrics().length.clamp(1, left);
+    painter.dispose();
+    if (overflow) return true;
+  }
+  // Expanded previews preserve blank lines, unlike compact previews.
+  return text.split('\n').length > lines.length && text.trim().contains('\n\n');
+}
+
 class NoteCard extends StatelessWidget {
   const NoteCard({
     super.key,

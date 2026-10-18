@@ -26,10 +26,13 @@ class NoteContextMenu extends StatefulWidget {
   const NoteContextMenu({
     super.key,
     required this.child,
-    required this.entries,
+    this.entries = const [],
+    this.entriesBuilder,
   });
   final Widget child;
   final List<NoteMenuEntry> entries;
+  final List<NoteMenuEntry> Function(BuildContext context, double width)?
+  entriesBuilder;
   @override
   State<NoteContextMenu> createState() => _NoteContextMenuState();
 }
@@ -40,6 +43,20 @@ class _NoteMenuIntent extends Intent {
 
 class _NoteContextMenuState extends State<NoteContextMenu> {
   final _controller = MenuController();
+  List<NoteMenuEntry>? _resolved;
+
+  void _open([Offset? position]) {
+    final builder = widget.entriesBuilder;
+    if (builder == null) {
+      if (widget.entries.isNotEmpty) _controller.open(position: position);
+      return;
+    }
+    final entries = builder(context, context.size!.width);
+    setState(() => _resolved = entries);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && entries.isNotEmpty) _controller.open(position: position);
+    });
+  }
 
   /// The screen's tap rule (W4.5), or one of this menu's own where the screen
   /// has none. The card the menu was opened from sits inside the menu's own
@@ -105,7 +122,7 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
 
     final glass = context.nexVisualStyle.liquidGlass;
     final entries = [
-      for (final entry in widget.entries)
+      for (final entry in _resolved ?? widget.entries)
         item(
           entry.icon ?? entry.action.icon,
           entry.label ?? entry.action.label(context),
@@ -163,7 +180,7 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
           actions: {
             _NoteMenuIntent: CallbackAction<_NoteMenuIntent>(
               onInvoke: (_) {
-                if (widget.entries.isNotEmpty) controller.open();
+                _open();
                 return null;
               },
             ),
@@ -171,12 +188,14 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
           // With every action turned off in Settings there is no menu, and
           // a hold does nothing rather than opening an empty box.
           child: GestureDetector(
-            onLongPressStart: widget.entries.isEmpty
+            onLongPressStart:
+                widget.entries.isEmpty && widget.entriesBuilder == null
                 ? null
-                : (details) => controller.open(position: details.localPosition),
-            onSecondaryTapDown: widget.entries.isEmpty
+                : (details) => _open(details.localPosition),
+            onSecondaryTapDown:
+                widget.entries.isEmpty && widget.entriesBuilder == null
                 ? null
-                : (details) => controller.open(position: details.localPosition),
+                : (details) => _open(details.localPosition),
             // A tap on the card that owns the open menu closes the menu and
             // nothing else, the same as a tap anywhere outside it. The card
             // stays in the tree either way, so an expanded card does not fold

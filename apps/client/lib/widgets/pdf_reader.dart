@@ -8,8 +8,8 @@ import '../l10n/app_localizations.dart';
 import '../platform/pdf_preview.dart';
 
 /// A complete document, one bounded page at a time, inside the note sheet.
-/// The viewer owns only the current page; changing page releases its decoded
-/// image too, instead of filling Flutter's global image cache with a document.
+/// The current page stays visible until its replacement is decoded. Only the
+/// current and outgoing page are retained during the short transition.
 class NexPdfReader extends StatefulWidget {
   const NexPdfReader({super.key, required this.path, required this.onOpen});
 
@@ -26,6 +26,12 @@ class _NexPdfReaderState extends State<NexPdfReader> {
   int _count = 0;
   int _generation = 0;
   bool _loading = true;
+  bool _failed = false;
+  bool _turning = false;
+  int _requestedIndex = 0;
+  bool _forward = true;
+  Timer? _turnEnd;
+  final _retired = <MemoryImage>{};
   bool _zoomed = false;
   double? _scrub;
   final _transform = TransformationController();
@@ -41,7 +47,11 @@ class _NexPdfReaderState extends State<NexPdfReader> {
   void didUpdateWidget(NexPdfReader oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.path == widget.path) return;
+    _turnEnd?.cancel();
+    _turning = false;
+    _forgetPage();
     _count = 0;
+    _index = 0;
     unawaited(_load(0));
   }
 
@@ -54,29 +64,71 @@ class _NexPdfReaderState extends State<NexPdfReader> {
     final page = _page;
     _page = null;
     if (page != null) unawaited(MemoryImage(page.bytes).evict());
+    for (final image in _retired) {
+      unawaited(image.evict());
+    }
+    _retired.clear();
   }
 
   Future<void> _load(int index) async {
     final generation = ++_generation;
     setState(() {
-      _index = index;
+      _requestedIndex = index;
       _scrub = null;
       _loading = true;
-      _forgetPage();
+      _failed = false;
     });
-    _transform.value = Matrix4.identity();
-    final page = await NexPdfPreview.page(widget.path, index: index);
+    var page = await NexPdfPreview.page(widget.path, index: index);
     if (!mounted || generation != _generation) return;
+    if (page != null) {
+      var decoded = true;
+      await precacheImage(
+        MemoryImage(page.bytes),
+        context,
+        onError: (_, __) => decoded = false,
+      );
+      if (!mounted || generation != _generation) {
+        unawaited(MemoryImage(page.bytes).evict());
+        return;
+      }
+      if (!decoded) {
+        unawaited(MemoryImage(page.bytes).evict());
+        page = null;
+      }
+    }
+    final previous = _page;
+    final duration = NexMotion.of(context, NexMotion.standard);
     setState(() {
-      _page = page;
-      if (page != null) _count = page.pageCount;
       _loading = false;
+      _failed = page == null;
+      if (page != null) {
+        _forward = index >= _index;
+        _index = index;
+        _page = page;
+        _count = page.pageCount;
+        _turning = previous != null && duration > Duration.zero;
+      }
     });
+    if (page != null) {
+      _transform.value = Matrix4.identity();
+      if (previous != null) {
+        _turnEnd?.cancel();
+        final retired = MemoryImage(previous.bytes);
+        _retired.add(retired);
+        _turnEnd = Timer(duration, () {
+          // The old Image keeps its stream until the switch finishes.
+          _retired.remove(retired);
+          unawaited(retired.evict());
+          if (mounted) setState(() => _turning = false);
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     ++_generation;
+    _turnEnd?.cancel();
     _forgetPage();
     _transform.dispose();
     super.dispose();
@@ -134,56 +186,96 @@ class _NexPdfReaderState extends State<NexPdfReader> {
                 ],
               ),
             ),
-            if (_loading)
-              const SizedBox(
-                height: 240,
-                child: Center(child: NexSkeleton(height: 16)),
-              )
-            else if (page == null)
-              Padding(
-                padding: const EdgeInsets.all(NexSpacing.md),
-                child: Column(
+            // Loading, success and failure share the same viewport. The
+            // document and the controls below it never collapse between pages.
+            SizedBox(
+              key: const ValueKey('pdf-viewport'),
+              height: (MediaQuery.sizeOf(context).height * 0.55).clamp(
+                240.0,
+                600.0,
+              ),
+              child: ClipRect(
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Text(
-                      l10n.inlineMediaUnavailable,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    TextButton.icon(
-                      onPressed: () => unawaited(_load(_index)),
-                      icon: const Icon(Icons.refresh),
-                      label: Text(l10n.retry),
-                    ),
-                  ],
-                ),
-              )
-            else
-              SizedBox(
-                height: (MediaQuery.sizeOf(context).height * 0.55).clamp(
-                  240.0,
-                  600.0,
-                ),
-                child: ClipRect(
-                  child: InteractiveViewer(
-                    key: ValueKey('pdf-page-$_index'),
-                    transformationController: _transform,
-                    minScale: 1,
-                    maxScale: 4,
-                    panEnabled: _zoomed,
-                    child: Center(
-                      child: Image.memory(
-                        page.bytes,
-                        fit: BoxFit.contain,
-                        semanticLabel: pageLabel,
-                        filterQuality: FilterQuality.medium,
-                        errorBuilder: (_, __, ___) => Padding(
-                          padding: const EdgeInsets.all(NexSpacing.md),
-                          child: Text(l10n.inlineMediaUnavailable),
+                    if (page == null)
+                      Center(
+                        child: _loading
+                            ? const NexSkeleton(height: 16)
+                            : _failure(context),
+                      )
+                    else
+                      InteractiveViewer(
+                        transformationController: _transform,
+                        minScale: 1,
+                        maxScale: 4,
+                        panEnabled: _zoomed,
+                        child: SizedBox.expand(
+                          child: AnimatedSwitcher(
+                            duration: NexMotion.of(context, NexMotion.standard),
+                            switchInCurve: NexMotion.curve,
+                            switchOutCurve: NexMotion.curve,
+                            layoutBuilder: (current, previous) => Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                for (final child in previous)
+                                  ExcludeSemantics(
+                                    child: IgnorePointer(child: child),
+                                  ),
+                                if (current != null) current,
+                              ],
+                            ),
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: Offset(
+                                        _forward ? 0.025 : -0.025,
+                                        0,
+                                      ),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                ),
+                            child: Center(
+                              key: ValueKey(page),
+                              child: Image.memory(
+                                page.bytes,
+                                fit: BoxFit.contain,
+                                semanticLabel: pageLabel,
+                                filterQuality: FilterQuality.medium,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    if (_loading && page != null)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: LinearProgressIndicator(
+                          minHeight: 2,
+                          value: MediaQuery.disableAnimationsOf(context)
+                              ? 0.5
+                              : null,
+                        ),
+                      ),
+                    if (_failed && page != null)
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Material(
+                          color: scheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(NexRadius.md),
+                          child: _failure(context),
+                        ),
+                      ),
+                  ],
                 ),
               ),
+            ),
             if (_count > 0) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
@@ -192,7 +284,7 @@ class _NexPdfReaderState extends State<NexPdfReader> {
                     IconButton(
                       key: const ValueKey('pdf-previous'),
                       tooltip: l10n.previousPdfPage,
-                      onPressed: _loading || _index == 0
+                      onPressed: _loading || _turning || _index == 0
                           ? null
                           : () => unawaited(_load(_index - 1)),
                       icon: const Icon(Icons.chevron_left),
@@ -207,7 +299,7 @@ class _NexPdfReaderState extends State<NexPdfReader> {
                     IconButton(
                       key: const ValueKey('pdf-next'),
                       tooltip: l10n.nextPdfPage,
-                      onPressed: _loading || _index + 1 >= _count
+                      onPressed: _loading || _turning || _index + 1 >= _count
                           ? null
                           : () => unawaited(_load(_index + 1)),
                       icon: const Icon(Icons.chevron_right),
@@ -231,10 +323,10 @@ class _NexPdfReaderState extends State<NexPdfReader> {
                     min: 1,
                     max: _count.toDouble(),
                     value: _scrub ?? (_index + 1).toDouble(),
-                    onChanged: _loading
+                    onChanged: _loading || _turning
                         ? null
                         : (value) => setState(() => _scrub = value),
-                    onChangeEnd: _loading
+                    onChangeEnd: _loading || _turning
                         ? null
                         : (value) => unawaited(_load(value.round() - 1)),
                   ),
@@ -242,6 +334,27 @@ class _NexPdfReaderState extends State<NexPdfReader> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _failure(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(NexSpacing.md),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.inlineMediaUnavailable,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          TextButton.icon(
+            onPressed: () => unawaited(_load(_requestedIndex)),
+            icon: const Icon(Icons.refresh),
+            label: Text(l10n.retry),
+          ),
+        ],
       ),
     );
   }
