@@ -69,11 +69,16 @@ extension AiProviderWire on AiProvider {
   /// provider, pasted a working key and changed nothing else had an
   /// assistant that failed on every request (AI-01). Check them at every
   /// release.
+  ///
+  /// Gemini uses Google's own moving alias rather than a version: the 2.5
+  /// family it named until 2.1.5 was retired in October 2026, and the alias
+  /// is the one name Google keeps pointing at a served Flash model.
+  /// `gpt-4o-mini` leaves OpenAI's API on 14 January 2027.
   String get defaultModel => switch (this) {
     AiProvider.none => '',
     AiProvider.anthropic => 'claude-sonnet-5-5',
     AiProvider.openai => 'gpt-4o-mini',
-    AiProvider.gemini => 'gemini-2.5-flash',
+    AiProvider.gemini => 'gemini-flash-latest',
     AiProvider.openrouter => 'openai/gpt-4o-mini',
     AiProvider.custom => '',
   };
@@ -927,11 +932,19 @@ class CloudAIAdapter implements AIAdapter {
     },
   };
 
-  // Keep tested gateway payloads unchanged. Only OpenAI's native o-series
-  // needs this parameter policy; a proxy may implement a different contract.
+  // Native OpenAI only: a router or a gateway may implement a different
+  // contract, so their tested payloads stay as they were. On OpenAI itself
+  // `max_tokens` is deprecated for every model and refused outright by the
+  // reasoning families — the o-series and GPT-5 onwards, which is what the
+  // provider picker suggests — and those also accept no temperature but
+  // their own default. Sending either made a suggested model fail on its
+  // first request.
+  bool get _openAiNative => config.provider == AiProvider.openai;
   bool get _openAiReasoning =>
-      config.provider == AiProvider.openai &&
-      RegExp(r'^o[1-9](?:[-.]|$)').hasMatch(config.resolvedModel);
+      _openAiNative &&
+      RegExp(
+        r'^(?:o[1-9]|gpt-(?:[5-9]|\d{2,}))(?:[-.]|$)',
+      ).hasMatch(config.resolvedModel);
 
   Uri get _chatUri => switch (config.provider.format) {
     AiWireFormat.anthropic => Uri.parse(
@@ -1068,7 +1081,7 @@ class CloudAIAdapter implements AIAdapter {
       },
       AiWireFormat.openai => {
         'model': config.resolvedModel,
-        if (_openAiReasoning)
+        if (_openAiNative)
           'max_completion_tokens': ?maxTokens
         else
           'max_tokens': ?maxTokens,
@@ -2321,7 +2334,7 @@ class CloudAIAdapter implements AIAdapter {
       },
       AiWireFormat.openai => {
         'model': config.resolvedModel,
-        if (_openAiReasoning)
+        if (_openAiNative)
           'max_completion_tokens': maxTokens
         else
           'max_tokens': maxTokens,

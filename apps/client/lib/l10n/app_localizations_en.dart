@@ -1807,8 +1807,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSection => 'Nex AI';
 
   @override
-  String get aiNothingYet =>
-      'Nothing yet. Nex reads a note in the background after it is captured.';
+  String get aiNoTagSuggestions =>
+      'No new tags to suggest for this note right now.';
 
   @override
   String get hide => 'Hide';

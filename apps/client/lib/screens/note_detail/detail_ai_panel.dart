@@ -186,12 +186,23 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     });
     try {
       final suggestions = await widget.services.suggestTags(widget.noteId);
-      if (mounted) _rebuild(() => _suggestions = suggestions);
+      if (!mounted) return;
+      _rebuild(() => _suggestions = suggestions);
+      // Said, not left blank: a tap that ends with nothing on screen reads
+      // as a button that does not work. The service answers an empty list
+      // for "nothing new to suggest" and for a request that failed alike.
+      if (suggestions.isEmpty) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).aiNoTagSuggestions,
+          haptics: false,
+        );
+      }
     } catch (_) {
       if (mounted) {
         nexShowBanner(
           context,
-          message: AppLocalizations.of(context).aiNothingYet,
+          message: AppLocalizations.of(context).aiNoTagSuggestions,
           kind: NexBannerKind.failed,
         );
       }

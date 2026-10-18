@@ -1293,9 +1293,9 @@
   "@aiSection": {
     "description": "Heading of the revealed intelligence panel"
   },
-  "aiNothingYet": "Nothing yet. Nex reads a note in the background after it is captured.",
-  "@aiNothingYet": {
-    "description": "Shown when the intelligence panel has nothing to show"
+  "aiNoTagSuggestions": "No new tags to suggest for this note right now.",
+  "@aiNoTagSuggestions": {
+    "description": "Shown when Suggest tags finds nothing new for a note"
   },
   "hide": "Hide",
   "@hide": {

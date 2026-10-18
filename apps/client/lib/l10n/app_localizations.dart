@@ -2978,11 +2978,11 @@ abstract class AppLocalizations {
   /// **'Nex AI'**
   String get aiSection;
 
-  /// Shown when the intelligence panel has nothing to show
+  /// Shown when Suggest tags finds nothing new for a note
   ///
   /// In en, this message translates to:
-  /// **'Nothing yet. Nex reads a note in the background after it is captured.'**
-  String get aiNothingYet;
+  /// **'No new tags to suggest for this note right now.'**
+  String get aiNoTagSuggestions;
 
   /// Collapses the intelligence panel
   ///

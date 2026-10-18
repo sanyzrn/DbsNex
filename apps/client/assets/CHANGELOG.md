@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.6
+
+- **Gemini works again without a model typed.** Nex now uses Google's current Flash model (the `gemini-flash-latest` alias) when the model field is empty. The previous default, Gemini 2.5 Flash, was retired in October 2026, so a Gemini key with the field left empty could fail on every request.
+- **Newer OpenAI models answer.** GPT-5 and later reasoning models, including the suggested `gpt-6.1-sol`, now receive the request format OpenAI requires for them (`max_completion_tokens`, no custom temperature) instead of failing on the first message.
+- **Sharing into Nex is safe on every Android version.** The invisible share window no longer requests a fixed orientation, which Android 8.0 refuses with a crash and which could turn the app you were sharing from. "Save to Nex" from selected text uses the same window.
+- **Suggest tags says when there is nothing new.** A tap that finds no new tags now explains it instead of appearing to do nothing.
+- **Links end where the address ends.** Persian written straight after a web address, without a space, is no longer read as part of the domain; Persian paths such as Wikipedia articles still open in full.
+- **Easier videos and PDFs.** Tap a playing video to pause it and tap again to resume. The PDF page slider snaps to pages, names the page while you drag, and does nothing when released on the current page.
+
 ## v2.1.5
 
 - Smart summaries refresh automatically only after relevant information changes and at least one hour after the last successful generation. Failed requests wait 15 minutes before retrying; manual refresh remains available immediately. Existing text stays readable, concurrent requests are shared, and every summary line uses the same type size.

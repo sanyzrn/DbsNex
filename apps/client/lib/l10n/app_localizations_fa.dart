@@ -1768,8 +1768,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiSection => 'هوش مصنوعی Nex';
 
   @override
-  String get aiNothingYet =>
-      'هنوز چیزی نیست. Nex بعد از ثبت، یادداشت را در پس‌زمینه می‌خواند.';
+  String get aiNoTagSuggestions =>
+      'فعلاً برچسب تازه‌ای برای پیشنهاد به این یادداشت پیدا نشد.';
 
   @override
   String get hide => 'پنهان کردن';

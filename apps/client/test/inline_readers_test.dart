@@ -273,6 +273,13 @@ void main() {
       final slider = tester.widget<Slider>(
         find.byKey(const ValueKey('pdf-page-slider')),
       );
+      // One stop per page, so the drag bubble can name the page.
+      expect(slider.divisions, 2);
+      expect(slider.label, 'Page 2 of 3');
+      // Letting go on the page already open asks for nothing.
+      slider.onChangeEnd!(2);
+      await settleReader(tester);
+      expect(pdfCalls.map((call) => call['index']), [0, 1]);
       slider.onChangeEnd!(3);
       await settleReader(tester);
       expect(find.text('Page 3 of 3'), findsOneWidget);
@@ -342,6 +349,13 @@ void main() {
     await settleReader(tester);
     expect(platform.positions[1], const Duration(seconds: 45));
     await tester.tap(find.byKey(const ValueKey('video-play')));
+    await settleReader(tester);
+    expect(platform.playing, isEmpty);
+    // The picture itself plays and pauses, like any other player.
+    await tester.tap(find.byKey(const ValueKey('video-surface')));
+    await settleReader(tester);
+    expect(platform.playing, {1});
+    await tester.tap(find.byKey(const ValueKey('video-surface')));
     await settleReader(tester);
     expect(platform.playing, isEmpty);
     await tester.pumpWidget(const SizedBox());

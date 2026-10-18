@@ -312,7 +312,17 @@ class _NexPdfReaderState extends State<NexPdfReader> {
                   textDirection: TextDirection.ltr,
                   child: Slider(
                     key: const ValueKey('pdf-page-slider'),
-                    label: pageLabel,
+                    // One stop per page, so the thumb lands on a page and
+                    // the bubble above it says which one while dragging —
+                    // a slider label is only shown when it has divisions.
+                    divisions: _count - 1,
+                    label: l10n.pdfPageCount(
+                      nexDigits(
+                        '${(_scrub ?? (_index + 1).toDouble()).round()}',
+                        persian: l10n.localeName == 'fa',
+                      ),
+                      nexDigits('$_count', persian: l10n.localeName == 'fa'),
+                    ),
                     semanticFormatterCallback: (value) => l10n.pdfPageCount(
                       nexDigits(
                         '${value.round()}',
@@ -328,7 +338,14 @@ class _NexPdfReaderState extends State<NexPdfReader> {
                         : (value) => setState(() => _scrub = value),
                     onChangeEnd: _loading || _turning
                         ? null
-                        : (value) => unawaited(_load(value.round() - 1)),
+                        : (value) {
+                            final target = value.round() - 1;
+                            if (target == _index) {
+                              setState(() => _scrub = null);
+                              return;
+                            }
+                            unawaited(_load(target));
+                          },
                   ),
                 ),
             ],

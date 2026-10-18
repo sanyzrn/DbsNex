@@ -174,44 +174,47 @@ void main() {
       );
     });
 
-    test('custom audio uses the transcription sibling of the chat URL', () async {
-      late http.Request seen;
-      final adapter = CloudAIAdapter(
-        config: const AiProviderConfig(
-          provider: AiProvider.custom,
-          apiKey: 'gateway-token',
-          baseUrl: 'https://gateway.example/v1/chat/completions',
-          model: 'gemini-flash-lite',
-        ),
-        client: MockClient((request) async {
-          seen = request;
-          return http.Response.bytes(
-            utf8.encode(jsonEncode({'text': 'سلام دنیا'})),
-            200,
-            headers: {'content-type': 'application/json; charset=utf-8'},
-          );
-        }),
-      );
+    test(
+      'custom audio uses the transcription sibling of the chat URL',
+      () async {
+        late http.Request seen;
+        final adapter = CloudAIAdapter(
+          config: const AiProviderConfig(
+            provider: AiProvider.custom,
+            apiKey: 'gateway-token',
+            baseUrl: 'https://gateway.example/v1/chat/completions',
+            model: 'gemini-flash-lite',
+          ),
+          client: MockClient((request) async {
+            seen = request;
+            return http.Response.bytes(
+              utf8.encode(jsonEncode({'text': 'سلام دنیا'})),
+              200,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            );
+          }),
+        );
 
-      expect(adapter.config.supportsTranscription, isTrue);
-      final transcript = await adapter.transcribe(
-        AudioRef(
-          mediaUri: 'voice.m4a',
-          bytes: Uint8List.fromList([1, 2, 3]),
-        ),
-      )!;
-      expect(transcript.text, 'سلام دنیا');
-      expect(
-        seen.url.toString(),
-        'https://gateway.example/v1/audio/transcriptions',
-      );
-      expect(seen.headers['authorization'], 'Bearer gateway-token');
-      expect(seen.headers['content-type'], startsWith('multipart/form-data;'));
-      expect(seen.body, contains('name="file"'));
-      expect(seen.body, contains('filename="voice.m4a"'));
-      expect(seen.body, contains('name="model"'));
-      expect(seen.body, contains('whisper-1'));
-    });
+        expect(adapter.config.supportsTranscription, isTrue);
+        final transcript = await adapter.transcribe(
+          AudioRef(mediaUri: 'voice.m4a', bytes: Uint8List.fromList([1, 2, 3])),
+        )!;
+        expect(transcript.text, 'سلام دنیا');
+        expect(
+          seen.url.toString(),
+          'https://gateway.example/v1/audio/transcriptions',
+        );
+        expect(seen.headers['authorization'], 'Bearer gateway-token');
+        expect(
+          seen.headers['content-type'],
+          startsWith('multipart/form-data;'),
+        );
+        expect(seen.body, contains('name="file"'));
+        expect(seen.body, contains('filename="voice.m4a"'));
+        expect(seen.body, contains('name="model"'));
+        expect(seen.body, contains('whisper-1'));
+      },
+    );
 
     test('custom URL without a chat sibling keeps audio unavailable', () {
       const config = AiProviderConfig(
@@ -232,16 +235,21 @@ void main() {
 
     test('built-in audio capabilities are unchanged', () {
       expect(
-        const AiProviderConfig(provider: AiProvider.openai).supportsTranscription,
+        const AiProviderConfig(
+          provider: AiProvider.openai,
+        ).supportsTranscription,
         isTrue,
       );
       expect(
-        const AiProviderConfig(provider: AiProvider.gemini).supportsTranscription,
+        const AiProviderConfig(
+          provider: AiProvider.gemini,
+        ).supportsTranscription,
         isTrue,
       );
       expect(
-        const AiProviderConfig(provider: AiProvider.anthropic)
-            .supportsTranscription,
+        const AiProviderConfig(
+          provider: AiProvider.anthropic,
+        ).supportsTranscription,
         isFalse,
       );
     });
@@ -326,17 +334,17 @@ void main() {
         return jsonDecode(seen.body) as Map<String, dynamic>;
       }
 
-      expect(
-        (await bodyOf(AiProvider.openai, unlimited: false))['max_tokens'],
-        isA<int>(),
-      );
+      // OpenAI's own name for the ceiling; `max_tokens` is deprecated there.
       expect(
         (await bodyOf(
           AiProvider.openai,
-          unlimited: true,
-        )).containsKey('max_tokens'),
-        isFalse,
+          unlimited: false,
+        ))['max_completion_tokens'],
+        isA<int>(),
       );
+      final unlimited = await bodyOf(AiProvider.openai, unlimited: true);
+      expect(unlimited.containsKey('max_completion_tokens'), isFalse);
+      expect(unlimited.containsKey('max_tokens'), isFalse);
       // Anthropic requires the field, so it is set high rather than dropped.
       expect(
         (await bodyOf(AiProvider.anthropic, unlimited: true))['max_tokens'],
@@ -505,7 +513,8 @@ void main() {
     });
 
     test('the default models are ones the providers still serve (AI-01)', () {
-      expect(AiProvider.gemini.defaultModel, 'gemini-2.5-flash');
+      // Google's moving alias: the 2.5 family it named before was retired.
+      expect(AiProvider.gemini.defaultModel, 'gemini-flash-latest');
       expect(AiProvider.anthropic.defaultModel, 'claude-sonnet-5-5');
     });
 
@@ -617,7 +626,7 @@ void main() {
       expect(
         seen.url.toString(),
         'https://generativelanguage.googleapis.com/v1beta/models/'
-        'gemini-2.5-flash:generateContent',
+        'gemini-flash-latest:generateContent',
       );
       // The key rides in the `x-goog-api-key` header, like every other
       // provider's credential. It used to be a `?key=` query parameter, the

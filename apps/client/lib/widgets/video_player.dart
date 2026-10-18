@@ -251,10 +251,18 @@ class _NexVideoPlayerState extends State<NexVideoPlayer>
                     fit: StackFit.expand,
                     children: [
                       if (ready && !failed)
-                        Center(
-                          child: AspectRatio(
-                            aspectRatio: ratio > 0 ? ratio : 16 / 9,
-                            child: VideoPlayer(_controller!),
+                        // A tap on the picture pauses it, as in every other
+                        // player; the controls below stay for screen readers.
+                        GestureDetector(
+                          key: const ValueKey('video-surface'),
+                          behavior: HitTestBehavior.opaque,
+                          excludeFromSemantics: true,
+                          onTap: _loading ? null : () => unawaited(_toggle()),
+                          child: Center(
+                            child: AspectRatio(
+                              aspectRatio: ratio > 0 ? ratio : 16 / 9,
+                              child: VideoPlayer(_controller!),
+                            ),
                           ),
                         )
                       else if (_poster != null)

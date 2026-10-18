@@ -241,9 +241,14 @@
           `windowDisablePreview` because a starting window is exactly what
           this exists to avoid.
         -->
+        <!--
+          No fixed orientation here, unlike MainActivity: this window is
+          translucent and draws nothing, Android 8.0 refuses a fixed
+          orientation on a translucent activity (and crashes it), and on
+          later versions it would turn the app being shared from.
+        -->
         <activity
             android:name=".ShareActivity"
-            android:screenOrientation="portrait"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
