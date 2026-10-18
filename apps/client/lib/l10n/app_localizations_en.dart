@@ -245,6 +245,120 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantStyleCustom => 'Custom';
 
   @override
+  String get portraitTitle => 'Your writing portrait';
+
+  @override
+  String get portraitSubtitle => 'Read from how and what you write.';
+
+  @override
+  String portraitLocked(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count more notes to unlock your portrait',
+      one: '1 more note to unlock your portrait',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String portraitLockedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '…and notes on $count more days.',
+      one: '…and notes on 1 more day.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get portraitRhythm => 'When you write';
+
+  @override
+  String get portraitMorning => 'Morning';
+
+  @override
+  String get portraitAfternoon => 'Afternoon';
+
+  @override
+  String get portraitEvening => 'Evening';
+
+  @override
+  String get portraitNight => 'Night';
+
+  @override
+  String get portraitPeakMorning =>
+      'An early writer: most of your notes come before noon.';
+
+  @override
+  String get portraitPeakAfternoon =>
+      'Most of your notes are written in the afternoon.';
+
+  @override
+  String get portraitPeakEvening =>
+      'An evening writer: most of your notes come after five.';
+
+  @override
+  String get portraitPeakNight =>
+      'A night owl: most of your notes come after ten.';
+
+  @override
+  String get portraitNotes => 'Notes';
+
+  @override
+  String get portraitActiveDays => 'Days active, last 30';
+
+  @override
+  String get portraitTicked => 'Checklist items done';
+
+  @override
+  String get portraitTopics => 'Tags';
+
+  @override
+  String get portraitKinds => 'What you keep';
+
+  @override
+  String get portraitWrite => 'Write my portrait';
+
+  @override
+  String get portraitRewrite => 'Write again';
+
+  @override
+  String portraitPrivacy(String count) {
+    return 'Writing it sends a sample of up to $count of your notes to your AI provider, once.';
+  }
+
+  @override
+  String get portraitNeedsAi =>
+      'Choose an AI provider in Settings › Intelligence for a written portrait.';
+
+  @override
+  String get portraitWriting => 'Reading your notes…';
+
+  @override
+  String get portraitFailed =>
+      'The portrait couldn\'t be written. Try again in a while.';
+
+  @override
+  String get portraitStrengths => 'Strengths';
+
+  @override
+  String get portraitInvitation => 'One thing to try';
+
+  @override
+  String portraitWritten(String date, String count) {
+    return 'Written $date from $count notes';
+  }
+
+  @override
+  String get portraitDisclaimer =>
+      'A reflection of your notes, not a test or a diagnosis.';
+
+  @override
+  String get disclosurePortrait => 'Writing portrait';
+
+  @override
   String get profileTitle => 'Profile';
 
   @override
@@ -4531,6 +4645,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchFailed => 'That search could not be run.';
+
+  @override
+  String get aiAnalyzeVideo => 'Analyze video';
+
+  @override
+  String get aiVideoFailed =>
+      'Couldn\'t analyze this video. It may be private, age-restricted or too long.';
 
   @override
   String get summarizeFailed => 'No summary came back for this note.';

@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.7
+
+- **Your writing portrait.** At the foot of your profile, once you have 30 notes written on at least 7 days, Nex shows how you write: the part of the day most of your notes come from, how many days you wrote on in the last month, how many checklist items you tick, what kinds of notes you keep and your most used tags — all counted on the phone. Until then, a ring shows how far there is to go. With an AI provider, **Write my portrait** asks it for a short portrait in words: a headline, a few sentences, five traits with how strongly each shows, your strengths and one thing to try. It reads a sample of up to 80 notes, sent once when you tap, and is a reflection of your notes — not a test or a diagnosis.
+- **Analyze a YouTube video.** A link note with a YouTube video offers **Analyze video** in its AI tools when your provider is Gemini: the video itself is watched, and you get what it is about, its main points with their times, and who it is for — instead of a summary of the page's few words. The result is kept as the note's summary.
+- **The second line of a compact card is whole again.** With compact cards and small or standard text, a two-line note with a reminder or an attachment no longer loses the bottom of its second line, in Persian or any language, whatever the phone's own text size.
+- **Pinching the timeline never refreshes it.** Folding or opening every day with two fingers no longer sets off pull to refresh when the pinch starts at the top of the list.
+
 ## v2.1.6
 
 - **Swipe through a PDF.** Pages turn by swiping sideways, the way the interface reads, and the page you are heading for is prepared while you swipe. The slider under the page is gone: a small capsule over the page holds the arrows and the page count, and tapping the count opens a sheet of page numbers to jump straight to one. Double-tap zooms in where you tapped, and a white page now has a visible edge.

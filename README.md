@@ -57,7 +57,7 @@ keeps each line's direction while it is edited, with the system's selection hand
 menu ([ADR-037](./docs/10-decisions.md#adr-037--text-a-person-writes-is-edited-in-the-platforms-own-editor-on-android)).
 
 **Timeline** — one reverse-chronological stream, no folders, grouped under date headings
-that fold (pinch the timeline to fold or open them all), and once you scroll past the top
+that fold (pinch the timeline to fold or open them all; a pinch never pulls to refresh), and once you scroll past the top
 the day of the note under your thumb stays named under the filters. Cards are a fixed
 height in one of three sizes (compact, standard, easier to read), so the list stays even,
 and a tapped card rises into its note the way the assistant does. Swipe an edge for
@@ -111,7 +111,9 @@ cloud requests may include your preferred name and selected note context. With o
 checklist in one tap) and Recap widgets on Android that follow the
 app's language and accent, and stay private while the app lock is on.
 
-**Per-note AI workspace** — compact icon actions sit below the content and tags, with long-press labels. Results have previews, expandable text, a source selector and Hide/Show controls that retain existing output. Extracted file text is distinguished from image descriptions, including attachments. Copy is available for all results; Add to caption is offered only for non-text notes. Existing captions offer Cancel, Append or Replace; replacements protect concurrent edits. Translation includes a language picker and Save as note. Media reading is explicit. Similar-note suggestions and their lookups are temporarily paused in 2.0.6; semantic search remains available.
+**Per-note AI workspace** — compact icon actions sit below the content and tags, with long-press labels. Results have previews, expandable text, a source selector and Hide/Show controls that retain existing output. Extracted file text is distinguished from image descriptions, including attachments. Copy is available for all results; Add to caption is offered only for non-text notes. Existing captions offer Cancel, Append or Replace; replacements protect concurrent edits. Translation includes a language picker and Save as note. With Gemini, a link note holding a YouTube video offers **Analyze video**: the video itself is watched and summarised with timestamps, and kept as the note's summary. Media reading is explicit. Similar-note suggestions and their lookups are temporarily paused in 2.0.6; semantic search remains available.
+
+**Writing portrait** — at the foot of the profile, once there are 30 notes on 7 days: when in the day you write, how many of the last 30 days you wrote on, how much of your checklists you tick, the kinds of notes you keep and your top tags, all counted on the phone. With a provider, an opt-in portrait in words (a headline, a few sentences, five traits, strengths and one suggestion) is read from a sample of up to 80 notes and logged like every other request. A reflection, not a test or a diagnosis.
 
 **Persian calendar** — optional Solar Hijri dates for display and every date picker,
 independent of the interface language.

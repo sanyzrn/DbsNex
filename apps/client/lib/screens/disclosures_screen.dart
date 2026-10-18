@@ -225,6 +225,7 @@ class _EntryTile extends StatelessWidget {
     DisclosurePurpose.photoText => Icons.document_scanner_outlined,
     DisclosurePurpose.searchIndex => Icons.manage_search,
     DisclosurePurpose.connectionTest => Icons.wifi_tethering,
+    DisclosurePurpose.portrait => Icons.face_retouching_natural,
     DisclosurePurpose.other => Icons.cloud_upload_outlined,
   };
 
@@ -241,6 +242,7 @@ class _EntryTile extends StatelessWidget {
         DisclosurePurpose.photoText => l10n.disclosurePhotoText,
         DisclosurePurpose.searchIndex => l10n.disclosureSearchIndex,
         DisclosurePurpose.connectionTest => l10n.disclosureConnectionTest,
+        DisclosurePurpose.portrait => l10n.disclosurePortrait,
         DisclosurePurpose.other => l10n.disclosureOther,
       };
 

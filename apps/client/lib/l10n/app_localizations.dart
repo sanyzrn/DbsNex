@@ -428,6 +428,180 @@ abstract class AppLocalizations {
   /// **'Custom'**
   String get assistantStyleCustom;
 
+  /// Heading of the portrait section in the profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Your writing portrait'**
+  String get portraitTitle;
+
+  /// No description provided for @portraitSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read from how and what you write.'**
+  String get portraitSubtitle;
+
+  /// Locked portrait: notes still needed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 more note to unlock your portrait} other{{count} more notes to unlock your portrait}}'**
+  String portraitLocked(int count);
+
+  /// Locked portrait: different days with a note still needed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{…and notes on 1 more day.} other{…and notes on {count} more days.}}'**
+  String portraitLockedDays(int count);
+
+  /// No description provided for @portraitRhythm.
+  ///
+  /// In en, this message translates to:
+  /// **'When you write'**
+  String get portraitRhythm;
+
+  /// No description provided for @portraitMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Morning'**
+  String get portraitMorning;
+
+  /// No description provided for @portraitAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Afternoon'**
+  String get portraitAfternoon;
+
+  /// No description provided for @portraitEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Evening'**
+  String get portraitEvening;
+
+  /// No description provided for @portraitNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Night'**
+  String get portraitNight;
+
+  /// No description provided for @portraitPeakMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'An early writer: most of your notes come before noon.'**
+  String get portraitPeakMorning;
+
+  /// No description provided for @portraitPeakAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Most of your notes are written in the afternoon.'**
+  String get portraitPeakAfternoon;
+
+  /// No description provided for @portraitPeakEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'An evening writer: most of your notes come after five.'**
+  String get portraitPeakEvening;
+
+  /// No description provided for @portraitPeakNight.
+  ///
+  /// In en, this message translates to:
+  /// **'A night owl: most of your notes come after ten.'**
+  String get portraitPeakNight;
+
+  /// No description provided for @portraitNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get portraitNotes;
+
+  /// No description provided for @portraitActiveDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days active, last 30'**
+  String get portraitActiveDays;
+
+  /// No description provided for @portraitTicked.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist items done'**
+  String get portraitTicked;
+
+  /// No description provided for @portraitTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get portraitTopics;
+
+  /// No description provided for @portraitKinds.
+  ///
+  /// In en, this message translates to:
+  /// **'What you keep'**
+  String get portraitKinds;
+
+  /// Button that asks the AI to write the portrait.
+  ///
+  /// In en, this message translates to:
+  /// **'Write my portrait'**
+  String get portraitWrite;
+
+  /// No description provided for @portraitRewrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Write again'**
+  String get portraitRewrite;
+
+  /// Under the portrait button.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing it sends a sample of up to {count} of your notes to your AI provider, once.'**
+  String portraitPrivacy(String count);
+
+  /// No description provided for @portraitNeedsAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an AI provider in Settings › Intelligence for a written portrait.'**
+  String get portraitNeedsAi;
+
+  /// No description provided for @portraitWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your notes…'**
+  String get portraitWriting;
+
+  /// No description provided for @portraitFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The portrait couldn\'t be written. Try again in a while.'**
+  String get portraitFailed;
+
+  /// No description provided for @portraitStrengths.
+  ///
+  /// In en, this message translates to:
+  /// **'Strengths'**
+  String get portraitStrengths;
+
+  /// No description provided for @portraitInvitation.
+  ///
+  /// In en, this message translates to:
+  /// **'One thing to try'**
+  String get portraitInvitation;
+
+  /// Footer of a written portrait.
+  ///
+  /// In en, this message translates to:
+  /// **'Written {date} from {count} notes'**
+  String portraitWritten(String date, String count);
+
+  /// No description provided for @portraitDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'A reflection of your notes, not a test or a diagnosis.'**
+  String get portraitDisclaimer;
+
+  /// Disclosure log purpose for the profile portrait.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing portrait'**
+  String get disclosurePortrait;
+
   /// No description provided for @profileTitle.
   ///
   /// In en, this message translates to:
@@ -7261,6 +7435,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That search could not be run.'**
   String get searchFailed;
+
+  /// AI tool on a YouTube link: watch the video and summarise what is in it.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze video'**
+  String get aiAnalyzeVideo;
+
+  /// Shown when a YouTube video analysis returns nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t analyze this video. It may be private, age-restricted or too long.'**
+  String get aiVideoFailed;
 
   /// Shown when an on-demand summary produces nothing
   ///

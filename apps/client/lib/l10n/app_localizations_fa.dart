@@ -229,6 +229,117 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantStyleCustom => 'دلخواه';
 
   @override
+  String get portraitTitle => 'پرترهٔ نوشتن شما';
+
+  @override
+  String get portraitSubtitle => 'برداشتی از اینکه چه و چطور می‌نویسید.';
+
+  @override
+  String portraitLocked(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count یادداشت دیگر تا باز شدن پرتره',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String portraitLockedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '…و یادداشت در $count روز دیگر.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get portraitRhythm => 'کِی می‌نویسید';
+
+  @override
+  String get portraitMorning => 'صبح';
+
+  @override
+  String get portraitAfternoon => 'ظهر';
+
+  @override
+  String get portraitEvening => 'عصر';
+
+  @override
+  String get portraitNight => 'شب';
+
+  @override
+  String get portraitPeakMorning =>
+      'سحرخیز نوشتن: بیشتر یادداشت‌هایتان پیش از ظهر نوشته می‌شوند.';
+
+  @override
+  String get portraitPeakAfternoon =>
+      'بیشتر یادداشت‌هایتان بعدازظهر نوشته می‌شوند.';
+
+  @override
+  String get portraitPeakEvening =>
+      'عصرنویس: بیشتر یادداشت‌هایتان بعد از ساعت پنج نوشته می‌شوند.';
+
+  @override
+  String get portraitPeakNight =>
+      'شب‌زنده‌دار: بیشتر یادداشت‌هایتان بعد از ساعت ده شب نوشته می‌شوند.';
+
+  @override
+  String get portraitNotes => 'یادداشت';
+
+  @override
+  String get portraitActiveDays => 'روز فعال در ۳۰ روز اخیر';
+
+  @override
+  String get portraitTicked => 'موارد تیک‌خورده';
+
+  @override
+  String get portraitTopics => 'برچسب‌ها';
+
+  @override
+  String get portraitKinds => 'چه نگه می‌دارید';
+
+  @override
+  String get portraitWrite => 'پرترهٔ من را بنویس';
+
+  @override
+  String get portraitRewrite => 'دوباره بنویس';
+
+  @override
+  String portraitPrivacy(String count) {
+    return 'برای نوشتن، نمونه‌ای از حداکثر $count یادداشت شما یک بار برای سرویس هوش مصنوعی فرستاده می‌شود.';
+  }
+
+  @override
+  String get portraitNeedsAi =>
+      'برای پرترهٔ نوشته‌شده، در تنظیمات ← هوش مصنوعی یک سرویس انتخاب کنید.';
+
+  @override
+  String get portraitWriting => 'در حال خواندن یادداشت‌ها…';
+
+  @override
+  String get portraitFailed => 'پرتره نوشته نشد. کمی بعد دوباره امتحان کنید.';
+
+  @override
+  String get portraitStrengths => 'نقاط قوت';
+
+  @override
+  String get portraitInvitation => 'یک پیشنهاد';
+
+  @override
+  String portraitWritten(String date, String count) {
+    return 'نوشته‌شده در $date از روی $count یادداشت';
+  }
+
+  @override
+  String get portraitDisclaimer =>
+      'بازتابی از یادداشت‌هایتان، نه آزمون یا تشخیص.';
+
+  @override
+  String get disclosurePortrait => 'پرترهٔ نوشتن';
+
+  @override
   String get profileTitle => 'پروفایل';
 
   @override
@@ -4434,6 +4545,13 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get searchFailed => 'این جست‌وجو انجام نشد.';
+
+  @override
+  String get aiAnalyzeVideo => 'تحلیل ویدئو';
+
+  @override
+  String get aiVideoFailed =>
+      'تحلیل این ویدئو ممکن نشد. شاید خصوصی است، محدودیت سنی دارد یا خیلی طولانی است.';
 
   @override
   String get summarizeFailed => 'برای این یادداشت خلاصه‌ای برنگشت.';

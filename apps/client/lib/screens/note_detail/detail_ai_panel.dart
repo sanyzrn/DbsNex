@@ -178,6 +178,34 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     );
   }
 
+  /// "Analyze video" on a YouTube link (2.1.7). Shares the summary's busy
+  /// state and its result slot: what comes back is kept as the summary.
+  Future<void> _analyzeVideo(String noteId) async {
+    if (_summarizing) return;
+    _rebuild(() {
+      _summarizing = true;
+      _hideAiResults = false;
+      _showAi = true;
+      _activeAiResult = 'summary';
+    });
+    String? analysis;
+    try {
+      analysis = await widget.services.analyzeVideo(noteId);
+      await _reload();
+    } catch (_) {
+      analysis = null;
+    } finally {
+      if (mounted) _rebuild(() => _summarizing = false);
+    }
+    if (!mounted || analysis != null) return;
+    nexShowBanner(
+      context,
+      message: AppLocalizations.of(context).aiVideoFailed,
+      kind: NexBannerKind.failed,
+      haptics: widget.preferences?.haptics ?? true,
+    );
+  }
+
   Future<void> _loadTagSuggestions() async {
     if (_loadingAi) return;
     _rebuild(() {
@@ -241,9 +269,22 @@ extension _DetailAiPanel on _NoteDetailSheetState {
         accent: true,
         onPressed: _readingMedia ? null : () => unawaited(_readMedia()),
       ),
+    if (widget.services.canAnalyzeVideo(note))
+      _DetailAction(
+        icon: Icons.smart_display_outlined,
+        label: l10n.aiAnalyzeVideo,
+        accent: true,
+        onPressed: _summarizing
+            ? null
+            : () => unawaited(_analyzeVideo(note.id)),
+      ),
+    // Not beside "Analyze video": a YouTube page's text is its title and a
+    // line of description, and a summary of that is not a summary of the
+    // video.
     if (widget.preferences case final preferences?
         when preferences.effectiveAiCapabilities.summarization &&
             aiTextAvailableWith(preferences.aiProvider) &&
+            !widget.services.canAnalyzeVideo(note) &&
             (note.aiSourceText?.length ?? 0) > 80)
       _DetailAction(
         glyph: const NexSummariseIcon(),

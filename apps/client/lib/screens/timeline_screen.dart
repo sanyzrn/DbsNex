@@ -788,6 +788,10 @@ class TimelineScreenState extends State<TimelineScreen>
   /// only attached where it has something to do.
   final _pinchPointers = <int, Offset>{};
 
+  /// More than one finger has touched the list since it was last empty of
+  /// fingers. Pull-to-refresh ignores the list while this holds.
+  bool _multiTouch = false;
+
   double? _pinchDistance;
 
   bool _pinchApplied = false;
