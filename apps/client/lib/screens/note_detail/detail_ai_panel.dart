@@ -714,6 +714,10 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     if (summary == null || summary.isEmpty) return false;
     final source = (note.aiSourceText ?? '').trim();
     if (source.isEmpty) return true;
+    // A YouTube link's words are its title and a line, so a video analysis
+    // is always longer than them and the "shorter than its source" rule hid
+    // every one: it worked, was kept, and nothing appeared (2.1.10).
+    if (nexYouTubeWatchUrl(note.linkUrl) != null) return summary != source;
     return summary != source && summary.length < source.length;
   }
 }

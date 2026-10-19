@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.10
+
+- **YouTube analysis now shows its result.** "Analyze video" ran, finished and kept the analysis, but showed nothing: a note's summary is hidden when it is not shorter than the note's own words, and a YouTube link's words are only a title and a line, so every real analysis was hidden. The analysis of a YouTube link now always appears in the note's AI section.
+
 ## v2.1.9
 
 - **Reminders stay until you deal with them.** A reminder that has rung now stays in the notification shade until you tap or dismiss it. Opening Nex used to clear them all, because putting every alarm back on launch also took away the ones already showing — repeating reminders, recurring items, Cycle and module reminders and the daily nudge alike. Clearing a reminder or deleting its note still takes its notification away.
