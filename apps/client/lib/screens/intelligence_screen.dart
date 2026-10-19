@@ -345,7 +345,12 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
                     icon: Icons.key_outlined,
                     title: l10n.aiProvider,
                     value: config.isUsable
-                        ? '$providerName · ${config.resolvedModel}'
+                        ? [
+                            providerName,
+                            config.resolvedModel,
+                            // Through a reseller: where it all goes.
+                            ?config.gatewayHost,
+                          ].join(' · ')
                         : providerName,
                     // Until a check has run, the greyed and lit tiles below
                     // are the provider's defaults, not what this model does.

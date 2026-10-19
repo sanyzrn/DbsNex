@@ -5901,4 +5901,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get intelligenceUnchecked =>
       'What this model can do has not been checked yet — open to test it';
+
+  @override
+  String get aiGatewayAddress => 'Service address (optional)';
+
+  @override
+  String get aiGatewayHelp =>
+      'Only for a reseller or gateway that serves Gemini\'s own format: its address, with or without /v1beta. Your key and every request go to it. Left empty, Google\'s own address is used.';
+
+  @override
+  String get aiGatewayInvalid => 'Enter a full address starting with https://';
 }

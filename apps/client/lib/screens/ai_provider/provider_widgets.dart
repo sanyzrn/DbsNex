@@ -6,6 +6,7 @@ class _ActionBar extends StatelessWidget {
     required this.testing,
     required this.canSave,
     required this.showTest,
+    this.canTest = true,
     required this.onTest,
     required this.onSave,
   });
@@ -13,6 +14,9 @@ class _ActionBar extends StatelessWidget {
   final bool testing;
   final bool canSave;
   final bool showTest;
+
+  /// False while a field on screen could not be sent as it is.
+  final bool canTest;
   final VoidCallback onTest;
   final VoidCallback onSave;
 
@@ -33,7 +37,7 @@ class _ActionBar extends StatelessWidget {
           if (showTest) ...[
             Expanded(
               child: FilledButton.icon(
-                onPressed: testing ? null : onTest,
+                onPressed: testing || !canTest ? null : onTest,
                 icon: testing
                     ? const NexInlineSpinner()
                     : const Icon(Icons.wifi_tethering),

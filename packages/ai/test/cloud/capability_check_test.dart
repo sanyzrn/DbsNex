@@ -477,4 +477,114 @@ void main() {
       );
     });
   });
+
+  group('Gemini through a gateway', () {
+    test('its address works with or without the version on the end', () {
+      for (final typed in [
+        'https://gw.example',
+        'https://gw.example/',
+        'https://gw.example/v1beta',
+        'https://gw.example/v1beta/',
+        'https://gw.example/v1beta/models',
+      ]) {
+        final config = AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'k',
+          baseUrl: typed,
+        );
+        expect(config.resolvedBaseUrl, 'https://gw.example', reason: typed);
+        expect(config.gatewayHost, 'gw.example');
+        expect(
+          config.embeddingEndpoint,
+          'https://gw.example/v1beta/models/gemini-embedding-001:embedContent',
+        );
+      }
+      // A path in front of the version is kept.
+      expect(
+        const AiProviderConfig(
+          provider: AiProvider.gemini,
+          baseUrl: 'https://gw.example/google/v1beta',
+        ).resolvedBaseUrl,
+        'https://gw.example/google',
+      );
+      const google = AiProviderConfig(provider: AiProvider.gemini);
+      expect(google.gatewayHost, isNull);
+      expect(
+        google.resolvedBaseUrl,
+        'https://generativelanguage.googleapis.com',
+      );
+    });
+
+    test('every request goes to it, in Gemini\'s own shape', () async {
+      const config = AiProviderConfig(
+        provider: AiProvider.gemini,
+        apiKey: 'reseller-key',
+        baseUrl: 'https://gw.example/v1beta',
+      );
+      final hosts = <String>{};
+      final check = await nexCheckCapabilities(
+        config,
+        client: MockClient((request) async {
+          hosts.add(request.url.host);
+          expect(request.headers['x-goog-api-key'], 'reseller-key');
+          expect(request.url.path, startsWith('/v1beta/models/'));
+          if (request.url.path.endsWith(':embedContent')) {
+            return json({
+              'embedding': {
+                'values': [0.1],
+              },
+            });
+          }
+          if (request.body.contains('"file_uri"')) {
+            expect(request.body, contains(nexCheckVideo));
+            return geminiText('Elephants.');
+          }
+          return geminiText(
+            request.body.contains('"image/png"') ? '47' : 'A beep.',
+          );
+        }),
+      );
+      expect(hosts, {'gw.example'});
+      expect(check.results.values.every((r) => r.works), isTrue);
+      expect(CloudAIAdapter.watchesYouTube(check.applyTo(config)), isTrue);
+    });
+
+    test('a gateway that drops the video is not taken at its word', () async {
+      final check = await nexCheckCapabilities(
+        const AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'k',
+          baseUrl: 'https://gw.example/v1beta',
+        ),
+        client: MockClient((request) async {
+          if (request.body.contains('"file_uri"')) {
+            // The words arrived, the video did not.
+            return geminiText('I do not see any video attached.');
+          }
+          if (request.url.path.endsWith(':embedContent')) {
+            return json({
+              'embedding': {
+                'values': [0.1],
+              },
+            });
+          }
+          return geminiText('47');
+        }),
+      );
+      final video = check.results[AiCapability.video]!;
+      expect(video.verdict, AiProbeVerdict.refused);
+      expect(video.detail, contains('do not see'));
+    });
+
+    test('a different gateway is a different configuration', () {
+      const google = AiProviderConfig(provider: AiProvider.gemini, apiKey: 'k');
+      final gateway = google.copyWith(baseUrl: 'https://gw.example/v1beta');
+      expect(
+        gateway.capabilityFingerprint,
+        isNot(google.capabilityFingerprint),
+      );
+      // Vectors from one are not compared with the other's.
+      expect(gateway.embeddingSpace, isNot(google.embeddingSpace));
+    });
+  });
 }

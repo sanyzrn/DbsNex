@@ -233,6 +233,71 @@ void main() {
       expect(openai.apiKey, 'first');
     });
 
+    testWidgets('a Gemini bought from a reseller is reached at its own '
+        'address, in Gemini\'s format', (tester) async {
+      await preferences.setAiProvider(
+        const AiProviderConfig(provider: AiProvider.openai, apiKey: 'first'),
+      );
+      final hosts = <String>{};
+      final l10n = await pumpProvider(
+        tester,
+        preferences,
+        client: MockClient((request) async {
+          hosts.add(request.url.host);
+          final body = request.body;
+          if (request.url.path.endsWith(':embedContent')) {
+            return json({
+              'embedding': {
+                'values': [0.1],
+              },
+            });
+          }
+          if (body.contains('"file_uri"')) return gemini('Elephants');
+          return gemini(body.contains('"image/png"') ? '47' : 'ok');
+        }),
+      );
+      // Only Gemini takes an optional address.
+      expect(find.byKey(const ValueKey('ai-gemini-address')), findsNothing);
+      await tester.tap(find.text(AiProvider.gemini.label));
+      await tester.pumpAndSettle();
+      final address = find.byKey(const ValueKey('ai-gemini-address'));
+      expect(address, findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextField, l10n.apiKey),
+        'reseller-key',
+      );
+
+      // A key is never offered to a plain-http address on the internet.
+      await tester.enterText(address, 'http://gw.example/v1beta');
+      await tester.pump();
+      expect(find.text(l10n.aiGatewayInvalid), findsOneWidget);
+      // `FilledButton.icon` is a subclass, which a type finder misses.
+      final test = find.ancestor(
+        of: find.text(l10n.testConnection),
+        matching: find.byWidgetPredicate((widget) => widget is FilledButton),
+      );
+      expect(tester.widget<FilledButton>(test).onPressed, isNull);
+
+      await tester.enterText(address, 'https://gw.example/v1beta');
+      await tester.pump();
+      expect(find.text(l10n.aiGatewayInvalid), findsNothing);
+      await tester.tap(test);
+      await tester.pumpAndSettle();
+
+      expect(hosts, {'gw.example'});
+      final saved = preferences.aiProvider;
+      expect(saved.provider, AiProvider.gemini);
+      expect(saved.baseUrl, 'https://gw.example/v1beta');
+      expect(saved.gatewayHost, 'gw.example');
+      expect(CloudAIAdapter.watchesYouTube(saved), isTrue);
+
+      // Switching away does not carry the address to a provider that has
+      // only one host.
+      await tester.tap(find.text(AiProvider.openai.label));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('ai-gemini-address')), findsNothing);
+    });
+
     testWidgets('a model is picked from the provider\'s own list', (
       tester,
     ) async {

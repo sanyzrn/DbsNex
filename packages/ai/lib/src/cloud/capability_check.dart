@@ -254,13 +254,18 @@ Future<AiProbeResult> _probeVideo(CloudAIAdapter adapter) async {
     return const AiProbeResult(AiProbeVerdict.absent);
   }
   final reply = await adapter._complete(
-    'Reply with one word: the animal in the video.',
+    'Reply with one word: the animals standing behind the man in the video.',
     'The video is attached.',
     maxTokens: null,
     fileUri: nexCheckVideo,
   );
-  if (reply != null) return const AiProbeResult(AiProbeVerdict.works);
-  return adapter._probeFailure();
+  if (reply == null) return adapter._probeFailure();
+  // An answer is not proof of watching. A gateway can drop the video and
+  // pass the words on, and the model then answers about nothing — but the
+  // link is not in the words, so it cannot know there were elephants.
+  return RegExp('elephant|فیل', caseSensitive: false).hasMatch(reply)
+      ? const AiProbeResult(AiProbeVerdict.works)
+      : AiProbeResult(AiProbeVerdict.refused, detail: _clip(reply));
 }
 
 String _clip(String text) {

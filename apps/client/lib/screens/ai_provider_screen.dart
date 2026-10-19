@@ -111,9 +111,9 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   AiProviderConfig get _current => _config.copyWith(
     apiKey: _key.text,
     // A hidden field must not still be speaking. Typing an endpoint for
-    // Custom and then switching to Gemini used to leave that endpoint in
+    // Custom and then switching to OpenAI used to leave that endpoint in
     // effect against a provider that has only one host.
-    baseUrl: _config.provider.needsBaseUrl ? _baseUrl.text : '',
+    baseUrl: _config.provider.takesAddress ? _baseUrl.text : '',
     model: _model.text,
   );
 
@@ -175,7 +175,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   /// connection is usable the moment it is known to work, and the four
   /// capability requests, a video among them, can take a while.
   Future<void> _test() async {
-    if (_testing || _saving || _checking) return;
+    if (_testing || _saving || _checking || !_canTest) return;
     final before = widget.preferences.aiProvider;
     setState(() {
       _testing = true;
@@ -278,6 +278,26 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
     return saved.isNotEmpty ? saved : provider.exampleModel;
   }
 
+  /// Whether a Gemini gateway address can be sent a key: empty (Google's
+  /// own), or a full https address. Plain http only to this device or the
+  /// home network — anywhere else the key would cross the internet readable.
+  static bool _gatewayAcceptable(String text) {
+    final typed = text.trim();
+    if (typed.isEmpty) return true;
+    final uri = Uri.tryParse(typed);
+    if (uri == null || uri.host.isEmpty) return false;
+    if (uri.scheme == 'https') return true;
+    return uri.scheme == 'http' &&
+        RegExp(
+          r'^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|'
+          r'192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$',
+        ).hasMatch(uri.host);
+  }
+
+  bool get _canTest =>
+      _config.provider != AiProvider.gemini ||
+      _gatewayAcceptable(_baseUrl.text);
+
   static bool _sameConfig(AiProviderConfig a, AiProviderConfig b) {
     final right = b.toMap();
     return a.toMap().entries.every((entry) => right[entry.key] == entry.value);
@@ -309,6 +329,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
             (provider == AiProvider.none ||
                 (_verified != null && _sameConfig(_verified!, _current))),
         showTest: provider != AiProvider.none,
+        canTest: _canTest,
         onTest: () => unawaited(_test()),
         onSave: () => unawaited(_save()),
       ),
@@ -457,6 +478,35 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                     'دقیقاً همان‌طور که نوشته می‌شود استفاده می‌شود و چیزی به آن اضافه نمی‌شود.',
                   ),
                   helperMaxLines: 3,
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() => _result = null),
+              ),
+            ],
+            // Optional for Gemini: a reseller's address in Gemini's own
+            // format (2.1.8). Through Custom the same model is reached in
+            // OpenAI's shape, which cannot hand over a YouTube video.
+            if (provider == AiProvider.gemini) ...[
+              const SizedBox(height: NexSpacing.md),
+              TextField(
+                key: const ValueKey('ai-gemini-address'),
+                enabled: !_saving,
+                controller: _baseUrl,
+                selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
+                autocorrect: false,
+                enableSuggestions: false,
+                keyboardType: TextInputType.url,
+                textDirection: TextDirection.ltr,
+                textAlign: TextAlign.left,
+                decoration: InputDecoration(
+                  labelText: l10n.aiGatewayAddress,
+                  hintText: 'https://api.example.com/v1beta',
+                  helperText: l10n.aiGatewayHelp,
+                  helperMaxLines: 4,
+                  errorText: _gatewayAcceptable(_baseUrl.text)
+                      ? null
+                      : l10n.aiGatewayInvalid,
                   border: const OutlineInputBorder(),
                 ),
                 onChanged: (_) => setState(() => _result = null),

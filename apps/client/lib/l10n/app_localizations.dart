@@ -9361,6 +9361,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What this model can do has not been checked yet — open to test it'**
   String get intelligenceUnchecked;
+
+  /// No description provided for @aiGatewayAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Service address (optional)'**
+  String get aiGatewayAddress;
+
+  /// No description provided for @aiGatewayHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for a reseller or gateway that serves Gemini\'s own format: its address, with or without /v1beta. Your key and every request go to it. Left empty, Google\'s own address is used.'**
+  String get aiGatewayHelp;
+
+  /// No description provided for @aiGatewayInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a full address starting with https://'**
+  String get aiGatewayInvalid;
 }
 
 class _AppLocalizationsDelegate

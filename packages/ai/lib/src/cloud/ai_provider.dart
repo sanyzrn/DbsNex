@@ -103,6 +103,16 @@ extension AiProviderWire on AiProvider {
   /// endpoint needs.
   bool get needsBaseUrl => this == AiProvider.custom;
 
+  /// Whether an address may be typed in at all (2.1.8).
+  ///
+  /// Custom's is required: it is the whole endpoint. Gemini's is optional:
+  /// a reseller or gateway that serves Gemini's own format, given as its
+  /// address with or without `/v1beta`. Through Custom the same model is
+  /// reached in OpenAI's shape, which has no way to hand over a video by its
+  /// address — so a Gemini bought from a reseller could not watch one.
+  bool get takesAddress =>
+      this == AiProvider.custom || this == AiProvider.gemini;
+
   /// Whether the provider can read an image, so photo notes can be OCR'd.
   bool get readsImages => this != AiProvider.none;
 
@@ -326,11 +336,29 @@ class AiProviderConfig {
       '${provider.wireName}|${provider == AiProvider.custom && embeddingUrl.trim().isNotEmpty ? embeddingEndpoint : resolvedBaseUrl}|$embeddingModel';
 
   String get resolvedBaseUrl {
-    final value = baseUrl.trim().isEmpty
+    var value = baseUrl.trim().isEmpty
         ? provider.defaultBaseUrl
         : baseUrl.trim();
-    return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
+    while (value.endsWith('/')) {
+      value = value.substring(0, value.length - 1);
+    }
+    if (provider == AiProvider.gemini) {
+      // A gateway gives its address the way its own docs do, with the
+      // version on the end — and every request here adds `/v1beta/…`.
+      for (final suffix in const ['/models', '/v1beta']) {
+        if (value.endsWith(suffix)) {
+          value = value.substring(0, value.length - suffix.length);
+        }
+      }
+    }
+    return value;
   }
+
+  /// The host of a Gemini gateway, when one is set; null for Google's own.
+  String? get gatewayHost =>
+      provider == AiProvider.gemini && baseUrl.trim().isNotEmpty
+      ? Uri.tryParse(resolvedBaseUrl)?.host
+      : null;
 
   /// Custom's address, exactly as it was typed.
   ///

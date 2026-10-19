@@ -3482,5 +3482,8 @@
   "aiCanUnknown": "Could not be checked just now — try again later",
   "aiCanNeedsCloud": "Needs a cloud AI provider",
   "intelligenceAbilities": "Abilities",
-  "intelligenceUnchecked": "What this model can do has not been checked yet — open to test it"
+  "intelligenceUnchecked": "What this model can do has not been checked yet — open to test it",
+  "aiGatewayAddress": "Service address (optional)",
+  "aiGatewayHelp": "Only for a reseller or gateway that serves Gemini's own format: its address, with or without /v1beta. Your key and every request go to it. Left empty, Google's own address is used.",
+  "aiGatewayInvalid": "Enter a full address starting with https://"
 }
