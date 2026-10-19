@@ -14,6 +14,7 @@ import 'package:nex_core/nex_core.dart'
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/ai_capability_status.dart';
 import '../widgets/capture_flick.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/nex_dialog.dart';
@@ -527,7 +528,7 @@ class SettingsSheet extends StatelessWidget {
       icon: Icons.auto_awesome_outlined,
       title: l10n.intelligence,
       summary: preferences.aiEnabled
-          ? preferences.aiProvider.provider.label
+          ? nexProviderName(l10n, preferences.aiProvider.provider)
           : l10n.intelligenceOff,
       children: [
         _Searchable(
@@ -543,7 +544,7 @@ class SettingsSheet extends StatelessWidget {
           keywords:
               'AI provider API key model offline transcription OCR هوش مصنوعی ارائه‌دهنده کلید مدل آفلاین رونویسی',
           value: preferences.aiEnabled
-              ? preferences.aiProvider.provider.label
+              ? nexProviderName(l10n, preferences.aiProvider.provider)
               : l10n.intelligenceOff,
           onTap: () => Navigator.push(
             context,

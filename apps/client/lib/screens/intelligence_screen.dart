@@ -9,15 +9,17 @@ import 'package:nex_ai/cloud.dart';
 import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../widgets/ai_capability_status.dart';
 import '../widgets/nex_banner.dart';
 import 'ai_provider_screen.dart';
 import 'disclosures_screen.dart';
 import 'local_model_screen.dart';
 import '../widgets/nex_dialog.dart';
 
-/// Each of the six abilities, as its glyph and whether it is working now —
-/// on, and something the chosen provider (or the search model) can do. For
-/// the glance on the Settings page.
+/// Each ability, as its glyph and whether it is working now — on, and
+/// something the chosen provider (or the search model) can do. For the
+/// glance on the Settings page. Related notes is left out while it is paused:
+/// a dot that can never light is not information.
 List<(Widget, bool)> nexAbilityGlance(NexPreferences prefs) {
   final c = prefs.aiCapabilities;
   final on = prefs.aiEnabled;
@@ -36,10 +38,8 @@ List<(Widget, bool)> nexAbilityGlance(NexPreferences prefs) {
     (const NexSummariseIcon(), on && c.summarization),
     (const Icon(Icons.label_outline), on && c.tagSuggestions),
     (const Icon(Icons.travel_explore), on && c.semanticSearch && embeds),
-    (
-      const Icon(Icons.hub_outlined),
-      nexRelatedNotesAvailable && on && c.relatedNotes && embeds,
-    ),
+    if (nexRelatedNotesAvailable)
+      (const Icon(Icons.hub_outlined), on && c.relatedNotes && embeds),
   ];
 }
 
@@ -129,7 +129,16 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
   Future<void> _openProvider() async {
     await Navigator.push(
       context,
-      NexPageRoute<void>(builder: (_) => AiProviderScreen(preferences: _prefs)),
+      NexPageRoute<void>(
+        builder: (_) => AiProviderScreen(
+          preferences: _prefs,
+          // A capability check can finish after the screen is closed.
+          onChanged: () {
+            widget.services.applyAiPreferences(_prefs);
+            if (mounted) setState(() {});
+          },
+        ),
+      ),
     );
     widget.services.applyAiPreferences(_prefs);
     if (mounted) setState(() {});
@@ -156,8 +165,13 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final enabled = _prefs.aiEnabled;
-    final provider = _prefs.aiProvider.provider;
+    final config = _prefs.aiProvider;
+    final provider = config.provider;
+    final providerName = nexProviderName(l10n, provider);
     final capabilities = _prefs.aiCapabilities;
+    // Why an ability this provider cannot do is greyed, in particular.
+    String reason(AiCapability capability) =>
+        nexCapabilityLine(l10n, config, capability).line;
     // The on-device search model makes these two work whatever the provider
     // is, and with none at all.
     final searchModel = NexServices.activeSearchModel(_prefs) != null;
@@ -169,6 +183,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
         subtitle: l10n.transcriptionSubtitle,
         value: capabilities.transcription,
         supported: _prefs.aiProvider.supportsTranscription,
+        reason: reason(AiCapability.audio),
         set: (v) => capabilities.copyWith(transcription: v),
       ),
       _Ability(
@@ -177,6 +192,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
         subtitle: l10n.ocrSubtitle,
         value: capabilities.ocr,
         supported: _prefs.aiProvider.supportsImages,
+        reason: reason(AiCapability.images),
         set: (v) => capabilities.copyWith(ocr: v),
       ),
       _Ability(
@@ -201,6 +217,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
         subtitle: l10n.semanticSearchSubtitle,
         value: capabilities.semanticSearch,
         supported: embeds,
+        reason: reason(AiCapability.embeddings),
         set: (v) => capabilities.copyWith(semanticSearch: v),
       ),
       _Ability(
@@ -211,11 +228,14 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
             : l10n.relatedNotesPaused,
         value: nexRelatedNotesAvailable && capabilities.relatedNotes,
         supported: nexRelatedNotesAvailable && embeds,
+        reason: reason(AiCapability.embeddings),
         paused: !nexRelatedNotesAvailable,
         set: (v) => capabilities.copyWith(relatedNotes: v),
       ),
     ];
     final working = abilities.where((a) => a.supported && a.value).length;
+    // A paused ability is not one that could be working.
+    final counted = abilities.where((a) => !a.paused).length;
     final persian = l10n.localeName == 'fa';
     String digits(int n) => nexDigits('$n', persian: persian);
     return Scaffold(
@@ -250,7 +270,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
                           children: [
                             Text(
                               enabled
-                                  ? l10n.intelligenceStateOn(provider.label)
+                                  ? l10n.intelligenceStateOn(providerName)
                                   : l10n.intelligenceOff,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
@@ -261,7 +281,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
                               enabled
                                   ? l10n.intelligenceAbilitiesOn(
                                       digits(working),
-                                      digits(abilities.length),
+                                      digits(counted),
                                     )
                                   : l10n.intelligenceStateOffShort,
                               style: theme.textTheme.bodySmall?.copyWith(
@@ -321,9 +341,22 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
               child: Column(
                 children: [
                   _LinkRow(
+                    key: const ValueKey('intelligence-provider-row'),
                     icon: Icons.key_outlined,
                     title: l10n.aiProvider,
-                    value: provider.label,
+                    value: config.isUsable
+                        ? [
+                            providerName,
+                            config.resolvedModel,
+                            // Through a reseller: where it all goes.
+                            ?config.gatewayHost,
+                          ].join(' · ')
+                        : providerName,
+                    // Until a check has run, the greyed and lit tiles below
+                    // are the provider's defaults, not what this model does.
+                    note: config.isUsable && config.checkedTime == null
+                        ? l10n.intelligenceUnchecked
+                        : null,
                     onTap: () => unawaited(_openProvider()),
                   ),
                   const Divider(height: 1, indent: 64),
@@ -356,7 +389,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
               ),
             ),
             const SizedBox(height: NexSpacing.lg),
-            _Heading(l10n.automatic),
+            _Heading(l10n.intelligenceAbilities),
             // What it does, as tiles to switch with one tap: six abilities
             // read faster as a grid than as six rows of switches, and the
             // ones this provider cannot do sit greyed in their place.
@@ -539,12 +572,16 @@ class _LinkRow extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onTap,
+    this.note,
   });
 
   final IconData icon;
   final String title;
   final String value;
   final VoidCallback onTap;
+
+  /// A second line that asks for something, in the accent.
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
@@ -561,7 +598,21 @@ class _LinkRow extends StatelessWidget {
         child: Icon(icon, size: 20, color: scheme.onSurfaceVariant),
       ),
       title: Text(title),
-      subtitle: Text(value),
+      subtitle: note == null
+          ? Text(value)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value),
+                const SizedBox(height: NexSpacing.xs),
+                Text(
+                  note!,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: scheme.primary),
+                ),
+              ],
+            ),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );
@@ -577,6 +628,7 @@ class _Ability {
     required this.value,
     required this.supported,
     required this.set,
+    this.reason = '',
     this.paused = false,
   });
 
@@ -585,6 +637,9 @@ class _Ability {
   final String subtitle;
   final bool value;
   final bool supported;
+
+  /// Why it is greyed, when it is: in this provider's or this model's terms.
+  final String reason;
   final bool paused;
   final AiCapabilities Function(bool value) set;
 }
@@ -603,7 +658,6 @@ class _AbilityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final on = ability.supported && ability.value;
@@ -680,9 +734,11 @@ class _AbilityTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      ability.supported || ability.paused
+                      ability.supported ||
+                              ability.paused ||
+                              ability.reason.isEmpty
                           ? ability.subtitle
-                          : l10n.notSupportedByProvider,
+                          : ability.reason,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(

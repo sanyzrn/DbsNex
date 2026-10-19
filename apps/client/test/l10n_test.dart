@@ -77,6 +77,45 @@ void main() {
     }
   });
 
+  // 2.1.8: the Persian file carries its own `@key` blocks, and for a locale
+  // that has one the generator reads it instead of the template's — so a
+  // number format added to the English side alone never reached Persian, and
+  // two dozen counts still showed Latin digits after the 2.1.7 fix.
+  test('Persian metadata keeps the number formats the template asks for', () {
+    Map<String, dynamic> raw(String path) =>
+        jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
+    final template = raw('lib/l10n/app_en.arb');
+    final persian = raw('lib/l10n/app_fa.arb');
+    final drifted = <String>[];
+    for (final entry in persian.entries) {
+      if (!entry.key.startsWith('@') || entry.key.startsWith('@@')) continue;
+      final mine = (entry.value as Map)['placeholders'] as Map? ?? const {};
+      final theirs =
+          (template[entry.key] as Map?)?['placeholders'] as Map? ?? const {};
+      for (final name in mine.keys) {
+        final want = (theirs[name] as Map?)?['format'];
+        if (want != null && (mine[name] as Map)['format'] != want) {
+          drifted.add('${entry.key}.$name');
+        }
+      }
+    }
+    expect(drifted, isEmpty);
+  });
+
+  // 2.1.8: an isolate around "https://" fixed how it read in Persian and
+  // failed CI — gen-l10n copies the characters into Dart source, where the
+  // analyzer rejects them (text_direction_code_point_in_literal). Reword
+  // instead; a left-to-right mark (U+200E) is allowed.
+  test('no message carries a bidi control the analyzer rejects', () {
+    final control = RegExp('[\u202A-\u202E\u2066-\u2069]');
+    final found = [
+      for (final (name, catalogue) in [('en', en), ('fa', fa)])
+        for (final entry in catalogue.entries)
+          if (control.hasMatch(entry.value)) '$name:${entry.key}',
+    ];
+    expect(found, isEmpty);
+  });
+
   test('no new screen names things outside the catalogue (UX-05)', () {
     // `nexLabel` inlines both languages at the call, past the reviewed .arb
     // vocabulary. The files that already use it may keep it until they are

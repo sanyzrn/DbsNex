@@ -87,14 +87,18 @@ void main() {
             home: AiProviderScreen(
               preferences: preferences,
               client: MockClient(
-                (_) async => http.Response(
-                  jsonEncode({
-                    'choices': [
-                      {
-                        'message': {'content': 'ok'},
-                      },
-                    ],
-                  }),
+                (request) async => http.Response(
+                  jsonEncode(
+                    request.url.path == '/transcribe'
+                        ? {'text': ''}
+                        : {
+                            'choices': [
+                              {
+                                'message': {'content': 'ok'},
+                              },
+                            ],
+                          },
+                  ),
                   200,
                 ),
               ),
@@ -102,7 +106,7 @@ void main() {
           ),
         );
         final title = find.text(
-          locale == 'fa' ? 'مدل‌ها و قابلیت‌ها' : 'Models and capabilities',
+          locale == 'fa' ? 'مدل‌های گفتار و جستجو' : 'Speech and search models',
         );
         await tester.scrollUntilVisible(
           title,
@@ -129,6 +133,8 @@ void main() {
           preferences.aiProvider.transcriptionUrl,
           'https://example.com/transcribe',
         );
+        // Found by asking the address that was typed (2.1.8).
+        expect(preferences.aiProvider.audio, AiCapabilityMode.enabled);
         expect(preferences.aiProvider.supportsTranscription, isTrue);
         expect(tester.takeException(), isNull);
       },

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
@@ -316,7 +317,12 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                             ? l10n.assistantContextNone
                             : l10n.assistantContextCount(count),
                         preview: NexScriptSample(
-                          sample: count == 0 ? '—' : '$count',
+                          sample: count == 0
+                              ? '—'
+                              : nexDigits(
+                                  '$count',
+                                  persian: l10n.localeName == 'fa',
+                                ),
                         ),
                       ),
                   ],

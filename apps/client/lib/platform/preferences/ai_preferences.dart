@@ -207,6 +207,29 @@ mixin _AiPreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// Stores what a capability check found for [config]'s provider (2.1.8),
+  /// and nothing else.
+  ///
+  /// Not [setAiProvider]: a check can land after the person has moved on to
+  /// another provider, and that would make this one active again behind
+  /// their back. This writes the six keys the check owns and leaves the key,
+  /// the fields and the active provider alone.
+  Future<void> setAiCapabilityCheck(AiProviderConfig config) async {
+    final wireName = config.provider.wireName;
+    final map = config.toMap();
+    for (final name in const [
+      'images',
+      'audio',
+      'embeddings',
+      'video',
+      'checkedAt',
+      'checkedFor',
+    ]) {
+      await _prefs.setString('ai.$name.$wireName', map[name]!);
+    }
+    notifyListeners();
+  }
+
   /* ------------------------------------------------------------- Assistant */
 
   /// Saved assistant conversations.

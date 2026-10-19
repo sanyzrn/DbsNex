@@ -1526,7 +1526,7 @@
   "@aiProvider": {
     "description": "Screen title and dropdown label"
   },
-  "aiProviderIntro": "Choose where AI requests go. A successful connection test saves the exact settings you tested. On-device features depend on the models downloaded to this phone.",
+  "aiProviderIntro": "Choose where AI requests go. Test connection saves the exact settings you tested and finds out what the model can do. On-device features depend on the models downloaded to this phone.",
   "@aiProviderIntro": {
     "description": "Explains what the screen is for"
   },
@@ -1567,10 +1567,6 @@
   "aiKeyStorage": "The key is kept in this device's own secure storage, not in the app's ordinary settings, and it is never sent anywhere except to the provider you chose.",
   "@aiKeyStorage": {
     "description": "Honest note about how the key is kept"
-  },
-  "aiCapabilityNote": "Connection test checks text chat only. Set separate speech/search models and supported features under Models and capabilities. Custom endpoints can be overridden there. OpenRouter audio and search require explicit opt-in.",
-  "@aiCapabilityNote": {
-    "description": "What each capability can actually reach"
   },
   "connectionOk": "Connected. Model {model} answered.",
   "@connectionOk": {
@@ -1636,14 +1632,6 @@
   "chatSendTooltip": "Send",
   "@chatSendTooltip": {
     "description": "Send button tooltip"
-  },
-  "automatic": "Worked out automatically",
-  "@automatic": {
-    "description": "Heading above the capability switches"
-  },
-  "notSupportedByProvider": "The provider you chose cannot do this",
-  "@notSupportedByProvider": {
-    "description": "Capability unavailable for the selected provider"
   },
   "transcriptionSubtitle": "Turn audio into searchable text when you ask",
   "@transcriptionSubtitle": {
@@ -3407,14 +3395,9 @@
   "planSecurityToolsAbout": "Text encryption and decryption (AES-256-GCM), hashes, encoding and decoding, random passwords and passphrases, with encrypted local secret storage.",
   "aiResultImageTab": "Image",
   "aiResultTextTab": "Text",
-  "aiModelsCapabilities": "Models and capabilities",
-  "aiAdvancedHelp": "Chat testing does not verify these features. Enable only what your model or gateway supports. OpenRouter audio and search stay off until enabled here.",
-  "aiPolicyDefault": "Provider default",
-  "aiPolicyEnabled": "Enabled for this model",
-  "aiPolicyDisabled": "Disabled",
-  "aiImageInput": "Image input",
+  "aiModelsCapabilities": "Speech and search models",
+  "aiAdvancedHelp": "Only if your account uses other models for these. Left empty, the defaults shown are used; the next test checks whatever is here.",
   "aiSpeechModel": "Transcription model",
-  "aiSearchEmbeddings": "Search embeddings",
   "aiEmbeddingModel": "Embedding model",
   "aiSpeechEndpoint": "Transcription endpoint (optional)",
   "aiEmbeddingEndpoint": "Embedding endpoint (optional)",
@@ -3447,5 +3430,60 @@
         "type": "String"
       }
     }
-  }
+  },
+  "aiProviderNoneLabel": "On-device only",
+  "aiProviderCustomLabel": "Custom (OpenAI-compatible)",
+  "aiModelDefault": "Left empty, {model} is used.",
+  "@aiModelDefault": {"placeholders": {"model": {"type": "String"}}},
+  "aiModelBrowse": "Choose from the provider's list",
+  "aiModelBrowseTitle": "Models at {provider}",
+  "@aiModelBrowseTitle": {"placeholders": {"provider": {"type": "String"}}},
+  "aiModelBrowseSearch": "Search models",
+  "aiModelBrowseEmpty": "No model matches.",
+  "aiModelBrowseNeedsKey": "Enter the API key first.",
+  "aiModelBrowseFailed": "The list could not be loaded.",
+  "aiModelBrowseDefault": "used when the field is empty",
+  "aiCanDoTitle": "What this model can do",
+  "aiCanDoChecking": "Checking with a few small test requests…",
+  "aiCanDoCheckedAt": "Checked {date}",
+  "@aiCanDoCheckedAt": {"placeholders": {"date": {"type": "String"}}},
+  "aiCanDoUnchecked": "Not checked yet. Test connection also finds out what the model can do.",
+  "aiCanDoStale": "The fields changed since the last check. Test again to check this model.",
+  "aiCanDoPrivacy": "The check sends only test material Nex makes itself — a picture of a number, a second of tone, one sentence and a public YouTube video — never your notes.",
+  "aiCheckAgain": "Check again",
+  "aiSearchHeld": "This model can also search by meaning. Search stays off until you turn it on in Intelligence, because it sends your notes' text to be indexed.",
+  "aiCanImages": "Read pictures",
+  "aiCanImagesUse": "Photo text and descriptions, questions about a picture",
+  "aiCanAudio": "Hear recordings",
+  "aiCanAudioUse": "Voice notes into text, spoken questions",
+  "aiCanSearch": "Search by meaning",
+  "aiCanSearchUse": "Finding notes by what they mean",
+  "aiCanVideo": "Watch YouTube videos",
+  "aiCanVideoUse": "What a saved video says, in a few lines",
+  "aiCanWorks": "Works",
+  "aiCanWorksWith": "Works · {model}",
+  "@aiCanWorksWith": {"placeholders": {"model": {"type": "String"}}},
+  "aiCanChecking": "Checking…",
+  "aiCanExpected": "Should work · not checked yet",
+  "aiCanUncheckedOff": "Off until a check finds it",
+  "aiCanRefusedImages": "This model did not read the test picture",
+  "aiCanRefusedAudio": "The speech model {model} was refused",
+  "@aiCanRefusedAudio": {"placeholders": {"model": {"type": "String"}}},
+  "aiCanRefusedSearch": "The embedding model {model} was refused",
+  "@aiCanRefusedSearch": {"placeholders": {"model": {"type": "String"}}},
+  "aiCanRefusedVideo": "This model cannot watch videos",
+  "aiCanFailedBefore": "Did not pass the last check",
+  "aiCanAbsentAudio": "{provider} has no speech-to-text service",
+  "@aiCanAbsentAudio": {"placeholders": {"provider": {"type": "String"}}},
+  "aiCanAbsentSearch": "{provider} has no embedding service for search",
+  "@aiCanAbsentSearch": {"placeholders": {"provider": {"type": "String"}}},
+  "aiCanAbsentAddress": "Needs its address under Speech and search models",
+  "aiCanAbsentVideo": "Only Google Gemini can watch YouTube videos",
+  "aiCanUnknown": "Could not be checked just now — try again later",
+  "aiCanNeedsCloud": "Needs a cloud AI provider",
+  "intelligenceAbilities": "Abilities",
+  "intelligenceUnchecked": "What this model can do has not been checked yet — open to test it",
+  "aiGatewayAddress": "Service address (optional)",
+  "aiGatewayHelp": "Only for a reseller or gateway that serves Gemini's own format: its address, with or without /v1beta. Your key and every request go to it. Left empty, Google's own address is used.",
+  "aiGatewayInvalid": "Enter a full address starting with https://"
 }
