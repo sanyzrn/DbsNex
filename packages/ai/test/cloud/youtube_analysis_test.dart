@@ -8,6 +8,7 @@ import 'package:nex_ai/cloud.dart';
 /// 2.1.7: a YouTube link in a note can be analysed by a provider that
 /// watches video from its address.
 void main() {
+  group('failure log', failureLogTests);
   CloudAIAdapter gemini(void Function(http.Request) seen) => CloudAIAdapter(
     config: const AiProviderConfig(provider: AiProvider.gemini, apiKey: 'k'),
     client: MockClient((request) async {
@@ -175,5 +176,48 @@ void main() {
     expect(requests, 1);
     expect(adapter.lastFailureStatus, 429);
     expect(adapter.lastFailureMessage, contains('exhausted'));
+  });
+}
+
+/// 2.1.10: a refused request is written to the local diagnostics log by its
+/// provider, purpose and status — and by nothing else.
+void failureLogTests() {
+  tearDown(() => NexAiFailureLog.sink = null);
+
+  test('a refusal reaches the failure log without address or reply', () async {
+    final lines = <String>[];
+    NexAiFailureLog.sink = lines.add;
+    final adapter = CloudAIAdapter(
+      config: const AiProviderConfig(
+        provider: AiProvider.gemini,
+        apiKey: 'secret-key',
+      ),
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'error': {'message': 'quota for https://example.invalid/x'},
+          }),
+          429,
+        ),
+      ),
+    );
+    final reply = await adapter.analyzeYouTubeVideo(
+      'https://youtu.be/dQw4w9WgXcQ',
+    );
+    expect(reply, isNull);
+    expect(lines, ['AI request failed: Google Gemini · summary · HTTP 429']);
+    expect(lines.join(), isNot(contains('secret-key')));
+    expect(lines.join(), isNot(contains('example.invalid')));
+  });
+
+  test('the connection test does not fill the log with its refusals', () async {
+    final lines = <String>[];
+    NexAiFailureLog.sink = lines.add;
+    final adapter = CloudAIAdapter(
+      config: const AiProviderConfig(provider: AiProvider.gemini, apiKey: 'k'),
+      client: MockClient((_) async => http.Response('{}', 401)),
+    );
+    await adapter.test();
+    expect(lines, isEmpty);
   });
 }

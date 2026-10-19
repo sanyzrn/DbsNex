@@ -1,3 +1,4 @@
+import '../platform/crash_reporter.dart';
 import '../widgets/folded_note.dart';
 import 'dart:async';
 import 'dart:io';

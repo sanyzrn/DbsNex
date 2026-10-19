@@ -58,7 +58,8 @@ extension _VaultAttachments on _VaultScreenState {
         'photo' => await _pickPhoto(),
         _ => await _pickFile(),
       };
-    } catch (_) {
+    } catch (cause) {
+      unawaited(NexCrashLog.handled('vault.attach', cause));
       if (mounted) _rebuild(() => error = l.vaultError);
       return;
     }
@@ -288,7 +289,8 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
       }
       if (mounted) setState(() => _playing = true);
       unawaited(player.play());
-    } catch (_) {
+    } catch (cause) {
+      unawaited(NexCrashLog.handled('vault.play', cause));
       if (mounted) setState(() => _failed = true);
     }
   }
@@ -307,7 +309,8 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
       );
       // Nothing on the phone opens it: offer it to an app that might.
       if (outcome == FileOpenOutcome.failed) widget.onShare();
-    } catch (_) {
+    } catch (cause) {
+      unawaited(NexCrashLog.handled('vault.open.file', cause));
       if (mounted) setState(() => _failed = true);
     }
   }

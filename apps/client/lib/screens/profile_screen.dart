@@ -1,3 +1,4 @@
+import '../platform/crash_reporter.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show BoxWidthStyle;
@@ -164,7 +165,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (mounted) setState(() {});
       // The old picture goes after the new one is showing.
       _forgetPhotos(except: target);
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('profile.photo', error));
       if (!mounted) return;
       nexShowBanner(
         context,

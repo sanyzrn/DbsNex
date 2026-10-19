@@ -1,3 +1,4 @@
+import '../platform/crash_reporter.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -180,7 +181,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
         turns: turns,
         flip: flip,
       ));
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('photo.rotate', error));
       if (!mounted) return;
       setState(() => _rotating = false);
       nexShowBanner(

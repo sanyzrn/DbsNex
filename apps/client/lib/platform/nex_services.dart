@@ -193,6 +193,7 @@ class NexServices {
     // The record of what leaves the device, beside the library it describes.
     // The database worker configures the same file for its own requests.
     NexDisclosureLog.configure(support.path);
+    NexAiFailureLog.sink = (message) => unawaited(noteDiagnostic(message));
     await NexInstallSource.load();
     final mediaDir = p.join(support.path, 'media');
     final backupDir = p.join(support.path, 'backups');

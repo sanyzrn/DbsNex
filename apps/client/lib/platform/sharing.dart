@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'crash_reporter.dart';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -231,7 +233,8 @@ Future<SaveOutcome> nexSaveAttachmentToDevice(NoteAttachment attachment) async {
       name: _attachmentName(attachment),
       mimeType: attachment.mimeType ?? 'application/octet-stream',
     );
-  } catch (_) {
+  } catch (error) {
+    unawaited(NexCrashLog.handled('share.attachment', error));
     return SaveOutcome.failed;
   } finally {
     _cleanUp(staged);

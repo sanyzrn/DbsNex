@@ -1,3 +1,4 @@
+import 'crash_reporter.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -112,7 +113,8 @@ class NexVoiceSpool {
         file.flushSync();
         _flushed = now;
       }
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('voice.spool', error));
       // A full disk ends the spool, not the recording on screen; Keep then
       // reports what was saved.
     }

@@ -54,7 +54,8 @@ extension _CaptureModes on _CaptureSheetState {
         unawaited(HapticFeedback.mediumImpact());
       }
       _set(() => _voice = _Voice.on);
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('capture.voice.start', error));
       try {
         await spool?.discard();
         await recorder.dispose();
@@ -95,7 +96,8 @@ extension _CaptureModes on _CaptureSheetState {
       } else {
         await spool.discard();
       }
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('capture.voice.keep', error));
       if (mounted) {
         nexShowBanner(
           context,

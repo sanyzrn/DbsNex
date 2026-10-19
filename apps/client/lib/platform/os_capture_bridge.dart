@@ -1,3 +1,4 @@
+import 'crash_reporter.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -207,6 +208,7 @@ class OsCaptureBridge {
         try {
           saved = await handle(payload);
         } catch (error) {
+          unawaited(NexCrashLog.handled('share.store', error));
           // A share whose note is already in the library was saved, whatever
           // went wrong after: the toast said "could not be stored" over a
           // video that was sitting in the timeline.

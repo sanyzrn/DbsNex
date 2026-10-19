@@ -509,6 +509,8 @@ class NexDbWorker
       // Tags, summaries, transcripts and the search index are requested from
       // this isolate; they go on the same record as the assistant's (W3.2).
       NexDisclosureLog.configure(p.dirname(boot.dbPath));
+      final crashLog = NexCrashLog.inDirectory(p.dirname(boot.dbPath));
+      NexAiFailureLog.sink = crashLog.note;
     } catch (e, stack) {
       // The boot port must be answered even when the database will not
       // open: the awaiting side is parked on a Completer that only a

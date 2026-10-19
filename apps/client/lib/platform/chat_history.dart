@@ -1,3 +1,4 @@
+import 'crash_reporter.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -170,7 +171,8 @@ class ChatHistory extends ChangeNotifier {
     Object? decoded;
     try {
       decoded = jsonDecode(raw);
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('chat.history.parse', error));
       return _cache = const [];
     }
     if (decoded is! List) return _cache = const [];

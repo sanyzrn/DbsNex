@@ -1,3 +1,4 @@
+import '../platform/crash_reporter.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -158,7 +159,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   Future<void> _writeDraft(VaultEntry value) async {
     try {
       await store.saveDraft(value);
-    } catch (_) {
+    } catch (cause) {
+      unawaited(NexCrashLog.handled('vault.draft', cause));
       if (mounted) {
         setState(() => error = AppLocalizations.of(context).vaultError);
       }
@@ -219,7 +221,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         _resumeEditing = false;
       });
       _touch();
-    } catch (_) {
+    } catch (cause) {
+      unawaited(NexCrashLog.handled('vault.save', cause));
       if (mounted && ticket == generation) {
         setState(() => error = AppLocalizations.of(context).vaultError);
       }
@@ -249,7 +252,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       session.open();
       authenticating = false;
       await _load();
-    } catch (_) {
+    } catch (cause) {
+      unawaited(NexCrashLog.handled('vault.open', cause));
       if (mounted && ticket == generation) setState(() => error = l.vaultError);
     } finally {
       if (mounted) {
@@ -281,7 +285,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         draft = data.draft;
         if (closeEditor) editing = null;
       });
-    } catch (_) {
+    } catch (cause) {
+      unawaited(NexCrashLog.handled('vault.load', cause));
       if (mounted && ticket == generation) {
         setState(() => error = AppLocalizations.of(context).vaultError);
       }
@@ -328,7 +333,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       copiedTimer = Timer(const Duration(seconds: 2), () {
         if (mounted) setState(() => copiedField = null);
       });
-    } catch (_) {
+    } catch (cause) {
+      unawaited(NexCrashLog.handled('vault.copy', cause));
       if (mounted && ticket == generation) {
         setState(() => error = AppLocalizations.of(context).vaultCopyFailed);
       }

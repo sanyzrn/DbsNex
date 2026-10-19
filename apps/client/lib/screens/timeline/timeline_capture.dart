@@ -222,6 +222,7 @@ extension _TimelineCapture on TimelineScreenState {
       // Not `catch (_)` with one sentence. Photo capture fails for at least
       // four unrelated reasons and three of them are things the user can do
       // something about — but only if the app says which one happened.
+      unawaited(NexCrashLog.handled('capture.photo', error));
       if (mounted) _reportCaptureFailure(CaptureFailure.of(error), source);
     }
   }
@@ -273,6 +274,7 @@ extension _TimelineCapture on TimelineScreenState {
       if (widget.preferences.haptics) HapticFeedback.lightImpact();
       unawaited(widget.services.refreshTimeline());
     } catch (error) {
+      unawaited(NexCrashLog.handled('capture.recording', error));
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
       nexShowBanner(

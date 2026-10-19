@@ -1,5 +1,8 @@
 import 'package:nex_data/nex_data.dart' show ModuleRecord, newUuidV7;
 
+import 'dart:async';
+
+import '../platform/crash_reporter.dart';
 import '../platform/nex_services.dart';
 
 /// A module's own shelf in the library — the only storage a module has.
@@ -22,22 +25,35 @@ class NexModuleStore {
 
   /// Every record of [kind], the most recently saved first.
   Future<List<ModuleRecord>> list(String kind) =>
-      _services.moduleRecords(module, kind);
+      _logged('list', () => _services.moduleRecords(module, kind));
 
   /// The record [id] of [kind]'s fields, or null if there is none.
   Future<Map<String, Object?>?> get(String kind, String id) async =>
-      (await _services.moduleRecord(module, kind, id))?.body;
+      (await _logged('get', () => _services.moduleRecord(module, kind, id)))
+          ?.body;
 
   /// Saves [body] as [id], replacing what was there.
   Future<void> put(String kind, String id, Map<String, Object?> body) =>
-      _services.modulePut(module, kind, id, body);
+      _logged('put', () => _services.modulePut(module, kind, id, body));
 
   Future<void> delete(String kind, String id) =>
-      _services.moduleDelete(module, kind, id);
+      _logged('delete', () => _services.moduleDelete(module, kind, id));
+
+  /// Runs [action]; a failure is written to the diagnostics log (2.1.10) —
+  /// which module and which call, never what was being stored — and thrown on.
+  Future<T> _logged<T>(String call, Future<T> Function() action) async {
+    try {
+      return await action();
+    } catch (error) {
+      unawaited(NexCrashLog.handled('module.$module.$call', error));
+      rethrow;
+    }
+  }
 
   /// Preserves an unrecognised record before taking it out of active recovery.
   /// A failed copy leaves the original untouched and the error visible.
   Future<void> quarantine(ModuleRecord record) async {
+    unawaited(NexCrashLog.failed('module.$module', 'record quarantined'));
     await put('__recovery', newId(), {
       'kind': record.kind,
       'id': record.id,

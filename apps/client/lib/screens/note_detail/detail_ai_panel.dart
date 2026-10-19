@@ -19,7 +19,8 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     try {
       result = await widget.services.readMediaOnDemand(note.id);
       await _reload();
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('ai.readMedia', error));
       result = null;
     } finally {
       if (mounted) _rebuild(() => _readingMedia = false);
@@ -53,7 +54,8 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     try {
       success = await widget.services.readAttachmentOnDemand(attachment.id);
       await _reload();
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('ai.readAttachment', error));
       success = false;
     } finally {
       if (mounted) _rebuild(() => _readingAttachments.remove(attachment.id));
@@ -139,7 +141,8 @@ extension _DetailAiPanel on _NoteDetailSheetState {
           kind: saved ? NexBannerKind.done : NexBannerKind.failed,
         );
       }
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('ai.caption', error));
       if (mounted) {
         nexShowBanner(
           context,
@@ -164,7 +167,8 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     try {
       summary = await widget.services.summarizeOnDemand(noteId);
       await _reload();
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('ai.summarize', error));
       summary = null;
     } finally {
       if (mounted) _rebuild(() => _summarizing = false);
@@ -192,7 +196,8 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     try {
       analysis = await widget.services.analyzeVideo(noteId);
       await _reload();
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('ai.analyzeVideo', error));
       analysis = const NexVideoAnalysis.failed(NexVideoFailure.unavailable);
     } finally {
       if (mounted) _rebuild(() => _summarizing = false);
@@ -248,7 +253,8 @@ extension _DetailAiPanel on _NoteDetailSheetState {
           haptics: false,
         );
       }
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('ai.tags', error));
       if (mounted) {
         nexShowBanner(
           context,
@@ -714,6 +720,10 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     if (summary == null || summary.isEmpty) return false;
     final source = (note.aiSourceText ?? '').trim();
     if (source.isEmpty) return true;
+    // A YouTube link's words are its title and a line, so a video analysis
+    // is always longer than them and the "shorter than its source" rule hid
+    // every one: it worked, was kept, and nothing appeared (2.1.10).
+    if (nexYouTubeWatchUrl(note.linkUrl) != null) return summary != source;
     return summary != source && summary.length < source.length;
   }
 }

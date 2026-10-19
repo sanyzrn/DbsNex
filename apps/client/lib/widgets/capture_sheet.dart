@@ -1,3 +1,4 @@
+import '../platform/crash_reporter.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -245,7 +246,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
       // the first keystroke said and the rest of the word would be lost the
       // moment the user stopped typing.
       if (_latestText != persisted) await _flushCurrent();
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('capture.firstWrite', error));
       if (mounted) {
         NexBannerHost.of(context)?.show(
           message: AppLocalizations.of(context).captureFailed,
@@ -297,7 +299,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
             // draft typed while its database request was in flight.
             unawaited(Future<void>(() => flush()));
           }
-        } catch (_) {
+        } catch (error) {
+          unawaited(NexCrashLog.handled('capture.draftSwap', error));
           if (mounted) {
             NexBannerHost.of(context)?.show(
               message: AppLocalizations.of(context).captureFailed,
@@ -398,7 +401,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
         case CaptureKind.voice:
           return true;
       }
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('capture.convert', error));
       made = null;
     }
     if (made == null) {

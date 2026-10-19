@@ -235,7 +235,8 @@ extension NexLibraryServices on NexServices {
       if (!saved) return null;
       await refreshTimeline();
       return Summary(text: text);
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('ai.summarize.local', error));
       return null;
     } finally {
       adapter.close();
@@ -249,6 +250,21 @@ extension NexLibraryServices on NexServices {
       _preferences.effectiveAiCapabilities.summarization &&
       CloudAIAdapter.watchesYouTube(_preferences.aiProvider) &&
       nexYouTubeWatchUrl(note.linkUrl) != null;
+
+  /// Writes why an analysis was not kept in the local diagnostics log
+  /// (2.1.10): the kind and the status code, never the address or the reply.
+  void _logVideoFailure(
+    NexVideoFailure failure, [
+    int? status,
+    Object? error,
+  ]) {
+    final detail = [
+      failure.name,
+      if (status != null) 'HTTP $status',
+      if (error != null) error.runtimeType.toString(),
+    ].join(' · ');
+    unawaited(NexCrashLog.failed('video.analysis', detail));
+  }
 
   /// Has the provider watch the YouTube video [noteId] links to, and keeps
   /// what it says as that note's summary — the page text of a YouTube link
@@ -277,16 +293,14 @@ extension NexLibraryServices on NexServices {
       if (text == null) {
         final status = adapter.lastFailureStatus;
         final detail = adapter.lastFailureMessage;
-        return NexVideoAnalysis.failed(
-          switch (status) {
-            null => NexVideoFailure.silent,
-            402 || 429 => NexVideoFailure.limit,
-            >= 500 => NexVideoFailure.unavailable,
-            _ => NexVideoFailure.refused,
-          },
-          status: status,
-          detail: detail,
-        );
+        final failure = switch (status) {
+          null => NexVideoFailure.silent,
+          402 || 429 => NexVideoFailure.limit,
+          >= 500 => NexVideoFailure.unavailable,
+          _ => NexVideoFailure.refused,
+        };
+        _logVideoFailure(failure, status);
+        return NexVideoAnalysis.failed(failure, status: status, detail: detail);
       }
       // Kept against the link, not the note's words: what was watched is
       // the video, and a caption written or a page excerpt fetched in the
@@ -295,6 +309,7 @@ extension NexLibraryServices on NexServices {
       // null, so an analysis that worked was never kept.
       final now = await worker.getById(noteId);
       if (now == null || now.isDeleted || now.linkUrl != url) {
+        _logVideoFailure(NexVideoFailure.changed);
         return const NexVideoAnalysis.failed(NexVideoFailure.changed);
       }
       final saved = await worker.saveSummaryIfCurrent(
@@ -303,13 +318,16 @@ extension NexLibraryServices on NexServices {
         text,
       );
       if (!saved) {
+        _logVideoFailure(NexVideoFailure.changed);
         return const NexVideoAnalysis.failed(NexVideoFailure.changed);
       }
       await refreshTimeline();
       return NexVideoAnalysis.done(text);
-    } on TimeoutException {
+    } on TimeoutException catch (error) {
+      _logVideoFailure(NexVideoFailure.slow, null, error);
       return const NexVideoAnalysis.failed(NexVideoFailure.slow);
-    } catch (_) {
+    } catch (error) {
+      _logVideoFailure(NexVideoFailure.unavailable, null, error);
       return const NexVideoAnalysis.failed(NexVideoFailure.unavailable);
     } finally {
       adapter.close();
@@ -346,7 +364,8 @@ extension NexLibraryServices on NexServices {
       );
       if (portrait != null) await _preferences.setProfilePortrait(portrait);
       return portrait;
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('ai.portrait', error));
       return null;
     } finally {
       adapter.close();

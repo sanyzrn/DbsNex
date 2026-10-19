@@ -1,3 +1,4 @@
+import '../platform/crash_reporter.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -210,7 +211,8 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
         _nativeWidth = descriptor!.width;
         _nativeHeight = descriptor.height;
       });
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('photo.annotate.open', error));
       if (mounted) {
         nexShowBanner(
           context,
@@ -343,7 +345,8 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
       final bytes = await rendered.toByteData(format: ui.ImageByteFormat.png);
       if (!mounted) return;
       Navigator.of(context).pop(bytes!.buffer.asUint8List());
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('photo.annotate.save', error));
       if (mounted) {
         nexShowBanner(
           context,

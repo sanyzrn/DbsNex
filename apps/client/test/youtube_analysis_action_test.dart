@@ -111,6 +111,30 @@ void main() {
       expect(find.text(l10n.aiVideoFailedLimit), findsOneWidget);
     });
 
+    testWidgets('an analysis longer than the page\'s own words is shown', (
+      tester,
+    ) async {
+      // The page of a YouTube link is a title and a line: any real analysis
+      // is longer than that, and a summary longer than its source used to
+      // be hidden as "not a summary" — the analysis worked, was kept, and
+      // nothing at all appeared (2.1.10).
+      const analysis =
+          'A talk about gardens.\n- 0:10 soil\n- 1:30 water\n- 3:00 light\n'
+          'For anyone starting a small garden.';
+      nexVideoClientForTest = MockClient((_) async => gemini(analysis));
+      final h = await open(tester, AiProvider.gemini);
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(NoteDetailSheet)),
+      );
+      final action = find.byTooltip(l10n.aiAnalyzeVideo);
+      await tester.ensureVisible(action);
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('A talk about gardens.'), findsOneWidget);
+      expect(find.text(l10n.aiVideoFailed), findsNothing);
+      expect(h.preferences.aiEnabled, isTrue);
+    });
+
     test('the excerpt arriving while the video is watched does not cost '
         'the analysis', () async {
       final h = await NexTestHarness.create();

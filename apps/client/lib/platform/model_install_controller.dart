@@ -1,3 +1,4 @@
+import 'crash_reporter.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -130,6 +131,7 @@ class ModelInstallController extends ChangeNotifier {
         _set(ModelInstallPhase.paused);
       }
     } catch (error) {
+      unawaited(NexCrashLog.handled('model.install', error));
       _error = error;
       _set(ModelInstallPhase.failed);
     } finally {
@@ -172,6 +174,7 @@ class ModelInstallController extends ChangeNotifier {
       await pending;
       _loadError = null;
     } catch (error) {
+      unawaited(NexCrashLog.handled('model.load', error));
       // Kept and shown, not swallowed. This used to be an empty catch on the
       // reasoning that the first message would surface it anyway — but what
       // the first message surfaces is "no answer came back", which is the same
