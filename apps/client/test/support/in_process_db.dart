@@ -245,7 +245,7 @@ class InProcessDb implements NexDb {
   @override
   Future<bool> saveSummaryIfCurrent(
     String id,
-    String source,
+    String? source,
     String text,
   ) async {
     final note = _repo.getById(id);

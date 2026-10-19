@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.9
+
+- **Reminders stay until you deal with them.** A reminder that has rung now stays in the notification shade until you tap or dismiss it. Opening Nex used to clear them all, because putting every alarm back on launch also took away the ones already showing — repeating reminders, recurring items, Cycle and module reminders and the daily nudge alike. Clearing a reminder or deleting its note still takes its notification away.
+- **YouTube analysis that works on real videos.** The video is now watched at a lower resolution and half the frame rate — about a fifth of the tokens, still plenty to follow a talk or a tutorial — so a long video no longer runs into a free plan's per-minute limit, and the wait before giving up is longer. The capability check makes the same request, so a check that passes means analysis works. A model or gateway that refuses those settings is asked again the ordinary way.
+- **When a video cannot be analysed, Nex says why.** The plan's limit, taking too long, Gemini refusing (with its reason and code, such as a private video), or an answer with nothing in it — instead of one sentence for all of them. An analysis that finished is kept even if the page's description arrived meanwhile; it used to be thrown away.
+
 ## v2.1.8
 
 - **Nex finds out what your AI model can do.** **Test connection** now also checks, with four small test requests, whether the model reads pictures, hears recordings, searches by meaning and watches YouTube videos, and the provider page shows the answer row by row — with the reason when one does not work: the provider has no such service, the model refused, or it could not be checked just then. The three **Image input**, **Transcription** and **Search embeddings** dropdowns are gone; what the check finds decides which features Nex offers. The check sends only test material Nex makes itself — a picture of a number, a second of tone, one sentence and a public YouTube video — never your notes, and runs only when you test.

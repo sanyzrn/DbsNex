@@ -186,7 +186,30 @@ class NexReminders {
   /// this plugin worth relying on, and offering a reminder that never arrives
   /// is worse than not offering one.
   static bool get supported =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+      debugSupported ?? (!kIsWeb && (Platform.isAndroid || Platform.isIOS));
+
+  /// Lets a test drive the scheduling with a fake plugin on a desktop VM.
+  @visibleForTesting
+  static bool? debugSupported;
+
+  /// Takes back an alarm that has not gone off yet, and leaves alone one that
+  /// has (2.1.9).
+  ///
+  /// The plugin's `cancel` does both: it also takes a notification already
+  /// on the screen away. Every re-arm used to start with it — and opening
+  /// the app re-arms everything — so each reminder that had fired vanished
+  /// from the notification shade the moment the app was opened, before
+  /// anyone had tapped or dismissed it. Re-arming needs no cancel at all:
+  /// scheduling under the same id replaces the alarm. What remains is the
+  /// alarm that should no longer ring, and only that one is taken back.
+  Future<void> _withdraw(int id) async {
+    try {
+      final pending = await _plugin.pendingNotificationRequests();
+      if (pending.any((request) => request.id == id)) {
+        await _plugin.cancel(id: id);
+      }
+    } catch (_) {}
+  }
 
   Future<void> initialise() async {
     if (_ready || !supported) return;

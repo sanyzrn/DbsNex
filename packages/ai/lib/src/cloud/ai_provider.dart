@@ -1078,6 +1078,9 @@ class CloudAIAdapter implements AIAdapter {
   String? get localFailure => _preferLocal ? _lastFailure?.message : null;
   int? get lastFailureStatus => _lastFailure?.status;
 
+  /// The provider's own words the last time it refused, when it gave any.
+  String? get lastFailureMessage => _lastFailure?.message;
+
   /// One turn, with optional inline media, normalised across all three shapes.
   /// A null [maxTokens] leaves the ceiling to the provider: omitted where the
   /// API allows that, and Anthropic's required field set generously.
@@ -1092,6 +1095,8 @@ class CloudAIAdapter implements AIAdapter {
     bool requireComplete = false,
     bool preserveMarkup = false,
     String? fileUri,
+    bool lowMediaResolution = false,
+    double? videoFps,
   }) async {
     lastReplyTruncated = false;
     if (!config.isUsable) {
@@ -1170,6 +1175,9 @@ class CloudAIAdapter implements AIAdapter {
               if (fileUri != null)
                 {
                   'file_data': {'file_uri': fileUri},
+                  'video_metadata': ?(videoFps == null
+                      ? null
+                      : {'fps': videoFps}),
                 },
               if (base64Media != null)
                 {
@@ -1182,7 +1190,10 @@ class CloudAIAdapter implements AIAdapter {
             ],
           },
         ],
-        'generationConfig': {'maxOutputTokens': ?maxTokens},
+        'generationConfig': {
+          'maxOutputTokens': ?maxTokens,
+          if (lowMediaResolution) 'mediaResolution': 'MEDIA_RESOLUTION_LOW',
+        },
       },
       AiWireFormat.openai => {
         'model': config.resolvedModel,
@@ -1546,6 +1557,62 @@ class CloudAIAdapter implements AIAdapter {
   static bool watchesYouTube(AiProviderConfig config) =>
       config.isUsable && config.supportsVideo;
 
+  /// How long watching a video may take. Longer than a photo's budget: the
+  /// provider fetches the video and reads every sampled frame before it
+  /// writes a word, and a half-hour talk can take minutes (2.1.9).
+  static const videoTimeout = Duration(minutes: 5);
+
+  /// Frames per second a video is sampled at (2.1.9). Gemini's default is
+  /// one, at its default resolution about 300 tokens for every second of
+  /// video: a twenty-minute talk is some 350,000 tokens, past what a free
+  /// plan allows in a minute, so long videos failed every time. Half the
+  /// frames at low resolution — sound is kept whole — is about a fifth of
+  /// that, and still enough to say what a talk or a tutorial shows.
+  static const videoFps = 0.5;
+
+  /// One video request, the way every video request is made: low media
+  /// resolution and [videoFps]. A model or gateway that refuses those two
+  /// settings by name is asked again plainly, so they never cost anyone a
+  /// video they could watch before.
+  Future<String?> _watchVideo(
+    String system,
+    String user, {
+    required String url,
+    int? maxTokens,
+    bool preserveMarkup = false,
+    Duration? timeout,
+  }) async {
+    final reply = await _complete(
+      system,
+      user,
+      fileUri: url,
+      maxTokens: maxTokens,
+      preserveMarkup: preserveMarkup,
+      timeout: timeout,
+      lowMediaResolution: true,
+      videoFps: videoFps,
+    );
+    final failure = _lastFailure;
+    if (reply != null ||
+        failure == null ||
+        failure.status != 400 ||
+        !RegExp(
+          r'media_?resolution|video_?metadata|\bfps\b|unknown name|'
+          r'invalid json payload',
+          caseSensitive: false,
+        ).hasMatch(failure.message ?? '')) {
+      return reply;
+    }
+    return _complete(
+      system,
+      user,
+      fileUri: url,
+      maxTokens: maxTokens,
+      preserveMarkup: preserveMarkup,
+      timeout: timeout,
+    );
+  }
+
   /// What is in a YouTube video somebody saved (2.1.7), in a few lines: what
   /// it is, its main points in order with timestamps, and who it is for.
   ///
@@ -1560,7 +1627,7 @@ class CloudAIAdapter implements AIAdapter {
     () async {
       final watch = nexYouTubeWatchUrl(url);
       if (!canWatchYouTube || watch == null) return null;
-      final reply = await _complete(
+      final reply = await _watchVideo(
         '${outputLanguage.leadRule} '
         'You watch a YouTube video for someone who saved it in their notes, '
         'and tell them what is in it so they can keep what matters without '
@@ -1577,11 +1644,12 @@ class CloudAIAdapter implements AIAdapter {
             ? 'The video is attached.'
             : 'The video is attached. Its page title, as a hint only: '
                   '${title.trim()}',
-        fileUri: watch,
+        url: watch,
         // No ceiling: a model that thinks first spends its budget before it
         // writes, and a cut-off analysis is worse than a long one.
         maxTokens: null,
         preserveMarkup: true,
+        timeout: videoTimeout,
       );
       final text = reply?.trim() ?? '';
       return text.isEmpty ? null : text;

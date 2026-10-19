@@ -188,19 +188,41 @@ extension _DetailAiPanel on _NoteDetailSheetState {
       _showAi = true;
       _activeAiResult = 'summary';
     });
-    String? analysis;
+    NexVideoAnalysis analysis;
     try {
       analysis = await widget.services.analyzeVideo(noteId);
       await _reload();
     } catch (_) {
-      analysis = null;
+      analysis = const NexVideoAnalysis.failed(NexVideoFailure.unavailable);
     } finally {
       if (mounted) _rebuild(() => _summarizing = false);
     }
-    if (!mounted || analysis != null) return;
+    final failure = analysis.failure;
+    if (!mounted || failure == null) return;
+    final l10n = AppLocalizations.of(context);
+    // Said as what happened (2.1.9): one sentence for every failure sent
+    // people looking for a private video when the plan's limit was reached.
+    final detail = analysis.detail?.trim() ?? '';
     nexShowBanner(
       context,
-      message: AppLocalizations.of(context).aiVideoFailed,
+      message: switch (failure) {
+        NexVideoFailure.limit => l10n.aiVideoFailedLimit,
+        NexVideoFailure.slow => l10n.aiVideoFailedSlow,
+        NexVideoFailure.refused => l10n.aiVideoFailedRefused(
+          nexDigits(
+            '${analysis.status ?? ''}',
+            persian: l10n.localeName == 'fa',
+          ),
+          detail.isEmpty
+              ? l10n.aiVideoRefusedReason
+              : detail.length > 160
+              ? '${detail.substring(0, 160)}…'
+              : detail,
+        ),
+        NexVideoFailure.silent => l10n.aiVideoFailedSilent,
+        NexVideoFailure.changed => l10n.aiVideoFailedChanged,
+        NexVideoFailure.unavailable => l10n.aiVideoFailed,
+      },
       kind: NexBannerKind.failed,
       haptics: widget.preferences?.haptics ?? true,
     );

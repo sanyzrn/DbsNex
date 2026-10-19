@@ -7445,7 +7445,7 @@ abstract class AppLocalizations {
   /// Shown when a YouTube video analysis returns nothing.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t analyze this video. It may be private, age-restricted or too long.'**
+  /// **'Couldn\'t reach Gemini to analyze this video. Check the connection and try again.'**
   String get aiVideoFailed;
 
   /// Shown when an on-demand summary produces nothing
@@ -9379,6 +9379,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a full address starting with https://'**
   String get aiGatewayInvalid;
+
+  /// No description provided for @aiVideoFailedLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini\'s usage limit was reached. On a free plan this usually means the video is long — wait a minute and try again, or try a shorter video.'**
+  String get aiVideoFailedLimit;
+
+  /// No description provided for @aiVideoFailedSlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Watching this video took too long. Try again, or try a shorter video.'**
+  String get aiVideoFailedSlow;
+
+  /// No description provided for @aiVideoFailedRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini didn\'t watch this video ({code}): {reason}'**
+  String aiVideoFailedRefused(String code, String reason);
+
+  /// No description provided for @aiVideoRefusedReason.
+  ///
+  /// In en, this message translates to:
+  /// **'it may be private, age-restricted or too long for this model'**
+  String get aiVideoRefusedReason;
+
+  /// No description provided for @aiVideoFailedSilent.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini answered without saying anything about the video. Try again.'**
+  String get aiVideoFailedSilent;
+
+  /// No description provided for @aiVideoFailedChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The note was deleted or its link changed while the video was being watched, so nothing was kept.'**
+  String get aiVideoFailedChanged;
 }
 
 class _AppLocalizationsDelegate

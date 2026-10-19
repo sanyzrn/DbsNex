@@ -55,14 +55,16 @@ abstract final class CycleReminders {
         body: l10n.cycleNotifySoon,
       );
     } else {
-      await reminders.cancelCycle('soon');
+      // Withdrawn, not cancelled: "in two days" already showing stays until
+      // it is tapped or dismissed (2.1.9).
+      await reminders.withdrawCycle('soon');
     }
 
     // Nine in the evening, each day of the period still to come — a day or
     // two past its usual length, and never more than ten, so a period
     // nobody marked as ended does not nag for ever.
     for (var i = 0; i < evenings; i++) {
-      await reminders.cancelCycle('log$i');
+      await reminders.withdrawCycle('log$i');
     }
     if (preferences.cycleRemindLog &&
         mode != CycleMode.pregnant &&

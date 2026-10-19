@@ -4650,7 +4650,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiVideoFailed =>
-      'تحلیل این ویدئو ممکن نشد. شاید خصوصی است، محدودیت سنی دارد یا خیلی طولانی است.';
+      'برای تحلیل این ویدئو به Gemini دسترسی نشد. اتصال را بررسی کنید و دوباره امتحان کنید.';
 
   @override
   String get summarizeFailed => 'برای این یادداشت خلاصه‌ای برنگشت.';
@@ -5821,4 +5821,29 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiGatewayInvalid => 'آدرس کامل را با https وارد کنید';
+
+  @override
+  String get aiVideoFailedLimit =>
+      'به سقف مصرف Gemini رسیدید. در پلن رایگان معمولاً یعنی ویدئو طولانی است — یک دقیقه صبر کنید و دوباره امتحان کنید، یا ویدئوی کوتاه‌تری را امتحان کنید.';
+
+  @override
+  String get aiVideoFailedSlow =>
+      'دیدن این ویدئو بیش از حد طول کشید. دوباره امتحان کنید یا ویدئوی کوتاه‌تری را امتحان کنید.';
+
+  @override
+  String aiVideoFailedRefused(String code, String reason) {
+    return 'Gemini این ویدئو را ندید ($code): $reason';
+  }
+
+  @override
+  String get aiVideoRefusedReason =>
+      'ممکن است خصوصی، دارای محدودیت سنی یا برای این مدل خیلی طولانی باشد';
+
+  @override
+  String get aiVideoFailedSilent =>
+      'Gemini چیزی دربارهٔ ویدئو نگفت. دوباره امتحان کنید.';
+
+  @override
+  String get aiVideoFailedChanged =>
+      'یادداشت هنگام دیدن ویدئو حذف شد یا لینکش عوض شد و چیزی نگه داشته نشد.';
 }
