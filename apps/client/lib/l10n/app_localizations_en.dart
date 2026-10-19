@@ -4699,7 +4699,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiVideoFailed =>
-      'Couldn\'t analyze this video. It may be private, age-restricted or too long.';
+      'Couldn\'t reach Gemini to analyze this video. Check the connection and try again.';
 
   @override
   String get summarizeFailed => 'No summary came back for this note.';
@@ -5911,4 +5911,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiGatewayInvalid => 'Enter a full address starting with https://';
+
+  @override
+  String get aiVideoFailedLimit =>
+      'Gemini\'s usage limit was reached. On a free plan this usually means the video is long — wait a minute and try again, or try a shorter video.';
+
+  @override
+  String get aiVideoFailedSlow =>
+      'Watching this video took too long. Try again, or try a shorter video.';
+
+  @override
+  String aiVideoFailedRefused(String code, String reason) {
+    return 'Gemini didn\'t watch this video ($code): $reason';
+  }
+
+  @override
+  String get aiVideoRefusedReason =>
+      'it may be private, age-restricted or too long for this model';
+
+  @override
+  String get aiVideoFailedSilent =>
+      'Gemini answered without saying anything about the video. Try again.';
+
+  @override
+  String get aiVideoFailedChanged =>
+      'The note was deleted or its link changed while the video was being watched, so nothing was kept.';
 }

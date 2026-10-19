@@ -86,7 +86,8 @@ extension NexNoteReminders on NexReminders {
     // perfectly well gets announced as having failed.
     lastError = null;
     await initialise();
-    await cancel(note.id);
+    // No cancel first: scheduling under the same id below replaces the alarm,
+    // and a cancel would also clear the reminder already showing (2.1.9).
     // A time already past is not an error — it is a reminder that was missed
     // while the app was not running, and firing it now would be a surprise
     // hours late. The note keeps its due date so the user can see it lapsed.
@@ -102,6 +103,7 @@ extension NexNoteReminders on NexReminders {
             DateTime.now(),
           );
     if (!at.isAfter(DateTime.now().toUtc())) {
+      await _withdraw(NexReminders._idFor(note.id));
       _reportInitialisationWarning();
       return;
     }

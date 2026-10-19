@@ -23,7 +23,8 @@ extension NexScheduledReminders on NexReminders {
     if (!NexReminders.supported) return;
     lastError = null;
     await initialise();
-    await cancelDaily();
+    // Re-armed in place: a cancel would also take today's nudge off the
+    // screen if it is still showing (2.1.9).
 
     final now = tz.TZDateTime.now(tz.local);
     var when = tz.TZDateTime(
@@ -120,16 +121,25 @@ extension NexScheduledReminders on NexReminders {
     if (!NexReminders.supported) return;
     lastError = null;
     await initialise();
-    await cancelCommitment(commitment.id);
-    if (!commitment.notify || commitment.paused) return;
+    final id = NexReminders.commitmentIdFor(commitment.id);
+    // Re-armed in place, never cancelled first: the cancel also took the
+    // occurrence that had just rung off the screen (2.1.9). Only an alarm
+    // that should no longer ring is taken back.
+    if (!commitment.notify || commitment.paused) {
+      await _withdraw(id);
+      return;
+    }
     final at = commitment.dueAt;
     // Already past: the moment was missed while the app was not running, and
     // firing now would be a surprise hours late. It still shows as overdue on
     // the screen and in the brief, which is the honest place for it.
-    if (!at.isAfter(DateTime.now())) return;
+    if (!at.isAfter(DateTime.now())) {
+      await _withdraw(id);
+      return;
+    }
     try {
       await _plugin.zonedSchedule(
-        id: NexReminders.commitmentIdFor(commitment.id),
+        id: id,
         title: NexReminders._clamp(commitment.title, 60),
         scheduledDate: NexReminders.scheduledDateFor(at.toUtc()),
         notificationDetails: NotificationDetails(
@@ -180,7 +190,6 @@ extension NexScheduledReminders on NexReminders {
     if (!NexReminders.supported) return;
     lastError = null;
     await initialise();
-    await cancelCycle(key);
     var when = tz.TZDateTime.from(at, tz.local);
     final now = tz.TZDateTime.now(tz.local);
     if (daily) {
@@ -188,6 +197,9 @@ extension NexScheduledReminders on NexReminders {
         when = when.add(const Duration(days: 1));
       }
     } else if (!when.isAfter(now)) {
+      // Past: the alarm, if one is left, goes; the notification it showed
+      // stays until it is tapped or dismissed (2.1.9).
+      await _withdraw(NexReminders.cycleIdFor(key));
       return;
     }
     try {
@@ -220,6 +232,14 @@ extension NexScheduledReminders on NexReminders {
     }
   }
 
+  /// Takes back cycle alarm [key] if it has not rung yet — what a re-arm
+  /// that no longer wants it calls, so a reminder already showing stays.
+  Future<void> withdrawCycle(String key) async {
+    if (!NexReminders.supported) return;
+    await initialise();
+    await _withdraw(NexReminders.cycleIdFor(key));
+  }
+
   /// Cancels the cycle alarm [key], or every one of them.
   Future<void> cancelCycle([String? key]) async {
     if (!NexReminders.supported) return;
@@ -240,8 +260,10 @@ extension NexScheduledReminders on NexReminders {
     if (!NexReminders.supported) return;
     lastError = null;
     await initialise();
-    await cancelArrival(note.id);
-    if (!note.releaseAt.isAfter(DateTime.now().toUtc())) return;
+    if (!note.releaseAt.isAfter(DateTime.now().toUtc())) {
+      await _withdraw(NexReminders.arrivalIdFor(note.id));
+      return;
+    }
     final body = NexMarkdownText.preview(note.content).trim();
     try {
       await _plugin.zonedSchedule(

@@ -10,8 +10,12 @@ extension NexModuleAlarms on NexReminders {
   }) async {
     if (!NexReminders.supported) return false;
     await initialise();
-    await cancelModule(module, key);
-    if (!at.isAfter(DateTime.now())) return false;
+    // Re-armed in place; a cancel would also clear one already showing
+    // (2.1.9).
+    if (!at.isAfter(DateTime.now())) {
+      await _withdraw(moduleId(module, key));
+      return false;
+    }
     lastError = null;
     try {
       await _plugin.zonedSchedule(
@@ -38,6 +42,14 @@ extension NexModuleAlarms on NexReminders {
       lastError = error.toString();
       return false;
     }
+  }
+
+  /// Takes back [module]'s alarm [key] if it has not rung yet; one that has
+  /// stays on the screen until it is tapped or dismissed.
+  Future<void> withdrawModule(String module, String key) async {
+    if (!NexReminders.supported) return;
+    await initialise();
+    await _withdraw(moduleId(module, key));
   }
 
   Future<void> cancelModule(String module, [String? key]) async {

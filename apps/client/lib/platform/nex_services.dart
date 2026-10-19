@@ -8,6 +8,7 @@ import 'dart:io';
 // foundation exports its own Summary (a diagnostics type); the one this file
 // returns is nex_core's AI summary.
 import 'package:flutter/foundation.dart' hide Summary;
+import 'package:http/http.dart' as http show Client;
 import 'package:meta/meta.dart' show useResult;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';

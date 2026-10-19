@@ -3089,7 +3089,7 @@
   "@assistantHoldHint": {"description": "One-time capsule over the + button; tapping it dismisses it."},
   "aiAnalyzeVideo": "Analyze video",
   "@aiAnalyzeVideo": {"description": "AI tool on a YouTube link: watch the video and summarise what is in it."},
-  "aiVideoFailed": "Couldn't analyze this video. It may be private, age-restricted or too long.",
+  "aiVideoFailed": "Couldn't reach Gemini to analyze this video. Check the connection and try again.",
   "@aiVideoFailed": {"description": "Shown when a YouTube video analysis returns nothing."},
   "summarizeFailed": "No summary came back for this note.",
   "@summarizeFailed": {
@@ -3485,5 +3485,12 @@
   "intelligenceUnchecked": "What this model can do has not been checked yet — open to test it",
   "aiGatewayAddress": "Service address (optional)",
   "aiGatewayHelp": "Only for a reseller or gateway that serves Gemini's own format: its address, with or without /v1beta. Your key and every request go to it. Left empty, Google's own address is used.",
-  "aiGatewayInvalid": "Enter a full address starting with https://"
+  "aiGatewayInvalid": "Enter a full address starting with https://",
+  "aiVideoFailedLimit": "Gemini's usage limit was reached. On a free plan this usually means the video is long — wait a minute and try again, or try a shorter video.",
+  "aiVideoFailedSlow": "Watching this video took too long. Try again, or try a shorter video.",
+  "aiVideoFailedRefused": "Gemini didn't watch this video ({code}): {reason}",
+  "@aiVideoFailedRefused": {"placeholders": {"code": {"type": "String"}, "reason": {"type": "String"}}},
+  "aiVideoRefusedReason": "it may be private, age-restricted or too long for this model",
+  "aiVideoFailedSilent": "Gemini answered without saying anything about the video. Try again.",
+  "aiVideoFailedChanged": "The note was deleted or its link changed while the video was being watched, so nothing was kept."
 }

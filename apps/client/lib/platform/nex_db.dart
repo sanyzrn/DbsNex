@@ -94,7 +94,10 @@ abstract interface class NexDb {
   /// it points at, which only the UI isolate has fetched.
   Future<void> setSummaryText(String id, String text);
 
-  Future<bool> saveSummaryIfCurrent(String id, String source, String text);
+  /// Keeps [text] as [id]'s summary while its source text is still
+  /// [source] — null for a note that has none, which is a link with no
+  /// caption and no excerpt.
+  Future<bool> saveSummaryIfCurrent(String id, String? source, String text);
 
   /// Fetched link metadata. A null field is left alone rather than cleared.
   Future<void> setLinkMetadata(String id, {String? title, String? excerpt});

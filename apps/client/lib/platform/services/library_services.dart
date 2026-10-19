@@ -254,16 +254,19 @@ extension NexLibraryServices on NexServices {
   /// what it says as that note's summary — the page text of a YouTube link
   /// is a title and little else, so this is the summary worth having.
   ///
-  /// Null when it is not possible or nothing came back; the note is not
-  /// touched then. Not saved if the note changed while the video was being
-  /// watched.
-  Future<String?> analyzeVideo(String noteId) async {
+  /// When nothing is kept, the result says why (2.1.9): every failure used
+  /// to read "private, age-restricted or too long", including a plan's
+  /// limit, a timeout and an analysis that worked and then was not saved.
+  Future<NexVideoAnalysis> analyzeVideo(String noteId) async {
     final note = await worker.getById(noteId);
     final url = note?.linkUrl;
-    if (note == null || url == null || !canAnalyzeVideo(note)) return null;
+    if (note == null || url == null || !canAnalyzeVideo(note)) {
+      return const NexVideoAnalysis.failed(NexVideoFailure.unavailable);
+    }
     final adapter = CloudAIAdapter(
       config: _preferences.aiProvider,
       outputLanguage: _preferences.aiOutputLanguage,
+      client: nexVideoClientForTest,
     );
     try {
       final text = await adapter.analyzeYouTubeVideo(
@@ -271,17 +274,43 @@ extension NexLibraryServices on NexServices {
         title: note.title ?? '',
         notes: [note.id],
       );
-      if (text == null) return null;
+      if (text == null) {
+        final status = adapter.lastFailureStatus;
+        final detail = adapter.lastFailureMessage;
+        return NexVideoAnalysis.failed(
+          switch (status) {
+            null => NexVideoFailure.silent,
+            402 || 429 => NexVideoFailure.limit,
+            >= 500 => NexVideoFailure.unavailable,
+            _ => NexVideoFailure.refused,
+          },
+          status: status,
+          detail: detail,
+        );
+      }
+      // Kept against the link, not the note's words: what was watched is
+      // the video, and a caption written or a page excerpt fetched in the
+      // meantime does not make it any less that video's summary. It used to
+      // be the words — and a link with none at all compared as '' against
+      // null, so an analysis that worked was never kept.
+      final now = await worker.getById(noteId);
+      if (now == null || now.isDeleted || now.linkUrl != url) {
+        return const NexVideoAnalysis.failed(NexVideoFailure.changed);
+      }
       final saved = await worker.saveSummaryIfCurrent(
         noteId,
-        note.aiSourceText ?? '',
+        now.aiSourceText,
         text,
       );
-      if (!saved) return null;
+      if (!saved) {
+        return const NexVideoAnalysis.failed(NexVideoFailure.changed);
+      }
       await refreshTimeline();
-      return text;
+      return NexVideoAnalysis.done(text);
+    } on TimeoutException {
+      return const NexVideoAnalysis.failed(NexVideoFailure.slow);
     } catch (_) {
-      return null;
+      return const NexVideoAnalysis.failed(NexVideoFailure.unavailable);
     } finally {
       adapter.close();
     }
@@ -398,4 +427,51 @@ extension NexLibraryServices on NexServices {
     await refreshTimeline();
     return true;
   }
+}
+
+/// What "Analyze video" talks through in a test; null in the app, which
+/// opens its own connection for each analysis.
+@visibleForTesting
+http.Client? nexVideoClientForTest;
+
+/// Why "Analyze video" kept nothing (2.1.9).
+enum NexVideoFailure {
+  /// The plan's limit, usually a long video on a free plan (402, 429).
+  limit,
+
+  /// No answer within [CloudAIAdapter.videoTimeout].
+  slow,
+
+  /// The provider said no, with its reason: a private or age-restricted
+  /// video, one too long for the model, a model that cannot watch.
+  refused,
+
+  /// An answer with nothing in it about the video.
+  silent,
+
+  /// The note was deleted or its link changed while the video was watched.
+  changed,
+
+  /// No connection, a server error, or nothing to analyse.
+  unavailable,
+}
+
+/// What "Analyze video" came to: the analysis kept as the summary, or why
+/// not, with the provider's status and words when it gave them.
+class NexVideoAnalysis {
+  const NexVideoAnalysis.done(String this.text)
+    : failure = null,
+      status = null,
+      detail = null;
+
+  const NexVideoAnalysis.failed(
+    NexVideoFailure this.failure, {
+    this.status,
+    this.detail,
+  }) : text = null;
+
+  final String? text;
+  final NexVideoFailure? failure;
+  final int? status;
+  final String? detail;
 }

@@ -44,11 +44,18 @@ void main() {
       final body = jsonDecode(request.body) as Map<String, dynamic>;
       final parts =
           ((body['contents'] as List).single as Map)['parts'] as List<dynamic>;
+      // 2.1.9: half the frames, at low resolution — a fifth of the tokens,
+      // so a long talk fits in what a free plan allows in a minute.
       expect(parts.first, {
         'file_data': {
           'file_uri': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         },
+        'video_metadata': {'fps': CloudAIAdapter.videoFps},
       });
+      expect(
+        (body['generationConfig'] as Map)['mediaResolution'],
+        'MEDIA_RESOLUTION_LOW',
+      );
       expect((parts.last as Map)['text'], contains('Gardens'));
       final system = jsonEncode(body['systemInstruction']);
       expect(system, contains('Only what is in the video'));
@@ -86,4 +93,87 @@ void main() {
       expect(requests, 0);
     },
   );
+
+  test(
+    'a model that refuses the low-resolution settings is asked plainly',
+    (() async {
+      final bodies = <Map<String, dynamic>>[];
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'k',
+        ),
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          bodies.add(body);
+          if ((body['generationConfig'] as Map).containsKey(
+            'mediaResolution',
+          )) {
+            return http.Response(
+              jsonEncode({
+                'error': {
+                  'message':
+                      'Invalid JSON payload received. Unknown name '
+                      '"mediaResolution" at \'generation_config\'',
+                },
+              }),
+              400,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'candidates': [
+                {
+                  'content': {
+                    'parts': [
+                      {'text': 'A talk.'},
+                    ],
+                  },
+                  'finishReason': 'STOP',
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+      expect(
+        await adapter.analyzeYouTubeVideo('https://youtu.be/dQw4w9WgXcQ'),
+        'A talk.',
+      );
+      expect(bodies, hasLength(2));
+      final plain = (bodies.last['contents'] as List).single as Map;
+      expect((plain['parts'] as List).first, {
+        'file_data': {
+          'file_uri': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        },
+      });
+    }),
+  );
+
+  test('a refusal keeps the provider\'s reason for the person', () async {
+    var requests = 0;
+    final adapter = CloudAIAdapter(
+      config: const AiProviderConfig(provider: AiProvider.gemini, apiKey: 'k'),
+      client: MockClient((_) async {
+        requests++;
+        return http.Response(
+          jsonEncode({
+            'error': {
+              'message': 'Resource has been exhausted (e.g. check quota).',
+            },
+          }),
+          429,
+        );
+      }),
+    );
+    expect(
+      await adapter.analyzeYouTubeVideo('https://youtu.be/dQw4w9WgXcQ'),
+      isNull,
+    );
+    // A limit is not a refusal of the settings: asked once, not twice.
+    expect(requests, 1);
+    expect(adapter.lastFailureStatus, 429);
+    expect(adapter.lastFailureMessage, contains('exhausted'));
+  });
 }

@@ -106,10 +106,14 @@ extension NexModuleServices on NexServices {
           b['sourceKind'] as String,
           b['sourceId'] as String,
         );
-        if (source == null ||
-            source.body['archived'] == true ||
-            !at.isAfter(DateTime.now())) {
+        if (source == null || source.body['archived'] == true) {
           await reminders.cancelModule(module.id, record.id);
+          continue;
+        }
+        // Past: it has rung, or was missed. Its notification, if showing,
+        // stays until it is tapped or dismissed (2.1.9).
+        if (!at.isAfter(DateTime.now())) {
+          await reminders.withdrawModule(module.id, record.id);
           continue;
         }
         wanted.add(NexModuleAlarms.moduleId(module.id, record.id));

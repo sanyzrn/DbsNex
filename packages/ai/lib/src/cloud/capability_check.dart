@@ -253,11 +253,12 @@ Future<AiProbeResult> _probeVideo(CloudAIAdapter adapter) async {
   if (adapter.config.provider != AiProvider.gemini) {
     return const AiProbeResult(AiProbeVerdict.absent);
   }
-  final reply = await adapter._complete(
+  // The same request "Analyze video" makes, so what passes here is what
+  // works there.
+  final reply = await adapter._watchVideo(
     'Reply with one word: the animals standing behind the man in the video.',
     'The video is attached.',
-    maxTokens: null,
-    fileUri: nexCheckVideo,
+    url: nexCheckVideo,
   );
   if (reply == null) return adapter._probeFailure();
   // An answer is not proof of watching. A gateway can drop the video and
