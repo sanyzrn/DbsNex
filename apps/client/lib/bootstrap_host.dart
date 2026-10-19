@@ -1,3 +1,4 @@
+import 'platform/crash_reporter.dart';
 import 'dart:async';
 import 'dart:isolate';
 
@@ -399,6 +400,7 @@ class _OpenFailed extends StatelessWidget {
       await discardPickedCopy(file.path, await getTemporaryDirectory());
       onRestored();
     } on Object catch (restoreError) {
+      unawaited(NexCrashLog.handled('restore.pick', restoreError));
       banner?.show(
         message: l10n.restoreFailed('$restoreError'),
         kind: NexBannerKind.failed,

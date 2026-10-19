@@ -136,6 +136,7 @@ abstract class AIAdapter {
 - **Structured logging only** — every entry is a structured object (level, module, message, context), never a free-form string.
 - **Levels:** `debug` (dev only), `info` (lifecycle events), `warn` (recoverable issues), `error` (unexpected failures).
 - **No content logging, ever.** Note content, tags, and media are never written to logs, locally or remotely — a privacy requirement, not a style preference (see [`09-ai.md`](./09-ai.md)).
+- **A failure the app handles by showing a message is also logged.** `catch (_)` with only a banner leaves nothing to look at afterwards: use `NexCrashLog.handled(where, error)` (type only) or `NexCrashLog.failed(where, detail)` (a fixed word such as a status code). Never put an address, a reply, a key or note text in either. Requests to AI providers are logged centrally by `NexAiFailureLog`.
 - **Client-side logs stay local** by default; opt-in diagnostic sharing, if ever introduced, must be explicit, scoped, and time-limited.
 - **Backend logs** (v2+) are centralized for operational monitoring (error rates, sync latency, API availability) but exclude request bodies containing user content.
 

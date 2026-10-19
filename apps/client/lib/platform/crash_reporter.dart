@@ -23,13 +23,18 @@ class NexCrashLog {
 
   /// Only a stable code location and exception type: never SQL, note content,
   /// credentials or provider response bodies. Existing bounds/dedup apply.
-  static Future<void> handled(String where, Object error) {
+  ///
+  /// [detail] is for a short, fixed word the caller chose — a failure kind or
+  /// a status code — never text that came from a person, a note or a reply.
+  static Future<void> handled(String where, Object error, {String? detail}) {
     final type = error is DbWorkerException
         ? '${error.kind.name}/${error.sourceType}'
         : error.runtimeType.toString();
     final next = _handledTail.then((_) async {
       try {
-        (await open()).note('Handled $where: $type');
+        (await open()).note(
+          'Handled $where: $type${detail == null ? '' : ' ($detail)'}',
+        );
       } catch (_) {
         // Diagnostics must never break the original recovery path.
       }
@@ -55,6 +60,24 @@ class NexCrashLog {
   static const maxShareChars = 16 * 1024;
 
   static const _separator = '\n\x1e\n';
+
+  /// The log in [directory], for an isolate that cannot ask the platform for
+  /// the application support folder (the database worker).
+  factory NexCrashLog.inDirectory(String directory) =>
+      NexCrashLog(File(p.join(directory, 'crash_log.txt')));
+
+  /// Records a fact without a thrown error: a failure the app handled by
+  /// itself, such as a provider's refusal or an analysis that came back empty.
+  static Future<void> failed(String where, String detail) {
+    final next = _handledTail.then((_) async {
+      try {
+        (await open()).note('Failed $where ($detail)');
+      } catch (_) {
+        // Diagnostics must never break the original recovery path.
+      }
+    });
+    return _handledTail = next;
+  }
 
   static Future<NexCrashLog> open() async {
     final dir = await getApplicationSupportDirectory();

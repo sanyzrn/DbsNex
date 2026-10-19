@@ -243,7 +243,8 @@ extension _DetailActions on _NoteDetailSheetState {
     try {
       await widget.services.convertMarkdown(note);
       await _reload();
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('note.convertMarkdown', error));
       if (mounted) {
         nexShowBanner(
           context,

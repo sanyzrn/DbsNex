@@ -1,3 +1,4 @@
+import '../platform/crash_reporter.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -159,7 +160,8 @@ class _BackupScreenState extends State<BackupScreen> {
       );
       if (!mounted) return;
       await nexSendFileOut(path, mimeType: 'application/octet-stream');
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('backup.share', error));
       _say(l10n.backupFailed);
     }
   });
@@ -349,6 +351,7 @@ class _BackupScreenState extends State<BackupScreen> {
       if (!mounted) return;
       if (outcome == SendOutcome.saved) _say(l10n.exportedTo(path));
     } catch (error) {
+      unawaited(NexCrashLog.handled('export.readable', error));
       _say('${l10n.exportFailed} (${NexServices.describeFailure(error)})');
     }
   });
@@ -382,6 +385,7 @@ class _BackupScreenState extends State<BackupScreen> {
             : l10n.importDone(result.imported, result.skipped),
       );
     } catch (error) {
+      unawaited(NexCrashLog.handled('import.data', error));
       _say('${l10n.importFailed} (${NexServices.describeFailure(error)})');
     }
   });
@@ -393,6 +397,7 @@ class _BackupScreenState extends State<BackupScreen> {
         mimeType: 'application/zip',
       );
     } catch (error) {
+      unawaited(NexCrashLog.handled('export.portable', error));
       if (mounted) {
         _say(
           '${AppLocalizations.of(context).exportFailed} (${NexServices.describeFailure(error)})',
@@ -492,6 +497,7 @@ class _BackupScreenState extends State<BackupScreen> {
     } on VaultAuthenticationRequired {
       return;
     } on Object catch (error) {
+      unawaited(NexCrashLog.handled('restore', error));
       // The graph is already closed by the time restore touches live files —
       // this session cannot read or write the library anymore either way.
       // Failing silently here was the one path that left a user staring at a
@@ -513,6 +519,7 @@ class _BackupScreenState extends State<BackupScreen> {
       await widget.services.backupNow();
       await _load();
     } catch (error) {
+      unawaited(NexCrashLog.handled('backup.manual', error));
       _say('${l10n.backupFailed} (${NexServices.describeFailure(error)})');
       return;
     }

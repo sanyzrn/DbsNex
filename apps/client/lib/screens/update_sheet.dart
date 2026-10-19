@@ -1,3 +1,5 @@
+import 'dart:async';
+import '../platform/crash_reporter.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -288,6 +290,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
   /// The transfer stopped. Says so under its own bar, and leaves everything
   /// else where it was.
   void _stop(Object? error) {
+    if (error != null) unawaited(NexCrashLog.handled('update.download', error));
     if (!mounted) return;
     setState(() {
       _phase = _Phase.downloading;

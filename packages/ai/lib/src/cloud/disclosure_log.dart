@@ -143,6 +143,10 @@ abstract final class NexDisclosureLog {
     },
   );
 
+  /// What the request being made right now is for, when a caller said.
+  static DisclosurePurpose? get currentPurpose =>
+      Zone.current[_purposeKey] as DisclosurePurpose?;
+
   /// Records one request. Never throws: a log that cannot be written must not
   /// cost anyone their answer.
   static void record({
@@ -210,6 +214,37 @@ abstract final class NexDisclosureLog {
     if (path == null) return;
     final file = File(path);
     if (file.existsSync()) await file.delete();
+  }
+}
+
+/// Where a request that failed is written down (2.1.10).
+///
+/// Every AI path treats a refusal as "no answer" and carries on, so a wrong
+/// key, a retired model, a plan's limit and a gateway that is down all ended
+/// as one banner that was gone in seconds. The app points [sink] at its local
+/// diagnostics log in each isolate that talks to a provider. Only the
+/// provider's name, what the request was for and the status code or exception
+/// type are passed on: no address, no reply text, nothing from a note.
+class NexAiFailureLog {
+  const NexAiFailureLog._();
+
+  static void Function(String message)? sink;
+
+  /// Purposes not worth a line: the connection test and the capability
+  /// probes expect refusals and show the reason themselves.
+  static const _quiet = {DisclosurePurpose.connectionTest};
+
+  static void report(String provider, {int? status, Object? error}) {
+    final purpose = NexDisclosureLog.currentPurpose;
+    if (purpose != null && _quiet.contains(purpose)) return;
+    try {
+      sink?.call(
+        'AI request failed: $provider · ${purpose?.name ?? 'other'} · '
+        '${status != null ? 'HTTP $status' : error.runtimeType}',
+      );
+    } catch (_) {
+      // A log that cannot be written must not cost anyone their answer.
+    }
   }
 }
 
@@ -296,9 +331,13 @@ class DisclosureClient extends http.BaseClient {
     final http.StreamedResponse response;
     try {
       response = await _inner.send(request);
-    } catch (_) {
+    } catch (error) {
       _finished();
+      NexAiFailureLog.report(provider, error: error);
       rethrow;
+    }
+    if (response.statusCode >= 400) {
+      NexAiFailureLog.report(provider, status: response.statusCode);
     }
     return http.StreamedResponse(
       _body(response.stream),

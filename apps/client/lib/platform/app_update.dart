@@ -1,3 +1,4 @@
+import 'crash_reporter.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' show Abi;
@@ -295,7 +296,8 @@ class UpdateChecker {
                 ._withNotes(await _notesSince(installed, result));
     } on TimeoutException {
       return const UpdateCheck.unavailable();
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('update.check', error));
       // Offline, DNS failure, TLS failure, malformed body — all the same
       // outcome to the user, and none of them should reach the UI as a crash.
       return const UpdateCheck.unavailable();

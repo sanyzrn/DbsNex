@@ -1,3 +1,4 @@
+import 'crash_reporter.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -457,7 +458,8 @@ class NexWidgetBridge {
       _lastWrittenLock = publishedLock;
       _lastWrittenFilter = _filterSignature;
       await _push();
-    } catch (_) {
+    } catch (error) {
+      unawaited(NexCrashLog.handled('widget.snapshot', error));
       // The snapshot is a copy, not the library: any failure here leaves the
       // notes untouched and the widget showing whatever it last had. Nothing
       // in the app should break because its home screen could not refresh.
