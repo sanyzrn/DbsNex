@@ -14,6 +14,9 @@ import 'disclosure_log.dart';
 import 'local_budget.dart';
 import 'cloud_budget.dart';
 
+part 'capability_check.dart';
+part 'model_list.dart';
+
 /// The cloud services Nex can talk to.
 ///
 /// Three of them speak OpenAI's chat-completions shape and differ only in host,
@@ -126,6 +129,12 @@ bool anthropicTakesTemperature(String model) => !RegExp(
   r'^claude-(?:opus|sonnet|fable|mythos)-(?:[5-9]|4-[7-9])\b',
 ).hasMatch(model.trim());
 
+/// Whether a provider is taken to offer one capability.
+///
+/// [automatic] is the provider's known default. Since 2.1.8 [enabled] and
+/// [disabled] are written by the check that runs with Test (see
+/// `nexCheckCapabilities`), not chosen by hand; a choice made by hand in an
+/// older version is kept until the first check replaces it.
 enum AiCapabilityMode { automatic, enabled, disabled }
 
 /// Everything needed to reach a provider.
@@ -143,6 +152,9 @@ class AiProviderConfig {
     this.images = AiCapabilityMode.automatic,
     this.audio = AiCapabilityMode.automatic,
     this.embeddings = AiCapabilityMode.automatic,
+    this.video = AiCapabilityMode.automatic,
+    this.checkedAt = '',
+    this.checkedFor = '',
   });
 
   final AiProvider provider;
@@ -157,6 +169,20 @@ class AiProviderConfig {
   final AiCapabilityMode audio;
   final AiCapabilityMode embeddings;
 
+  /// Watching a YouTube video from its address (2.1.7).
+  final AiCapabilityMode video;
+
+  /// When the capabilities were last checked, as UTC ISO-8601, or empty.
+  final String checkedAt;
+
+  /// The [capabilityFingerprint] they were checked against, or empty.
+  ///
+  /// What a check found is about one model behind one endpoint. Once the
+  /// fields say something else, the modes describe a configuration that is
+  /// no longer this one, and the provider's defaults stand in until the next
+  /// check — see [_enabled].
+  final String checkedFor;
+
   Map<String, String> toMap() => {
     'provider': provider.wireName,
     'apiKey': apiKey,
@@ -169,6 +195,9 @@ class AiProviderConfig {
     'images': images.name,
     'audio': audio.name,
     'embeddings': embeddings.name,
+    'video': video.name,
+    'checkedAt': checkedAt,
+    'checkedFor': checkedFor,
   };
 
   factory AiProviderConfig.fromMap(Map<String, String> raw) {
@@ -188,16 +217,50 @@ class AiProviderConfig {
       images: mode('images'),
       audio: mode('audio'),
       embeddings: mode('embeddings'),
+      video: mode('video'),
+      checkedAt: raw['checkedAt'] ?? '',
+      checkedFor: raw['checkedFor'] ?? '',
     );
   }
 
-  bool _enabled(AiCapabilityMode mode, bool fallback) => switch (mode) {
-    AiCapabilityMode.automatic => fallback,
-    AiCapabilityMode.enabled => true,
-    AiCapabilityMode.disabled => false,
-  };
+  bool _enabled(AiCapabilityMode mode, bool fallback) =>
+      // A check about another model says nothing about this one.
+      checkedFor.isNotEmpty && checkedFor != capabilityFingerprint
+      ? fallback
+      : switch (mode) {
+          AiCapabilityMode.automatic => fallback,
+          AiCapabilityMode.enabled => true,
+          AiCapabilityMode.disabled => false,
+        };
+
+  /// Everything a capability check depends on, the key aside: the provider,
+  /// where it is reached, and the chat, speech and embedding models.
+  ///
+  /// The key is left out on purpose. This is stored in plain preferences, and
+  /// nothing derived from a credential belongs there; a new key is tested,
+  /// and so checked, before it is saved anyway.
+  String get capabilityFingerprint => [
+    provider.wireName,
+    provider == AiProvider.custom ? customEndpoint : resolvedBaseUrl,
+    resolvedModel,
+    resolvedTranscriptionModel,
+    transcriptionEndpoint ?? '',
+    embeddingSpace,
+  ].join('|');
+
+  /// When [checkedFor] still describes these fields, the time of that check.
+  DateTime? get checkedTime =>
+      checkedFor.isNotEmpty && checkedFor == capabilityFingerprint
+      ? DateTime.tryParse(checkedAt)
+      : null;
+
   bool get supportsImages =>
       provider != AiProvider.none && _enabled(images, provider.readsImages);
+
+  /// Whether a YouTube video can be handed over by its address. Only Gemini
+  /// fetches one; the rest would be given a link they cannot open.
+  bool get supportsVideo =>
+      provider == AiProvider.gemini && _enabled(video, true);
   bool get supportsEmbeddings =>
       _enabled(embeddings, provider.embeds) && embeddingEndpoint != null;
   String get resolvedTranscriptionModel => transcriptionModel.trim().isNotEmpty
@@ -325,6 +388,9 @@ class AiProviderConfig {
     AiCapabilityMode? images,
     AiCapabilityMode? audio,
     AiCapabilityMode? embeddings,
+    AiCapabilityMode? video,
+    String? checkedAt,
+    String? checkedFor,
   }) => AiProviderConfig(
     provider: provider ?? this.provider,
     apiKey: apiKey ?? this.apiKey,
@@ -337,6 +403,9 @@ class AiProviderConfig {
     images: images ?? this.images,
     audio: audio ?? this.audio,
     embeddings: embeddings ?? this.embeddings,
+    video: video ?? this.video,
+    checkedAt: checkedAt ?? this.checkedAt,
+    checkedFor: checkedFor ?? this.checkedFor,
   );
 }
 
@@ -1445,8 +1514,9 @@ class CloudAIAdapter implements AIAdapter {
   bool get canWatchYouTube => watchesYouTube(config);
 
   /// [canWatchYouTube] for a configuration, without opening a client.
+  /// A Gemini model the check found cannot watch one is left out (2.1.8).
   static bool watchesYouTube(AiProviderConfig config) =>
-      config.isUsable && config.provider == AiProvider.gemini;
+      config.isUsable && config.supportsVideo;
 
   /// What is in a YouTube video somebody saved (2.1.7), in a few lines: what
   /// it is, its main points in order with timestamps, and who it is for.
@@ -2872,6 +2942,7 @@ class CloudAIAdapter implements AIAdapter {
   }
 
   Future<Vector> _embed(String text) async {
+    _lastFailure = null;
     if (config.provider.format == AiWireFormat.gemini) {
       final response = await _client
           .post(
@@ -2901,6 +2972,12 @@ class CloudAIAdapter implements AIAdapter {
           )
           .timeout(_textTimeout);
       if (response.statusCode != 200) {
+        // Kept, as every other path keeps it, so the capability check can
+        // tell a model that does not embed from a minute of rate limiting.
+        _lastFailure = (
+          status: response.statusCode,
+          message: _extractError(_bodyText(response)),
+        );
         throw const AiUnavailableException();
       }
       final decoded = jsonDecode(_bodyText(response));
@@ -2923,6 +3000,10 @@ class CloudAIAdapter implements AIAdapter {
         )
         .timeout(_textTimeout);
     if (response.statusCode != 200) {
+      _lastFailure = (
+        status: response.statusCode,
+        message: _extractError(_bodyText(response)),
+      );
       throw const AiUnavailableException();
     }
     final decoded = jsonDecode(_bodyText(response));

@@ -7,14 +7,20 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/display_date.dart';
+import '../widgets/ai_capability_status.dart';
 import '../widgets/feature_label.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/nex_dialog.dart';
 import 'local_model_screen.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
 
 part 'ai_provider/advanced_options.dart';
+part 'ai_provider/capability_card.dart';
+part 'ai_provider/model_browser.dart';
+part 'ai_provider/provider_widgets.dart';
 
 /// Where the intelligence features get their answers from.
 ///
@@ -23,12 +29,22 @@ part 'ai_provider/advanced_options.dart';
 /// and a local heuristic, so "Summarization: on" changed nothing a user could
 /// see. A provider makes those switches mean something.
 class AiProviderScreen extends StatefulWidget {
-  const AiProviderScreen({super.key, required this.preferences, this.client});
+  const AiProviderScreen({
+    super.key,
+    required this.preferences,
+    this.client,
+    this.onChanged,
+  });
 
   @visibleForTesting
   final http.Client? client;
 
   final NexPreferences preferences;
+
+  /// Told when a capability check has been stored, which can be after this
+  /// screen is gone: the check runs on, and what it found has to reach the
+  /// services that act on it.
+  final VoidCallback? onChanged;
 
   @override
   State<AiProviderScreen> createState() => _AiProviderScreenState();
@@ -71,6 +87,19 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   AiTestResult? _result;
   AiProviderConfig? _verified;
 
+  /// What the check run from this screen found, by capability, with a null
+  /// for each one still being asked; null when none has run here. Only the
+  /// outcomes outlive the screen — the reasons are for now.
+  Map<AiCapability, AiProbeResult?>? _found;
+
+  /// Which provider and fields [_found] is about.
+  String? _foundFor;
+
+  bool get _checking => _found?.values.contains(null) ?? false;
+
+  static String _checkKey(AiProviderConfig config) =>
+      '${config.provider.wireName}|${config.capabilityFingerprint}';
+
   @override
   void dispose() {
     _key.dispose();
@@ -101,8 +130,9 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   bool get _dirty =>
       _activeProvider != _current.provider || !_sameConfig(_stored, _current);
 
-  Future<void> _save([AiProviderConfig? tested]) async {
-    if (_saving) return;
+  /// Whether [tested] (or what is on screen) was stored.
+  Future<bool> _save([AiProviderConfig? tested]) async {
+    if (_saving) return false;
     final saving = tested ?? _current;
     // The exact configuration being persisted must have passed the test.
     // Choosing on-device only is not a network configuration.
@@ -110,12 +140,12 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
         (_verified == null ||
             !_sameConfig(saving, _verified!) ||
             !_sameConfig(saving, _current))) {
-      return;
+      return false;
     }
     setState(() => _saving = true);
     try {
       await widget.preferences.setAiProvider(saving);
-      if (!mounted) return;
+      if (!mounted) return true;
       setState(() {
         _config = saving;
         _stored = saving;
@@ -125,6 +155,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
         context,
         message: AppLocalizations.of(context).aiProviderSaved,
       );
+      return true;
     } catch (_) {
       if (mounted) {
         nexShowBanner(
@@ -133,19 +164,26 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
           kind: NexBannerKind.failed,
         );
       }
+      return false;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
+  /// Tests the connection, saves what passed, then finds out what the model
+  /// can do (2.1.8). The check comes after the save on purpose: the
+  /// connection is usable the moment it is known to work, and the four
+  /// capability requests, a video among them, can take a while.
   Future<void> _test() async {
-    if (_testing || _saving) return;
+    if (_testing || _saving || _checking) return;
+    final before = widget.preferences.aiProvider;
     setState(() {
       _testing = true;
       _result = null;
     });
     final testing = _current;
     final adapter = CloudAIAdapter(config: testing, client: widget.client);
+    var saved = false;
     try {
       final result = await adapter.test();
       if (!mounted || !_sameConfig(_current, testing)) return;
@@ -154,11 +192,90 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
         _verified = result.success ? testing : null;
       });
       // Only a working configuration is worth keeping.
-      if (result.success) await _save(testing);
+      if (result.success) saved = await _save(testing);
     } finally {
       adapter.close();
       if (mounted) setState(() => _testing = false);
     }
+    // Only after a passing test: a key that is refused would read as a
+    // model that can do nothing.
+    if (saved) await _check(testing, before);
+  }
+
+  Future<void> _check(AiProviderConfig tested, AiProviderConfig before) async {
+    final key = _checkKey(tested);
+    setState(() {
+      _foundFor = key;
+      _found = {for (final capability in AiCapability.values) capability: null};
+    });
+    final check = await nexCheckCapabilities(
+      tested,
+      client: widget.client,
+      onResult: (capability, result) {
+        if (mounted && _foundFor == key) {
+          setState(() => _found![capability] = result);
+        }
+      },
+    );
+    final prefs = widget.preferences;
+    // Stored against what is saved now, and only if that is still what was
+    // asked about: fields changed and saved meanwhile make it someone
+    // else's answer.
+    final stored = prefs.configFor(tested.provider);
+    if (_checkKey(stored) != key) return;
+    final updated = check.applyTo(stored);
+    try {
+      await prefs.setAiCapabilityCheck(updated);
+    } catch (_) {
+      return;
+    }
+    // Search indexes notes already written as soon as it can. A model found
+    // to embed where it could not before must not start that on its own: the
+    // switch waits for the person, as an upgrade has always made it wait.
+    var held = false;
+    final active = prefs.aiProvider;
+    if (active.provider == tested.provider &&
+        nexNewlyOffered(before, active).contains(AiCapability.embeddings)) {
+      final capabilities = prefs.aiCapabilities;
+      if (capabilities.semanticSearch || capabilities.relatedNotes) {
+        await prefs.setAiCapabilities(
+          capabilities.copyWith(semanticSearch: false, relatedNotes: false),
+        );
+        held = true;
+      }
+    }
+    widget.onChanged?.call();
+    if (!mounted) return;
+    AiProviderConfig carry(AiProviderConfig config) => config.copyWith(
+      images: updated.images,
+      audio: updated.audio,
+      embeddings: updated.embeddings,
+      video: updated.video,
+      checkedAt: updated.checkedAt,
+      checkedFor: updated.checkedFor,
+    );
+    setState(() {
+      if (_config.provider == tested.provider) {
+        _config = carry(_config);
+        _stored = carry(_stored);
+        if (_verified?.provider == tested.provider) {
+          _verified = carry(_verified!);
+        }
+      }
+    });
+    if (held) {
+      nexShowBanner(
+        context,
+        message: AppLocalizations.of(context).aiSearchHeld,
+      );
+    }
+  }
+
+  /// The model saved for [provider], when there is one; the picker's
+  /// example otherwise.
+  String _savedModelOr(AiProvider provider) {
+    final saved = widget.preferences.configFor(provider).model.trim();
+    return saved.isNotEmpty ? saved : provider.exampleModel;
   }
 
   static bool _sameConfig(AiProviderConfig a, AiProviderConfig b) {
@@ -184,7 +301,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
       // — the two buttons the screen exists for were the two you had to go
       // looking for.
       bottomNavigationBar: _ActionBar(
-        testing: _testing || _saving,
+        testing: _testing || _saving || _checking,
         canSave:
             _dirty &&
             !_testing &&
@@ -225,6 +342,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
           for (final candidate in AiProvider.values) ...[
             _ProviderTile(
               provider: candidate,
+              name: nexProviderName(l10n, candidate),
               selected: candidate == provider,
               subtitle: candidate == AiProvider.none
                   // "On-device" used to mean the tag heuristics and nothing
@@ -235,7 +353,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                   ? (_localModelReady
                         ? l10n.aiProviderNoneSubtitleLocal
                         : l10n.aiProviderNoneSubtitle)
-                  : candidate.exampleModel,
+                  : _savedModelOr(candidate),
               onTap: () {
                 if (_saving || candidate == provider) return;
                 // Whatever was saved for this provider before, not whatever
@@ -356,7 +474,20 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               decoration: InputDecoration(
                 labelText: l10n.model,
                 hintText: needsEndpoint ? null : provider.defaultModel,
+                // Said outright: a hint only shows in a focused empty field,
+                // so the model actually used when this is left empty was
+                // nowhere to be seen.
+                helperText: needsEndpoint
+                    ? null
+                    : l10n.aiModelDefault(provider.defaultModel),
+                helperMaxLines: 2,
                 border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  key: const ValueKey('ai-model-browse'),
+                  tooltip: l10n.aiModelBrowse,
+                  icon: const Icon(Icons.format_list_bulleted),
+                  onPressed: _saving ? null : () => unawaited(_browseModels()),
+                ),
               ),
               onChanged: (_) => setState(() => _result = null),
             ),
@@ -378,290 +509,34 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               textAlign: TextAlign.start,
             ),
           ],
-          if (provider != AiProvider.none) _advanced(),
           if (_result != null) ...[
             const SizedBox(height: NexSpacing.lg),
             _ResultBanner(result: _result!),
           ],
           if (provider != AiProvider.none) ...[
             const SizedBox(height: NexSpacing.lg),
+            _CapabilityCard(
+              config: _current,
+              found: _foundFor == _checkKey(_current) ? _found : null,
+              canCheck:
+                  !_dirty &&
+                  !_testing &&
+                  !_saving &&
+                  !_checking &&
+                  _current.isUsable,
+              solar: widget.preferences.solarCalendar,
+              onCheck: () => unawaited(_test()),
+            ),
+            if (provider != AiProvider.anthropic) ...[
+              const SizedBox(height: NexSpacing.md),
+              _advanced(),
+            ],
+            const SizedBox(height: NexSpacing.lg),
             const Divider(),
             const SizedBox(height: NexSpacing.sm),
             Text(l10n.aiKeyStorage, style: theme.textTheme.bodySmall),
-            const SizedBox(height: NexSpacing.sm),
-            Text(l10n.aiCapabilityNote, style: theme.textTheme.bodySmall),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// The two actions, always reachable, whatever the list is doing above them.
-class _ActionBar extends StatelessWidget {
-  const _ActionBar({
-    required this.testing,
-    required this.canSave,
-    required this.showTest,
-    required this.onTest,
-    required this.onSave,
-  });
-
-  final bool testing;
-  final bool canSave;
-  final bool showTest;
-  final VoidCallback onTest;
-  final VoidCallback onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return Container(
-      color: theme.colorScheme.surface,
-      padding: EdgeInsets.fromLTRB(
-        NexSpacing.lg,
-        NexSpacing.md,
-        NexSpacing.lg,
-        NexSpacing.md + nexBottomInset(context),
-      ),
-      child: Row(
-        children: [
-          if (showTest) ...[
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: testing ? null : onTest,
-                icon: testing
-                    ? const NexInlineSpinner()
-                    : const Icon(Icons.wifi_tethering),
-                label: Text(l10n.testConnection),
-              ),
-            ),
-            const SizedBox(width: NexSpacing.md),
-          ],
-          // Save is always here, including for "no provider": that is a choice
-          // like any other, and it used to be unstorable because the only
-          // button that could store it was hidden along with the key fields.
-          OutlinedButton(
-            onPressed: canSave ? onSave : null,
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// One provider, shown as a row you can see without opening anything.
-class _ProviderTile extends StatelessWidget {
-  const _ProviderTile({
-    required this.provider,
-    required this.selected,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final AiProvider provider;
-  final bool selected;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: provider.label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(NexRadius.md),
-        child: AnimatedContainer(
-          duration: NexMotion.standard,
-          curve: NexMotion.curve,
-          constraints: const BoxConstraints(minHeight: nexMinTapTarget),
-          padding: const EdgeInsets.symmetric(
-            horizontal: NexSpacing.md,
-            vertical: NexSpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(NexRadius.md),
-            color: selected
-                ? accent.withValues(alpha: 0.08)
-                : theme.colorScheme.surfaceContainerHighest,
-          ),
-          // Laid out left-to-right whatever the interface language is. Every
-          // name and model id in this list is a Latin identifier, and
-          // mirroring the row put "gpt-4o-mini" at the right edge reading
-          // outward from the wrong end. Only the row turns — the Persian prose
-          // above and below it keeps the direction the language gives it.
-          child: Directionality(
-            textDirection: TextDirection.ltr,
-            child: Row(
-              children: [
-                Icon(
-                  provider == AiProvider.none
-                      ? Icons.phone_android_outlined
-                      : Icons.cloud_outlined,
-                  size: 20,
-                  color: selected ? accent : theme.colorScheme.secondary,
-                ),
-                const SizedBox(width: NexSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        provider.label,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: selected
-                              ? accent
-                              : theme.colorScheme.onSurface,
-                          fontWeight: selected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
-                      ),
-                      if (subtitle.isNotEmpty)
-                        Text(
-                          subtitle,
-                          style: theme.textTheme.bodySmall,
-                          // The one subtitle that is prose rather than a model
-                          // id is translated, so it shapes in its own
-                          // direction — while still starting at the same edge
-                          // as the name above it, which is what keeps the row
-                          // reading as one block.
-                          textDirection: nexDirectionOf(subtitle),
-                          textAlign: TextAlign.left,
-                        ),
-                    ],
-                  ),
-                ),
-                // A check that occupies its slot either way, so the rows do
-                // not shift sideways as the selection moves down the list.
-                Opacity(
-                  opacity: selected ? 1 : 0,
-                  child: Icon(Icons.check_circle, size: 20, color: accent),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultBanner extends StatelessWidget {
-  const _ResultBanner({required this.result});
-
-  final AiTestResult result;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final color = result.success
-        ? theme.colorScheme.secondary
-        : theme.colorScheme.error;
-    return Container(
-      padding: const EdgeInsets.all(NexSpacing.md),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(NexRadius.lg),
-        border: Border.all(color: color),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            result.success ? Icons.check_circle_outline : Icons.error_outline,
-            color: color,
-            size: 20,
-          ),
-          const SizedBox(width: NexSpacing.sm),
-          Expanded(
-            child: Builder(
-              builder: (context) {
-                final message = result.success
-                    ? l10n.connectionOk(result.detail)
-                    : result.detail;
-                return Text(
-                  message,
-                  style: theme.textTheme.bodyMedium,
-                  // A failure detail is usually the provider's own English
-                  // error, which does not belong right-aligned under a
-                  // Persian UI.
-                  textDirection: nexDirectionOf(message),
-                  textAlign: TextAlign.start,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The way into downloading, replacing or removing the on-device model.
-class _ManageModelRow extends StatelessWidget {
-  const _ManageModelRow({required this.installed, required this.onTap});
-
-  final bool installed;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(NexRadius.lg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(NexRadius.lg),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(NexSpacing.md),
-          child: Row(
-            children: [
-              Icon(
-                installed ? Icons.check_circle_outline : Icons.memory_outlined,
-                color: installed
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: NexSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.localModelTitle,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    Text(
-                      // Not "On-device only" repeated back. What someone needs
-                      // here is whether the phone actually has the model, which
-                      // is the difference between this option working and not.
-                      installed
-                          ? l10n.localModelManageInstalled
-                          : l10n.localModelManageMissing,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

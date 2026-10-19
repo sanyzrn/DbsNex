@@ -34,14 +34,14 @@
   "layoutSearchField": "جعبهٔ جست‌وجو",
   "layoutTagRow": "نوار برچسب‌ها",
   "chatAboutGroup": "دربارهٔ {label} · {count} یادداشت",
-  "@chatAboutGroup": {"placeholders": {"label": {"type": "String"}, "count": {"type": "int"}}},
+  "@chatAboutGroup": {"placeholders": {"label": {"type": "String"}, "count": {"type": "int", "format": "decimalPattern"}}},
   "groupActions": "عملیات گروه",
   "groupAsk": "دربارهٔ این‌ها بپرس",
   "groupDelete": "حذف این گروه",
   "groupDeleteBody": "{count} یادداشت به زباله‌دان می‌رود. از کتابخانه ← زباله‌دان می‌توانید برشان گردانید.",
-  "@groupDeleteBody": {"placeholders": {"count": {"type": "int"}}},
+  "@groupDeleteBody": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "groupDeleted": "{count} یادداشت حذف شد",
-  "@groupDeleted": {"placeholders": {"count": {"type": "int"}}},
+  "@groupDeleted": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "assistantVoiceGroup": "چطور حرف بزند",
   "assistantReachGroup": "چه چیزی را می‌بیند",
   "assistantAboutYouNote": "همراه پیام‌های شما برای سرویسی که انتخاب کرده‌اید فرستاده می‌شود.",
@@ -434,7 +434,7 @@
   "attachFailed": "این فایل پیوست نشد",
   "@attachFailed": {"description": "Banner when attaching fails"},
   "attachedMore": "{count} فایل دیگر",
-  "@attachedMore": {"description": "Screen reader: how many files a note carries after its own", "placeholders": {"count": {"type": "int"}}},
+  "@attachedMore": {"description": "Screen reader: how many files a note carries after its own", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "noCaption": "بدون شرح",
   "@noCaption": {
     "description": "Placeholder text where a caption would appear"
@@ -484,7 +484,7 @@
     "description": "Voice note header in the detail sheet",
     "placeholders": {
       "seconds": {
-        "type": "int"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -621,7 +621,7 @@
   },
   "searchFiltersClear": "پاک کردن همه ({count})",
   "@searchFiltersClear": {
-    "placeholders": { "count": { "type": "int" } },
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } },
     "description": "Drops every active search filter"
   },
   "searchFilterTags": "برچسب‌ها",
@@ -658,7 +658,7 @@
   },
   "searchFiltersActive": "{count} مورد فعال",
   "@searchFiltersActive": {
-    "placeholders": { "count": { "type": "int" } },
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } },
     "description": "Count of active filters, shown in the filter sheet"
   },
   "showFilters": "نمایش پالایه‌ها",
@@ -701,7 +701,7 @@
     "description": "Confirmation body for emptying the trash",
     "placeholders": {
       "count": {
-        "type": "int"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -862,7 +862,7 @@
   "recentColors": "استفاده‌شده‌های اخیر",
   "color": "رنگ",
   "aiProvider": "سرویس هوش مصنوعی",
-  "aiProviderIntro": "انتخاب کنید درخواست‌های هوش مصنوعی کجا فرستاده شوند. تست اتصال موفق، همان تنظیمات آزمایش‌شده را ذخیره می‌کند. قابلیت‌های روی دستگاه به مدل‌های دانلودشده بستگی دارند.",
+  "aiProviderIntro": "انتخاب کنید درخواست‌های هوش مصنوعی کجا فرستاده شوند. «تست اتصال» همان تنظیمات آزمایش‌شده را ذخیره می‌کند و توانایی‌های مدل را هم پیدا می‌کند. قابلیت‌های روی دستگاه به مدل‌های دانلودشده بستگی دارند.",
   "apiKey": "کلید API",
   "baseUrl": "آدرس سرویس",
   "model": "مدل",
@@ -873,7 +873,6 @@
   "aiProviderNoneSubtitle": "روی همین دستگاه اجرا می‌شود. کلید لازم ندارد.",
   "aiProviderSaved": "سرویس ذخیره شد.",
   "aiKeyStorage": "کلید در حافظهٔ امن خود دستگاه نگه داشته می‌شود، نه در تنظیمات معمولی برنامه، و جز به همان سرویسی که انتخاب کرده‌اید جایی فرستاده نمی‌شود.",
-  "aiCapabilityNote": "تست اتصال فقط گفتگوی متنی را بررسی می‌کند. مدل‌های جداگانهٔ صدا و جستجو و قابلیت‌های پشتیبانی‌شده را در «مدل‌ها و قابلیت‌ها» تنظیم کنید. آدرس‌های سفارشی هم در همان بخش قابل تغییرند. صدا و جستجوی OpenRouter نیاز به فعال‌سازی جداگانه دارند.",
   "connectionOk": "وصل شد. مدل {model} جواب داد.",
   "@connectionOk": {
     "description": "Successful connection test",
@@ -900,8 +899,6 @@
   "chatEmptyHint": "هر چیزی بپرسید — Nex همین‌جا روی گوشی، بدون نیاز به اینترنت جواب می‌دهد.",
   "chatInputHint": "پیام…",
   "chatSendTooltip": "ارسال",
-  "automatic": "خودکار انجام می‌شود",
-  "notSupportedByProvider": "سرویسی که انتخاب کرده‌اید این را ندارد",
   "transcriptionSubtitle": "تبدیل صوت به متن قابل جست‌وجو، با درخواست شما",
   "ocrSubtitle": "شرح تصویر و خواندن متن مفید، با درخواست شما",
   "summarizationSubtitle": "فشرده کردن یادداشت بلند در یک خط",
@@ -1040,10 +1037,10 @@
       "description": "How many checklist items are ticked",
       "placeholders": {
           "done": {
-              "type": "int"
+              "type": "int", "format": "decimalPattern"
           },
           "total": {
-              "type": "int"
+              "type": "int", "format": "decimalPattern"
           }
       }
   },
@@ -1060,7 +1057,7 @@
   "foreignImportWorking": "دارم فایلت را می‌خوانم…",
   "foreignImportDone": "{count, plural, =0{در آن فایل یادداشتی پیدا نشد.} =1{یک یادداشت وارد شد.} other{‏{count} یادداشت وارد شد.}}",
   "@foreignImportDone": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}
   },
   "foreignImportUnreadable": "آن فایل خوانده نشد. همان ‏.zip دانلودشده، یا یک فایل ‏.json و ‏.md و ‏.txt را انتخاب کنید.",
   "localModelPause": "توقف موقت",
@@ -1087,7 +1084,7 @@
   "localModelDownloading": "در حال دانلود…",
   "localModelDownloadingPart": "دانلود تکهٔ ‏{index} از ‏{count}",
   "@localModelDownloadingPart": {
-    "placeholders": {"index": {"type": "int"}, "count": {"type": "int"}}
+    "placeholders": {"index": {"type": "int", "format": "decimalPattern"}, "count": {"type": "int", "format": "decimalPattern"}}
   },
   "localModelJoining": "در حال چسباندن تکه‌ها و بررسی‌شان…",
   "localModelKeepOpen": "می‌توانید از این صفحه بیرون بروید — دانلود ادامه پیدا می‌کند. بستن برنامه متوقفش می‌کند و دفعهٔ بعد از همان‌جا ادامه می‌دهد.",
@@ -1192,7 +1189,7 @@
   "@assistantContextCount": {
     "placeholders": {
       "count": {
-        "type": "int"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -1732,7 +1729,7 @@
   "@planHabitsTitle": {"description": "Planned module title: habits"},
   "planHabitsAbout": "کارهای کوچکی که می‌خواهید ادامه بدهید، با یک لمس تیک بخورند، با زنجیره‌هایی که یک روز جاافتاده را می‌بخشند.",
   "@planHabitsAbout": {"description": "Planned module: habits"},
-  "@onboardingStep": {"description": "Screen-reader label for the onboarding progress bar", "placeholders": {"step": {"type": "int"}, "total": {"type": "int"}}},
+  "@onboardingStep": {"description": "Screen-reader label for the onboarding progress bar", "placeholders": {"step": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "addLink": "افزودن پیوند",
   "linkAddress": "نشانی",
   "remindSetIn": "یادآور تنظیم شد — {when} دیگر",
@@ -1872,9 +1869,9 @@
   "disclosuresClear": "پاک کردن فهرست",
   "disclosuresClearBody": "این فهرست پاک شود؟ آنچه قبلاً فرستاده شده تغییری نمی‌کند.",
   "disclosuresFromNotes": "{count, plural, =1{از ۱ یادداشت} other{از {count} یادداشت}}",
-  "@disclosuresFromNotes": {"placeholders": {"count": {"type": "int"}}},
+  "@disclosuresFromNotes": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "disclosuresNotesGone": "{count, plural, =1{۱ یادداشت از آن زمان حذف شده است.} other{{count} یادداشت از آن زمان حذف شده‌اند.}}",
-  "@disclosuresNotesGone": {"placeholders": {"count": {"type": "int"}}},
+  "@disclosuresNotesGone": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "disclosureChat": "پرسش از دستیار",
   "disclosureTags": "پیشنهاد برچسب",
   "disclosureSummary": "خلاصهٔ یادداشت",
@@ -1920,7 +1917,7 @@
   "metricsValue": "معمولاً {median} · کندترین {slow}",
   "@metricsValue": {"placeholders": {"median": {"type": "String"}, "slow": {"type": "String"}}},
   "metricsCount": "{count, plural, =1{۱ بار} other{{count} بار}}",
-  "@metricsCount": {"placeholders": {"count": {"type": "int"}}},
+  "@metricsCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "metricsNoData": "هنوز اندازه‌گیری نشده",
   "metricsSessions": "ثبت‌های بدون خطا",
   "metricsSessionsValue": "{clean} از {total} نوبتِ همراه با ثبت",
@@ -1944,16 +1941,16 @@
   "cardDensityReadable": "خواناتر",
   "selectNotes": "انتخاب",
   "selectionCount": "{count} انتخاب‌شده",
-  "@selectionCount": {"placeholders": {"count": {"type": "int"}}},
+  "@selectionCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionClose": "بستن انتخاب",
   "selectionCopied": "{count} یادداشت کپی شد",
-  "@selectionCopied": {"placeholders": {"count": {"type": "int"}}},
+  "@selectionCopied": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionTagged": "برچسب به {count} یادداشت اضافه شد",
-  "@selectionTagged": {"placeholders": {"count": {"type": "int"}}},
+  "@selectionTagged": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionPinned": "{count} یادداشت پین شد",
-  "@selectionPinned": {"placeholders": {"count": {"type": "int"}}},
+  "@selectionPinned": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "selectionUnpinned": "پین {count} یادداشت برداشته شد",
-  "@selectionUnpinned": {"placeholders": {"count": {"type": "int"}}},
+  "@selectionUnpinned": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "recoveryCodeCopy": "کپی کد بازیابی",
   "assistantSettingPalette": "پالت رنگ",
   "assistantValueOn": "روشن",
@@ -2021,14 +2018,9 @@
   "planSecurityToolsAbout": "رمزگذاری و رمزگشایی متن (AES-256-GCM)، هش، کدگذاری و رمزگشایی، ساخت گذرواژه و عبارت عبور، همراه با نگهداری محلی و رمزگذاری‌شدهٔ اطلاعات محرمانه.",
   "aiResultImageTab": "تصویر",
   "aiResultTextTab": "متن",
-  "aiModelsCapabilities": "مدل‌ها و قابلیت‌ها",
-  "aiAdvancedHelp": "تست گفتگو این قابلیت‌ها را تأیید نمی‌کند. فقط قابلیت‌های پشتیبانی‌شدهٔ مدل یا سرویس خود را فعال کنید. صدا و جستجوی OpenRouter تا فعال‌کردن در اینجا خاموش می‌مانند.",
-  "aiPolicyDefault": "پیش‌فرض پروایدر",
-  "aiPolicyEnabled": "فعال برای این مدل",
-  "aiPolicyDisabled": "غیرفعال",
-  "aiImageInput": "ورودی تصویر",
+  "aiModelsCapabilities": "مدل‌های گفتار و جستجو",
+  "aiAdvancedHelp": "فقط اگر حساب شما برای این‌ها مدل دیگری دارد. خالی بماند، همان پیش‌فرضِ نوشته‌شده به کار می‌رود؛ تست بعدی همین‌ها را بررسی می‌کند.",
   "aiSpeechModel": "مدل تبدیل صدا به متن",
-  "aiSearchEmbeddings": "بردارهای جستجو",
   "aiEmbeddingModel": "مدل بردارسازی",
   "aiSpeechEndpoint": "آدرس کامل تبدیل صدا (اختیاری)",
   "aiEmbeddingEndpoint": "آدرس کامل بردارسازی (اختیاری)",
@@ -2059,5 +2051,57 @@
         "type": "String"
       }
     }
-  }
+  },
+  "aiProviderNoneLabel": "فقط روی دستگاه",
+  "aiProviderCustomLabel": "سفارشی (سازگار با OpenAI)",
+  "aiModelDefault": "اگر خالی بماند، {model} به کار می‌رود.",
+  "@aiModelDefault": {"placeholders": {"model": {"type": "String"}}},
+  "aiModelBrowse": "انتخاب از فهرست سرویس",
+  "aiModelBrowseTitle": "مدل‌های {provider}",
+  "@aiModelBrowseTitle": {"placeholders": {"provider": {"type": "String"}}},
+  "aiModelBrowseSearch": "جستجوی مدل",
+  "aiModelBrowseEmpty": "مدلی با این نام نیست.",
+  "aiModelBrowseNeedsKey": "اول کلید API را وارد کنید.",
+  "aiModelBrowseFailed": "فهرست مدل‌ها دریافت نشد.",
+  "aiModelBrowseDefault": "وقتی فیلد خالی است",
+  "aiCanDoTitle": "این مدل چه کارهایی می‌کند",
+  "aiCanDoChecking": "در حال بررسی با چند درخواست آزمایشی کوچک…",
+  "aiCanDoCheckedAt": "بررسی‌شده در {date}",
+  "@aiCanDoCheckedAt": {"placeholders": {"date": {"type": "String"}}},
+  "aiCanDoUnchecked": "هنوز بررسی نشده. «تست اتصال» توانایی‌های مدل را هم پیدا می‌کند.",
+  "aiCanDoStale": "از بررسی قبلی، فیلدها تغییر کرده‌اند. برای بررسی همین مدل دوباره تست کنید.",
+  "aiCanDoPrivacy": "بررسی فقط نمونه‌های آزمایشیِ خود Nex را می‌فرستد — تصویر یک عدد، یک ثانیه صدای بوق، یک جمله و یک ویدئوی عمومی یوتیوب — و هیچ‌وقت یادداشت‌های شما را نه.",
+  "aiCheckAgain": "بررسی دوباره",
+  "aiSearchHeld": "این مدل جستجوی معنایی هم دارد. چون برای نمایه‌سازی متن یادداشت‌ها فرستاده می‌شود، تا خودتان در «هوش مصنوعی» روشنش نکنید خاموش می‌ماند.",
+  "aiCanImages": "خواندن تصویر",
+  "aiCanImagesUse": "متن و شرح عکس، پرسش دربارهٔ تصویر",
+  "aiCanAudio": "شنیدن صدا",
+  "aiCanAudioUse": "تبدیل یادداشت صوتی به متن، پرسش با صدا",
+  "aiCanSearch": "جستجوی معنایی",
+  "aiCanSearchUse": "پیدا کردن یادداشت از روی معنا",
+  "aiCanVideo": "دیدن ویدئوی یوتیوب",
+  "aiCanVideoUse": "محتوای ویدئوی ذخیره‌شده در چند خط",
+  "aiCanWorks": "کار می‌کند",
+  "aiCanWorksWith": "کار می‌کند · {model}",
+  "@aiCanWorksWith": {"placeholders": {"model": {"type": "String"}}},
+  "aiCanChecking": "در حال بررسی…",
+  "aiCanExpected": "احتمالاً کار می‌کند · هنوز بررسی نشده",
+  "aiCanUncheckedOff": "تا بررسی پیدایش نکند خاموش است",
+  "aiCanRefusedImages": "این مدل تصویر آزمایشی را نخواند",
+  "aiCanRefusedAudio": "مدل گفتار {model} پذیرفته نشد",
+  "@aiCanRefusedAudio": {"placeholders": {"model": {"type": "String"}}},
+  "aiCanRefusedSearch": "مدل بردارسازی {model} پذیرفته نشد",
+  "@aiCanRefusedSearch": {"placeholders": {"model": {"type": "String"}}},
+  "aiCanRefusedVideo": "این مدل ویدئو نمی‌بیند",
+  "aiCanFailedBefore": "در بررسی قبلی رد شد",
+  "aiCanAbsentAudio": "{provider} سرویس تبدیل گفتار به متن ندارد",
+  "@aiCanAbsentAudio": {"placeholders": {"provider": {"type": "String"}}},
+  "aiCanAbsentSearch": "{provider} سرویس بردارسازی برای جستجو ندارد",
+  "@aiCanAbsentSearch": {"placeholders": {"provider": {"type": "String"}}},
+  "aiCanAbsentAddress": "آدرسش را در «مدل‌های گفتار و جستجو» وارد کنید",
+  "aiCanAbsentVideo": "فقط Google Gemini ویدئوی یوتیوب را می‌بیند",
+  "aiCanUnknown": "الان بررسی نشد — بعداً دوباره امتحان کنید",
+  "aiCanNeedsCloud": "به یک سرویس ابری هوش مصنوعی نیاز دارد",
+  "intelligenceAbilities": "توانایی‌ها",
+  "intelligenceUnchecked": "توانایی‌های این مدل هنوز بررسی نشده — برای تست باز کنید"
 }

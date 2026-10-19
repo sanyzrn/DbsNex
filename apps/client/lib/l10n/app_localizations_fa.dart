@@ -156,7 +156,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String chatAboutGroup(String label, int count) {
-    return 'دربارهٔ $label · $count یادداشت';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'دربارهٔ $label · $countString یادداشت';
   }
 
   @override
@@ -170,12 +174,20 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String groupDeleteBody(int count) {
-    return '$count یادداشت به زباله‌دان می‌رود. از کتابخانه ← زباله‌دان می‌توانید برشان گردانید.';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString یادداشت به زباله‌دان می‌رود. از کتابخانه ← زباله‌دان می‌توانید برشان گردانید.';
   }
 
   @override
   String groupDeleted(int count) {
-    return '$count یادداشت حذف شد';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString یادداشت حذف شد';
   }
 
   @override
@@ -1269,7 +1281,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String attachedMore(int count) {
-    return '$count فایل دیگر';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString فایل دیگر';
   }
 
   @override
@@ -1308,7 +1324,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String voiceDuration(int seconds) {
-    return 'صدا · $seconds ثانیه';
+    final intl.NumberFormat secondsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String secondsString = secondsNumberFormat.format(seconds);
+
+    return 'صدا · $secondsString ثانیه';
   }
 
   @override
@@ -1451,7 +1471,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String searchFiltersClear(int count) {
-    return 'پاک کردن همه ($count)';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'پاک کردن همه ($countString)';
   }
 
   @override
@@ -1481,7 +1505,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String searchFiltersActive(int count) {
-    return '$count مورد فعال';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString مورد فعال';
   }
 
   @override
@@ -1572,10 +1600,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String emptyTrashBody(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count یادداشت برای همیشه از بین می‌روند و برگشتی ندارند.',
+      other: '$countString یادداشت برای همیشه از بین می‌روند و برگشتی ندارند.',
       one: 'یک یادداشت برای همیشه از بین می‌رود و برگشتی ندارد.',
     );
     return '$_temp0';
@@ -2098,7 +2130,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiProviderIntro =>
-      'انتخاب کنید درخواست‌های هوش مصنوعی کجا فرستاده شوند. تست اتصال موفق، همان تنظیمات آزمایش‌شده را ذخیره می‌کند. قابلیت‌های روی دستگاه به مدل‌های دانلودشده بستگی دارند.';
+      'انتخاب کنید درخواست‌های هوش مصنوعی کجا فرستاده شوند. «تست اتصال» همان تنظیمات آزمایش‌شده را ذخیره می‌کند و توانایی‌های مدل را هم پیدا می‌کند. قابلیت‌های روی دستگاه به مدل‌های دانلودشده بستگی دارند.';
 
   @override
   String get apiKey => 'کلید API';
@@ -2134,10 +2166,6 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get aiKeyStorage =>
       'کلید در حافظهٔ امن خود دستگاه نگه داشته می‌شود، نه در تنظیمات معمولی برنامه، و جز به همان سرویسی که انتخاب کرده‌اید جایی فرستاده نمی‌شود.';
-
-  @override
-  String get aiCapabilityNote =>
-      'تست اتصال فقط گفتگوی متنی را بررسی می‌کند. مدل‌های جداگانهٔ صدا و جستجو و قابلیت‌های پشتیبانی‌شده را در «مدل‌ها و قابلیت‌ها» تنظیم کنید. آدرس‌های سفارشی هم در همان بخش قابل تغییرند. صدا و جستجوی OpenRouter نیاز به فعال‌سازی جداگانه دارند.';
 
   @override
   String connectionOk(String model) {
@@ -2190,12 +2218,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get chatSendTooltip => 'ارسال';
-
-  @override
-  String get automatic => 'خودکار انجام می‌شود';
-
-  @override
-  String get notSupportedByProvider => 'سرویسی که انتخاب کرده‌اید این را ندارد';
 
   @override
   String get transcriptionSubtitle =>
@@ -2343,7 +2365,15 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String checklistProgress(int done, int total) {
-    return '$done از $total';
+    final intl.NumberFormat doneNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String doneString = doneNumberFormat.format(done);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String totalString = totalNumberFormat.format(total);
+
+    return '$doneString از $totalString';
   }
 
   @override
@@ -2367,10 +2397,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String foreignImportDone(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '‏$count یادداشت وارد شد.',
+      other: '‏$countString یادداشت وارد شد.',
       one: 'یک یادداشت وارد شد.',
       zero: 'در آن فایل یادداشتی پیدا نشد.',
     );
@@ -2452,7 +2486,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String localModelDownloadingPart(int index, int count) {
-    return 'دانلود تکهٔ ‏$index از ‏$count';
+    final intl.NumberFormat indexNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String indexString = indexNumberFormat.format(index);
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'دانلود تکهٔ ‏$indexString از ‏$countString';
   }
 
   @override
@@ -2725,7 +2766,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String assistantContextCount(int count) {
-    return '‏$count تای آخر';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '‏$countString تای آخر';
   }
 
   @override
@@ -4321,7 +4366,15 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String onboardingStep(int step, int total) {
-    return 'قدم $step از $total';
+    final intl.NumberFormat stepNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String stepString = stepNumberFormat.format(step);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String totalString = totalNumberFormat.format(total);
+
+    return 'قدم $stepString از $totalString';
   }
 
   @override
@@ -5004,10 +5057,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String disclosuresFromNotes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'از $count یادداشت',
+      other: 'از $countString یادداشت',
       one: 'از ۱ یادداشت',
     );
     return '$_temp0';
@@ -5015,10 +5072,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String disclosuresNotesGone(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count یادداشت از آن زمان حذف شده‌اند.',
+      other: '$countString یادداشت از آن زمان حذف شده‌اند.',
       one: '۱ یادداشت از آن زمان حذف شده است.',
     );
     return '$_temp0';
@@ -5161,10 +5222,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String metricsCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count بار',
+      other: '$countString بار',
       one: '۱ بار',
     );
     return '$_temp0';
@@ -5237,7 +5302,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String selectionCount(int count) {
-    return '$count انتخاب‌شده';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString انتخاب‌شده';
   }
 
   @override
@@ -5245,22 +5314,38 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String selectionCopied(int count) {
-    return '$count یادداشت کپی شد';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString یادداشت کپی شد';
   }
 
   @override
   String selectionTagged(int count) {
-    return 'برچسب به $count یادداشت اضافه شد';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'برچسب به $countString یادداشت اضافه شد';
   }
 
   @override
   String selectionPinned(int count) {
-    return '$count یادداشت پین شد';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString یادداشت پین شد';
   }
 
   @override
   String selectionUnpinned(int count) {
-    return 'پین $count یادداشت برداشته شد';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'پین $countString یادداشت برداشته شد';
   }
 
   @override
@@ -5493,29 +5578,14 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiResultTextTab => 'متن';
 
   @override
-  String get aiModelsCapabilities => 'مدل‌ها و قابلیت‌ها';
+  String get aiModelsCapabilities => 'مدل‌های گفتار و جستجو';
 
   @override
   String get aiAdvancedHelp =>
-      'تست گفتگو این قابلیت‌ها را تأیید نمی‌کند. فقط قابلیت‌های پشتیبانی‌شدهٔ مدل یا سرویس خود را فعال کنید. صدا و جستجوی OpenRouter تا فعال‌کردن در اینجا خاموش می‌مانند.';
-
-  @override
-  String get aiPolicyDefault => 'پیش‌فرض پروایدر';
-
-  @override
-  String get aiPolicyEnabled => 'فعال برای این مدل';
-
-  @override
-  String get aiPolicyDisabled => 'غیرفعال';
-
-  @override
-  String get aiImageInput => 'ورودی تصویر';
+      'فقط اگر حساب شما برای این‌ها مدل دیگری دارد. خالی بماند، همان پیش‌فرضِ نوشته‌شده به کار می‌رود؛ تست بعدی همین‌ها را بررسی می‌کند.';
 
   @override
   String get aiSpeechModel => 'مدل تبدیل صدا به متن';
-
-  @override
-  String get aiSearchEmbeddings => 'بردارهای جستجو';
 
   @override
   String get aiEmbeddingModel => 'مدل بردارسازی';
@@ -5587,4 +5657,158 @@ class AppLocalizationsFa extends AppLocalizations {
   String pdfPageCount(String page, String total) {
     return 'صفحهٔ $page از $total';
   }
+
+  @override
+  String get aiProviderNoneLabel => 'فقط روی دستگاه';
+
+  @override
+  String get aiProviderCustomLabel => 'سفارشی (سازگار با OpenAI)';
+
+  @override
+  String aiModelDefault(String model) {
+    return 'اگر خالی بماند، $model به کار می‌رود.';
+  }
+
+  @override
+  String get aiModelBrowse => 'انتخاب از فهرست سرویس';
+
+  @override
+  String aiModelBrowseTitle(String provider) {
+    return 'مدل‌های $provider';
+  }
+
+  @override
+  String get aiModelBrowseSearch => 'جستجوی مدل';
+
+  @override
+  String get aiModelBrowseEmpty => 'مدلی با این نام نیست.';
+
+  @override
+  String get aiModelBrowseNeedsKey => 'اول کلید API را وارد کنید.';
+
+  @override
+  String get aiModelBrowseFailed => 'فهرست مدل‌ها دریافت نشد.';
+
+  @override
+  String get aiModelBrowseDefault => 'وقتی فیلد خالی است';
+
+  @override
+  String get aiCanDoTitle => 'این مدل چه کارهایی می‌کند';
+
+  @override
+  String get aiCanDoChecking => 'در حال بررسی با چند درخواست آزمایشی کوچک…';
+
+  @override
+  String aiCanDoCheckedAt(String date) {
+    return 'بررسی‌شده در $date';
+  }
+
+  @override
+  String get aiCanDoUnchecked =>
+      'هنوز بررسی نشده. «تست اتصال» توانایی‌های مدل را هم پیدا می‌کند.';
+
+  @override
+  String get aiCanDoStale =>
+      'از بررسی قبلی، فیلدها تغییر کرده‌اند. برای بررسی همین مدل دوباره تست کنید.';
+
+  @override
+  String get aiCanDoPrivacy =>
+      'بررسی فقط نمونه‌های آزمایشیِ خود Nex را می‌فرستد — تصویر یک عدد، یک ثانیه صدای بوق، یک جمله و یک ویدئوی عمومی یوتیوب — و هیچ‌وقت یادداشت‌های شما را نه.';
+
+  @override
+  String get aiCheckAgain => 'بررسی دوباره';
+
+  @override
+  String get aiSearchHeld =>
+      'این مدل جستجوی معنایی هم دارد. چون برای نمایه‌سازی متن یادداشت‌ها فرستاده می‌شود، تا خودتان در «هوش مصنوعی» روشنش نکنید خاموش می‌ماند.';
+
+  @override
+  String get aiCanImages => 'خواندن تصویر';
+
+  @override
+  String get aiCanImagesUse => 'متن و شرح عکس، پرسش دربارهٔ تصویر';
+
+  @override
+  String get aiCanAudio => 'شنیدن صدا';
+
+  @override
+  String get aiCanAudioUse => 'تبدیل یادداشت صوتی به متن، پرسش با صدا';
+
+  @override
+  String get aiCanSearch => 'جستجوی معنایی';
+
+  @override
+  String get aiCanSearchUse => 'پیدا کردن یادداشت از روی معنا';
+
+  @override
+  String get aiCanVideo => 'دیدن ویدئوی یوتیوب';
+
+  @override
+  String get aiCanVideoUse => 'محتوای ویدئوی ذخیره‌شده در چند خط';
+
+  @override
+  String get aiCanWorks => 'کار می‌کند';
+
+  @override
+  String aiCanWorksWith(String model) {
+    return 'کار می‌کند · $model';
+  }
+
+  @override
+  String get aiCanChecking => 'در حال بررسی…';
+
+  @override
+  String get aiCanExpected => 'احتمالاً کار می‌کند · هنوز بررسی نشده';
+
+  @override
+  String get aiCanUncheckedOff => 'تا بررسی پیدایش نکند خاموش است';
+
+  @override
+  String get aiCanRefusedImages => 'این مدل تصویر آزمایشی را نخواند';
+
+  @override
+  String aiCanRefusedAudio(String model) {
+    return 'مدل گفتار $model پذیرفته نشد';
+  }
+
+  @override
+  String aiCanRefusedSearch(String model) {
+    return 'مدل بردارسازی $model پذیرفته نشد';
+  }
+
+  @override
+  String get aiCanRefusedVideo => 'این مدل ویدئو نمی‌بیند';
+
+  @override
+  String get aiCanFailedBefore => 'در بررسی قبلی رد شد';
+
+  @override
+  String aiCanAbsentAudio(String provider) {
+    return '$provider سرویس تبدیل گفتار به متن ندارد';
+  }
+
+  @override
+  String aiCanAbsentSearch(String provider) {
+    return '$provider سرویس بردارسازی برای جستجو ندارد';
+  }
+
+  @override
+  String get aiCanAbsentAddress =>
+      'آدرسش را در «مدل‌های گفتار و جستجو» وارد کنید';
+
+  @override
+  String get aiCanAbsentVideo => 'فقط Google Gemini ویدئوی یوتیوب را می‌بیند';
+
+  @override
+  String get aiCanUnknown => 'الان بررسی نشد — بعداً دوباره امتحان کنید';
+
+  @override
+  String get aiCanNeedsCloud => 'به یک سرویس ابری هوش مصنوعی نیاز دارد';
+
+  @override
+  String get intelligenceAbilities => 'توانایی‌ها';
+
+  @override
+  String get intelligenceUnchecked =>
+      'توانایی‌های این مدل هنوز بررسی نشده — برای تست باز کنید';
 }

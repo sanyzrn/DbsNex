@@ -41,7 +41,10 @@ class _IntelligenceGlance extends StatelessWidget {
                   Text(
                     on
                         ? l10n.intelligenceStateOn(
-                            preferences.aiProvider.provider.label,
+                            nexProviderName(
+                              l10n,
+                              preferences.aiProvider.provider,
+                            ),
                           )
                         : l10n.intelligenceOff,
                     style: theme.textTheme.titleSmall?.copyWith(

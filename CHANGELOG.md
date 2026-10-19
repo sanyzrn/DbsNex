@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.8
+
+- **Nex finds out what your AI model can do.** **Test connection** now also checks, with four small test requests, whether the model reads pictures, hears recordings, searches by meaning and watches YouTube videos, and the provider page shows the answer row by row — with the reason when one does not work: the provider has no such service, the model refused, or it could not be checked just then. The three **Image input**, **Transcription** and **Search embeddings** dropdowns are gone; what the check finds decides which features Nex offers. The check sends only test material Nex makes itself — a picture of a number, a second of tone, one sentence and a public YouTube video — never your notes, and runs only when you test.
+- **Pick a model from your provider's list.** The list button in the model field shows the models your key can use, with search, and the field says which model is used when it is left empty. The speech and search model fields are under **Speech and search models**.
+- **New search waits for you.** When a check finds that a provider you already use can now search by meaning — OpenRouter, for example — search stays off until you turn it on in Intelligence, because it sends your notes' text to be indexed.
+- **Intelligence says why.** An ability your provider or model cannot do is greyed with the reason, such as "Anthropic has no speech-to-text service", instead of one general line. The count of working abilities leaves out the paused one, the heading over them says **Abilities**, the provider row shows the model in use and asks you to test it when its abilities have not been checked yet, and **On-device only** and **Custom** read in Persian in Persian. **Analyze video** is offered only for a Gemini model that can watch videos.
+- **Persian digits everywhere.** Two dozen counts that still showed Latin digits in Persian — among them the assistant's choice of how many notes it reads — now use Persian digits.
+
 ## v2.1.7
 
 - **Your writing portrait.** At the foot of your profile, once you have 30 notes written on at least 7 days, Nex shows how you write: the part of the day most of your notes come from, how many days you wrote on in the last month, how many checklist items you tick, what kinds of notes you keep and your most used tags — all counted on the phone. Until then, a ring shows how far there is to go. With an AI provider, **Write my portrait** asks it for a short portrait in words: a headline, a few sentences, five traits with how strongly each shows, your strengths and one thing to try. It reads a sample of up to 80 notes, sent once when you tap, and is a reflection of your notes — not a test or a diagnosis.

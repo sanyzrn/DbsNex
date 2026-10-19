@@ -3455,7 +3455,7 @@ abstract class AppLocalizations {
   /// Explains what the screen is for
   ///
   /// In en, this message translates to:
-  /// **'Choose where AI requests go. A successful connection test saves the exact settings you tested. On-device features depend on the models downloaded to this phone.'**
+  /// **'Choose where AI requests go. Test connection saves the exact settings you tested and finds out what the model can do. On-device features depend on the models downloaded to this phone.'**
   String get aiProviderIntro;
 
   /// Field label
@@ -3517,12 +3517,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The key is kept in this device\'s own secure storage, not in the app\'s ordinary settings, and it is never sent anywhere except to the provider you chose.'**
   String get aiKeyStorage;
-
-  /// What each capability can actually reach
-  ///
-  /// In en, this message translates to:
-  /// **'Connection test checks text chat only. Set separate speech/search models and supported features under Models and capabilities. Custom endpoints can be overridden there. OpenRouter audio and search require explicit opt-in.'**
-  String get aiCapabilityNote;
 
   /// Successful connection test
   ///
@@ -3613,18 +3607,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send'**
   String get chatSendTooltip;
-
-  /// Heading above the capability switches
-  ///
-  /// In en, this message translates to:
-  /// **'Worked out automatically'**
-  String get automatic;
-
-  /// Capability unavailable for the selected provider
-  ///
-  /// In en, this message translates to:
-  /// **'The provider you chose cannot do this'**
-  String get notSupportedByProvider;
 
   /// Capability explanation
   ///
@@ -8975,50 +8957,20 @@ abstract class AppLocalizations {
   /// No description provided for @aiModelsCapabilities.
   ///
   /// In en, this message translates to:
-  /// **'Models and capabilities'**
+  /// **'Speech and search models'**
   String get aiModelsCapabilities;
 
   /// No description provided for @aiAdvancedHelp.
   ///
   /// In en, this message translates to:
-  /// **'Chat testing does not verify these features. Enable only what your model or gateway supports. OpenRouter audio and search stay off until enabled here.'**
+  /// **'Only if your account uses other models for these. Left empty, the defaults shown are used; the next test checks whatever is here.'**
   String get aiAdvancedHelp;
-
-  /// No description provided for @aiPolicyDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Provider default'**
-  String get aiPolicyDefault;
-
-  /// No description provided for @aiPolicyEnabled.
-  ///
-  /// In en, this message translates to:
-  /// **'Enabled for this model'**
-  String get aiPolicyEnabled;
-
-  /// No description provided for @aiPolicyDisabled.
-  ///
-  /// In en, this message translates to:
-  /// **'Disabled'**
-  String get aiPolicyDisabled;
-
-  /// No description provided for @aiImageInput.
-  ///
-  /// In en, this message translates to:
-  /// **'Image input'**
-  String get aiImageInput;
 
   /// No description provided for @aiSpeechModel.
   ///
   /// In en, this message translates to:
   /// **'Transcription model'**
   String get aiSpeechModel;
-
-  /// No description provided for @aiSearchEmbeddings.
-  ///
-  /// In en, this message translates to:
-  /// **'Search embeddings'**
-  String get aiSearchEmbeddings;
 
   /// No description provided for @aiEmbeddingModel.
   ///
@@ -9145,6 +9097,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page {page} of {total}'**
   String pdfPageCount(String page, String total);
+
+  /// No description provided for @aiProviderNoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device only'**
+  String get aiProviderNoneLabel;
+
+  /// No description provided for @aiProviderCustomLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom (OpenAI-compatible)'**
+  String get aiProviderCustomLabel;
+
+  /// No description provided for @aiModelDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Left empty, {model} is used.'**
+  String aiModelDefault(String model);
+
+  /// No description provided for @aiModelBrowse.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from the provider\'s list'**
+  String get aiModelBrowse;
+
+  /// No description provided for @aiModelBrowseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Models at {provider}'**
+  String aiModelBrowseTitle(String provider);
+
+  /// No description provided for @aiModelBrowseSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search models'**
+  String get aiModelBrowseSearch;
+
+  /// No description provided for @aiModelBrowseEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No model matches.'**
+  String get aiModelBrowseEmpty;
+
+  /// No description provided for @aiModelBrowseNeedsKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the API key first.'**
+  String get aiModelBrowseNeedsKey;
+
+  /// No description provided for @aiModelBrowseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The list could not be loaded.'**
+  String get aiModelBrowseFailed;
+
+  /// No description provided for @aiModelBrowseDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'used when the field is empty'**
+  String get aiModelBrowseDefault;
+
+  /// No description provided for @aiCanDoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What this model can do'**
+  String get aiCanDoTitle;
+
+  /// No description provided for @aiCanDoChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking with a few small test requests…'**
+  String get aiCanDoChecking;
+
+  /// No description provided for @aiCanDoCheckedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked {date}'**
+  String aiCanDoCheckedAt(String date);
+
+  /// No description provided for @aiCanDoUnchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not checked yet. Test connection also finds out what the model can do.'**
+  String get aiCanDoUnchecked;
+
+  /// No description provided for @aiCanDoStale.
+  ///
+  /// In en, this message translates to:
+  /// **'The fields changed since the last check. Test again to check this model.'**
+  String get aiCanDoStale;
+
+  /// No description provided for @aiCanDoPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'The check sends only test material Nex makes itself — a picture of a number, a second of tone, one sentence and a public YouTube video — never your notes.'**
+  String get aiCanDoPrivacy;
+
+  /// No description provided for @aiCheckAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get aiCheckAgain;
+
+  /// No description provided for @aiSearchHeld.
+  ///
+  /// In en, this message translates to:
+  /// **'This model can also search by meaning. Search stays off until you turn it on in Intelligence, because it sends your notes\' text to be indexed.'**
+  String get aiSearchHeld;
+
+  /// No description provided for @aiCanImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Read pictures'**
+  String get aiCanImages;
+
+  /// No description provided for @aiCanImagesUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo text and descriptions, questions about a picture'**
+  String get aiCanImagesUse;
+
+  /// No description provided for @aiCanAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Hear recordings'**
+  String get aiCanAudio;
+
+  /// No description provided for @aiCanAudioUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice notes into text, spoken questions'**
+  String get aiCanAudioUse;
+
+  /// No description provided for @aiCanSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by meaning'**
+  String get aiCanSearch;
+
+  /// No description provided for @aiCanSearchUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding notes by what they mean'**
+  String get aiCanSearchUse;
+
+  /// No description provided for @aiCanVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch YouTube videos'**
+  String get aiCanVideo;
+
+  /// No description provided for @aiCanVideoUse.
+  ///
+  /// In en, this message translates to:
+  /// **'What a saved video says, in a few lines'**
+  String get aiCanVideoUse;
+
+  /// No description provided for @aiCanWorks.
+  ///
+  /// In en, this message translates to:
+  /// **'Works'**
+  String get aiCanWorks;
+
+  /// No description provided for @aiCanWorksWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Works · {model}'**
+  String aiCanWorksWith(String model);
+
+  /// No description provided for @aiCanChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get aiCanChecking;
+
+  /// No description provided for @aiCanExpected.
+  ///
+  /// In en, this message translates to:
+  /// **'Should work · not checked yet'**
+  String get aiCanExpected;
+
+  /// No description provided for @aiCanUncheckedOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off until a check finds it'**
+  String get aiCanUncheckedOff;
+
+  /// No description provided for @aiCanRefusedImages.
+  ///
+  /// In en, this message translates to:
+  /// **'This model did not read the test picture'**
+  String get aiCanRefusedImages;
+
+  /// No description provided for @aiCanRefusedAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'The speech model {model} was refused'**
+  String aiCanRefusedAudio(String model);
+
+  /// No description provided for @aiCanRefusedSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'The embedding model {model} was refused'**
+  String aiCanRefusedSearch(String model);
+
+  /// No description provided for @aiCanRefusedVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'This model cannot watch videos'**
+  String get aiCanRefusedVideo;
+
+  /// No description provided for @aiCanFailedBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'Did not pass the last check'**
+  String get aiCanFailedBefore;
+
+  /// No description provided for @aiCanAbsentAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} has no speech-to-text service'**
+  String aiCanAbsentAudio(String provider);
+
+  /// No description provided for @aiCanAbsentSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} has no embedding service for search'**
+  String aiCanAbsentSearch(String provider);
+
+  /// No description provided for @aiCanAbsentAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs its address under Speech and search models'**
+  String get aiCanAbsentAddress;
+
+  /// No description provided for @aiCanAbsentVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Only Google Gemini can watch YouTube videos'**
+  String get aiCanAbsentVideo;
+
+  /// No description provided for @aiCanUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not be checked just now — try again later'**
+  String get aiCanUnknown;
+
+  /// No description provided for @aiCanNeedsCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs a cloud AI provider'**
+  String get aiCanNeedsCloud;
+
+  /// No description provided for @intelligenceAbilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Abilities'**
+  String get intelligenceAbilities;
+
+  /// No description provided for @intelligenceUnchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'What this model can do has not been checked yet — open to test it'**
+  String get intelligenceUnchecked;
 }
 
 class _AppLocalizationsDelegate

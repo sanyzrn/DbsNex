@@ -2144,7 +2144,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiProviderIntro =>
-      'Choose where AI requests go. A successful connection test saves the exact settings you tested. On-device features depend on the models downloaded to this phone.';
+      'Choose where AI requests go. Test connection saves the exact settings you tested and finds out what the model can do. On-device features depend on the models downloaded to this phone.';
 
   @override
   String get apiKey => 'API key';
@@ -2179,10 +2179,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiKeyStorage =>
       'The key is kept in this device\'s own secure storage, not in the app\'s ordinary settings, and it is never sent anywhere except to the provider you chose.';
-
-  @override
-  String get aiCapabilityNote =>
-      'Connection test checks text chat only. Set separate speech/search models and supported features under Models and capabilities. Custom endpoints can be overridden there. OpenRouter audio and search require explicit opt-in.';
 
   @override
   String connectionOk(String model) {
@@ -2236,12 +2232,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatSendTooltip => 'Send';
-
-  @override
-  String get automatic => 'Worked out automatically';
-
-  @override
-  String get notSupportedByProvider => 'The provider you chose cannot do this';
 
   @override
   String get transcriptionSubtitle =>
@@ -5677,29 +5667,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiResultTextTab => 'Text';
 
   @override
-  String get aiModelsCapabilities => 'Models and capabilities';
+  String get aiModelsCapabilities => 'Speech and search models';
 
   @override
   String get aiAdvancedHelp =>
-      'Chat testing does not verify these features. Enable only what your model or gateway supports. OpenRouter audio and search stay off until enabled here.';
-
-  @override
-  String get aiPolicyDefault => 'Provider default';
-
-  @override
-  String get aiPolicyEnabled => 'Enabled for this model';
-
-  @override
-  String get aiPolicyDisabled => 'Disabled';
-
-  @override
-  String get aiImageInput => 'Image input';
+      'Only if your account uses other models for these. Left empty, the defaults shown are used; the next test checks whatever is here.';
 
   @override
   String get aiSpeechModel => 'Transcription model';
-
-  @override
-  String get aiSearchEmbeddings => 'Search embeddings';
 
   @override
   String get aiEmbeddingModel => 'Embedding model';
@@ -5771,4 +5746,159 @@ class AppLocalizationsEn extends AppLocalizations {
   String pdfPageCount(String page, String total) {
     return 'Page $page of $total';
   }
+
+  @override
+  String get aiProviderNoneLabel => 'On-device only';
+
+  @override
+  String get aiProviderCustomLabel => 'Custom (OpenAI-compatible)';
+
+  @override
+  String aiModelDefault(String model) {
+    return 'Left empty, $model is used.';
+  }
+
+  @override
+  String get aiModelBrowse => 'Choose from the provider\'s list';
+
+  @override
+  String aiModelBrowseTitle(String provider) {
+    return 'Models at $provider';
+  }
+
+  @override
+  String get aiModelBrowseSearch => 'Search models';
+
+  @override
+  String get aiModelBrowseEmpty => 'No model matches.';
+
+  @override
+  String get aiModelBrowseNeedsKey => 'Enter the API key first.';
+
+  @override
+  String get aiModelBrowseFailed => 'The list could not be loaded.';
+
+  @override
+  String get aiModelBrowseDefault => 'used when the field is empty';
+
+  @override
+  String get aiCanDoTitle => 'What this model can do';
+
+  @override
+  String get aiCanDoChecking => 'Checking with a few small test requests…';
+
+  @override
+  String aiCanDoCheckedAt(String date) {
+    return 'Checked $date';
+  }
+
+  @override
+  String get aiCanDoUnchecked =>
+      'Not checked yet. Test connection also finds out what the model can do.';
+
+  @override
+  String get aiCanDoStale =>
+      'The fields changed since the last check. Test again to check this model.';
+
+  @override
+  String get aiCanDoPrivacy =>
+      'The check sends only test material Nex makes itself — a picture of a number, a second of tone, one sentence and a public YouTube video — never your notes.';
+
+  @override
+  String get aiCheckAgain => 'Check again';
+
+  @override
+  String get aiSearchHeld =>
+      'This model can also search by meaning. Search stays off until you turn it on in Intelligence, because it sends your notes\' text to be indexed.';
+
+  @override
+  String get aiCanImages => 'Read pictures';
+
+  @override
+  String get aiCanImagesUse =>
+      'Photo text and descriptions, questions about a picture';
+
+  @override
+  String get aiCanAudio => 'Hear recordings';
+
+  @override
+  String get aiCanAudioUse => 'Voice notes into text, spoken questions';
+
+  @override
+  String get aiCanSearch => 'Search by meaning';
+
+  @override
+  String get aiCanSearchUse => 'Finding notes by what they mean';
+
+  @override
+  String get aiCanVideo => 'Watch YouTube videos';
+
+  @override
+  String get aiCanVideoUse => 'What a saved video says, in a few lines';
+
+  @override
+  String get aiCanWorks => 'Works';
+
+  @override
+  String aiCanWorksWith(String model) {
+    return 'Works · $model';
+  }
+
+  @override
+  String get aiCanChecking => 'Checking…';
+
+  @override
+  String get aiCanExpected => 'Should work · not checked yet';
+
+  @override
+  String get aiCanUncheckedOff => 'Off until a check finds it';
+
+  @override
+  String get aiCanRefusedImages => 'This model did not read the test picture';
+
+  @override
+  String aiCanRefusedAudio(String model) {
+    return 'The speech model $model was refused';
+  }
+
+  @override
+  String aiCanRefusedSearch(String model) {
+    return 'The embedding model $model was refused';
+  }
+
+  @override
+  String get aiCanRefusedVideo => 'This model cannot watch videos';
+
+  @override
+  String get aiCanFailedBefore => 'Did not pass the last check';
+
+  @override
+  String aiCanAbsentAudio(String provider) {
+    return '$provider has no speech-to-text service';
+  }
+
+  @override
+  String aiCanAbsentSearch(String provider) {
+    return '$provider has no embedding service for search';
+  }
+
+  @override
+  String get aiCanAbsentAddress =>
+      'Needs its address under Speech and search models';
+
+  @override
+  String get aiCanAbsentVideo => 'Only Google Gemini can watch YouTube videos';
+
+  @override
+  String get aiCanUnknown => 'Could not be checked just now — try again later';
+
+  @override
+  String get aiCanNeedsCloud => 'Needs a cloud AI provider';
+
+  @override
+  String get intelligenceAbilities => 'Abilities';
+
+  @override
+  String get intelligenceUnchecked =>
+      'What this model can do has not been checked yet — open to test it';
 }
