@@ -5817,8 +5817,8 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiGatewayHelp =>
-      'فقط برای سرویس واسطی که قالب خود Gemini را دارد: آدرسش، با ⁦/v1beta⁩ یا بدون آن. کلید و همهٔ درخواست‌ها به همین آدرس فرستاده می‌شوند. خالی بماند، آدرس خود گوگل به کار می‌رود.';
+      'فقط برای سرویس واسطی که قالب خود Gemini را دارد: آدرسش، با v1beta در انتها یا بدون آن. کلید و همهٔ درخواست‌ها به همین آدرس فرستاده می‌شوند. خالی بماند، آدرس خود گوگل به کار می‌رود.';
 
   @override
-  String get aiGatewayInvalid => 'آدرس کامل را با ⁦https://⁩ وارد کنید';
+  String get aiGatewayInvalid => 'آدرس کامل را با https وارد کنید';
 }
