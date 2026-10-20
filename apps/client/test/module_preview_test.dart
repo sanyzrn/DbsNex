@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_registry.dart';
+import 'package:nex_client/modules/module_rollout.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -13,11 +14,19 @@ void main() {
       .whereType<NexStoredModule>()
       .map((m) => m.id)
       .toSet();
+  // Reviewed and finished, so available; the rest are still Soon.
+  final reviewed = moduleIds.where(nexModuleAvailable).toSet();
+  final paused = moduleIds.difference(reviewed);
   late NexTestHarness harness;
   setUp(
     () async => harness = await NexTestHarness.create(name: 'nex_preview_'),
   );
   tearDown(() => harness.dispose());
+
+  test('the reviewed add-ons are Habits, Price Lens and Lent & Borrowed', () {
+    expect(reviewed, {'habits', 'price_lens', 'lent_borrowed'});
+    expect(paused, hasLength(8));
+  });
 
   test('all modules default off, including the eleven add-ons', () {
     expect(moduleIds, hasLength(11));
@@ -40,9 +49,12 @@ void main() {
       final reloaded = await NexPreferences.load();
       addTearDown(reloaded.dispose);
       expect(reloaded.isModuleOn('habits'), isFalse);
-      expect(nexModulesOn(reloaded), isEmpty);
+      expect(
+        nexModulesOn(reloaded).map((m) => m.id).toSet(),
+        {...reviewed}..remove('habits'),
+      );
       await reloaded.setModuleOn('habits', true);
-      expect(nexModulesOn(reloaded), isEmpty);
+      expect(nexModulesOn(reloaded).map((m) => m.id).toSet(), reviewed);
     },
   );
 
@@ -69,7 +81,7 @@ void main() {
 
   for (final locale in ['en', 'fa']) {
     testWidgets(
-      'paused add-ons remain stored but have no Tools entry ($locale)',
+      'reviewed add-ons have a Tools entry, paused ones stay stored without ($locale)',
       (tester) async {
         for (final id in moduleIds) {
           await harness.preferences.setModuleOn(id, true);
@@ -92,10 +104,16 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(nexModulesOn(harness.preferences), isEmpty);
+        expect(
+          nexModulesOn(harness.preferences).map((m) => m.id).toSet(),
+          reviewed,
+        );
         for (final id in moduleIds) {
           expect(harness.preferences.isModuleOn(id), isTrue);
-          expect(find.byKey(ValueKey('tool-module.$id')), findsNothing);
+          expect(
+            find.byKey(ValueKey('tool-module.$id')),
+            reviewed.contains(id) ? findsOneWidget : findsNothing,
+          );
         }
         expect(tester.takeException(), isNull);
         expect(await harness.services.timeline(), isEmpty);

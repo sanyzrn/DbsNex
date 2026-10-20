@@ -7,6 +7,7 @@ extension NexModuleAlarms on NexReminders {
     required DateTime at,
     required String title,
     required String body,
+    bool daily = false,
   }) async {
     if (!NexReminders.supported) return false;
     await initialise();
@@ -35,6 +36,9 @@ extension NexModuleAlarms on NexReminders {
           iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: _scheduleMode,
+        // A habit's nudge rings at the same wall time every day, so it
+        // is scheduled once and repeated by the system.
+        matchDateTimeComponents: daily ? DateTimeComponents.time : null,
         payload: 'nex:module:$module',
       );
       return true;

@@ -55,3 +55,7 @@ Store transactions with cross-process conflict detection would improve future ve
 Validated against Nex main `724b999a91c5b7366fbb4d9e8f17b36a3fb16318`, Flutter 3.35.5 / Dart 3.9.2, and re-validated in-tree after the shared-date-entry pass. Original test cases were retained in same-library parts; expectations changed only for deliberate corrections such as exact decimal labels, valid free offers, refusal of partial family rankings, the replace-offers confirmation and the empty-state wording.
 
 `dart format lib/modules/price_lens test/modules/price_lens` is clean and `flutter analyze --fatal-infos` reports no issues. `flutter test test/module_kit_test.dart -j 2`: **40 passed**; `flutter test test/modules/price_lens -j 2`: **95 passed**. Tests cover large rational products, unit factors, ties (including the counted tie note), bundles, one discount, Unicode/currency bounds, malformed records, exact historical fractions/dates/specs (750 g ↔ 0.75 kg), typed and picked shopping dates with future-day refusal, a stored offer with a broken date repaired through the editor, recovery after committed writes, raw conflicting Undo, failed opt-in save/retry, the replace-offers guard, Persian-digit rendering, and all four locale/theme combinations for the offer editor at 320×480 and 2× text. Final full-client/package results, capture evidence and remaining real-device checks are in [the phase-four validation report](../../../../review/VALIDATION.md).
+
+## 2.1.11 changes
+
+- 2.1.11: Copy result (plain lines); one primary action on an empty page.

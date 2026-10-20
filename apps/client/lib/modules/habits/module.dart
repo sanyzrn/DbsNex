@@ -82,6 +82,13 @@ const habitsStrings = NexModuleStrings(
     'noCheckins': 'No check-ins yet.',
     'firstCheckin': 'The first one is the hardest — and the most interesting.',
     'archived': 'Archived',
+    'dailyReminder': 'Daily reminder',
+    'reminderOff': 'Off',
+    'reminderAt': 'Every day at {time}',
+    'reminderTitle': 'Habit',
+    'reminderBody': 'A habit is waiting for today.',
+    'reminderFailed':
+        'The reminder was not set. Check notification permission.',
     'noArchived':
         'Nothing is archived yet. Archive a habit from its own page to take '
         'a break without losing history.',
@@ -157,6 +164,12 @@ const habitsStrings = NexModuleStrings(
     'noCheckins': 'هنوز ثبتی نیست.',
     'firstCheckin': 'اولین ثبت سخت‌ترین است — و جالب‌ترین.',
     'archived': 'بایگانی‌شده',
+    'dailyReminder': 'یادآوری روزانه',
+    'reminderOff': 'خاموش',
+    'reminderAt': 'هر روز ساعت {time}',
+    'reminderTitle': 'عادت',
+    'reminderBody': 'یک عادت منتظر امروز شماست.',
+    'reminderFailed': 'یادآوری تنظیم نشد. مجوز اعلان را بررسی کنید.',
     'noArchived':
         'هنوز چیزی بایگانی نشده است. هر وقت خواستید، عادتی را از '
         'صفحهٔ خودش بایگانی کنید؛ تاریخچه‌اش می‌ماند.',

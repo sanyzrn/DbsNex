@@ -7,6 +7,7 @@ import 'loan_edit_sheet.dart';
 import 'loan_math.dart';
 import 'loan_model.dart';
 import 'loan_date_entry.dart';
+import 'loan_dates.dart';
 import 'loan_wording.dart';
 import 'return_history.dart';
 import 'money_format.dart';
@@ -102,10 +103,15 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
           final byDate = b.$2.date.compareTo(a.$2.date);
           return byDate != 0 ? byDate : a.$1.compareTo(b.$1);
         });
+    final loan = Loan.fromBody(widget.loanId, body);
+    final ordered = [for (final (_, record) in history) record];
     setState(() {
-      _loan = Loan.fromBody(widget.loanId, body);
-      _returns = [for (final (_, record) in history) record];
+      _loan = loan;
+      _returns = ordered;
     });
+    if (LoanMath.standing(loan, ordered).settled) {
+      unawaited(_clearReminder(loan.id));
+    }
   }
 
   Future<void> _guard(Future<void> Function() action) async {
@@ -137,6 +143,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
       'loan',
     );
     await bundle.delete();
+    await _clearReminder(loan.id);
     if (!mounted) return;
     Navigator.of(context).maybePop();
     messenger.showSnackBar(
@@ -153,6 +160,15 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
       ),
     );
   });
+
+  /// The reminder is the loan's: gone with it, and gone once it is settled.
+  Future<void> _clearReminder(String id) async {
+    try {
+      await widget.store.clearReminder('loan:$id');
+    } catch (_) {
+      // A reminder that cannot be withdrawn rings once and finds no loan.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -248,6 +264,20 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
                     ? null
                     : () => unawaited(_recordReturn(standing.outstanding)),
                 child: Text(strings(context, 'markSettled')),
+              ),
+              const SizedBox(height: NexSpacing.md),
+              // A due date is only worth having if something says so when it
+              // comes: an optional system reminder, opened on the due day.
+              NexShelfHeading(
+                icon: Icons.notifications_none,
+                title: strings(context, 'reminderTitle'),
+              ),
+              NexModuleReminderControl(
+                store: widget.store,
+                sourceKind: 'loan',
+                sourceId: loan.id,
+                initial: loan.due == null ? null : parseCivilDate(loan.due!),
+                body: strings(context, 'reminderBody', {'person': person}),
               ),
               const SizedBox(height: NexSpacing.md),
             ],

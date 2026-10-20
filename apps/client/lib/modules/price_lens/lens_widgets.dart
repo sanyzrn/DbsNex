@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
@@ -291,9 +293,41 @@ class LensResultPanel extends StatelessWidget {
             const Divider(height: NexSpacing.lg),
             memoryLine!,
           ],
+          const SizedBox(height: NexSpacing.sm),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              key: const ValueKey('lens-copy-result'),
+              onPressed: () => unawaited(_copy(context, unitWord, exponent)),
+              icon: const Icon(Icons.copy_outlined),
+              label: Text(s(context, 'copyResult')),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  /// The result as plain lines — one per offer, the cheapest marked — for
+  /// pasting into a chat or a note.
+  Future<void> _copy(
+    BuildContext context,
+    String unitWord,
+    int exponent,
+  ) async {
+    final s = priceLensStrings;
+    final lines = [
+      s(context, 'resultTitle', {'unit': unitWord}),
+      for (final result in comparison.results)
+        if (result.unitPriceMinor case final price?)
+          '${result.isBest ? '✓ ' : '• '}${s(context, 'unitPriceOf', {'label': result.option.label, 'price': '${formatMinorFraction(price, exponent, persian: persian)} ${result.option.currency}', 'unit': unitWord})}'
+        else
+          '• ${result.option.label} · ${s(context, 'notComparable')}',
+    ];
+    await nexModuleCopyText(lines.join('\n'));
+    if (context.mounted) {
+      nexShowBanner(context, message: s(context, 'copied'));
+    }
   }
 }
 

@@ -174,12 +174,16 @@ class _HabitsScreenState extends State<HabitsScreen>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('habits-new'),
-        onPressed: () => unawaited(_newHabit()),
-        icon: const Icon(Icons.add),
-        label: Text(strings(context, 'newHabit')),
-      ),
+      // One primary action per page: with nothing yet, it is the button in
+      // the empty state, not a second one floating beside it.
+      floatingActionButton: _habits.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('habits-new'),
+              onPressed: () => unawaited(_newHabit()),
+              icon: const Icon(Icons.add),
+              label: Text(strings(context, 'newHabit')),
+            ),
       body: recordsBody(
         _habits.isEmpty
             ? ScrollSafeEmpty(
@@ -187,6 +191,7 @@ class _HabitsScreenState extends State<HabitsScreen>
                   icon: Icons.event_repeat_outlined,
                   message: strings(context, 'empty'),
                   action: FilledButton.icon(
+                    key: const ValueKey('habits-new'),
                     onPressed: () => unawaited(_newHabit()),
                     icon: const Icon(Icons.add),
                     label: Text(strings(context, 'newHabit')),

@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:nex_ui/nex_ui.dart' show NexSpacing;
 import '../platform/display_date.dart';
 import '../widgets/nex_time_picker.dart';
+
+/// The app's time picker, for a module's own reminder rows.
+Future<TimeOfDay?> nexPickModuleTime(
+  BuildContext context, {
+  required TimeOfDay initial,
+}) => nexPickTime(context, initial: initial);
 
 class NexModuleCalendar extends InheritedWidget {
   const NexModuleCalendar({
@@ -50,12 +57,14 @@ class NexModuleDateEntry extends StatelessWidget {
   final Widget child;
   final bool hyphenated;
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      child,
-      Align(
-        alignment: AlignmentDirectional.centerEnd,
+      Expanded(child: child),
+      // Beside the field, not under it: a calendar button on a row
+      // of its own read as belonging to nothing, and cost every form 48dp.
+      Padding(
+        padding: const EdgeInsetsDirectional.only(start: NexSpacing.xs, top: 4),
         child: IconButton(
           tooltip: MaterialLocalizations.of(context).datePickerHelpText,
           icon: const Icon(Icons.calendar_month_outlined),

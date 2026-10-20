@@ -6,6 +6,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'habit_edit_sheet.dart';
 import 'habit_math.dart';
 import 'habit_model.dart';
+import 'habit_reminder.dart';
 import 'habit_stats.dart';
 import 'module.dart';
 import 'store_state.dart';
@@ -133,6 +134,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     }
   }
 
+  Future<void> _clearReminder(String id) async {
+    try {
+      await widget.store.clearReminder('habit:$id');
+    } catch (_) {
+      // Rings once at most: the restore on launch drops it for a missing
+      // or archived habit.
+    }
+  }
+
   Future<void> _edit() =>
       showHabitEditSheet(context, widget.store, habit: _habit);
 
@@ -146,6 +156,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
         habit.id,
         habit.toJson()..['archived'] = archived,
       );
+      // An archived habit stops nudging; the daily reminder is its own
+      // record, so it goes with it rather than ringing for nothing.
+      if (archived) await _clearReminder(habit.id);
     } catch (_) {
       writeError();
     } finally {
@@ -173,6 +186,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
         'habit',
       );
       await bundle.delete();
+      await _clearReminder(habit.id);
       if (!mounted) return;
       Navigator.of(context).maybePop();
       messenger.showSnackBar(
@@ -284,6 +298,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
             if (habit.note.isNotEmpty) ...[
               const SizedBox(height: NexSpacing.md),
               HabitNotePanel(note: habit.note),
+            ],
+            if (!habit.archived) ...[
+              const SizedBox(height: NexSpacing.md),
+              HabitReminderTile(store: widget.store, habitId: habit.id),
             ],
             const SizedBox(height: NexSpacing.lg),
             NexShelfHeading(

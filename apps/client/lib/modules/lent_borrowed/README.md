@@ -175,3 +175,7 @@ module tests **91/91 passed** (including the Jalali pick-a-day flow, calendar
 buttons, presets, absolute-date draft round-trips, refusal of dates outside
 1900–2100 and before issue, Persian RTL and English LTR at text scale 2.0,
 light/dark, undo and recovery journeys).
+
+## 2.1.11 changes
+
+- 2.1.11: optional due-date reminder on a loan, withdrawn when settled or deleted; calendar button beside date fields; one primary action on an empty page.

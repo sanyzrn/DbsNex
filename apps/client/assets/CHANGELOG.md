@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.11
+
+- **Habits, Price Lens and Lent & Borrowed are available.** Add them from **Tools → Add modules**. The other eight modules stay Soon until each is finished.
+- **Habits:** an optional **Daily reminder** at a time you choose, on each habit's page. Dates follow your calendar (Jalali or Gregorian).
+- **Lent & Borrowed:** an optional **Reminder** on a loan, opened on its due day; settling or deleting the loan removes it. Dates in the forms use the calendar button beside the field.
+- **Price Lens:** **Copy result** puts the comparison on the clipboard as plain lines. The empty page now has one **Add offer** button instead of two.
+- Pages with nothing yet show a single button, not a button and a floating one; reminder messages appear in Nex's top capsule.
+
 ## v2.1.10
 
 - **YouTube analysis now shows its result.** "Analyze video" ran, finished and kept the analysis, but showed nothing: a note's summary is hidden when it is not shorter than the note's own words, and a YouTube link's words are only a title and a line, so every real analysis was hidden. The analysis of a YouTube link now always appears in the note's AI section.

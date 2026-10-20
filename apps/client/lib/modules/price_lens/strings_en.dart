@@ -64,6 +64,8 @@ const _lensen = <String, String>{
       'Offers in different currencies cannot be compared — there is no exchange rate here',
   'tooFew': 'Add an offer to start comparing',
   'incomplete': 'An offer is incomplete — open it to fix it',
+  'copyResult': 'Copy result',
+  'copied': 'Copied.',
   'smallestNote':
       'The smallest package is not always the cheapest: the price you pay '
       'is per unit, not per bag.',

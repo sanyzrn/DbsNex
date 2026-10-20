@@ -48,6 +48,22 @@ class FaultStore implements NexModuleStore {
     body: body,
   );
   @override
+  Future<bool> setDailyReminder(
+    String key, {
+    required String sourceKind,
+    required String sourceId,
+    required DateTime at,
+    required String title,
+    required String body,
+  }) => inner.setDailyReminder(
+    key,
+    sourceKind: sourceKind,
+    sourceId: sourceId,
+    at: at,
+    title: title,
+    body: body,
+  );
+  @override
   Future<void> clearReminder(String key) => inner.clearReminder(key);
   @override
   String get module => inner.module;

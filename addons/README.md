@@ -1,6 +1,6 @@
 # Nex add-on sources
 
-> From 2.1.1 only Cycle is available. The add-ons below are temporarily Soon; source, installation choices and records are preserved pending individual review.
+> Cycle, Habits, Price Lens and Lent & Borrowed are available (2.1.11). The other eight add-ons below are Soon; source, installation choices and records are preserved pending individual review.
 
 All 11 supplied modules are integrated into the client for individual review. Sources and original READMEs are under `apps/client/lib/modules/<id>/`;
 tests are under `apps/client/test/modules/<id>/`. They were moved from this
@@ -13,10 +13,10 @@ All modules default off from 2.0.2, including upgrades from the automatic
 opt-in. Add the modules you want from Tools → Add modules. Continue all work on
 `codex/2.0-polish` and complete each module individually.
 
-## Module upgrade after 2.1.10 (still Soon)
+## Module upgrade after 2.1.10
 
 A separate upgrade pass over all eleven modules was reviewed and merged on top
-of the 2.1.10 code, with the rollout left as it was (only Cycle is available).
+of the 2.1.10 code, with the rollout left as it was; 2.1.11 then finished and enabled Habits, Price Lens and Lent & Borrowed (see below).
 It brings the shared Jalali date entry/display (`NexModuleDateEntry`,
 `nexModuleDateLabel`) to every module, the shared `NexTextField` to every
 multiline field, optional system reminders (`NexModuleReminderControl`) to
@@ -24,9 +24,24 @@ Parking, Warranty, Maintenance and Medicine, about forty fixes (stable sorts,
 singular/plural strings, wrong "expired" state, Gregorian-only medicine dates,
 lent/borrowed draft migration) and 134 more tests. Saved records and drafts
 stay readable: dates keep their ISO form on disk and old Lent & Borrowed drafts
-are migrated on open. Re-enable each module individually after a device check
-(TalkBack, notification permission, large text) — change `nexModuleAvailable`
-in `apps/client/lib/modules/module_rollout.dart` for one id at a time.
+are migrated on open. Re-enable each remaining module individually after a
+device check (TalkBack, notification permission, large text) — add its id to
+`nexAvailableModuleIds` in `apps/client/lib/modules/module_rollout.dart`.
+
+### Finished and enabled in 2.1.11: Habits, Price Lens, Lent & Borrowed
+
+Looked at in screenshots (Persian dark, English light, sheets and detail
+pages) against the app's own pages, then changed: the shared date entry puts the
+calendar button beside the field instead of under it; a page with no records
+shows one button, not that button and the floating one; reminder messages use
+the top capsule (`nexShowBanner`, now in the module API) instead of a
+SnackBar. Added: Habits' optional daily reminder (a repeating module
+reminder, `NexModuleStore.setDailyReminder`, restored on launch); Lent &
+Borrowed's optional due-date reminder, withdrawn when the loan is settled or
+deleted; Price Lens' Copy result (`nexModuleCopyText`). Tests:
+`test/modules/reviewed_three_test.dart`; rollout tests now expect the four
+available ids. Not done, still open: real-device check of notifications,
+TalkBack, and Price Lens barcode/OCR (outside the module API).
 
 ## Inventory
 

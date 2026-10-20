@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter/widgets.dart';
 import 'package:nex_core/nex_core.dart' show nexDigits;
 
@@ -48,3 +49,8 @@ class NexModuleStrings {
   static bool persian(BuildContext context) =>
       AppLocalizations.of(context).localeName.startsWith('fa');
 }
+
+/// Puts [text] on the clipboard — what a module's "Copy" does, without the
+/// module reaching for the platform itself.
+Future<void> nexModuleCopyText(String text) =>
+    Clipboard.setData(ClipboardData(text: text));

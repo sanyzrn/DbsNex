@@ -47,7 +47,11 @@ extension NexModuleServices on NexServices {
     required DateTime at,
     required String title,
     required String body,
+    bool daily = false,
   }) async {
+    // A daily reminder is given as a time of day: its first ring is the next
+    // time that is still ahead, today or tomorrow.
+    if (daily) at = nexNextDailyRing(at, DateTime.now());
     if (!moduleRemindersEnabled(module) || !at.isAfter(DateTime.now())) {
       return false;
     }
@@ -63,6 +67,7 @@ extension NexModuleServices on NexServices {
       'at': at.toUtc().toIso8601String(),
       'title': title,
       'body': body,
+      if (daily) 'repeat': 'daily',
     });
     return reminders.scheduleModule(
       module,
@@ -70,6 +75,7 @@ extension NexModuleServices on NexServices {
       at: at,
       title: title,
       body: body,
+      daily: daily,
     );
   }
 
@@ -91,9 +97,11 @@ extension NexModuleServices on NexServices {
         '__reminder',
       )) {
         final b = record.body;
-        final at = b['at'] is String
+        final daily = b['repeat'] == 'daily';
+        var at = b['at'] is String
             ? DateTime.tryParse(b['at'] as String)
             : null;
+        if (daily && at != null) at = nexNextDailyRing(at, DateTime.now());
         if (at == null ||
             b['sourceKind'] is! String ||
             b['sourceId'] is! String ||
@@ -123,9 +131,23 @@ extension NexModuleServices on NexServices {
           at: at,
           title: b['title'] as String,
           body: b['body'] as String,
+          daily: daily,
         );
       }
     }
     return wanted;
   }
+}
+
+/// The first moment at or after [now] that shows the clock face of [at]: the
+/// time a daily reminder was set for, today if it is still ahead and tomorrow
+/// if not. Local time — "every day at nine" is nine on the wall, daylight
+/// saving included.
+DateTime nexNextDailyRing(DateTime at, DateTime now) {
+  final local = at.toLocal();
+  var next = DateTime(now.year, now.month, now.day, local.hour, local.minute);
+  if (!next.isAfter(now)) {
+    next = DateTime(now.year, now.month, now.day + 1, local.hour, local.minute);
+  }
+  return next;
 }

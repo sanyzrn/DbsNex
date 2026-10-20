@@ -109,16 +109,22 @@ class _LoansScreenState extends State<LoansScreen>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('loans-new'),
-        onPressed: () => unawaited(
-          _openEditor(
-            _tabs.index == 0 ? LoanDirection.lent : LoanDirection.borrowed,
-          ),
-        ),
-        icon: const Icon(Icons.add),
-        label: Text(strings(context, 'newRecord')),
-      ),
+      // One primary action per page: with no record at all it is the button
+      // in the empty state, not a second one floating beside it.
+      floatingActionButton: _loans.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('loans-new'),
+              onPressed: () => unawaited(
+                _openEditor(
+                  _tabs.index == 0
+                      ? LoanDirection.lent
+                      : LoanDirection.borrowed,
+                ),
+              ),
+              icon: const Icon(Icons.add),
+              label: Text(strings(context, 'newRecord')),
+            ),
       body: recordsBody(
         TabBarView(
           controller: _tabs,
@@ -178,11 +184,16 @@ class _LoanList extends StatelessWidget {
                   ? 'noLoansLent'
                   : 'noLoansBorrowed',
             ),
-            action: FilledButton.icon(
-              onPressed: onNewRecord,
-              icon: const Icon(Icons.add),
-              label: Text(strings(context, 'newRecord')),
-            ),
+            // Only while the library has no record at all; after that the
+            // button floating on the page does the job.
+            action: loans.isEmpty
+                ? FilledButton.icon(
+                    key: const ValueKey('loans-new'),
+                    onPressed: onNewRecord,
+                    icon: const Icon(Icons.add),
+                    label: Text(strings(context, 'newRecord')),
+                  )
+                : null,
           ),
         ],
       );

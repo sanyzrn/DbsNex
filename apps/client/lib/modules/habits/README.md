@@ -187,3 +187,7 @@ Jalali/Gregorian display of every absolute date, and
 meaningful user journeys. Persian strings carry no bidi control
 characters; every icon-only button has a tooltip; the progress rows carry
 Semantics labels.
+
+## 2.1.11 changes
+
+- 2.1.11: optional daily reminder per habit (switch + time on the habit's page); one primary action on an empty page.

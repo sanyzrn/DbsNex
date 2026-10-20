@@ -161,7 +161,8 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
           ),
         ],
       ),
-      floatingActionButton: options.length < 4
+      // With no offer yet the empty state carries the one primary action.
+      floatingActionButton: options.isNotEmpty && options.length < 4
           ? FloatingActionButton.extended(
               key: const ValueKey('lens-add'),
               onPressed: () => unawaited(_editOption()),
@@ -194,6 +195,7 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
                 icon: Icons.calculate_outlined,
                 message: s(context, 'tooFew'),
                 action: FilledButton.icon(
+                  key: const ValueKey('lens-add'),
                   onPressed: () => unawaited(_editOption()),
                   icon: const Icon(Icons.add),
                   label: Text(s(context, 'addOption')),

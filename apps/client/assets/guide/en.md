@@ -138,7 +138,7 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 **Finding modules.** Search in **Tools → Add modules** by name or keyword. Cards show a brief preview; tap one to expand its details and Add, Open or Remove actions. Opening a preview does not enable it.
 
-**Modules under review.** From 2.1.1 only **Cycle** is available. All eleven modules listed below appear as **Soon**, with no install or open action. Their source, saved installation choices and records stay intact while each module is reviewed.
+**Modules under review.** **Cycle**, **Habits**, **Price Lens** and **Lent & Borrowed** are available. The other eight modules listed below appear as **Soon**, with no install or open action, while each is reviewed and finished; their saved installation choices and records stay intact.
 
 - **Habits:** daily/weekly check-ins, history and streaks.
 - **Price Lens:** compare unit prices across differently sized offers; save comparisons.
@@ -152,7 +152,7 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 - **Maintenance:** log equipment services, costs, meter readings and service intervals.
 - **Smoke Free:** track smoke-free progress, estimated savings and cravings.
 
-Each module stores its own data locally and in backups. These records do not enter notes, search, note widgets or the assistant. These modules have no camera, location or network integration. Shared calendar entry and explicitly chosen OS reminders are prepared, but the Soon modules remain inaccessible and silent. Existing typed civil-date fields retain their Gregorian labels and formats.
+Each module stores its own data locally and in backups. These records do not enter notes, search, note widgets or the assistant. These modules have no camera, location or network integration. Dates in the available modules follow your calendar setting (Jalali or Gregorian) and are kept the same way underneath. Reminders are always your choice: a habit can nudge you at a time you pick every day (open the habit, switch on **Daily reminder**), and a loan can remind you on its due day (**Reminder** on the loan's page); the notification says only that something is waiting, and removing, archiving or settling the item takes its reminder away. The Soon modules remain inaccessible and silent. **Copy result** in Price Lens puts the comparison on the clipboard as plain lines.
 
 **Tools**, at the left of the bottom bar, holds **Passwords**, **Bank cards**, **Private saved messages** and a **Password generator**. The private tools need your fingerprint or screen lock, and one unlock opens all of them for as long as you are using them. They lock after two minutes without activity — including time spent in another app, so you can copy a password, paste it in your browser and come straight back. Leaving the app always hides their contents from the task switcher, and **Lock** closes them at once. Hold any tool to pin it to the top of the home screen, in its own colour and icon; hold it there to take it off. A pinned private tool shows only its name and still asks for your fingerprint. The lock on a private tool's card shows open while they are unlocked.
 
