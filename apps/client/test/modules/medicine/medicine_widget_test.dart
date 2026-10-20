@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
+import 'package:nex_client/modules/medicine/medicine_detail.dart';
 import 'package:nex_client/modules/medicine/medicine_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
@@ -29,6 +30,25 @@ void main() {
       await pumpScreen(tester);
       expect(find.byKey(const ValueKey('medicine-empty')), findsOneWidget);
       expect(find.byKey(const ValueKey('medicine-fab')), findsOneWidget);
+    });
+
+    testWidgets('the empty state’s own button adds the first medicine', (
+      tester,
+    ) async {
+      final h = await pumpScreen(tester);
+      await tester.tap(find.byKey(const ValueKey('medicine-empty-add')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('medicine-save')), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('medicine-field-name')),
+        'Medicine A',
+      );
+      await _tapSave(tester);
+      expect(find.text('Medicine A'), findsWidgets);
+      expect(
+        await h.services.moduleRecords('medicine', 'medicine'),
+        hasLength(1),
+      );
     });
 
     testWidgets('adds a medicine and shows it', (tester) async {

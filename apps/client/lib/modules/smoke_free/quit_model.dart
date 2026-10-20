@@ -20,6 +20,11 @@ class QuitAttempt {
     required this.perPack,
     required this.endedAt,
     required this.endedWhy,
+    this.habit = defaultHabit,
+    this.name = '',
+    this.why = '',
+    this.goalMinor = 0,
+    this.minutesPerUnit = 0,
   }) : pricePerPackMinor = pricePerPackMinor ?? pricePerPackRials ?? 0;
 
   factory QuitAttempt.fromRecord(ModuleRecord record) =>
@@ -53,10 +58,40 @@ class QuitAttempt {
           ? DateTime.tryParse(body['endedAt'] as String)
           : null,
       endedWhy: body['endedWhy'] is String ? body['endedWhy'] as String : null,
+      // Records written before Quit Habits are cigarettes, which is what the
+      // module was.
+      habit: body['habit'] is String && (body['habit'] as String).isNotEmpty
+          ? body['habit'] as String
+          : defaultHabit,
+      name: body['name'] is String ? (body['name'] as String).trim() : '',
+      why: body['why'] is String ? body['why'] as String : '',
+      goalMinor: whole(body['goalMinor']).clamp(0, maxMoney),
+      minutesPerUnit: whole(body['minutesPerUnit']).clamp(0, 1440),
     );
   }
 
   final String id;
+
+  /// What is being quit: a preset key (`cigarette`, `alcohol`, …) or
+  /// `custom`, whose words are [name].
+  final String habit;
+
+  /// The person's own name for a custom habit; empty for presets.
+  final String name;
+
+  /// Why — a line the person wrote for the hard moments.
+  final String why;
+
+  /// A saving to work towards, in the currency's minor units; 0 when none.
+  final int goalMinor;
+
+  /// Minutes each unit used to take, so the time kept can be said; 0 when
+  /// the person does not count it.
+  final int minutesPerUnit;
+
+  /// What the habit is called in lists and on its page: the preset's own
+  /// name, or what was written for a custom one.
+  String get key => quitHabitKey(habit, name);
 
   /// When this attempt began — a local instant, stored as ISO 8601.
   final DateTime startedAt;
@@ -65,10 +100,8 @@ class QuitAttempt {
   /// estimate basis, said out loud on the dashboard.
   final int cigarettesPerDay;
 
-  /// The price of one pack, in integer rials.
+  /// The price of one pack, in the currency's integer minor units.
   final int pricePerPackMinor;
-  int get pricePerPackRials =>
-      pricePerPackMinor; // Legacy source compatibility.
   final String currency;
   final int? currencyDecimals;
   int get digits => moneyDigits(currency, currencyDecimals);
@@ -88,7 +121,18 @@ class QuitAttempt {
   Map<String, Object?> toJson({DateTime? endedAt, String? endedWhy}) => {
     'startedAt': startedAt.toIso8601String(),
     'cigarettesPerDay': cigarettesPerDay,
-    'v': 2,
+    'v':
+        habit == defaultHabit &&
+            why.isEmpty &&
+            goalMinor == 0 &&
+            minutesPerUnit == 0
+        ? 2
+        : 3,
+    if (habit != defaultHabit) 'habit': habit,
+    if (name.isNotEmpty) 'name': name,
+    if (why.isNotEmpty) 'why': why,
+    if (goalMinor > 0) 'goalMinor': goalMinor,
+    if (minutesPerUnit > 0) 'minutesPerUnit': minutesPerUnit,
     'pricePerPackMinor': pricePerPackMinor,
     if (currency == 'IRR') 'pricePerPackRials': pricePerPackMinor,
     'currency': currency,
@@ -96,16 +140,6 @@ class QuitAttempt {
     'perPack': perPack,
     'endedAt': (endedAt ?? this.endedAt)?.toIso8601String(),
     'endedWhy': endedWhy ?? this.endedWhy,
-  };
-
-  /// A defensive body for an attempt whose fields were lost or corrupt.
-  static Map<String, Object?> fallbackBody(DateTime now) => {
-    'startedAt': now.toIso8601String(),
-    'cigarettesPerDay': 0,
-    'pricePerPackRials': 0,
-    'perPack': 20,
-    'endedAt': null,
-    'endedWhy': null,
   };
 }
 
@@ -120,6 +154,7 @@ class Craving {
     required this.triggers,
     required this.coping,
     required this.note,
+    this.habit = defaultHabit,
   });
 
   factory Craving.fromRecord(ModuleRecord record) =>
@@ -145,10 +180,17 @@ class Craving {
           ? body['coping'] as String
           : null,
       note: body['note'] is String ? body['note'] as String : '',
+      habit: body['habit'] is String && (body['habit'] as String).isNotEmpty
+          ? body['habit'] as String
+          : defaultHabit,
     );
   }
 
   final String id;
+
+  /// Which quit habit it belongs to ([QuitAttempt.key]); cigarettes for
+  /// cravings logged before Quit Habits.
+  final String habit;
 
   /// When the craving happened.
   final DateTime at;
@@ -170,6 +212,7 @@ class Craving {
     'triggers': triggers,
     'coping': coping,
     'note': note,
+    if (habit != defaultHabit) 'habit': habit,
   };
 }
 
@@ -196,3 +239,13 @@ const List<String> cravingCopingKeys = [
   'waited',
   'distraction',
 ];
+
+/// The habit a record without one belongs to — what the module was before it
+/// was Quit Habits.
+const String defaultHabit = 'cigarette';
+
+/// A habit's identity: its preset key, or `custom:` and its name folded, so
+/// "Nail biting" and "nail  biting" are one habit.
+String quitHabitKey(String habit, String name) => habit == 'custom'
+    ? 'custom:${name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ')}'
+    : habit;

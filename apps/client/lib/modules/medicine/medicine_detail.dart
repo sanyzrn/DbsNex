@@ -7,6 +7,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'medicine_dialogs.dart';
 import 'medicine_editor.dart';
+import 'medicine_logic.dart';
 import 'medicine_models.dart';
 import 'medicine_strings.dart';
 import 'medicine_widgets.dart';
@@ -77,12 +78,7 @@ class _MedicineDetailSheetState extends State<MedicineDetailSheet> {
         _loading = false;
         _loadFailed = false;
         _body = body;
-        _doses = [
-          for (final dose in doses)
-            if (MedicineModels.readString(dose.body, 'medicineId') ==
-                widget.record.id)
-              dose,
-        ];
+        _doses = MedicineLogic.dosesFor(doses, widget.record.id);
       });
     } catch (_) {
       if (!mounted || seq != _loadSeq) {

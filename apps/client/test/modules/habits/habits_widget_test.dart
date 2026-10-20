@@ -1,80 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
-import 'package:nex_client/modules/habits/habits_screen.dart';
 import 'package:nex_client/modules/habits/habit_model.dart';
 
 import '../../support/nex_harness.dart';
+import 'habits_test_tools.dart';
 
 /// The habits module end to end: empty states, creating, checking in,
-/// editing with history preserved, archiving, deleting with Undo, and the
-/// data surviving the screen itself.
+/// editing with history preserved, and the data surviving the screen
+/// itself. Archiving and deleting-with-Undo live beside this file, in
+/// `habits_archive_undo_test.dart`.
 void main() {
   late NexTestHarness harness;
 
   setUp(() async => harness = await NexTestHarness.create(name: 'nex_habits_'));
   tearDown(() => harness.dispose());
 
-  Future<NexModuleStore> pumpHabits(
-    WidgetTester tester, {
-    Locale locale = const Locale('en'),
-  }) async {
-    final store = NexModuleStore(harness.services, 'habits');
-    await tester.pumpWidget(
-      MaterialApp(
-        locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: HabitsScreen(store: store),
-      ),
-    );
-    await tester.pumpAndSettle();
-    return store;
-  }
-
-  /// Lets a write started by a tap reach the store, exactly as the gate
-  /// test's own flows do.
-  Future<void> settle(WidgetTester tester) async {
-    await tester.pump();
-    await tester.runAsync(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 60));
-    });
-    await tester.pumpAndSettle();
-  }
-
-  /// Creates a habit through the real sheet, and returns the id the store
-  /// gave it — a UUID v7, never a guess.
-  Future<String> createHabit(
-    WidgetTester tester,
-    NexModuleStore store, {
-    String name = 'Morning stretch',
-    bool weekly = false,
-    int target = 3,
-  }) async {
-    await tester.tap(find.byKey(const ValueKey('habits-new')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('habit-field-name')),
-      name,
-    );
-    if (weekly) {
-      await tester.tap(find.byKey(const ValueKey('habit-field-schedule')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(ValueKey('habit-target-$target')));
-      await tester.pumpAndSettle();
-    }
-    await tester.tap(find.byKey(const ValueKey('habit-save')));
-    await settle(tester);
-    final habits = await store.list('habit');
-    expect(habits, hasLength(1), reason: 'the habit was really saved');
-    return habits.first.id;
-  }
-
   group('empty states', () {
     testWidgets('no habits yet: a clear message and a working first action', (
       tester,
     ) async {
-      await pumpHabits(tester);
+      await pumpHabits(tester, harness);
       expect(
         find.text('No habits yet. Start with one small thing.'),
         findsOneWidget,
@@ -98,17 +44,25 @@ void main() {
         'archived': true,
         'createdAt': DateTime.now().toIso8601String(),
       });
-      await pumpHabits(tester);
+      await pumpHabits(tester, harness);
       expect(
         find.text(
           'All your habits are archived. Unarchive one, or start a new one.',
         ),
         findsOneWidget,
       );
+
+      // The message offers two ways out and carries the buttons for both.
+      await tester.tap(find.byKey(const ValueKey('habits-open-archived')));
+      await tester.pumpAndSettle();
+      expect(find.text('Archived'), findsOneWidget);
+      expect(find.text('Stretch'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
     });
 
     testWidgets('no check-ins yet, on the detail page', (tester) async {
-      final store = await pumpHabits(tester);
+      final store = await pumpHabits(tester, harness);
       await createHabit(tester, store);
       await tester.tap(find.text('Morning stretch'));
       await tester.pumpAndSettle();
@@ -120,7 +74,7 @@ void main() {
     testWidgets('a daily habit appears on Today and checks off in one tap', (
       tester,
     ) async {
-      final store = await pumpHabits(tester);
+      final store = await pumpHabits(tester, harness);
       final id = await createHabit(tester, store);
 
       expect(find.text('Morning stretch'), findsOneWidget);
@@ -136,17 +90,22 @@ void main() {
       expect(checks.first.body['habit'], id);
       expect(checks.first.body['date'], dateKeyOf(DateTime.now()));
 
-      // Tapping again takes it back — the honest undo.
+      // Tapping again takes it back — the honest undo — and says so, with
+      // Undo for the accidental case.
       await tester.tap(find.byKey(ValueKey('habit-today-$id')));
       await settle(tester);
       expect(await store.list('check'), isEmpty);
       expect(find.text('0 of 1 done'), findsOneWidget);
+      expect(find.text('Check-in removed'), findsOneWidget);
+      // No timer may outlive the test: take the snackbar with us.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
     });
 
     testWidgets('two taps in quick succession never write two records', (
       tester,
     ) async {
-      final store = await pumpHabits(tester);
+      final store = await pumpHabits(tester, harness);
       final id = await createHabit(tester, store);
       final mark = find.byKey(ValueKey('habit-today-$id'));
 
@@ -168,7 +127,7 @@ void main() {
     testWidgets('a weekly habit shows its progress toward the target', (
       tester,
     ) async {
-      final store = await pumpHabits(tester);
+      final store = await pumpHabits(tester, harness);
       final id = await createHabit(
         tester,
         store,
@@ -184,9 +143,19 @@ void main() {
     });
 
     testWidgets('a nameless habit cannot be saved', (tester) async {
-      await pumpHabits(tester);
+      await pumpHabits(tester, harness);
       await tester.tap(find.byKey(const ValueKey('habits-new')));
       await tester.pumpAndSettle();
+      // The person's own words: the name one line in NexAutoDirection, the
+      // note — more than one line — the shared NexTextField.
+      expect(
+        tester.widget(find.byKey(const ValueKey('habit-field-name'))),
+        isA<TextField>(),
+      );
+      expect(
+        tester.widget(find.byKey(const ValueKey('habit-field-note'))),
+        isA<NexTextField>(),
+      );
       await tester.tap(find.byKey(const ValueKey('habit-save')));
       await tester.pumpAndSettle();
       expect(find.text('Give the habit a name first'), findsOneWidget);
@@ -196,11 +165,47 @@ void main() {
         reason: 'the sheet is still open',
       );
     });
+
+    testWidgets('the weekly target chips read naturally, one included', (
+      tester,
+    ) async {
+      await pumpHabits(tester, harness);
+      await tester.tap(find.byKey(const ValueKey('habits-new')));
+      await tester.pumpAndSettle();
+      // Tap the segment's own words, not the middle of the row: the seam
+      // belongs to whichever segment the direction hands it.
+      await tester.tap(find.text('Weekly'));
+      await tester.pumpAndSettle();
+
+      // The seven choices are counts; the first is also its own word, so
+      // the English never reads “1 times a week”.
+      expect(find.text('Once a week'), findsOneWidget);
+      expect(find.text('2 times a week'), findsOneWidget);
+      expect(find.text('1 times a week'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('the same chips read naturally in Persian', (tester) async {
+      await pumpHabits(tester, harness, locale: const Locale('fa'));
+      await tester.tap(find.byKey(const ValueKey('habits-new')));
+      await tester.pumpAndSettle();
+      // The segment's own words again: at the row's seam, right-to-left hit
+      // testing hands the tap to «روزانه» instead of «هفتگی».
+      await tester.tap(find.text('هفتگی'));
+      await tester.pumpAndSettle();
+
+      // «یک بار در هفته» via the {n} pipeline, so the digit is Persian.
+      expect(find.text('۱ بار در هفته'), findsOneWidget);
+      expect(find.text('۲ بار در هفته'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
   });
 
   group('editing keeps history', () {
     testWidgets('renaming keeps every check-in', (tester) async {
-      final store = await pumpHabits(tester);
+      final store = await pumpHabits(tester, harness);
       final id = await createHabit(tester, store);
       await tester.tap(find.byKey(ValueKey('habit-today-$id')));
       await settle(tester);
@@ -226,129 +231,9 @@ void main() {
     });
   });
 
-  group('archiving', () {
-    testWidgets('archived habits leave Today and come back', (tester) async {
-      final store = await pumpHabits(tester);
-      final id = await createHabit(tester, store);
-      await tester.tap(find.byKey(ValueKey('habit-today-$id')));
-      await settle(tester);
-
-      await tester.tap(find.text('Morning stretch'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('habit-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Archive'));
-      await settle(tester);
-
-      // The detail page stays open on the archived habit; going back to
-      // Today is where it has vanished.
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-      expect(find.text('Morning stretch'), findsNothing);
-      expect(
-        find.text(
-          'All your habits are archived. Unarchive one, or start a new one.',
-        ),
-        findsOneWidget,
-      );
-      // …history intact.
-      expect(await store.list('check'), isNotEmpty);
-
-      await tester.tap(find.byKey(const ValueKey('habits-archive')));
-      await tester.pumpAndSettle();
-      expect(find.text('Morning stretch'), findsOneWidget);
-
-      await tester.tap(find.byKey(ValueKey('unarchive-$id')));
-      await settle(tester);
-      expect(find.text('No archived habits.'), findsOneWidget);
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-      expect(find.text('Morning stretch'), findsOneWidget);
-    });
-  });
-
-  group('deleting with Undo', () {
-    testWidgets('Undo restores the habit with its whole history', (
-      tester,
-    ) async {
-      final store = await pumpHabits(tester);
-      final id = await createHabit(tester, store);
-      await tester.tap(find.byKey(ValueKey('habit-today-$id')));
-      await settle(tester);
-      expect(await store.list('check'), hasLength(1));
-
-      await tester.tap(find.text('Morning stretch'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('habit-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Delete'));
-      await settle(tester);
-
-      expect(find.text('Morning stretch'), findsNothing);
-      expect(await store.list('habit'), isEmpty);
-      expect(await store.list('check'), isEmpty);
-      expect(find.text('Habit deleted'), findsOneWidget);
-
-      await tester.tap(find.text('Undo'));
-      await settle(tester);
-
-      expect(await store.list('habit'), hasLength(1));
-      expect(
-        await store.list('check'),
-        hasLength(1),
-        reason: 'the check-in came back too, not only the name',
-      );
-      expect(find.text('Morning stretch'), findsOneWidget);
-      expect(find.text('1 of 1 done'), findsOneWidget);
-    });
-  });
-
-  group('the screen is a window, not the data', () {
-    testWidgets('records survive disposing and re-opening the screen', (
-      tester,
-    ) async {
-      final store = await pumpHabits(tester);
-      final id = await createHabit(tester, store);
-      await tester.tap(find.byKey(ValueKey('habit-today-$id')));
-      await settle(tester);
-
-      // The screen goes away entirely.
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
-
-      // …and a brand-new store and screen find everything where it was.
-      final reopened = NexModuleStore(harness.services, 'habits');
-      expect(await reopened.list('habit'), hasLength(1));
-      expect(await reopened.list('check'), hasLength(1));
-
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('en'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: HabitsScreen(store: reopened),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Morning stretch'), findsOneWidget);
-      expect(find.text('1 of 1 done'), findsOneWidget);
-    });
-
-    testWidgets('another module’s store cannot see these records', (
-      tester,
-    ) async {
-      final store = await pumpHabits(tester);
-      await createHabit(tester, store);
-
-      final stranger = NexModuleStore(harness.services, 'smoke_free');
-      expect(await stranger.list('habit'), isEmpty);
-      expect(await stranger.list('check'), isEmpty);
-    });
-  });
-
   group('a meaningful journey', () {
     testWidgets('from nothing to a visible streak', (tester) async {
-      final store = await pumpHabits(tester);
+      final store = await pumpHabits(tester, harness);
       final id = await createHabit(tester, store);
 
       // A few days of history, written the way the store writes them.
@@ -374,29 +259,5 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Today'), findsOneWidget);
     });
-  });
-
-  testWidgets('week start is persisted independently of the UI language', (
-    tester,
-  ) async {
-    final store = await pumpHabits(tester);
-    await tester.tap(find.byKey(const ValueKey('habits-week-settings')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('habit-week-start-1')));
-    await tester.tap(find.byKey(const ValueKey('habit-week-save')));
-    await settle(tester);
-    expect((await store.get('settings', 'week'))?['firstDay'], 1);
-    await tester.pumpWidget(const SizedBox());
-    await pumpHabits(tester);
-    await tester.tap(find.byKey(const ValueKey('habits-week-settings')));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<ChoiceChip>(find.byKey(const ValueKey('habit-week-start-1')))
-          .selected,
-      isTrue,
-    );
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
   });
 }

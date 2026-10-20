@@ -61,9 +61,9 @@ extension _WarrantyEditorBody on _WarrantyEditorSheetState {
                         key: const ValueKey('warranty-today'),
                         label: Text(strings(context, 'today')),
                         onPressed: () {
-                          final now = DateTime.now();
-                          _purchaseDate.text =
-                              '${now.year}/${now.month}/${now.day}';
+                          _purchaseDate.text = WarrantyParse.dateText(
+                            DateTime.now(),
+                          );
                         },
                       ),
                     ),
@@ -129,6 +129,7 @@ extension _WarrantyEditorBody on _WarrantyEditorSheetState {
                 WarrantyTextField(
                   key: const ValueKey('warranty-note'),
                   controller: _note,
+                  label: strings(context, 'note'),
                   hint: strings(context, 'noteHint'),
                 ),
                 const SizedBox(height: NexSpacing.lg),

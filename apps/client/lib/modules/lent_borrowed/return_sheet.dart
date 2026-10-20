@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'loan_date_entry.dart';
+import 'loan_dates.dart';
 import 'loan_math.dart';
 import 'loan_model.dart';
 import 'money_format.dart';
 import 'module.dart';
 import 'store_state.dart';
 import 'number_input.dart';
-import 'loan_dates.dart';
 
 /// Records one return: how much came back (never more than is
-/// outstanding), and when — today, or N days ago, the same honest relative
-/// dates the rest of the module uses.
+/// outstanding), and when — an absolute date with the shared calendar
+/// beside it, defaulting to today.
 Future<void> showReturnSheet(
   BuildContext context,
   NexModuleStore store, {
@@ -42,12 +43,11 @@ class _ReturnSheet extends StatefulWidget {
 
 class _ReturnSheetState extends State<_ReturnSheet> {
   late final TextEditingController _amount;
-  late final TextEditingController _daysAgo;
+  late final TextEditingController _date;
   bool _saving = false;
   late final String _recordId = widget.store.newId();
-  late final DateTime _anchor = DateTime.now();
   String? _amountError;
-  String? _daysError;
+  String? _dateError;
 
   @override
   void initState() {
@@ -62,13 +62,15 @@ class _ReturnSheetState extends State<_ReturnSheet> {
             )
           : '${LoanMath.standing(widget.loan, widget.returns).outstanding}',
     );
-    _daysAgo = TextEditingController(text: '0');
+    _date = TextEditingController(
+      text: dateEntryText(civilDateKey(DateTime.now())),
+    );
   }
 
   @override
   void dispose() {
     _amount.dispose();
-    _daysAgo.dispose();
+    _date.dispose();
     super.dispose();
   }
 
@@ -77,13 +79,22 @@ class _ReturnSheetState extends State<_ReturnSheet> {
     final amount = widget.loan.kind == LoanKind.money
         ? parseMoney(_amount.text, widget.loan.digits)
         : parseWhole(_amount.text, max: maxMoney);
-    final days = parseWhole(_daysAgo.text);
+    final date = parseDateEntry(_date.text.trim());
+
+    final fromToday = date == null
+        ? null
+        : civilDaysBetween(date, civilDateKey(DateTime.now()));
+    final fromIssue = date == null
+        ? null
+        : civilDaysBetween(widget.loan.issued, date);
 
     setState(() {
-      _daysError = days == null || days < 0
-          ? days == null
-                ? strings(context, 'numberInvalid')
-                : strings(context, 'daysInvalid')
+      _dateError = date == null
+          ? strings(context, 'dateInvalid')
+          : (fromToday ?? 0) < 0
+          ? strings(context, 'returnFutureDate')
+          : (fromIssue ?? 0) < 0
+          ? strings(context, 'returnBeforeIssue')
           : null;
       if (amount == null) {
         _amountError = strings(context, 'numberInvalid');
@@ -97,10 +108,11 @@ class _ReturnSheetState extends State<_ReturnSheet> {
         };
       }
     });
-    if (_amountError != null || _daysError != null) return;
+    if (_amountError != null || _dateError != null) return;
 
     if (_saving) return;
     setState(() => _saving = true);
+    final written = date!;
     final saved = await storeWrite(context, () async {
       final body = await widget.store.get('loan', widget.loan.id);
       if (body == null) throw StateError('Missing loan');
@@ -114,13 +126,16 @@ class _ReturnSheetState extends State<_ReturnSheet> {
           LoanMath.returnError(fresh, history, amount!) != null) {
         throw StateError('Balance changed');
       }
-      final date = shiftCivilDate(_anchor, -days!);
-      if (civilDaysBetween(fresh.issued, date)! < 0) {
+      final today = civilDateKey(DateTime.now());
+      if ((civilDaysBetween(written, today) ?? 0) < 0) {
+        throw StateError('Return dated in the future');
+      }
+      if ((civilDaysBetween(fresh.issued, written) ?? 0) < 0) {
         throw StateError('Return precedes issue');
       }
       await widget.store.put('return', _recordId, {
         'loan': widget.loan.id,
-        'date': date,
+        'date': written,
         'amount': amount,
       });
     });
@@ -194,16 +209,33 @@ class _ReturnSheetState extends State<_ReturnSheet> {
                 style: theme.textTheme.titleSmall,
               ),
               const SizedBox(height: NexSpacing.sm),
-              TextField(
-                key: const ValueKey('return-field-days'),
-                controller: _daysAgo,
-                keyboardType: TextInputType.number,
-                textDirection: TextDirection.ltr,
-                decoration: InputDecoration(
-                  labelText: strings(context, 'returnOffsetLabel'),
-                  hintText: strings(context, 'daysAgoHint'),
-                  errorText: _daysError,
-                  border: const OutlineInputBorder(),
+              NexModuleDateEntry(
+                key: const ValueKey('return-date-entry'),
+                controller: _date,
+                child: TextField(
+                  key: const ValueKey('return-field-date'),
+                  controller: _date,
+                  keyboardType: TextInputType.datetime,
+                  textDirection: TextDirection.ltr,
+                  decoration: InputDecoration(
+                    labelText: strings(context, 'dateFieldLabel'),
+                    hintText: strings(context, 'dateHint'),
+                    errorText: _dateError,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: ActionChip(
+                  key: const ValueKey('return-date-today'),
+                  label: Text(strings(context, 'todayWord')),
+                  onPressed: _saving
+                      ? null
+                      : () => _date.text = dateEntryText(
+                          civilDateKey(DateTime.now()),
+                        ),
                 ),
               ),
               const SizedBox(height: NexSpacing.lg),

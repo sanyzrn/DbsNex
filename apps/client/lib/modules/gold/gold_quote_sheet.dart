@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'gold_dates.dart';
 import 'gold_format.dart';
 import 'gold_models.dart';
 import 'gold_strings.dart';
@@ -57,8 +58,9 @@ class _GoldQuoteSheet extends StatelessWidget {
             ),
           const SizedBox(height: NexSpacing.xs),
           Text(
-            '${strings(context, 'quoteDated', {'date': goldDigits(quote.quoteDateIso, persian)})} · '
-            '${strings(context, 'gregorianTag')}',
+            strings(context, 'quoteDated', {
+              'date': goldStoredDateLabel(context, quote.quoteDateIso),
+            }),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

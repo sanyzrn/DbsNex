@@ -56,8 +56,10 @@ class MedicineDoseRow extends StatelessWidget {
       subtitle: at == null
           ? null
           : Text(
+              // The instant's own day, on the calendar the person reads —
+              // Jalali with Persian digits for a solar-calendar reader.
               medicineStrings(context, 'loggedAt', {
-                'date': MedicineFields.ymd(context, at),
+                'date': nexModuleDateLabel(context, at),
                 'time': MedicineFields.hm(context, at),
               }),
             ),
@@ -164,7 +166,14 @@ class MedicineInfoSection extends StatelessWidget {
         const SizedBox(height: NexSpacing.md),
         if (expiresAt != null) ...[
           MedicineLabel(strings(context, 'expiryLabel')),
-          Text(MedicineFields.ymd(context, expiresAt)),
+          // A civil day rebuilt as a local date first: a stored UTC midnight
+          // would otherwise read as the day before, west of Greenwich.
+          Text(
+            nexModuleDateLabel(
+              context,
+              DateTime(expiresAt.year, expiresAt.month, expiresAt.day),
+            ),
+          ),
           const SizedBox(height: NexSpacing.md),
         ],
         if (instructions.isNotEmpty) ...[

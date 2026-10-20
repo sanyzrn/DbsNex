@@ -4,10 +4,17 @@
 
 Today lists active habits with a clear, semantic 48dp completion toggle and
 a daily count. Detail shows a forgiving streak, weekly target progress, the
-last 14 days, completion total, note and recent check-ins. Create/edit supports
-daily or 1–7 times per week. Archive/unarchive keeps history; delete has Undo.
+last 14 days with their calendar range, completion total, the habit's start
+day, note and recent check-ins. Recent check-ins keep relative words where
+they read best and carry the platform calendar's own date beside them
+(`nexModuleDateLabel`), so a Persian reader sees Jalali — never a Gregorian
+date labelled as one. Create/edit supports daily or 1–7 times per week.
+Archive/unarchive keeps history; delete has Undo — and so does taking a
+day's check-in back, which restores the exact original record.
 The settings action selects any of seven start days for all weekly summaries.
-Empty, archived, loading and retry states have working actions.
+Empty, archived, loading and retry states have working actions — the empty
+archive says where archiving happens and carries the way back to Today — and
+the long empty states scroll rather than clip at large text.
 Compact/large-text forms use wrapping choices. Screens refresh on store changes
 and device resume; date labels are also recalculated on interaction/reopening.
 There are no reminders, widgets, social features, network calls or AI features.
@@ -55,14 +62,6 @@ Field values are strings from the editors plus typed choices described below.
 already exists, a leftover checkpoint is not reopened as a new unsaved record.
 A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
 marker has no fields/base and is ignored on read.
-`fields.recordId` is an optional stable target ID for new records: if that record
-already exists, a leftover checkpoint is not reopened as a new unsaved record.
-A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
-marker has no fields/base and is ignored on read.
-`fields.recordId` is an optional stable target ID for new records: if that record
-already exists, a leftover checkpoint is not reopened as a new unsaved record.
-A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
-marker has no fields/base and is ignored on read.
 Serial, coalesced writes keep the latest snapshot; back/swipe keeps it, explicit
 Cancel discards it, successful Save clears it. A baseline fingerprint rejects
 stale drafts after a final record changes. These records stay in this module's
@@ -98,8 +97,21 @@ by the kit: the recovery journal is the bounded offline fallback.
   every check-in. Language changes do not change this persisted boundary.
 - Malformed checks cannot fabricate progress; a zero current streak with earlier
   history says “A fresh start today”, rather than “No check-ins yet”.
+- Every date a person reads is drawn by the platform calendar formatter
+  (`nexModuleDateLabel`): each check-in history row, the two-week window's
+  range and the habit's start day (`createdAt`). Relative words stay where
+  they read best — today, yesterday, N days ago — with the absolute day
+  beside them. Storage never changes: keys stay civil, timestamps stay
+  ISO 8601, and a UTC key is rebuilt as a local civil day before it is
+  labelled, so a western time zone never prints the day before. An unknown
+  (epoch) creation date shows nothing rather than a wrong day.
 - Forms checkpoint locally as typed; errors leave input intact and permit retry.
   Writes use stable IDs and double taps are guarded. No data leaves the module.
+- Taking a check-in back is the one delete an accidental tap can cause. Its
+  snackbar Undo writes the exact original record — same id, same day, same
+  original moment — so an accidental removal never rewrites when it happened.
+  Habits and check-ins order newest-first with an id/timestamp tiebreak, so
+  equal or legacy records keep one stable order instead of shuffling per load.
 
 ## 4. Guide
 
@@ -121,70 +133,75 @@ leaving an unfinished editor keeps a local draft.
   honest historical checks, recoverable drafts and accessible compact forms.
 - FA: عادت‌ها: تنظیم روز شروع هفته، فرصت جبران دقیق، اصلاح ثبت‌های تاریخی،
   پیش‌نویس قابل‌بازیابی و فرم‌های مناسب صفحهٔ کوچک و متن بزرگ.
+- EN: Habits: calendar-true dates — each check-in day, the two-week range and
+  the habit's start day now shown in the platform's own calendar, Jalali
+  included.
+- FA: عادت‌ها: تاریخ‌ها حالا با تقویم خود پلتفرم — از جمله جلالی — دیده
+  می‌شوند؛ روزِ هر ثبت، بازهٔ دوهفته و روز شروع عادت.
+- EN: Habits: removing a day's check-in now offers Undo, restoring the exact
+  original record — the day and the moment it was first made.
+- FA: عادت‌ها: برداشتن ثبتِ روز حالا با «بازگردانی» همراه است و همان ثبتِ
+  اصلی — با همان روز و همان لحظهٔ نخست — برمی‌گردد.
 
 ## 6. Platform requests
 
-1. Shared Jalali date picker/formatter through `module_api.dart`. The kit exposes
-   no calendar API; the module uses truthful relative dates rather than a
-   Gregorian calendar labelled as Jalali.
-2. `NexTextField` exported through the module API. Notes use the permitted
-   Flutter multiline equivalent inside `NexAutoDirection`; stored prose uses
-   the exported content-direction helper. Nex's native per-paragraph editor
-   is unavailable. The full-app multiline-field scanner demands that private
-   widget, conflicting with the module import boundary; see validation report.
+1. ~~Shared Jalali date picker/formatter through `module_api.dart`.~~
+   **Fulfilled:** the kit exports `NexModuleDateEntry`, `nexPickModuleDate`
+   and `nexModuleDateLabel`. Every date this module shows — each history
+   row, the two-week window, the habit's start day — goes through
+   `nexModuleDateLabel`, so Jalali reads as Jalali. The module has no date
+   a person types (the one-tap check-in is always today), so there is no
+   field to wrap in `NexModuleDateEntry`; relative wording stays where it
+   reads best. Civil storage keys and ISO timestamps are unchanged.
+2. ~~`NexTextField` exported through the module API.~~ **Fulfilled:** the
+   note field uses the exported `NexTextField`; the name stays one line
+   inside `NexAutoDirection`; the stored note reads through
+   `NexTextDirection`.
 3. Optional atomic batch storage for parent/child changes. The local recovery
    journal currently protects interrupted compound deletion without bypassing
    `NexModuleStore`.
 
 ## 7. Checks
 
-Reviewed in the owner's Windows / PowerShell workspace against Nex `main`
-`fdd70f4890b0bab67d30b88d4821273113d4b01d`, with the repository's pinned Flutter **3.35.5** / Dart **3.9.2**.
-The installed system Flutter is 3.44.8; a local validation SDK was used instead.
-
-All three modules were temporarily registered in a separate reference checkout
-under `.validation/DbsNex`; the original registry is restored after checks.
-No core source, ARB, dependencies, registry or planned-catalog edits are delivered.
-No Commit, Push, PR, remote write or ZIP was made. `core.longpaths` was supplied
-to clone per command rather than changing the owner's global Git configuration.
-
-Commands run from `apps/client` (with the pinned local SDK):
+Current pass (this repository, this folder only), run from `apps/client`
+with the repository's pinned Flutter **3.35.5** / Dart **3.9.2**:
 
 ```text
-flutter pub get --enforce-lockfile
-flutter test --no-pub test/module_kit_test.dart test/modules/habits test/modules/smoke_free test/modules/lent_borrowed --reporter expanded
-flutter analyze --no-pub --fatal-infos
-flutter test --no-pub --reporter expanded
-dart format <module's lib and test folders>
+dart format lib/modules/habits test/modules/habits        # no diff
+flutter analyze --fatal-infos                             # clean
+flutter test test/module_kit_test.dart -j 2                # gate green
+flutter test test/modules/habits -j 2                       # all green
 ```
 
-`--no-pub` follows successful dependency resolution: Flutter's final Windows
-plugin-symlink setup reports missing Developer Mode privileges. Package versions
-remain exactly those in the baseline lockfile; only the hosted download endpoint
-was changed temporarily to the public Flutter mirror because pub.dev returned
-403. Tests run outside the filesystem sandbox after its compiler-temp-file copy
-failed with Access denied. Neither workaround changes module code or dependencies.
+The module's two folders are the only changes; no core source, ARB,
+dependency, registry or rollout edits are involved. Exact counts are in
+the shared worklog entry for this pass.
 
-Final results: **248/248 passed** for the combined module tests and the real
-module-kit gate with temporary registration; **full client analyzer clean**.
-The full client run reported **1368 passed, 4 failed, 3 skipped**: two Windows
-attachment-fixture file-lock cleanup failures, the intentional old planned
-Habits entry pending maintainer integration, and the multiline editor/API
-discrepancy described above. The Windows failures reproduced with the original
-registry. Core: 231 passed/analyzer clean. Data: 253 passed, 2 failed (Windows
-symlink privileges), 14 skipped/analyzer clean. Final detailed evidence is in
-`review/VALIDATION.md` at the workspace root. Earlier test failures were repaired;
-the final log, not the initial README's historical claims, is authoritative.
+Tests cover Persian RTL and English LTR, light/dark, text scale 2.0 at
+320x640, reduced motion, reopening, store isolation, failed writes with
+retry, draft coalescing, back waiting for the latest durable checkpoint,
+retry after a failed flush, interrupted compound deletion with exact-body
+recovery, check-in removal with exact-record Undo from both the Today list
+and the detail page, the archive screen's empty-state action, the
+Jalali/Gregorian display of every absolute date, and
+meaningful user journeys. Persian strings carry no bidi control
+characters; every icon-only button has a tooltip; the progress rows carry
+Semantics labels.
 
-Tests include Persian RTL and English LTR, light/dark, text scale 2.0 at 320×640,
-reduced motion, reopening, isolation, failed writes/retry, draft coalescing,
-back waits for the latest durable checkpoint, retry after a failed flush,
-and meaningful user journeys. Actual Flutter main-screen captures use Nex's
-themes and bundled fonts in Persian dark and English light, under
-`review/screenshots`. These are widget renders with test fixtures, not Android-device screenshots.
+## 2.1.11 changes
 
-Maintainer integration: register the three const modules and imports in
-`nexModules`; remove the old planned IDs **`habits`, `smoke-free`, `lent`**
-(different from the actual IDs `habits`, `smoke_free`, `lent_borrowed`).
-Copy the Guide/Changelog paragraphs above into the app's content. Run the gate,
-full app checks and device/accessibility review before release.
+- 2.1.11: optional daily reminder per habit (switch + time on the habit's page); one primary action on an empty page.
+
+## Calendar and how often (2.1.13)
+
+The detail page has a month calendar in the calendar the person reads (Jalali
+or Gregorian, weeks starting on the chosen first day). A tap on any day up to
+today makes that day's check-in — the same record, `<habit-id>:<YYYY-MM-DD>`,
+as the Today button — and a tap on a marked day takes it back, with Undo. A
+day to come cannot be marked; a day before the habit began can. **How often**
+counts days checked of the days since the habit began (7, 30 and 90 days, the
+window cut to the habit's life) for a daily habit, and weeks that met the
+target among the last twelve *finished* weeks for a weekly one; the week in
+progress and a first week that began mid-week are never counted against it.
+Streaks and the forgiven interval are unchanged. Specific weekdays and
+every-N-days schedules are not here: they would change the streak rules.

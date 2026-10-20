@@ -80,7 +80,7 @@ void main() {
       await seed();
       await pump(tester, locale: const Locale('fa'));
       expect(
-        (find.byType(Directionality).evaluate().single.widget as Directionality)
+        (find.byType(Directionality).evaluate().first.widget as Directionality)
             .textDirection,
         TextDirection.rtl,
       );
@@ -133,7 +133,7 @@ void main() {
       await seed();
       await pump(tester, locale: const Locale('en'));
       expect(
-        (find.byType(Directionality).evaluate().single.widget as Directionality)
+        (find.byType(Directionality).evaluate().first.widget as Directionality)
             .textDirection,
         TextDirection.ltr,
       );

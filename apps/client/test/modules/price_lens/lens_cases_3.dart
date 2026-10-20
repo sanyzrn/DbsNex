@@ -84,6 +84,43 @@ void _lensCases3() {
       },
     );
 
+    test('750 g and 0.75 kg are physically the same package', () {
+      final option = offer(
+        'rice',
+        110000,
+        quantity: const Fraction(750),
+        unit: 'g',
+      );
+      final match = memoryMatchFor(option, [
+        PriceMemory(
+          id: 'kg-memory',
+          label: 'rice',
+          priceMinor: 100000,
+          currency: 'IRR',
+          quantity: const Fraction(3, 4),
+          unitKey: 'kg',
+          date: date,
+        ),
+      ]);
+      expect(match, isNotNull);
+      expect(match!.id, 'kg-memory');
+      // A different physical size still is not the same product.
+      expect(
+        memoryMatchFor(option, [
+          PriceMemory(
+            id: 'kg-off',
+            label: 'rice',
+            priceMinor: 100000,
+            currency: 'IRR',
+            quantity: const Fraction(4, 5),
+            unitKey: 'kg',
+            date: date,
+          ),
+        ]),
+        isNull,
+      );
+    });
+
     test('the difference is a subtraction of two typed numbers', () {
       final option = offer(
         'rice',

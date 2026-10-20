@@ -5,6 +5,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'controller.dart';
 import 'maintenance_common.dart';
+import 'maintenance_widgets.dart';
 import 'models.dart';
 import 'strings.dart';
 import 'units.dart';
@@ -248,15 +249,15 @@ class _AssetEditorSheetState extends State<AssetEditorSheet> {
                                 child: Text(
                                   _purchased == null
                                       ? s(context, 'purchasedUnset')
-                                      : maintenanceFullDate(
-                                          context,
-                                          _purchased!,
-                                        ),
+                                      : fullDateLabel(context, _purchased!),
                                 ),
                               ),
-                              const Icon(
-                                Icons.calendar_today_outlined,
-                                size: 20,
+                              Tooltip(
+                                message: s(context, 'purchasedTooltip'),
+                                child: const Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 20,
+                                ),
                               ),
                             ],
                           ),
@@ -281,14 +282,6 @@ class _AssetEditorSheetState extends State<AssetEditorSheet> {
                             color: theme.colorScheme.error,
                           ),
                         ),
-                      Text(
-                        NexModuleCalendar.solarOf(context)
-                            ? (NexModuleStrings.persian(context)
-                                  ? 'شمسی'
-                                  : 'Solar Hijri')
-                            : s(context, 'gregorian'),
-                        style: theme.textTheme.bodySmall,
-                      ),
                       const SizedBox(height: NexSpacing.md),
                       Text(
                         s(context, 'meterKindLabel'),
@@ -321,6 +314,11 @@ class _AssetEditorSheetState extends State<AssetEditorSheet> {
                       ),
                       if (_meterKind == MeterKind.distance) ...[
                         const SizedBox(height: NexSpacing.md),
+                        Text(
+                          s(context, 'distanceUnitLabel'),
+                          style: theme.textTheme.labelLarge,
+                        ),
+                        const SizedBox(height: NexSpacing.xs),
                         Wrap(
                           key: const ValueKey('maintenance-distanceunit'),
                           spacing: NexSpacing.sm,
@@ -342,22 +340,18 @@ class _AssetEditorSheetState extends State<AssetEditorSheet> {
                         ),
                       ],
                       const SizedBox(height: NexSpacing.md),
-                      // Single-line: a module cannot import the platform's
-                      // multi-line NexTextField (see the README's Platform
-                      // requests); direction follows the script typed.
-                      NexAutoDirection(
+                      // The shared multiline editor: the platform's own
+                      // per-paragraph direction on Android (ADR-037).
+                      NexTextField(
+                        key: const ValueKey('maintenance-notes'),
                         controller: _notes,
-                        builder: (context, direction) => TextField(
-                          key: const ValueKey('maintenance-notes'),
-                          controller: _notes,
-                          textDirection: direction,
-                          decoration: InputDecoration(
-                            labelText: s(context, 'notesLabel'),
-                            hintText: s(context, 'notesHint'),
-                          ),
-                          maxLines: 1,
-                          onChanged: (_) => _markDirty(),
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          labelText: s(context, 'notesLabel'),
+                          hintText: s(context, 'notesHint'),
                         ),
+                        onChanged: (_) => _markDirty(),
                       ),
                     ],
                   ),

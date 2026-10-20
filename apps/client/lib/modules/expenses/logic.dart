@@ -56,6 +56,43 @@ List<ExpenseCurrencyTotals> expenseTotals(Iterable<ExpenseTx> txs) {
   ];
 }
 
+/// What was spent in [month] in one currency, against the month before it —
+/// the comparison people mean by «am I spending more?». Null when the month
+/// before has no spending in that currency: there is nothing honest to
+/// compare to, and a percentage of nothing is not a number.
+({BigInt previous, int? percent, int direction})? expenseMonthChange(
+  Iterable<ExpenseTx> txs,
+  String month, {
+  required String currency,
+}) {
+  final before = previousMonthKey(month);
+  if (before == null) return null;
+  BigInt spent(String key) {
+    var total = BigInt.zero;
+    for (final tx in txs) {
+      if (!validExpenseTx(tx) || tx.isIncome || tx.currency != currency) {
+        continue;
+      }
+      if (monthKeyOf(tx.date) == key) total += BigInt.from(tx.amount);
+    }
+    return total;
+  }
+
+  final previous = spent(before);
+  if (previous <= BigInt.zero) return null;
+  final current = spent(month);
+  final diff = current - previous;
+  // Rounded to the nearest whole percent, away from zero on a half.
+  final percent =
+      ((diff.abs() * BigInt.from(200) + previous) ~/ (previous * BigInt.two))
+          .toInt();
+  return (
+    previous: previous,
+    percent: percent,
+    direction: percent == 0 ? 0 : (diff.isNegative ? -1 : 1),
+  );
+}
+
 /// One category's slice of a month's spending.
 class ExpenseCategorySlice {
   ExpenseCategorySlice({required this.categoryId, required this.total});

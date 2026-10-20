@@ -40,11 +40,9 @@ int convertDistance(int value, DistanceUnit from, DistanceUnit to) => from == to
     ? value
     : (from == DistanceUnit.km ? kmToMi(value) : miToKm(value));
 
-/// Whether a raw string from storage is a usable metre reading:
-/// a non-negative integer, bounded so arithmetic cannot overflow.
+/// The bound every meter value carries: non-negative integers, capped so
+/// arithmetic cannot overflow.
 const meterMax = 1000000000; // 1e9 km / hours — beyond any odometer
-
-bool isValidMeter(int value) => value >= 0 && value <= meterMax;
 
 /// Days in a month — February honours leap years.
 int daysInMonth(int year, int month) {

@@ -25,6 +25,59 @@ void main() {
       await pumpWarranty(tester);
       expect(find.byKey(const ValueKey('warranty-empty')), findsOneWidget);
       expect(find.byKey(const ValueKey('warranty-fab')), findsOneWidget);
+      // The empty state carries its own first action, not only the button
+      // below it.
+      expect(find.byKey(const ValueKey('warranty-empty-add')), findsOneWidget);
+    });
+
+    testWidgets('the empty state button adds a purchase', (tester) async {
+      final h = await pumpWarranty(tester);
+      await tester.tap(find.byKey(const ValueKey('warranty-empty-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('warranty-field-product')),
+        'Kettle',
+      );
+      await scrollWarrantyTo(
+        tester,
+        find.byKey(const ValueKey('warranty-today')),
+      );
+      await tester.tap(find.byKey(const ValueKey('warranty-today')));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('warranty-field-duration')),
+        '6',
+      );
+      // Settle the focused field's scroll-into-view before reaching Save.
+      await tester.pumpAndSettle();
+      await _tapSave(tester);
+      expect(find.text('Kettle'), findsWidgets);
+      expect(
+        await h.services.moduleRecords('warranty', 'warranty'),
+        hasLength(1),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the Today chip writes the zero-padded entry format', (
+      tester,
+    ) async {
+      await pumpWarranty(tester);
+      await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+      await tester.pumpAndSettle();
+      await scrollWarrantyTo(
+        tester,
+        find.byKey(const ValueKey('warranty-today')),
+      );
+      await tester.tap(find.byKey(const ValueKey('warranty-today')));
+      await tester.pump();
+      final written = tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('warranty-field-purchase')),
+          )
+          .controller!
+          .text;
+      expect(written, matches(r'^\d{4}/\d{2}/\d{2}$'));
     });
 
     testWidgets('a purchase with a duration lands under Covered, with its '
@@ -75,7 +128,7 @@ void main() {
         'Kettle',
       );
       await _tapSave(tester);
-      expect(find.text('Use a valid Gregorian purchase date.'), findsOneWidget);
+      expect(find.text('Use a valid purchase date.'), findsOneWidget);
       expect(await h.services.moduleRecords('warranty', 'warranty'), isEmpty);
     });
 

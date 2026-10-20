@@ -7,6 +7,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'warranty_dialogs.dart';
 import 'warranty_editor.dart';
 import 'warranty_fields.dart';
+import 'warranty_service_file.dart';
 import 'warranty_models.dart';
 import 'warranty_strings.dart';
 import 'warranty_widgets.dart';
@@ -144,7 +145,20 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
         await _unarchive();
       case 'delete':
         await _delete();
+      case 'copyFile':
+        await _copyFile();
+      case 'shareFile':
+        await nexModuleShareText(warrantyServiceFile(context, _body!, _claims));
     }
+  }
+
+  /// The service file on the clipboard — a hand-over, never sent anywhere
+  /// by the module itself.
+  Future<void> _copyFile() async {
+    if (_body == null) return;
+    await nexModuleCopyText(warrantyServiceFile(context, _body!, _claims));
+    if (!mounted) return;
+    nexShowBanner(context, message: warrantyStrings(context, 'fileCopied'));
   }
 
   Future<void> _edit() async {

@@ -34,6 +34,25 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.13
+
+- **Birthdays & occasions.** A new module for the dates you do not want to miss — birthdays, anniversaries, remembrances. Each date repeats in its own calendar, so a Jalali birthday comes back on the same Jalali day every year. You see a countdown, the age it comes to (when you know the year), the day in both calendars, a greeting to copy or share, and an optional reminder ahead of the day. Nothing is sent for you and no contacts are read. Add it from **Tools → Add modules**.
+- **Habits.** A calendar of every month, in your own calendar: tap any day up to today to mark it, tap again to take it back. A new **How often** panel shows the days you kept it out of the days since you started.
+
+## v2.1.12
+
+- **Quit Habits.** The Smoke-free module is now Quit Habits and is available: count several things you are quitting at once — smoking, vaping, alcohol, caffeine, sugar, social media, gambling or your own — each with a live count in days, hours and minutes, the money and time kept, a saving goal, your own reason, marks along the way and the last five weeks at a glance. **I need help now** opens guided breathing, a ten-minute wait and quick ideas. You can start later, and a slip never erases earlier attempts. Everything you logged as Smoke-free is still there, as cigarettes.
+- **Lent & Borrowed.** Totals owed to you and by you in each currency, search and filters, a page for each person, and polite reminder messages (friendly, plain or formal) that you send yourself.
+- **Price Lens.** The result now says it in a sentence — "Rice 1kg costs 7.1% less per kg than Rice 750g" — and prices can be read per 100 g or 100 ml.
+
+## v2.1.11
+
+- **Habits, Price Lens and Lent & Borrowed are available.** Add them from **Tools → Add modules**. The other eight modules stay Soon until each is finished.
+- **Habits:** an optional **Daily reminder** at a time you choose, on each habit's page. Dates follow your calendar (Jalali or Gregorian).
+- **Lent & Borrowed:** an optional **Reminder** on a loan, opened on its due day; settling or deleting the loan removes it. Dates in the forms use the calendar button beside the field.
+- **Price Lens:** **Copy result** puts the comparison on the clipboard as plain lines. The empty page now has one **Add offer** button instead of two.
+- Pages with nothing yet show a single button, not a button and a floating one; reminder messages appear in Nex's top capsule.
+
 ## v2.1.10
 
 - **YouTube analysis now shows its result.** "Analyze video" ran, finished and kept the analysis, but showed nothing: a note's summary is hidden when it is not shorter than the note's own words, and a YouTube link's words are only a title and a line, so every real analysis was hidden. The analysis of a YouTube link now always appears in the note's AI section.

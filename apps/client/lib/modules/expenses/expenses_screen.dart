@@ -180,6 +180,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 message: s(context, 'loadFailed'),
                 action: TextButton(
                   onPressed: () => unawaited(controller.load()),
+                  // Material caps buttons at 40dp tall — a label a 2× text
+                  // scale cannot fit into; let it grow with the words.
+                  style: const ButtonStyle(
+                    maximumSize: WidgetStatePropertyAll<Size?>(
+                      Size(double.infinity, double.infinity),
+                    ),
+                  ),
                   child: Text(s(context, 'retry')),
                 ),
               )
@@ -253,7 +260,16 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         padding: const EdgeInsetsDirectional.only(
                           bottom: NexSpacing.md,
                         ),
-                        child: ExpensesTotalsPanel(totals: total),
+                        child: ExpensesTotalsPanel(
+                          totals: total,
+                          change: _month == null
+                              ? null
+                              : expenseMonthChange(
+                                  controller.txs,
+                                  _month!,
+                                  currency: total.currency,
+                                ),
+                        ),
                       ),
                     if (totals.length > 1)
                       Padding(

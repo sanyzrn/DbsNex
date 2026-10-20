@@ -19,10 +19,36 @@ extension _MedicineScreenBody on _MedicineScreenState {
           : _loadFailed
           ? _readError()
           : _medicines.isEmpty
-          ? NexEmptyState(
-              key: const ValueKey('medicine-empty'),
-              icon: Icons.medication_outlined,
-              message: strings(context, 'emptyMessage'),
+          // Scrolled rather than overflowing: at 2× text the empty state
+          // is taller than a small phone. The ConstrainedBox keeps it
+          // vertically centered when it does fit.
+          ? LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: NexEmptyState(
+                    key: const ValueKey('medicine-empty'),
+                    icon: Icons.medication_outlined,
+                    message: strings(context, 'emptyMessage'),
+                    // The empty state carries its own first action, not only
+                    // the floating button below it.
+                    action: FilledButton.tonalIcon(
+                      key: const ValueKey('medicine-empty-add'),
+                      onPressed: () => unawaited(_add()),
+                      icon: const Icon(Icons.medication_outlined),
+                      label: Text(strings(context, 'addMedicine')),
+                      // Material's default caps a filled button at 40 px
+                      // tall, which a 2× text scale cannot fit into; let it
+                      // grow with the words instead of clipping them.
+                      style: const ButtonStyle(
+                        maximumSize: WidgetStatePropertyAll<Size?>(
+                          Size(double.infinity, double.infinity),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             )
           : ListView(
               padding: const EdgeInsets.fromLTRB(

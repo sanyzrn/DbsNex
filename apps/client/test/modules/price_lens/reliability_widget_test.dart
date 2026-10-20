@@ -98,6 +98,14 @@ void main() {
     (tester) async {
       PriceOption? saved;
       await editor(tester, offer(fixed: 500, shipping: 200), (o) => saved = o);
+      // The stored shopping date prefills in the shared entry's format.
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('lens-date')))
+            .controller!
+            .text,
+        '2026/10/01',
+      );
       await tester.ensureVisible(find.text('Tomans'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tomans'));
@@ -124,6 +132,8 @@ void main() {
       expect(saved!.priceMinor, 1500);
       expect(saved!.discountMinor, 500);
       expect(saved!.shippingMinor, 200);
+      // Untouched, the stored date survives the editor round-trip.
+      expect(saved!.date, DateTime(2026, 10, 1));
       expect(await store.list('comparison'), isEmpty);
       expect(await store.list('memory'), isEmpty);
     },

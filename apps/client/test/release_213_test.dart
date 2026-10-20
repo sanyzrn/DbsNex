@@ -216,9 +216,14 @@ void main() {
         );
         expect(await medicine.list('__reminder'), isEmpty);
         expect(h.preferences.isModuleOn('medicine'), isTrue);
-        expect(nexModules.where((m) => m.available).map((m) => m.id), [
+        expect(nexModules.where((m) => m.available).map((m) => m.id).toSet(), {
           'cycle',
-        ]);
+          'habits',
+          'price_lens',
+          'lent_borrowed',
+          'smoke_free',
+          'occasions',
+        });
         expect(
           NexModuleAlarms.moduleId('a', 'b:c'),
           isNot(NexModuleAlarms.moduleId('a:b', 'c')),

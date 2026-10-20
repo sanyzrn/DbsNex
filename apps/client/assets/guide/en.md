@@ -138,11 +138,12 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 **Finding modules.** Search in **Tools → Add modules** by name or keyword. Cards show a brief preview; tap one to expand its details and Add, Open or Remove actions. Opening a preview does not enable it.
 
-**Modules under review.** From 2.1.1 only **Cycle** is available. All eleven modules listed below appear as **Soon**, with no install or open action. Their source, saved installation choices and records stay intact while each module is reviewed.
+**Modules under review.** **Cycle**, **Habits**, **Price Lens**, **Lent & Borrowed**, **Quit Habits** and **Birthdays & occasions** are available. The other seven modules listed below appear as **Soon**, with no install or open action, while each is reviewed and finished; their saved installation choices and records stay intact.
 
-- **Habits:** daily/weekly check-ins, history and streaks.
-- **Price Lens:** compare unit prices across differently sized offers; save comparisons.
-- **Lent & Borrowed:** track money/item loans, due dates and partial/full returns.
+- **Habits:** daily/weekly check-ins, history and streaks, a calendar of every month (in your own calendar) where you can mark or take back any past day, how often you kept it, and an optional daily reminder.
+- **Birthdays & occasions:** birthdays, anniversaries and other dates you keep, each repeating in its own calendar — a Jalali date returns on the same Jalali day every year. A countdown, the age it comes to (if you know the year), the day in both calendars, a greeting to copy or share, and an optional reminder ahead of the day.
+- **Price Lens:** compare unit prices across differently sized offers, in plain words ("X costs 7.1% less per kg"), per 100 g or 100 ml if you like; save and copy comparisons.
+- **Lent & Borrowed:** track money/item loans, due dates and partial/full returns; totals owed to you and by you in each currency, search and filters, a page for each person, an optional due-day reminder and polite reminder messages you can share.
 - **Expenses:** manually record income/expenses, categories, budgets and separate currencies.
 - **Gold:** calculate manual gold/jewelry quotes and save receipts; no live prices.
 - **Words:** build vocabulary cards, paste a batch and review at spaced intervals.
@@ -150,9 +151,9 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 - **Medicine:** track medicines, stock, expiry and taken/skipped doses; no automatic reminders.
 - **Warranty:** keep product details, typed receipt references, warranty dates and claim notes.
 - **Maintenance:** log equipment services, costs, meter readings and service intervals.
-- **Smoke Free:** track smoke-free progress, estimated savings and cravings.
+- **Quit Habits:** count the days since you quit smoking, vaping, alcohol, caffeine, sugar, social media, gambling or anything of your own — several at once, each with a live count, the money and time kept, a saving goal, your own reason, marks along the way and the last five weeks at a glance. **I need help now** opens breathing (4-7-8), a ten-minute wait and quick ideas, with your reason on top. A slip never erases the attempts before it. Starting later is allowed. For things that are unsafe to stop suddenly, Nex says so once; it gives no medical advice.
 
-Each module stores its own data locally and in backups. These records do not enter notes, search, note widgets or the assistant. These modules have no camera, location or network integration. Shared calendar entry and explicitly chosen OS reminders are prepared, but the Soon modules remain inaccessible and silent. Existing typed civil-date fields retain their Gregorian labels and formats.
+Each module stores its own data locally and in backups. These records do not enter notes, search, note widgets or the assistant. These modules have no camera, location or network integration. Dates in the available modules follow your calendar setting (Jalali or Gregorian) and are kept the same way underneath. Reminders are always your choice: a habit can nudge you at a time you pick every day (open the habit, switch on **Daily reminder**), and a loan can remind you on its due day (**Reminder** on the loan's page), and a birthday or occasion can remind you a few days ahead (it keeps the next two times ready and renews them whenever you open the module); the notification says only that something is waiting, and removing, archiving or settling the item takes its reminder away. The Soon modules remain inaccessible and silent. **Copy result** in Price Lens puts the comparison on the clipboard as plain lines.
 
 **Tools**, at the left of the bottom bar, holds **Passwords**, **Bank cards**, **Private saved messages** and a **Password generator**. The private tools need your fingerprint or screen lock, and one unlock opens all of them for as long as you are using them. They lock after two minutes without activity — including time spent in another app, so you can copy a password, paste it in your browser and come straight back. Leaving the app always hides their contents from the task switcher, and **Lock** closes them at once. Hold any tool to pin it to the top of the home screen, in its own colour and icon; hold it there to take it off. A pinned private tool shows only its name and still asks for your fingerprint. The lock on a private tool's card shows open while they are unlocked.
 

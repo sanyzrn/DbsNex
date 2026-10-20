@@ -24,6 +24,9 @@ class CravingList extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final now = DateTime.now();
+    // A window, not the whole history: the newest thirty cravings the person
+    // actually wants to glance at.
+    final shown = cravings.take(30).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,10 +49,10 @@ class CravingList extends StatelessWidget {
         else ...[
           _PatternLine(cravings: cravings),
           const SizedBox(height: NexSpacing.sm),
-          for (final (index, craving) in cravings.take(30).indexed)
+          for (final (index, craving) in shown.indexed)
             NexGroupedRow(
               index: index,
-              count: cravings.take(30).length,
+              count: shown.length,
               child: ListTile(
                 onTap: () => _open(context, craving),
                 title: Text(
@@ -93,7 +96,11 @@ class CravingList extends StatelessWidget {
   String _dayLabel(BuildContext context, Craving craving, DateTime now) {
     final strings = smokeFreeStrings;
     final days = SmokeMath.cravingDayIndex(craving.at, now);
-    if (days < 0) return strings(context, 'futureDate', {'n': -days});
+    if (days < 0) {
+      return strings(context, days == -1 ? 'tomorrowWord' : 'futureDate', {
+        'n': -days,
+      });
+    }
     if (days == 0) return strings(context, 'todayWord');
     if (days == 1) return strings(context, 'yesterdayWord');
     return strings(context, 'daysAgoWord', {'n': days});

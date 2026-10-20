@@ -5,6 +5,7 @@ const _maintenanceen = <String, String>{
   'readingDeleteBody':
       'Service history and intervals stay. Undo restores this reading.',
   'assetDateRequired': 'Choose a valid purchase/installation date or clear it',
+  'deletedRule': 'Interval deleted',
 
   'usageBaselineUnknown':
       'Enter a service reading for this task to establish its interval baseline',
@@ -18,7 +19,6 @@ const _maintenanceen = <String, String>{
       'Could not restore because another change conflicts. Current data was kept.',
   'clearDate': 'Clear date',
   'dateRequired': 'Choose a valid service date, today or earlier',
-  'gregorian': 'Gregorian',
   'currencyRequired': 'Choose a currency for the entered cost',
   'repeatVerify':
       'Copied task and cost: verify them. Enter a fresh meter reading if known.',
@@ -33,7 +33,6 @@ const _maintenanceen = <String, String>{
   'readingCorrection': 'Keep as a correction?',
   'readingCorrectionBody':
       'This reading is lower than the last entered reading. History stays unchanged.',
-  'readingSaved': 'Reading saved',
   'readingDeleted': 'Reading removed',
   'usageNext': 'Next at {meter} {unit}',
   'convertedReading': '1 mi = 1.609344 km; converted readings round to 0.001.',
@@ -60,8 +59,9 @@ const _maintenanceen = <String, String>{
   'about':
       'A private log of upkeep for the things you own — cars, air '
       'conditioners, water filters, anything with a schedule. You enter '
-      'the intervals; the log remembers the history. No reminders, no '
-      'location, no connection to the car.',
+      'the intervals; the log remembers the history. An optional device '
+      'reminder can sit on each asset; no location, no connection to '
+      'the car.',
   'point1': 'Service history',
   'point2': 'Own intervals',
   'point3': 'Cost per asset',
@@ -80,9 +80,7 @@ const _maintenanceen = <String, String>{
   'groupNeedsInfoNote': 'An interval is waiting on a date or a meter reading',
   'groupNoScheduleNote': 'Add an interval rule to get due dates',
   'noAssets': 'Nothing tracked yet',
-  'noAssetsHint': 'Add the first thing you maintain',
   'addAsset': 'Add asset',
-  'noArchived': 'Nothing archived',
 
   // Asset types.
   'typeCar': 'Car',
@@ -93,27 +91,12 @@ const _maintenanceen = <String, String>{
   'typeAppliance': 'Appliance',
   'typeOther': 'Other',
 
-  // Months (Gregorian; the Persian side never claims to be Jalali).
-  'month1': 'January',
-  'month2': 'February',
-  'month3': 'March',
-  'month4': 'April',
-  'month5': 'May',
-  'month6': 'June',
-  'month7': 'July',
-  'month8': 'August',
-  'month9': 'September',
-  'month10': 'October',
-  'month11': 'November',
-  'month12': 'December',
-
   // Units.
   'unitKm': 'km',
   'unitMi': 'mi',
   'unitHours': 'h',
   'kmFull': 'kilometres',
   'miFull': 'miles',
-  'hoursFull': 'running hours',
 
   // Asset editor.
   'newAssetTitle': 'New asset',
@@ -147,10 +130,14 @@ const _maintenanceen = <String, String>{
   'deleteAssetTitle': 'Delete this asset?',
   'deleteAssetBody':
       'Its {n} services and {m} rules go with it. Undo is offered for a short while.',
+  'copyHistory': 'Copy service history',
+  'shareHistory': 'Share service history',
+  'historyCopied': 'Service history copied.',
+  'historyHeading': 'Service history',
+  'noServices': 'No services written down yet.',
   'deletedAsset': 'Deleted',
   'archivedAsset': 'Archived',
   'undo': 'Undo',
-  'saved': 'Saved',
   'discard': 'Discard',
   'keepEditing': 'Keep editing',
   'discardTitle': 'Discard this entry?',
@@ -176,7 +163,6 @@ const _maintenanceen = <String, String>{
   'errTooPrecise': 'More decimals than this currency has',
   'errTooLarge': 'Beyond what this module can hold',
   'currencyLabel': 'Currency',
-  'enterInLabel': 'Entered in',
   'rialUnit': 'Rials',
   'tomanUnit': 'Tomans',
   'tomanHint': '1 toman = 10 rials',
@@ -196,7 +182,6 @@ const _maintenanceen = <String, String>{
       'Derived due dates recompute from what is left. Undo is offered for a short while.',
   'deletedEvent': 'Deleted',
   'repeatLast': 'Repeat last service',
-  'noRepeatYet': 'Nothing to repeat yet',
 
   // Rule editor.
   'rulesTitle': 'Intervals',
@@ -224,36 +209,31 @@ const _maintenanceen = <String, String>{
   'logService': 'Log service',
   'costSummary': 'Costs entered',
   'costSummaryNote': 'Only the costs you typed in — nothing inferred',
-  'lastDone': 'Last done',
-  'neverDone': 'Not done yet',
   'sincePurchase': 'Counted from the purchase date',
   'noPurchaseDate': 'No date to count from',
   'dueOn': 'Due {date}',
   'distanceDueUnknown': 'Distance due unknown — enter a reading',
   'hoursDueUnknown': 'Hours due unknown — enter a reading',
   'overdueSince': 'Due since {date}',
-  'atMeter': 'at {meter} {unit}',
   'nowAt': 'Last entered: {meter} {unit}',
   'meterAtService': '{meter} {unit} at service',
-  'costOf': '{amount} {currency}',
   'providedBy': 'by {provider}',
   'today': 'Today',
   'yesterday': 'Yesterday',
   'incompleteRecord': 'Incomplete record',
-  'dateMonths': 'months',
-  'distanceDueAt': 'Due at {meter} {unit}',
 
   // Semantics.
   'assetSemantics': '{name}, {type}, {group}',
   'ruleSemantics': '{task}: {status}',
   'eventSemantics': '{task} on {date}',
-  'progressSemantics': '{percent} percent through the interval',
 
   // Misc.
-  'aboutTitle': 'About Maintenance',
-  'notWarranties': 'This is upkeep, not the Warranties module',
   'noReminders':
-      'Due dates are computed when the module is opened — no reminders',
-  'privacyNote': 'Everything stays on this device',
-  'addFirstService': 'Log the first service',
+      'Due standings recompute on open and on every change — reminders '
+      'are optional, set on each asset',
+
+  // The opt-in device reminder for an asset.
+  'reminderNote':
+      'A device alert, set by you — for the next service when it comes '
+      'due on this asset. It goes when the asset does.',
 };

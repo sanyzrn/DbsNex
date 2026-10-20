@@ -14,7 +14,6 @@ const medicineStrings = NexModuleStrings(
     'takenLimited': 'Taken · recorded stock was insufficient',
     'loadFailed': 'Could not load your records. Retry before editing.',
     'retry': 'Retry',
-    'unknownDate': 'Date unavailable',
     'title': 'Medicine cabinet',
     'tagline': 'Your medicines, in your own words',
     'about':
@@ -35,11 +34,9 @@ const medicineStrings = NexModuleStrings(
     'unarchive': 'Back on the list',
     'quantityLeft': '{count} {unit} left',
     'quantityNone': 'None left',
-    'quantityUnknown': 'Stock is yours to write',
     'expired': 'Expired',
     'expiringSoon': 'Expiring soon',
     'refillSoon': 'Time to refill',
-    'noTimes': 'No routine times written',
 
     // The editor.
     'editMedicine': 'Edit medicine',
@@ -74,8 +71,9 @@ const medicineStrings = NexModuleStrings(
         'How many units one logged dose uses. Leave empty and stock never '
         'falls on its own.',
     'doseUnitsHint': 'A whole number, 1 or more',
-    'expiry': 'Expiry date (Gregorian)',
+    'expiry': 'Expiry date',
     'expiryNote': 'Optional. Shown while the app is open; no alert is set.',
+    'badDate': 'Not a date',
     'refill': 'Refill threshold',
     'refillNote': 'When to be reminded to buy more, while the app is open.',
     'save': 'Save medicine',
@@ -87,13 +85,10 @@ const medicineStrings = NexModuleStrings(
     'loggedAt': '{date} {time}',
     'doseHistory': 'Dose history',
     'noDoses': 'No doses logged yet.',
-    'stockLabel': 'Stock',
     'expiryLabel': 'Expires',
     'instructionsLabel': 'Instructions',
     'timesLabel': 'Times you wrote',
     'purposeLabel': 'Note',
-    'noValue': '—',
-    'stockFellTo': 'Stock: {count} {unit}',
 
     // Questions and failures.
     'deleteMedicine': 'Delete {name}?',
@@ -106,23 +101,15 @@ const medicineStrings = NexModuleStrings(
         'any time.',
     'medicineDeleted': 'Medicine deleted',
     'medicineArchived': 'Medicine archived',
-    'medicineRestored': 'Medicine back on the list',
     'doseDeleted': 'Dose log deleted',
-    'stockRestored': 'Stock put back',
     'discardTitle': 'Leave without saving?',
     'discardBody': 'What you have written so far will be lost.',
     'discard': 'Leave',
     'keepWriting': 'Keep writing',
     'saveFailed': 'Could not save. Nothing was lost — try again.',
-    'deleteFailed': 'Could not delete. Try again.',
     'safetyNote':
         'This app does not check doses, interactions or timing. Your '
         'clinician or pharmacist is the source for medical instructions.',
-
-    // Dates.
-    'ymd': '{y}/{m}/{d}',
-    'hm': '{h}:{m}',
-    'today': 'Today',
   },
   fa: {
     'dateHint': 'سال/ماه/روز',
@@ -134,7 +121,6 @@ const medicineStrings = NexModuleStrings(
     'takenLimited': 'مصرف ثبت شد · موجودی ثبت‌شده کافی نبود',
     'loadFailed': 'خواندن اطلاعات انجام نشد. پیش از ویرایش دوباره تلاش کنید.',
     'retry': 'تلاش دوباره',
-    'unknownDate': 'تاریخ نامشخص',
     'title': 'جعبه دارو',
     'tagline': 'داروهایتان، با حرف‌های خودتان',
     'about':
@@ -156,11 +142,9 @@ const medicineStrings = NexModuleStrings(
     'unarchive': 'بازگشت به فهرست',
     'quantityLeft': '{count} {unit} مانده',
     'quantityNone': 'هیچ نمانده',
-    'quantityUnknown': 'موجودی را خودتان بنویسید',
     'expired': 'منقضی شده',
     'expiringSoon': 'نزدیک به انقضا',
     'refillSoon': 'وقت خرید مجدد',
-    'noTimes': 'ساعت روتینی نوشته نشده',
 
     // ویرایشگر.
     'editMedicine': 'ویرایش دارو',
@@ -196,9 +180,10 @@ const medicineStrings = NexModuleStrings(
         'هر نوبتِ ثبت‌شده چند واحد برمی‌دارد. خالی بگذارید تا موجودی هرگز '
         'خودکار کم نشود.',
     'doseUnitsHint': 'یک عدد کامل، یک یا بیشتر',
-    'expiry': 'انقضا (میلادی)',
+    'expiry': 'تاریخ انقضا',
     'expiryNote':
         'اختیاری. تا وقتی برنامه باز است نشان داده می‌شود؛ هشداری ثبت نمی‌شود.',
+    'badDate': 'تاریخ درست نیست',
     'refill': 'آستانه خرید مجدد',
     'refillNote': 'کی یادآوری خرید باشد، فقط وقتی برنامه باز است.',
     'save': 'ثبت دارو',
@@ -210,13 +195,10 @@ const medicineStrings = NexModuleStrings(
     'loggedAt': '{date} ساعت {time}',
     'doseHistory': 'تاریخچه نوبت‌ها',
     'noDoses': 'هنوز نوبتی ثبت نشده.',
-    'stockLabel': 'موجودی',
     'expiryLabel': 'انقضا',
     'instructionsLabel': 'دستور',
     'timesLabel': 'ساعت‌هایی که نوشتید',
     'purposeLabel': 'یادداشت',
-    'noValue': '—',
-    'stockFellTo': 'موجودی: {count} {unit}',
 
     // پرسش‌ها و خطاها.
     'deleteMedicine': '«{name}» حذف شود؟',
@@ -227,22 +209,14 @@ const medicineStrings = NexModuleStrings(
         'از فهرست می‌رود، با همان تاریخچه. هر وقت بخواهید برمی‌گردد.',
     'medicineDeleted': 'دارو حذف شد',
     'medicineArchived': 'دارو آرشیو شد',
-    'medicineRestored': 'دارو به فهرست برگشت',
     'doseDeleted': 'ثبتِ نوبت حذف شد',
-    'stockRestored': 'موجودی برگردانده شد',
     'discardTitle': 'بدون ذخیره خارج شویم؟',
     'discardBody': 'چیزی که تا حالا نوشته‌اید از بین می‌رود.',
     'discard': 'خروج',
     'keepWriting': 'ادامه بدهم',
     'saveFailed': 'ذخیره نشد. چیزی از دست نرفت — دوباره تلاش کنید.',
-    'deleteFailed': 'حذف نشد. دوباره تلاش کنید.',
     'safetyNote':
         'این برنامه دوز، تداخل یا زمان را بررسی نمی‌کند. منبعِ دستورهای '
         'پزشکی، پزشک یا داروساز شماست.',
-
-    // تاریخ‌ها.
-    'ymd': '{y}/{m}/{d}',
-    'hm': '{h}:{m}',
-    'today': 'امروز',
   },
 );

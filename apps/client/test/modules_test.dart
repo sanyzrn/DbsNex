@@ -223,6 +223,8 @@ void main() {
 
     // It opens a sheet for the idea alone: no kind to pick, nothing to
     // attach.
+    await tester.ensureVisible(find.byKey(const ValueKey('modules-suggest')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('modules-suggest')));
     await tester.pumpAndSettle();
     expect(find.text('An idea for a module'), findsOneWidget);

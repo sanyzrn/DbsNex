@@ -6,10 +6,11 @@ import 'package:nex_client/modules/module_api.dart';
 const warrantyStrings = NexModuleStrings(
   en: {
     'coverageRequired':
-        'Enter a valid Gregorian end date or 1–{months} months ending by {year}.',
+        'Enter a valid end date or 1–{months} months ending by {year}.',
     'dateHint': 'YYYY/MM/DD',
     'unknownLog': 'Unknown record type',
     'monthCount': '{count} months',
+    'oneMonth': '1 month',
     'keepDraft': 'Keep draft & close',
     'undoFailed':
         'Could not undo. A later change may conflict; retry after checking the record.',
@@ -39,11 +40,11 @@ const warrantyStrings = NexModuleStrings(
     'unarchive': 'Back on the list',
     'searchHint': 'Search by product or brand',
     'sortSoonest': 'Sort by soonest end',
-    'sortNewest': 'Back to newest',
     'daysLeft': '{count} days left',
     'oneDayLeft': '1 day left',
     'endsToday': 'Ends today',
     'expiredDaysAgo': 'Ended {count} days ago',
+    'endedYesterday': 'Ended yesterday',
     'noResults': 'Nothing matches.',
 
     // The editor.
@@ -57,8 +58,8 @@ const warrantyStrings = NexModuleStrings(
     'serial': 'Serial / invoice ID',
     'serialHint': 'From the box or the receipt',
     'merchant': 'Merchant',
-    'purchaseDate': 'Purchase date (Gregorian)',
-    'purchaseRequired': 'Use a valid Gregorian purchase date.',
+    'purchaseDate': 'Purchase date',
+    'purchaseRequired': 'Use a valid purchase date.',
     'today': 'Today',
     'coverage': 'Coverage',
     'coverageNote':
@@ -67,7 +68,7 @@ const warrantyStrings = NexModuleStrings(
     'durationMonths': 'Duration (months)',
     'durationHint': 'A whole number, 1 or more',
     'endsOn': 'Ends {date}',
-    'orEndDate': 'or Gregorian end date',
+    'orEndDate': 'or end date',
     'endBeforePurchase': 'The end date is before the purchase.',
     'chooseOne': 'Write a duration or an end date — not both.',
     'coverageType': 'Coverage type',
@@ -81,8 +82,6 @@ const warrantyStrings = NexModuleStrings(
     'amountBad': 'Write a whole number, 0 or more',
     'rials': 'rials',
     'tomans': 'tomans',
-    'inRials': 'in rials',
-    'inTomans': 'in tomans',
     'note': 'Note',
     'noteHint': 'Anything worth remembering',
     'save': 'Save purchase',
@@ -98,16 +97,22 @@ const warrantyStrings = NexModuleStrings(
     'receiptLabel': 'Receipt',
     'typeLabel': 'Coverage',
     'noteLabel': 'Note',
-    'noValue': '—',
     'claimsTitle': 'Claims and service',
+    'copyFile': 'Copy the service file',
+    'shareFile': 'Share the service file',
+    'fileCopied': 'Service file copied.',
+    'noProof':
+        'No invoice or receipt reference is written down for this purchase.',
     'noClaims': 'No claims or service noted yet.',
     'addClaim': 'Add a claim note',
     'addService': 'Add a service note',
     'claimPlaceholder': 'What happened, and what was agreed',
     'claimed': 'Claim',
     'serviced': 'Service',
-    'onDate': '{date}',
     'claimRequired': 'Write what the note should say.',
+    'reminderNote':
+        'A device alert, set by you — for the end of the coverage or before '
+        'a claim is due. It goes when the purchase does.',
 
     // Questions and failures.
     'deleteWarranty': 'Delete {name}?',
@@ -117,25 +122,19 @@ const warrantyStrings = NexModuleStrings(
     'warrantyDeleted': 'Purchase deleted',
     'warrantyArchived': 'Purchase archived',
     'claimDeleted': 'Claim note deleted',
-    'archiveBody':
-        'It leaves the list, with its notes kept. You can bring it back '
-        'any time.',
     'discardTitle': 'Leave without saving?',
     'discardBody': 'What you have written so far will be lost.',
     'discard': 'Leave',
     'keepWriting': 'Keep writing',
     'saveFailed': 'Could not save. Nothing was lost — try again.',
-    'deleteFailed': 'Could not delete. Try again.',
-
-    // Dates.
-    'ymd': '{y}/{m}/{d}',
   },
   fa: {
     'coverageRequired':
-        'پایان میلادی معتبر یا مدت ۱ تا {months} ماه، حداکثر تا سال {year} وارد کنید.',
+        'تاریخ پایان معتبر یا مدت ۱ تا {months} ماه، حداکثر تا سال {year} وارد کنید.',
     'dateHint': 'سال/ماه/روز',
     'unknownLog': 'نوع گزارش نامشخص',
     'monthCount': '{count} ماه',
+    'oneMonth': 'یک ماه',
     'keepDraft': 'نگهداری پیش‌نویس و بستن',
     'undoFailed':
         'بازگردانی انجام نشد؛ شاید اطلاعات بعداً تغییر کرده است. رکورد را بررسی کنید.',
@@ -165,11 +164,11 @@ const warrantyStrings = NexModuleStrings(
     'unarchive': 'بازگشت به فهرست',
     'searchHint': 'جست‌وجو با نام کالا یا برند',
     'sortSoonest': 'مرتب‌سازی از نزدیک‌ترین پایان',
-    'sortNewest': 'بازگشت به تازه‌ترین',
     'daysLeft': '{count} روز مانده',
     'oneDayLeft': 'یک روز مانده',
     'endsToday': 'امروز تمام می‌شود',
     'expiredDaysAgo': '{count} روز پیش تمام شد',
+    'endedYesterday': 'دیروز تمام شد',
     'noResults': 'چیزی پیدا نشد.',
 
     // ویرایشگر.
@@ -183,8 +182,8 @@ const warrantyStrings = NexModuleStrings(
     'serial': 'شماره سریال / فاکتور',
     'serialHint': 'از جعبه یا از رسید',
     'merchant': 'فروشنده',
-    'purchaseDate': 'تاریخ خرید (میلادی)',
-    'purchaseRequired': 'تاریخ خرید میلادی معتبر بنویسید.',
+    'purchaseDate': 'تاریخ خرید',
+    'purchaseRequired': 'تاریخ خرید معتبر بنویسید.',
     'today': 'امروز',
     'coverage': 'گارانتی',
     'coverageNote':
@@ -193,7 +192,7 @@ const warrantyStrings = NexModuleStrings(
     'durationMonths': 'مدت (ماه)',
     'durationHint': 'یک عدد کامل، یک یا بیشتر',
     'endsOn': 'تا {date}',
-    'orEndDate': 'یا تاریخ پایان (میلادی)',
+    'orEndDate': 'یا تاریخ پایان',
     'endBeforePurchase': 'تاریخ پایان قبل از خرید است.',
     'chooseOne': 'یا مدت را بنویسید یا تاریخ پایان — نه هر دو.',
     'coverageType': 'نوع گارانتی',
@@ -205,8 +204,6 @@ const warrantyStrings = NexModuleStrings(
     'amountBad': 'یک عدد کامل بنویسید، صفر یا بیشتر',
     'rials': 'ریال',
     'tomans': 'تومان',
-    'inRials': 'به ریال',
-    'inTomans': 'به تومان',
     'note': 'یادداشت',
     'noteHint': 'هر چه ارزش یادآوری دارد',
     'save': 'ثبت خرید',
@@ -222,16 +219,21 @@ const warrantyStrings = NexModuleStrings(
     'receiptLabel': 'رسید',
     'typeLabel': 'گارانتی',
     'noteLabel': 'یادداشت',
-    'noValue': '—',
     'claimsTitle': 'ادعا و خدمات',
+    'copyFile': 'کپی پروندهٔ خدمات',
+    'shareFile': 'اشتراک پروندهٔ خدمات',
+    'fileCopied': 'پروندهٔ خدمات کپی شد.',
+    'noProof': 'برای این خرید شمارهٔ فاکتور یا رسیدی نوشته نشده است.',
     'noClaims': 'هنوز ادعا یا خدمتی یادداشت نشده.',
     'addClaim': 'یادداشتِ ادعا',
     'addService': 'یادداشتِ خدمات',
     'claimPlaceholder': 'چه شد، و چه توافقی شد',
     'claimed': 'ادعا',
     'serviced': 'خدمات',
-    'onDate': '{date}',
     'claimRequired': 'بنویسید یادداشت چه بگوید.',
+    'reminderNote':
+        'هشدار گوشی، خودتان تنظیمش می‌کنید — برای پایان گارانتی یا سررسید '
+        'پیگیری. با رفتن خرید، آن هم می‌رود.',
 
     // پرسش‌ها و خطاها.
     'deleteWarranty': '«{name}» حذف شود؟',
@@ -240,16 +242,10 @@ const warrantyStrings = NexModuleStrings(
     'warrantyDeleted': 'خرید حذف شد',
     'warrantyArchived': 'خرید آرشیو شد',
     'claimDeleted': 'یادداشت حذف شد',
-    'archiveBody':
-        'از فهرست می‌رود، با همان یادداشت‌ها. هر وقت بخواهید برمی‌گردد.',
     'discardTitle': 'بدون ذخیره خارج شویم؟',
     'discardBody': 'چیزی که تا حالا نوشته‌اید از بین می‌رود.',
     'discard': 'خروج',
     'keepWriting': 'ادامه بدهم',
     'saveFailed': 'ذخیره نشد. چیزی از دست نرفت — دوباره تلاش کنید.',
-    'deleteFailed': 'حذف نشد. دوباره تلاش کنید.',
-
-    // تاریخ‌ها.
-    'ymd': '{y}/{m}/{d}',
   },
 );

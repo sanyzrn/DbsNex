@@ -1,3 +1,5 @@
+import 'package:nex_client/modules/module_api.dart';
+
 import 'local_values.dart';
 import 'warranty_models.dart';
 
@@ -111,16 +113,21 @@ class WarrantyLogic {
   }
 
   /// Purchases by soonest coverage end first — the order the "expiring"
-  /// question is asked in.
-  static List<Map<String, Object?>> soonestFirst(
-    Iterable<Map<String, Object?>> bodies,
-  ) {
-    final list = bodies.toList()
-      ..sort((a, b) {
-        final aEnd = WarrantyModels.readDate(a, 'coverageEnd');
-        final bEnd = WarrantyModels.readDate(b, 'coverageEnd');
-        return (aEnd ?? DateTime(0)).compareTo(bEnd ?? DateTime(0));
-      });
-    return list;
+  /// question is asked in. A purchase with no readable end goes last, and
+  /// equal ends keep the list's own newest-first order rather than the
+  /// accidental order of an unstable sort.
+  static List<ModuleRecord> soonestEndFirst(List<ModuleRecord> records) {
+    final pairs = [for (var i = 0; i < records.length; i++) (records[i], i)];
+    pairs.sort((a, b) {
+      final aEnd = WarrantyModels.readDate(a.$1.body, 'coverageEnd');
+      final bEnd = WarrantyModels.readDate(b.$1.body, 'coverageEnd');
+      final byEnd = (aEnd ?? _noEndDate).compareTo(bEnd ?? _noEndDate);
+      return byEnd != 0 ? byEnd : a.$2.compareTo(b.$2);
+    });
+    return [for (final pair in pairs) pair.$1];
   }
+
+  /// Where a purchase without a readable end sits in the soonest order:
+  /// after every dated one.
+  static final _noEndDate = DateTime(9999);
 }

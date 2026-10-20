@@ -1,18 +1,24 @@
 part of 'lens_pages.dart';
 
 /// The saved comparisons: each restores into the calculator on a tap,
-/// deleting offers Undo.
+/// deleting offers Undo. Restoring over typed offers asks first — the
+/// calculator is scratch, but it is still the person's work.
 class LensSavedPage extends StatefulWidget {
   const LensSavedPage({
     super.key,
     required this.controller,
     required this.onOpen,
     this.onOpenUnit,
+    this.hasCalculatorOffers = false,
   });
 
   final PriceLensController controller;
   final ValueChanged<List<PriceOption>> onOpen;
   final ValueChanged<String?>? onOpenUnit;
+
+  /// Whether the calculator already holds offers at the time this page
+  /// opened — restoring would replace them, so it is asked about.
+  final bool hasCalculatorOffers;
 
   @override
   State<LensSavedPage> createState() => _LensSavedPageState();
@@ -79,6 +85,43 @@ class _LensSavedPageState extends State<LensSavedPage> {
     }
   }
 
+  /// Restoring a comparison replaces the calculator's offers; when it
+  /// already holds some, that replace is confirmed first.
+  Future<void> _open(SavedComparison comparison) async {
+    if (!widget.hasCalculatorOffers) {
+      _openNow(comparison);
+      return;
+    }
+    final s = priceLensStrings;
+    final answer = await nexShowDialog<String>(
+      context: context,
+      builder: (dialogContext) => NexAlertDialog(
+        title: Text(s(dialogContext, 'replaceOffersTitle')),
+        content: NexDialogBody(
+          child: Text(s(dialogContext, 'replaceOffersBody')),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(s(dialogContext, 'cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'replace'),
+            child: Text(s(dialogContext, 'replaceOffers')),
+          ),
+        ],
+      ),
+    );
+    if (answer != 'replace' || !mounted) return;
+    _openNow(comparison);
+  }
+
+  void _openNow(SavedComparison comparison) {
+    Navigator.pop(context);
+    widget.onOpenUnit?.call(comparison.commonUnitKey);
+    widget.onOpen(comparison.options);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -93,6 +136,18 @@ class _LensSavedPageState extends State<LensSavedPage> {
             ? NexEmptyState(
                 icon: Icons.calculate_outlined,
                 message: s(context, 'noSaved'),
+                action: FilledButton.icon(
+                  onPressed: () => Navigator.maybePop(context),
+                  icon: const Icon(Icons.calculate_outlined),
+                  label: Text(s(context, 'backToCalculator')),
+                  // Material caps buttons at 40dp tall — a label a 2× text
+                  // scale cannot fit into; let it grow with the words.
+                  style: const ButtonStyle(
+                    maximumSize: WidgetStatePropertyAll<Size?>(
+                      Size(double.infinity, double.infinity),
+                    ),
+                  ),
+                ),
               )
             : ListView(
                 padding: const EdgeInsetsDirectional.fromSTEB(
@@ -127,11 +182,7 @@ class _LensSavedPageState extends State<LensSavedPage> {
                             ),
                           ),
                           TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              widget.onOpenUnit?.call(comparison.commonUnitKey);
-                              widget.onOpen(comparison.options);
-                            },
+                            onPressed: () => unawaited(_open(comparison)),
                             child: Text(s(context, 'restoreToCalculator')),
                           ),
                           IconButton(

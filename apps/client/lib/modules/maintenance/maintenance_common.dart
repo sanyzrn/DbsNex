@@ -113,10 +113,6 @@ String maintenanceTypeLabel(BuildContext context, String type) =>
       'type${type.isEmpty ? '' : type[0].toUpperCase()}${type.substring(1)}',
     );
 
-/// "13 October 2026" for pickers and info lines.
-String maintenanceFullDate(BuildContext context, DateTime date) =>
-    nexModuleDateLabel(context, date);
-
 /// A labelled switch row, 48dp.
 class MaintenanceToggleRow extends StatelessWidget {
   const MaintenanceToggleRow({

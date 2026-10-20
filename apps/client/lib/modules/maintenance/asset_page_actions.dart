@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'controller.dart';
 import 'logic.dart';
 import 'maintenance_undo.dart';
+import 'service_history.dart';
 import 'models.dart';
 import 'strings.dart';
 import 'editor_draft.dart';
@@ -31,9 +32,33 @@ Future<void> assetPageMenu(
           s(context, 'archive'),
         );
         if (answer != true || !context.mounted) return;
+        // The words and the messenger are captured before the write, so
+        // nothing reaches across an async gap.
+        final messenger = ScaffoldMessenger.of(context);
+        final message = s(context, 'archivedAsset');
+        final undoLabel = s(context, 'undo');
+        final failure = s(context, 'undoFailed');
         await controller.setArchived(asset, true);
+        if (!context.mounted) return;
+        // The page stays open; the notice says what happened, and Undo
+        // un-archives in one guarded tap (unarchive remains in the
+        // menu for later).
+        MaintenanceUndo.offer(
+          messenger,
+          message: message,
+          undoLabel: undoLabel,
+          failureMessage: failure,
+          restore: () => controller.setArchived(asset, false),
+        );
       case 'unarchive':
         await controller.setArchived(asset, false);
+      case 'copyHistory':
+        final text = serviceHistoryText(context, asset, events);
+        final copied = s(context, 'historyCopied');
+        await nexModuleCopyText(text);
+        if (context.mounted) nexShowBanner(context, message: copied);
+      case 'shareHistory':
+        await nexModuleShareText(serviceHistoryText(context, asset, events));
       case 'delete':
         final answer = await _confirm(
           context,

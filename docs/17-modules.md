@@ -13,9 +13,10 @@ Modules**: each module's card says what it is, in a few lines, and how its
 data is kept. Removing a module asks once whether to keep its data, so that
 adding it back finds everything where it was, or to delete it.
 
-## Temporary rollout pause (2.1.1)
+## Rollout (paused from 2.1.1, resumed one module at a time)
 
-Only Cycle is currently available. All eleven stored add-ons remain compiled
+Cycle, Habits, Price Lens, Lent & Borrowed, Quit Habits and Birthdays &
+occasions are available (2.1.11–2.1.13), listed in `nexAvailableModuleIds`. The other seven stored add-ons remain compiled
 and registered but appear as Soon plans without add/open/remove controls.
 Their records and saved installation flags are unchanged. `NexModule.available`
 controls rollout independently of `isOn`; `nexModulesOn` applies both gates,

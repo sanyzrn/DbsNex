@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 /// The time a deletion stays reversible — a plain data value, not a
-/// motion token; Nex's own capsule notices are unavailable to a module
-/// (see README Platform requests), so this is a standard SnackBar.
-const maintenanceUndoWindow = Duration(seconds: 6);
+/// motion token; this is a standard SnackBar, chosen deliberately for a
+/// module-owned screen.
+const lensUndoWindow = Duration(seconds: 6);
 
 /// Offers Undo for a deletion, in the screen's own
 /// [ScaffoldMessengerState] — captured **before** the editor sheet
@@ -12,7 +12,8 @@ const maintenanceUndoWindow = Duration(seconds: 6);
 /// The words and the restore closure are captured with it, so nothing
 /// touches a context across an async gap. The restore rewrites exactly
 /// the record that was there: an Undo is as good as the deletion never
-/// having happened.
+/// having happened, and a restore that would clash with a later change
+/// is refused with [failureMessage] rather than overwriting it.
 class LensUndo {
   LensUndo._();
   static void offer(
@@ -30,7 +31,7 @@ class LensUndo {
           messenger.showSnackBar(
             SnackBar(
               content: Text(failureMessage ?? message),
-              duration: maintenanceUndoWindow,
+              duration: lensUndoWindow,
               action: SnackBarAction(label: undoLabel, onPressed: attempt),
             ),
           );
@@ -41,7 +42,7 @@ class LensUndo {
     messenger.showSnackBar(
       SnackBar(
         content: Text(message),
-        duration: maintenanceUndoWindow,
+        duration: lensUndoWindow,
         action: SnackBarAction(label: undoLabel, onPressed: attempt),
       ),
     );

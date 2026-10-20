@@ -29,8 +29,10 @@ class NexModuleStore {
 
   /// The record [id] of [kind]'s fields, or null if there is none.
   Future<Map<String, Object?>?> get(String kind, String id) async =>
-      (await _logged('get', () => _services.moduleRecord(module, kind, id)))
-          ?.body;
+      (await _logged(
+        'get',
+        () => _services.moduleRecord(module, kind, id),
+      ))?.body;
 
   /// Saves [body] as [id], replacing what was there.
   Future<void> put(String kind, String id, Map<String, Object?> body) =>
@@ -85,6 +87,26 @@ class NexModuleStore {
     at: at,
     title: title,
     body: body,
+  );
+
+  /// A reminder that rings at the clock face of [at] every day, from the next
+  /// one still ahead, until it is cleared.
+  Future<bool> setDailyReminder(
+    String key, {
+    required String sourceKind,
+    required String sourceId,
+    required DateTime at,
+    required String title,
+    required String body,
+  }) => _services.setModuleReminder(
+    module,
+    key,
+    sourceKind: sourceKind,
+    sourceId: sourceId,
+    at: at,
+    title: title,
+    body: body,
+    daily: true,
   );
 
   Future<void> clearReminder(String key) =>

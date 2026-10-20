@@ -128,6 +128,7 @@ void main() {
         find.byKey(const ValueKey('smoke-field-days')),
         '-3',
       );
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const ValueKey('smoke-save')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('smoke-save')));

@@ -80,7 +80,6 @@ String? moneyErrorOf(BuildContext context, PriceAmountError? error) =>
     switch (error) {
       null => null,
       PriceAmountError.empty => null,
-      PriceAmountError.zero => priceLensStrings(context, 'errZero'),
       PriceAmountError.notANumber => priceLensStrings(context, 'errNotNumber'),
       PriceAmountError.tooPrecise => priceLensStrings(context, 'errTooPrecise'),
       PriceAmountError.tooLarge => priceLensStrings(context, 'errTooLarge'),

@@ -9,6 +9,7 @@ import 'controller.dart';
 import 'logic.dart';
 import 'models.dart';
 import 'strings.dart';
+import 'units.dart';
 
 /// The Maintenance home: every asset under its group — due now,
 /// coming up, needing information, no schedule, archived — computed
@@ -138,6 +139,14 @@ class _MaintenanceScreenState extends State<MaintenanceScreen>
                         ),
                         icon: const Icon(Icons.add),
                         label: Text(s(context, 'addAsset')),
+                        // Material's default caps a filled button at 40 px
+                        // tall, which a 2× text scale cannot fit into; let it
+                        // grow with the words instead of clipping them.
+                        style: const ButtonStyle(
+                          maximumSize: WidgetStatePropertyAll<Size?>(
+                            Size(double.infinity, double.infinity),
+                          ),
+                        ),
                       ),
                     )
                   else ...[
@@ -201,14 +210,7 @@ class _GroupHeading extends StatelessWidget {
     final scheme = theme.colorScheme;
     final s = maintenanceStrings;
     final hue = NexHue.amber.of(theme.brightness);
-    final title = switch (group) {
-      AssetGroup.dueNow => s(context, 'groupDueNow'),
-      AssetGroup.comingUp => s(context, 'groupComingUp'),
-      AssetGroup.needsInfo => s(context, 'groupNeedsInfo'),
-      AssetGroup.scheduled => s(context, 'groupScheduled'),
-      AssetGroup.noSchedule => s(context, 'groupNoSchedule'),
-      AssetGroup.archived => s(context, 'groupArchived'),
-    };
+    final title = assetGroupTitle(context, group);
     final note = switch (group) {
       AssetGroup.dueNow => s(context, 'groupDueNowNote'),
       AssetGroup.comingUp => s(context, 'groupComingUpNote', {
@@ -259,13 +261,19 @@ class _GroupHeading extends StatelessWidget {
 /// `12` in the locale's digits.
 String maintenanceDigits(BuildContext context, int value) {
   final persian = NexModuleStrings.persian(context);
-  return persian ? persianDigitsLocal('$value') : '$value';
+  return persian ? persianDigits('$value') : '$value';
 }
 
-String persianDigitsLocal(String text) => text.replaceAllMapped(
-  RegExp(r'[0-9]'),
-  (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-);
+/// The group's name, for the heading and the card's semantics label.
+String assetGroupTitle(BuildContext context, AssetGroup group) =>
+    switch (group) {
+      AssetGroup.dueNow => maintenanceStrings(context, 'groupDueNow'),
+      AssetGroup.comingUp => maintenanceStrings(context, 'groupComingUp'),
+      AssetGroup.needsInfo => maintenanceStrings(context, 'groupNeedsInfo'),
+      AssetGroup.scheduled => maintenanceStrings(context, 'groupScheduled'),
+      AssetGroup.noSchedule => maintenanceStrings(context, 'groupNoSchedule'),
+      AssetGroup.archived => maintenanceStrings(context, 'groupArchived'),
+    };
 
 class _AssetCard extends StatelessWidget {
   const _AssetCard({
@@ -306,58 +314,67 @@ class _AssetCard extends StatelessWidget {
       }
     }
     urgent ??= standing.isEmpty ? null : standing.first.rule.task;
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.sm),
-      child: Material(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(NexRadius.lg),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(NexSpacing.md),
-            child: Row(
-              children: [
-                NexIconTile(_typeIcon(asset.type), color: hue),
-                const SizedBox(width: NexSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        asset.nickname,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        urgent == null ? typeLabel : '$typeLabel · $urgent',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: group == AssetGroup.dueNow
-                              ? hue
-                              : scheme.onSurfaceVariant,
+    return Semantics(
+      label: s(context, 'assetSemantics', {
+        'name': asset.nickname,
+        'type': typeLabel,
+        'group': assetGroupTitle(context, group),
+      }),
+      button: true,
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.sm),
+        child: Material(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(NexRadius.lg),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(NexSpacing.md),
+              child: Row(
+                children: [
+                  NexIconTile(_typeIcon(asset.type), color: hue),
+                  const SizedBox(width: NexSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          asset.nickname,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          urgent == null ? typeLabel : '$typeLabel · $urgent',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: group == AssetGroup.dueNow
+                                ? hue
+                                : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                if (asset.archived)
-                  Icon(
-                    Icons.archive_outlined,
-                    size: 20,
-                    color: scheme.onSurfaceVariant,
-                  )
-                else
-                  Icon(
-                    Directionality.of(context) == TextDirection.rtl
-                        ? Icons.chevron_left
-                        : Icons.chevron_right,
-                    color: scheme.onSurfaceVariant,
-                  ),
-              ],
+                  if (asset.archived)
+                    Icon(
+                      Icons.archive_outlined,
+                      size: 20,
+                      color: scheme.onSurfaceVariant,
+                    )
+                  else
+                    Icon(
+                      Directionality.of(context) == TextDirection.rtl
+                          ? Icons.chevron_left
+                          : Icons.chevron_right,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                ],
+              ),
             ),
           ),
         ),

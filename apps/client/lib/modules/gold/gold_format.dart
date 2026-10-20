@@ -4,8 +4,7 @@
 /// The app's own `nexDigits` helper is not exported through the module API,
 /// so this is the module's local equivalent: grouped thousands, the
 /// language's digits, and — for Persian — the Persian decimal separator
-/// «٫» and percent sign «٪». It is listed under Platform requests in the
-/// README.
+/// «٫» and percent sign «٪».
 library;
 
 // (No imports: this file is the module's own little number layer.)
@@ -69,14 +68,6 @@ String formatWeightMg(int milligrams, {required bool persian}) {
       : groupDecimal(grams, soot, 3, persian: persian);
 }
 
-/// 750 → `750‰` is nobody's unit: fineness is shown as karat when it is a
-/// known preset and as parts-per-thousand otherwise.
-String finenessLabel(int ppt, {required bool persian}) {
-  final karat = _karatOf(ppt);
-  if (karat == null) return groupDigits(ppt, persian: persian);
-  return persian ? _toPersianDigits('$karat عیار') : '$karat karat';
-}
-
 /// A rial amount shown in the unit the person picked. Toman conversion is
 /// exact — a toman *is* ten rials — so a half-toman shows as one decimal
 /// rather than being rounded away.
@@ -100,10 +91,11 @@ String formatCentiRate(int centi, {required bool persian}) {
   return groupDecimal(whole, fraction, 2, persian: persian);
 }
 
-/// Whether [text] is a real Gregorian date in `YYYY-MM-DD` form — the
-/// shape the module asks for, honestly labelled Gregorian because no
-/// Jalali formatter is available to a stored module (README, Platform
-/// requests). `2028-02-30` fails: the day does not exist.
+/// Whether [text] is a real civil date in `YYYY-MM-DD` form — the shape
+/// the module stores. The shared calendar button picks a day in the
+/// person's own calendar and writes this same civil day into the field
+/// (see `gold_save_sheet.dart` and `gold_dates.dart`). `2028-02-30` fails:
+/// the day does not exist.
 bool isIsoDate(String text) {
   final match = RegExp(
     r'^(\d{4})-(\d{2})-(\d{2})$',
@@ -119,24 +111,29 @@ bool isIsoDate(String text) {
 
 /// «Saved when» in words: today, yesterday, a count of days, or the date
 /// itself once the count stops being the useful part. Day arithmetic is
-/// calendar days on date-only values, never 24-hour spans.
+/// calendar days on date-only values, never 24-hour spans. The absolute
+/// day is handed to [onDate] as a local civil `DateTime`, so the caller
+/// can show it through the shared module date label in the person's own
+/// calendar; it is never a UTC instant, which would print the day before
+/// in a western zone.
 String relativeDayWords(
   DateTime saved,
   DateTime now, {
   required String Function() today,
   required String Function() yesterday,
   required String Function(int) daysAgo,
-  required String Function(String) onDate,
+  required String Function(DateTime) onDate,
 }) {
   saved = saved.toLocal();
   now = now.toLocal();
   final savedDay = DateTime.utc(saved.year, saved.month, saved.day);
   final todayDay = DateTime.utc(now.year, now.month, now.day);
   final days = todayDay.difference(savedDay).inDays;
+  final shownDay = DateTime(saved.year, saved.month, saved.day);
   if (days == 0) return today();
-  if (days < 0) return onDate(isoDay(savedDay));
+  if (days < 0) return onDate(shownDay);
   if (days == 1) return yesterday();
-  return days < 30 ? daysAgo(days) : onDate(isoDay(savedDay));
+  return days < 30 ? daysAgo(days) : onDate(shownDay);
 }
 
 /// `YYYY-MM-DD` for a date-only value.
@@ -144,14 +141,6 @@ String isoDay(DateTime date) =>
     '${date.year.toString().padLeft(4, '0')}-'
     '${date.month.toString().padLeft(2, '0')}-'
     '${date.day.toString().padLeft(2, '0')}';
-
-int? _karatOf(int ppt) => switch (ppt) {
-  999 => 24,
-  916 => 22,
-  875 => 21,
-  750 => 18,
-  _ => null,
-};
 
 /// The finenesses offered in the pickers, with their karat names.
 const List<int> goldFinenessPresets = [999, 916, 875, 750];

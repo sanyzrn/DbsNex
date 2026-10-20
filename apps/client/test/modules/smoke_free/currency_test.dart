@@ -54,6 +54,6 @@ void main() {
   test('RTL formatting includes a stable currency identity', () {
     expect(formatMoney(123456, 'USD', 2, true), '۱٬۲۳۴٫۵۶ \u2066USD\u2069');
     expect(formatMoney(1, 'KWD', 3, false), '0.001 \u2066KWD\u2069');
-    expect(formatRials(-1234, false), '−1,234');
+    expect(formatNumber(-1234, false), '−1,234');
   });
 }

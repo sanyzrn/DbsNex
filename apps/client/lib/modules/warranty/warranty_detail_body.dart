@@ -66,6 +66,14 @@ extension _WarrantyDetailBody on _WarrantyDetailSheetState {
                         child: Text(warrantyStrings(menuContext, 'archived')),
                       ),
                     PopupMenuItem(
+                      value: 'copyFile',
+                      child: Text(warrantyStrings(menuContext, 'copyFile')),
+                    ),
+                    PopupMenuItem(
+                      value: 'shareFile',
+                      child: Text(warrantyStrings(menuContext, 'shareFile')),
+                    ),
+                    PopupMenuItem(
                       value: 'delete',
                       child: Text(AppLocalizations.of(menuContext).delete),
                     ),
@@ -79,21 +87,23 @@ extension _WarrantyDetailBody on _WarrantyDetailSheetState {
                 context,
                 Icons.calendar_today_outlined,
                 strings(context, 'purchasedLabel'),
-                WarrantyFields.ymd(context, purchased),
+                WarrantyFields.dayLabel(context, purchased),
               ),
             if (end != null)
               _row(
                 context,
                 Icons.event_available,
                 strings(context, 'endsLabel'),
-                WarrantyFields.ymd(context, end),
+                WarrantyFields.dayLabel(context, end),
               ),
             if (months != null)
               _row(
                 context,
                 Icons.timelapse,
                 strings(context, 'durationLabel'),
-                strings(context, 'monthCount', {'count': months}),
+                months == 1
+                    ? strings(context, 'oneMonth')
+                    : strings(context, 'monthCount', {'count': months}),
               ),
             if (amount != null)
               _row(
@@ -116,6 +126,37 @@ extension _WarrantyDetailBody on _WarrantyDetailSheetState {
                   strings(context, value),
                   WarrantyModels.readString(body, key),
                 ),
+            if (WarrantyModels.readString(body, 'receiptRef').trim().isEmpty &&
+                WarrantyModels.readString(body, 'serial').trim().isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: NexSpacing.xs),
+                child: Text(
+                  strings(context, 'noProof'),
+                  key: const ValueKey('warranty-no-proof'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            if (!WarrantyModels.readArchived(body)) ...[
+              const SizedBox(height: NexSpacing.md),
+              Text(
+                strings(context, 'reminderNote'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              // Opt-in: an OS alert for the end of the coverage or a claim
+              // deadline. Wired to this record, so the platform cancels it
+              // when the purchase is deleted or archived. Archived purchases
+              // offer nothing here.
+              NexModuleReminderControl(
+                key: const ValueKey('warranty-reminders'),
+                store: widget.store,
+                sourceKind: WarrantyModels.warranty,
+                sourceId: widget.record.id,
+              ),
+            ],
             const SizedBox(height: NexSpacing.lg),
             WarrantyClaimsSection(
               claims: _claims,

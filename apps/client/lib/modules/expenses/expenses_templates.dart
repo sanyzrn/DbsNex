@@ -70,6 +70,32 @@ class _TemplatesSheetState extends State<_TemplatesSheet> {
 
   Future<void> _delete(ExpenseTemplate template) async {
     if (_busy) return;
+    // A template is the person's own setup; a stray tap on the row's
+    // delete icon asks before anything goes, exactly like payments and
+    // categories do.
+    final answer = await nexShowDialog<String>(
+      context: context,
+      builder: (dialogContext) => NexAlertDialog(
+        title: Text(expenseStrings(dialogContext, 'deleteTemplateTitle')),
+        content: NexDialogBody(
+          child: Text(expenseStrings(dialogContext, 'deleteTemplateBody')),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(expenseStrings(dialogContext, 'cancel')),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, 'delete'),
+            child: Text(expenseStrings(dialogContext, 'delete')),
+          ),
+        ],
+      ),
+    );
+    if (answer != 'delete' || !mounted) return;
     setState(() => _busy = true);
     try {
       final messenger = ScaffoldMessenger.of(context);

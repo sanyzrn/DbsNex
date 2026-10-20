@@ -28,8 +28,6 @@ const Map<String, String> goldStringsEn = {
   'diffPercentUnavailable': 'Percentage unavailable for this rounded estimate',
   'loadError': 'Could not load saved estimates. Try again.',
   'retry': 'Try again',
-  'problem_total':
-      'The total exceeds the exact storage range. Reduce the inputs.',
 
   'title': 'Gold Check',
   'tagline': 'See what the asked price is made of',
@@ -42,7 +40,6 @@ const Map<String, String> goldStringsEn = {
   'point3': 'Saved estimates keep their day’s rates',
 
   // ---------------------------------------------------------- screen
-  'calculator': 'Calculator',
   'newEstimate': 'New estimate',
   'savedQuotes': 'Saved estimates',
   'savedQuotesEmpty':
@@ -53,8 +50,6 @@ const Map<String, String> goldStringsEn = {
   'showToman': 'Toman',
   'showRial': 'Rial',
   'unitToggleSemantics': 'Unit amounts are shown in',
-  'entered': 'Entered',
-  'calculated': 'Calculated',
   'required': 'This one is needed.',
   'panelPiece': 'The piece',
   'panelRate': 'The rate',
@@ -79,7 +74,6 @@ const Map<String, String> goldStringsEn = {
   'rateHint':
       'The rate you were given, at the fineness you pick below. Nothing is '
       'fetched for you.',
-  'rateUnit': 'toman/g',
   'rateRef': 'The rate’s own fineness',
   'rateRefHint':
       'What the entered rate is quoted for. When it differs from the '
@@ -124,14 +118,35 @@ const Map<String, String> goldStringsEn = {
       'From the counter or the invoice. Shown as a difference to verify, '
       'never as a verdict.',
   'quoteTitle': 'Title',
-  'quoteTitleHint': 'e.g. Wedding ring',
   'shop': 'Shop',
   'quoteDate': 'Quote date',
-  'quoteDateHint': 'Gregorian calendar, YYYY-MM-DD',
-  'gregorianTag': 'Gregorian',
+  'quoteDateHint': 'Type the day as YYYY-MM-DD, or pick it from the calendar.',
   'dateBadFormat': 'Write it as YYYY-MM-DD.',
   'dateNotReal': 'That date does not exist.',
   'notes': 'Notes',
+  'backToCalculator': 'Back to the calculator',
+
+  // ---------------------------------------------------------- budget
+  'tomanWord': 'toman',
+  'rialWord': 'rials',
+  'budgetTip': 'From a budget',
+  'budgetTitle': 'From a budget',
+  'budgetAbout':
+      'How much gold does an amount buy? This runs the calculator the other way, with the rate, purity, charges, profit and VAT already entered. The weight in the form is not used.',
+  'budgetField': 'Budget (toman)',
+  'budgetBad': 'Write the budget as a number.',
+  'budgetNone': 'Even the smallest piece costs more than this budget.',
+  'budgetResult': 'About {weight} g at most fits in {amount}.',
+  'budgetAtCap':
+      'Any weight this calculator takes (up to {weight} g) fits in {amount}.',
+  'budgetNote':
+      'The same formula, run the other way. A shop that rounds differently can differ by a little.',
+  'budgetUse': 'Use this weight',
+  'budgetNeedsRate':
+      'Enter the rate first — the budget is turned into a weight with it.',
+  'makingShare': 'The making charge comes to {pct} of the metal value.',
+  'copyBreakdown': 'Copy the estimate',
+  'breakdownCopied': 'Estimate copied.',
 
   // ---------------------------------------------------------- receipt
   'receipt': 'Estimate',
@@ -238,7 +253,6 @@ const Map<String, String> goldStringsEn = {
       'comparison may mean nothing.',
   'compareSame': 'Same weight and fineness basis.',
   'compareDifference': 'Difference',
-  'quotesCount': '{count} saved',
   'savedOn': 'Saved {when}',
   'quoteDated': 'Quote date {date}',
   'whenToday': 'today',
@@ -247,19 +261,10 @@ const Map<String, String> goldStringsEn = {
   'whenDate': 'on {date}',
 
   // ---------------------------------------------------------- problems
-  'problem_weight': 'Weight: between 0.001 g and 10 kg.',
-  'problem_grossWeight':
-      'The gross weight is below the net weight, or out of range.',
+  // The fields put their own problems into words (parse_* below); only the
+  // custom-fineness dialog needs a range sentence, because its field is a
+  // bare number with no label of its own.
   'problem_fineness': 'Fineness: between 100 and 999 parts per thousand.',
-  'problem_rate': 'Rate: up to 100,000,000 toman per gram.',
-  'problem_rateRef': 'The rate’s fineness: between 100 and 999.',
-  'problem_making': 'The making charge is out of range.',
-  'problem_makingPerGram': 'The per-gram making charge is out of range.',
-  'problem_profit': 'Profit: between 0 and 999.99%.',
-  'problem_vat': 'VAT: between 0 and 999.99%.',
-  'problem_commission': 'The commission is out of range.',
-  'problem_extras': 'Every extra needs a name and a valid amount.',
-  'problem_shopQuote': 'The quoted total is out of range.',
   'parse_invalid': 'Numbers only: digits and one decimal point.',
   'parse_tooManyDecimals': 'Too many decimal places.',
   'parse_negative': 'A negative amount is not meaningful here.',

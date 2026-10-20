@@ -21,14 +21,6 @@ class LocalValues {
     return null;
   }
 
-  static int? writtenCount(String text) {
-    final raw = ascii(text.trim());
-    if (!RegExp(r'^\d+$').hasMatch(raw)) {
-      return null;
-    }
-    return count(int.tryParse(raw));
-  }
-
   static bool realDay(int y, int m, int d) {
     if (y < 1 || y > 9999 || m < 1 || m > 12 || d < 1 || d > 31) {
       return false;

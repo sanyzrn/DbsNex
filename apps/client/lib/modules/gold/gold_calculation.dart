@@ -81,4 +81,48 @@ abstract final class GoldMath {
       quoteDiffHundredthsPct: percent,
     );
   }
+
+  /// The heaviest net weight (milligrams) whose estimate stays within
+  /// [budgetRial], with every other part of [input] as it is — the way back
+  /// from «how much can I spend» to «how much gold is that».
+  ///
+  /// The estimate never falls as the weight grows (each line is a rounded
+  /// product of the weight, or a constant), so the answer is found by
+  /// halving, not by dividing the budget — a fixed making charge or a fixed
+  /// extra makes the division wrong. 0 means even one milligram is over.
+  static int maxWeightMgWithin(GoldInput input, int budgetRial) {
+    if (budgetRial < 1) return 0;
+    bool fits(int weightMg) {
+      try {
+        return _calculate(input.withWeightMg(weightMg)).estimatedTotalRial <=
+            budgetRial;
+      } on RangeError {
+        return false;
+      }
+    }
+
+    if (!fits(1)) return 0;
+    if (fits(GoldInput.maxWeightMg)) return GoldInput.maxWeightMg;
+    var low = 1, high = GoldInput.maxWeightMg;
+    while (high - low > 1) {
+      final middle = low + (high - low) ~/ 2;
+      if (fits(middle)) {
+        low = middle;
+      } else {
+        high = middle;
+      }
+    }
+    return low;
+  }
+
+  /// The making charge as a share of the metal value, in basis points —
+  /// what a fixed or per-gram charge comes to in the «percent» the trade
+  /// quotes. Null when the metal has no value to take a share of.
+  static int? makingShareBp(GoldResult result) {
+    if (result.metalValueRial <= 0) return null;
+    return _divRound(
+      BigInt.from(result.makingChargeRial) * BigInt.from(10000),
+      BigInt.from(result.metalValueRial),
+    ).toInt();
+  }
 }

@@ -19,10 +19,12 @@ part 'expenses_tx_actions.dart';
 ///
 /// One sheet, a few taps: type, amount (with the currency's own rules
 /// and the rial/toman choice for IRR), date and time, category, and
-/// the optional note, merchant and account label. Saving is guarded
-/// against double taps; leaving with unsaved work asks first, so the
-/// last edit is never lost to a stray swipe; deleting a record offers
-/// Undo, restoring exactly what was there.
+/// the optional note, merchant and account label. The date is typed
+/// civil text with the shared Jalali calendar button beside it, and
+/// the note is the shared multiline editor. Saving is guarded against
+/// double taps; leaving with unsaved work asks first, so the last edit
+/// is never lost to a stray swipe; deleting a record offers Undo,
+/// restoring exactly what was there.
 Future<void> showExpensesTxEditor(
   BuildContext context, {
   required ExpensesController controller,
@@ -60,11 +62,14 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
       widget.existing?.type ?? widget.template?.type ?? 'expense';
   late ExpenseCurrency _currency = _initialCurrency();
   late IrrUnit _irrUnit = _initialIrrUnit();
+
+  /// The day+time the record will take. The day follows the typed text
+  /// (see `_dateChanged`); the time follows the time button. A new
+  /// payment starts at now, as the old date button did.
   late DateTime _date = widget.existing?.date ?? DateTime.now();
-  late bool _dateConfirmed =
-      widget.existing == null ||
-      widget.existing!.source == null ||
-      LocalValues.stamp(widget.existing!.source!['date']) != null;
+  late final TextEditingController _dateText = TextEditingController(
+    text: _initialDateText(),
+  );
   late String? _categoryId =
       widget.existing?.categoryId ?? widget.template?.categoryId;
 
@@ -85,11 +90,13 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
   @override
   void initState() {
     super.initState();
+    _dateText.addListener(_dateChanged);
     _draft = ExpenseEditorDraft(
       store: widget.controller.store,
       kind: 'tx',
       fields: {
         'amount': _amount,
+        'dateText': _dateText,
         'note': _note,
         'merchant': _merchant,
         'account': _account,
@@ -105,7 +112,7 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
         'currency': _currency.code,
         'irrUnit': _irrUnit.name,
         'date': _date.toIso8601String(),
-        'dateConfirmed': _dateConfirmed,
+        'dateConfirmed': _typedDay != null,
         'category': _categoryId,
       },
       applyExtra: (b) {
@@ -118,11 +125,8 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
             ) ??
             _currency;
         _irrUnit = b['irrUnit'] == 'toman' ? IrrUnit.toman : IrrUnit.rial;
-        _date = LocalValues.stamp(b['date'])?.toLocal() ?? _date;
-        if (b['dateConfirmed'] is bool) {
-          _dateConfirmed = b['dateConfirmed'] as bool;
-        }
         _categoryId = b['category'] is String ? b['category'] as String : null;
+        _resumeDate(b);
         _dirty = true;
       },
       repaint: () {
@@ -168,8 +172,10 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
 
   @override
   void dispose() {
+    _dateText.removeListener(_dateChanged);
     _draft.dispose();
     _amount.dispose();
+    _dateText.dispose();
     _note.dispose();
     _merchant.dispose();
     _account.dispose();
@@ -280,12 +286,12 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
                       ),
                       const SizedBox(height: NexSpacing.md),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: ExpensesDateButton(
-                              date: _date,
-                              confirmed: _dateConfirmed,
-                              onTap: _pickDate,
+                            child: ExpensesDateField(
+                              controller: _dateText,
+                              errorText: _dateError(context),
                             ),
                           ),
                           const SizedBox(width: NexSpacing.sm),
@@ -298,15 +304,6 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
                         ],
                       ),
                       const SizedBox(height: NexSpacing.md),
-                      Text(
-                        NexModuleCalendar.solarOf(context)
-                            ? (NexModuleStrings.persian(context)
-                                  ? 'تاریخ شمسی'
-                                  : 'Solar Hijri date')
-                            : expenseStrings(context, 'gregorian'),
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: NexSpacing.sm),
                       ExpensesCategoryRow(
                         customCategories: widget.controller.customCategories,
                         selectedId: _categoryId,
@@ -317,12 +314,16 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
                         },
                       ),
                       const SizedBox(height: NexSpacing.md),
-                      ExpensesOptionalField(
+                      NexTextField(
                         key: const ValueKey('expenses-note'),
                         controller: _note,
-                        label: expenseStrings(context, 'noteLabel'),
-                        hint: expenseStrings(context, 'noteHint'),
-                        onChanged: _markDirty,
+                        minLines: 2,
+                        maxLines: 4,
+                        onChanged: (_) => _markDirty(),
+                        decoration: InputDecoration(
+                          labelText: expenseStrings(context, 'noteLabel'),
+                          hintText: expenseStrings(context, 'noteHint'),
+                        ),
                       ),
                       const SizedBox(height: NexSpacing.md),
                       ExpensesOptionalField(

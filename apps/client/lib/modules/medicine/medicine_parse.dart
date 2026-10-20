@@ -29,8 +29,4 @@ class MedicineParse {
     }
     return LocalValues.day(written) ?? invalid;
   }
-
-  /// An expiry as the editor's field holds it.
-  static String expiryText(DateTime value) =>
-      '${value.year}/${value.month}/${value.day}';
 }

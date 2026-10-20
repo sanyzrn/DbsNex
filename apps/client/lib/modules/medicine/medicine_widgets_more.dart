@@ -81,10 +81,12 @@ class MedicineNumberFields extends StatelessWidget {
             hint: strings(context, 'dateHint'),
             controller: expiry,
             label: strings(context, 'expiry'),
+            // A half-typed or impossible date says so in its own words —
+            // not with the number fields' message.
             helper:
                 showErrors &&
                     MedicineParse.expiry(expiry.text) == MedicineParse.invalid
-                ? badNumber
+                ? strings(context, 'badDate')
                 : strings(context, 'expiryNote'),
           ),
         ),

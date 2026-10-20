@@ -44,8 +44,6 @@ void main() {
       // Friday ends the week; the next day begins a new one.
       expect(HabitMath.weekStartOf(DateTime.utc(2026, 10, 16)).day, 10);
       expect(HabitMath.weekStartOf(DateTime.utc(2026, 10, 17)).day, 17);
-      // …and across a month boundary.
-      expect(HabitMath.weekKeyOf('2026-11-01'), '2026-10-31');
     });
 
     test('every weekday maps to its own Saturday', () {

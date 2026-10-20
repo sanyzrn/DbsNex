@@ -19,7 +19,7 @@ the cross-spec difference is suppressed. Drafts survive back/navigation and
 restart, including invalid unfinished input. Clear draft discards a fresh form.
 
 No live prices, currency conversion, legal invoice certification, second-hand
-gold/coins/bullion assumptions, background alerts or direct clipboard helper.
+gold/coins/bullion assumptions, background alerts.
 
 ## Records
 
@@ -40,7 +40,8 @@ Kind **`quote`**, stable store-generated ID, schema 2 for new snapshots:
 
 All amounts and snapshots are integer rials; rates are centi-toman/g,
 mass milligrams, percentages basis points. `extras` holds `{label,amount}`
-with integer rials. `profitBase` is `metalAndMaking`, `metalOnly` or
+with integer rials; an amount of zero is a saved zero, kept through
+reading and editing. `profitBase` is `metalAndMaking`, `metalOnly` or
 `services` (making + commission). Existing schema-1 records default to
 `metalAndMaking` and taxable commission; snapshots are never recalculated
 on read. Numeric metadata rejects NaN/infinity/fractions/negative/oversized
@@ -88,9 +89,15 @@ the same IDs, snapshots, unknown fields and related draft; store-managed
   excessive precision are rejected; empty optional charges mean zero.
   Commas remain rejected to avoid guessing decimal vs grouping conventions.
   Reopened fields use ungrouped, symbol-free exact text.
-- Gregorian `YYYY-MM-DD` is explicitly labelled; Persian date digits normalize
-  on entry. Relative date math uses UTC civil dates after converting instants
-  to local time; future days are not described as today.
+- The quote day is entered as civil `YYYY-MM-DD` (Persian digits normalize)
+  or picked from the shared module calendar, which writes the same civil
+  day into the field. Every date a person reads — the detail sheet, both
+  comparison columns, the receipt breakdown, the «Saved …» line's absolute
+  day — goes through the shared module date label, so the person's chosen
+  calendar (Jalali for a Persian reader) and its digits show it while
+  storage stays civil ISO. Relative day math uses UTC civil days after
+  converting instants to local time; the shown day is a local civil day,
+  never a UTC instant; future days are not described as today.
 
 ## Guide
 
@@ -117,17 +124,29 @@ net weight, purity, rate basis, making, profit, commission, VAT and extras.
 **English.** Gold Check now preserves historical inputs when editing, updates
 the receipt immediately after picker changes, offers explicit profit/tax bases,
 uses exact large-number arithmetic, and recovers drafts and complete Undo data.
+The quote day can now be picked from the shared calendar — Jalali for a Persian
+reader — and every date shown reads in the person's own calendar and digits;
+the empty saved list offers the way back to the calculator.
 
 **فارسی.** طلاسنج اکنون ورودی‌های تاریخی را هنگام ویرایش حفظ می‌کند، رسید را
 با تغییر انتخاب‌ها فوراً به‌روز می‌کند، مبنای سود و مالیات کارمزد را صریحاً
-قابل‌انتخاب کرده و محاسبات دقیق، پیش‌نویس و بازگردانی کامل داده دارد.
+قابل‌انتخاب کرده و محاسبات دقیق، پیش‌نویس و بازگردانی کامل داده دارد. روز
+تخمین را می‌توان از تقویم مشترک برگزید — برای خوانندهٔ فارسی، تقویم جلالی — و
+هر تاریخی که نشان داده می‌شود در تقویمِ خودِ فرد و با ارقام آن خوانده می‌شود؛
+فهرست خالی تخمین‌ها هم راه بازگشت به ماشین‌حساب را پیشنهاد می‌کند.
 
 ## Platform requests
 
-1. Export Nex's native multiline editor through `module_api.dart`. A local
-   EditableText equivalent follows content direction; native Android paragraph
-   editing/handles remain a platform task, with no private imports.
-2. Optional shared Jalali picker/formatter. Gregorian dates remain labelled.
+1. **Fulfilled** — Nex's native multiline editor is exported through
+   `module_api.dart` (`NexTextField`); the save sheet's note uses it, and
+   every one-line field states its direction (`NexAutoDirection`, or an
+   explicit `textDirection` for numbers and dates).
+2. **Fulfilled** — the shared Jalali picker/formatter. The save sheet's
+   quote date is wrapped in `NexModuleDateEntry`: typing civil `YYYY-MM-DD`
+   stays, and the calendar button picks a day in the person's own calendar
+   and writes the same civil day. Every date a person reads goes through
+   `nexModuleDateLabel` (`gold_dates.dart`); the old Gregorian labels are
+   retired in both languages; storage stays civil ISO.
 3. Optional atomic batch / compare-and-write for record changes. The current
    deletion journal and fresh reads are an honest local fallback.
 4. Optional approved direct clipboard helper or consent-based price feed.
@@ -135,27 +154,38 @@ uses exact large-number arithmetic, and recovers drafts and complete Undo data.
 
 ## Checks
 
-Windows / PowerShell, Flutter 3.35.5 / Dart 3.9.2. Current Nex main baseline:
-`cad5fcaeaaa7ab489f48cfdf1b03add6b6623879`.
+Linux, Flutter 3.35.5 / Dart 3.9.2, on the current Nex tree:
 
 ```text
-flutter pub get --enforce-lockfile
-flutter test --no-pub test/module_kit_test.dart test/modules/gold --reporter expanded
-dart analyze --fatal-infos lib/modules/gold test/modules/gold
-dart format <gold lib and test directories>
+dart format lib/modules/gold test/modules/gold     # 0 changed
+flutter analyze --fatal-infos                      # No issues found
+flutter test test/module_kit_test.dart -j 2        # 40 passed
+flutter test test/modules/gold -j 2                # 97 passed
 ```
 
-Final combined module/gate and full-client results are recorded in the phase
-review report; no earlier per-module count is presented as final evidence. Persian RTL / English LTR, light/dark,
-large text, store isolation, edit/history, raw Undo and draft navigation are tested.
-The public mirror was used for SDK/packages with baseline versions/checksums;
-pub resolution succeeded but Windows plugin symlink setup lacks Developer Mode.
-Tests use `--no-pub` and compiler temporary-file access outside the sandbox.
+Persian RTL / English LTR, light/dark, large text, store isolation,
+edit/history, raw Undo and draft navigation are tested; the shared Jalali
+entry (pick a day, land in field and storage as the same civil day) and
+the calendar-labelled display of every stored day are covered by
+`test/modules/gold/gold_dates_test.dart`. Both string maps hold the same
+161 keys, with no bidi control characters in the Persian half.
+Android builds and device/TalkBack checks are not represented by host
+tests. Maintainer: const-register `GoldModule()`, retire planned `gold`,
+incorporate Guide/Changelog and run release checks before activation.
 
-Final all-module/full-client results and real screenshots are recorded under
-`review/VALIDATION.md` in this phase folder after the final verification.
-Android builds and device/TalkBack checks are not represented by host tests.
-No core, API, dependencies, ARB or catalog edits are delivered. Temporary
-registry entries are restored at hand-off; no Commit/Push/ZIP is created.
-Maintainer: const-register `GoldModule()`, retire planned `gold`, incorporate
-Guide/Changelog and run release checks before activation.
+## From a budget, making share, copy (2.1.13)
+
+- **From a budget** (the savings icon): the budget, in toman, becomes the
+  heaviest net weight whose estimate stays within it, using the rate, purity,
+  charges, profit and VAT already in the form. The estimate never falls as the
+  weight grows, so the answer is found by halving between 1 mg and the weight
+  cap, with every line rounded exactly as the receipt rounds it — one
+  milligram more is over the budget. A fixed making charge or fixed extras
+  make plain division wrong, which is why it is not divided. The gross weight
+  and the seller's quote do not take part. 0 means even 1 mg is over budget.
+  «Use this weight» puts the answer in the form. A display of a calculation;
+  nothing is saved by it.
+- **Making share:** for a per-gram, fixed or mixed charge the receipt says
+  what share of the metal value it comes to («the trade's percent»).
+- **Copy the estimate** puts the breakdown lines on the clipboard (the lines
+  can still be selected one by one).

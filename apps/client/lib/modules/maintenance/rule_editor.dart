@@ -165,7 +165,6 @@ class _RuleEditorSheetState extends State<RuleEditorSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = maintenanceStrings;
-    final persian = NexModuleStrings.persian(context);
     final assetCountsDistance = widget.asset.meterKind == MeterKind.distance;
     final assetCountsHours = widget.asset.meterKind == MeterKind.hours;
     return PopScope(
@@ -348,7 +347,6 @@ class _RuleEditorSheetState extends State<RuleEditorSheet> {
                           ),
                         ),
                       ],
-                      if (persian) const SizedBox(width: 0),
                     ],
                   ),
                 ),

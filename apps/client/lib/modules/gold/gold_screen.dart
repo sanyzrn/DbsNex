@@ -3,9 +3,12 @@
 /// and the rates that went into it.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'gold_budget_sheet.dart';
 import 'gold_form.dart';
 import 'gold_format.dart';
 import 'gold_guide.dart';
@@ -125,6 +128,30 @@ class _GoldScreenState extends State<GoldScreen> {
     }
   }
 
+  /// «From a budget»: the calculator run backwards. The rate and charges
+  /// come from the form; when they are not yet valid, say so.
+  Future<void> _fromBudget() async {
+    final state = _formKey.currentState;
+    final input = state?.buildInput(forBudget: true);
+    if (state == null || _saving) return;
+    if (input == null) {
+      nexShowBanner(
+        context,
+        message: goldStrings(context, 'budgetNeedsRate'),
+        kind: NexBannerKind.failed,
+      );
+      return;
+    }
+    final milligrams = await showGoldBudgetSheet(
+      context,
+      input: input,
+      showRials: _showRials,
+    );
+    if (milligrams != null && milligrams > 0 && mounted) {
+      state.setWeightMg(milligrams);
+    }
+  }
+
   Future<void> _discard() async {
     if (_saving || _formKey.currentState?.canDiscard != true) return;
     setState(() => _saving = true);
@@ -166,6 +193,12 @@ class _GoldScreenState extends State<GoldScreen> {
                     : strings(context, 'showToman'),
               ),
             ),
+          ),
+          IconButton(
+            key: const ValueKey('gold-open-budget'),
+            tooltip: strings(context, 'budgetTip'),
+            onPressed: _saving ? null : () => unawaited(_fromBudget()),
+            icon: const Icon(Icons.savings_outlined),
           ),
           IconButton(
             key: const ValueKey('gold-open-quotes'),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/nex_time_picker.dart';
 import 'module_dates.dart';
 import 'nex_module_store.dart';
@@ -10,9 +11,19 @@ class NexModuleReminderControl extends StatefulWidget {
     required this.store,
     required this.sourceKind,
     required this.sourceId,
+    this.body,
+    this.initial,
   });
   final NexModuleStore store;
   final String sourceKind, sourceId;
+
+  /// What the notification says. Without it, a neutral line that names
+  /// nothing from the record.
+  final String? body;
+
+  /// The day the date picker opens on, when the record has one that matters
+  /// (a loan's due date).
+  final DateTime? initial;
   @override
   State<NexModuleReminderControl> createState() =>
       _NexModuleReminderControlState();
@@ -26,12 +37,15 @@ class _NexModuleReminderControlState extends State<NexModuleReminderControl> {
     setState(() => _busy = true);
     final l10n = AppLocalizations.of(context);
     final fa = Localizations.localeOf(context).languageCode == 'fa';
-    final messenger = ScaffoldMessenger.of(context);
     try {
       final now = DateTime.now();
+      final suggested = widget.initial;
       final date = await nexPickModuleDate(
         context,
-        initial: now,
+        initial:
+            suggested != null && !suggested.isBefore(DateUtils.dateOnly(now))
+            ? suggested
+            : now,
         first: DateUtils.dateOnly(now),
         last: DateTime(now.year + 2, now.month, now.day),
       );
@@ -47,32 +61,30 @@ class _NexModuleReminderControlState extends State<NexModuleReminderControl> {
         sourceId: widget.sourceId,
         at: DateTime(date.year, date.month, date.day, time.hour, time.minute),
         title: l10n.cycleNotifyTitle,
-        body: fa
-            ? 'موعدی که تنظیم کرده‌اید رسیده است؛ نکس را باز کنید.'
-            : 'Your chosen reminder is due. Open Nex.',
+        body:
+            widget.body ??
+            (fa
+                ? 'موعدی که تنظیم کرده‌اید رسیده است؛ نکس را باز کنید.'
+                : 'Your chosen reminder is due. Open Nex.'),
       );
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            ok
-                ? (fa ? 'یادآوری تنظیم شد.' : 'Reminder set.')
-                : (fa
-                      ? 'یادآوری تنظیم نشد؛ زمان آینده و مجوز اعلان را بررسی کنید.'
-                      : 'Reminder was not set. Check the future time and notification permission.'),
-          ),
-        ),
+      nexShowBanner(
+        context,
+        message: ok
+            ? (fa ? 'یادآوری تنظیم شد.' : 'Reminder set.')
+            : (fa
+                  ? 'یادآوری تنظیم نشد؛ زمان آینده و مجوز اعلان را بررسی کنید.'
+                  : 'Reminder was not set. Check the future time and notification permission.'),
+        kind: ok ? NexBannerKind.done : NexBannerKind.failed,
       );
     } catch (_) {
       if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              fa
-                  ? 'ذخیرهٔ یادآوری ناموفق بود؛ دوباره تلاش کنید.'
-                  : 'Could not save the reminder. Retry.',
-            ),
-          ),
+        nexShowBanner(
+          context,
+          message: fa
+              ? 'ذخیرهٔ یادآوری ناموفق بود؛ دوباره تلاش کنید.'
+              : 'Could not save the reminder. Retry.',
+          kind: NexBannerKind.failed,
         );
       }
     } finally {
@@ -96,19 +108,18 @@ class _NexModuleReminderControlState extends State<NexModuleReminderControl> {
               ? null
               : () async {
                   setState(() => _busy = true);
-                  final messenger = ScaffoldMessenger.of(context);
                   try {
                     await widget.store.clearReminder(reminderKey);
                   } catch (_) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          (fa
-                              ? 'حذف یادآوری ناموفق بود.'
-                              : 'Could not clear the reminder.'),
-                        ),
-                      ),
-                    );
+                    if (context.mounted) {
+                      nexShowBanner(
+                        context,
+                        message: fa
+                            ? 'حذف یادآوری ناموفق بود.'
+                            : 'Could not clear the reminder.',
+                        kind: NexBannerKind.failed,
+                      );
+                    }
                   } finally {
                     if (mounted) setState(() => _busy = false);
                   }

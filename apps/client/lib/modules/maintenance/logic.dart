@@ -237,9 +237,6 @@ AssetGroup assetGroupOf(
   return AssetGroup.scheduled;
 }
 
-String? meterTextOf(int? meter) => meter?.toString();
-String groupLocalDigits(int value) => value.toString();
-
 ({int value, DateTime at, bool converted})? latestEnteredMeter(
   MaintenanceAsset asset,
   List<ServiceEvent> events,
@@ -281,7 +278,12 @@ String groupLocalDigits(int value) => value.toString();
       readings
           .where((r) => r.assetId == asset.id && r.kind == asset.meterKind)
           .toList()
-        ..sort((a, b) => a.at.compareTo(b.at));
+        // Deterministic order for same-instant readings: the id decides.
+        ..sort(
+          (a, b) => a.at.compareTo(b.at) != 0
+              ? a.at.compareTo(b.at)
+              : a.id.compareTo(b.id),
+        );
   for (final reading in updates) {
     add(reading.milli, reading.at, reading.unit);
   }

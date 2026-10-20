@@ -68,12 +68,6 @@ class NexModulePlan {
 /// What is coming, nearest first.
 const List<NexModulePlan> nexModulePlans = [
   NexModulePlan(
-    'occasions',
-    Icons.cake_outlined,
-    NexHue.rose,
-    NexModuleStage.soon,
-  ),
-  NexModulePlan(
     'security-tools',
     Icons.security_outlined,
     NexHue.sky,

@@ -31,7 +31,7 @@ void main() {
       );
       expect(a.startedAt, DateTime.parse('2026-10-01T09:00:00.000'));
       expect(a.cigarettesPerDay, 15);
-      expect(a.pricePerPackRials, 300000);
+      expect(a.pricePerPackMinor, 300000);
       expect(a.perPack, 20);
       expect(a.isActive, isFalse);
       expect(a.endedWhy, 'lapse');
@@ -42,7 +42,7 @@ void main() {
         record('q1', {'startedAt': '2026-10-01T09:00:00.000'}),
       );
       expect(a.cigarettesPerDay, 0);
-      expect(a.pricePerPackRials, 0);
+      expect(a.pricePerPackMinor, 0);
       expect(a.perPack, 20, reason: 'the customary pack size, not 1');
       expect(a.isActive, isTrue);
       expect(a.endedWhy, isNull);
@@ -61,7 +61,7 @@ void main() {
       expect(a.startedAt.year, greaterThanOrEqualTo(2026));
       expect(a.cigarettesPerDay, 0);
       expect(
-        a.pricePerPackRials,
+        a.pricePerPackMinor,
         0,
         reason: 'fractional stored minor units are malformed',
       );
@@ -79,7 +79,7 @@ void main() {
         }),
       );
       expect(a.cigarettesPerDay, 0);
-      expect(a.pricePerPackRials, 99999999999999);
+      expect(a.pricePerPackMinor, 99999999999999);
       expect(a.perPack, 1);
     });
 
@@ -96,7 +96,7 @@ void main() {
       final again = QuitAttempt.fromBody('q1', a.toJson());
       expect(again.startedAt, a.startedAt);
       expect(again.cigarettesPerDay, 15);
-      expect(again.pricePerPackRials, 300000);
+      expect(again.pricePerPackMinor, 300000);
       expect(again.perPack, 20);
       expect(again.isActive, isTrue);
     });

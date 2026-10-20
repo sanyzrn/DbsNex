@@ -70,8 +70,7 @@ class _HabitsScreenState extends State<HabitsScreen>
     final settings = await widget.store.get('settings', 'week');
     if (!mounted || token != _loadToken) return;
     setState(() {
-      _habits = habits.map(Habit.fromRecord).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _habits = habits.map(Habit.fromRecord).toList()..sort(newestFirst);
       _checks = checks.map(HabitCheck.fromRecord).toList();
       _firstDay = readFirstDay(settings);
     });
@@ -87,10 +86,15 @@ class _HabitsScreenState extends State<HabitsScreen>
 
   /// Adds or removes today's check-in for [habit] — the one-tap interaction
   /// the whole screen is arranged around. The record id is the habit and the
-  /// civil date, so a day can never hold two.
+  /// civil date, so a day can never hold two. Taking a check-in back is the
+  /// one delete an accidental tap can cause, so it carries Undo — and Undo
+  /// writes the exact original record back, its original moment included.
   Future<void> _toggle(Habit habit) async {
     if (_writing.contains(habit.id)) return;
     setState(() => _writing.add(habit.id));
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final errorMessage = habitsStrings(context, 'saveError');
     try {
       final today = dateKeyOf(DateTime.now());
       final id = HabitCheck.idFor(habit.id, today);
@@ -103,6 +107,25 @@ class _HabitsScreenState extends State<HabitsScreen>
         });
       } else {
         await widget.store.delete('check', id);
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(habitsStrings(context, 'checkinDeleted')),
+              action: SnackBarAction(
+                label: l10n.undo,
+                onPressed: () => unawaited(
+                  widget.store.put('check', id, existing).catchError((
+                    Object _,
+                  ) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text(errorMessage)),
+                    );
+                  }),
+                ),
+              ),
+            ),
+          );
+        }
       }
     } catch (_) {
       writeError();
@@ -117,11 +140,12 @@ class _HabitsScreenState extends State<HabitsScreen>
   Widget build(BuildContext context) {
     final strings = habitsStrings;
     final active = _habits.where((h) => !h.archived).toList();
+    // Built once per frame: every row — and the summary above them — reads
+    // from the same map instead of re-walking every check-in each time.
+    final byHabit = _datesByHabit;
+    final today = dateKeyOf(DateTime.now());
     final doneToday = active
-        .where(
-          (h) =>
-              _datesByHabit[h.id]?.contains(dateKeyOf(DateTime.now())) ?? false,
-        )
+        .where((h) => byHabit[h.id]?.contains(today) ?? false)
         .length;
 
     return Scaffold(
@@ -150,31 +174,60 @@ class _HabitsScreenState extends State<HabitsScreen>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('habits-new'),
-        onPressed: () => unawaited(_newHabit()),
-        icon: const Icon(Icons.add),
-        label: Text(strings(context, 'newHabit')),
-      ),
+      // One primary action per page: with nothing yet, it is the button in
+      // the empty state, not a second one floating beside it.
+      floatingActionButton: _habits.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('habits-new'),
+              onPressed: () => unawaited(_newHabit()),
+              icon: const Icon(Icons.add),
+              label: Text(strings(context, 'newHabit')),
+            ),
       body: recordsBody(
         _habits.isEmpty
-            ? NexEmptyState(
-                icon: Icons.event_repeat_outlined,
-                message: strings(context, 'empty'),
-                action: FilledButton.icon(
-                  onPressed: () => unawaited(_newHabit()),
-                  icon: const Icon(Icons.add),
-                  label: Text(strings(context, 'newHabit')),
+            ? ScrollSafeEmpty(
+                child: NexEmptyState(
+                  icon: Icons.event_repeat_outlined,
+                  message: strings(context, 'empty'),
+                  action: FilledButton.icon(
+                    key: const ValueKey('habits-new'),
+                    onPressed: () => unawaited(_newHabit()),
+                    icon: const Icon(Icons.add),
+                    label: Text(strings(context, 'newHabit')),
+                  ),
                 ),
               )
             : active.isEmpty
-            ? NexEmptyState(
-                icon: Icons.archive_outlined,
-                message: strings(context, 'allArchived'),
-                action: FilledButton.icon(
-                  onPressed: () => unawaited(_newHabit()),
-                  icon: const Icon(Icons.add),
-                  label: Text(strings(context, 'newHabit')),
+            ? ScrollSafeEmpty(
+                child: NexEmptyState(
+                  icon: Icons.archive_outlined,
+                  message: strings(context, 'allArchived'),
+                  action: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => unawaited(_newHabit()),
+                        icon: const Icon(Icons.add),
+                        label: Text(strings(context, 'newHabit')),
+                      ),
+                      const SizedBox(height: NexSpacing.sm),
+                      TextButton.icon(
+                        key: const ValueKey('habits-open-archived'),
+                        onPressed: () => unawaited(
+                          Navigator.push(
+                            context,
+                            NexPageRoute<void>(
+                              builder: (_) =>
+                                  ArchiveScreen(store: widget.store),
+                            ),
+                          ),
+                        ),
+                        icon: const Icon(Icons.archive_outlined),
+                        label: Text(strings(context, 'openArchived')),
+                      ),
+                    ],
+                  ),
                 ),
               )
             : ListView(
@@ -201,7 +254,7 @@ class _HabitsScreenState extends State<HabitsScreen>
                       index: index,
                       count: active.length,
                       habit: habit,
-                      dates: _datesByHabit[habit.id] ?? const [],
+                      dates: byHabit[habit.id] ?? const [],
                       onToggle: () => unawaited(_toggle(habit)),
                       onOpen: () => unawaited(
                         Navigator.push(

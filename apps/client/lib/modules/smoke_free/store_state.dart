@@ -47,6 +47,13 @@ mixin StoreState<T extends StatefulWidget> on State<T> {
         message: smokeFreeStrings(context, 'loadError'),
         action: TextButton(
           onPressed: retry,
+          // Material's default caps a text button at 40 px tall, which a
+          // 2× text scale cannot fit into; let it grow with the words.
+          style: const ButtonStyle(
+            maximumSize: WidgetStatePropertyAll<Size?>(
+              Size(double.infinity, double.infinity),
+            ),
+          ),
           child: Text(smokeFreeStrings(context, 'retry')),
         ),
       );

@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'gold_dates.dart';
 import 'gold_format.dart';
 import 'gold_math.dart';
 import 'gold_strings.dart';
@@ -99,6 +100,18 @@ class GoldReceipt extends StatelessWidget {
               ),
             for (final (label, amount) in rows)
               _Row(label: label, amount: amount),
+            // A fixed or per-gram charge in the trade's own words: what
+            // share of the metal it comes to.
+            if (input.makingMode != GoldMakingMode.percent &&
+                GoldMath.makingShareBp(result) != null)
+              _Note(
+                text: strings(context, 'makingShare', {
+                  'pct': formatPercent(
+                    GoldMath.makingShareBp(result)!,
+                    persian: persian,
+                  ),
+                }),
+              ),
             if (result.extrasRial > 0)
               _Note(text: strings(context, 'extrasTaxNote')),
             if (input.vatBp == 0) _Note(text: strings(context, 'vatZeroNote')),
@@ -217,9 +230,8 @@ class _Note extends StatelessWidget {
   );
 }
 
-/// The selectable plain-text cost breakdown. The clipboard is not
-/// available to a stored module (README, Platform requests), so the words
-/// sit in a [SelectionArea] — a long press takes hold of them.
+/// The plain-text cost breakdown: one button copies it all, and the words
+/// also sit in a [SelectionArea] for taking a part.
 class _Breakdown extends StatelessWidget {
   const _Breakdown({
     required this.input,
@@ -305,7 +317,7 @@ class _Breakdown extends StatelessWidget {
         }),
       if (quoteDate.isNotEmpty)
         strings(context, 'breakdownDate', {
-          'date': goldDigits(normalizeGoldDate(quoteDate), persian),
+          'date': goldStoredDateLabel(context, quoteDate),
           'ppt': groupDigits(input.rateRefPpt, persian: persian),
         }),
     ];
@@ -339,6 +351,22 @@ class _Breakdown extends StatelessWidget {
           ),
         ),
         const SizedBox(height: NexSpacing.xs),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton.icon(
+            key: const ValueKey('gold-copy-estimate'),
+            onPressed: () async {
+              await nexModuleCopyText(lines.join('\n'));
+              if (!context.mounted) return;
+              nexShowBanner(
+                context,
+                message: strings(context, 'breakdownCopied'),
+              );
+            },
+            icon: const Icon(Icons.copy_outlined),
+            label: Text(strings(context, 'copyBreakdown')),
+          ),
+        ),
         Text(
           strings(context, 'breakdownHint'),
           style: theme.textTheme.bodySmall?.copyWith(

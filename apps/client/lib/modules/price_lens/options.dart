@@ -170,17 +170,6 @@ class PriceOption {
       source: Map.of(body),
     );
   }
-
-  /// A short description of the offer's shape, for memory matching.
-  Map<String, Object?> get spec => {
-    'label': label,
-    'quantity': quantity.numerator,
-    if (quantity.denominator != 1) 'quantityDen': quantity.denominator,
-    'unit': unitKey,
-    'packageCount': packageCount,
-    'currency': currency,
-    ...priceMetadata(currency),
-  };
 }
 
 int _intOr(Object? value, int fallback) => value is int ? value : fallback;
@@ -191,9 +180,6 @@ String? _stringOf(Map<String, Object?> body, String key) {
   final value = body[key];
   return value is String ? value : null;
 }
-
-/// The exponent to display a currency's amounts with, defended.
-int displayExponentOf(String? code) => priceExponentOf(code);
 
 bool boundedMoney(Object? value) =>
     value is int && value >= 0 && value <= priceMax;

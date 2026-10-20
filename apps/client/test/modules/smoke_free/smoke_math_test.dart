@@ -160,6 +160,54 @@ void main() {
       expect(SmokeMath.activeAttempt([ended]), isNull);
     });
 
+    test('the same-instant running attempts resolve deterministically', () {
+      final start = DateTime(2026, 10, 1, 9);
+      final first = QuitAttempt(
+        id: 'q-0001',
+        startedAt: start,
+        cigarettesPerDay: 10,
+        pricePerPackRials: 1000,
+        perPack: 20,
+        endedAt: null,
+        endedWhy: null,
+      );
+      final second = QuitAttempt(
+        id: 'q-0002',
+        startedAt: start,
+        cigarettesPerDay: 10,
+        pricePerPackRials: 1000,
+        perPack: 20,
+        endedAt: null,
+        endedWhy: null,
+      );
+      // Both orders pick the same, later record — never quicksort's whim.
+      expect(SmokeMath.activeAttempt([first, second])!.id, 'q-0002');
+      expect(SmokeMath.activeAttempt([second, first])!.id, 'q-0002');
+    });
+
+    test('same-start ended attempts keep a deterministic history order', () {
+      final start = DateTime(2026, 10, 1, 9);
+      QuitAttempt ended(String id) => QuitAttempt(
+        id: id,
+        startedAt: start,
+        cigarettesPerDay: 10,
+        pricePerPackRials: 1000,
+        perPack: 20,
+        endedAt: DateTime(2026, 10, 3),
+        endedWhy: 'lapse',
+      );
+      final a = ended('q-0001');
+      final b = ended('q-0002');
+      expect(SmokeMath.pastAttempts([a, b]).map((x) => x.id), [
+        'q-0002',
+        'q-0001',
+      ]);
+      expect(SmokeMath.pastAttempts([b, a]).map((x) => x.id), [
+        'q-0002',
+        'q-0001',
+      ]);
+    });
+
     test('an attempt ending the same day reports zero calendar boundaries', () {
       final ended = attempt(
         startedAt: DateTime(2026, 8, 1, 9),
@@ -175,6 +223,50 @@ void main() {
         ),
         5,
       );
+    });
+  });
+
+  group('craving ordering', () {
+    Craving craving(String id, DateTime at) => Craving(
+      id: id,
+      at: at,
+      intensity: 2,
+      triggers: const [],
+      coping: null,
+      note: '',
+    );
+
+    test('newest first, regardless of insertion order', () {
+      final now = DateTime(2026, 10, 12, 15);
+      final ordered = SmokeMath.cravingsNewestFirst([
+        craving('old', now.subtract(const Duration(days: 2))),
+        craving('new', now),
+      ]);
+      expect(ordered.map((c) => c.id), ['new', 'old']);
+    });
+
+    test('the same-instant cravings keep a deterministic order', () {
+      final at = DateTime(2026, 10, 12, 15);
+      final a = craving('c-0001', at);
+      final b = craving('c-0002', at);
+      expect(SmokeMath.cravingsNewestFirst([a, b]).map((c) => c.id), [
+        'c-0002',
+        'c-0001',
+      ]);
+      expect(SmokeMath.cravingsNewestFirst([b, a]).map((c) => c.id), [
+        'c-0002',
+        'c-0001',
+      ]);
+    });
+
+    test('the input list is never reordered in place', () {
+      final now = DateTime(2026, 10, 12, 15);
+      final input = [
+        craving('old', now.subtract(const Duration(days: 1))),
+        craving('new', now),
+      ];
+      SmokeMath.cravingsNewestFirst(input);
+      expect(input.map((c) => c.id), ['old', 'new']);
     });
   });
 
@@ -241,16 +333,16 @@ void main() {
 
   group('money formatting', () {
     test('grouped thousands in English digits', () {
-      expect(formatRials(0, false), '0');
-      expect(formatRials(500, false), '500');
-      expect(formatRials(2500000, false), '2,500,000');
-      expect(formatRials(60000000000, false), '60,000,000,000');
+      expect(formatNumber(0, false), '0');
+      expect(formatNumber(500, false), '500');
+      expect(formatNumber(2500000, false), '2,500,000');
+      expect(formatNumber(60000000000, false), '60,000,000,000');
     });
 
     test('Persian digits and separators on the Persian side', () {
-      expect(formatRials(500000, true), '۵۰۰٬۰۰۰');
-      expect(formatRials(0, true), '۰');
-      expect(formatRials(2500000, true), '۲٬۵۰۰٬۰۰۰');
+      expect(formatNumber(500000, true), '۵۰۰٬۰۰۰');
+      expect(formatNumber(0, true), '۰');
+      expect(formatNumber(2500000, true), '۲٬۵۰۰٬۰۰۰');
     });
   });
 }

@@ -99,7 +99,12 @@ class _PriceLensMoneyFieldState extends State<PriceLensMoneyField> {
           textDirection: TextDirection.ltr,
           decoration: InputDecoration(
             labelText: widget.label,
-            suffixText: widget.currency.code,
+            // In toman entry the amount typed is tomans — say so beside it,
+            // the way the discount and shipping fields already do.
+            suffixText:
+                widget.currency.code == 'IRR' && widget.irrUnit == IrrUnit.toman
+                ? s(context, 'tomanUnit')
+                : widget.currency.code,
             errorText: widget.error,
           ),
           onChanged: (text) {
@@ -208,7 +213,14 @@ class _CurrencyRow extends StatelessWidget {
                 textAlign: TextAlign.start,
               ),
             ),
-            const Icon(Icons.chevron_right, size: 20),
+            // The way the reading direction goes — the same chevron
+            // the other modules flip for Persian.
+            Icon(
+              Directionality.of(context) == TextDirection.rtl
+                  ? Icons.chevron_left
+                  : Icons.chevron_right,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -239,6 +251,7 @@ Future<void> confirmPriceLensDiscard(BuildContext context) async {
   if (answer == 'discard' && context.mounted) Navigator.pop(context);
 }
 
-/// "13 October 2026" for pickers and info lines.
+/// "2026/10/13" — "1405/07/20" where the app is set to Jalali — in the
+/// locale's own digits, through the shared label.
 String lensFullDate(BuildContext context, DateTime date) =>
     nexModuleDateLabel(context, date);

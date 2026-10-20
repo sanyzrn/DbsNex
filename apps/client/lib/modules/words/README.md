@@ -94,9 +94,15 @@ from another review. Timestamp offsets are validated rather than normalized.
   the first occurrence and reports repeats; manual capture supports second senses.
 - Unknown scheduling dates are explicit and excluded from automatic due counts.
   Reads refresh on resume and reject stale responses.
-- Persian due labels are relative. No unavailable Jalali picker is claimed.
-  Local input follows content direction; native per-paragraph editing remains
-  a platform request. Read surfaces preserve mixed paragraph direction.
+- Persian due labels stay relative («۳ روز دیگر»); the one absolute date a
+  person reads — the added-on day beyond a month, or a future one — goes
+  through the shared `nexModuleDateLabel`, so it follows the person's
+  calendar (Jalali for Persian) and their digits. Storage stays ISO/civil;
+  the module has no typed date field, so no calendar entry is wired (the
+  repair action sets the review day to today).
+- Multiline input (meaning, example, note, batch paste) is the shared native
+  `NexTextField`; one-line fields follow content direction. Read surfaces
+  preserve mixed paragraph direction.
 - Serial per-store writes, fresh checks, event IDs and journals reduce races.
   A cross-window compare-and-write transaction is outside the current API.
 
@@ -123,6 +129,17 @@ Review settings. Pause any card; editing words preserves review progress.
 
 ## Changelog
 
+EN: Added-on dates now read through the shared label in the person's own
+calendar (Jalali for Persian); the empty collection carries its own add
+button, a filter that empties the list says so honestly, the session-done
+line counts a single card correctly, Persian wording reads naturally, and
+review-queue ties are decided, not accidental.
+
+FA: تاریخ افزوده‌شدن با برچسب همگانی در تقویم خود شما (جلالی برای فارسی)
+نوشته می‌شود؛ فهرست تهی دکمهٔ افزودن خودش را دارد، فیلتر بی‌نتیجه حقیقتش
+را می‌گوید، پایان جلسهٔ تک‌کارت درست گفته می‌شود، فارسی روان‌تر شد و ترتیب
+کارت‌های هم‌سررسید قطعی شد.
+
 EN: Added explicit repair of unavailable review dates and corrected review-button
 interval contrast using the actual button foreground.
 
@@ -140,34 +157,48 @@ retries partial saves, and supports compact, large-text reviews.
 
 ## Platform requests
 
-1. Public native NexTextField for Android paragraph direction/selection.
-   The local EditableText fallback does not claim the private editor's full features.
-2. Shared Jalali formatter/picker; relative dates are the working fallback.
+1. Fulfilled: the platform now ships the public native `NexTextField`, and
+   every multiline field in the module (meaning, example, note, batch paste)
+   uses it. One-line fields follow content direction as before; no local
+   `EditableText` fallback remains.
+2. Fulfilled: the absolute added-on date reads through the shared Jalali
+   formatter (`nexModuleDateLabel`), following the person's calendar and
+   digits. Due labels stay relative where they read better, and the module
+   has no typed date field, so no calendar picker is wired.
 3. Optional atomic compare-and-write for multi-window changes. Current serial
    writes, fresh checks, event IDs and recovery journals stay within the store API.
-4. Approved export/import/notification APIs if added later. Current paste is
-   manual input, not an import from Nex notes.
+4. Approved export/import/notification APIs if added later. Not requested now:
+   no reminders are scheduled — the module's review scheduling is its own and
+   stays inside the session. Current paste is manual input, not an import from
+   Nex notes.
 
 ## Checks
 
-Windows / PowerShell; Flutter 3.35.5 / Dart 3.9.2. Current main baseline:
-cad5fcaeaaa7ab489f48cfdf1b03add6b6623879.
+Linux sandbox; Flutter 3.35.5 / Dart 3.9.2. This review-and-upgrade pass:
 
 ~~~text
-flutter test --no-pub test/module_kit_test.dart test/modules/gold test/modules/words --reporter expanded
-dart analyze --fatal-infos lib/modules/gold test/modules/gold lib/modules/words test/modules/words
-dart format <module lib and test directories>
+dart format lib/modules/words test/modules/words    # 0 changed
+flutter analyze --fatal-infos                       # No issues found
+flutter test test/module_kit_test.dart -j 2         # 40 passed
+flutter test test/modules/words -j 2                # 90 passed
 ~~~
 
-Baseline supplied tests had a hardcoded-date failure; fixtures now use the
-actual civil anchor and actual disposal/reopening. Added calculation/storage,
-read/write failure, draft, batch retry, replay and raw-history regressions.
-Review tests cover FA/EN, both themes, 320x640 at scale 2 and reduced motion.
-Final real outcomes and captures are in the phase's review/VALIDATION.md.
+Test coverage kept and extended: FA/EN, both themes, 320x640 at scale 2 with
+reduced motion, Jalali added-on labels, empty-state action, double-tap save,
+deterministic session ties, draft/batch/replay/raw-history regressions, and
+the scheduler's ladder against month ends, a year end and a leap day.
 
-Package mirror preserved baseline versions/checksums; final Windows plugin
-symlink setup lacks Developer Mode. Tests use --no-pub with compiler temporary
-access outside the sandbox. No Android/device/TalkBack claim. Registry edits
-are temporary and restored; no core/API/ARB/catalog/dependency edit delivered,
-and no Commit/Push/ZIP. Maintainer const-registers WordsModule(), retires
-planned words and incorporates Guide/Changelog before release/device checks.
+The original authoring pass (Windows/PowerShell, baseline cad5fca) ran the
+same gate with --no-pub; its captures and outcomes live with that phase's
+review/VALIDATION.md. No Android/device/TalkBack claim is made for either
+pass. Maintainer const-registers WordsModule(), retires planned words and
+incorporates Guide/Changelog before release/device checks.
+
+## Meaning first, copy the list (2.1.13)
+
+The review page has a switch to ask **meaning first**: the meaning is the front
+of the card and the word is not in the tree until Reveal. Grading is the same
+four buttons, once per card; a card with no meaning to show is asked forward.
+The home screen can **copy the list on screen** (every word the filters leave)
+as `word<TAB>meaning`, one line each — what the paste box reads back; line
+breaks in a meaning become « ; ». No file is written.

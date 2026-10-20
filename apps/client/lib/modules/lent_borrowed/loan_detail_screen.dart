@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'loan_edit_sheet.dart';
+import 'loan_message.dart';
 import 'loan_math.dart';
 import 'loan_model.dart';
+import 'loan_date_entry.dart';
+import 'loan_dates.dart';
+import 'loan_wording.dart';
 import 'return_history.dart';
 import 'money_format.dart';
 import 'module.dart';
@@ -38,6 +42,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
   StreamSubscription<void>? _changes;
   int _loadToken = 0;
   bool _writing = false;
+  bool _sheetOpen = false;
 
   @override
   void initState() {
@@ -61,6 +66,18 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
 
   Future<void> _load() => readRecords(_read);
 
+  /// One sheet at a time: a double-tap on Edit or Record a return must not
+  /// stack two editors that each write their own record.
+  Future<void> _openSheet(Future<void> Function() open) async {
+    if (_sheetOpen || _writing) return;
+    _sheetOpen = true;
+    try {
+      await open();
+    } finally {
+      _sheetOpen = false;
+    }
+  }
+
   Future<void> _read() async {
     await RecordBundle.recover(widget.store);
     final token = ++_loadToken;
@@ -72,15 +89,30 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
       Navigator.of(context).maybePop();
       return;
     }
+    // The store's own order, newest first, kept stable within a date so a
+    // reload never shuffles the history a person was reading.
+    final history =
+        [
+          for (final (index, record)
+              in returns
+                  .map(LoanReturn.fromRecord)
+                  .where((r) => r.loanId == widget.loanId)
+                  .toList()
+                  .indexed)
+            (index, record),
+        ]..sort((a, b) {
+          final byDate = b.$2.date.compareTo(a.$2.date);
+          return byDate != 0 ? byDate : a.$1.compareTo(b.$1);
+        });
+    final loan = Loan.fromBody(widget.loanId, body);
+    final ordered = [for (final (_, record) in history) record];
     setState(() {
-      _loan = Loan.fromBody(widget.loanId, body);
-      _returns =
-          returns
-              .map(LoanReturn.fromRecord)
-              .where((r) => r.loanId == widget.loanId)
-              .toList()
-            ..sort((a, b) => b.date.compareTo(a.date));
+      _loan = loan;
+      _returns = ordered;
     });
+    if (LoanMath.standing(loan, ordered).settled) {
+      unawaited(_clearReminder(loan.id));
+    }
   }
 
   Future<void> _guard(Future<void> Function() action) async {
@@ -112,6 +144,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
       'loan',
     );
     await bundle.delete();
+    await _clearReminder(loan.id);
     if (!mounted) return;
     Navigator.of(context).maybePop();
     messenger.showSnackBar(
@@ -128,6 +161,15 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
       ),
     );
   });
+
+  /// The reminder is the loan's: gone with it, and gone once it is settled.
+  Future<void> _clearReminder(String id) async {
+    try {
+      await widget.store.clearReminder('loan:$id');
+    } catch (_) {
+      // A reminder that cannot be withdrawn rings once and finds no loan.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,14 +194,16 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
             key: const ValueKey('loan-edit'),
             tooltip: strings(context, 'editRecord'),
             icon: const Icon(Icons.edit_outlined),
-            onPressed: _writing
+            onPressed: _writing || _sheetOpen
                 ? null
                 : () => unawaited(
-                    showLoanEditSheet(
-                      context,
-                      widget.store,
-                      editing: loan,
-                      returns: _returns,
+                    _openSheet(
+                      () => showLoanEditSheet(
+                        context,
+                        widget.store,
+                        editing: loan,
+                        returns: _returns,
+                      ),
                     ),
                   ),
           ),
@@ -199,14 +243,16 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
                 ),
-                onPressed: _writing
+                onPressed: _writing || _sheetOpen
                     ? null
                     : () => unawaited(
-                        showReturnSheet(
-                          context,
-                          widget.store,
-                          loan: loan,
-                          returns: _returns,
+                        _openSheet(
+                          () => showReturnSheet(
+                            context,
+                            widget.store,
+                            loan: loan,
+                            returns: _returns,
+                          ),
                         ),
                       ),
                 icon: const Icon(Icons.replay_outlined),
@@ -219,6 +265,28 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
                     ? null
                     : () => unawaited(_recordReturn(standing.outstanding)),
                 child: Text(strings(context, 'markSettled')),
+              ),
+              const SizedBox(height: NexSpacing.md),
+              if (loan.direction == LoanDirection.lent)
+                TextButton.icon(
+                  key: const ValueKey('loan-message'),
+                  onPressed: () =>
+                      unawaited(showLoanMessageSheet(context, loan, standing)),
+                  icon: const Icon(Icons.ios_share),
+                  label: Text(strings(context, 'messageTitle')),
+                ),
+              // A due date is only worth having if something says so when it
+              // comes: an optional system reminder, opened on the due day.
+              NexShelfHeading(
+                icon: Icons.notifications_none,
+                title: strings(context, 'reminderTitle'),
+              ),
+              NexModuleReminderControl(
+                store: widget.store,
+                sourceKind: 'loan',
+                sourceId: loan.id,
+                initial: loan.due == null ? null : parseCivilDate(loan.due!),
+                body: strings(context, 'reminderBody', {'person': person}),
               ),
               const SizedBox(height: NexSpacing.md),
             ],
@@ -343,27 +411,27 @@ class _SummaryPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: NexSpacing.sm),
-          if (!standing.settled)
+          if (!standing.settled) ...[
             Text(
-              switch (standing.due.status) {
-                DueStatus.overdue => strings(context, 'overdueBy', {
-                  'n': standing.due.days,
-                }),
-                DueStatus.today => strings(context, 'dueTodayWord'),
-                DueStatus.dueSoon || DueStatus.later => strings(
-                  context,
-                  'dueIn',
-                  {'n': standing.due.days},
-                ),
-                DueStatus.none => strings(context, 'noDueWord'),
-                DueStatus.settled => strings(context, 'settledWord'),
-              },
+              loan.due == null
+                  ? dueWording(context, standing.due)
+                  : '${dueWording(context, standing.due)} · ${loanDateLabel(context, loan.due!)}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: standing.due.status == DueStatus.overdue
                     ? scheme.error
                     : scheme.onSurfaceVariant,
               ),
             ),
+            const SizedBox(height: NexSpacing.xs),
+          ],
+          Text(
+            strings(context, 'issuedOn', {
+              'date': loanDateLabel(context, loan.issued),
+            }),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
           if (loan.note.isNotEmpty) ...[
             const SizedBox(height: NexSpacing.sm),
             NexTextDirection(

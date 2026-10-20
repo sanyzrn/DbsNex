@@ -37,6 +37,9 @@ class LocalValues {
     return day.year == y && day.month == m && day.day == d;
   }
 
+  /// Two digits with a leading zero, the shared entry format's own padding.
+  static String two(int value) => value < 10 ? '0$value' : '$value';
+
   static DateTime? day(String text) {
     final match = RegExp(
       r'^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$',

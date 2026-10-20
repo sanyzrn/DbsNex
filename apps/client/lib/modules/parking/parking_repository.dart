@@ -92,5 +92,11 @@ class ParkingRepository {
             body: {...raw, 'foundAt': DateTime.now().toUtc().toIso8601String()},
           ),
         ]);
+        // The parking is over, so its reminder is moot — a person who has
+        // found the car does not need to be told the paid time ran out.
+        // Best-effort: a failed cancel never blocks closing the session.
+        try {
+          await store.clearReminder('${ParkingModels.session}:$id');
+        } catch (_) {}
       });
 }

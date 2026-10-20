@@ -6,8 +6,61 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
       ? parseTomanAmount(_amount.text)
       : parseExpenseAmount(_amount.text, _currency);
 
+  /// The typed civil day, or null while the text is not one yet. The
+  /// old date button kept a separate confirmed flag; the field makes
+  /// confirmation a property of the text itself.
+  DateTime? get _typedDay => LocalValues.day(_dateText.text);
+
+  /// The text the field opens with: the stored day for a readable
+  /// record, today for a new payment, and nothing for an incomplete
+  /// one, whose missing date must be chosen explicitly.
+  String _initialDateText() {
+    final existing = widget.existing;
+    if (existing == null) return expensesDateEntryText(DateTime.now());
+    if (existing.source == null ||
+        LocalValues.stamp(existing.source!['date']) != null) {
+      return expensesDateEntryText(existing.date);
+    }
+    return '';
+  }
+
+  /// A resumed draft's date state: the raw typed text when the draft
+  /// kept one, else the day it stored — never a day the record lacks.
+  void _resumeDate(Map<String, Object?> body) {
+    final stamp = LocalValues.stamp(body['date']);
+    if (stamp != null) _date = stamp.toLocal();
+    final text = body['dateText'];
+    if (text is String) {
+      _dateText.text = text;
+    } else if (stamp != null && body['dateConfirmed'] == true) {
+      _dateText.text = expensesDateEntryText(_date);
+    }
+  }
+
+  /// Quiet while a person is mid-thought; loud when the field is empty
+  /// (the missing date must be chosen explicitly — the incomplete
+  /// record's own state) or after Save was refused.
+  String? _dateError(BuildContext context) =>
+      _dateText.text.isEmpty || (_showErrors && _typedDay == null)
+      ? expenseStrings(context, 'dateRequired')
+      : null;
+
+  /// A day typed (or picked on the calendar) composes with the time
+  /// that is already set, so changing the date never drops the clock.
+  /// Heard through the controller, so a day the shared calendar button
+  /// writes in counts as a change too.
+  void _dateChanged() {
+    if (!mounted) return;
+    final day = _typedDay;
+    if (day != null) {
+      _date = DateTime(day.year, day.month, day.day, _date.hour, _date.minute);
+    }
+    _markDirty();
+  }
+
   Future<void> _save() async {
-    if (!_dateConfirmed) {
+    final day = _typedDay;
+    if (day == null) {
       _paint(() => _showErrors = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(expenseStrings(context, 'dateRequired'))),
@@ -27,7 +80,7 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
       type: _type,
       amount: result.minor!,
       currency: _currency.code,
-      date: _date,
+      date: DateTime(day.year, day.month, day.day, _date.hour, _date.minute),
       categoryId: _categoryId,
       note: _note.text.trim().isEmpty ? null : _note.text.trim(),
       merchant: _merchant.text.trim().isEmpty ? null : _merchant.text.trim(),
@@ -111,31 +164,6 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     } finally {
       if (mounted) _paint(() => _saving = false);
     }
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await nexPickModuleDate(
-      context,
-      initial: !_dateConfirmed
-          ? DateTime.now()
-          : _date.year > 2100
-          ? DateTime(2100, 12, 31)
-          : _date,
-      first: DateTime(1),
-      last: DateTime(2100, 12, 31),
-    );
-    if (picked == null || !mounted) return;
-    _paint(() {
-      _dateConfirmed = true;
-      _date = DateTime(
-        picked.year,
-        picked.month,
-        picked.day,
-        _date.hour,
-        _date.minute,
-      );
-    });
-    _markDirty();
   }
 
   Future<void> _pickTime() async {

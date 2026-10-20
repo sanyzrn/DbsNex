@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'gold_dates.dart';
 import 'gold_format.dart';
 import 'gold_models.dart';
 import 'gold_strings.dart';
@@ -124,7 +125,7 @@ class GoldComparePage extends StatelessWidget {
                             textDirection: nexDirectionOf(quote.shop),
                           ),
                         Text(
-                          '${goldDigits(quote.quoteDateIso, persian)} · ${strings(context, 'gregorianTag')}',
+                          goldStoredDateLabel(context, quote.quoteDateIso),
                           style: theme.textTheme.bodySmall,
                         ),
                       ],

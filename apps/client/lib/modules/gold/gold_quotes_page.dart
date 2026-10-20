@@ -251,6 +251,14 @@ class _GoldQuotesPageState extends State<GoldQuotesPage>
           ? NexEmptyState(
               icon: Icons.inventory_2_outlined,
               message: strings(context, 'savedQuotesEmpty'),
+              // Nothing saved yet is fixed where the person just came from:
+              // the empty state offers the way back to the calculator.
+              action: FilledButton.icon(
+                key: const ValueKey('gold-quotes-back'),
+                onPressed: () => Navigator.maybePop(context),
+                icon: const Icon(Icons.calculate_outlined),
+                label: Text(strings(context, 'backToCalculator')),
+              ),
             )
           : ListView(
               padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
@@ -315,8 +323,8 @@ class _QuoteRow extends StatelessWidget {
       today: () => strings(context, 'whenToday'),
       yesterday: () => strings(context, 'whenYesterday'),
       daysAgo: (days) => strings(context, 'whenDaysAgo', {'n': days}),
-      onDate: (date) => strings(context, 'whenDate', {
-        'date': goldDigits(date, NexModuleStrings.persian(context)),
+      onDate: (day) => strings(context, 'whenDate', {
+        'date': nexModuleDateLabel(context, day),
       }),
     );
   }

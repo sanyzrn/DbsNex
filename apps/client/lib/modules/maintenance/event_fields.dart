@@ -242,8 +242,9 @@ class EventMeterField extends StatelessWidget {
   }
 }
 
-/// The service date row, opening the platform's Gregorian picker (a
-/// Jalali picker is a platform request — see the README).
+/// The service date row, opening the platform's calendar picker —
+/// Jalali for a solar reader — with the shared label showing what was
+/// picked.
 class EventDateRow extends StatelessWidget {
   const EventDateRow({
     super.key,
@@ -280,7 +281,10 @@ class EventDateRow extends StatelessWidget {
                     : s(context, 'dateRequired'),
               ),
             ),
-            const Icon(Icons.calendar_today_outlined, size: 20),
+            Tooltip(
+              message: s(context, 'dateTooltip'),
+              child: const Icon(Icons.calendar_today_outlined, size: 20),
+            ),
           ],
         ),
       ),

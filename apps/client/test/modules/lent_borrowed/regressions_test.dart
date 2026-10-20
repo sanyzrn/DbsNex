@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/modules/lent_borrowed/loan_date_entry.dart';
 import 'package:nex_client/modules/lent_borrowed/loan_dates.dart';
 import 'package:nex_client/modules/lent_borrowed/loan_model.dart';
 import 'package:nex_client/modules/lent_borrowed/loan_math.dart';
@@ -16,27 +17,36 @@ void main() {
     note: '',
     currency: 'USD',
   );
-  test(
-    'editing a historical loan reads due relative to today and preserves it',
-    () {
-      final editor = LoanDates(
-        DateTime(2026, 10, 12, 23, 59),
-        loan('2026-10-15'),
-      );
-      expect(editor.issueOffset, 11);
-      expect(editor.dueOffset, 3);
-      expect(editor.issued(11), '2026-10-01');
-      expect(editor.due(3), '2026-10-15');
-      expect(editor.due(7), '2026-10-19');
-    },
-  );
-  test('overdue edits retain negative offsets and no date stays null', () {
-    final overdue = LoanDates(DateTime(2026, 10, 12), loan('2026-10-11'));
-    expect(overdue.dueOffset, -1);
-    expect(overdue.due(-1), '2026-10-11');
-    expect(LoanDates(DateTime(2026, 10, 12), loan(null)).dueOffset, isNull);
-    expect(overdue.due(null), isNull);
-    expect(overdue.due(0), '2026-10-12');
+  test('absolute entry parses the formats a person might type', () {
+    expect(parseDateEntry('2026/10/15'), '2026-10-15');
+    expect(parseDateEntry('2026-10-15'), '2026-10-15');
+    expect(parseDateEntry('2026.10.15'), '2026-10-15');
+    expect(parseDateEntry(' 2026/10/5 '), '2026-10-05');
+    expect(parseDateEntry('2026/1/2'), '2026-01-02');
+    expect(dateEntryText('2026-10-01'), '2026/10/01');
+  });
+  test('impossible and out-of-range dates are refused, not normalized', () {
+    expect(parseDateEntry('2026/02/30'), isNull);
+    expect(parseDateEntry('2023/02/29'), isNull);
+    expect(parseDateEntry('2026/13/01'), isNull);
+    expect(parseDateEntry('2026/00/10'), isNull);
+    expect(parseDateEntry('2026/10/00'), isNull);
+    expect(parseDateEntry(''), isNull);
+    expect(parseDateEntry('next tuesday'), isNull);
+    // The typed range is the calendar's own; a Jalali year such as 1405 is
+    // never silently stored as the civil year 1405.
+    expect(parseDateEntry('1405/07/14'), isNull);
+    expect(parseDateEntry('1899/12/31'), isNull);
+    expect(parseDateEntry('2101/01/01'), isNull);
+  });
+  test('Persian and Arabic digits parse like Latin ones', () {
+    expect(parseDateEntry('۲۰۲۶/۱۰/۱۵'), '2026-10-15');
+    expect(parseDateEntry('٢٠٢٦/١٠/١٥'), '2026-10-15');
+  });
+  test('a leap day parses and round-trips through the field text', () {
+    final key = parseDateEntry('2024/2/29');
+    expect(key, '2024-02-29');
+    expect(parseDateEntry(dateEntryText(key!)), key);
   });
   test('civil shifts span leap-day, year and DST boundaries exactly', () {
     expect(shiftCivilDate(DateTime(2024, 2, 28, 23, 59), 1), '2024-02-29');

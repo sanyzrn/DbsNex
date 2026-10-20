@@ -14,6 +14,7 @@ import 'units.dart';
 import 'local_values.dart';
 
 part 'option_editor_actions.dart';
+part 'option_editor_fields.dart';
 
 /// The offer editor: what it is, the total price with its currency
 /// and rial/toman choice, the quantity per package with its unit, the
@@ -68,7 +69,12 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
   late String _unitKey = priceUnitOf(widget.existing?.unitKey)?.key ?? 'kg';
   late DiscountKind _discountKind =
       widget.existing?.discount ?? DiscountKind.none;
-  late DateTime? _date = widget.existing?.date;
+
+  /// The shopping date as typed civil text, `yyyy/MM/dd`, shared Jalali
+  /// entry beside it. Empty means undated; the stored body stays ISO 8601.
+  late final TextEditingController _dateText = TextEditingController(
+    text: _initialDateText,
+  );
 
   late final String _id =
       widget.existing?.id ?? 'opt-${DateTime.now().microsecondsSinceEpoch}';
@@ -80,6 +86,25 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
 
   PriceUnit get _unit => priceUnitOf(_unitKey)!;
 
+  /// The prefilled date text: the stored day in the shared entry's format.
+  String get _initialDateText {
+    final date = widget.existing?.date;
+    if (date == null) return '';
+    return '${date.year}'
+        '/${date.month.toString().padLeft(2, '0')}'
+        '/${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// The typed date, parsed — null when the text is empty or not a day.
+  DateTime? get _parsedDate => LocalValues.day(_dateText.text);
+
+  /// The field's live error: a stored date that no longer parses, a typed
+  /// day that is not one, or a day still in the future.
+  bool get _dateProblem =>
+      !_dateConfirmed ||
+      (_dateText.text.trim().isNotEmpty &&
+          ((_parsedDate == null) || _parsedDate!.isAfter(DateTime.now())));
+
   @override
   void initState() {
     super.initState();
@@ -88,8 +113,12 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
         widget.existing == null ||
         priceCurrencyOf(widget.existing!.currency) != null;
     _dateConfirmed =
-        widget.existing?.source?['date'] == null ||
-        widget.existing?.date != null;
+        widget.existing == null ||
+        widget.existing!.source?['date'] == null ||
+        LocalValues.day(_initialDateText) != null;
+    // Typing and the shared calendar button both change the controller,
+    // so the controller — not onChanged — marks the sheet dirty.
+    _dateText.addListener(_markDirty);
   }
 
   void _paint(VoidCallback action) {
@@ -98,6 +127,8 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
 
   @override
   void dispose() {
+    _dateText.removeListener(_markDirty);
+    _dateText.dispose();
     _label.dispose();
     _price.dispose();
     _quantity.dispose();
@@ -158,215 +189,7 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // A person's own words for the offer: the direction
-                    // follows the script being typed (ADR-037).
-                    NexAutoDirection(
-                      controller: _label,
-                      builder: (context, direction) => TextField(
-                        key: const ValueKey('lens-label'),
-                        controller: _label,
-                        autofocus: widget.existing == null,
-                        textDirection: direction,
-                        decoration: InputDecoration(
-                          labelText: s(context, 'labelLabel'),
-                          hintText: s(context, 'labelHint'),
-                          errorText: _label.text.trim().isEmpty && _showErrors
-                              ? s(context, 'labelEmpty')
-                              : null,
-                        ),
-                        onChanged: (_) => _markDirty(),
-                      ),
-                    ),
-                    const SizedBox(height: NexSpacing.md),
-                    PriceLensMoneyField(
-                      key: const ValueKey('lens-price'),
-                      controller: _price,
-                      label: s(context, 'priceLabel'),
-                      currency: _currency,
-                      irrUnit: _irrUnit,
-                      error: moneyErrorOf(context, _parsedPrice.error),
-                      onCurrencyChanged: _currencyChanged,
-                      onIrrUnitChanged: _irrChanged,
-                      onChanged: _markDirty,
-                    ),
-                    const SizedBox(height: NexSpacing.md),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.zero,
-                          child: TextField(
-                            key: const ValueKey('lens-quantity'),
-                            controller: _quantity,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            textDirection: TextDirection.ltr,
-                            decoration: InputDecoration(
-                              labelText: s(context, 'quantityLabel'),
-                              hintText: s(context, 'quantityHint'),
-                              errorText: quantityErrorOf(
-                                context,
-                                showErrors: _showErrors,
-                                text: _quantity.text,
-                                unitKey: _unitKey,
-                              ),
-                            ),
-                            onChanged: (_) => _markDirty(),
-                          ),
-                        ),
-                        const SizedBox(height: NexSpacing.sm),
-                        Padding(
-                          padding: EdgeInsets.zero,
-                          child: TextField(
-                            key: const ValueKey('lens-count'),
-                            controller: _count,
-                            keyboardType: TextInputType.number,
-                            textDirection: TextDirection.ltr,
-                            decoration: InputDecoration(
-                              labelText: s(context, 'bundleCount'),
-                              errorText: countErrorOf(
-                                context,
-                                showErrors: _showErrors,
-                                text: _count.text,
-                              ),
-                            ),
-                            onChanged: (_) => _markDirty(),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if ((parseCount(_count.text) ?? 1) > 1 ||
-                        _paidCount.text.isNotEmpty) ...[
-                      const SizedBox(height: NexSpacing.sm),
-                      TextField(
-                        key: const ValueKey('lens-paid-count'),
-                        controller: _paidCount,
-                        keyboardType: TextInputType.number,
-                        textDirection: TextDirection.ltr,
-                        decoration: InputDecoration(
-                          labelText: s(context, 'paidCount'),
-                          helperText: s(context, 'paidCountHint'),
-                          errorText:
-                              _showErrors &&
-                                  ((parseCount(_paidCount.text) ?? 1) >
-                                      (parseCount(_count.text) ?? 0))
-                              ? s(context, 'paidTooMany')
-                              : countErrorOf(
-                                  context,
-                                  showErrors: _showErrors,
-                                  text: _paidCount.text,
-                                ),
-                        ),
-                        onChanged: (_) => _markDirty(),
-                      ),
-                    ],
-                    const SizedBox(height: NexSpacing.md),
-                    LensUnitPicker(
-                      selectedKey: _unitKey,
-                      onSelected: (key) {
-                        setState(() {
-                          _unitKey = key;
-                          _unitConfirmed = true;
-                        });
-                        _markDirty();
-                      },
-                    ),
-                    LensDiscountSection(
-                      kind: _discountKind,
-                      controller: _discount,
-                      currency: _currency,
-                      irrUnit: _irrUnit,
-                      onKindChanged: (kind) {
-                        setState(() => _discountKind = kind);
-                        _markDirty();
-                      },
-                      onChanged: _markDirty,
-                      error: discountErrorOf(
-                        context,
-                        showErrors: _showErrors,
-                        kind: _discountKind,
-                        text: _discount.text,
-                        priceText: _price.text,
-                        currency: _currency,
-                        irrUnit: _irrUnit,
-                      ),
-                    ),
-                    TextField(
-                      key: const ValueKey('lens-shipping'),
-                      controller: _shipping,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textDirection: TextDirection.ltr,
-                      decoration: InputDecoration(
-                        labelText: s(context, 'shippingLabel'),
-                        hintText: s(context, 'shippingHint'),
-                        suffixText:
-                            _currency.code == 'IRR' && _irrUnit == IrrUnit.toman
-                            ? s(context, 'tomanUnit')
-                            : _currency.code,
-                        errorText:
-                            _showErrors &&
-                                _shipping.text.trim().isNotEmpty &&
-                                parseMoneyIn(
-                                      _shipping.text,
-                                      _currency,
-                                      _irrUnit,
-                                    ).minor ==
-                                    null
-                            ? s(context, 'errNotNumber')
-                            : null,
-                      ),
-                      onChanged: (_) => _markDirty(),
-                    ),
-                    const SizedBox(height: NexSpacing.md),
-                    InkWell(
-                      key: const ValueKey('lens-date'),
-                      onTap: () => unawaited(_pickDate()),
-                      borderRadius: BorderRadius.circular(NexRadius.md),
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: s(context, 'dateLabel'),
-                          errorText: _showErrors && !_dateConfirmed
-                              ? s(context, 'dateRequired')
-                              : null,
-                          contentPadding: const EdgeInsetsDirectional.symmetric(
-                            horizontal: NexSpacing.md,
-                            vertical: NexSpacing.md,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _date == null
-                                    ? s(context, 'dateUnset')
-                                    : lensFullDate(context, _date!),
-                              ),
-                            ),
-                            const Icon(Icons.calendar_today_outlined, size: 20),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_date != null || !_dateConfirmed)
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _date = null;
-                            _dateConfirmed = true;
-                          });
-                          _markDirty();
-                        },
-                        child: Text(s(context, 'clearDate')),
-                      ),
-                    Text(
-                      s(context, 'bundlePriceHint'),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
+                  children: editorFields(context),
                 ),
               ),
             ),

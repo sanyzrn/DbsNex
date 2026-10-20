@@ -1,3 +1,5 @@
+import 'package:nex_client/modules/module_api.dart';
+
 import 'local_values.dart';
 import 'medicine_models.dart';
 
@@ -80,13 +82,17 @@ class MedicineLogic {
     return quantity <= refillThreshold;
   }
 
-  /// The doses that belong to [medicineId], the newest first.
-  static List<Map<String, Object?>> dosesFor(
-    Iterable<Map<String, Object?>> doses,
+  /// The doses that belong to [medicineId], the newest first, in the order
+  /// the store returned them. A log whose `medicineId` is missing or
+  /// wrong-typed belongs to no medicine — it is dropped rather than guessed
+  /// onto someone's list.
+  static List<ModuleRecord> dosesFor(
+    Iterable<ModuleRecord> doses,
     String medicineId,
   ) => [
     for (final dose in doses)
-      if (MedicineModels.readString(dose, 'medicineId') == medicineId) dose,
+      if (MedicineModels.readString(dose.body, 'medicineId') == medicineId)
+        dose,
   ];
 
   /// Whether a new medicine may be written: a name, at least. The

@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'habit_calendar.dart';
 import 'habit_edit_sheet.dart';
 import 'habit_math.dart';
 import 'habit_model.dart';
+import 'habit_reminder.dart';
 import 'habit_stats.dart';
 import 'module.dart';
 import 'store_state.dart';
@@ -82,31 +84,66 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
               .map(HabitCheck.fromRecord)
               .where((c) => c.habitId == widget.habitId)
               .toList()
-            ..sort((a, b) => b.dateKey.compareTo(a.dateKey));
+            ..sort(newestCheckFirst);
     });
   }
 
-  /// Today's check-in, from this page exactly as from Today.
-  Future<void> _toggleToday() async {
+  /// Today's check-in, from this page exactly as from Today — including the
+  /// Undo snackbar when a check-in is taken back.
+  Future<void> _toggleToday() => _toggleDay(dateKeyOf(DateTime.now()));
+
+  /// A day's check-in: made if there is none, taken back (with Undo) if
+  /// there is. The calendar uses it for any day up to today.
+  Future<void> _toggleDay(String day) async {
     if (_writing) return;
     setState(() => _writing = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final errorMessage = habitsStrings(context, 'saveError');
     try {
-      final today = dateKeyOf(DateTime.now());
-      final id = HabitCheck.idFor(widget.habitId, today);
+      final id = HabitCheck.idFor(widget.habitId, day);
       final existing = await widget.store.get('check', id);
       if (existing == null) {
         await widget.store.put('check', id, {
           'habit': widget.habitId,
-          'date': today,
+          'date': day,
           'at': DateTime.now().toIso8601String(),
         });
       } else {
         await widget.store.delete('check', id);
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(habitsStrings(context, 'checkinDeleted')),
+              action: SnackBarAction(
+                label: l10n.undo,
+                onPressed: () => unawaited(
+                  widget.store.put('check', id, existing).catchError((
+                    Object _,
+                  ) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text(errorMessage)),
+                    );
+                  }),
+                ),
+              ),
+            ),
+          );
+        }
       }
     } catch (_) {
       writeError();
     } finally {
       if (mounted) setState(() => _writing = false);
+    }
+  }
+
+  Future<void> _clearReminder(String id) async {
+    try {
+      await widget.store.clearReminder('habit:$id');
+    } catch (_) {
+      // Rings once at most: the restore on launch drops it for a missing
+      // or archived habit.
     }
   }
 
@@ -123,6 +160,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
         habit.id,
         habit.toJson()..['archived'] = archived,
       );
+      // An archived habit stops nudging; the daily reminder is its own
+      // record, so it goes with it rather than ringing for nothing.
+      if (archived) await _clearReminder(habit.id);
     } catch (_) {
       writeError();
     } finally {
@@ -150,6 +190,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
         'habit',
       );
       await bundle.delete();
+      await _clearReminder(habit.id);
       if (!mounted) return;
       Navigator.of(context).maybePop();
       messenger.showSnackBar(
@@ -257,10 +298,27 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
             const SizedBox(height: NexSpacing.md),
             HabitStreakPanel(habit: habit, standing: standing),
             const SizedBox(height: NexSpacing.md),
+            HabitRatePanel(
+              habit: habit,
+              dateKeys: _dates(),
+              firstDay: _firstDay,
+            ),
+            const SizedBox(height: NexSpacing.md),
+            HabitCalendarPanel(
+              doneKeys: _dates().where((k) => k.isNotEmpty).toSet(),
+              firstDay: _firstDay,
+              busy: _writing,
+              onToggle: (day) => unawaited(_toggleDay(day)),
+            ),
+            const SizedBox(height: NexSpacing.md),
             HabitTwoWeekDots(standing: standing),
             if (habit.note.isNotEmpty) ...[
               const SizedBox(height: NexSpacing.md),
               HabitNotePanel(note: habit.note),
+            ],
+            if (!habit.archived) ...[
+              const SizedBox(height: NexSpacing.md),
+              HabitReminderTile(store: widget.store, habitId: habit.id),
             ],
             const SizedBox(height: NexSpacing.lg),
             NexShelfHeading(

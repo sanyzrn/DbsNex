@@ -37,21 +37,6 @@ class LocalValues {
     return day.year == y && day.month == m && day.day == d;
   }
 
-  static DateTime? day(String text) {
-    final match = RegExp(
-      r'^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$',
-    ).firstMatch(ascii(text.trim()));
-    if (match == null) {
-      return null;
-    }
-    final y = int.parse(match[1]!);
-    final m = int.parse(match[2]!);
-    final d = int.parse(match[3]!);
-    return y >= 1900 && y <= 2100 && realDay(y, m, d)
-        ? DateTime(y, m, d)
-        : null;
-  }
-
   static DateTime? stamp(Object? raw) {
     if (raw is! String) {
       return null;

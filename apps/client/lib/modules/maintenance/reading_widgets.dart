@@ -43,7 +43,12 @@ class ReadingPanel extends StatelessWidget {
     );
     final history =
         controller.readings.where((r) => r.assetId == asset.id).toList()
-          ..sort((a, b) => b.at.compareTo(a.at));
+          // Deterministic order for same-instant readings: the id decides.
+          ..sort(
+            (a, b) => b.at.compareTo(a.at) != 0
+                ? b.at.compareTo(a.at)
+                : b.id.compareTo(a.id),
+          );
     return NexPanel(
       title: s(context, 'readingValue'),
       icon: Icons.speed_outlined,

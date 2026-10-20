@@ -28,8 +28,6 @@ const Map<String, String> goldStringsFa = {
   'loadError':
       'تخمین\u200cهای ذخیره\u200cشده بارگذاری نشدند؛ دوباره تلاش کنید.',
   'retry': 'تلاش دوباره',
-  'problem_total':
-      'جمع از محدودهٔ ذخیرهٔ دقیق بزرگ\u200cتر است؛ ورودی\u200cها را کم کنید.',
 
   'title': 'طلاسنج',
   'tagline': 'ببینید قیمت اعلامی از چه چیزی ساخته شده است',
@@ -42,7 +40,6 @@ const Map<String, String> goldStringsFa = {
   'point3': 'تخمین‌ها نرخ روزِ خودشان را نگه می‌دارند',
 
   // ---------------------------------------------------------- screen
-  'calculator': 'ماشین‌حساب',
   'newEstimate': 'تخمین تازه',
   'savedQuotes': 'تخمین‌های ذخیره‌شده',
   'savedQuotesEmpty':
@@ -53,8 +50,6 @@ const Map<String, String> goldStringsFa = {
   'showToman': 'تومان',
   'showRial': 'ریال',
   'unitToggleSemantics': 'واحدی که مبالغ در آن نمایش داده می‌شود',
-  'entered': 'واردشده',
-  'calculated': 'محاسبه‌شده',
   'required': 'این مورد لازم است.',
   'panelPiece': 'خودِ قطعه',
   'panelRate': 'نرخ',
@@ -79,7 +74,6 @@ const Map<String, String> goldStringsFa = {
   'rateHint':
       'نرخی که به شما داده شده، در عیاری که پایین‌تر برمی‌گزینید. هیچ '
       'چیزی برای شما از جایی گرفته نمی‌شود.',
-  'rateUnit': 'تومان بر گرم',
   'rateRef': 'عیارِ خودِ نرخ',
   'rateRefHint':
       'عیاری که نرخ واردشده برایش نقل شده است. وقتی با عیار قطعه فرق '
@@ -124,14 +118,34 @@ const Map<String, String> goldStringsFa = {
       'از پیشخوان یا از فاکتور. به‌عنوان «اختلاف قابل بررسی» نشان داده '
       'می‌شود، نه حکم.',
   'quoteTitle': 'عنوان',
-  'quoteTitleHint': 'مثلاً حلقهٔ عروسی',
   'shop': 'فروشگاه',
   'quoteDate': 'تاریخ تخمین',
-  'quoteDateHint': 'میلادی، به شکل YYYY-MM-DD',
-  'gregorianTag': 'میلادی',
+  'quoteDateHint': 'روز را به شکل YYYY-MM-DD بنویسید یا از تقویم انتخاب کنید',
   'dateBadFormat': 'به شکل YYYY-MM-DD بنویسید.',
   'dateNotReal': 'چنین تاریخی وجود ندارد.',
   'notes': 'یادداشت',
+  'backToCalculator': 'بازگشت به ماشین‌حساب',
+
+  // ---------------------------------------------------------- budget
+  'tomanWord': 'تومان',
+  'rialWord': 'ریال',
+  'budgetTip': 'از روی بودجه',
+  'budgetTitle': 'از روی بودجه',
+  'budgetAbout':
+      'با یک مبلغ چقدر طلا می‌شود خرید؟ ماشین‌حساب را برعکس اجرا می‌کند، با نرخ، عیار، اجرت، سود و مالیاتی که وارد کرده‌اید. وزنِ نوشته‌شده در فرم به‌کار نمی‌رود.',
+  'budgetField': 'بودجه (تومان)',
+  'budgetBad': 'بودجه را به شکل عدد بنویسید.',
+  'budgetNone': 'کوچک‌ترین قطعه هم از این بودجه گران‌تر درمی‌آید.',
+  'budgetResult': 'نهایتاً حدود {weight} گرم در {amount} جا می‌شود.',
+  'budgetAtCap':
+      'هر وزنی که ماشین‌حساب می‌پذیرد (تا {weight} گرم) در {amount} جا می‌شود.',
+  'budgetNote':
+      'همان فرمول، برعکس. فروشگاهی که گرد کردنش فرق دارد، کمی تفاوت خواهد داشت.',
+  'budgetUse': 'همین وزن را بگذار',
+  'budgetNeedsRate': 'اول نرخ را وارد کنید — بودجه با آن به وزن تبدیل می‌شود.',
+  'makingShare': 'اجرت معادل {pct} ارزش ماده می‌شود.',
+  'copyBreakdown': 'کپی تخمین',
+  'breakdownCopied': 'تخمین کپی شد.',
 
   // ---------------------------------------------------------- receipt
   'receipt': 'تخمین',
@@ -232,7 +246,6 @@ const Map<String, String> goldStringsFa = {
       'معنایی نداشته باشد.',
   'compareSame': 'همان پایهٔ وزن و عیار.',
   'compareDifference': 'اختلاف',
-  'quotesCount': '{count} مورد ذخیره',
   'savedOn': 'ذخیره {when}',
   'quoteDated': 'تاریخ تخمین {date}',
   'whenToday': 'امروز',
@@ -241,18 +254,9 @@ const Map<String, String> goldStringsFa = {
   'whenDate': 'در {date}',
 
   // ---------------------------------------------------------- problems
-  'problem_weight': 'وزن: بین ۰٫۰۰۱ گرم و ۱۰ کیلوگرم.',
-  'problem_grossWeight': 'وزن کل از وزن خالص کمتر است، یا خارج از بازه است.',
+  // فیلدها مشکل خود را با گفتار خودشان می‌رسانند (parse_*های پایین)؛ فقط
+  // گفت‌وگوی عیار سفارشی به جملهٔ بازه نیاز دارد، چون فیلدش عددی بی‌برچسب است.
   'problem_fineness': 'عیار: بین ۱۰۰ تا ۹۹۹ در هزار.',
-  'problem_rate': 'نرخ: حداکثر ۱۰۰٬۰۰۰٬۰۰۰ تومان بر گرم.',
-  'problem_rateRef': 'عیارِ نرخ: بین ۱۰۰ تا ۹۹۹.',
-  'problem_making': 'اجرت خارج از بازه است.',
-  'problem_makingPerGram': 'اجرتِ هر گرم خارج از بازه است.',
-  'problem_profit': 'سود: بین ۰ تا ۹۹۹٫۹۹٪.',
-  'problem_vat': 'مالیات: بین ۰ تا ۹۹۹٫۹۹٪.',
-  'problem_commission': 'کارمزد خارج از بازه است.',
-  'problem_extras': 'هر قلم جداگانه نام و مبلغ درست می‌خواهد.',
-  'problem_shopQuote': 'جمع اعلامی خارج از بازه است.',
   'parse_invalid': 'فقط عدد: رقم‌ها و یک نقطهٔ اعشار.',
   'parse_tooManyDecimals': 'ارقام اعشار زیاد است.',
   'parse_negative': 'مقدار منفی این‌جا معنایی ندارد.',

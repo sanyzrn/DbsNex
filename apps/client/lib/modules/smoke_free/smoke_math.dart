@@ -82,12 +82,14 @@ class SmokeMath {
   }
 
   /// The active attempt among [attempts] — the one with no end, newest
-  /// start first — or null when there is none.
+  /// start first — or null when there is none. Ties on the same start
+  /// instant fall back to the record id, which the store issues in order,
+  /// so the choice is deterministic instead of whichever quicksort saw last.
   static QuitAttempt? activeAttempt(List<QuitAttempt> attempts) {
     final running = [
       for (final a in attempts)
         if (a.isActive) a,
-    ]..sort((a, b) => b.startedAt.compareTo(a.startedAt));
+    ]..sort(compareAttemptsNewestFirst);
     return running.isEmpty ? null : running.first;
   }
 
@@ -95,16 +97,31 @@ class SmokeMath {
   static List<QuitAttempt> pastAttempts(List<QuitAttempt> attempts) => [
     for (final a in attempts)
       if (!a.isActive) a,
-  ]..sort((a, b) => b.startedAt.compareTo(a.startedAt));
+  ]..sort(compareAttemptsNewestFirst);
 
-  /// How many days an attempt ran before it ended — for the history list.
-  static int attemptSpanDays(QuitAttempt attempt) {
-    final end = attempt.endedAt;
-    if (end == null) return 0;
-    final days = elapsedDays(attempt.startedAt, end);
-    // An attempt that ended the day it started still lasted a day of trying.
-    return days;
+  /// Newest start first; the id breaks exact-instant ties so the order is
+  /// deterministic. Store ids carry their creation time, so a later record
+  /// also sorts later.
+  static int compareAttemptsNewestFirst(QuitAttempt a, QuitAttempt b) {
+    final byStart = b.startedAt.compareTo(a.startedAt);
+    return byStart != 0 ? byStart : b.id.compareTo(a.id);
   }
+
+  /// Cravings newest first for the list, with the same exact-instant tie
+  /// discipline so two logs saved in the same millisecond never swap places
+  /// between rebuilds.
+  static List<Craving> cravingsNewestFirst(List<Craving> cravings) =>
+      [...cravings]..sort((a, b) {
+        final byAt = b.at.compareTo(a.at);
+        return byAt != 0 ? byAt : b.id.compareTo(a.id);
+      });
+
+  /// How many calendar days an attempt ran before it ended — for the
+  /// history list. An attempt that ended the day it started reads zero
+  /// here, and the history says it in words rather than as a bare 0.
+  static int attemptSpanDays(QuitAttempt attempt) => attempt.endedAt == null
+      ? 0
+      : elapsedDays(attempt.startedAt, attempt.endedAt!);
 
   /// Which day a craving falls on, relative to [now]: 0 today, 1
   /// yesterday, and so on — the honest grouping for the cravings list.
@@ -139,6 +156,33 @@ class SmokeMath {
     return entries;
   }
 }
+
+/// How long an attempt has run, as the live counter says it: whole days,
+/// then the hours and minutes into the day since it began. Never negative; an
+/// attempt that has not started yet is [untilStart] away instead.
+class QuitElapsed {
+  const QuitElapsed(this.days, this.hours, this.minutes);
+
+  final int days;
+  final int hours;
+  final int minutes;
+
+  static QuitElapsed between(DateTime from, DateTime to) {
+    final total = to.difference(from);
+    if (total.isNegative) return const QuitElapsed(0, 0, 0);
+    return QuitElapsed(total.inDays, total.inHours % 24, total.inMinutes % 60);
+  }
+}
+
+/// The marks earned at [days] and the next one to reach, or null after the
+/// last: a way to see where you are, never a rank.
+({List<int> earned, int? next}) quitMilestonesAt(int days, List<int> marks) => (
+  earned: [
+    for (final m in marks)
+      if (days >= m) m,
+  ],
+  next: marks.where((m) => days < m).firstOrNull,
+);
 
 /// A short supportive line keyed by elapsed days — deliberately non-medical:
 /// no organ names, no recovery timelines, no clinical promises. Just

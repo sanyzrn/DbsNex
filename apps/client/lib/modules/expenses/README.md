@@ -32,7 +32,7 @@ Only this module's NexModuleStore. Stable IDs; JSON-compatible values; ISO times
 | budget | budget-YYYY-MM-<category or all>-<currency> | month, optional category, amount, currency + explicit code/exponent, schema 2 |
 | tpl | stable store ID | label, type, amount, currency + code/exponent, optional category/note/merchant, schema 2 |
 | settings | main | currency, irrUnit rial/toman, schema; unknown keys retained |
-| draft | tx:new / tx:<id> / tx:template:<id>:new / tpl:new / budget:<month>:new or budget:<id> | v 1, base JSON fingerprint, fields raw strings + choices + stable recordId |
+| draft | tx:new / tx:<id> / tx:template:<id>:new / tpl:new / budget:<month>:new or budget:<id> | v 1, base JSON fingerprint, raw field strings (amount, dateText, note, …) + choices + stable recordId |
 | operation | store ID | v 1, raw before-images and committed flag for recoverable writes/deletes |
 
 ~~~json
@@ -48,7 +48,9 @@ incomplete. Legacy zero payments remain readable; new payments must be positive.
 Malformed auxiliary records remain stored and are excluded by their readers.
 Unknown fields survive fresh edits and exact deletion Undo. Empty optional fields
 are removed only when the person clears them, preserving other newly changed data.
-Date/time text in drafts includes dateConfirmed for repairs.
+Date/time text in drafts keeps the raw typed day (dateText) beside the composed
+ISO stamp and dateConfirmed, so a half-typed day survives a reopen and an
+incomplete record still never invents a date.
 
 Deleting a payment includes its edit draft. Interrupted uncommitted operations roll
 back from raw before-images on read/reopen; a committed marker only needs cleanup.
@@ -78,7 +80,17 @@ silently overwrite another existing destination. Payments are never changed by t
   to the device's local timezone; legacy naive timestamps retain written local time.
   Month lengths and relative day arithmetic use civil UTC coordinates, avoiding DST
   23/25-hour mistakes. Relative month distance is exact, not capped at 1200 months.
-  Gregorian dates and years are disclosed; no fake Jalali formatting.
+  Buckets are civil months and are named as such — a bucket is never relabelled with
+  a month it is not. The dates of records themselves read through the shared label
+  (`nexModuleDateLabel`) in the app's chosen calendar, Jalali included.
+- The payment date is typed civil text — yyyy/MM/dd, one separator style, Persian or
+  Arabic digits accepted, 1900–2100 — or chosen on the shared calendar button
+  (`NexModuleDateEntry`; the Jalali calendar when the app's calendar says so). A
+  valid typed day composes with the separately picked time; an impossible one is
+  refused, never guessed. Storage stays ISO 8601 civil at the boundary.
+- Notes (payment and template) are the platform's shared multiline editor
+  (`NexTextField`, at least two lines); merchant and account labels stay one line
+  and follow their content's direction.
 - Edits merge changed fields into a fresh body, retaining fresh corrections to
   untouched fields and unknown metadata; a deleted edited payment is not recreated.
   Drafts have stable IDs and are drained before the journaled save. Optional default
@@ -116,38 +128,65 @@ EN: Corrected exact international currency metadata, huge aggregates, Unicode
 input, strict dates and month calculations. Added raw persistent drafts, visible
 retry/errors, same-ID category/payment Undo and recoverable budget corrections.
 Improved Nex layouts for compact screens, large text, both languages and themes.
+Upgraded to the shared platform pieces: multiline notes (NexTextField), a typed
+civil date with the shared Jalali calendar button beside it, and record dates
+shown through the shared date label in the app's chosen calendar. Template
+deletion now asks first, like payments and categories.
 
 FA: ارز و مبلغ دقیق، رقم فارسی/عربی، تاریخ و جمع‌های بزرگ اصلاح شد. پیش‌نویس خام،
 خطای قابل‌مشاهده، تلاش دوباره، بازگردانی با شناسهٔ اصلی و اصلاح قابل‌بازیابی بودجه
 اضافه شد. نمایش Nex در صفحهٔ کوچک، متن بزرگ، دو زبان و دو تم بهبود یافت.
+یادداشت‌ها چندخطی شدند (NexTextField)، تاریخ پرداخت به‌صورت تایپی میلادی با
+دکمهٔ تقویم مشترک جلالی کنارش ثبت می‌شود و تاریخ ثبت‌ها با برچسب مشترک در
+تقویمِ انتخابی نمایش می‌یابد. حذف قالب هم مثل پرداخت و دسته ابتدا تأیید می‌گیرد.
 
 ## Platform requests
 
-Public native multiline editor and shared Jalali picker/formatter. Current text
-fields follow content direction; notes remain one line until the approved native
-editor is exported. Gregorian labels are explicit. Optional atomic batch/
-compare-and-write for independent writers; the module's local journal is the
-current fallback. No bank/network/notification integration is required for the core.
+**Fulfilled (2.1.3):** the public native multiline editor and the shared Jalali
+picker/formatter are in the module API and now used here — payment and template
+notes are the shared `NexTextField`, the payment date is typed civil text with the
+shared calendar button (`NexModuleDateEntry`, Jalali when the app's calendar says
+so), and every absolute date a person reads goes through `nexModuleDateLabel`.
+Storage stayed ISO 8601 civil throughout.
+
+Still requested: optional atomic batch/compare-and-write for independent writers;
+the module's local journal is the current fallback. No bank/network/notification
+integration is required for the core.
 
 ## Checks
 
-Windows/PowerShell, Flutter 3.35.5, Dart 3.9.2; current main baseline
-724b999a91c5b7366fbb4d9e8f17b36a3fb16318, reviewed 2026-10-14.
+Linux (module review pass on base f196440), Flutter 3.35.5, Dart 3.9.2; reviewed
+2026-10-14.
 
 ~~~text
-flutter test --no-pub test/module_kit_test.dart test/modules/expenses --reporter expanded
-dart analyze --fatal-infos lib/modules/expenses test/modules/expenses
-dart format <expenses lib/test folders>
+dart format lib/modules/expenses test/modules/expenses      # 0 changed
+flutter analyze --fatal-infos                                # No issues found
+flutter test test/module_kit_test.dart -j 2                  # 40 passed
+flutter test test/modules/expenses -j 2                      # 95 passed
 ~~~
 
-Exact final counts and full-client results are in the phase folder's review/VALIDATION.md. Tests cover calculations, 14 currency exponents, fractional
-IRR/JPY/KWD, no mixed sums, strict dates, huge totals, unknown/raw fields, correction,
-rollback-after-commit fault, Undo conflicts, actual draft/read/save/template/category
-journeys, reopen and isolation. Real Nex widget renders cover Persian dark/English
-light and 320×480 at scale 2 with reduced motion, including the payment editor.
-They are synthetic-data widget renders, not device screenshots. Native keyboard,
+This pass: 87 module tests kept green and 8 added — the shared calendar button
+beside the typed day, a typed day round-tripping into storage and back into the
+editor, the typed clock surviving a changed day, an impossible day refused (and a
+Persian-digit day accepted), a day picked on the Jalali calendar saving exactly,
+multiline payment and template notes through NexTextField, and template deletion
+asking first with Undo still restoring the exact record. Tests cover calculations,
+14 currency exponents, fractional IRR/JPY/KWD, no mixed sums, strict dates, huge
+totals, unknown/raw fields, correction, rollback-after-commit fault, Undo
+conflicts, actual draft/read/save/template/category journeys, reopen and
+isolation. Real Nex widget renders cover Persian dark/English light and 320×480
+at scale 2 with reduced motion, including the payment editor. They are
+synthetic-data widget renders, not device screenshots. Native keyboard,
 Android/iOS builds and TalkBack/VoiceOver need maintainer/device acceptance.
 
 No source edits outside this module's lib/test are delivered. Registry registration
 is temporary; maintainer const-registers ExpensesModule(), checks current planned
 IDs and integrates Guide/Changelog separately. No Commit/Push/ZIP.
+
+## This month against last (2.1.13)
+
+Under each currency's totals for a month, «Last month X · this month is N%
+more/less» — computed in that currency only, from valid expenses (income is not
+spending), rounded to the nearest whole percent with integer arithmetic. Shown
+only when the month before has spending in that currency; a percentage of
+nothing is not shown.

@@ -49,6 +49,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NexEmptyState), findsOneWidget);
     expect(find.text(enWords['savedQuotesEmpty']!), findsOneWidget);
+    // The empty state offers the way back to where an estimate is made.
+    expect(find.text('Back to the calculator'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('gold-quotes-back')));
+    await tester.pumpAndSettle();
+    expect(find.text('Net gold weight'), findsOneWidget);
   });
 
   testWidgets('delete asks, and Undo puts the estimate back whole', (

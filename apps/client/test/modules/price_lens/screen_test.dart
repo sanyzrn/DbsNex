@@ -12,6 +12,7 @@ import '../../support/nex_harness.dart';
 /// dark, small screens and 2.0 text scale.
 part 'screen_cases_1.dart';
 part 'screen_cases_2.dart';
+part 'screen_cases_3.dart';
 
 late NexTestHarness harness;
 late NexModuleStore store;
@@ -99,4 +100,5 @@ void main() {
 
   _screenCases1();
   _screenCases2();
+  _screenCases3();
 }

@@ -109,6 +109,19 @@ void main() {
     expect(quote.schema, 1);
   });
 
+  test('a zero-amount extra is kept; a non-number amount is not', () {
+    final quote = GoldQuote.fromRecord('x', {
+      'extras': [
+        {'label': 'box', 'amount': 0}, // a zero really saved — kept
+        {'label': 'gift', 'amount': 'free'}, // not a number — dropped
+        {'label': '', 'amount': 5}, // no name — dropped
+      ],
+    });
+    // The zero survives the read, so editing and re-saving the record does
+    // not quietly lose the row.
+    expect(quote.input.extras, [('box', 0)]);
+  });
+
   test('sameBasisAs is weight, fineness and rate basis together', () {
     final a = exampleQuote();
     expect(a.sameBasisAs(exampleQuote()), isTrue);

@@ -163,7 +163,7 @@ class WarrantyClaimRow extends StatelessWidget {
                   : isClaim
                   ? 'claimed'
                   : 'serviced')} — '
-              '${WarrantyFields.ymd(context, at)}',
+              '${WarrantyFields.instantLabel(context, at)}',
             ),
       trailing: IconButton(
         key: ValueKey('warranty-claim-delete-${claim.id}'),

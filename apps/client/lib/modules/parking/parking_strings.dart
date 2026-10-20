@@ -35,7 +35,6 @@ const parkingStrings = NexModuleStrings(
     'mayHaveExpired': 'May have ended {duration} ago',
     'defaultVehicle': 'The car',
     'floorShort': 'Floor {value}',
-    'emptyTitle': 'Nothing parked yet',
     'emptyMessage':
         'When you leave the car, tap “Parked here” and write where it is.',
 
@@ -58,14 +57,15 @@ const parkingStrings = NexModuleStrings(
         'Only if you know them. Nothing on this phone finds your position.',
     'latitude': 'Latitude',
     'longitude': 'Longitude',
-    'badNumber': 'Not a number',
+    'badExpiry': 'The date or the time is not written right',
     'badLatitude': 'Latitude is between −90 and 90',
     'badLongitude': 'Longitude is between −180 and 180',
     'expiry': 'Paid time (optional)',
     'expiryNote':
-        'Written by you. While this screen is open it counts down; it cannot '
-        'remind you in the background.',
-    'expiryDate': 'Date (Gregorian)',
+        'Written by you. While this screen is open it counts down. For an '
+        'alert that reaches you after closing, set a reminder on the '
+        'parking.',
+    'expiryDate': 'Date',
     'expiryTime': 'Time (24h, HH:MM)',
     'today': 'Today',
     'clearTime': 'Clear',
@@ -108,6 +108,7 @@ const parkingStrings = NexModuleStrings(
     'spotLabel': 'Section / spot',
     'landmarkLabel': 'Landmark',
     'coordinatesLabel': 'Coordinates',
+    'shareSpot': 'Share where the car is',
     'expiryLabel': 'Ends',
     'startedLabel': 'Started',
     'foundLabel': 'Found',
@@ -116,9 +117,19 @@ const parkingStrings = NexModuleStrings(
 
     // Dates and durations.
     'minutes': '{count} min',
+    'hours': '{count} h',
+    'days': '{count} d',
     'hoursMinutes': '{h} h {m} min',
     'daysHours': '{d} d {h} h',
     'justNow': 'today',
+
+    // A search with nothing to show.
+    'noMatches': 'Nothing matches “{query}”.',
+
+    // The opt-in device reminder for an open parking.
+    'reminderNote':
+        'A device alert, set by you — for the end of paid time or when you '
+        'next need the car. It goes when the parking does.',
   },
   fa: {
     'dateHint': 'سال/ماه/روز',
@@ -151,7 +162,6 @@ const parkingStrings = NexModuleStrings(
     'mayHaveExpired': 'ممکن است {duration} پیش تمام شده باشد',
     'defaultVehicle': 'ماشین',
     'floorShort': 'طبقهٔ {value}',
-    'emptyTitle': 'هنوز پارکی ثبت نشده',
     'emptyMessage':
         'وقتی از ماشین پیاده شدید، «اینجا پارک کردم» را بزنید و بنویسید کجا است.',
 
@@ -174,14 +184,14 @@ const parkingStrings = NexModuleStrings(
         'فقط اگر می‌دانید. هیچ چیزی روی این گوشی موقعیت شما را پیدا نمی‌کند.',
     'latitude': 'عرض جغرافیایی',
     'longitude': 'طول جغرافیایی',
-    'badNumber': 'عدد نیست',
-    'badLatitude': 'عرض جغرافیایی بین ‎−۹۰ و ‎۹۰ است',
-    'badLongitude': 'طول جغرافیایی بین ‎−۱۸۰ و ‎۱۸۰ است',
+    'badExpiry': 'تاریخ یا ساعت درست نوشته نشده است',
+    'badLatitude': 'عرض جغرافیایی بین −۹۰ و ۹۰ است',
+    'badLongitude': 'طول جغرافیایی بین −۱۸۰ و ۱۸۰ است',
     'expiry': 'زمان پرداختی (اختیاری)',
     'expiryNote':
-        'خودتان می‌نویسید. تا وقتی این صفحه باز است شمارش می‌کند؛ در پس‌زمینه '
-        'یادآوری نمی‌کند.',
-    'expiryDate': 'تاریخ (میلادی)',
+        'خودتان می‌نویسید. تا وقتی این صفحه باز است شمارش می‌کند. برای هشداری '
+        'که پس از بستن هم می‌رسد، روی پارک یادآوری بگذارید.',
+    'expiryDate': 'تاریخ',
     'expiryTime': 'ساعت (۲۴ ساعته، ساعت:دقیقه)',
     'today': 'امروز',
     'clearTime': 'پاک کردن',
@@ -223,6 +233,7 @@ const parkingStrings = NexModuleStrings(
     'spotLabel': 'ردیف / پلاک',
     'landmarkLabel': 'نشانه',
     'coordinatesLabel': 'مختصات',
+    'shareSpot': 'ارسال جای خودرو',
     'expiryLabel': 'پایان',
     'startedLabel': 'شروع',
     'foundLabel': 'پیدا شد',
@@ -231,8 +242,18 @@ const parkingStrings = NexModuleStrings(
 
     // تاریخ‌ها و مدت‌ها.
     'minutes': '{count} دقیقه',
+    'hours': '{count} ساعت',
+    'days': '{count} روز',
     'hoursMinutes': '{h} ساعت و {m} دقیقه',
     'daysHours': '{d} روز و {h} ساعت',
     'justNow': 'امروز',
+
+    // جست‌وجویی که چیزی پیدا نکرد.
+    'noMatches': 'چیزی با «{query}» مطابقت ندارد.',
+
+    // یادآور گوشیِ اختیاریِ یک پارکِ باز.
+    'reminderNote':
+        'هشدار گوشی، خودتان تنظیمش می‌کنید — برای پایان زمان پرداختی یا وقتی '
+        'دوباره ماشین را لازم دارید. با رفتن پارک، آن هم می‌رود.',
   },
 );

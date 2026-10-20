@@ -56,7 +56,7 @@ class _ArchiveScreenState extends State<ArchiveScreen>
     if (!mounted || token != _loadToken) return;
     setState(() {
       _archived = habits.map(Habit.fromRecord).where((h) => h.archived).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        ..sort(newestFirst);
     });
   }
 
@@ -85,9 +85,20 @@ class _ArchiveScreenState extends State<ArchiveScreen>
       appBar: NexAppBar(title: Text(strings(context, 'archived'))),
       body: recordsBody(
         _archived.isEmpty
-            ? NexEmptyState(
-                icon: Icons.archive_outlined,
-                message: strings(context, 'noArchived'),
+            ? ScrollSafeEmpty(
+                child: NexEmptyState(
+                  icon: Icons.archive_outlined,
+                  message: strings(context, 'noArchived'),
+                  // The empty archive explains where archiving happens and
+                  // carries the way back to where the habits are.
+                  action: TextButton.icon(
+                    key: const ValueKey('habits-archive-back'),
+                    onPressed: () =>
+                        unawaited(Navigator.of(context).maybePop()),
+                    icon: const Icon(Icons.today_outlined),
+                    label: Text(strings(context, 'backToToday')),
+                  ),
+                ),
               )
             : ListView(
                 padding: EdgeInsetsDirectional.fromSTEB(

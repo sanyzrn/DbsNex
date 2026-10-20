@@ -8,6 +8,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'parking_dialogs.dart';
 import 'parking_editor.dart';
 import 'parking_fields.dart';
+import 'parking_share.dart';
 import 'parking_logic.dart';
 import 'parking_models.dart';
 import 'parking_strings.dart';

@@ -6,7 +6,10 @@ A personal list of exactly user-entered medicine names, strength/package,
 instructions, reference times/days and private notes. Quantity, dose-unit count,
 expiry and refill threshold are optional. Taken/Skipped are explicit manual logs.
 Archive retains history. No drug database, clinical dose suggestion, interaction
-check, missed-dose inference, safety certification or background notification.
+check, missed-dose inference or safety certification. Nothing is scheduled on
+its own: the only reminder is the explicit one-time OS alert a person sets by
+hand on a medicine's detail sheet, and it runs only once the module's rollout is
+enabled.
 
 ## Records
 
@@ -52,9 +55,14 @@ instance. Platform transactions/compare-and-write are needed for independent
 external writers. Undo conflicts are visible and do not overwrite later content.
 
 Impossible dates, malformed/negative/overflow counts, invalid refill threshold
-and impossible times are rejected. Arabic/Persian digits work. A valid time still
-in the entry box is included on Save. Dates are supplied Gregorian dates; no
-Jalali conversion is invented. The supplied expiry date is shown, with the existing
+and impossible times are rejected, each in its own field's words. Arabic/Persian
+digits work. A valid time still in the entry box is included on Save. The
+expiry is entered as a civil `yyyy/MM/dd` day (1900–2100, the calendar's own
+range, so a Persian year such as 1405 is never stored as the civil year 1405)
+or picked from the shared calendar button on the person's saved calendar;
+it is stored as civil ISO 8601 and read back through the shared date label —
+Jalali in Persian digits for a solar-calendar reader, the civil day otherwise.
+The supplied expiry date is shown, with the existing
 conservative today-or-earlier marker; this is not a medical safety decision.
 
 Editors checkpoint raw text/times, offer Keep draft & close, and save before
@@ -68,7 +76,7 @@ state. Unedited fields retain newly changed values; progress does not invalidate
 typed text. Quiet Back does not replace an unread or untouched checkpoint.
 
 Legacy date-only fields containing ISO offsets retain the written Gregorian
-day. Dose/claim/session timestamps remain actual UTC instants; these two
+day. Dose timestamps remain actual UTC instants; these two
 meanings are not conflated. Missing dates are never invented.
 
 ## Guide
@@ -80,7 +88,9 @@ changed. A recount starts a fresh inventory baseline. A clinician or pharmacist
 is the source for medication instructions.
 
 FA: نام و جزئیات دارو را مطابق نوشته خودتان ثبت کنید. مقدار و واحد موجودی
-اختیاری است. ساعت‌ها فقط برای مراجعه‌اند و یادآور نیستند. مصرف یا ردکردن را
+اختیاری است. ساعت‌ها فقط برای مراجعه‌اند و یادآور نیستند. یادآور یک‌باره هم
+دستی است: از صفحه جزئیات دارو خودتان تنظیمش می‌کنید و برنامه از خود چیزی
+زمان‌بندی نمی‌کند. مصرف یا ردکردن را
 دستی ثبت کنید؛ حذف گزارش اشتباه اصلاح آن است و بازگردانی دارد. شمارش دوباره
 موجودی، مبنای تازه می‌سازد. دستور پزشکی را از پزشک یا داروساز بگیرید.
 
@@ -90,24 +100,58 @@ EN: Fixed partial stock deductions/corrections, grouped stock/log recovery,
 recount isolation, stale edits, compound raw Undo, dates/time/refill parsing,
 unfinished-time save, persisted drafts and honest read/write retry. Preserved
 archive history and module privacy; added complete history and actual expiry.
+Dates now enter through the shared Jalali calendar entry and read back on the
+person's own calendar — Jalali in Persian digits on the solar calendar, the
+civil day otherwise — with storage unchanged as civil ISO 8601. The empty
+cabinet carries its own add button, an impossible expiry says so in its own
+words, the expiry label no longer forces a Gregorian note, and twelve unused
+words plus dead helpers were removed.
 
 FA: موجودی و اصلاح مصرف، حفظ شمارش تازه، بازگردانی کامل، تاریخ و ساعت معتبر،
 ذخیره ساعت ناتمام، پیش‌نویس و خطاهای قابل‌تلاش اصلاح شد؛ سابقه و حریم خصوصی
-ماژول حفظ شده است.
+ماژول حفظ شده است. ورود تاریخ انقضا از تقویم مشترک و خواندن آن در تقویم
+خود خواننده انجام می‌شود — جلالی با ارقام فارسی — و ذخیره همان تاریخ
+میلادی ISO باقی می‌ماند. کادر خالی دکمهٔ افزودن خودش را دارد، تاریخ
+نادرست با پیام خودش می‌گوید و واژه‌ها و کدهای بی‌استفاده حذف شدند.
 
 ## Platform requests
 
-Reviewed opt-in local notifications with permission/denial handling, shared
-Jalali date picker and multiline editor, secure storage integration as required
-by core policy, permission-gated photos/scan with backup retention, and atomic
-record-group/compare-and-write support. No clinical database/dosing API requested
-or improvised by this module.
+Fulfilled, in the tree:
+
+- Reviewed opt-in local notifications with permission/denial handling — the
+  shared `NexModuleReminderControl` sits on an active medicine's detail sheet;
+  an archived medicine offers none, and the platform cancels reminders on
+  archive, delete and module removal.
+- Shared Jalali date entry and display — `NexModuleDateEntry` wraps the expiry
+  field (typed civil `yyyy/MM/dd` or the shared calendar button), and every
+  absolute date a person reads — the expiry day and each dose log — goes
+  through `nexModuleDateLabel`. Storage stays civil ISO 8601.
+- Shared multiline editor — instructions and the private note use
+  `NexTextField`; one-line fields stay inside `NexAutoDirection`.
+
+Still requested:
+
+- Secure storage integration as required by core policy.
+- Permission-gated photos/scan with backup retention.
+- Atomic record-group/compare-and-write support for independent external
+  writers. Until then the module serialises its own writes and journals its
+  groups for rollback.
+
+No clinical database/dosing API requested or improvised by this module.
 
 ## Checks
 
-Reviewed against main cad5fcaeaaa7ab489f48cfdf1b03add6b6623879 on Windows.
-Flutter 3.35.5 / Dart 3.9.2; dependencies retain baseline versions/checksums.
-Exact final counts, logs, visual captures and limitations are in
+Completed in this pass (module review 5-b, Linux, Flutter 3.35.5 / Dart 3.9.2):
+`dart format` over the module's lib and test folders — 0 changed;
+`flutter analyze --fatal-infos` — No issues found; the module gate
+`test/module_kit_test.dart` — 40 passed; `flutter test test/modules/medicine
+-j 2` — 81 passed (74 inherited, every one kept green, 7 added). No file over
+400 lines (max 376). Both language maps hold the same 82 keys; no bidi control
+characters in the Persian words.
+
+Previously reviewed against main cad5fcaeaaa7ab489f48cfdf1b03add6b6623879 on
+Windows. Dependencies retain baseline versions/checksums. Exact final counts,
+logs, visual captures and limitations of that pass are in
 the phase's review/VALIDATION.md.
 
 ~~~text

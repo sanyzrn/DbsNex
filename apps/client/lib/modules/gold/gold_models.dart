@@ -68,8 +68,15 @@ class GoldQuote {
     for (final raw in _list(body, 'extras')) {
       if (raw is Map<String, Object?>) {
         final label = '${raw['label'] ?? ''}'.trim();
-        final amount = _int(raw['amount']) ?? 0;
-        if (label.isNotEmpty && amount > 0) extras.add((label, amount));
+        final amount = _int(raw['amount']);
+        // A zero an extra was really saved with is kept — dropping it here
+        // would make re-saving an edited record quietly lose the row. Only
+        // an amount that is not a valid whole number is dropped.
+        if (label.isNotEmpty &&
+            amount != null &&
+            (amount > 0 || raw['amount'] == 0)) {
+          extras.add((label, amount));
+        }
       }
     }
     final mode = switch ('${body['makingMode'] ?? ''}') {

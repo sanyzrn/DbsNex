@@ -105,6 +105,18 @@ class _LensMemoryPageState extends State<LensMemoryPage> {
             ? NexEmptyState(
                 icon: Icons.bookmark_outline,
                 message: s(context, 'memoryNone'),
+                action: FilledButton.icon(
+                  onPressed: () => Navigator.maybePop(context),
+                  icon: const Icon(Icons.calculate_outlined),
+                  label: Text(s(context, 'backToCalculator')),
+                  // Material caps buttons at 40dp tall — a label a 2× text
+                  // scale cannot fit into; let it grow with the words.
+                  style: const ButtonStyle(
+                    maximumSize: WidgetStatePropertyAll<Size?>(
+                      Size(double.infinity, double.infinity),
+                    ),
+                  ),
+                ),
               )
             : ListView(
                 padding: const EdgeInsetsDirectional.fromSTEB(

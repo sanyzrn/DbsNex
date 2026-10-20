@@ -4,8 +4,8 @@ import 'package:nex_client/modules/module_api.dart';
 import 'strings.dart';
 
 /// The time a deletion stays reversible — a plain data value, not a
-/// motion token; Nex's own capsule notices are unavailable to a module
-/// (see README Platform requests), so this is a standard SnackBar.
+/// motion token; the module API exports no capsule notice, so this is
+/// the standard SnackBar the module may show.
 const expensesUndoWindow = Duration(seconds: 6);
 
 /// Offers Undo for a deletion, in the screen's own

@@ -150,7 +150,7 @@ mixin _GoldFormLogic on State<GoldForm> {
   }
 
   /// The input the form holds right now, or null while it is invalid.
-  GoldInput? buildInput() {
+  GoldInput? buildInput({bool forBudget = false}) {
     if (_restoring || _draftLoadFailed) return null;
     int? read(
       TextEditingController c,
@@ -165,8 +165,13 @@ mixin _GoldFormLogic on State<GoldForm> {
           : null;
     }
 
-    final weight = read(_weight, 3, GoldInput.maxWeightMg, required: true);
-    final gross = read(_gross, 3, GoldInput.maxGrossMg);
+    // For a budget the weight is the unknown: a placeholder gram stands in,
+    // and neither a gross weight nor the seller's quote (both about a piece
+    // that has not been chosen) takes part.
+    final weight = forBudget
+        ? 1000
+        : read(_weight, 3, GoldInput.maxWeightMg, required: true);
+    final gross = forBudget ? 0 : read(_gross, 3, GoldInput.maxGrossMg);
     final rate = read(_rate, 2, GoldInput.maxRateCenti, required: true);
     final percent =
         _mode == GoldMakingMode.percent || _mode == GoldMakingMode.mixed
@@ -182,7 +187,9 @@ mixin _GoldFormLogic on State<GoldForm> {
     final profit = read(_profit, 2, GoldInput.maxPercentBp);
     final vat = read(_vat, 2, GoldInput.maxPercentBp);
     final commission = read(_commission, 2, GoldInput.maxAmountRial * 10);
-    final quote = read(_shopQuote, 2, GoldInput.maxAmountRial * 10);
+    final quote = forBudget
+        ? 0
+        : read(_shopQuote, 2, GoldInput.maxAmountRial * 10);
     if ([
       weight,
       gross,
@@ -222,6 +229,11 @@ mixin _GoldFormLogic on State<GoldForm> {
       shopQuoteRial: _toRial(quote!),
     );
     return input.problems().isEmpty ? input : null;
+  }
+
+  /// Puts a weight (milligrams) into the weight field, as if typed.
+  void setWeightMg(int milligrams) {
+    _weight.text = inputScaled(milligrams, 3);
   }
 
   void _addExtra({String label = '', int amountCenti = 0, bool notify = true}) {

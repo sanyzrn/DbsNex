@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/price_lens/comparison.dart';
+import 'package:nex_client/modules/price_lens/local_values.dart';
 import 'package:nex_client/modules/price_lens/money.dart';
 import 'package:nex_client/modules/price_lens/options.dart';
 import 'package:nex_client/modules/price_lens/rational.dart';

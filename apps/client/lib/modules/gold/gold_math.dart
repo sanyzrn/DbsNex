@@ -90,6 +90,26 @@ class GoldInput {
   /// The seller's quoted invoice total, if given (0 = not given).
   final int shopQuoteRial;
 
+  /// The same input at another net weight — for answers that vary only the
+  /// weight. The gross weight and the seller's quote are left out: neither
+  /// belongs to a weight the person has not chosen.
+  GoldInput withWeightMg(int weightMg) => GoldInput(
+    weightMg: weightMg,
+    finenessPpt: finenessPpt,
+    rateCentiPerG: rateCentiPerG,
+    rateRefPpt: rateRefPpt,
+    makingMode: makingMode,
+    makingPercentBp: makingPercentBp,
+    makingPerGramCenti: makingPerGramCenti,
+    makingFixedRial: makingFixedRial,
+    profitBp: profitBp,
+    vatBp: vatBp,
+    commissionRial: commissionRial,
+    profitBase: profitBase,
+    commissionTaxable: commissionTaxable,
+    extras: extras,
+  );
+
   static const int maxWeightMg = 10000000; // 10 kg of jewelry is already absurd
   static const int maxGrossMg = 100000000;
   static const int minPpt = 100;
@@ -204,8 +224,9 @@ enum GoldProblemField {
   total,
 }
 
-/// One invalid input, tied to its field. The words live in the module's
-/// strings (`problem_<field>`), not here.
+/// One invalid input, tied to its field. The fields' own validators put a
+/// typed problem into words (`parse_*` in the strings); the form hides the
+/// estimate and points at the marked fields while any of these remain.
 class GoldProblem {
   const GoldProblem(this.field);
   final GoldProblemField field;

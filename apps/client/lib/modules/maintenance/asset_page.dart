@@ -11,7 +11,6 @@ import 'logic.dart';
 import 'asset_page_actions.dart';
 import 'maintenance_common.dart';
 import 'maintenance_widgets.dart';
-import 'models.dart';
 import 'rule_editor.dart';
 import 'strings.dart';
 import 'units.dart';
@@ -103,7 +102,9 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
     );
     final events =
         controller.events.where((e) => e.assetId == asset.id).toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
+          // Deterministic order: same-date services fall back to the
+          // record id instead of the sort's accidental order.
+          ..sort(compareServices);
     final done =
         events
             .where(
@@ -149,6 +150,14 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
                 child: Text(
                   s(menuContext, asset.archived ? 'unarchive' : 'archive'),
                 ),
+              ),
+              PopupMenuItem(
+                value: 'copyHistory',
+                child: Text(s(menuContext, 'copyHistory')),
+              ),
+              PopupMenuItem(
+                value: 'shareHistory',
+                child: Text(s(menuContext, 'shareHistory')),
               ),
               PopupMenuItem(
                 value: 'delete',
@@ -197,10 +206,29 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
                     ],
                   ),
                   const SizedBox(height: NexSpacing.sm),
-                  ..._infoLines(context, asset),
+                  ...assetInfoLines(context, asset),
                 ],
               ),
             ),
+            if (!asset.archived) ...[
+              const SizedBox(height: NexSpacing.md),
+              Text(
+                s(context, 'reminderNote'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              // Opt-in: an OS alert for this asset's next due service.
+              // Wired to the asset record, so the platform cancels it
+              // when the asset is deleted or archived — and archived
+              // assets offer nothing here.
+              NexModuleReminderControl(
+                key: const ValueKey('maintenance-reminders'),
+                store: widget.store,
+                sourceKind: 'asset',
+                sourceId: asset.id,
+              ),
+            ],
             const SizedBox(height: NexSpacing.md),
             if (asset.meterKind != MeterKind.none)
               ReadingPanel(
@@ -349,50 +377,5 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
         ),
       ),
     );
-  }
-
-  List<Widget> _infoLines(BuildContext context, MaintenanceAsset asset) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final s = maintenanceStrings;
-    final lines = <(String, String)>[
-      (
-        s(context, 'meterKindLabel'),
-        switch (asset.meterKind) {
-          MeterKind.none => s(context, 'meterKindNone'),
-          MeterKind.distance =>
-            '${s(context, 'meterKindDistance')} · ${s(context, asset.distanceUnit == DistanceUnit.km ? 'unitKm' : 'unitMi')}',
-          MeterKind.hours => s(context, 'meterKindHours'),
-        },
-      ),
-      if (asset.purchasedAt != null)
-        (
-          s(context, 'purchasedLabel'),
-          fullDateLabel(context, asset.purchasedAt!),
-        ),
-    ];
-    return [
-      for (final (label, value) in lines)
-        Padding(
-          padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.xs),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              Text(value, style: theme.textTheme.bodyMedium),
-            ],
-          ),
-        ),
-      if (asset.notes?.isNotEmpty == true)
-        Padding(
-          padding: const EdgeInsetsDirectional.only(top: NexSpacing.xs),
-          child: Text(asset.notes!, style: theme.textTheme.bodySmall),
-        ),
-    ];
   }
 }
