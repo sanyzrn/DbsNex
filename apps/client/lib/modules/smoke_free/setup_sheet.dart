@@ -71,6 +71,10 @@ class _SetupSheetState extends State<_SetupSheet> {
   late final TextEditingController _why;
   late String _habit = widget.habit;
   bool _later = false;
+  // A new habit asks only what it is and when it starts; the rest — the
+  // amounts, the price, a goal, a reason — waits behind one button, so the
+  // first minute is not a form. Correcting one opens everything.
+  late bool _details = widget.editing != null;
   String? _nameError;
   String? _goalError;
   bool _saving = false;
@@ -145,6 +149,7 @@ class _SetupSheetState extends State<_SetupSheet> {
         'anchor': _anchor.toIso8601String(),
         'habit': _habit,
         'later': _later,
+        'details': _details,
       },
     );
     unawaited(_restoreDraft());
@@ -162,6 +167,8 @@ class _SetupSheetState extends State<_SetupSheet> {
         _habit = body['habit'] as String;
       }
       _later = body['later'] == true;
+      // A draft that was already past the first questions comes back open.
+      _details = _details || body['details'] == true;
     }
     _draft.start();
     setState(() => _restoring = false);
@@ -370,13 +377,15 @@ class _SetupSheetState extends State<_SetupSheet> {
                   ),
                   const SizedBox(height: NexSpacing.md),
                 ],
-                Text(
-                  strings(context, 'explainBaseline'),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                if (_details) ...[
+                  Text(
+                    strings(context, 'explainBaseline'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-                const SizedBox(height: NexSpacing.md),
+                  const SizedBox(height: NexSpacing.md),
+                ],
                 if (!_editing) ...[
                   SegmentedButton<bool>(
                     key: const ValueKey('quit-start-mode'),
@@ -410,81 +419,93 @@ class _SetupSheetState extends State<_SetupSheet> {
                   errorText: _daysError,
                 ),
                 const SizedBox(height: NexSpacing.md),
-                _NumberField(
-                  key: const ValueKey('smoke-field-perday'),
-                  controller: _perDay,
-                  label: _preset.packs
-                      ? strings(context, 'perDayLabel')
-                      : strings(context, 'perDayUnitsLabel', {
-                          'unit': _unit(context),
+                NexMoreDetails(
+                  toggleKey: const ValueKey('quit-details-toggle'),
+                  open: _details,
+                  onChanged: (open) => setState(() => _details = open),
+                  title: strings(context, 'addDetails'),
+                  hint: strings(context, 'addDetailsHint'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _NumberField(
+                        key: const ValueKey('smoke-field-perday'),
+                        controller: _perDay,
+                        label: _preset.packs
+                            ? strings(context, 'perDayLabel')
+                            : strings(context, 'perDayUnitsLabel', {
+                                'unit': _unit(context),
+                              }),
+                        errorText: _perDayError,
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                      CurrencyField(
+                        key: const ValueKey('smoke-field-currency'),
+                        value: _currency,
+                        onChanged: _saving
+                            ? null
+                            : (code) => setState(() {
+                                _currency = code;
+                                _digits = moneyDigits(code);
+                                _price.clear();
+                              }),
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                      _NumberField(
+                        decimal: _digits > 0,
+                        suffix: _currency,
+                        key: const ValueKey('smoke-field-price'),
+                        controller: _price,
+                        label: strings(
+                          context,
+                          _preset.packs ? 'priceLabel' : 'unitPriceLabel',
+                        ),
+                        errorText: _priceError,
+                        hint: strings(context, 'amountHint', {
+                          'example': localDigits(
+                            moneyInput(12345, _digits),
+                            NexModuleStrings.persian(context),
+                          ),
                         }),
-                  errorText: _perDayError,
-                ),
-                const SizedBox(height: NexSpacing.md),
-                CurrencyField(
-                  key: const ValueKey('smoke-field-currency'),
-                  value: _currency,
-                  onChanged: _saving
-                      ? null
-                      : (code) => setState(() {
-                          _currency = code;
-                          _digits = moneyDigits(code);
-                          _price.clear();
-                        }),
-                ),
-                const SizedBox(height: NexSpacing.md),
-                _NumberField(
-                  decimal: _digits > 0,
-                  suffix: _currency,
-                  key: const ValueKey('smoke-field-price'),
-                  controller: _price,
-                  label: strings(
-                    context,
-                    _preset.packs ? 'priceLabel' : 'unitPriceLabel',
-                  ),
-                  errorText: _priceError,
-                  hint: strings(context, 'amountHint', {
-                    'example': localDigits(
-                      moneyInput(12345, _digits),
-                      NexModuleStrings.persian(context),
-                    ),
-                  }),
-                ),
-                if (_preset.packs) ...[
-                  const SizedBox(height: NexSpacing.md),
-                  _NumberField(
-                    key: const ValueKey('smoke-field-perpack'),
-                    controller: _perPack,
-                    label: strings(context, 'perPackLabel'),
-                    errorText: _perPackError,
-                  ),
-                ],
-                const SizedBox(height: NexSpacing.md),
-                _NumberField(
-                  key: const ValueKey('quit-field-minutes'),
-                  controller: _minutes,
-                  label: strings(context, 'minutesLabel'),
-                ),
-                const SizedBox(height: NexSpacing.md),
-                _NumberField(
-                  key: const ValueKey('quit-field-goal'),
-                  decimal: _digits > 0,
-                  suffix: _currency,
-                  controller: _goal,
-                  label: strings(context, 'goalLabel'),
-                  errorText: _goalError,
-                ),
-                const SizedBox(height: NexSpacing.md),
-                NexTextField(
-                  key: const ValueKey('quit-field-why'),
-                  controller: _why,
-                  minLines: 2,
-                  maxLines: 4,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: strings(context, 'whyLabel'),
-                    hintText: strings(context, 'whyHint'),
-                    border: const OutlineInputBorder(),
+                      ),
+                      if (_preset.packs) ...[
+                        const SizedBox(height: NexSpacing.md),
+                        _NumberField(
+                          key: const ValueKey('smoke-field-perpack'),
+                          controller: _perPack,
+                          label: strings(context, 'perPackLabel'),
+                          errorText: _perPackError,
+                        ),
+                      ],
+                      const SizedBox(height: NexSpacing.md),
+                      _NumberField(
+                        key: const ValueKey('quit-field-minutes'),
+                        controller: _minutes,
+                        label: strings(context, 'minutesLabel'),
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                      _NumberField(
+                        key: const ValueKey('quit-field-goal'),
+                        decimal: _digits > 0,
+                        suffix: _currency,
+                        controller: _goal,
+                        label: strings(context, 'goalLabel'),
+                        errorText: _goalError,
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                      NexTextField(
+                        key: const ValueKey('quit-field-why'),
+                        controller: _why,
+                        minLines: 2,
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          labelText: strings(context, 'whyLabel'),
+                          hintText: strings(context, 'whyHint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: NexSpacing.lg),

@@ -161,7 +161,11 @@ Future<T?> nexShowSheet<T>({
       : null,
   isScrollControlled: true,
   useSafeArea: true,
-  isDismissible: dismissible,
+  // A sheet that guards unsaved work still closes from a tap on the dimmed
+  // area, the same way it closes from a swipe: the barrier ends in
+  // Navigator.maybePop, so the editor's PopScope decides (a clean editor
+  // closes, a dirty one asks). Flutter's own drag stays off for it.
+  isDismissible: dismissible || swipeToClose,
   enableDrag: dismissible,
   showDragHandle: false,
   builder: (context) {

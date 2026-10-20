@@ -64,6 +64,25 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
   late final EditorCheckpoint _session;
   bool _dirty = false;
   bool _showErrors = false;
+  // A new purchase asks the product, the day and the coverage; who made it,
+  // where it was bought, the serial, the receipt, the price and a note wait
+  // behind one button. A saved one, a draft with something there, or a
+  // refused save opens them.
+  bool _more = false;
+
+  bool get _moreOpen =>
+      _more ||
+      widget.existing != null ||
+      [
+        _category,
+        _brand,
+        _model,
+        _serial,
+        _merchant,
+        _receiptRef,
+        _amount,
+        _note,
+      ].any((c) => c.text.trim().isNotEmpty);
 
   @override
   void initState() {
@@ -238,7 +257,10 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
         end == WarrantyParse.invalid ||
         bothWays ||
         _amountBad) {
-      setState(() => _showErrors = true);
+      setState(() {
+        _showErrors = true;
+        if (_amountBad) _more = true;
+      });
       return;
     }
     if (!WarrantyLogic.endAfterPurchase(purchase!, end)) {

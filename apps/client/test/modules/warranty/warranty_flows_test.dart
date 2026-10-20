@@ -5,6 +5,7 @@ import 'package:nex_client/modules/warranty/warranty_models.dart';
 import 'package:nex_client/modules/warranty/warranty_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
+import '../../support/add_button.dart';
 import '../../support/nex_harness.dart';
 import 'warranty_widget_test.dart'
     show addWarranty, pumpWarranty, scrollWarrantyTo;
@@ -192,7 +193,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('warranty-fab')), findsOneWidget);
+      expect(addButton('warranty-fab', 'warranty-empty-add'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

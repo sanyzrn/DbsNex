@@ -43,6 +43,14 @@ const occasionsStrings = NexModuleStrings(
 
     'empty': 'No dates yet. Add a birthday or an anniversary.',
     'add': 'Add an occasion',
+    'moreDetails': 'Year, note and reminder',
+    'moreDetailsHint':
+        'The year gives an age; a reminder nudges you ahead. All optional.',
+    'heroEyebrow': 'Coming up',
+    'heroToday': '{n} today',
+    'heroNext': 'Next in {n} days',
+    'heroNone': 'Nothing coming up',
+    'heroWeek': '{n} this week',
     'sectionToday': 'Today',
     'sectionWeek': 'In the next 7 days',
     'sectionMonth': 'In the next 30 days',
@@ -156,6 +164,14 @@ const occasionsStrings = NexModuleStrings(
 
     'empty': 'هنوز تاریخی ثبت نشده. یک تولد یا سالگرد اضافه کنید.',
     'add': 'افزودن مناسبت',
+    'moreDetails': 'سال، یادداشت و یادآوری',
+    'moreDetailsHint':
+        'سال، سن را نشان می‌دهد؛ یادآوری از پیش خبر می‌دهد. همه اختیاری است.',
+    'heroEyebrow': 'در پیش رو',
+    'heroToday': '{n} مورد امروز',
+    'heroNext': 'بعدی {n} روز دیگر',
+    'heroNone': 'چیزی در پیش نیست',
+    'heroWeek': '{n} مورد این هفته',
     'sectionToday': 'امروز',
     'sectionWeek': '۷ روز آینده',
     'sectionMonth': '۳۰ روز آینده',

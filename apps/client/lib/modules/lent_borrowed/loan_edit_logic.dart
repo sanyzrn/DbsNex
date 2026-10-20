@@ -23,6 +23,20 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
   String? _issueError;
   String? _dueError;
 
+  // A new loan asks who and how much; when it was lent, when it is due and a
+  // note wait behind one button (the issue date is today until changed) —
+  // opened for a saved loan, a due date or note already there, or a refused
+  // date.
+  bool _more = false;
+
+  bool get _moreOpen =>
+      _more ||
+      widget.editing != null ||
+      _issueError != null ||
+      _dueError != null ||
+      _dueDate.text.trim().isNotEmpty ||
+      _note.text.trim().isNotEmpty;
+
   List<LoanReturn> get _myReturns => [
     for (final r in widget.returns)
       if (r.loanId == widget.editing?.id) r,

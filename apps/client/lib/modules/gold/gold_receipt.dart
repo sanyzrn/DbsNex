@@ -58,97 +58,96 @@ class GoldReceipt extends StatelessWidget {
     final diff = result.quoteDiffRial;
     final diffPct = result.quoteDiffHundredthsPct;
 
-    return Semantics(
-      label: strings(context, 'receiptSemantics', {
+    // The estimate leads, large, on the module's own colour: it is the one
+    // number the page exists to give. The lines it is made of follow.
+    return NexModuleHero(
+      key: const ValueKey('gold-hero'),
+      moduleId: 'gold',
+      icon: Icons.diamond_outlined,
+      eyebrow: strings(context, 'receipt'),
+      headline: money(result.estimatedTotalRial),
+      caption: strings(context, 'lineTotal'),
+      semanticsLabel: strings(context, 'receiptSemantics', {
         'total': money(result.estimatedTotalRial),
       }),
-      child: NexPanel(
-        title: strings(context, 'receipt'),
-        icon: Icons.receipt_long_outlined,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.sm),
+            child: Text(
+              showRials
+                  ? strings(context, 'receiptUnitRial')
+                  : strings(context, 'receiptUnitToman'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          if (result.rateWasConverted)
+            _Note(
+              text: strings(context, 'rateConverted', {
+                'ppt': groupDigits(input.finenessPpt, persian: persian),
+                'rate': formatCentiRate(
+                  result.convertedRateCentiPerG,
+                  persian: persian,
+                ),
+                'ratio':
+                    '${groupDigits(input.finenessPpt, persian: persian)}'
+                    '/${groupDigits(input.rateRefPpt, persian: persian)}',
+              }),
+            ),
+          if (result.nonGoldMg > 0)
+            _Note(
+              text: strings(context, 'nonGoldLine', {
+                'amount': formatWeightMg(result.nonGoldMg, persian: persian),
+              }),
+            ),
+          for (final (label, amount) in rows)
+            _Row(label: label, amount: amount),
+          // A fixed or per-gram charge in the trade's own words: what
+          // share of the metal it comes to.
+          if (input.makingMode != GoldMakingMode.percent &&
+              GoldMath.makingShareBp(result) != null)
+            _Note(
+              text: strings(context, 'makingShare', {
+                'pct': formatPercent(
+                  GoldMath.makingShareBp(result)!,
+                  persian: persian,
+                ),
+              }),
+            ),
+          if (result.extrasRial > 0)
+            _Note(text: strings(context, 'extrasTaxNote')),
+          if (input.vatBp == 0) _Note(text: strings(context, 'vatZeroNote')),
+          Divider(color: scheme.outlineVariant, height: NexSpacing.lg),
+          if (diff != null) ...[
+            const SizedBox(height: NexSpacing.sm),
+            _Row(
+              label: strings(context, 'lineDiff'),
+              amount:
+                  '${diff >= 0 ? '+' : ''}${money(diff)} · '
+                  '${diffPct == null ? strings(context, 'diffPercentUnavailable') : formatPercent(diffPct, persian: persian)}',
+              emphasized: true,
+            ),
             Padding(
-              padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.sm),
+              padding: const EdgeInsetsDirectional.only(top: NexSpacing.xs),
               child: Text(
-                showRials
-                    ? strings(context, 'receiptUnitRial')
-                    : strings(context, 'receiptUnitToman'),
+                strings(context, 'diffExplainer'),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
             ),
-            if (result.rateWasConverted)
-              _Note(
-                text: strings(context, 'rateConverted', {
-                  'ppt': groupDigits(input.finenessPpt, persian: persian),
-                  'rate': formatCentiRate(
-                    result.convertedRateCentiPerG,
-                    persian: persian,
-                  ),
-                  'ratio':
-                      '${groupDigits(input.finenessPpt, persian: persian)}'
-                      '/${groupDigits(input.rateRefPpt, persian: persian)}',
-                }),
-              ),
-            if (result.nonGoldMg > 0)
-              _Note(
-                text: strings(context, 'nonGoldLine', {
-                  'amount': formatWeightMg(result.nonGoldMg, persian: persian),
-                }),
-              ),
-            for (final (label, amount) in rows)
-              _Row(label: label, amount: amount),
-            // A fixed or per-gram charge in the trade's own words: what
-            // share of the metal it comes to.
-            if (input.makingMode != GoldMakingMode.percent &&
-                GoldMath.makingShareBp(result) != null)
-              _Note(
-                text: strings(context, 'makingShare', {
-                  'pct': formatPercent(
-                    GoldMath.makingShareBp(result)!,
-                    persian: persian,
-                  ),
-                }),
-              ),
-            if (result.extrasRial > 0)
-              _Note(text: strings(context, 'extrasTaxNote')),
-            if (input.vatBp == 0) _Note(text: strings(context, 'vatZeroNote')),
-            Divider(color: scheme.outlineVariant, height: NexSpacing.lg),
-            _Row(
-              label: strings(context, 'lineTotal'),
-              amount: money(result.estimatedTotalRial),
-              emphasized: true,
-            ),
-            if (diff != null) ...[
-              const SizedBox(height: NexSpacing.sm),
-              _Row(
-                label: strings(context, 'lineDiff'),
-                amount:
-                    '${diff >= 0 ? '+' : ''}${money(diff)} · '
-                    '${diffPct == null ? strings(context, 'diffPercentUnavailable') : formatPercent(diffPct, persian: persian)}',
-                emphasized: true,
-              ),
-              Padding(
-                padding: const EdgeInsetsDirectional.only(top: NexSpacing.xs),
-                child: Text(
-                  strings(context, 'diffExplainer'),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: NexSpacing.md),
-            _Breakdown(
-              input: input,
-              result: result,
-              showRials: showRials,
-              quoteDate: quoteDate,
-            ),
           ],
-        ),
+          const SizedBox(height: NexSpacing.md),
+          _Breakdown(
+            input: input,
+            result: result,
+            showRials: showRials,
+            quoteDate: quoteDate,
+          ),
+        ],
       ),
     );
   }

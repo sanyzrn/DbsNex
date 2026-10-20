@@ -102,13 +102,18 @@ class _MaintenanceScreenState extends State<MaintenanceScreen>
     ];
     return Scaffold(
       appBar: NexAppBar(title: Text(s(context, 'title'))),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('maintenance-add-asset'),
-        onPressed: () =>
-            unawaited(showAssetEditor(context, controller: controller)),
-        icon: const Icon(Icons.add),
-        label: Text(s(context, 'addAsset')),
-      ),
+      floatingActionButton:
+          controller.loading ||
+              controller.readFailed ||
+              controller.assets.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('maintenance-add-asset'),
+              onPressed: () =>
+                  unawaited(showAssetEditor(context, controller: controller)),
+              icon: const Icon(Icons.add),
+              label: Text(s(context, 'addAsset')),
+            ),
       body: SafeArea(
         child: controller.loading
             ? const Center(child: CircularProgressIndicator())
@@ -134,6 +139,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen>
                       icon: Icons.handyman_outlined,
                       message: s(context, 'noAssets'),
                       action: FilledButton.icon(
+                        key: const ValueKey('maintenance-add-asset'),
                         onPressed: () => unawaited(
                           showAssetEditor(context, controller: controller),
                         ),
@@ -150,6 +156,27 @@ class _MaintenanceScreenState extends State<MaintenanceScreen>
                       ),
                     )
                   else ...[
+                    NexModuleHero(
+                      key: const ValueKey('maintenance-hero'),
+                      moduleId: 'maintenance',
+                      icon: Icons.handyman_outlined,
+                      eyebrow: s(context, 'heroEyebrow'),
+                      headline: (groups[AssetGroup.dueNow]?.length ?? 0) > 0
+                          ? s(context, 'heroDue', {
+                              'count': groups[AssetGroup.dueNow]!.length,
+                            })
+                          : s(context, 'heroAllGood'),
+                      chips: [
+                        if ((groups[AssetGroup.comingUp]?.length ?? 0) > 0)
+                          s(context, 'heroComing', {
+                            'count': groups[AssetGroup.comingUp]!.length,
+                          }),
+                        s(context, 'heroAssets', {
+                          'count': controller.assets.length,
+                        }),
+                      ],
+                    ),
+                    const SizedBox(height: NexSpacing.md),
                     Text(
                       s(context, 'noReminders'),
                       textAlign: TextAlign.center,

@@ -5,6 +5,8 @@ import 'package:nex_client/modules/medicine/medicine_detail.dart';
 import 'package:nex_client/modules/medicine/medicine_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
+import '../../support/add_button.dart';
+import '../../support/more_details.dart';
 import '../../support/nex_harness.dart';
 
 part 'medicine_more_cases.dart';
@@ -29,7 +31,7 @@ void main() {
     testWidgets('says what to do when the cabinet is empty', (tester) async {
       await pumpScreen(tester);
       expect(find.byKey(const ValueKey('medicine-empty')), findsOneWidget);
-      expect(find.byKey(const ValueKey('medicine-fab')), findsOneWidget);
+      expect(addButton('medicine-fab', 'medicine-empty-add'), findsOneWidget);
     });
 
     testWidgets('the empty state’s own button adds the first medicine', (
@@ -38,6 +40,7 @@ void main() {
       final h = await pumpScreen(tester);
       await tester.tap(find.byKey(const ValueKey('medicine-empty-add')));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'medicine-more-toggle');
       expect(find.byKey(const ValueKey('medicine-save')), findsOneWidget);
       await tester.enterText(
         find.byKey(const ValueKey('medicine-field-name')),
@@ -63,8 +66,9 @@ void main() {
 
     testWidgets('without a name it says so and saves nothing', (tester) async {
       final h = await pumpScreen(tester);
-      await tester.tap(find.byKey(const ValueKey('medicine-fab')));
+      await tester.tap(addButton('medicine-fab', 'medicine-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'medicine-more-toggle');
       await _tapSave(tester);
       expect(find.text('Write the medicine’s name.'), findsOneWidget);
       expect(await h.services.moduleRecords('medicine', 'medicine'), isEmpty);
@@ -117,8 +121,9 @@ void main() {
       tester,
     ) async {
       final h = await pumpScreen(tester);
-      await tester.tap(find.byKey(const ValueKey('medicine-fab')));
+      await tester.tap(addButton('medicine-fab', 'medicine-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'medicine-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('medicine-field-name')),
         'Medicine A',
@@ -287,8 +292,9 @@ void main() {
   group('routine times', () {
     testWidgets('a time as written becomes a chip', (tester) async {
       final h = await pumpScreen(tester);
-      await tester.tap(find.byKey(const ValueKey('medicine-fab')));
+      await tester.tap(addButton('medicine-fab', 'medicine-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'medicine-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('medicine-field-name')),
         'Medicine A',
@@ -312,8 +318,9 @@ void main() {
 
     testWidgets('a time that is not a time says so', (tester) async {
       final h = await pumpScreen(tester);
-      await tester.tap(find.byKey(const ValueKey('medicine-fab')));
+      await tester.tap(addButton('medicine-fab', 'medicine-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'medicine-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('medicine-field-name')),
         'Medicine A',

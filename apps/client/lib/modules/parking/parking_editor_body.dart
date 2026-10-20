@@ -44,13 +44,6 @@ extension _ParkingEditorBody on _ParkingEditorSheetState {
                 ),
                 const SizedBox(height: NexSpacing.md),
                 ParkingFields.line(
-                  fieldKey: const ValueKey('parking-field-vehicle'),
-                  controller: _vehicle,
-                  label: strings(context, 'vehicle'),
-                  hint: strings(context, 'vehicleHint'),
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                ParkingFields.line(
                   fieldKey: const ValueKey('parking-field-place'),
                   controller: _place,
                   label: strings(context, 'place'),
@@ -60,141 +53,166 @@ extension _ParkingEditorBody on _ParkingEditorSheetState {
                       : null,
                 ),
                 const SizedBox(height: NexSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ParkingFields.line(
-                        fieldKey: const ValueKey('parking-field-floor'),
-                        controller: _floor,
-                        label: strings(context, 'floor'),
-                        hint: strings(context, 'floorHint'),
-                      ),
-                    ),
-                    const SizedBox(width: NexSpacing.sm),
-                    Expanded(
-                      child: ParkingFields.line(
-                        fieldKey: const ValueKey('parking-field-spot'),
-                        controller: _spot,
-                        label: strings(context, 'spot'),
-                        hint: strings(context, 'spotHint'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                ParkingTextField(
-                  controller: _landmark,
-                  hint: strings(context, 'landmarkHint'),
-                ),
-                const SizedBox(height: NexSpacing.lg),
-                Text(
-                  strings(context, 'coordinates'),
-                  style: theme.textTheme.titleSmall,
-                ),
-                Text(
-                  strings(context, 'coordinatesNote'),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ParkingFields.line(
-                        fieldKey: const ValueKey('parking-field-lat'),
-                        controller: _lat,
-                        label: strings(context, 'latitude'),
-                        keyboard: const TextInputType.numberWithOptions(
-                          decimal: true,
-                          signed: true,
-                        ),
-                        helper: _showErrors && lat != null && lat.isNaN
-                            ? strings(context, 'badLatitude')
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: NexSpacing.sm),
-                    Expanded(
-                      child: ParkingFields.line(
-                        fieldKey: const ValueKey('parking-field-lng'),
-                        controller: _lng,
-                        label: strings(context, 'longitude'),
-                        keyboard: const TextInputType.numberWithOptions(
-                          decimal: true,
-                          signed: true,
-                        ),
-                        helper: _showErrors && lng != null && lng.isNaN
-                            ? strings(context, 'badLongitude')
-                            : null,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: NexSpacing.lg),
-                Text(
-                  strings(context, 'expiry'),
-                  style: theme.textTheme.titleSmall,
-                ),
-                Text(
-                  strings(context, 'expiryNote'),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: NexModuleDateEntry(
-                        controller: _expiryDate,
-                        child: ParkingFields.line(
-                          fieldKey: const ValueKey('parking-field-expiry-date'),
-                          controller: _expiryDate,
-                          label: strings(context, 'expiryDate'),
-                          hint: strings(context, 'dateHint'),
-                          keyboard: TextInputType.datetime,
-                          helper: _showErrors && expiry == ParkingParse.invalid
-                              ? strings(context, 'badExpiry')
-                              : null,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: NexSpacing.sm),
-                    Expanded(
-                      child: ParkingFields.line(
-                        fieldKey: const ValueKey('parking-field-expiry-time'),
-                        controller: _expiryTime,
-                        label: strings(context, 'expiryTime'),
-                        keyboard: TextInputType.datetime,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: NexSpacing.xs),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Wrap(
-                    spacing: NexSpacing.sm,
+                NexMoreDetails(
+                  toggleKey: const ValueKey('parking-more-toggle'),
+                  open: _moreOpen,
+                  onChanged: _setMore,
+                  title: strings(context, 'moreDetails'),
+                  hint: strings(context, 'moreDetailsHint'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ActionChip(
-                        key: const ValueKey('parking-today'),
-                        label: Text(strings(context, 'today')),
-                        onPressed: () {
-                          final now = DateTime.now();
-                          // Zero padded, like the calendar button writes it.
-                          _expiryDate.text =
-                              '${now.year}/${ParkingFields.two(now.month)}/${ParkingFields.two(now.day)}';
-                        },
+                      ParkingFields.line(
+                        fieldKey: const ValueKey('parking-field-vehicle'),
+                        controller: _vehicle,
+                        label: strings(context, 'vehicle'),
+                        hint: strings(context, 'vehicleHint'),
                       ),
-                      // The one way to take a paid time back off the record.
-                      ActionChip(
-                        key: const ValueKey('parking-clear-time'),
-                        label: Text(strings(context, 'clearTime')),
-                        onPressed: () {
-                          _expiryDate.clear();
-                          _expiryTime.clear();
-                        },
+                      const SizedBox(height: NexSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ParkingFields.line(
+                              fieldKey: const ValueKey('parking-field-floor'),
+                              controller: _floor,
+                              label: strings(context, 'floor'),
+                              hint: strings(context, 'floorHint'),
+                            ),
+                          ),
+                          const SizedBox(width: NexSpacing.sm),
+                          Expanded(
+                            child: ParkingFields.line(
+                              fieldKey: const ValueKey('parking-field-spot'),
+                              controller: _spot,
+                              label: strings(context, 'spot'),
+                              hint: strings(context, 'spotHint'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: NexSpacing.sm),
+                      ParkingTextField(
+                        controller: _landmark,
+                        hint: strings(context, 'landmarkHint'),
+                      ),
+                      const SizedBox(height: NexSpacing.lg),
+                      Text(
+                        strings(context, 'coordinates'),
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      Text(
+                        strings(context, 'coordinatesNote'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: NexSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ParkingFields.line(
+                              fieldKey: const ValueKey('parking-field-lat'),
+                              controller: _lat,
+                              label: strings(context, 'latitude'),
+                              keyboard: const TextInputType.numberWithOptions(
+                                decimal: true,
+                                signed: true,
+                              ),
+                              helper: _showErrors && lat != null && lat.isNaN
+                                  ? strings(context, 'badLatitude')
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: NexSpacing.sm),
+                          Expanded(
+                            child: ParkingFields.line(
+                              fieldKey: const ValueKey('parking-field-lng'),
+                              controller: _lng,
+                              label: strings(context, 'longitude'),
+                              keyboard: const TextInputType.numberWithOptions(
+                                decimal: true,
+                                signed: true,
+                              ),
+                              helper: _showErrors && lng != null && lng.isNaN
+                                  ? strings(context, 'badLongitude')
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: NexSpacing.lg),
+                      Text(
+                        strings(context, 'expiry'),
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      Text(
+                        strings(context, 'expiryNote'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: NexSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: NexModuleDateEntry(
+                              controller: _expiryDate,
+                              child: ParkingFields.line(
+                                fieldKey: const ValueKey(
+                                  'parking-field-expiry-date',
+                                ),
+                                controller: _expiryDate,
+                                label: strings(context, 'expiryDate'),
+                                hint: strings(context, 'dateHint'),
+                                keyboard: TextInputType.datetime,
+                                helper:
+                                    _showErrors &&
+                                        expiry == ParkingParse.invalid
+                                    ? strings(context, 'badExpiry')
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: NexSpacing.sm),
+                          Expanded(
+                            child: ParkingFields.line(
+                              fieldKey: const ValueKey(
+                                'parking-field-expiry-time',
+                              ),
+                              controller: _expiryTime,
+                              label: strings(context, 'expiryTime'),
+                              keyboard: TextInputType.datetime,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: NexSpacing.xs),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Wrap(
+                          spacing: NexSpacing.sm,
+                          children: [
+                            ActionChip(
+                              key: const ValueKey('parking-today'),
+                              label: Text(strings(context, 'today')),
+                              onPressed: () {
+                                final now = DateTime.now();
+                                // Zero padded, like the calendar button writes it.
+                                _expiryDate.text =
+                                    '${now.year}/${ParkingFields.two(now.month)}/${ParkingFields.two(now.day)}';
+                              },
+                            ),
+                            // The one way to take a paid time back off the record.
+                            ActionChip(
+                              key: const ValueKey('parking-clear-time'),
+                              label: Text(strings(context, 'clearTime')),
+                              onPressed: () {
+                                _expiryDate.clear();
+                                _expiryTime.clear();
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

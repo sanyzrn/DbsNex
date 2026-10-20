@@ -112,6 +112,10 @@ Records are:
 - `package:nex_ui/nex_ui.dart`: the tokens `NexSpacing`, `NexRadius` and
   `NexMotion`, `NexPageRoute`, the colour helpers, and the shared widgets;
 - the shelf widgets (`NexPanel`, `NexShelfHeading`, `NexHue`, …);
+- `NexMoreDetails` (`module_form.dart`) — the optional half of a form behind
+  one button;
+- `NexModuleHero` and `nexModuleAccent` (`module_hero.dart`) — the one hero
+  that opens a module's home page, in the module's own colour;
 - `nexShowSheet`, `nexShowDialog` and `NexDialogBody`;
 - `NexTextField`, the shared multiline editor (native on Android);
 - `nexPickModuleDate`, `NexModuleDateEntry` and `nexModuleDateLabel`, using the saved calendar while retaining civil dates at the storage boundary;

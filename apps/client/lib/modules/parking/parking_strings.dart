@@ -35,6 +35,12 @@ const parkingStrings = NexModuleStrings(
     'mayHaveExpired': 'May have ended {duration} ago',
     'defaultVehicle': 'The car',
     'floorShort': 'Floor {value}',
+    'heroEyebrow': 'Right now',
+    'heroParked': '{count} parked',
+    'heroNone': 'Nothing parked',
+    'heroCaption': 'Where your car is, and until when.',
+    'moreDetails': 'Car, floor, coordinates and paid time',
+    'moreDetailsHint': 'All optional — you can add them later.',
     'emptyMessage':
         'When you leave the car, tap “Parked here” and write where it is.',
 
@@ -162,6 +168,12 @@ const parkingStrings = NexModuleStrings(
     'mayHaveExpired': 'ممکن است {duration} پیش تمام شده باشد',
     'defaultVehicle': 'ماشین',
     'floorShort': 'طبقهٔ {value}',
+    'heroEyebrow': 'همین حالا',
+    'heroParked': '{count} پارک فعال',
+    'heroNone': 'جایی پارک نیست',
+    'heroCaption': 'ماشین کجاست و تا کی پارک است.',
+    'moreDetails': 'ماشین، طبقه، مختصات و زمان پرداخت',
+    'moreDetailsHint': 'همه اختیاری است؛ بعداً هم می‌شود افزود.',
     'emptyMessage':
         'وقتی از ماشین پیاده شدید، «اینجا پارک کردم» را بزنید و بنویسید کجا است.',
 

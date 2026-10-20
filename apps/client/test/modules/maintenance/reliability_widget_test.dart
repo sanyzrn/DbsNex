@@ -108,7 +108,8 @@ void main() {
       '۱۲٫',
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Cancel'));
+    // The sheet has no × — it closes the way back does.
+    await tester.state<NavigatorState>(find.byType(Navigator).first).maybePop();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Keep draft & close'));
     await tester.pumpAndSettle();

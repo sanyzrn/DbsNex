@@ -12,6 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/in_process_db.dart';
 import '../../support/nex_harness.dart';
+import '../../support/add_button.dart';
+import '../../support/more_details.dart';
 
 /// How the parking screen holds up: Persian right to left, dark, large
 /// text, a small phone, the paid-time states, the honest words about
@@ -29,7 +31,7 @@ void main() {
         home: ParkingScreen(store: NexModuleStore(h.services, 'parking')),
       );
       expect(find.text('جای پارک'), findsOneWidget);
-      expect(find.byKey(const ValueKey('parking-fab')), findsOneWidget);
+      expect(addButton('parking-fab', 'parking-empty-add'), findsOneWidget);
       expect(Directionality.of(_context(tester)), TextDirection.rtl);
       expect(tester.takeException(), isNull);
     });
@@ -48,7 +50,7 @@ void main() {
         ),
         home: ParkingScreen(store: NexModuleStore(h.services, 'parking')),
       );
-      expect(find.byKey(const ValueKey('parking-fab')), findsOneWidget);
+      expect(addButton('parking-fab', 'parking-empty-add'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -76,7 +78,7 @@ void main() {
         ),
         home: ParkingScreen(store: NexModuleStore(h.services, 'parking')),
       );
-      expect(find.byKey(const ValueKey('parking-fab')), findsOneWidget);
+      expect(addButton('parking-fab', 'parking-empty-add'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });
@@ -112,8 +114,9 @@ void main() {
       tester,
     ) async {
       await _withScreen(tester, (h) async {
-        await tester.tap(find.byKey(const ValueKey('parking-fab')));
+        await tester.tap(addButton('parking-fab', 'parking-empty-add'));
         await tester.pumpAndSettle();
+        await openMoreDetails(tester, 'parking-more-toggle');
         expect(find.textContaining('Only if you know them.'), findsOneWidget);
         // Nothing on this screen offers to find the position.
         expect(find.byIcon(Icons.my_location), findsNothing);
@@ -192,8 +195,9 @@ Future<void> _create(
   String place = 'North lot',
   String expiry = '',
 }) async {
-  await tester.tap(find.byKey(const ValueKey('parking-fab')));
+  await tester.tap(addButton('parking-fab', 'parking-empty-add'));
   await tester.pumpAndSettle();
+  await openMoreDetails(tester, 'parking-more-toggle');
   await tester.enterText(
     find.byKey(const ValueKey('parking-field-place')),
     place,

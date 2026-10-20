@@ -238,6 +238,21 @@ class _HabitsScreenState extends State<HabitsScreen>
                   NexSpacing.lg + nexBottomInset(context),
                 ),
                 children: [
+                  NexModuleHero(
+                    key: const ValueKey('habits-hero'),
+                    moduleId: 'habits',
+                    icon: Icons.event_repeat_outlined,
+                    eyebrow: strings(context, 'heroEyebrow'),
+                    headline: nexDigits(
+                      '$doneToday/${active.length}',
+                      persian: NexModuleStrings.persian(context),
+                    ),
+                    caption: strings(
+                      context,
+                      doneToday == active.length ? 'heroAll' : 'heroSome',
+                    ),
+                  ),
+                  const SizedBox(height: NexSpacing.md),
                   NexShelfHeading(
                     icon: Icons.today_outlined,
                     title: strings(context, 'today'),

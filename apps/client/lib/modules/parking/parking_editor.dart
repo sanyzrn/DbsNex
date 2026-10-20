@@ -79,6 +79,26 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
   late final EditorCheckpoint _session;
   bool _dirty = false;
   bool _showErrors = false;
+  // A new parking asks where; the vehicle, floor and spot, landmark,
+  // coordinates and the paid time wait behind one button — opened for a saved
+  // parking, for a filled field, or by a refused save.
+  bool _more = false;
+
+  void _setMore(bool open) => setState(() => _more = open);
+
+  bool get _moreOpen =>
+      _more ||
+      widget.existing != null ||
+      [
+        _vehicle,
+        _floor,
+        _spot,
+        _landmark,
+        _lat,
+        _lng,
+        _expiryDate,
+        _expiryTime,
+      ].any((c) => c.text.trim().isNotEmpty);
   DateTime _startedAt = DateTime.now();
 
   @override
@@ -186,7 +206,10 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
         expiry == ParkingParse.invalid ||
         (lat != null && lat.isNaN) ||
         (lng != null && lng.isNaN)) {
-      setState(() => _showErrors = true);
+      setState(() {
+        _showErrors = true;
+        _more = true;
+      });
       return;
     }
 

@@ -61,6 +61,10 @@ class _OccasionSheetState extends State<_OccasionSheet> {
   late OccasionCalendar _calendar;
   late int _month;
   late bool _yearUnknown;
+  // A new occasion asks what, which kind and which day; the year (for an
+  // age), a note and a reminder wait behind one button. Correcting a saved
+  // one opens them.
+  late bool _more;
   late bool _nextDay;
   late bool _remind;
   late int _remindDays;
@@ -83,7 +87,8 @@ class _OccasionSheetState extends State<_OccasionSheet> {
     _year = TextEditingController(text: o?.year == null ? '' : '${o!.year}');
     _note = TextEditingController(text: o?.note ?? '');
     _kind = o?.kind ?? OccasionKind.birthday;
-    _yearUnknown = o != null ? o.year == null : false;
+    _yearUnknown = o != null ? o.year == null : true;
+    _more = o != null;
     _nextDay = o?.nextDayInShortYears ?? false;
     _remind = o?.remindDays != null;
     _remindDays = o?.remindDays ?? 1;
@@ -99,6 +104,7 @@ class _OccasionSheetState extends State<_OccasionSheet> {
         'calendar': _calendar.name,
         'month': _month,
         'yearUnknown': _yearUnknown,
+        'more': _more,
         'nextDay': _nextDay,
         'remind': _remind,
         'remindDays': _remindDays,
@@ -144,6 +150,7 @@ class _OccasionSheetState extends State<_OccasionSheet> {
       final month = body['month'];
       if (month is int && month >= 1 && month <= 12) _month = month;
       _yearUnknown = body['yearUnknown'] == true;
+      _more = _more || body['more'] == true;
       _nextDay = body['nextDay'] == true;
       _remind = body['remind'] == true;
       final days = body['remindDays'];
@@ -470,35 +477,6 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                       ),
                     ),
                   ),
-                const SizedBox(height: NexSpacing.sm),
-                CheckboxListTile(
-                  key: const ValueKey('occasion-year-unknown'),
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: Text(strings(context, 'yearUnknown')),
-                  value: _yearUnknown,
-                  onChanged: (value) => setState(() {
-                    _yearUnknown = value ?? false;
-                    _yearError = null;
-                  }),
-                ),
-                if (!_yearUnknown)
-                  TextField(
-                    key: const ValueKey('occasion-field-year'),
-                    controller: _year,
-                    keyboardType: TextInputType.number,
-                    textDirection: TextDirection.ltr,
-                    onChanged: (_) {
-                      if (_yearError != null) {
-                        setState(() => _yearError = null);
-                      }
-                    },
-                    decoration: InputDecoration(
-                      labelText: strings(context, 'yearLabel'),
-                      errorText: _yearError,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
                 if (short) ...[
                   const SizedBox(height: NexSpacing.md),
                   Text(
@@ -526,63 +504,109 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                   ),
                 ],
                 const SizedBox(height: NexSpacing.md),
-                NexTextField(
-                  key: const ValueKey('occasion-field-note'),
-                  controller: _note,
-                  minLines: 2,
-                  maxLines: 4,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: strings(context, 'noteLabel'),
-                    hintText: strings(context, 'noteHint'),
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                SwitchListTile(
-                  key: const ValueKey('occasion-remind-switch'),
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(strings(context, 'remindLabel')),
-                  value: _remind,
-                  onChanged: (value) => setState(() => _remind = value),
-                ),
-                if (_remind) ...[
-                  Wrap(
-                    spacing: NexSpacing.sm,
-                    runSpacing: NexSpacing.sm,
+                NexMoreDetails(
+                  toggleKey: const ValueKey('occasion-more-toggle'),
+                  open: _more,
+                  onChanged: (open) => setState(() => _more = open),
+                  title: strings(context, 'moreDetails'),
+                  hint: strings(context, 'moreDetailsHint'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      for (final (days, key) in const [
-                        (0, 'remindOnDay'),
-                        (1, 'remindOneBefore'),
-                        (3, 'remindThreeBefore'),
-                        (7, 'remindWeekBefore'),
-                      ])
-                        ChoiceChip(
-                          key: ValueKey('occasion-remind-$days'),
-                          label: Text(strings(context, key)),
-                          selected: _remindDays == days,
-                          onSelected: (_) => setState(() => _remindDays = days),
-                        ),
-                      ActionChip(
-                        key: const ValueKey('occasion-remind-time'),
-                        avatar: const Icon(Icons.schedule, size: 18),
-                        label: Text(
-                          strings(context, 'remindAt', {
-                            'time': occasionTimeText(context, _remindMinutes),
-                          }),
-                        ),
-                        onPressed: _pickTime,
+                      const SizedBox(height: NexSpacing.sm),
+                      CheckboxListTile(
+                        key: const ValueKey('occasion-year-unknown'),
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Text(strings(context, 'yearUnknown')),
+                        value: _yearUnknown,
+                        onChanged: (value) => setState(() {
+                          _yearUnknown = value ?? false;
+                          _yearError = null;
+                        }),
                       ),
+                      if (!_yearUnknown)
+                        TextField(
+                          key: const ValueKey('occasion-field-year'),
+                          controller: _year,
+                          keyboardType: TextInputType.number,
+                          textDirection: TextDirection.ltr,
+                          onChanged: (_) {
+                            if (_yearError != null) {
+                              setState(() => _yearError = null);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: strings(context, 'yearLabel'),
+                            errorText: _yearError,
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                      const SizedBox(height: NexSpacing.md),
+                      NexTextField(
+                        key: const ValueKey('occasion-field-note'),
+                        controller: _note,
+                        minLines: 2,
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          labelText: strings(context, 'noteLabel'),
+                          hintText: strings(context, 'noteHint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: NexSpacing.sm),
+                      SwitchListTile(
+                        key: const ValueKey('occasion-remind-switch'),
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(strings(context, 'remindLabel')),
+                        value: _remind,
+                        onChanged: (value) => setState(() => _remind = value),
+                      ),
+                      if (_remind) ...[
+                        Wrap(
+                          spacing: NexSpacing.sm,
+                          runSpacing: NexSpacing.sm,
+                          children: [
+                            for (final (days, key) in const [
+                              (0, 'remindOnDay'),
+                              (1, 'remindOneBefore'),
+                              (3, 'remindThreeBefore'),
+                              (7, 'remindWeekBefore'),
+                            ])
+                              ChoiceChip(
+                                key: ValueKey('occasion-remind-$days'),
+                                label: Text(strings(context, key)),
+                                selected: _remindDays == days,
+                                onSelected: (_) =>
+                                    setState(() => _remindDays = days),
+                              ),
+                            ActionChip(
+                              key: const ValueKey('occasion-remind-time'),
+                              avatar: const Icon(Icons.schedule, size: 18),
+                              label: Text(
+                                strings(context, 'remindAt', {
+                                  'time': occasionTimeText(
+                                    context,
+                                    _remindMinutes,
+                                  ),
+                                }),
+                              ),
+                              onPressed: _pickTime,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: NexSpacing.xs),
+                        Text(
+                          strings(context, 'remindNote'),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: NexSpacing.xs),
-                  Text(
-                    strings(context, 'remindNote'),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                ),
                 const SizedBox(height: NexSpacing.lg),
                 FilledButton(
                   key: const ValueKey('occasion-save'),

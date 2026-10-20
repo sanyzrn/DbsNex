@@ -199,14 +199,16 @@ void main() {
     });
 
     test(
-      'Soon rollout blocks reminder scheduling without changing installation choices',
+      'a module that is not available cannot schedule reminders, and its installation choice stays',
       () async {
-        await h.preferences.setModuleOn('medicine', true);
-        final medicine = NexModuleStore(h.services, 'medicine');
+        // Every shipped module is available now; an id that is not one (a
+        // module still Soon, or one from the future) must stay silent.
+        await h.preferences.setModuleOn('future_module', true);
+        final future = NexModuleStore(h.services, 'future_module');
         expect(
-          await medicine.setReminder(
+          await future.setReminder(
             'test',
-            sourceKind: 'medicine',
+            sourceKind: 'thing',
             sourceId: 'm',
             at: DateTime.now().add(const Duration(days: 1)),
             title: 'Nex',
@@ -214,8 +216,8 @@ void main() {
           ),
           isFalse,
         );
-        expect(await medicine.list('__reminder'), isEmpty);
-        expect(h.preferences.isModuleOn('medicine'), isTrue);
+        expect(await future.list('__reminder'), isEmpty);
+        expect(h.preferences.isModuleOn('future_module'), isTrue);
         expect(nexModules.where((m) => m.available).map((m) => m.id).toSet(), {
           'cycle',
           'habits',
@@ -223,6 +225,13 @@ void main() {
           'lent_borrowed',
           'smoke_free',
           'occasions',
+          'expenses',
+          'gold',
+          'words',
+          'parking',
+          'medicine',
+          'warranty',
+          'maintenance',
         });
         expect(
           NexModuleAlarms.moduleId('a', 'b:c'),

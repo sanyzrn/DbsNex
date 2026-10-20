@@ -5,6 +5,8 @@ import 'package:nex_client/modules/warranty/warranty_screen.dart';
 
 import '../../support/nex_harness.dart';
 import 'warranty_widget_test.dart' show addWarranty, pumpWarranty;
+import '../../support/add_button.dart';
+import '../../support/more_details.dart';
 
 /// Every date a person reads is shown on their saved calendar through the
 /// shared label — Jalali in Persian digits for a Persian reader, civil
@@ -72,8 +74,9 @@ void main() {
       tester,
     ) async {
       await pumpWarranty(tester);
-      await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+      await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('warranty-field-product')),
         'Kettle',
@@ -95,8 +98,9 @@ void main() {
       tester,
     ) async {
       await pumpWarranty(tester);
-      await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+      await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       expect(find.text('Purchase date'), findsOneWidget);
       expect(find.text('or end date'), findsOneWidget);
       expect(find.textContaining('Gregorian'), findsNothing);

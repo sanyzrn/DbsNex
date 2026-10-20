@@ -1,6 +1,6 @@
 # Nex add-on sources
 
-> Cycle, Habits, Price Lens, Lent & Borrowed, Quit Habits and Birthdays & occasions (built later, on the kit) are available (2.1.11–2.1.13). The other seven add-ons below are Soon; source, installation choices and records are preserved pending individual review.
+> All thirteen modules are available: Cycle, Habits, Price Lens, Lent & Borrowed, Quit Habits and Birthdays & occasions (built later, on the kit) from 2.1.11–2.1.13, and Expenses, Gold, Words, Parking, Medicine, Warranty and Maintenance from 2.1.14. Source, installation choices and records are preserved; the limits listed below still hold.
 
 All 11 supplied modules are integrated into the client for individual review. Sources and original READMEs are under `apps/client/lib/modules/<id>/`;
 tests are under `apps/client/test/modules/<id>/`. They were moved from this
@@ -95,9 +95,15 @@ the kit does not have.
   rules). Expenses Jalali months (budgets are keyed by Gregorian month — a
   migration, not a tweak). Photos, OCR, barcode, contacts, CSV/PDF export,
   GPS, maps, TTS, FSRS, and live prices — outside the module API.
-- **Next:** the Soon modules need the screenshot review the four enabled ones
-  had (calendar button, one primary action, Persian layout) before each is
-  enabled.
+- **2.1.14 — the last seven enabled.** Expenses, Gold, Words, Parking,
+  Medicine, Warranty and Maintenance went through the same review as the
+  first six (calendar button, one primary action, Persian layout, large text,
+  dark) and are available. Shared: a typed date shows the same day in the
+  reader's own calendar under the field (`NexModuleDateEntry`); Expenses shows
+  the Jalali span of the month; empty pages carry one button, the floating
+  one appears once there is something on the page. Sheets lift above the
+  keyboard centrally in `nexShowSheet`. Not verified on a device: reminders,
+  TalkBack, real keyboards — test on the phone.
 
 ## Inventory
 

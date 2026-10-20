@@ -261,20 +261,24 @@ class LensResultPanel extends StatelessWidget {
       );
     }
     final headline = _headline(context, unitWord);
-    return NexPanel(
-      title: s(context, 'resultTitle', {'unit': unitWord}),
+    final bestLabel = comparison.results
+        .where((r) => r.isBest)
+        .map((r) => r.option.label.trim())
+        .where((label) => label.isNotEmpty)
+        .firstOrNull;
+    // The winner leads, large, on the module's own colour; the sentence that
+    // says by how much sits under it, then every offer in order.
+    return NexModuleHero(
+      key: const ValueKey('lens-hero'),
+      moduleId: 'price_lens',
       icon: Icons.emoji_events_outlined,
+      eyebrow: s(context, 'resultTitle', {'unit': unitWord}),
+      headline: bestLabel ?? s(context, 'resultTitle', {'unit': unitWord}),
+      caption: headline,
+      captionKey: const ValueKey('lens-headline'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (headline != null) ...[
-            Text(
-              headline,
-              key: const ValueKey('lens-headline'),
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: NexSpacing.sm),
-          ],
           ...rows,
           if (bestCount > 1)
             Padding(

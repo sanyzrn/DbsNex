@@ -95,14 +95,14 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
               ),
             )
           : _list(context, strings, sorted, query),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('warranty-fab'),
-        onPressed: _busy || _loading || _loadFailed
-            ? null
-            : () => unawaited(_add()),
-        label: Text(strings(context, 'add')),
-        icon: const Icon(Icons.add_outlined),
-      ),
+      floatingActionButton: _loading || _loadFailed || _warranties.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('warranty-fab'),
+              onPressed: _busy ? null : () => unawaited(_add()),
+              label: Text(strings(context, 'add')),
+              icon: const Icon(Icons.add_outlined),
+            ),
     );
   }
 
@@ -141,6 +141,24 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
         NexSpacing.xl,
       ),
       children: [
+        NexModuleHero(
+          key: const ValueKey('warranty-hero'),
+          moduleId: 'warranty',
+          icon: Icons.verified_outlined,
+          eyebrow: strings(context, 'heroEyebrow'),
+          headline: covered.length + expiring.length == 0
+              ? strings(context, 'heroNoneCovered')
+              : strings(context, 'heroCovered', {
+                  'count': covered.length + expiring.length,
+                }),
+          chips: [
+            if (expiring.isNotEmpty)
+              strings(context, 'heroExpiring', {'count': expiring.length}),
+            if (expired.isNotEmpty)
+              strings(context, 'heroExpired', {'count': expired.length}),
+          ],
+        ),
+        const SizedBox(height: NexSpacing.md),
         if (unknown.isNotEmpty)
           WarrantySection(
             icon: Icons.help_outline,

@@ -146,7 +146,8 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
               Expanded(
                 child: Text(l10n.checklist, style: theme.textTheme.titleMedium),
               ),
-              // Beside the title it counts, before the × (UX-07).
+              // Beside the title it counts (UX-07). No × here: like every
+              // sheet it closes by swipe, by a tap outside, or by back.
               if (count > 0)
                 Text(
                   l10n.checklistItemCount(count),
@@ -154,11 +155,6 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-              IconButton(
-                tooltip: l10n.closeLabel,
-                onPressed: _editing ? requestDiscard : _close,
-                icon: const Icon(Icons.close),
-              ),
             ],
           ),
           const SizedBox(height: NexSpacing.sm),

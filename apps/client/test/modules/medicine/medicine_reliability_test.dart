@@ -9,6 +9,7 @@ import 'package:nex_client/modules/medicine/medicine_parse.dart';
 import 'package:nex_client/modules/medicine/medicine_models.dart';
 import 'package:nex_client/modules/medicine/local_values.dart';
 import 'package:nex_client/modules/medicine/local_writes.dart';
+import '../../support/more_details.dart';
 import '../../support/nex_harness.dart';
 
 import 'medicine_fault_store.dart';

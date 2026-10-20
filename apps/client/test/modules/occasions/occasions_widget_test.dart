@@ -5,6 +5,7 @@ import 'package:nex_client/modules/occasions/occasion_detail.dart';
 import 'package:nex_client/modules/occasions/occasions_screen.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/more_details.dart';
 
 void main() {
   late NexTestHarness h;
@@ -228,6 +229,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Mehr').last);
       await tester.pumpAndSettle();
+      // The year (for an age) waits behind "more details", unknown until
+      // the person says otherwise.
+      await openMoreDetails(tester, 'occasion-more-toggle');
+      await tester.tap(find.byKey(const ValueKey('occasion-year-unknown')));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('occasion-field-year')),
         '1378',
@@ -273,8 +279,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('April').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('occasion-year-unknown')));
-      await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'occasion-more-toggle');
       await tester.tap(find.byKey(const ValueKey('occasion-save')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('occasion-day-error')), findsOneWidget);
@@ -338,8 +343,6 @@ void main() {
         find.byKey(const ValueKey('occasion-field-day')),
         '۱۲',
       );
-      await tester.tap(find.byKey(const ValueKey('occasion-year-unknown')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('occasion-save')));
       await settle(tester);
       final saved = (await store.list('occasion')).single.body;

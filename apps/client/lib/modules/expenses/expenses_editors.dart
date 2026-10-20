@@ -218,18 +218,11 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(title, style: theme.textTheme.titleLarge),
-                  ),
-                  IconButton(
-                    tooltip: expenseStrings(context, 'cancel'),
-                    onPressed: () => Navigator.maybePop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(title, style: theme.textTheme.titleLarge),
               ),
+              const SizedBox(height: NexSpacing.md),
               Flexible(
                 child: SingleChildScrollView(
                   child: Column(

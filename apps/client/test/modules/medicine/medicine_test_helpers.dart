@@ -31,8 +31,9 @@ Future<void> _add(
   String instructions = '',
   bool expectSave = true,
 }) async {
-  await tester.tap(find.byKey(const ValueKey('medicine-fab')));
+  await tester.tap(addButton('medicine-fab', 'medicine-empty-add'));
   await tester.pumpAndSettle();
+  await openMoreDetails(tester, 'medicine-more-toggle');
   await tester.enterText(
     find.byKey(const ValueKey('medicine-field-name')),
     name,

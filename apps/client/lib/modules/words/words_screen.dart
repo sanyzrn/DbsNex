@@ -60,18 +60,22 @@ class _WordsScreenState extends State<WordsScreen>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('words-add'),
-        onPressed: () => unawaited(
-          Navigator.of(context).push(
-            NexPageRoute<void>(
-              builder: (_) => WordsCardPage(store: widget.store),
+      // One primary action per page: with nothing yet it is the button in
+      // the empty state, not a second one floating beside it.
+      floatingActionButton: _loading || _failed || _cards.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('words-add'),
+              onPressed: () => unawaited(
+                Navigator.of(context).push(
+                  NexPageRoute<void>(
+                    builder: (_) => WordsCardPage(store: widget.store),
+                  ),
+                ),
+              ),
+              label: Text(strings(context, 'addWord')),
+              icon: const Icon(Icons.add),
             ),
-          ),
-        ),
-        label: Text(strings(context, 'addWord')),
-        icon: const Icon(Icons.add),
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _failed
@@ -90,8 +94,11 @@ class _WordsScreenState extends State<WordsScreen>
                 padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
                 children: [
                   const SizedBox(height: NexSpacing.md),
-                  _reviewPanel(context, due, fresh),
-                  const SizedBox(height: NexSpacing.md),
+                  // Nothing yet: no hero — only the empty state's own button.
+                  if (_cards.isNotEmpty) ...[
+                    _reviewPanel(context, due, fresh),
+                    const SizedBox(height: NexSpacing.md),
+                  ],
                   _searchAndFilters(context, theme),
                   if (_cards.isEmpty)
                     Padding(
@@ -170,30 +177,23 @@ class _WordsScreenState extends State<WordsScreen>
     final strings = wordsStrings;
     final theme = Theme.of(context);
     final waiting = due + fresh;
-    return NexPanel(
-      title: strings(context, 'collection'),
+    return NexModuleHero(
+      key: const ValueKey('words-hero'),
+      moduleId: 'words',
       icon: Icons.translate_outlined,
+      eyebrow: strings(context, 'collection'),
+      headline: nexDigits(
+        waiting > 0
+            ? strings(context, 'heroWaiting', {'count': waiting})
+            : strings(context, 'heroDone'),
+        persian: NexModuleStrings.persian(context),
+      ),
+      caption:
+          '${strings(context, 'dueNowCount', {'count': due})} · '
+          '${strings(context, 'newTodayCount', {'count': fresh})}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.schedule_outlined,
-                size: 16,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: NexSpacing.sm),
-              Expanded(
-                child: Text(
-                  '${strings(context, 'dueNowCount', {'count': due})} · '
-                  '${strings(context, 'newTodayCount', {'count': fresh})}',
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: NexSpacing.sm),
           if (waiting > 0)
             FilledButton.tonalIcon(
               key: const ValueKey('words-start-review'),

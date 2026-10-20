@@ -4,6 +4,7 @@ import 'package:nex_client/modules/maintenance/maintenance_screen.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/more_details.dart';
 
 /// The Maintenance screens, end to end over a real store: the home
 /// groups, adding an asset and an interval, logging services with a
@@ -62,6 +63,7 @@ void main() {
     );
     // Count kilometres, as a car does — in the sheet's own language,
     // scrolled into reach on a small phone.
+    await openMoreDetails(tester, 'maintenance-more-toggle');
     final odometer = find.descendant(
       of: find.byKey(const ValueKey('maintenance-meterkind')),
       matching: find.text(persian ? 'کیلومترشمار' : 'Odometer'),

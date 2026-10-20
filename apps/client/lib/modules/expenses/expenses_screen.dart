@@ -163,14 +163,19 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('expenses-add'),
-        onPressed: controller.loading || controller.readFailed
-            ? null
-            : () => unawaited(_add()),
-        icon: const Icon(Icons.add),
-        label: Text(s(context, 'addFirst')),
-      ),
+      // One primary action per page: with nothing yet it is the button in
+      // the empty state, not a second one floating beside it.
+      floatingActionButton:
+          controller.loading ||
+              controller.readFailed ||
+              (controller.txs.isEmpty && controller.customCategories.isEmpty)
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('expenses-add'),
+              onPressed: () => unawaited(_add()),
+              icon: const Icon(Icons.add),
+              label: Text(s(context, 'addFirst')),
+            ),
       body: SafeArea(
         child: controller.loading
             ? const Center(child: CircularProgressIndicator())
@@ -249,6 +254,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       icon: Icons.account_balance_wallet_outlined,
                       message: s(context, 'noRecords'),
                       action: FilledButton.icon(
+                        key: const ValueKey('expenses-add'),
                         onPressed: () => unawaited(_add()),
                         icon: const Icon(Icons.add),
                         label: Text(s(context, 'addFirst')),

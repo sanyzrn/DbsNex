@@ -6,6 +6,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/smoke_free/smoke_free_screen.dart';
 import 'package:nex_client/modules/smoke_free/form_draft.dart';
 import '../../support/nex_harness.dart';
+import 'quit_details.dart';
 
 class FaultStore implements NexModuleStore {
   FaultStore(this.inner);
@@ -191,6 +192,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('smoke-start')));
     await tester.pumpAndSettle();
+    await openQuitDetails(tester);
     await tester.enterText(
       find.byKey(const ValueKey('smoke-field-price')),
       '12000',
@@ -276,6 +278,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('smoke-start')));
       await tester.pumpAndSettle();
+      await openQuitDetails(tester);
       await tester.enterText(
         find.byKey(const ValueKey('smoke-field-price')),
         '12345',

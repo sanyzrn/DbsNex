@@ -8,8 +8,8 @@ void _screenCases1() {
       await pumpScreen(tester);
       expect(find.text('Nothing written down yet'), findsOneWidget);
       expect(find.byKey(const ValueKey('expenses-add')), findsOneWidget);
-      // The empty state's own action and the FAB both say it.
-      expect(find.text('Add a payment'), findsNWidgets(2));
+      // One primary action: the empty state's button, no floating twin.
+      expect(find.text('Add a payment'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('expenses-add')));
       await tester.pumpAndSettle();
       expect(find.text('New expense'), findsOneWidget);

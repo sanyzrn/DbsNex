@@ -70,6 +70,7 @@ const _expenseEnglish = <String, String>{
   'changeMore': 'Last month {amount} · this month is {pct}% more',
   'changeLess': 'Last month {amount} · this month is {pct}% less',
   'changeSame': 'Last month {amount} · about the same',
+  'monthSpan': '{from} to {to}',
   'perCurrency': 'Totals per currency — currencies are never combined',
   'basedOnEntered': 'Based only on what you entered — not your bank balance',
   'recentTitle': 'Recent records',

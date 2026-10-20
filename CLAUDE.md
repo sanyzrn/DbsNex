@@ -7,10 +7,11 @@
   branch for each change or module unless the owner explicitly requests it.
 - All 11 supplied add-ons are integrated under `apps/client/lib/modules/`,
   and Birthdays & occasions (`occasions`) was built on the module kit.
-  Cycle, Habits, Price Lens, Lent & Borrowed, Quit Habits (`smoke_free`) and
-  Birthdays & occasions are available (from 2.1.13); the other seven are Soon.
-  Preserve all source, installation choices and data; review, finish and re-enable the rest individually
-  (`nexAvailableModuleIds` in `module_rollout.dart`). `addons/README.md`
+  Cycle, Habits, Price Lens, Lent & Borrowed, Quit Habits (`smoke_free`),
+  Birthdays & occasions, Expenses, Gold, Words, Parking, Medicine, Warranty and
+  Maintenance are all available (the last seven from 2.1.14); none is Soon.
+  Preserve all source, installation choices and data; a new module starts Soon
+  and is enabled after review (`nexAvailableModuleIds` in `module_rollout.dart`). `addons/README.md`
   tracks scope and limitations.
 - **Every new or changed screen follows [`docs/16-design-language.md`](docs/16-design-language.md).**
   Sheets open with `nexShowSheet` (never `showModalBottomSheet`), pages are

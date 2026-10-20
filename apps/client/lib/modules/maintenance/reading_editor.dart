@@ -179,14 +179,6 @@ class _ReadingEditorState extends State<ReadingEditor> {
                   s(context, 'readingTitle'),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: IconButton(
-                    tooltip: s(context, 'cancel'),
-                    icon: const Icon(Icons.close),
-                    onPressed: _busy ? null : () => Navigator.maybePop(context),
-                  ),
-                ),
                 const SizedBox(height: NexSpacing.md),
                 TextField(
                   key: const ValueKey('maintenance-current-meter'),

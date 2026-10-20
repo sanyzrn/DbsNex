@@ -116,6 +116,8 @@ part of '../../platform/nex_services.dart';
           'cycle_module.dart',
           'module_api.dart',
           'module_dates.dart',
+          'module_form.dart',
+          'module_hero.dart',
           'module_plans.dart',
           'module_registry.dart',
           'module_reminder_control.dart',
@@ -147,6 +149,8 @@ part of '../../platform/nex_services.dart';
           'nex_module_strings.dart',
           'nex_stored_module.dart',
           'module_dates.dart',
+          'module_form.dart',
+          'module_hero.dart',
           'module_reminder_control.dart',
         });
       },

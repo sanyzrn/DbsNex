@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/lent_borrowed/loans_screen.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/more_details.dart';
 
 /// The pieces every lent_borrowed flow test needs: a screen over a real
 /// store, a settle that waits out the draft debounce, and a record created
@@ -52,6 +53,7 @@ Future<String> createLoan(
 }) async {
   await tester.tap(find.byKey(const ValueKey('loans-new')));
   await tester.pumpAndSettle();
+  await openMoreDetails(tester, 'loan-more-toggle');
   if (borrowed) {
     await tester.tap(find.byKey(const ValueKey('loan-field-direction')));
     await tester.pumpAndSettle();

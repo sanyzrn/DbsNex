@@ -5,6 +5,8 @@ import 'package:nex_client/modules/warranty/warranty_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/add_button.dart';
+import '../../support/more_details.dart';
 
 /// The warranties screen, used the way a person uses it: a purchase
 /// added with a duration, searched, sorted, edited, archived, deleted and
@@ -24,7 +26,7 @@ void main() {
     testWidgets('says what to do when nothing is on file', (tester) async {
       await pumpWarranty(tester);
       expect(find.byKey(const ValueKey('warranty-empty')), findsOneWidget);
-      expect(find.byKey(const ValueKey('warranty-fab')), findsOneWidget);
+      expect(addButton('warranty-fab', 'warranty-empty-add'), findsOneWidget);
       // The empty state carries its own first action, not only the button
       // below it.
       expect(find.byKey(const ValueKey('warranty-empty-add')), findsOneWidget);
@@ -34,6 +36,7 @@ void main() {
       final h = await pumpWarranty(tester);
       await tester.tap(find.byKey(const ValueKey('warranty-empty-add')));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('warranty-field-product')),
         'Kettle',
@@ -63,8 +66,9 @@ void main() {
       tester,
     ) async {
       await pumpWarranty(tester);
-      await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+      await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       await scrollWarrantyTo(
         tester,
         find.byKey(const ValueKey('warranty-today')),
@@ -112,8 +116,9 @@ void main() {
       tester,
     ) async {
       final h = await pumpWarranty(tester);
-      await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+      await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       await _tapSave(tester);
       expect(find.text('Write what the product is.'), findsOneWidget);
       expect(await h.services.moduleRecords('warranty', 'warranty'), isEmpty);
@@ -121,8 +126,9 @@ void main() {
 
     testWidgets('a purchase date is required', (tester) async {
       final h = await pumpWarranty(tester);
-      await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+      await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('warranty-field-product')),
         'Kettle',
@@ -300,8 +306,9 @@ Future<void> addWarranty(
   String amount = '',
   bool inTomans = false,
 }) async {
-  await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+  await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
   await tester.pumpAndSettle();
+  await openMoreDetails(tester, 'warranty-more-toggle');
   await tester.enterText(
     find.byKey(const ValueKey('warranty-field-product')),
     product,
@@ -359,6 +366,13 @@ Future<void> addWarranty(
 /// Drags the sheet's list until [finder] is actually tappable —
 /// `ensureVisible` can leave a button half under the screen edge.
 Future<void> scrollWarrantyTo(WidgetTester tester, Finder finder) async {
+  // The sheet is one plain scroll view, so it can bring the target into view
+  // itself; a short drag after that clears a button left half under the
+  // screen edge.
+  if (finder.evaluate().isNotEmpty) {
+    await tester.ensureVisible(finder);
+    await tester.pumpAndSettle();
+  }
   final sheetList = find
       .descendant(
         of: find.byType(SingleChildScrollView),
@@ -367,7 +381,7 @@ Future<void> scrollWarrantyTo(WidgetTester tester, Finder finder) async {
       .first;
   for (var attempt = 0; attempt < 10; attempt++) {
     if (finder.hitTestable().evaluate().isNotEmpty) break;
-    await tester.drag(sheetList, const Offset(0, -120));
+    await tester.drag(sheetList, const Offset(0, -120), warnIfMissed: false);
     await tester.pumpAndSettle();
   }
 }

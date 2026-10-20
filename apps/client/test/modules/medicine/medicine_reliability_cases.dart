@@ -87,6 +87,7 @@ void _registerStockCases(
   ) async {
     await tester.pumpWidget(host(MedicineEditorSheet(store: getStore())));
     await tester.pumpAndSettle();
+    await openMoreDetails(tester, 'medicine-more-toggle');
     await tester.enterText(
       find.byKey(const ValueKey('medicine-field-name')),
       'Example',

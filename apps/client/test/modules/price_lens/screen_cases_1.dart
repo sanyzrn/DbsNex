@@ -287,7 +287,10 @@ void _screenCases1() {
         );
 
         // Leaving with unsaved work asks; discard closes it.
-        await tester.tap(find.byTooltip('Cancel'));
+        // The sheet has no × — it closes the way back does.
+        await tester
+            .state<NavigatorState>(find.byType(Navigator).first)
+            .maybePop();
         await tester.pumpAndSettle();
         expect(find.text('Discard this offer?'), findsOneWidget);
         await tester.tap(find.text('Discard'));

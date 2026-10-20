@@ -26,6 +26,10 @@ const medicineStrings = NexModuleStrings(
     'point4': 'Nothing medical is decided',
 
     // The list.
+    'heroEyebrow': 'Your cabinet',
+    'heroCount': '{count} medicines',
+    'heroOne': '1 medicine',
+    'heroCaption': 'Stock and expiry, in your own numbers.',
     'emptyMessage': 'Add your first medicine — a name is enough to begin.',
     'addMedicine': 'Add a medicine',
     'archived': 'Archived',
@@ -107,6 +111,8 @@ const medicineStrings = NexModuleStrings(
     'discard': 'Leave',
     'keepWriting': 'Keep writing',
     'saveFailed': 'Could not save. Nothing was lost — try again.',
+    'moreDetails': 'Times, stock and expiry',
+    'moreDetailsHint': 'All optional — you can add them later.',
     'safetyNote':
         'This app does not check doses, interactions or timing. Your '
         'clinician or pharmacist is the source for medical instructions.',
@@ -133,6 +139,10 @@ const medicineStrings = NexModuleStrings(
     'point4': 'هیچ تصمیم پزشکی گرفته نمی‌شود',
 
     // فهرست.
+    'heroEyebrow': 'جعبهٔ شما',
+    'heroCount': '{count} دارو',
+    'heroOne': '۱ دارو',
+    'heroCaption': 'موجودی و انقضا، با اعداد خودتان.',
     'emptyMessage':
         'اولین دارو را اضافه کنید — همین که نامش را بنویسید کافی است.',
     'addMedicine': 'افزودن دارو',
@@ -215,6 +225,8 @@ const medicineStrings = NexModuleStrings(
     'discard': 'خروج',
     'keepWriting': 'ادامه بدهم',
     'saveFailed': 'ذخیره نشد. چیزی از دست نرفت — دوباره تلاش کنید.',
+    'moreDetails': 'ساعت‌ها، موجودی و انقضا',
+    'moreDetailsHint': 'همه اختیاری است؛ بعداً هم می‌شود افزود.',
     'safetyNote':
         'این برنامه دوز، تداخل یا زمان را بررسی نمی‌کند. منبعِ دستورهای '
         'پزشکی، پزشک یا داروساز شماست.',

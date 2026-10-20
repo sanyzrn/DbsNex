@@ -68,6 +68,7 @@ const _expensePersian = <String, String>{
   'changeMore': 'ماه قبل {amount} · این ماه {pct}٪ بیشتر',
   'changeLess': 'ماه قبل {amount} · این ماه {pct}٪ کمتر',
   'changeSame': 'ماه قبل {amount} · تقریباً برابر',
+  'monthSpan': '{from} تا {to}',
   'perCurrency': 'جمع‌ها به تفکیک ارز — ارزها هرگز با هم جمع نمی‌شوند',
   'basedOnEntered': 'فقط بر پایه‌ی چیزی که وارد کرده‌اید — نه موجودی بانک',
   'recentTitle': 'ثبت‌های اخیر',

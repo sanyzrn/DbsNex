@@ -28,6 +28,7 @@ Future<void> showOptionEditor(
 }) => nexShowSheet(
   context: context,
   dismissible: false,
+  swipeToClose: true,
   builder: (_) => OptionEditorSheet(existing: existing, onSave: onSave),
 );
 
@@ -165,26 +166,19 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    s(
-                      context,
-                      widget.existing == null
-                          ? 'newOptionTitle'
-                          : 'editOptionTitle',
-                    ),
-                    style: theme.textTheme.titleLarge,
-                  ),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                s(
+                  context,
+                  widget.existing == null
+                      ? 'newOptionTitle'
+                      : 'editOptionTitle',
                 ),
-                IconButton(
-                  tooltip: s(context, 'cancel'),
-                  onPressed: () => Navigator.maybePop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
+                style: theme.textTheme.titleLarge,
+              ),
             ),
+            const SizedBox(height: NexSpacing.md),
             Flexible(
               child: SingleChildScrollView(
                 child: Column(

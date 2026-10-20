@@ -10,6 +10,7 @@ import 'package:nex_client/modules/maintenance/models.dart';
 import 'package:nex_client/modules/maintenance/units.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/more_details.dart';
 
 /// The pieces this upgrade added or fixed, end to end over a real
 /// store: the shared multiline note fields, the delete notice that
@@ -83,6 +84,7 @@ void main() {
       find.byKey(const ValueKey('maintenance-nickname')),
       name,
     );
+    await openMoreDetails(tester, 'maintenance-more-toggle');
     final odometer = find.descendant(
       of: find.byKey(const ValueKey('maintenance-meterkind')),
       matching: find.text(persian ? 'کیلومترشمار' : 'Odometer'),
@@ -161,6 +163,7 @@ void main() {
         tester,
         (context) => showAssetEditor(context, controller: controller),
       );
+      await openMoreDetails(tester, 'maintenance-more-toggle');
       final editor = find.descendant(
         of: find.byKey(const ValueKey('maintenance-notes')),
         matching: find.byType(TextField),
