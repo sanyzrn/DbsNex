@@ -40,6 +40,21 @@ class HabitStanding {
   final List<bool> recent;
 }
 
+/// How many of the days (or weeks) a habit has really been going were met.
+///
+/// The denominator is only the time since the habit began — its creation
+/// day, or its first check-in if that is earlier — so a month the habit did
+/// not yet exist is never counted as a miss.
+class HabitRate {
+  const HabitRate(this.done, this.possible);
+
+  final int done;
+  final int possible;
+
+  /// Whole percent, rounded; 0 when nothing was possible yet.
+  int get percent => possible == 0 ? 0 : (done * 100 / possible).round();
+}
+
 /// Streaks, weekly targets and summaries.
 ///
 /// One rule, applied to days for a daily habit and to weeks for a weekly
@@ -194,5 +209,82 @@ class HabitMath {
       count++;
     }
     return (streak: count, graceNow: age == 2, graceInside: graceInside);
+  }
+
+  /// The first civil day the habit counts from: its creation day, or its
+  /// earliest check-in when that is earlier (or the creation day is
+  /// unknown). Null when there is neither.
+  static DateTime? _since(Habit habit, Set<DateTime> done) {
+    DateTime? since = habit.createdAt.millisecondsSinceEpoch > 0
+        ? DateTime.utc(
+            habit.createdAt.year,
+            habit.createdAt.month,
+            habit.createdAt.day,
+          )
+        : null;
+    for (final day in done) {
+      if (since == null || day.isBefore(since)) since = day;
+    }
+    return since;
+  }
+
+  static Set<DateTime> _doneUntil(Iterable<String> dateKeys, DateTime today) {
+    final todayUtc = DateTime.utc(today.year, today.month, today.day);
+    return dateKeys
+        .map(tryParseDateKey)
+        .whereType<DateTime>()
+        .where((d) => !d.isAfter(todayUtc))
+        .toSet();
+  }
+
+  /// Days checked of the last [days] days (today included) — a daily
+  /// habit's completion rate.
+  static HabitRate dailyRate(
+    Habit habit,
+    Iterable<String> dateKeys,
+    DateTime today,
+    int days,
+  ) {
+    final todayUtc = DateTime.utc(today.year, today.month, today.day);
+    final done = _doneUntil(dateKeys, today);
+    final since = _since(habit, done);
+    if (since == null) return const HabitRate(0, 0);
+    final windowStart = todayUtc.subtract(Duration(days: days - 1));
+    final from = since.isAfter(windowStart) ? since : windowStart;
+    final possible = todayUtc.difference(from).inDays + 1;
+    final met = done.where((d) => !d.isBefore(from)).length;
+    return HabitRate(met, possible);
+  }
+
+  /// Weeks that met the target among the last [weeks] **finished** weeks —
+  /// a weekly habit's completion rate. The week still being written never
+  /// counts against it, and neither does a first week that began mid-week.
+  static HabitRate weeklyRate(
+    Habit habit,
+    Iterable<String> dateKeys,
+    DateTime today, {
+    int weeks = 12,
+    int firstDay = DateTime.saturday,
+  }) {
+    final todayUtc = DateTime.utc(today.year, today.month, today.day);
+    final done = _doneUntil(dateKeys, today);
+    final since = _since(habit, done);
+    if (since == null) return const HabitRate(0, 0);
+    final thisWeek = weekStartOf(todayUtc, firstDay: firstDay);
+    var week = thisWeek.subtract(Duration(days: 7 * weeks));
+    final sinceWeek = weekStartOf(since, firstDay: firstDay);
+    final firstFull = sinceWeek == since
+        ? sinceWeek
+        : sinceWeek.add(const Duration(days: 7));
+    if (firstFull.isAfter(week)) week = firstFull;
+    var possible = 0, met = 0;
+    for (; week.isBefore(thisWeek); week = week.add(const Duration(days: 7))) {
+      possible++;
+      final count = done
+          .where((d) => weekStartOf(d, firstDay: firstDay) == week)
+          .length;
+      if (count >= habit.target) met++;
+    }
+    return HabitRate(met, possible);
   }
 }

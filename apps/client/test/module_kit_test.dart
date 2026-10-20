@@ -138,6 +138,7 @@ part of '../../platform/nex_services.dart';
           'package:nex_data/nex_data.dart',
           'package:nex_ui/nex_ui.dart',
           '../l10n/app_localizations.dart',
+          '../platform/display_date.dart',
           '../widgets/nex_banner.dart',
           '../widgets/nex_dialog.dart',
           '../widgets/nex_shelf.dart',

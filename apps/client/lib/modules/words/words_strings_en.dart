@@ -72,6 +72,13 @@ const Map<String, String> wordsStringsEn = {
   'dailyCap': 'New per day',
   'dailyPerDay': '{count} a day',
   'dailyCapOff': 'No cap',
+  'reverseTip': 'Ask the meaning first',
+  'reverseOnTip': 'Back to word first',
+  'reverseHint':
+      'Meaning first: you are shown the meaning and recall the word.',
+  'copyListTip': 'Copy this list',
+  'listCopiedOne': 'Copied 1 word',
+  'listCopiedMany': 'Copied {count} words',
   'batchEntryTip': 'Paste a list',
   'learnedMark': 'Learned',
 

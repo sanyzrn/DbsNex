@@ -35,6 +35,10 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
   List<WordCard> _queue = const [];
   int _index = 0;
   bool _revealed = false;
+
+  /// Meaning first: the card asks for the word. A card with no meaning to
+  /// show still asks forward.
+  bool _reverse = false;
   bool _answering = false;
   bool _loading = true;
   int _answered = 0;
@@ -153,7 +157,34 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     return PopScope(
       canPop: !_answering,
       child: Scaffold(
-        appBar: NexAppBar(title: Text(strings(context, 'reviewTitle'))),
+        appBar: NexAppBar(
+          title: Text(strings(context, 'reviewTitle')),
+          actions: [
+            IconButton(
+              key: const ValueKey('words-review-reverse'),
+              tooltip: strings(
+                context,
+                _reverse ? 'reverseOnTip' : 'reverseTip',
+              ),
+              isSelected: _reverse,
+              onPressed: _answering
+                  ? null
+                  : () => setState(() {
+                      _reverse = !_reverse;
+                      _revealed = false;
+                    }),
+              icon: const Icon(Icons.swap_horiz),
+              selectedIcon: const Icon(Icons.swap_horiz),
+              style: _reverse
+                  ? IconButton.styleFrom(
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.secondaryContainer,
+                    )
+                  : null,
+            ),
+          ],
+        ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : _failed
@@ -169,6 +200,7 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
             ? _DoneView(answered: _answered, total: _queue.length)
             : _ReviewBody(
                 card: _current!,
+                reverse: _reverse,
                 revealed: _revealed,
                 answering: _answering,
                 index: _index,

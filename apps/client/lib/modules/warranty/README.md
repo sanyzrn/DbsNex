@@ -172,3 +172,12 @@ that phase's review/VALIDATION.md. Only module lib/test directories are
 touched by this pass; the module stays registered exactly as the gate found
 it. No core/API/catalog/ARB/dependency source, Commit, Push, ZIP or external
 message is delivered.
+
+## Service file (2.1.13)
+
+The detail menu can **copy or share the service file**: the product, brand,
+model, serial / invoice reference, merchant, receipt text, purchase and
+coverage-end dates, coverage and note as written, then the claim and service
+notes oldest first. Only what is in the record; nothing is claimed about what a
+merchant will accept. A purchase with neither a serial nor a receipt reference
+says so on its page instead of implying a document exists.

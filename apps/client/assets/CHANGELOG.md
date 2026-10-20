@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.13
+
+- **Birthdays & occasions.** A new module for the dates you do not want to miss — birthdays, anniversaries, remembrances. Each date repeats in its own calendar, so a Jalali birthday comes back on the same Jalali day every year. You see a countdown, the age it comes to (when you know the year), the day in both calendars, a greeting to copy or share, and an optional reminder ahead of the day. Nothing is sent for you and no contacts are read. Add it from **Tools → Add modules**.
+- **Habits.** A calendar of every month, in your own calendar: tap any day up to today to mark it, tap again to take it back. A new **How often** panel shows the days you kept it out of the days since you started.
+
 ## v2.1.12
 
 - **Quit Habits.** The Smoke-free module is now Quit Habits and is available: count several things you are quitting at once — smoking, vaping, alcohol, caffeine, sugar, social media, gambling or your own — each with a live count in days, hours and minutes, the money and time kept, a saving goal, your own reason, marks along the way and the last five weeks at a glance. **I need help now** opens guided breathing, a ten-minute wait and quick ideas. You can start later, and a slip never erases earlier attempts. Everything you logged as Smoke-free is still there, as cigarettes.

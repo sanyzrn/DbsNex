@@ -137,3 +137,9 @@ interrupted-group recovery, raw Undo, drafts, isolation, FA/EN, light/dark,
 320×480 at scale 2.0 and reduced motion. Android/iOS permissions, native
 keyboard, TalkBack/VoiceOver and platform release builds still need
 maintainer/device acceptance.
+
+## Sharing where the car is (2.1.13)
+
+The detail page can **share where the car is** as text: vehicle, place, floor,
+spot, landmark and the time it was parked, as written, and a map link only when
+both coordinates were typed and are real. Shared only by a tap.

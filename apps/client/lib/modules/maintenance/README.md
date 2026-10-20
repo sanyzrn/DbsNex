@@ -54,3 +54,10 @@ Still requested, deliberately not faked: store transactions with cross-process c
 This review-and-upgrade pass, on the working tree at Flutter 3.35.5 / Dart 3.9.2: `dart format` clean on both module folders; `flutter analyze --fatal-infos` fully clean; the shared gate `test/module_kit_test.dart` 40 passed; `test/modules/maintenance` **99 passed** (86 inherited, all still green, + 13 added: reminder presence/clear/absent-on-archived/absent-on-missing, Jalali labels EN + FA with the retired annotations asserted gone, editor tooltips, the multiline note round-trip and editor params, the Persian interval-deleted notice, archive Undo, and deterministic same-instant orders); the l10n / text-field / sheet-swipe / motion scanners 17 passed. Both string maps hold 188 identical keys, no empty values, no bidi controls. No file over 400 lines (largest: controller 397, maintenance_screen 394). Edits confined to `lib/modules/maintenance` and `test/modules/maintenance`.
 
 The original validation on Nex main `724b999a91c5b7366fbb4d9e8f17b36a3fb16318`, Flutter 3.35.5 / Dart 3.9.2, ran in a separate checkout with temporary registry entries: `flutter test --no-pub test/modules/maintenance test/module_kit_test.dart` **115 passed** (86 module tests + 29 shared gate tests as of that pass), covering the original cases, fractional/currency/date/unknown-baseline mathematics, current readings, post-write rollback, concurrent rule saves, exact raw compound Undo, parent guards, raw draft reopening and all four editors at 320×480 with 2× text and reduced motion in English light/Persian dark. Original screen cases additionally cover Persian light and English dark. Real-device testing remains outstanding; the shared reminder scheduling itself needs a rolled-out module and the notification permission, so tests observe the control, its notice and its stored/cleared reminder.
+
+## Service history text (2.1.13)
+
+The asset page menu can **copy or share the service history**: the asset, then
+each service newest first — date, task, provider, the reading in its own unit
+and the cost in its own currency, with notes. Costs are never converted or
+added across currencies.

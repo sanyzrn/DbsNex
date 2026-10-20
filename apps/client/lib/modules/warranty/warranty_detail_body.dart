@@ -66,6 +66,14 @@ extension _WarrantyDetailBody on _WarrantyDetailSheetState {
                         child: Text(warrantyStrings(menuContext, 'archived')),
                       ),
                     PopupMenuItem(
+                      value: 'copyFile',
+                      child: Text(warrantyStrings(menuContext, 'copyFile')),
+                    ),
+                    PopupMenuItem(
+                      value: 'shareFile',
+                      child: Text(warrantyStrings(menuContext, 'shareFile')),
+                    ),
+                    PopupMenuItem(
                       value: 'delete',
                       child: Text(AppLocalizations.of(menuContext).delete),
                     ),
@@ -118,6 +126,18 @@ extension _WarrantyDetailBody on _WarrantyDetailSheetState {
                   strings(context, value),
                   WarrantyModels.readString(body, key),
                 ),
+            if (WarrantyModels.readString(body, 'receiptRef').trim().isEmpty &&
+                WarrantyModels.readString(body, 'serial').trim().isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: NexSpacing.xs),
+                child: Text(
+                  strings(context, 'noProof'),
+                  key: const ValueKey('warranty-no-proof'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             if (!WarrantyModels.readArchived(body)) ...[
               const SizedBox(height: NexSpacing.md),
               Text(

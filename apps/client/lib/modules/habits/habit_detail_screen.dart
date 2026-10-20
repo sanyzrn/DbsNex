@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'habit_calendar.dart';
 import 'habit_edit_sheet.dart';
 import 'habit_math.dart';
 import 'habit_model.dart';
@@ -89,20 +90,23 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
 
   /// Today's check-in, from this page exactly as from Today — including the
   /// Undo snackbar when a check-in is taken back.
-  Future<void> _toggleToday() async {
+  Future<void> _toggleToday() => _toggleDay(dateKeyOf(DateTime.now()));
+
+  /// A day's check-in: made if there is none, taken back (with Undo) if
+  /// there is. The calendar uses it for any day up to today.
+  Future<void> _toggleDay(String day) async {
     if (_writing) return;
     setState(() => _writing = true);
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final errorMessage = habitsStrings(context, 'saveError');
     try {
-      final today = dateKeyOf(DateTime.now());
-      final id = HabitCheck.idFor(widget.habitId, today);
+      final id = HabitCheck.idFor(widget.habitId, day);
       final existing = await widget.store.get('check', id);
       if (existing == null) {
         await widget.store.put('check', id, {
           'habit': widget.habitId,
-          'date': today,
+          'date': day,
           'at': DateTime.now().toIso8601String(),
         });
       } else {
@@ -293,6 +297,19 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
             ),
             const SizedBox(height: NexSpacing.md),
             HabitStreakPanel(habit: habit, standing: standing),
+            const SizedBox(height: NexSpacing.md),
+            HabitRatePanel(
+              habit: habit,
+              dateKeys: _dates(),
+              firstDay: _firstDay,
+            ),
+            const SizedBox(height: NexSpacing.md),
+            HabitCalendarPanel(
+              doneKeys: _dates().where((k) => k.isNotEmpty).toSet(),
+              firstDay: _firstDay,
+              busy: _writing,
+              onToggle: (day) => unawaited(_toggleDay(day)),
+            ),
             const SizedBox(height: NexSpacing.md),
             HabitTwoWeekDots(standing: standing),
             if (habit.note.isNotEmpty) ...[

@@ -126,6 +126,11 @@ const _maintenancefa = <String, String>{
   'deleteAssetTitle': 'این دستگاه حذف شود؟',
   'deleteAssetBody':
       '{n} سرویس و {m} بازه‌اش هم حذف می‌شود. مدت کوتاهی امکان بازگردانی هست.',
+  'copyHistory': 'کپی سابقهٔ سرویس',
+  'shareHistory': 'اشتراک سابقهٔ سرویس',
+  'historyCopied': 'سابقهٔ سرویس کپی شد.',
+  'historyHeading': 'سابقهٔ سرویس',
+  'noServices': 'هنوز سرویسی نوشته نشده است.',
   'deletedAsset': 'حذف شد',
   'archivedAsset': 'بایگانی شد',
   'undo': 'بازگردانی',

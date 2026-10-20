@@ -180,9 +180,13 @@ class _PillButton extends StatelessWidget {
 /// Expenses, income and net for one currency — the net stated plainly,
 /// a quiet line under it when it is negative, never an alarm.
 class ExpensesTotalsPanel extends StatelessWidget {
-  const ExpensesTotalsPanel({super.key, required this.totals});
+  const ExpensesTotalsPanel({super.key, required this.totals, this.change});
 
   final ExpenseCurrencyTotals totals;
+
+  /// How this month's spending compares with last month's in this currency;
+  /// null when there is nothing to compare with (or in the all-time view).
+  final ({BigInt previous, int? percent, int direction})? change;
 
   @override
   Widget build(BuildContext context) {
@@ -217,6 +221,27 @@ class ExpensesTotalsPanel extends StatelessWidget {
               'amount': '${money(totals.net)} ${totals.currency}',
             }),
           ),
+          if (change != null) ...[
+            const SizedBox(height: NexSpacing.xs),
+            Text(
+              expenseStrings(
+                context,
+                change!.direction == 0
+                    ? 'changeSame'
+                    : change!.direction > 0
+                    ? 'changeMore'
+                    : 'changeLess',
+                {
+                  'amount': '${money(change!.previous)} ${totals.currency}',
+                  'pct': change!.percent ?? 0,
+                },
+              ),
+              key: const ValueKey('expenses-month-change'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
           if (negative) ...[
             const SizedBox(height: NexSpacing.xs),
             Text(

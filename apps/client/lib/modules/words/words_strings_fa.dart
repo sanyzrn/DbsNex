@@ -75,6 +75,12 @@ const Map<String, String> wordsStringsFa = {
   'dailyCap': 'تازه در روز',
   'dailyPerDay': '{count} در روز',
   'dailyCapOff': 'بی‌سقف',
+  'reverseTip': 'اول معنی را بپرس',
+  'reverseOnTip': 'برگشت به واژه‌اول',
+  'reverseHint': 'اول معنی: معنی را می‌بینید و واژه را به یاد می‌آورید.',
+  'copyListTip': 'کپی این فهرست',
+  'listCopiedOne': '۱ واژه کپی شد',
+  'listCopiedMany': '{count} واژه کپی شد',
   'batchEntryTip': 'چسباندن فهرست',
   'learnedMark': 'آموخته',
 

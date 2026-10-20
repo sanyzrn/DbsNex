@@ -3,6 +3,7 @@ part of 'words_review_page.dart';
 class _ReviewBody extends StatelessWidget {
   const _ReviewBody({
     required this.card,
+    required this.reverse,
     required this.revealed,
     required this.answering,
     required this.index,
@@ -14,6 +15,7 @@ class _ReviewBody extends StatelessWidget {
   });
 
   final WordCard card;
+  final bool reverse;
   final bool revealed;
   final bool answering;
   final int index;
@@ -82,17 +84,28 @@ class _ReviewBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: NexSpacing.xl),
-                Center(
-                  child: NexTextDirection(
-                    text: card.headword,
-                    child: Text(
-                      card.headword,
-                      key: const ValueKey('words-review-headword'),
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.displaySmall,
+                if (reverse && card.meaning.isNotEmpty)
+                  // Meaning first: the word is the answer, so it is not in
+                  // the tree until the card is revealed.
+                  Center(
+                    child: NexTextSurface(
+                      card.meaning,
+                      key: const ValueKey('words-review-meaning-first'),
+                      style: theme.textTheme.headlineSmall,
+                    ),
+                  )
+                else
+                  Center(
+                    child: NexTextDirection(
+                      text: card.headword,
+                      child: Text(
+                        card.headword,
+                        key: const ValueKey('words-review-headword'),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.displaySmall,
+                      ),
                     ),
                   ),
-                ),
                 const SizedBox(height: NexSpacing.md),
                 Center(
                   child: Text(

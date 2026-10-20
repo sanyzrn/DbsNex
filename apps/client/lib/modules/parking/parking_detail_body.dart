@@ -10,6 +10,15 @@ extension _ParkingDetailBody on _ParkingDetailPageState {
       appBar: NexAppBar(
         title: Text(strings(context, 'detailsTitle')),
         actions: [
+          if (body != null)
+            IconButton(
+              key: const ValueKey('parking-detail-share'),
+              tooltip: strings(context, 'shareSpot'),
+              icon: const Icon(Icons.share_outlined),
+              onPressed: () => unawaited(
+                nexModuleShareText(parkingShareText(context, body)),
+              ),
+            ),
           IconButton(
             key: const ValueKey('parking-detail-edit'),
             tooltip: AppLocalizations.of(context).edit,

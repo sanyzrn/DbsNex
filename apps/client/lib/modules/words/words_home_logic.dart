@@ -64,6 +64,23 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
 
   String get _todayIso => isoDay(DateTime.now());
 
+  /// Copies the list on screen — every word the filters leave — as the text
+  /// the paste box takes back: one word per line, a Tab, the meaning.
+  Future<void> _copyList() async {
+    final cards = _visible;
+    if (cards.isEmpty) return;
+    await nexModuleCopyText(wordsListText(cards));
+    if (!mounted) return;
+    nexShowBanner(
+      context,
+      message: wordsStrings(
+        context,
+        cards.length == 1 ? 'listCopiedOne' : 'listCopiedMany',
+        {'count': cards.length},
+      ),
+    );
+  }
+
   List<WordCard> get _visible {
     final query = _query.toLowerCase();
     Iterable<WordCard> cards = _cards;
@@ -108,4 +125,23 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
     newPerDay: _settings.newPerDay,
     sessionLimit: 0,
   ).fresh.length;
+}
+
+/// [cards] as pasteable lines: `word<TAB>meaning`. A Tab or a line break
+/// inside a word or meaning would break the line, so each becomes a space
+/// (senses of a meaning are joined with « ; »). A word with no meaning is
+/// just the word. The paste box reads this back unchanged.
+String wordsListText(Iterable<WordCard> cards) {
+  String flat(String text, String between) => text
+      .split(RegExp(r'[\r\n]+'))
+      .map((part) => part.replaceAll('\t', ' ').trim())
+      .where((part) => part.isNotEmpty)
+      .join(between);
+  return cards
+      .map((card) {
+        final word = flat(card.headword, ' ');
+        final meaning = flat(card.meaning, ' ; ');
+        return meaning.isEmpty ? word : '$word\t$meaning';
+      })
+      .join('\n');
 }

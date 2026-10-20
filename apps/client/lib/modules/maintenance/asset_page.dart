@@ -152,6 +152,14 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
                 ),
               ),
               PopupMenuItem(
+                value: 'copyHistory',
+                child: Text(s(menuContext, 'copyHistory')),
+              ),
+              PopupMenuItem(
+                value: 'shareHistory',
+                child: Text(s(menuContext, 'shareHistory')),
+              ),
+              PopupMenuItem(
                 value: 'delete',
                 child: Text(s(menuContext, 'delete')),
               ),

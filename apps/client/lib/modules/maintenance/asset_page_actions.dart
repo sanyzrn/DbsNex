@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'controller.dart';
 import 'logic.dart';
 import 'maintenance_undo.dart';
+import 'service_history.dart';
 import 'models.dart';
 import 'strings.dart';
 import 'editor_draft.dart';
@@ -51,6 +52,13 @@ Future<void> assetPageMenu(
         );
       case 'unarchive':
         await controller.setArchived(asset, false);
+      case 'copyHistory':
+        final text = serviceHistoryText(context, asset, events);
+        final copied = s(context, 'historyCopied');
+        await nexModuleCopyText(text);
+        if (context.mounted) nexShowBanner(context, message: copied);
+      case 'shareHistory':
+        await nexModuleShareText(serviceHistoryText(context, asset, events));
       case 'delete':
         final answer = await _confirm(
           context,

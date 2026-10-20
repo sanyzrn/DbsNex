@@ -1,6 +1,6 @@
 # Nex add-on sources
 
-> Cycle, Habits, Price Lens, Lent & Borrowed and Quit Habits are available (2.1.11–2.1.12). The other seven add-ons below are Soon; source, installation choices and records are preserved pending individual review.
+> Cycle, Habits, Price Lens, Lent & Borrowed, Quit Habits and Birthdays & occasions (built later, on the kit) are available (2.1.11–2.1.13). The other seven add-ons below are Soon; source, installation choices and records are preserved pending individual review.
 
 All 11 supplied modules are integrated into the client for individual review. Sources and original READMEs are under `apps/client/lib/modules/<id>/`;
 tests are under `apps/client/test/modules/<id>/`. They were moved from this
@@ -62,6 +62,42 @@ TalkBack, and Price Lens barcode/OCR (outside the module API).
   money and time kept, saving goal, a reason, marks, five-week grid, the help
   sheet (4-7-8 breathing, ten-minute wait, tips), a one-time safety note for
   alcohol. Not done: reminders, daily confirmation, charts beyond the grid.
+
+### 2.1.13: the thirteen benchmark reports, checked against the code
+
+A report was used only where the code showed it was right and the module kit
+allows it; several claims were already true in the code (shared Jalali date
+entry, reminders, per-currency totals) and some asked for platform interfaces
+the kit does not have.
+
+- **Done, in an available module:** Habits — a month calendar in the reader's
+  own calendar where any day up to today can be marked or taken back, and a
+  completion rate over the days since the habit began (never a miss before it
+  existed). New module **Birthdays & occasions** (`occasions`): Jalali and
+  Gregorian dates that repeat in their own calendar, 29 February / 30 Esfand
+  policy, unknown year, countdown, greeting, an optional reminder (two kept
+  ahead, renewed on opening — a module has no yearly alarm).
+- **Done, in a module still Soon (so not yet visible):** Gold Check — budget →
+  heaviest weight that fits (exact, monotone search), the making charge as a
+  share of the metal, copy the estimate. Words — meaning-first review, copy
+  the list in the paste box's own format. Expenses — this month against last,
+  per currency. Warranty — copy/share the service file; says when no invoice
+  or serial is written. Maintenance — copy/share the service history. Parking
+  — share where the car is.
+- **Shared:** `nexReadableDate`, `nexDigits`, `nexPersianDate`,
+  `nexGregorianDate`, `nexPersianMonthDays` in the module API;
+  `NexModuleMonth` and `nexModuleMonthName` in `module_dates.dart`.
+- **Left out on purpose:** Cycle (almost complete: confidence, cycles counted,
+  report and calendar are there; trend charts and symptom filters need their
+  own design). Medicine "Today" view and reminders (its days are free text,
+  so a schedule would be guessed — health, so not guessed; needs device
+  testing). Habits weekday / every-N-days schedules (they change the streak
+  rules). Expenses Jalali months (budgets are keyed by Gregorian month — a
+  migration, not a tweak). Photos, OCR, barcode, contacts, CSV/PDF export,
+  GPS, maps, TTS, FSRS, and live prices — outside the module API.
+- **Next:** the Soon modules need the screenshot review the four enabled ones
+  had (calendar button, one primary action, Persian layout) before each is
+  enabled.
 
 ## Inventory
 

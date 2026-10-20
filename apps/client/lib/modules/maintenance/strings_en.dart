@@ -130,6 +130,11 @@ const _maintenanceen = <String, String>{
   'deleteAssetTitle': 'Delete this asset?',
   'deleteAssetBody':
       'Its {n} services and {m} rules go with it. Undo is offered for a short while.',
+  'copyHistory': 'Copy service history',
+  'shareHistory': 'Share service history',
+  'historyCopied': 'Service history copied.',
+  'historyHeading': 'Service history',
+  'noServices': 'No services written down yet.',
   'deletedAsset': 'Deleted',
   'archivedAsset': 'Archived',
   'undo': 'Undo',

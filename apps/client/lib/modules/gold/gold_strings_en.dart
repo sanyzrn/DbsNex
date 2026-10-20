@@ -126,6 +126,28 @@ const Map<String, String> goldStringsEn = {
   'notes': 'Notes',
   'backToCalculator': 'Back to the calculator',
 
+  // ---------------------------------------------------------- budget
+  'tomanWord': 'toman',
+  'rialWord': 'rials',
+  'budgetTip': 'From a budget',
+  'budgetTitle': 'From a budget',
+  'budgetAbout':
+      'How much gold does an amount buy? This runs the calculator the other way, with the rate, purity, charges, profit and VAT already entered. The weight in the form is not used.',
+  'budgetField': 'Budget (toman)',
+  'budgetBad': 'Write the budget as a number.',
+  'budgetNone': 'Even the smallest piece costs more than this budget.',
+  'budgetResult': 'About {weight} g at most fits in {amount}.',
+  'budgetAtCap':
+      'Any weight this calculator takes (up to {weight} g) fits in {amount}.',
+  'budgetNote':
+      'The same formula, run the other way. A shop that rounds differently can differ by a little.',
+  'budgetUse': 'Use this weight',
+  'budgetNeedsRate':
+      'Enter the rate first — the budget is turned into a weight with it.',
+  'makingShare': 'The making charge comes to {pct} of the metal value.',
+  'copyBreakdown': 'Copy the estimate',
+  'breakdownCopied': 'Estimate copied.',
+
   // ---------------------------------------------------------- receipt
   'receipt': 'Estimate',
   'receiptUnitToman': 'Amounts are shown in toman.',

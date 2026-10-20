@@ -260,7 +260,16 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         padding: const EdgeInsetsDirectional.only(
                           bottom: NexSpacing.md,
                         ),
-                        child: ExpensesTotalsPanel(totals: total),
+                        child: ExpensesTotalsPanel(
+                          totals: total,
+                          change: _month == null
+                              ? null
+                              : expenseMonthChange(
+                                  controller.txs,
+                                  _month!,
+                                  currency: total.currency,
+                                ),
+                        ),
                       ),
                     if (totals.length > 1)
                       Padding(

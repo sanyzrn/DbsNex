@@ -182,3 +182,11 @@ Android/iOS builds and TalkBack/VoiceOver need maintainer/device acceptance.
 No source edits outside this module's lib/test are delivered. Registry registration
 is temporary; maintainer const-registers ExpensesModule(), checks current planned
 IDs and integrates Guide/Changelog separately. No Commit/Push/ZIP.
+
+## This month against last (2.1.13)
+
+Under each currency's totals for a month, «Last month X · this month is N%
+more/less» — computed in that currency only, from valid expenses (income is not
+spending), rounded to the nearest whole percent with integer arithmetic. Shown
+only when the month before has spending in that currency; a percentage of
+nothing is not shown.

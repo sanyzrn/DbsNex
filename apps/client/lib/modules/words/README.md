@@ -193,3 +193,12 @@ same gate with --no-pub; its captures and outcomes live with that phase's
 review/VALIDATION.md. No Android/device/TalkBack claim is made for either
 pass. Maintainer const-registers WordsModule(), retires planned words and
 incorporates Guide/Changelog before release/device checks.
+
+## Meaning first, copy the list (2.1.13)
+
+The review page has a switch to ask **meaning first**: the meaning is the front
+of the card and the word is not in the tree until Reveal. Grading is the same
+four buttons, once per card; a card with no meaning to show is asked forward.
+The home screen can **copy the list on screen** (every word the filters leave)
+as `word<TAB>meaning`, one line each — what the paste box reads back; line
+breaks in a meaning become « ; ». No file is written.

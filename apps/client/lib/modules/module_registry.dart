@@ -7,6 +7,7 @@ import 'lent_borrowed/module.dart';
 import 'maintenance/module.dart';
 import 'medicine/module.dart';
 import 'nex_module.dart';
+import 'occasions/module.dart';
 import 'parking/module.dart';
 import 'price_lens/module.dart';
 import 'smoke_free/module.dart';
@@ -30,6 +31,7 @@ const List<NexModule> nexModules = [
   WarrantyModule(),
   MaintenanceModule(),
   SmokeFreeModule(),
+  OccasionsModule(),
 ];
 
 /// The modules that are part of the app right now.

@@ -12,6 +12,13 @@ export 'package:nex_data/nex_data.dart' show ModuleRecord;
 export 'package:nex_ui/nex_ui.dart';
 
 export '../l10n/app_localizations.dart' show AppLocalizations;
+export '../platform/display_date.dart'
+    show
+        nexDigits,
+        nexGregorianDate,
+        nexPersianDate,
+        nexPersianMonthDays,
+        nexReadableDate;
 export '../widgets/nex_banner.dart' show nexShowBanner, NexBannerKind;
 export '../widgets/nex_dialog.dart'
     show nexShowDialog, nexShowSheet, NexDialogBody;

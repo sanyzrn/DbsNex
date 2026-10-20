@@ -45,6 +45,12 @@ class _WordsScreenState extends State<WordsScreen>
         title: Text(strings(context, 'title')),
         actions: [
           IconButton(
+            key: const ValueKey('words-copy-list'),
+            tooltip: strings(context, 'copyListTip'),
+            onPressed: visible.isEmpty ? null : () => unawaited(_copyList()),
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
+          IconButton(
             key: const ValueKey('words-batch'),
             tooltip: strings(context, 'batchEntryTip'),
             onPressed: () => unawaited(

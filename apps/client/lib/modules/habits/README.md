@@ -191,3 +191,17 @@ Semantics labels.
 ## 2.1.11 changes
 
 - 2.1.11: optional daily reminder per habit (switch + time on the habit's page); one primary action on an empty page.
+
+## Calendar and how often (2.1.13)
+
+The detail page has a month calendar in the calendar the person reads (Jalali
+or Gregorian, weeks starting on the chosen first day). A tap on any day up to
+today makes that day's check-in — the same record, `<habit-id>:<YYYY-MM-DD>`,
+as the Today button — and a tap on a marked day takes it back, with Undo. A
+day to come cannot be marked; a day before the habit began can. **How often**
+counts days checked of the days since the habit began (7, 30 and 90 days, the
+window cut to the habit's life) for a daily habit, and weeks that met the
+target among the last twelve *finished* weeks for a weekly one; the week in
+progress and a first week that began mid-week are never counted against it.
+Streaks and the forgiven interval are unchanged. Specific weekdays and
+every-N-days schedules are not here: they would change the streak rules.

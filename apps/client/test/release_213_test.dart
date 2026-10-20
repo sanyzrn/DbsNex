@@ -222,6 +222,7 @@ void main() {
           'price_lens',
           'lent_borrowed',
           'smoke_free',
+          'occasions',
         });
         expect(
           NexModuleAlarms.moduleId('a', 'b:c'),

@@ -64,6 +64,11 @@ void main() {
     NexModuleStore store,
     Locale locale,
   ) async {
+    // The page grew a calendar; a tall screen keeps every row built, as it
+    // was when the page was shorter.
+    tester.view.physicalSize = const Size(800, 3200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         locale: locale,

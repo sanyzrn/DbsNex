@@ -19,7 +19,7 @@ the cross-spec difference is suppressed. Drafts survive back/navigation and
 restart, including invalid unfinished input. Clear draft discards a fresh form.
 
 No live prices, currency conversion, legal invoice certification, second-hand
-gold/coins/bullion assumptions, background alerts or direct clipboard helper.
+gold/coins/bullion assumptions, background alerts.
 
 ## Records
 
@@ -172,3 +172,20 @@ the calendar-labelled display of every stored day are covered by
 Android builds and device/TalkBack checks are not represented by host
 tests. Maintainer: const-register `GoldModule()`, retire planned `gold`,
 incorporate Guide/Changelog and run release checks before activation.
+
+## From a budget, making share, copy (2.1.13)
+
+- **From a budget** (the savings icon): the budget, in toman, becomes the
+  heaviest net weight whose estimate stays within it, using the rate, purity,
+  charges, profit and VAT already in the form. The estimate never falls as the
+  weight grows, so the answer is found by halving between 1 mg and the weight
+  cap, with every line rounded exactly as the receipt rounds it — one
+  milligram more is over the budget. A fixed making charge or fixed extras
+  make plain division wrong, which is why it is not divided. The gross weight
+  and the seller's quote do not take part. 0 means even 1 mg is over budget.
+  «Use this weight» puts the answer in the form. A display of a calculation;
+  nothing is saved by it.
+- **Making share:** for a per-gram, fixed or mixed charge the receipt says
+  what share of the metal value it comes to («the trade's percent»).
+- **Copy the estimate** puts the breakdown lines on the clipboard (the lines
+  can still be selected one by one).

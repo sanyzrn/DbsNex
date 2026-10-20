@@ -24,15 +24,21 @@ void main() {
   tearDown(() => harness.dispose());
 
   test(
-    'the reviewed add-ons are Habits, Price Lens, Lent & Borrowed and Quit Habits',
+    'the reviewed add-ons are Habits, Price Lens, Lent & Borrowed, Quit Habits and Occasions',
     () {
-      expect(reviewed, {'habits', 'price_lens', 'lent_borrowed', 'smoke_free'});
+      expect(reviewed, {
+        'habits',
+        'price_lens',
+        'lent_borrowed',
+        'smoke_free',
+        'occasions',
+      });
       expect(paused, hasLength(7));
     },
   );
 
-  test('all modules default off, including the eleven add-ons', () {
-    expect(moduleIds, hasLength(11));
+  test('all modules default off, including the twelve add-ons', () {
+    expect(moduleIds, hasLength(12));
     expect(
       nexModules.whereType<NexStoredModule>().map((m) => m.id).toSet(),
       moduleIds,
@@ -62,7 +68,7 @@ void main() {
   );
 
   test(
-    'identical record keys stay isolated across all eleven modules',
+    'identical record keys stay isolated across all twelve modules',
     () async {
       for (final id in moduleIds) {
         await NexModuleStore(
