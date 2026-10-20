@@ -55,6 +55,8 @@ const Map<String, String> wordsStringsEn = {
 
   // -------------------------------------------------------------- home
   'collection': 'Your words',
+  'heroWaiting': '{count} to review',
+  'heroDone': 'All caught up',
   'emptyWords':
       'No words yet. Add the first one — a word, a phrase, whatever you '
       'are reading.',

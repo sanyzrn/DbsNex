@@ -110,7 +110,7 @@ void _registerBrowseCases(
       Directionality.of(tester.element(find.text('واژه به واژه'))),
       TextDirection.rtl,
     );
-    expect(find.text('۰ واژه سررسید · ۰ تازه امروز'), findsOneWidget);
+    expect(find.byKey(const ValueKey('words-hero')), findsNothing);
     expect(
       find.text(
         'هنوز واژه‌ای نیست. اولی را اضافه کنید — یک واژه، یک عبارت، هرچه '
@@ -120,7 +120,7 @@ void _registerBrowseCases(
     );
 
     // An English headword keeps its own direction inside the Persian UI.
-    await tester.tap(find.byKey(const ValueKey('words-add')));
+    await tester.tap(addButton('words-add', 'words-empty-add'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('words-field-headword')),
@@ -181,7 +181,14 @@ void _registerBrowseCases(
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const ValueKey('words-add')), findsOneWidget);
+    // At twice the size the empty state's button sits below the fold of a
+    // scrolling page; it is reached by scrolling, not lost.
+    await tester.dragUntilVisible(
+      addButton('words-add', 'words-empty-add'),
+      find.byType(ListView),
+      const Offset(0, -200),
+    );
+    expect(addButton('words-add', 'words-empty-add'), findsOneWidget);
   });
 
   testWidgets('nothing leaks in from other modules', (tester) async {

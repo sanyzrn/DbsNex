@@ -28,4 +28,5 @@ export 'nex_module_store.dart';
 export 'nex_module_strings.dart';
 export 'nex_stored_module.dart';
 export 'module_dates.dart';
+export 'module_hero.dart';
 export 'module_reminder_control.dart';

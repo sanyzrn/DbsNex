@@ -107,7 +107,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Gregorian'), findsNothing);
     expect(find.byTooltip('Change the date'), findsOneWidget);
-    await tester.tap(find.byTooltip('Cancel'));
+    // The sheet has no × — it closes the way back does.
+    await tester.state<NavigatorState>(find.byType(Navigator).first).maybePop();
     await tester.pumpAndSettle();
 
     // The asset editor's purchased-date row: same.

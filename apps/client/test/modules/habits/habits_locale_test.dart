@@ -261,6 +261,16 @@ void main() {
             brightness: brightness,
             textScale: 2.0,
           );
+          // The page opens with its hero, which at this scale takes the
+          // fold: the habit is reached by scrolling down to it.
+          await tester.dragUntilVisible(
+            find.text('کشش صبحگاهی'),
+            find.byType(ListView).first,
+            const Offset(0, -120),
+          );
+          // Clear of the floating button at the bottom.
+          await tester.drag(find.byType(ListView).first, const Offset(0, -200));
+          await tester.pumpAndSettle();
           await tester.tap(find.text('کشش صبحگاهی'));
           await tester.pumpAndSettle();
 

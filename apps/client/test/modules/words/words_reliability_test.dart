@@ -9,6 +9,7 @@ import 'package:nex_client/modules/words/words_store.dart';
 import 'package:nex_client/modules/words/words_batch_sheet.dart';
 import 'package:nex_client/modules/words/words_review_page.dart';
 import '../../support/nex_harness.dart';
+import '../../support/add_button.dart';
 
 class FaultStore implements NexModuleStore {
   FaultStore(this.inner);
@@ -169,7 +170,7 @@ void main() {
     final store = NexModuleStore(harness.services, 'words');
     await tester.pumpWidget(host(WordsScreen(store: store)));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('words-add')));
+    await tester.tap(addButton('words-add', 'words-empty-add'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('words-field-headword')),
@@ -177,7 +178,7 @@ void main() {
     );
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('words-add')));
+    await tester.tap(addButton('words-add', 'words-empty-add'));
     await tester.pumpAndSettle();
     expect(
       tester

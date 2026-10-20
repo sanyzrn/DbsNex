@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/words/words_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
+import '../../support/add_button.dart';
 import '../../support/nex_harness.dart';
 
 part 'words_browse_cases.dart';
@@ -77,15 +78,16 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('0 due now · 0 new today'), findsOneWidget);
-    expect(find.byKey(const ValueKey('words-add')), findsOneWidget);
+    // Nothing yet: no hero either — the empty state has its one button.
+    expect(find.byKey(const ValueKey('words-hero')), findsNothing);
+    expect(addButton('words-add', 'words-empty-add'), findsOneWidget);
   });
 
   testWidgets('capturing a word, start to finish', (tester) async {
     await tester.pumpWidget(wordsScreen());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('words-add')));
+    await tester.tap(addButton('words-add', 'words-empty-add'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('words-field-headword')),
@@ -156,7 +158,7 @@ void main() {
   testWidgets('a double tap on save writes the word once', (tester) async {
     await tester.pumpWidget(wordsScreen());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('words-add')));
+    await tester.tap(addButton('words-add', 'words-empty-add'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('words-field-headword')),
@@ -180,7 +182,7 @@ void main() {
   ) async {
     await tester.pumpWidget(wordsScreen());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('words-add')));
+    await tester.tap(addButton('words-add', 'words-empty-add'));
     await tester.pumpAndSettle();
 
     await scrollToSave(tester);
@@ -216,7 +218,7 @@ void main() {
 
     await tester.pumpWidget(host(WordsScreen(store: store)));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('words-add')));
+    await tester.tap(addButton('words-add', 'words-empty-add'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('words-field-headword')),

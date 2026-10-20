@@ -23,8 +23,6 @@ class LoanSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = lentStrings;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final persian = NexModuleStrings.persian(context);
     final lines = <String>[
       for (final total in summary.money)
@@ -32,35 +30,20 @@ class LoanSummaryCard extends StatelessWidget {
       if (summary.itemsOut > 0)
         strings(context, 'itemsOut', {'n': summary.itemsOut}),
     ];
-    return NexPanel(
+    // The first amount leads, large; the other currencies, items and the
+    // overdue count follow as small facts. Colour: Lent and Borrowed are one
+    // module, so one hue; direction is said by the icon and the title.
+    return NexModuleHero(
       key: const ValueKey('loans-summary'),
+      moduleId: 'lent_borrowed',
       icon: owedToMe ? Icons.south_west : Icons.north_east,
-      title: strings(context, owedToMe ? 'owedToMe' : 'iOwe'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (lines.isEmpty)
-            Text(
-              strings(context, 'nothingOut'),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            )
-          else
-            for (final line in lines)
-              Padding(
-                padding: const EdgeInsetsDirectional.only(
-                  bottom: NexSpacing.xs,
-                ),
-                child: Text(line, style: theme.textTheme.titleMedium),
-              ),
-          if (summary.overdue > 0)
-            Text(
-              strings(context, 'overdueCount', {'n': summary.overdue}),
-              style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
-            ),
-        ],
-      ),
+      eyebrow: strings(context, owedToMe ? 'owedToMe' : 'iOwe'),
+      headline: lines.isEmpty ? strings(context, 'nothingOut') : lines.first,
+      chips: [
+        ...lines.skip(1),
+        if (summary.overdue > 0)
+          strings(context, 'overdueCount', {'n': summary.overdue}),
+      ],
     );
   }
 }

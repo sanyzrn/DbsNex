@@ -25,7 +25,8 @@ form that is not a whole page.
   - Enforced by `test/sheet_swipe_test.dart`. The few raw sheets that predate
     the rule are listed there with their reasons; the list only shrinks.
 - A sheet that guards unsaved work passes `dismissible: false, swipeToClose:
-  true`: the swipe then asks the editor's `PopScope` first.
+  true`: the swipe then asks the editor's `PopScope` first. A tap on the dimmed area does the same, so
+  every sheet closes from outside (`test/sheet_scrim_test.dart`).
 - Sheet content scrolls (`SingleChildScrollView` or `ListView`) and starts with
   `NexSpacing.md` padding; its title is `titleLarge`.
 - A sheet that belongs to a space with its own look (see §8) wraps its content
@@ -122,6 +123,26 @@ Most of Nex is calm, neutral and the person's own theme. A feature may have
 - builds on the same pieces as everything else — `nexShowSheet`,
   `NexPageRoute`, the spacing and radius tokens — so it behaves like the rest of
   the app even where it looks different.
+
+### Module home pages: one hero
+
+Every module's home page opens with **one `NexModuleHero`** (`module_hero.dart`
+in the module kit): a soft wash of the module's own colour (`nexModuleAccent`,
+one hue per module), its icon drawn large and faint behind, and **one large
+line that is a real number or state from the person's data** — "12 days free",
+"2/3 checked", "42,500,000 Toman". Never decoration alone, never a made-up
+figure. Under it, a plain caption and small facts as pills; actions that belong
+to it (a "Start review" button) go in its `child`. A page with nothing yet shows
+no hero, only its one empty-state button. A new module gets a hue in
+`_moduleHues` and a hero; the rest of the page stays calm.
+
+### Forms ask little first
+
+A form that needs more than two or three answers asks for the **minimum** and
+puts the rest behind one button ("Add details (optional)") with a line saying
+what they are for — Quit Habits asks what you are quitting and when, and nothing
+about money until you want it. Correcting a saved item opens everything. Nothing
+a person might find private is required to begin.
 
 ## 9. Before you open the pull request
 

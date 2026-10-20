@@ -228,6 +228,11 @@ const _maintenanceen = <String, String>{
   'eventSemantics': '{task} on {date}',
 
   // Misc.
+  'heroEyebrow': 'Upkeep',
+  'heroDue': '{count} due now',
+  'heroAllGood': 'Nothing due',
+  'heroComing': '{count} coming up',
+  'heroAssets': '{count} in your care',
   'noReminders':
       'Due standings recompute on open and on every change — reminders '
       'are optional, set on each asset',

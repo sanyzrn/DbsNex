@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'logic.dart';
+import 'models.dart' show monthStartOf;
 import 'money.dart';
 import 'strings.dart';
 
@@ -84,6 +85,33 @@ class ExpensesMonthNav extends StatelessWidget {
                                 ).colorScheme.onSurfaceVariant,
                               ),
                         ),
+                        // The months here are Gregorian — budgets are kept
+                        // by them. A reader on the Jalali calendar sees which
+                        // days that month is, in their own.
+                        if (NexModuleCalendar.solarOf(context))
+                          Text(
+                            s(context, 'monthSpan', {
+                              'from': nexModuleDateLabel(
+                                context,
+                                monthStartOf(month),
+                              ),
+                              'to': nexModuleDateLabel(
+                                context,
+                                DateTime(
+                                  monthStartOf(month).year,
+                                  monthStartOf(month).month + 1,
+                                  0,
+                                ),
+                              ),
+                            }),
+                            key: const ValueKey('expenses-month-span'),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
                       ],
                     ),
                   ),
@@ -199,8 +227,18 @@ class ExpensesTotalsPanel extends StatelessWidget {
     String money(BigInt minor) =>
         formatExpenseNumber(minor, exponent, persian: persian);
     final negative = totals.net.isNegative;
-    return NexPanel(
-      padding: const EdgeInsets.all(NexSpacing.md),
+    // The bottom line leads, large, on the module's own colour; what it is
+    // made of sits underneath.
+    return NexModuleHero(
+      key: const ValueKey('expenses-hero'),
+      moduleId: 'expenses',
+      icon: Icons.account_balance_wallet_outlined,
+      eyebrow: expenseStrings(context, 'netLabel'),
+      headline: '${money(totals.net)} ${totals.currency}',
+      semanticsLabel: expenseStrings(context, 'netSemantics', {
+        'amount': '${money(totals.net)} ${totals.currency}',
+      }),
+      caption: negative ? expenseStrings(context, 'netNegative') : null,
       child: Column(
         children: [
           _TotalsRow(
@@ -212,17 +250,8 @@ class ExpensesTotalsPanel extends StatelessWidget {
             label: expenseStrings(context, 'incomeLabel'),
             value: '${money(totals.income)} ${totals.currency}',
           ),
-          const Divider(height: NexSpacing.lg),
-          _TotalsRow(
-            label: expenseStrings(context, 'netLabel'),
-            value: '${money(totals.net)} ${totals.currency}',
-            emphasized: true,
-            semantics: expenseStrings(context, 'netSemantics', {
-              'amount': '${money(totals.net)} ${totals.currency}',
-            }),
-          ),
           if (change != null) ...[
-            const SizedBox(height: NexSpacing.xs),
+            const SizedBox(height: NexSpacing.sm),
             Text(
               expenseStrings(
                 context,
@@ -242,22 +271,12 @@ class ExpensesTotalsPanel extends StatelessWidget {
               ),
             ),
           ],
-          if (negative) ...[
-            const SizedBox(height: NexSpacing.xs),
-            Text(
-              expenseStrings(context, 'netNegative'),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
           const SizedBox(height: NexSpacing.sm),
           Text(
             expenseStrings(context, 'basedOnEntered'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -266,40 +285,28 @@ class ExpensesTotalsPanel extends StatelessWidget {
 }
 
 class _TotalsRow extends StatelessWidget {
-  const _TotalsRow({
-    required this.label,
-    required this.value,
-    this.emphasized = false,
-    this.semantics,
-  });
+  const _TotalsRow({required this.label, required this.value});
   final String label, value;
-  final bool emphasized;
-  final String? semantics;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final row = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Row(
       children: [
-        Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
-        const SizedBox(height: NexSpacing.xs),
         Text(
           value,
           textDirection: TextDirection.ltr,
-          style: emphasized
-              ? theme.textTheme.headlineSmall
-              : theme.textTheme.titleLarge,
+          style: theme.textTheme.titleMedium,
         ),
       ],
     );
-    return semantics == null
-        ? row
-        : Semantics(label: semantics, excludeSemantics: true, child: row);
   }
 }
 

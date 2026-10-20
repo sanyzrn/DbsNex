@@ -5,6 +5,7 @@ import 'package:nex_client/modules/parking/parking_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/add_button.dart';
 
 /// The parking screen, used the way a person uses it: empty at first, a
 /// parking saved, found, edited, deleted and undone — with the vehicle
@@ -27,11 +28,11 @@ void main() {
     testWidgets('says what to do when nothing is parked yet', (tester) async {
       await pumpScreen(tester);
       expect(find.byKey(const ValueKey('parking-empty')), findsOneWidget);
-      expect(find.byKey(const ValueKey('parking-fab')), findsOneWidget);
+      expect(addButton('parking-fab', 'parking-empty-add'), findsOneWidget);
       // The first action lives in the empty state itself, not only on the
       // floating button.
       expect(find.byKey(const ValueKey('parking-empty-add')), findsOneWidget);
-      expect(find.text('Parked here'), findsNWidgets(2));
+      expect(find.text('Parked here'), findsOneWidget);
     });
 
     testWidgets('the empty state button parks a car', (tester) async {
@@ -68,7 +69,7 @@ void main() {
 
     testWidgets('without a place it says so and saves nothing', (tester) async {
       final h = await pumpScreen(tester);
-      await tester.tap(find.byKey(const ValueKey('parking-fab')));
+      await tester.tap(addButton('parking-fab', 'parking-empty-add'));
       await tester.pumpAndSettle();
       // Something is written, so leaving would lose work — but a place
       // is still missing, and saving says so.
@@ -362,7 +363,7 @@ void main() {
   group('the editor', () {
     testWidgets('a broken paid time is told in full words', (tester) async {
       await pumpScreen(tester);
-      await tester.tap(find.byKey(const ValueKey('parking-fab')));
+      await tester.tap(addButton('parking-fab', 'parking-empty-add'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('parking-field-place')),
@@ -418,7 +419,7 @@ void main() {
 
     testWidgets('Today writes the date zero padded', (tester) async {
       await pumpScreen(tester);
-      await tester.tap(find.byKey(const ValueKey('parking-fab')));
+      await tester.tap(addButton('parking-fab', 'parking-empty-add'));
       await tester.pumpAndSettle();
       final chip = find.byKey(const ValueKey('parking-today'));
       await Scrollable.ensureVisible(tester.element(chip), alignment: 0.4);
@@ -492,7 +493,7 @@ Future<void> _create(
   String expiry = '',
   bool expectSave = true,
 }) async {
-  await tester.tap(find.byKey(const ValueKey('parking-fab')));
+  await tester.tap(addButton('parking-fab', 'parking-empty-add'));
   await tester.pumpAndSettle();
   if (vehicle.isNotEmpty) {
     await tester.enterText(

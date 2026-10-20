@@ -29,6 +29,11 @@ const warrantyStrings = NexModuleStrings(
     'point4': 'Nothing leaves this phone',
 
     // The list.
+    'heroEyebrow': 'Coverage',
+    'heroCovered': '{count} covered',
+    'heroNoneCovered': 'Nothing covered',
+    'heroExpiring': '{count} ending soon',
+    'heroExpired': '{count} ended',
     'emptyMessage': 'Add your first purchase and its coverage.',
     'add': 'Add a purchase',
     'active': 'Covered',
@@ -153,6 +158,11 @@ const warrantyStrings = NexModuleStrings(
     'point4': 'هیچ چیزی از این گوشی بیرون نمی‌رود',
 
     // فهرست.
+    'heroEyebrow': 'پوشش',
+    'heroCovered': '{count} در پوشش',
+    'heroNoneCovered': 'چیزی در پوشش نیست',
+    'heroExpiring': '{count} به‌زودی تمام می‌شود',
+    'heroExpired': '{count} تمام شده',
     'emptyMessage': 'اولین خرید و گارانتی‌اش را اضافه کنید.',
     'add': 'افزودن خرید',
     'active': 'دارای گارانتی',

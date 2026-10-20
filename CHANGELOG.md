@@ -34,9 +34,18 @@ Working convention:
 
 ## Unreleased
 
-## v2.1.13
+## v2.1.14
+
+- **A face for every module.** Each module's page now opens with one large, calm statement in its own colour — "12 days free", "2/3 checked today", the gold estimate, what is due — instead of a plain list.
+- **Quit Habits asks less.** A new habit asks only what you are quitting and when it started. The amounts, price, goal and reason wait behind one button, for whenever you want them.
+- **Tap outside to close.** Form sheets — adding an occasion, a habit, a payment and the like — now close when you tap the dimmed area above them, like every other sheet. If you have typed something, they still ask before discarding it.
+- **Expenses, Gold, Words, Parking, Medicine, Warranty and Maintenance are available.** The last seven modules are out of Soon: add them from **Tools → Add modules**. Each was checked page by page; no new ones are Soon.
+- **Dates you type show in your calendar.** Where you type a date in a module, a line under it reads that day back in your own calendar (a Jalali reader sees the Jalali date). **Expenses** shows the Jalali span of the month you are looking at.
+- **Pages with nothing yet have one button.** The empty Expenses, Words, Parking, Medicine, Warranty and Maintenance pages show a single button instead of a button and a floating one.
 - **Forms no longer hide under the keyboard.** Every sheet that opens over the keyboard — in the modules and the rest of the app — now lifts above it, so each field can be reached and the form completed.
 - **Lent & Borrowed.** On the second tab, a swipe returns to the first; the next swipe goes back.
+
+## v2.1.13
 
 - **Birthdays & occasions.** A new module for the dates you do not want to miss — birthdays, anniversaries, remembrances. Each date repeats in its own calendar, so a Jalali birthday comes back on the same Jalali day every year. You see a countdown, the age it comes to (when you know the year), the day in both calendars, a greeting to copy or share, and an optional reminder ahead of the day. Nothing is sent for you and no contacts are read. Add it from **Tools → Add modules**.
 - **Habits.** A calendar of every month, in your own calendar: tap any day up to today to mark it, tap again to take it back. A new **How often** panel shows the days you kept it out of the days since you started.

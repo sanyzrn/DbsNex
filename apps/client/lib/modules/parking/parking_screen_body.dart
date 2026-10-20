@@ -86,14 +86,17 @@ extension _ParkingScreenBody on _ParkingScreenState {
               ],
             )
           : _list(context, strings, active, history, searching),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('parking-fab'),
-        onPressed: _busy || _loading || _loadFailed
-            ? null
-            : () => unawaited(_newParking()),
-        label: Text(strings(context, 'parkedHere')),
-        icon: const Icon(Icons.local_parking_outlined),
-      ),
+      // One primary action per page: with nothing yet it is the button in
+      // the empty state, not a second one floating beside it.
+      floatingActionButton:
+          _loading || _loadFailed || (_sessions.isEmpty && _places.isEmpty)
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('parking-fab'),
+              onPressed: _busy ? null : () => unawaited(_newParking()),
+              label: Text(strings(context, 'parkedHere')),
+              icon: const Icon(Icons.local_parking_outlined),
+            ),
     );
   }
 
@@ -134,6 +137,19 @@ extension _ParkingScreenBody on _ParkingScreenState {
       NexSpacing.xl,
     ),
     children: [
+      if (!searching) ...[
+        NexModuleHero(
+          key: const ValueKey('parking-hero'),
+          moduleId: 'parking',
+          icon: Icons.local_parking_outlined,
+          eyebrow: strings(context, 'heroEyebrow'),
+          headline: active.isEmpty
+              ? strings(context, 'heroNone')
+              : strings(context, 'heroParked', {'count': active.length}),
+          caption: strings(context, 'heroCaption'),
+        ),
+        const SizedBox(height: NexSpacing.md),
+      ],
       if (_searching && _queries.isNotEmpty) ...[
         NexShelfHeading(
           icon: Icons.manage_search,

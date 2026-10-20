@@ -203,6 +203,26 @@ class _OccasionsScreenState extends State<OccasionsScreen>
               NexSpacing.xl * 3 + nexBottomInset(context),
             ),
             children: [
+              NexModuleHero(
+                key: const ValueKey('occasions-hero'),
+                moduleId: 'occasions',
+                icon: Icons.cake_outlined,
+                eyebrow: strings(context, 'heroEyebrow'),
+                headline: sections[0].$2.isNotEmpty
+                    ? strings(context, 'heroToday', {
+                        'n': sections[0].$2.length,
+                      })
+                    : dated.isEmpty
+                    ? strings(context, 'heroNone')
+                    : strings(context, 'heroNext', {
+                        'n': daysUntil(today, dated.first.$2.date),
+                      }),
+                chips: [
+                  if (sections[1].$2.isNotEmpty)
+                    strings(context, 'heroWeek', {'n': sections[1].$2.length}),
+                ],
+              ),
+              const SizedBox(height: NexSpacing.md),
               for (final (key, rows) in sections)
                 if (rows.isNotEmpty) ...[
                   NexShelfHeading(

@@ -58,6 +58,22 @@ extension _MedicineScreenBody on _MedicineScreenState {
                 NexSpacing.xl,
               ),
               children: [
+                NexModuleHero(
+                  key: const ValueKey('medicine-hero'),
+                  moduleId: 'medicine',
+                  icon: Icons.medication_outlined,
+                  eyebrow: strings(context, 'heroEyebrow'),
+                  headline: nexDigits(
+                    strings(
+                      context,
+                      active.length == 1 ? 'heroOne' : 'heroCount',
+                      {'count': active.length},
+                    ),
+                    persian: NexModuleStrings.persian(context),
+                  ),
+                  caption: strings(context, 'heroCaption'),
+                ),
+                const SizedBox(height: NexSpacing.md),
                 for (final record in active)
                   _MedicineRow(
                     record: record,
@@ -102,14 +118,14 @@ extension _MedicineScreenBody on _MedicineScreenState {
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('medicine-fab'),
-        onPressed: _busy || _loading || _loadFailed
-            ? null
-            : () => unawaited(_add()),
-        label: Text(strings(context, 'addMedicine')),
-        icon: const Icon(Icons.medication_outlined),
-      ),
+      floatingActionButton: _loading || _loadFailed || _medicines.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('medicine-fab'),
+              onPressed: _busy ? null : () => unawaited(_add()),
+              label: Text(strings(context, 'addMedicine')),
+              icon: const Icon(Icons.medication_outlined),
+            ),
     );
   }
 }

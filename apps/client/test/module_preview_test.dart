@@ -23,19 +23,10 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test(
-    'the reviewed add-ons are Habits, Price Lens, Lent & Borrowed, Quit Habits and Occasions',
-    () {
-      expect(reviewed, {
-        'habits',
-        'price_lens',
-        'lent_borrowed',
-        'smoke_free',
-        'occasions',
-      });
-      expect(paused, hasLength(7));
-    },
-  );
+  test('every add-on is reviewed and available; none is left Soon', () {
+    expect(reviewed, moduleIds);
+    expect(paused, isEmpty);
+  });
 
   test('all modules default off, including the twelve add-ons', () {
     expect(moduleIds, hasLength(12));
@@ -89,44 +80,41 @@ void main() {
   );
 
   for (final locale in ['en', 'fa']) {
-    testWidgets(
-      'reviewed add-ons have a Tools entry, paused ones stay stored without ($locale)',
-      (tester) async {
-        for (final id in moduleIds) {
-          await harness.preferences.setModuleOn(id, true);
-        }
-        tester.view.physicalSize = const Size(400, 900);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.reset);
-        await tester.pumpWidget(
-          MaterialApp(
-            locale: Locale(locale),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            theme: locale == 'fa'
-                ? nexDarkTheme(liquidGlass: true)
-                : nexLightTheme(),
-            home: ToolsScreen(
-              services: harness.services,
-              preferences: harness.preferences,
-            ),
+    testWidgets('every add-on has a Tools entry ($locale)', (tester) async {
+      for (final id in moduleIds) {
+        await harness.preferences.setModuleOn(id, true);
+      }
+      tester.view.physicalSize = const Size(400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: Locale(locale),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: locale == 'fa'
+              ? nexDarkTheme(liquidGlass: true)
+              : nexLightTheme(),
+          home: ToolsScreen(
+            services: harness.services,
+            preferences: harness.preferences,
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        nexModulesOn(harness.preferences).map((m) => m.id).toSet(),
+        reviewed,
+      );
+      for (final id in moduleIds) {
+        expect(harness.preferences.isModuleOn(id), isTrue);
         expect(
-          nexModulesOn(harness.preferences).map((m) => m.id).toSet(),
-          reviewed,
+          find.byKey(ValueKey('tool-module.$id')),
+          reviewed.contains(id) ? findsOneWidget : findsNothing,
         );
-        for (final id in moduleIds) {
-          expect(harness.preferences.isModuleOn(id), isTrue);
-          expect(
-            find.byKey(ValueKey('tool-module.$id')),
-            reviewed.contains(id) ? findsOneWidget : findsNothing,
-          );
-        }
-        expect(tester.takeException(), isNull);
-        expect(await harness.services.timeline(), isEmpty);
-      },
-    );
+      }
+      expect(tester.takeException(), isNull);
+      expect(await harness.services.timeline(), isEmpty);
+    });
   }
 }

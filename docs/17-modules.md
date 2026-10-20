@@ -15,10 +15,12 @@ adding it back finds everything where it was, or to delete it.
 
 ## Rollout (paused from 2.1.1, resumed one module at a time)
 
-Cycle, Habits, Price Lens, Lent & Borrowed, Quit Habits and Birthdays &
-occasions are available (2.1.11–2.1.13), listed in `nexAvailableModuleIds`. The other seven stored add-ons remain compiled
-and registered but appear as Soon plans without add/open/remove controls.
-Their records and saved installation flags are unchanged. `NexModule.available`
+Every stored module is available as of 2.1.14: Cycle, Habits, Price Lens,
+Lent & Borrowed, Quit Habits and Birthdays & occasions (2.1.11–2.1.13), then
+Expenses, Gold, Words, Parking, Medicine, Warranty and Maintenance, all listed
+in `nexAvailableModuleIds`. A module that is not in that list stays compiled
+and registered but appears as a Soon plan without add/open/remove controls,
+with its records and saved installation flags unchanged. `NexModule.available`
 controls rollout independently of `isOn`; `nexModulesOn` applies both gates,
 so Tools and pinned tools cannot open a paused module. Re-enable each add-on
 only after its review. Newly planned modules also use the Soon badge.

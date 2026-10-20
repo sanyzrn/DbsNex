@@ -26,6 +26,10 @@ const medicineStrings = NexModuleStrings(
     'point4': 'Nothing medical is decided',
 
     // The list.
+    'heroEyebrow': 'Your cabinet',
+    'heroCount': '{count} medicines',
+    'heroOne': '1 medicine',
+    'heroCaption': 'Stock and expiry, in your own numbers.',
     'emptyMessage': 'Add your first medicine — a name is enough to begin.',
     'addMedicine': 'Add a medicine',
     'archived': 'Archived',
@@ -133,6 +137,10 @@ const medicineStrings = NexModuleStrings(
     'point4': 'هیچ تصمیم پزشکی گرفته نمی‌شود',
 
     // فهرست.
+    'heroEyebrow': 'جعبهٔ شما',
+    'heroCount': '{count} دارو',
+    'heroOne': '۱ دارو',
+    'heroCaption': 'موجودی و انقضا، با اعداد خودتان.',
     'emptyMessage':
         'اولین دارو را اضافه کنید — همین که نامش را بنویسید کافی است.',
     'addMedicine': 'افزودن دارو',

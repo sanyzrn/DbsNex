@@ -110,6 +110,8 @@ class _QuitHomeScreenState extends State<QuitHomeScreen>
                 ),
                 children: [
                   if (running.isNotEmpty) ...[
+                    _QuitHero(running: running),
+                    const SizedBox(height: NexSpacing.md),
                     NexShelfHeading(
                       icon: Icons.self_improvement_outlined,
                       title: strings(context, 'activeHeading'),
@@ -210,6 +212,56 @@ class _HabitTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The page's one statement: the longest run among what is being quit right
+/// now, in the module's own colour.
+class _QuitHero extends StatelessWidget {
+  const _QuitHero({required this.running});
+
+  final List<QuitAttempt> running;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = smokeFreeStrings;
+    final persian = NexModuleStrings.persian(context);
+    final now = DateTime.now();
+    var best = running.first;
+    var bestDays = SmokeMath.progress(best, now).days;
+    for (final a in running.skip(1)) {
+      final days = SmokeMath.progress(a, now).days;
+      if (days > bestDays) {
+        best = a;
+        bestDays = days;
+      }
+    }
+    final progress = SmokeMath.progress(best, now);
+    final days = bestDays < 0 ? 0 : bestDays;
+    return NexModuleHero(
+      key: const ValueKey('quit-hero'),
+      moduleId: 'smoke_free',
+      icon: quitPresetOf(best.habit).icon,
+      eyebrow: strings(context, 'heroEyebrow'),
+      headline: days == 0
+          ? strings(context, 'heroDayOne')
+          : localDigits(strings(context, 'heroDays', {'days': days}), persian),
+      caption: strings(context, 'heroWithout', {
+        'habit': quitWithout(context, best),
+      }),
+      chips: [
+        if (best.pricePerPackMinor > 0 &&
+            progress.moneySavedMinor > BigInt.zero)
+          strings(context, 'moneySaved', {
+            'money': formatExactMoney(
+              progress.moneySavedMinor,
+              best.currency,
+              best.digits,
+              persian,
+            ),
+          }),
+      ],
     );
   }
 }

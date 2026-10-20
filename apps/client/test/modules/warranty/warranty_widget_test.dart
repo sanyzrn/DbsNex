@@ -5,6 +5,7 @@ import 'package:nex_client/modules/warranty/warranty_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/add_button.dart';
 
 /// The warranties screen, used the way a person uses it: a purchase
 /// added with a duration, searched, sorted, edited, archived, deleted and
@@ -24,7 +25,7 @@ void main() {
     testWidgets('says what to do when nothing is on file', (tester) async {
       await pumpWarranty(tester);
       expect(find.byKey(const ValueKey('warranty-empty')), findsOneWidget);
-      expect(find.byKey(const ValueKey('warranty-fab')), findsOneWidget);
+      expect(addButton('warranty-fab', 'warranty-empty-add'), findsOneWidget);
       // The empty state carries its own first action, not only the button
       // below it.
       expect(find.byKey(const ValueKey('warranty-empty-add')), findsOneWidget);
@@ -63,7 +64,7 @@ void main() {
       tester,
     ) async {
       await pumpWarranty(tester);
-      await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+      await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
       await scrollWarrantyTo(
         tester,
@@ -112,7 +113,7 @@ void main() {
       tester,
     ) async {
       final h = await pumpWarranty(tester);
-      await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+      await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
       await _tapSave(tester);
       expect(find.text('Write what the product is.'), findsOneWidget);
@@ -121,7 +122,7 @@ void main() {
 
     testWidgets('a purchase date is required', (tester) async {
       final h = await pumpWarranty(tester);
-      await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+      await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('warranty-field-product')),
@@ -300,7 +301,7 @@ Future<void> addWarranty(
   String amount = '',
   bool inTomans = false,
 }) async {
-  await tester.tap(find.byKey(const ValueKey('warranty-fab')));
+  await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
   await tester.pumpAndSettle();
   await tester.enterText(
     find.byKey(const ValueKey('warranty-field-product')),

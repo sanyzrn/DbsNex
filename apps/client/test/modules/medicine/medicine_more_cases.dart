@@ -136,7 +136,7 @@ void _registerMedicineMore(
       tester,
     ) async {
       final h = await pumpScreen(tester);
-      await tester.tap(find.byKey(const ValueKey('medicine-fab')));
+      await tester.tap(addButton('medicine-fab', 'medicine-empty-add'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('medicine-field-name')),
@@ -224,7 +224,7 @@ void _registerMedicineMore(
         locale: const Locale('fa'),
       );
       expect(find.text('جعبه دارو'), findsOneWidget);
-      expect(find.byKey(const ValueKey('medicine-fab')), findsOneWidget);
+      expect(addButton('medicine-fab', 'medicine-empty-add'), findsOneWidget);
       expect(
         Directionality.of(tester.state(find.byType(Scaffold)).context),
         TextDirection.rtl,
@@ -254,7 +254,7 @@ void _registerMedicineMore(
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('medicine-fab')), findsOneWidget);
+      expect(addButton('medicine-fab', 'medicine-empty-add'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

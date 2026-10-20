@@ -48,6 +48,10 @@ String nexModuleDateLabel(BuildContext context, DateTime date) =>
 
 /// Existing civil text entry remains available. The calendar button lets a
 /// person choose a Jalali day without changing record formats or parsers.
+///
+/// The text is the civil (Gregorian) date the record keeps. For a reader on the
+/// Jalali calendar the same day is written under the field, so a typed
+/// «2026/10/20» is never the only thing they have to go on.
 class NexModuleDateEntry extends StatelessWidget {
   const NexModuleDateEntry({
     super.key,
@@ -58,43 +62,80 @@ class NexModuleDateEntry extends StatelessWidget {
   final TextEditingController controller;
   final Widget child;
   final bool hyphenated;
+
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(child: child),
-      // Beside the field, not under it: a calendar button on a row
-      // of its own read as belonging to nothing, and cost every form 48dp.
-      Padding(
-        padding: const EdgeInsetsDirectional.only(start: NexSpacing.xs, top: 4),
-        child: IconButton(
-          tooltip: MaterialLocalizations.of(context).datePickerHelpText,
-          icon: const Icon(Icons.calendar_month_outlined),
-          onPressed: () async {
-            final parsed = DateTime.tryParse(
-              controller.text.replaceAll('/', '-'),
+  Widget build(BuildContext context) {
+    final row = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: child),
+        // Beside the field, not under it: a calendar button on a row
+        // of its own read as belonging to nothing, and cost every form 48dp.
+        Padding(
+          padding: const EdgeInsetsDirectional.only(
+            start: NexSpacing.xs,
+            top: 4,
+          ),
+          child: IconButton(
+            tooltip: MaterialLocalizations.of(context).datePickerHelpText,
+            icon: const Icon(Icons.calendar_month_outlined),
+            onPressed: () async {
+              final parsed = DateTime.tryParse(
+                controller.text.replaceAll('/', '-'),
+              );
+              final first = DateTime(1900), last = DateTime(2100, 12, 31);
+              final candidate = parsed ?? DateTime.now();
+              final picked = await nexPickModuleDate(
+                context,
+                initial: candidate.isBefore(first)
+                    ? first
+                    : candidate.isAfter(last)
+                    ? last
+                    : candidate,
+                first: first,
+                last: last,
+              );
+              if (picked == null || !context.mounted) return;
+              final separator = hyphenated ? '-' : '/';
+              controller.text =
+                  '${picked.year}$separator${picked.month.toString().padLeft(2, '0')}$separator${picked.day.toString().padLeft(2, '0')}';
+            },
+          ),
+        ),
+      ],
+    );
+    if (!NexModuleCalendar.solarOf(context)) return row;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        row,
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            final day = DateTime.tryParse(
+              value.text.trim().replaceAll('/', '-'),
             );
-            final first = DateTime(1900), last = DateTime(2100, 12, 31);
-            final candidate = parsed ?? DateTime.now();
-            final picked = await nexPickModuleDate(
-              context,
-              initial: candidate.isBefore(first)
-                  ? first
-                  : candidate.isAfter(last)
-                  ? last
-                  : candidate,
-              first: first,
-              last: last,
+            if (day == null || day.year < 1900 || day.year > 2100) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsetsDirectional.only(
+                start: NexSpacing.md,
+                top: NexSpacing.xs,
+              ),
+              child: Text(
+                nexModuleDateLabel(context, day),
+                key: const ValueKey('module-date-solar'),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
             );
-            if (picked == null || !context.mounted) return;
-            final separator = hyphenated ? '-' : '/';
-            controller.text =
-                '${picked.year}$separator${picked.month.toString().padLeft(2, '0')}$separator${picked.day.toString().padLeft(2, '0')}';
           },
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 const _gregorianMonthsEn = [

@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/smoke_free/smoke_free_screen.dart';
 
 import '../../support/nex_harness.dart';
+import 'quit_details.dart';
 
 /// The smoke-free module end to end: setup, dashboard estimates, cravings
 /// logged and edited and deleted with Undo, lapses that keep history, and
@@ -49,6 +50,7 @@ void main() {
   }) async {
     await tester.tap(find.byKey(const ValueKey('smoke-start')));
     await tester.pumpAndSettle();
+    await openQuitDetails(tester);
     // The sheet is taller than the test surface; bring each field in.
     await tester.enterText(
       find.byKey(const ValueKey('smoke-field-days')),
@@ -124,6 +126,7 @@ void main() {
       await pumpScreen(tester);
       await tester.tap(find.byKey(const ValueKey('smoke-start')));
       await tester.pumpAndSettle();
+      await openQuitDetails(tester);
       await tester.enterText(
         find.byKey(const ValueKey('smoke-field-days')),
         '-3',
@@ -277,6 +280,7 @@ void main() {
       // Starting again works from here.
       await tester.tap(find.byKey(const ValueKey('smoke-start')));
       await tester.pumpAndSettle();
+      await openQuitDetails(tester);
       expect(find.byKey(const ValueKey('smoke-field-days')), findsOneWidget);
     });
 
@@ -404,6 +408,7 @@ void main() {
     final store = await pumpScreen(tester);
     await tester.tap(find.byKey(const ValueKey('smoke-start')));
     await tester.pumpAndSettle();
+    await openQuitDetails(tester);
     await tester.ensureVisible(
       find.byKey(const ValueKey('smoke-field-currency')),
     );
