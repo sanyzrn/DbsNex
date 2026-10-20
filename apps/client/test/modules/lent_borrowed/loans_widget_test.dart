@@ -7,6 +7,7 @@ import 'package:nex_client/modules/lent_borrowed/loan_model.dart';
 import 'package:nex_client/modules/lent_borrowed/loans_screen.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/more_details.dart';
 
 /// The lent & borrowed module end to end: both directions kept apart,
 /// partial returns that never over-repay, edits that never wipe history,
@@ -57,6 +58,7 @@ void main() {
   }) async {
     await tester.tap(find.byKey(const ValueKey('loans-new')));
     await tester.pumpAndSettle();
+    await openMoreDetails(tester, 'loan-more-toggle');
     if (borrowed) {
       await tester.tap(find.byKey(const ValueKey('loan-field-direction')));
       await tester.pumpAndSettle();
@@ -173,6 +175,7 @@ void main() {
       await pumpScreen(tester);
       await tester.tap(find.byKey(const ValueKey('loans-new')));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'loan-more-toggle');
       final save = find.byKey(const ValueKey('loan-save'));
       await tester.ensureVisible(save);
       await tester.pumpAndSettle();
@@ -186,6 +189,7 @@ void main() {
       await pumpScreen(tester);
       await tester.tap(find.byKey(const ValueKey('loans-new')));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'loan-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('loan-field-person')),
         'Ali',

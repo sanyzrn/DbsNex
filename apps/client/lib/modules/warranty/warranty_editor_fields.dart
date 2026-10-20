@@ -23,8 +23,15 @@ class WarrantyIdentityFields extends StatelessWidget {
     required this.serial,
     required this.merchant,
     this.productRequired,
+    this.showProduct = true,
+    this.showMore = true,
   });
 
+  /// Which half to draw: the product alone, or everything else about it
+  /// (category, brand, model, merchant, serial) — the editor keeps the second
+  /// behind "more details".
+  final bool showProduct;
+  final bool showMore;
   final TextEditingController product;
   final TextEditingController category;
   final TextEditingController brand;
@@ -39,62 +46,65 @@ class WarrantyIdentityFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        WarrantyFields.line(
-          fieldKey: const ValueKey('warranty-field-product'),
-          controller: product,
-          label: strings(context, 'product'),
-          hint: strings(context, 'productHint'),
-          helper: productRequired != null && product.text.trim().isEmpty
-              ? productRequired
-              : null,
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        Row(
-          children: [
-            Expanded(
-              child: WarrantyFields.line(
-                fieldKey: const ValueKey('warranty-field-category'),
-                controller: category,
-                label: strings(context, 'category'),
+        if (showProduct)
+          WarrantyFields.line(
+            fieldKey: const ValueKey('warranty-field-product'),
+            controller: product,
+            label: strings(context, 'product'),
+            hint: strings(context, 'productHint'),
+            helper: productRequired != null && product.text.trim().isEmpty
+                ? productRequired
+                : null,
+          ),
+        if (showMore) ...[
+          const SizedBox(height: NexSpacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: WarrantyFields.line(
+                  fieldKey: const ValueKey('warranty-field-category'),
+                  controller: category,
+                  label: strings(context, 'category'),
+                ),
               ),
-            ),
-            const SizedBox(width: NexSpacing.sm),
-            Expanded(
-              child: WarrantyFields.line(
-                fieldKey: const ValueKey('warranty-field-brand'),
-                controller: brand,
-                label: strings(context, 'brand'),
+              const SizedBox(width: NexSpacing.sm),
+              Expanded(
+                child: WarrantyFields.line(
+                  fieldKey: const ValueKey('warranty-field-brand'),
+                  controller: brand,
+                  label: strings(context, 'brand'),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        Row(
-          children: [
-            Expanded(
-              child: WarrantyFields.line(
-                fieldKey: const ValueKey('warranty-field-model'),
-                controller: model,
-                label: strings(context, 'model'),
+            ],
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: WarrantyFields.line(
+                  fieldKey: const ValueKey('warranty-field-model'),
+                  controller: model,
+                  label: strings(context, 'model'),
+                ),
               ),
-            ),
-            const SizedBox(width: NexSpacing.sm),
-            Expanded(
-              child: WarrantyFields.line(
-                fieldKey: const ValueKey('warranty-field-merchant'),
-                controller: merchant,
-                label: strings(context, 'merchant'),
+              const SizedBox(width: NexSpacing.sm),
+              Expanded(
+                child: WarrantyFields.line(
+                  fieldKey: const ValueKey('warranty-field-merchant'),
+                  controller: merchant,
+                  label: strings(context, 'merchant'),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        WarrantyFields.line(
-          fieldKey: const ValueKey('warranty-field-serial'),
-          controller: serial,
-          label: strings(context, 'serial'),
-          hint: strings(context, 'serialHint'),
-        ),
+            ],
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          WarrantyFields.line(
+            fieldKey: const ValueKey('warranty-field-serial'),
+            controller: serial,
+            label: strings(context, 'serial'),
+            hint: strings(context, 'serialHint'),
+          ),
+        ],
       ],
     );
   }

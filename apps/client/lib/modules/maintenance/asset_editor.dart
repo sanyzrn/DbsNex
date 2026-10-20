@@ -103,6 +103,18 @@ class _AssetEditorSheetState extends State<AssetEditorSheet> {
 
   bool _saving = false;
   bool _dirty = false;
+  // A new asset asks its name, its kind and when it was bought; the model,
+  // how it is counted (km / hours) and notes wait behind one button, which a
+  // saved asset or a filled field opens.
+  bool _more = false;
+
+  bool get _moreOpen =>
+      _more ||
+      widget.existing != null ||
+      _meterKind != MeterKind.none ||
+      _model.text.trim().isNotEmpty ||
+      _notes.text.trim().isNotEmpty;
+
   bool _showErrors = false;
 
   @override
@@ -209,20 +221,6 @@ class _AssetEditorSheetState extends State<AssetEditorSheet> {
                         ],
                       ),
                       const SizedBox(height: NexSpacing.md),
-                      NexAutoDirection(
-                        controller: _model,
-                        builder: (context, direction) => TextField(
-                          key: const ValueKey('maintenance-model'),
-                          controller: _model,
-                          textDirection: direction,
-                          decoration: InputDecoration(
-                            labelText: s(context, 'modelLabel'),
-                            hintText: s(context, 'modelHint'),
-                          ),
-                          onChanged: (_) => _markDirty(),
-                        ),
-                      ),
-                      const SizedBox(height: NexSpacing.md),
                       InkWell(
                         key: const ValueKey('maintenance-purchased'),
                         onTap: () => unawaited(_pickDate()),
@@ -276,75 +274,101 @@ class _AssetEditorSheetState extends State<AssetEditorSheet> {
                           ),
                         ),
                       const SizedBox(height: NexSpacing.md),
-                      Text(
-                        s(context, 'meterKindLabel'),
-                        style: theme.textTheme.labelLarge,
-                      ),
-                      const SizedBox(height: NexSpacing.xs),
-                      Wrap(
-                        key: const ValueKey('maintenance-meterkind'),
-                        spacing: NexSpacing.sm,
-                        runSpacing: NexSpacing.sm,
-                        children: [
-                          for (final kind in MeterKind.values)
-                            MaintenanceTypePill(
-                              type: kind.name,
-                              label: s(
-                                context,
-                                kind == MeterKind.none
-                                    ? 'meterKindNone'
-                                    : kind == MeterKind.distance
-                                    ? 'meterKindDistance'
-                                    : 'meterKindHours',
-                              ),
-                              selected: _meterKind == kind,
-                              onTap: () {
-                                setState(() => _meterKind = kind);
-                                _markDirty();
-                              },
-                            ),
-                        ],
-                      ),
-                      if (_meterKind == MeterKind.distance) ...[
-                        const SizedBox(height: NexSpacing.md),
-                        Text(
-                          s(context, 'distanceUnitLabel'),
-                          style: theme.textTheme.labelLarge,
-                        ),
-                        const SizedBox(height: NexSpacing.xs),
-                        Wrap(
-                          key: const ValueKey('maintenance-distanceunit'),
-                          spacing: NexSpacing.sm,
-                          runSpacing: NexSpacing.sm,
+                      NexMoreDetails(
+                        toggleKey: const ValueKey('maintenance-more-toggle'),
+                        open: _moreOpen,
+                        onChanged: (open) => setState(() => _more = open),
+                        title: s(context, 'moreDetails'),
+                        hint: s(context, 'moreDetailsHint'),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            for (final unit in DistanceUnit.values)
-                              MaintenanceTypePill(
-                                type: unit.name,
-                                label: s(
-                                  context,
-                                  unit == DistanceUnit.km
-                                      ? 'unitKmLabel'
-                                      : 'unitMiLabel',
+                            NexAutoDirection(
+                              controller: _model,
+                              builder: (context, direction) => TextField(
+                                key: const ValueKey('maintenance-model'),
+                                controller: _model,
+                                textDirection: direction,
+                                decoration: InputDecoration(
+                                  labelText: s(context, 'modelLabel'),
+                                  hintText: s(context, 'modelHint'),
                                 ),
-                                selected: _distanceUnit == unit,
-                                onTap: () => unawaited(_changeUnit(unit)),
+                                onChanged: (_) => _markDirty(),
                               ),
+                            ),
+                            const SizedBox(height: NexSpacing.md),
+                            Text(
+                              s(context, 'meterKindLabel'),
+                              style: theme.textTheme.labelLarge,
+                            ),
+                            const SizedBox(height: NexSpacing.xs),
+                            Wrap(
+                              key: const ValueKey('maintenance-meterkind'),
+                              spacing: NexSpacing.sm,
+                              runSpacing: NexSpacing.sm,
+                              children: [
+                                for (final kind in MeterKind.values)
+                                  MaintenanceTypePill(
+                                    type: kind.name,
+                                    label: s(
+                                      context,
+                                      kind == MeterKind.none
+                                          ? 'meterKindNone'
+                                          : kind == MeterKind.distance
+                                          ? 'meterKindDistance'
+                                          : 'meterKindHours',
+                                    ),
+                                    selected: _meterKind == kind,
+                                    onTap: () {
+                                      setState(() => _meterKind = kind);
+                                      _markDirty();
+                                    },
+                                  ),
+                              ],
+                            ),
+                            if (_meterKind == MeterKind.distance) ...[
+                              const SizedBox(height: NexSpacing.md),
+                              Text(
+                                s(context, 'distanceUnitLabel'),
+                                style: theme.textTheme.labelLarge,
+                              ),
+                              const SizedBox(height: NexSpacing.xs),
+                              Wrap(
+                                key: const ValueKey('maintenance-distanceunit'),
+                                spacing: NexSpacing.sm,
+                                runSpacing: NexSpacing.sm,
+                                children: [
+                                  for (final unit in DistanceUnit.values)
+                                    MaintenanceTypePill(
+                                      type: unit.name,
+                                      label: s(
+                                        context,
+                                        unit == DistanceUnit.km
+                                            ? 'unitKmLabel'
+                                            : 'unitMiLabel',
+                                      ),
+                                      selected: _distanceUnit == unit,
+                                      onTap: () => unawaited(_changeUnit(unit)),
+                                    ),
+                                ],
+                              ),
+                            ],
+                            const SizedBox(height: NexSpacing.md),
+                            // The shared multiline editor: the platform's own
+                            // per-paragraph direction on Android (ADR-037).
+                            NexTextField(
+                              key: const ValueKey('maintenance-notes'),
+                              controller: _notes,
+                              minLines: 2,
+                              maxLines: 4,
+                              decoration: InputDecoration(
+                                labelText: s(context, 'notesLabel'),
+                                hintText: s(context, 'notesHint'),
+                              ),
+                              onChanged: (_) => _markDirty(),
+                            ),
                           ],
                         ),
-                      ],
-                      const SizedBox(height: NexSpacing.md),
-                      // The shared multiline editor: the platform's own
-                      // per-paragraph direction on Android (ADR-037).
-                      NexTextField(
-                        key: const ValueKey('maintenance-notes'),
-                        controller: _notes,
-                        minLines: 2,
-                        maxLines: 4,
-                        decoration: InputDecoration(
-                          labelText: s(context, 'notesLabel'),
-                          hintText: s(context, 'notesHint'),
-                        ),
-                        onChanged: (_) => _markDirty(),
                       ),
                     ],
                   ),

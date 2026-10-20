@@ -68,6 +68,25 @@ class _MedicineEditorSheetState extends State<MedicineEditorSheet> {
   late final EditorCheckpoint _session;
   bool _dirty = false;
   bool _showErrors = false;
+  // A new medicine asks its name, strength and package; everything else
+  // waits behind one button — and opens by itself for a saved medicine, for a
+  // draft that already has something in it, or when a save is refused there.
+  bool _more = false;
+
+  bool get _moreOpen =>
+      _more ||
+      widget.existing != null ||
+      _times.isNotEmpty ||
+      [
+        _instructions,
+        _time,
+        _days,
+        _purpose,
+        _quantity,
+        _doseUnits,
+        _expiry,
+        _refill,
+      ].any((c) => c.text.trim().isNotEmpty);
 
   @override
   void initState() {
@@ -183,7 +202,10 @@ class _MedicineEditorSheetState extends State<MedicineEditorSheet> {
         _timeOverflow ||
         _time.text.trim().isNotEmpty && _addTime() == null ||
         expiry == MedicineParse.invalid) {
-      setState(() => _showErrors = true);
+      setState(() {
+        _showErrors = true;
+        _more = true;
+      });
       return;
     }
     if (_time.text.trim().isNotEmpty) _rememberTime(_time.text);

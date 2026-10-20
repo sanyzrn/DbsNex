@@ -87,7 +87,7 @@ class NexModuleHero extends StatelessWidget {
     final accent = nexModuleAccent(context, moduleId);
     final dark = theme.brightness == Brightness.dark;
     final shape = BorderRadius.circular(NexRadius.xl);
-    final card = Semantics(
+    Widget cardAt(double t) => Semantics(
       container: true,
       label: semanticsLabel,
       child: DecoratedBox(
@@ -112,7 +112,7 @@ class NexModuleHero extends StatelessWidget {
                 top: -18,
                 child: ExcludeSemantics(
                   child: Transform.rotate(
-                    angle: -0.22,
+                    angle: -0.22 - (1 - t) * 0.5,
                     child: Icon(
                       icon,
                       size: 132,
@@ -218,20 +218,20 @@ class NexModuleHero extends StatelessWidget {
         ),
       ),
     );
-    // Arrives with a short rise and fade — and not at all when the person
-    // has asked the system to remove animations.
+    // Arrives with a short rise and fade, the big icon behind it turning into
+    // place — and not at all when the person has asked the system to remove
+    // animations.
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: NexMotion.of(context, NexMotion.enter),
       curve: NexMotion.curve,
-      builder: (context, t, child) => Opacity(
+      builder: (context, t, _) => Opacity(
         opacity: t,
         child: Transform.translate(
           offset: Offset(0, (1 - t) * 12),
-          child: child,
+          child: cardAt(t),
         ),
       ),
-      child: card,
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
 import '../../support/add_button.dart';
+import '../../support/more_details.dart';
 
 /// The parking screen, used the way a person uses it: empty at first, a
 /// parking saved, found, edited, deleted and undone — with the vehicle
@@ -39,6 +40,7 @@ void main() {
       final h = await pumpScreen(tester);
       await tester.tap(find.byKey(const ValueKey('parking-empty-add')));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'parking-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('parking-field-place')),
         'Saba mall',
@@ -71,6 +73,7 @@ void main() {
       final h = await pumpScreen(tester);
       await tester.tap(addButton('parking-fab', 'parking-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'parking-more-toggle');
       // Something is written, so leaving would lose work — but a place
       // is still missing, and saving says so.
       await tester.enterText(
@@ -365,6 +368,7 @@ void main() {
       await pumpScreen(tester);
       await tester.tap(addButton('parking-fab', 'parking-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'parking-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('parking-field-place')),
         'North lot',
@@ -421,6 +425,7 @@ void main() {
       await pumpScreen(tester);
       await tester.tap(addButton('parking-fab', 'parking-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'parking-more-toggle');
       final chip = find.byKey(const ValueKey('parking-today'));
       await Scrollable.ensureVisible(tester.element(chip), alignment: 0.4);
       await tester.pumpAndSettle();
@@ -495,6 +500,7 @@ Future<void> _create(
 }) async {
   await tester.tap(addButton('parking-fab', 'parking-empty-add'));
   await tester.pumpAndSettle();
+  await openMoreDetails(tester, 'parking-more-toggle');
   if (vehicle.isNotEmpty) {
     await tester.enterText(
       find.byKey(const ValueKey('parking-field-vehicle')),

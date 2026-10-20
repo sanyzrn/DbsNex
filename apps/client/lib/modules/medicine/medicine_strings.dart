@@ -111,6 +111,8 @@ const medicineStrings = NexModuleStrings(
     'discard': 'Leave',
     'keepWriting': 'Keep writing',
     'saveFailed': 'Could not save. Nothing was lost — try again.',
+    'moreDetails': 'Times, stock and expiry',
+    'moreDetailsHint': 'All optional — you can add them later.',
     'safetyNote':
         'This app does not check doses, interactions or timing. Your '
         'clinician or pharmacist is the source for medical instructions.',
@@ -223,6 +225,8 @@ const medicineStrings = NexModuleStrings(
     'discard': 'خروج',
     'keepWriting': 'ادامه بدهم',
     'saveFailed': 'ذخیره نشد. چیزی از دست نرفت — دوباره تلاش کنید.',
+    'moreDetails': 'ساعت‌ها، موجودی و انقضا',
+    'moreDetailsHint': 'همه اختیاری است؛ بعداً هم می‌شود افزود.',
     'safetyNote':
         'این برنامه دوز، تداخل یا زمان را بررسی نمی‌کند. منبعِ دستورهای '
         'پزشکی، پزشک یا داروساز شماست.',

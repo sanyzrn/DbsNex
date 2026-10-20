@@ -59,6 +59,10 @@ jobs:
       # `flutter analyze` does not already catch, and that build is four of
       # the nine minutes client-android costs.
       android: ${{ steps.filter.outputs.android }}
+      # Whether the add-on modules' own suite (apps/client/test/modules, about
+      # half of the client's test time) could be affected. Pull requests only:
+      # a release always runs it, via workflow_call.
+      modules: ${{ steps.filter.outputs.modules }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -74,6 +78,7 @@ jobs:
               echo "backend=true"
               echo "desktop=true"
               echo "android=true"
+              echo "modules=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -102,6 +107,7 @@ jobs:
               echo "backend=true"
               echo "desktop=true"
               echo "android=true"
+              echo "modules=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -117,6 +123,7 @@ jobs:
               echo "backend=true"
               echo "desktop=true"
               echo "android=true"
+              echo "modules=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -135,6 +142,12 @@ jobs:
           # obvious; every pubspec is here too because adding or bumping a
           # dependency can pull in a native plugin, which is exactly the kind
           # of break that compiles fine and fails at assemble time.
+          # The modules read the shared widgets, platform services, strings and
+          # the UI/data packages; a change anywhere else (a screen, the
+          # assistant, a reader) cannot reach them, and their suite is the
+          # longest part of the client's run.
+          MODULES=false
+          match '^apps/client/(lib/modules/|test/modules/|lib/widgets/|lib/platform/|lib/l10n/|test/support/|pubspec\.(yaml|lock)|dart_test\.yaml)|^packages/|^\.fvmrc$' && MODULES=true
           match '^apps/client/android/' && ANDROID=true
           match '(^|/)pubspec\.(yaml|lock)$|^\.fvmrc$' && ANDROID=true
           {
@@ -142,6 +155,7 @@ jobs:
             echo "backend=$BACKEND"
             echo "desktop=$DESKTOP"
             echo "android=$ANDROID"
+            echo "modules=$MODULES"
           } >> "$GITHUB_OUTPUT"
 
   dart-packages:
@@ -380,7 +394,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - run: flutter pub get
       - run: flutter analyze --fatal-infos
-      - run: flutter test
+      # Everything, unless this is a pull request that cannot reach the
+      # modules' suite (see the `modules` output): then that directory is left
+      # out. A release calls this workflow and always runs it all.
+      - name: flutter test
+        env:
+          RUN_MODULES: ${{ needs.changes.outputs.modules }}
+        run: |
+          if [ "$RUN_MODULES" = "true" ]; then
+            flutter test
+          else
+            echo "modules untouched: skipping test/modules"
+            flutter test $(find test -name '*_test.dart' -not -path 'test/modules/*' | sort)
+          fi
       # --flavor is required once flavorDimensions is defined (ADR-031);
       # "standard" is the AI-free default, matching what this job always
       # built before flavors existed.

@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../support/in_process_db.dart';
 import '../../support/nex_harness.dart';
 import '../../support/add_button.dart';
+import '../../support/more_details.dart';
 
 /// How the parking screen holds up: Persian right to left, dark, large
 /// text, a small phone, the paid-time states, the honest words about
@@ -115,6 +116,7 @@ void main() {
       await _withScreen(tester, (h) async {
         await tester.tap(addButton('parking-fab', 'parking-empty-add'));
         await tester.pumpAndSettle();
+        await openMoreDetails(tester, 'parking-more-toggle');
         expect(find.textContaining('Only if you know them.'), findsOneWidget);
         // Nothing on this screen offers to find the position.
         expect(find.byIcon(Icons.my_location), findsNothing);
@@ -195,6 +197,7 @@ Future<void> _create(
 }) async {
   await tester.tap(addButton('parking-fab', 'parking-empty-add'));
   await tester.pumpAndSettle();
+  await openMoreDetails(tester, 'parking-more-toggle');
   await tester.enterText(
     find.byKey(const ValueKey('parking-field-place')),
     place,

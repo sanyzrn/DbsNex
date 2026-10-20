@@ -6,6 +6,7 @@ import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
 import '../../support/add_button.dart';
+import '../../support/more_details.dart';
 
 /// The warranties screen, used the way a person uses it: a purchase
 /// added with a duration, searched, sorted, edited, archived, deleted and
@@ -35,6 +36,7 @@ void main() {
       final h = await pumpWarranty(tester);
       await tester.tap(find.byKey(const ValueKey('warranty-empty-add')));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('warranty-field-product')),
         'Kettle',
@@ -66,6 +68,7 @@ void main() {
       await pumpWarranty(tester);
       await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       await scrollWarrantyTo(
         tester,
         find.byKey(const ValueKey('warranty-today')),
@@ -115,6 +118,7 @@ void main() {
       final h = await pumpWarranty(tester);
       await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       await _tapSave(tester);
       expect(find.text('Write what the product is.'), findsOneWidget);
       expect(await h.services.moduleRecords('warranty', 'warranty'), isEmpty);
@@ -124,6 +128,7 @@ void main() {
       final h = await pumpWarranty(tester);
       await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'warranty-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('warranty-field-product')),
         'Kettle',
@@ -303,6 +308,7 @@ Future<void> addWarranty(
 }) async {
   await tester.tap(addButton('warranty-fab', 'warranty-empty-add'));
   await tester.pumpAndSettle();
+  await openMoreDetails(tester, 'warranty-more-toggle');
   await tester.enterText(
     find.byKey(const ValueKey('warranty-field-product')),
     product,
@@ -360,6 +366,13 @@ Future<void> addWarranty(
 /// Drags the sheet's list until [finder] is actually tappable —
 /// `ensureVisible` can leave a button half under the screen edge.
 Future<void> scrollWarrantyTo(WidgetTester tester, Finder finder) async {
+  // The sheet is one plain scroll view, so it can bring the target into view
+  // itself; a short drag after that clears a button left half under the
+  // screen edge.
+  if (finder.evaluate().isNotEmpty) {
+    await tester.ensureVisible(finder);
+    await tester.pumpAndSettle();
+  }
   final sheetList = find
       .descendant(
         of: find.byType(SingleChildScrollView),
@@ -368,7 +381,7 @@ Future<void> scrollWarrantyTo(WidgetTester tester, Finder finder) async {
       .first;
   for (var attempt = 0; attempt < 10; attempt++) {
     if (finder.hitTestable().evaluate().isNotEmpty) break;
-    await tester.drag(sheetList, const Offset(0, -120));
+    await tester.drag(sheetList, const Offset(0, -120), warnIfMissed: false);
     await tester.pumpAndSettle();
   }
 }

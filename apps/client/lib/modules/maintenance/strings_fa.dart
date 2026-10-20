@@ -225,6 +225,8 @@ const _maintenancefa = <String, String>{
   'heroAllGood': 'موعدی نرسیده',
   'heroComing': '{count} در راه',
   'heroAssets': '{count} وسیله',
+  'moreDetails': 'مدل، شمارش و یادداشت',
+  'moreDetailsHint': 'همه اختیاری است؛ بعداً هم می‌شود افزود.',
   'noReminders':
       'موعدها با باز شدن و با هر تغییر دوباره حساب می‌شوند — یادآور '
       'اختیاری است و روی هر دستگاه تنظیم می‌شود',

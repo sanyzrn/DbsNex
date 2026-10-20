@@ -138,6 +138,7 @@ void _registerMedicineMore(
       final h = await pumpScreen(tester);
       await tester.tap(addButton('medicine-fab', 'medicine-empty-add'));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'medicine-more-toggle');
       await tester.enterText(
         find.byKey(const ValueKey('medicine-field-name')),
         'Medicine A',

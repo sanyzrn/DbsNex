@@ -419,92 +419,95 @@ class _SetupSheetState extends State<_SetupSheet> {
                   errorText: _daysError,
                 ),
                 const SizedBox(height: NexSpacing.md),
-                if (!_details)
-                  _DetailsPrompt(
-                    key: const ValueKey('quit-details-toggle'),
-                    title: strings(context, 'addDetails'),
-                    hint: strings(context, 'addDetailsHint'),
-                    onTap: () => setState(() => _details = true),
-                  )
-                else ...[
-                  _NumberField(
-                    key: const ValueKey('smoke-field-perday'),
-                    controller: _perDay,
-                    label: _preset.packs
-                        ? strings(context, 'perDayLabel')
-                        : strings(context, 'perDayUnitsLabel', {
-                            'unit': _unit(context),
-                          }),
-                    errorText: _perDayError,
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                  CurrencyField(
-                    key: const ValueKey('smoke-field-currency'),
-                    value: _currency,
-                    onChanged: _saving
-                        ? null
-                        : (code) => setState(() {
-                            _currency = code;
-                            _digits = moneyDigits(code);
-                            _price.clear();
-                          }),
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                  _NumberField(
-                    decimal: _digits > 0,
-                    suffix: _currency,
-                    key: const ValueKey('smoke-field-price'),
-                    controller: _price,
-                    label: strings(
-                      context,
-                      _preset.packs ? 'priceLabel' : 'unitPriceLabel',
-                    ),
-                    errorText: _priceError,
-                    hint: strings(context, 'amountHint', {
-                      'example': localDigits(
-                        moneyInput(12345, _digits),
-                        NexModuleStrings.persian(context),
+                NexMoreDetails(
+                  toggleKey: const ValueKey('quit-details-toggle'),
+                  open: _details,
+                  onChanged: (open) => setState(() => _details = open),
+                  title: strings(context, 'addDetails'),
+                  hint: strings(context, 'addDetailsHint'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _NumberField(
+                        key: const ValueKey('smoke-field-perday'),
+                        controller: _perDay,
+                        label: _preset.packs
+                            ? strings(context, 'perDayLabel')
+                            : strings(context, 'perDayUnitsLabel', {
+                                'unit': _unit(context),
+                              }),
+                        errorText: _perDayError,
                       ),
-                    }),
+                      const SizedBox(height: NexSpacing.md),
+                      CurrencyField(
+                        key: const ValueKey('smoke-field-currency'),
+                        value: _currency,
+                        onChanged: _saving
+                            ? null
+                            : (code) => setState(() {
+                                _currency = code;
+                                _digits = moneyDigits(code);
+                                _price.clear();
+                              }),
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                      _NumberField(
+                        decimal: _digits > 0,
+                        suffix: _currency,
+                        key: const ValueKey('smoke-field-price'),
+                        controller: _price,
+                        label: strings(
+                          context,
+                          _preset.packs ? 'priceLabel' : 'unitPriceLabel',
+                        ),
+                        errorText: _priceError,
+                        hint: strings(context, 'amountHint', {
+                          'example': localDigits(
+                            moneyInput(12345, _digits),
+                            NexModuleStrings.persian(context),
+                          ),
+                        }),
+                      ),
+                      if (_preset.packs) ...[
+                        const SizedBox(height: NexSpacing.md),
+                        _NumberField(
+                          key: const ValueKey('smoke-field-perpack'),
+                          controller: _perPack,
+                          label: strings(context, 'perPackLabel'),
+                          errorText: _perPackError,
+                        ),
+                      ],
+                      const SizedBox(height: NexSpacing.md),
+                      _NumberField(
+                        key: const ValueKey('quit-field-minutes'),
+                        controller: _minutes,
+                        label: strings(context, 'minutesLabel'),
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                      _NumberField(
+                        key: const ValueKey('quit-field-goal'),
+                        decimal: _digits > 0,
+                        suffix: _currency,
+                        controller: _goal,
+                        label: strings(context, 'goalLabel'),
+                        errorText: _goalError,
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                      NexTextField(
+                        key: const ValueKey('quit-field-why'),
+                        controller: _why,
+                        minLines: 2,
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          labelText: strings(context, 'whyLabel'),
+                          hintText: strings(context, 'whyHint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
                   ),
-                  if (_preset.packs) ...[
-                    const SizedBox(height: NexSpacing.md),
-                    _NumberField(
-                      key: const ValueKey('smoke-field-perpack'),
-                      controller: _perPack,
-                      label: strings(context, 'perPackLabel'),
-                      errorText: _perPackError,
-                    ),
-                  ],
-                  const SizedBox(height: NexSpacing.md),
-                  _NumberField(
-                    key: const ValueKey('quit-field-minutes'),
-                    controller: _minutes,
-                    label: strings(context, 'minutesLabel'),
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                  _NumberField(
-                    key: const ValueKey('quit-field-goal'),
-                    decimal: _digits > 0,
-                    suffix: _currency,
-                    controller: _goal,
-                    label: strings(context, 'goalLabel'),
-                    errorText: _goalError,
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                  NexTextField(
-                    key: const ValueKey('quit-field-why'),
-                    controller: _why,
-                    minLines: 2,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      labelText: strings(context, 'whyLabel'),
-                      hintText: strings(context, 'whyHint'),
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                ],
+                ),
                 const SizedBox(height: NexSpacing.lg),
                 FilledButton(
                   key: const ValueKey('smoke-save'),
@@ -583,58 +586,4 @@ class _NumberField extends StatelessWidget {
 abstract final class SmokeSetupMath {
   static int daysAgoOf(DateTime startedAt, DateTime now) =>
       SmokeMath.elapsedDays(startedAt, now);
-}
-
-/// The one button that opens the optional questions: a calm card saying what
-/// they are for, not a wall of empty fields.
-class _DetailsPrompt extends StatelessWidget {
-  const _DetailsPrompt({
-    super.key,
-    required this.title,
-    required this.hint,
-    required this.onTap,
-  });
-
-  final String title;
-  final String hint;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Material(
-      color: scheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(NexRadius.lg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(NexRadius.lg),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(NexSpacing.md),
-          child: Row(
-            children: [
-              Icon(Icons.tune_outlined, color: scheme.primary),
-              const SizedBox(width: NexSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: theme.textTheme.titleSmall),
-                    const SizedBox(height: 2),
-                    Text(
-                      hint,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.expand_more, color: scheme.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

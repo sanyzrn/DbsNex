@@ -189,7 +189,7 @@ class _HabitTile extends StatelessWidget {
     ];
     return ListTile(
       key: ValueKey('quit-habit-${attempt.key}'),
-      leading: Icon(preset.icon, color: scheme.primary),
+      leading: Icon(preset.icon, color: nexModuleAccent(context, 'smoke_free')),
       title: Text(
         quitHabitLabel(context, attempt),
         style: theme.textTheme.titleSmall,
@@ -215,6 +215,8 @@ class _HabitTile extends StatelessWidget {
     );
   }
 }
+
+const _milestones = [1, 3, 7, 14, 30, 60, 100, 180, 365];
 
 /// The page's one statement: the longest run among what is being quit right
 /// now, in the module's own colour.
@@ -251,6 +253,15 @@ class _QuitHero extends StatelessWidget {
         'habit': quitWithout(context, best),
       }),
       chips: [
+        // The next marker on the way — a goal a few days off is what makes the
+        // next day worth getting to.
+        if (days >= 365)
+          strings(context, 'heroMilestoneDone')
+        else
+          strings(context, 'heroMilestone', {
+            'target': _milestones.firstWhere((m) => m > days),
+            'left': _milestones.firstWhere((m) => m > days) - days,
+          }),
         if (best.pricePerPackMinor > 0 &&
             progress.moneySavedMinor > BigInt.zero)
           strings(context, 'moneySaved', {

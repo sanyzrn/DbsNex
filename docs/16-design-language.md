@@ -139,8 +139,8 @@ no hero, only its one empty-state button. A new module gets a hue in
 ### Forms ask little first
 
 A form that needs more than two or three answers asks for the **minimum** and
-puts the rest behind one button ("Add details (optional)") with a line saying
-what they are for — Quit Habits asks what you are quitting and when, and nothing
+puts the rest behind one button (`NexMoreDetails`, "Add details (optional)")
+with a line saying what they are for — Quit Habits asks what you are quitting and when, and nothing
 about money until you want it. Correcting a saved item opens everything. Nothing
 a person might find private is required to begin.
 

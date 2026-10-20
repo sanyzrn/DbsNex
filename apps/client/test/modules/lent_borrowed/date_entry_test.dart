@@ -6,6 +6,7 @@ import 'package:nex_client/modules/lent_borrowed/loan_dates.dart';
 import 'package:nex_client/modules/lent_borrowed/loan_model.dart';
 
 import '../../support/nex_harness.dart';
+import '../../support/more_details.dart';
 import 'loans_test_tools.dart';
 
 /// The shared Jalali/civil date entry: a calendar button beside every date
@@ -41,6 +42,7 @@ void main() {
     await pumpLoansScreen(tester, harness: harness);
     await tester.tap(find.byKey(const ValueKey('loans-new')));
     await tester.pumpAndSettle();
+    await openMoreDetails(tester, 'loan-more-toggle');
     expect(
       find.byIcon(Icons.calendar_month_outlined),
       findsNWidgets(2),
@@ -64,6 +66,7 @@ void main() {
     await pumpLoansScreen(tester, harness: harness);
     await tester.tap(find.byKey(const ValueKey('loans-new')));
     await tester.pumpAndSettle();
+    await openMoreDetails(tester, 'loan-more-toggle');
     final field = find.descendant(
       of: find.byKey(const ValueKey('loan-issue-date-entry')),
       matching: find.byType(TextField),
@@ -90,6 +93,7 @@ void main() {
     final store = await pumpLoansScreen(tester, harness: harness);
     await tester.tap(find.byKey(const ValueKey('loans-new')));
     await tester.pumpAndSettle();
+    await openMoreDetails(tester, 'loan-more-toggle');
     await tester.enterText(
       find.byKey(const ValueKey('loan-field-person')),
       'Ali',
@@ -124,6 +128,7 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('loans-new')));
       await tester.pumpAndSettle();
+      await openMoreDetails(tester, 'loan-more-toggle');
       expect(find.byIcon(Icons.calendar_month_outlined), findsNWidgets(2));
       await tester.enterText(
         find.byKey(const ValueKey('loan-field-person')),

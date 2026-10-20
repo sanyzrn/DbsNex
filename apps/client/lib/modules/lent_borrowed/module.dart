@@ -98,6 +98,9 @@ const lentStrings = NexModuleStrings(
     'owedToMe': 'Owed to me',
     'iOwe': 'I owe',
     'nothingOut': 'Nothing outstanding',
+    'moreDetails': 'Dates and a note',
+    'moreDetailsHint':
+        'When it was lent, when it is due, a few words. All optional.',
     'itemsOut': '{n} items still out',
     'overdueCount': '{n} overdue',
     'searchHint': 'Search a person, item or note',
@@ -215,6 +218,8 @@ const lentStrings = NexModuleStrings(
     'owedToMe': 'طلب من',
     'iOwe': 'بدهی من',
     'nothingOut': 'چیزی مانده نیست',
+    'moreDetails': 'تاریخ‌ها و یادداشت',
+    'moreDetailsHint': 'کی داده شد، سررسید کی است، چند کلمه. همه اختیاری است.',
     'itemsOut': '{n} وسیله هنوز بیرون است',
     'overdueCount': '{n} مورد گذشته از موعد',
     'searchHint': 'جست‌وجوی شخص، وسیله یا یادداشت',
