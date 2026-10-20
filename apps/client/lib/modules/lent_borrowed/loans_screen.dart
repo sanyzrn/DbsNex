@@ -38,6 +38,9 @@ class _LoansScreenState extends State<LoansScreen>
   int _loadToken = 0;
   bool _editorOpen = false;
   late final TabController _tabs = TabController(length: 2, vsync: this);
+
+  /// How far the first tab was pulled past its start edge in this drag.
+  double _edgePull = 0;
   final TextEditingController _search = TextEditingController();
   LoanFilter _filter = LoanFilter.all;
 
@@ -147,6 +150,32 @@ class _LoansScreenState extends State<LoansScreen>
     );
   }
 
+  /// The tabs swallow a horizontal drag, so the page's own swipe-back never
+  /// sees one that starts on the first tab. A drag that is pulled past the
+  /// first tab's start edge is the person asking to go back: the second tab
+  /// swipes to the first, and the next swipe leaves.
+  bool _onTabScroll(ScrollNotification n) {
+    if (n.depth != 0) return false;
+    if (n is OverscrollNotification && n.dragDetails != null) {
+      if (n.overscroll < 0) _edgePull += -n.overscroll;
+    } else if (n is ScrollUpdateNotification &&
+        n.dragDetails != null &&
+        n.metrics.pixels < n.metrics.minScrollExtent) {
+      _edgePull = n.metrics.minScrollExtent - n.metrics.pixels;
+    } else if (n is ScrollEndNotification) {
+      final pulled = _edgePull;
+      _edgePull = 0;
+      final route = ModalRoute.of(context);
+      if (pulled > 48 &&
+          _tabs.index == 0 &&
+          (route?.isCurrent ?? false) &&
+          !Navigator.of(context).userGestureInProgress) {
+        unawaited(Navigator.of(context).maybePop());
+      }
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = lentStrings;
@@ -204,30 +233,33 @@ class _LoansScreenState extends State<LoansScreen>
           children: [
             if (_loans.isNotEmpty) _searchBar(context),
             Expanded(
-              child: TabBarView(
-                controller: _tabs,
-                children: [
-                  _LoanList(
-                    direction: LoanDirection.lent,
-                    loans: _loans,
-                    returns: _returns,
-                    store: widget.store,
-                    query: _search.text,
-                    filter: _filter,
-                    onNewRecord: () =>
-                        unawaited(_openEditor(LoanDirection.lent)),
-                  ),
-                  _LoanList(
-                    direction: LoanDirection.borrowed,
-                    loans: _loans,
-                    returns: _returns,
-                    store: widget.store,
-                    query: _search.text,
-                    filter: _filter,
-                    onNewRecord: () =>
-                        unawaited(_openEditor(LoanDirection.borrowed)),
-                  ),
-                ],
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _onTabScroll,
+                child: TabBarView(
+                  controller: _tabs,
+                  children: [
+                    _LoanList(
+                      direction: LoanDirection.lent,
+                      loans: _loans,
+                      returns: _returns,
+                      store: widget.store,
+                      query: _search.text,
+                      filter: _filter,
+                      onNewRecord: () =>
+                          unawaited(_openEditor(LoanDirection.lent)),
+                    ),
+                    _LoanList(
+                      direction: LoanDirection.borrowed,
+                      loans: _loans,
+                      returns: _returns,
+                      store: widget.store,
+                      query: _search.text,
+                      filter: _filter,
+                      onNewRecord: () =>
+                          unawaited(_openEditor(LoanDirection.borrowed)),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

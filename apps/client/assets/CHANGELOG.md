@@ -35,6 +35,8 @@ Working convention:
 ## Unreleased
 
 ## v2.1.13
+- **Forms no longer hide under the keyboard.** Every sheet that opens over the keyboard — in the modules and the rest of the app — now lifts above it, so each field can be reached and the form completed.
+- **Lent & Borrowed.** On the second tab, a swipe returns to the first; the next swipe goes back.
 
 - **Birthdays & occasions.** A new module for the dates you do not want to miss — birthdays, anniversaries, remembrances. Each date repeats in its own calendar, so a Jalali birthday comes back on the same Jalali day every year. You see a countdown, the age it comes to (when you know the year), the day in both calendars, a greeting to copy or share, and an optional reminder ahead of the day. Nothing is sent for you and no contacts are read. Add it from **Tools → Add modules**.
 - **Habits.** A calendar of every month, in your own calendar: tap any day up to today to mark it, tap again to take it back. A new **How often** panel shows the days you kept it out of the days since you started.

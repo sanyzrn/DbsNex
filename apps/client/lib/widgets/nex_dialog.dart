@@ -202,9 +202,11 @@ Future<T?> nexShowSheet<T>({
                 // body wins the drag before the sheet sees it, and a sheet
                 // that cannot be swiped away reads as stuck. Here, once, so a
                 // new sheet cannot forget it (the Cycle settings did).
+                // A Builder, so the sheet's content reads the context *under*
+                // the keyboard adjustment below, not the one above it.
                 child: dismissible
-                    ? NexDismissOnOverscroll(child: builder(context))
-                    : builder(context),
+                    ? NexDismissOnOverscroll(child: Builder(builder: builder))
+                    : Builder(builder: builder),
               ),
             ),
           ],
@@ -212,7 +214,19 @@ Future<T?> nexShowSheet<T>({
       ),
     );
     final framed = guarded ? _SwipeToClose(child: sheet) : sheet;
-    return framed;
+    // A modal sheet does not make room for the keyboard by itself: its fields
+    // sat under it and could not be reached. Lift the sheet by the keyboard's
+    // height, once, here — and tell what is inside the keyboard is already
+    // accounted for, so a sheet that also pads for it (several did) does not
+    // lift twice.
+    final media = MediaQuery.of(context);
+    return Padding(
+      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+      child: MediaQuery(
+        data: media.copyWith(viewInsets: EdgeInsets.zero),
+        child: framed,
+      ),
+    );
   },
 );
 
