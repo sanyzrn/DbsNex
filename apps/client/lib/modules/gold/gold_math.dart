@@ -204,8 +204,9 @@ enum GoldProblemField {
   total,
 }
 
-/// One invalid input, tied to its field. The words live in the module's
-/// strings (`problem_<field>`), not here.
+/// One invalid input, tied to its field. The fields' own validators put a
+/// typed problem into words (`parse_*` in the strings); the form hides the
+/// estimate and points at the marked fields while any of these remain.
 class GoldProblem {
   const GoldProblem(this.field);
   final GoldProblemField field;

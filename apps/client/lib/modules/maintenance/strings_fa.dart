@@ -5,6 +5,7 @@ const _maintenancefa = <String, String>{
   'readingDeleteBody':
       'سابقهٔ سرویس و بازه\u200cها باقی می\u200cمانند؛ بازگردانی این عدد را برمی\u200cگرداند.',
   'assetDateRequired': 'تاریخ خرید/نصب معتبر انتخاب کنید یا آن را پاک کنید',
+  'deletedRule': 'بازه حذف شد',
 
   'usageBaselineUnknown':
       'برای مبنای این بازه، عدد شمارنده هنگام سرویس همین کار را وارد کنید',
@@ -17,7 +18,6 @@ const _maintenancefa = <String, String>{
   'undoFailed': 'تغییر دیگری با بازگردانی تعارض دارد؛ دادهٔ فعلی حفظ شد.',
   'clearDate': 'پاک\u200cکردن تاریخ',
   'dateRequired': 'تاریخ معتبر سرویس، امروز یا قبل\u200cتر، را انتخاب کنید',
-  'gregorian': 'میلادی',
   'currencyRequired': 'برای هزینهٔ واردشده ارز انتخاب کنید',
   'repeatVerify':
       'عنوان و هزینه از سرویس قبلی آمده؛ بررسی کنید. اگر می\u200cدانید، عدد تازهٔ شمارنده را وارد کنید.',
@@ -33,7 +33,6 @@ const _maintenancefa = <String, String>{
   'readingCorrection': 'به\u200cعنوان اصلاح نگه داریم؟',
   'readingCorrectionBody':
       'این عدد از آخرین عدد واردشده کمتر است؛ سابقه دست\u200cنخورده می\u200cماند.',
-  'readingSaved': 'عدد شمارنده ذخیره شد',
   'readingDeleted': 'عدد شمارنده حذف شد',
   'usageNext': 'نوبت بعد در {meter} {unit}',
   'convertedReading':
@@ -61,7 +60,8 @@ const _maintenancefa = <String, String>{
   'about':
       'دفترچه‌ی خصوصی نگهداریِ چیزهایی که دارید — ماشین، کولر، فیلتر آب، '
       'هر چیزی که برنامه دارد. بازه‌ها را خودتان تعیین می‌کنید؛ تاریخچه را '
-      'این دفترچه یادش می‌ماند. بدون یادآور، بدون موقعیت‌یابی، بدون اتصال به خودرو.',
+      'این دفترچه یادش می‌ماند. برای هر دستگاه می‌توانید یادآور گوشیِ '
+      'اختیاری بگذارید؛ بدون موقعیت‌یابی، بدون اتصال به خودرو.',
   'point1': 'تاریخچه‌ی سرویس',
   'point2': 'بازه‌های خودتان',
   'point3': 'هزینه‌ی هر دستگاه',
@@ -79,9 +79,7 @@ const _maintenancefa = <String, String>{
   'groupNeedsInfoNote': 'یک بازه منتظر تاریخ یا عدد کیلومتر است',
   'groupNoScheduleNote': 'برای موعد بعدی یک بازه تعیین کنید',
   'noAssets': 'هنوز چیزی ثبت نشده',
-  'noAssetsHint': 'اولین چیزِ تحت نگهداری را اضافه کنید',
   'addAsset': 'افزودن دستگاه',
-  'noArchived': 'چیزی بایگانی نشده',
 
   'typeCar': 'خودرو',
   'typeMotorcycle': 'موتورسیکلت',
@@ -91,25 +89,11 @@ const _maintenancefa = <String, String>{
   'typeAppliance': 'لوازم خانگی',
   'typeOther': 'متفرقه',
 
-  'month1': 'ژانویه',
-  'month2': 'فوریه',
-  'month3': 'مارس',
-  'month4': 'آوریل',
-  'month5': 'مه',
-  'month6': 'ژوئن',
-  'month7': 'ژوئیه',
-  'month8': 'اوت',
-  'month9': 'سپتامبر',
-  'month10': 'اکتبر',
-  'month11': 'نوامبر',
-  'month12': 'دسامبر',
-
   'unitKm': 'کیلومتر',
   'unitMi': 'مایل',
   'unitHours': 'ساعت',
   'kmFull': 'کیلومتر',
   'miFull': 'مایل',
-  'hoursFull': 'ساعت کارکرد',
 
   'newAssetTitle': 'دستگاه جدید',
   'editAssetTitle': 'ویرایش دستگاه',
@@ -145,7 +129,6 @@ const _maintenancefa = <String, String>{
   'deletedAsset': 'حذف شد',
   'archivedAsset': 'بایگانی شد',
   'undo': 'بازگردانی',
-  'saved': 'ذخیره شد',
   'discard': 'دور انداختن',
   'keepEditing': 'ادامه‌ی ویرایش',
   'discardTitle': 'این ثبت دور انداخته شود؟',
@@ -170,7 +153,6 @@ const _maintenancefa = <String, String>{
   'errTooPrecise': 'رقم اعشار بیشتر از حد این ارز',
   'errTooLarge': 'بیشتر از ظرفیت این ماژول',
   'currencyLabel': 'ارز',
-  'enterInLabel': 'واحد ورودی',
   'rialUnit': 'ریال',
   'tomanUnit': 'تومان',
   'tomanHint': '۱ تومان = ۱۰ ریال',
@@ -190,7 +172,6 @@ const _maintenancefa = <String, String>{
       'موعد بعدی از روی باقی‌مانده‌ها دوباره حساب می‌شود. مدت کوتاهی امکان بازگردانی هست.',
   'deletedEvent': 'حذف شد',
   'repeatLast': 'تکرار آخرین سرویس',
-  'noRepeatYet': 'چیزی برای تکرار نیست',
 
   'rulesTitle': 'بازه‌ها',
   'newRuleTitle': 'بازه‌ی جدید',
@@ -217,33 +198,28 @@ const _maintenancefa = <String, String>{
   'costSummary': 'هزینه‌های وارد‌شده',
   'costSummaryNote':
       'فقط هزینه‌هایی که خودتان نوشته‌اید — نه چیزی که حدس زده شود',
-  'lastDone': 'آخرین بار',
-  'neverDone': 'هنوز انجام نشده',
   'sincePurchase': 'از تاریخ خرید شمرده می‌شود',
   'noPurchaseDate': 'تاریخِ قابل شمردن نیست',
   'dueOn': 'موعد {date}',
   'distanceDueUnknown': 'موعد کیلومتری نامشخص — یک عدد ثبت کنید',
   'hoursDueUnknown': 'موعد ساعت کارکرد نامشخص — یک عدد ثبت کنید',
   'overdueSince': 'از {date} موعدش رسیده',
-  'atMeter': 'در {meter} {unit}',
   'nowAt': 'آخرین عدد ثبت‌شده: {meter} {unit}',
   'meterAtService': '{meter} {unit} هنگام سرویس',
-  'costOf': '{amount} {currency}',
   'providedBy': 'در {provider}',
   'today': 'امروز',
   'yesterday': 'دیروز',
   'incompleteRecord': 'ثبت ناقص',
-  'dateMonths': 'ماه',
-  'distanceDueAt': 'موعد در {meter} {unit}',
 
   'assetSemantics': '{name}، {type}، {group}',
   'ruleSemantics': '{task}: {status}',
   'eventSemantics': '{task} در {date}',
-  'progressSemantics': '{percent} درصدِ بازه گذشته',
 
-  'aboutTitle': 'درباره‌ی تعمیر و نگهداری',
-  'notWarranties': 'این نگهداری است، نه ماژول گارانتی',
-  'noReminders': 'موعد فقط هنگام باز شدن ماژول حساب می‌شود — بدون یادآور',
-  'privacyNote': 'همه‌چیز روی همین دستگاه می‌ماند',
-  'addFirstService': 'ثبت اولین سرویس',
+  'noReminders':
+      'موعدها با باز شدن و با هر تغییر دوباره حساب می‌شوند — یادآور '
+      'اختیاری است و روی هر دستگاه تنظیم می‌شود',
+
+  'reminderNote':
+      'هشدار گوشی، خودتان تنظیمش می‌کنید — برای سررسید سرویس بعدی همین '
+      'دستگاه. با رفتن دستگاه، آن هم می‌رود.',
 };

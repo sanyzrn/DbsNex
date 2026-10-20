@@ -4,52 +4,20 @@ import 'package:nex_client/modules/module_api.dart';
 import 'parking_logic.dart';
 
 /// The module's small local helpers: a single-line field that follows the
-/// script being typed, a transparent Gregorian date/time entry, and the
-/// date and duration formats the rows share. They exist because the app's
-/// own field, date-picker and calendar helpers are not part of
-/// `module_api.dart` — see README → Platform requests.
+/// script being typed, and the time and duration formats the rows share.
+///
+/// Dates a person reads go through the shared `nexModuleDateLabel`, so a
+/// Persian reader sees Jalali and an English one Gregorian, following the
+/// app's saved calendar. Dates a person types stay civil `yyyy/MM/dd` with
+/// the shared calendar button (`NexModuleDateEntry`), and storage stays
+/// ISO 8601 instants.
 ///
 /// One-line fields are built inside [NexAutoDirection] (ADR-037); numbers
-/// are typed left to right. Dates are Gregorian and say so, because the
-/// app's Jalali formatter is not reachable from here and a Gregorian date
-/// mislabelled as Jalali is worse than an honest Gregorian one.
+/// are typed left to right.
 class ParkingFields {
   const ParkingFields._();
 
   // ------------------------------------------------------------ numbers
-
-  /// Persian and Arabic digits typed in a number field, read as the
-  /// numbers they are — «۱۲» is 12.
-  static int? looseInt(String text) {
-    final mapped = text.characters.map((c) {
-      for (var d = 0; d < 10; d++) {
-        if (c == '۰۱۲۳۴۵۶۷۸۹'[d] || c == '٠١٢٣٤٥٦٧٨٩'[d]) {
-          return '$d';
-        }
-      }
-      return c;
-    }).join();
-    return int.tryParse(mapped.trim());
-  }
-
-  /// A decimal typed with Persian digits, a Persian «٫» or a dot.
-  static double? looseDouble(String text) {
-    final mapped = text.characters
-        .map((c) {
-          for (var d = 0; d < 10; d++) {
-            if (c == '۰۱۲۳۴۵۶۷۸۹'[d] || c == '٠١٢٣٤٥٦٧٨٩'[d]) {
-              return '$d';
-            }
-          }
-          if (c == '٫') {
-            return '.';
-          }
-          return c;
-        })
-        .join()
-        .trim();
-    return double.tryParse(mapped);
-  }
 
   /// Two digits with a leading zero, for month, day, hour and minute.
   static String two(int value) => value < 10 ? '0$value' : '$value';
@@ -67,26 +35,23 @@ class ParkingFields {
 
   // ------------------------------------------------------------- dates
 
-  /// The date as the module shows it: Gregorian, zero padded.
-  static String ymd(BuildContext context, DateTime date) =>
-      digits(context, '${date.year}/${two(date.month)}/${two(date.day)}');
-
   /// A time of day, 24-hour.
   static String hm(BuildContext context, DateTime time) =>
       digits(context, '${two(time.hour)}:${two(time.minute)}');
 
-  /// When the parking began: today says its time, another day its date
-  /// and time.
-  static String startedAt(BuildContext context, DateTime value) => digits(
-    context,
-    '${ymd(context, value)} '
-    '${two(value.hour)}:${two(value.minute)}',
-  );
+  /// An instant read in full: the date through the shared label — Jalali
+  /// for a Persian reader, Gregorian for an English one, following the
+  /// person's saved calendar — and the 24-hour time beside it.
+  static String when(BuildContext context, DateTime value) {
+    final local = value.toLocal();
+    return '${nexModuleDateLabel(context, local)} · ${hm(context, local)}';
+  }
 
   // ---------------------------------------------------------- durations
 
   /// A duration said the short way both languages read it: minutes under
-  /// an hour, hours and minutes under a day, days and hours above.
+  /// an hour, hours and minutes under a day, days and hours above. A zero
+  /// trailing unit is left out — "2 h", not "2 h 0 min".
   static String duration(
     BuildContext context,
     NexModuleStrings strings,
@@ -94,10 +59,14 @@ class ParkingFields {
   ) {
     final t = ParkingLogic.split(value);
     if (t.days > 0) {
-      return strings(context, 'daysHours', {'d': t.days, 'h': t.hours});
+      return t.hours > 0
+          ? strings(context, 'daysHours', {'d': t.days, 'h': t.hours})
+          : strings(context, 'days', {'count': t.days});
     }
     if (t.hours > 0) {
-      return strings(context, 'hoursMinutes', {'h': t.hours, 'm': t.minutes});
+      return t.minutes > 0
+          ? strings(context, 'hoursMinutes', {'h': t.hours, 'm': t.minutes})
+          : strings(context, 'hours', {'count': t.hours});
     }
     return strings(context, 'minutes', {'count': t.minutes});
   }

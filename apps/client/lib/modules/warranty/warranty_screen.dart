@@ -175,7 +175,9 @@ class _WarrantyScreenState extends State<WarrantyScreen>
   Widget build(BuildContext context) => _view(context);
 }
 
-/// The search line, drawn like the app's other fields.
+/// The search line, drawn like the app's other fields: it follows the
+/// script being typed, so a Persian query reads from the right the way
+/// the rest of the app does.
 class WarrantyFieldsLine extends StatelessWidget {
   const WarrantyFieldsLine({super.key, required this.controller, this.label});
 
@@ -183,13 +185,16 @@ class WarrantyFieldsLine extends StatelessWidget {
   final String? label;
 
   @override
-  Widget build(BuildContext context) => TextField(
-    key: const ValueKey('warranty-field-search'),
+  Widget build(BuildContext context) => NexAutoDirection(
     controller: controller,
-    textDirection: TextDirection.ltr,
-    decoration: InputDecoration(
-      labelText: label,
-      prefixIcon: const Icon(Icons.search),
+    builder: (context, direction) => TextField(
+      key: const ValueKey('warranty-field-search'),
+      controller: controller,
+      textDirection: direction,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: const Icon(Icons.search),
+      ),
     ),
   );
 }

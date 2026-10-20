@@ -5,7 +5,10 @@
 Lent and Borrowed have separate tabs, outstanding and settled sections, and
 due/overdue wording. The current tab supplies the default direction for New.
 Record money in a chosen currency or an item with integer quantity, person,
-issue date, optional due date and note. Partial/full returns have their own
+issue date, optional due date and note. Dates are absolute: typed as
+`yyyy/MM/dd` (Latin, Persian or Arabic digits) or picked on the shared module
+calendar — Jalali for a Persian solar-calendar reader — with today/7/14/30
+presets one tap away. Partial/full returns have their own
 dated history; deleting an accidental settlement corrects it, with Undo.
 Edit details/total without clearing returns. Currency/type are locked while
 any returns exist, preventing reinterpretation of their units. Delete restores
@@ -66,22 +69,16 @@ Field values are strings from the editors plus typed choices described below.
 already exists, a leftover checkpoint is not reopened as a new unsaved record.
 A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
 marker has no fields/base and is ignored on read.
-`fields.recordId` is an optional stable target ID for new records: if that record
-already exists, a leftover checkpoint is not reopened as a new unsaved record.
-A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
-marker has no fields/base and is ignored on read.
-`fields.recordId` is an optional stable target ID for new records: if that record
-already exists, a leftover checkpoint is not reopened as a new unsaved record.
-A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
-marker has no fields/base and is ignored on read.
 Serial, coalesced writes keep the latest snapshot; back/swipe keeps it, explicit
 Cancel discards it, successful Save clears it. A baseline fingerprint rejects
 stale drafts after a final record changes. These records stay in this module's
 store/backups and never count toward progress or balances.
 
-Loan draft fields: `person`, `amount`, `what`, `quantity`, `daysAgo`, `dueIn`,
-`note` strings; `currency`, `direction`, `kind` keys; `digits` integer;
-`anchor` ISO timestamp. Drafts do not create financial liabilities.
+Loan draft fields: `person`, `amount`, `what`, `quantity`, `issueDate`,
+`dueDate`, `note` strings; `currency`, `direction`, `kind` keys; `digits`
+integer; `recordId` target ID. Drafts do not create financial liabilities.
+Older drafts from the offset era (`daysAgo`/`dueIn` around an ISO `anchor`)
+are brought onto the calendar as the absolute dates they meant when reopened.
 
 Compound deletion uses kind `operation`, ID `<parent-kind>:<parent-id>`, body
 `{v: 1, records: [{kind: string, id: string, body: JSON object}, ...]}`.
@@ -100,14 +97,17 @@ by the kit: the recovery journal is the bounded offline fallback.
 - Return/settlement saves re-read the loan and its returns before validation;
   edits re-check current returns before saving. Totals below returned values
   and unit changes with history are refused. Currency amounts are never mixed.
-- **Due offsets are from editor-open today**, consistently on read and save.
-  An overdue date is a negative offset. Zero is today; blank is no due date.
-  Presets today/7/14/30/none are explicit. Due before issue is refused.
+- **Dates are absolute, entered on the person's calendar.** The issue field
+  starts at today; the due field is empty by default, filled by typing
+  `yyyy/MM/dd` or by the shared module calendar (Jalali for a Persian
+  solar-calendar reader), with today/7/14/30/none presets one tap away.
+  An overdue date is simply a due day that has passed. Due before issue is
+  refused; years are accepted only in 1900–2100 so a Persian year is never
+  silently stored as a civil one.
 - Unchanged issued/due values are kept exactly, even across midnight. Civil
   shifts use calendar construction through UTC midnights, not 24-hour durations.
-  Reopened drafts retain their original anchor. Correcting a name never moves
-  the deadline. Gregorian keys remain storage-only; Persian UI uses relative
-  wording rather than pretending to show a Jalali picker.
+  Correcting a name never moves the deadline. Civil keys remain storage-only;
+  what a person reads goes through the shared Jalali-capable label.
 - Due soon = within three days. Overdue first, then today, soon, later, undated;
   settled records are separate. Highlighting is computed on opening/resume/
   interaction, not by a background reminder service.
@@ -120,87 +120,58 @@ by the kit: the recovery journal is the bounded offline fallback.
 ## 4. Guide
 
 **English:** Choose Lent or Borrowed and record money in its currency, or an
-item with a count. Set an optional due date relative to today; a negative offset
-means the date has passed. Record each partial return and the remaining balance
+item with a count. Set an optional due date — type it or pick it from the
+calendar; the presets fill common deadlines in one tap. Record each partial
+return and the remaining balance
 updates. Mark fully returned for the remainder; delete that return to correct a
 mistake. Editing preserves the deadline and history, and deletion has Undo.
 Currency/type stay fixed while returns exist. Everything stays local and offline.
 
 **فارسی:** جهت قرض‌داده یا قرض‌گرفته را انتخاب کنید و پول را با ارز خودش،
-یا وسیله را با تعداد، ثبت کنید. موعد اختیاری نسبت به امروز است؛ عدد منفی
-یعنی موعد گذشته. هر برگشت جزئی را ثبت کنید تا باقی‌مانده به‌روز شود. برای
+یا وسیله را با تعداد، ثبت کنید. موعد اختیاری را تایپ کنید یا از تقویم
+انتخاب کنید؛ میان‌برها موعدهای رایج را با یک ضربه پر می‌کنند. هر برگشت جزئی را ثبت کنید تا باقی‌مانده به‌روز شود. برای
 تسویهٔ کامل، باقی‌مانده را ثبت کنید؛ با حذف همان برگشت می‌توانید اشتباه را
 اصلاح کنید. ویرایش، موعد و تاریخچه را نگه می‌دارد و حذف بازگردانی دارد.
 تا وقتی برگشت ثبت شده، ارز و نوع ثابت می‌مانند. همه‌چیز محلی و آفلاین است.
 
 ## 5. Changelog
 
-- EN: Lent & borrowed: international currencies with exact partial returns,
-  stable overdue edits, civil-date deadlines, guarded units and recoverable drafts.
-- FA: قرض و طلب: ارزهای بین‌المللی با برگشت جزئی دقیق، حفظ موعد در ویرایش،
-  محاسبهٔ تقویمی تاریخ‌ها، حفاظت از واحدها و پیش‌نویس قابل‌بازیابی.
+- EN: Lent & borrowed: absolute dates on the shared Jalali-capable calendar,
+  international currencies with exact partial returns, stable overdue edits,
+  guarded units and recoverable drafts.
+- FA: قرض و طلب: تاریخ مطلق روی تقویم مشترک با پشتیبانی جلالی، ارزهای
+  بین‌المللی با برگشت جزئی دقیق، حفظ موعد در ویرایش، حفاظت از واحدها و
+  پیش‌نویس قابل‌بازیابی.
 
 ## 6. Platform requests
 
-1. Shared Jalali calendar picker/formatter through `module_api.dart`.
-   Relative issue/due offsets and practical presets are the honest offline
-   fallback, including overdue dates.
-2. Export `NexTextField` for Nex's native per-paragraph note editor. Current
-   permitted Flutter input follows content direction; stored notes use the
-   exported direction helper. See full-app scanner discrepancy in the report.
+1. ~~Shared Jalali calendar picker/formatter~~ — fulfilled by the platform in
+   2.1.3 (`NexModuleDateEntry`, `nexPickModuleDate`, `nexModuleDateLabel`);
+   this module now uses them for every date it enters and shows.
+2. ~~Export `NexTextField` for Nex's native per-paragraph note editor~~ —
+   fulfilled; the module's notes use the shared `NexTextField`.
 3. Optional atomic storage batch / compare-and-write for multi-record balances.
    Re-reading, guarded operations and the deletion recovery journal currently
    work wholly within the module API without a private core dependency.
 
 ## 7. Checks
 
-Reviewed in the owner's Windows / PowerShell workspace against Nex `main`
-`fdd70f4890b0bab67d30b88d4821273113d4b01d`, with the repository's pinned Flutter **3.35.5** / Dart **3.9.2**.
-The installed system Flutter is 3.44.8; a local validation SDK was used instead.
+Upgraded against Nex `main` `f196440` (v2.1.8) with the repository's pinned
+Flutter **3.35.5** / Dart **3.9.2** on Linux. All edits stay inside
+`lib/modules/lent_borrowed/` and `test/modules/lent_borrowed/`.
 
-All three modules were temporarily registered in a separate reference checkout
-under `.validation/DbsNex`; the original registry is restored after checks.
-No core source, ARB, dependencies, registry or planned-catalog edits are delivered.
-No Commit, Push, PR, remote write or ZIP was made. `core.longpaths` was supplied
-to clone per command rather than changing the owner's global Git configuration.
-
-Commands run from `apps/client` (with the pinned local SDK):
+Commands run from `apps/client`:
 
 ```text
-flutter pub get --enforce-lockfile
-flutter test --no-pub test/module_kit_test.dart test/modules/habits test/modules/smoke_free test/modules/lent_borrowed --reporter expanded
-flutter analyze --no-pub --fatal-infos
-flutter test --no-pub --reporter expanded
-dart format <module's lib and test folders>
+flutter pub get
+dart format lib/modules/lent_borrowed test/modules/lent_borrowed
+flutter analyze --fatal-infos
+flutter test test/module_kit_test.dart -j 2
+flutter test test/modules/lent_borrowed -j 2
 ```
 
-`--no-pub` follows successful dependency resolution: Flutter's final Windows
-plugin-symlink setup reports missing Developer Mode privileges. Package versions
-remain exactly those in the baseline lockfile; only the hosted download endpoint
-was changed temporarily to the public Flutter mirror because pub.dev returned
-403. Tests run outside the filesystem sandbox after its compiler-temp-file copy
-failed with Access denied. Neither workaround changes module code or dependencies.
-
-Final results: **248/248 passed** for the combined module tests and the real
-module-kit gate with temporary registration; **full client analyzer clean**.
-The full client run reported **1368 passed, 4 failed, 3 skipped**: two Windows
-attachment-fixture file-lock cleanup failures, the intentional old planned
-Habits entry pending maintainer integration, and the multiline editor/API
-discrepancy described above. The Windows failures reproduced with the original
-registry. Core: 231 passed/analyzer clean. Data: 253 passed, 2 failed (Windows
-symlink privileges), 14 skipped/analyzer clean. Final detailed evidence is in
-`review/VALIDATION.md` at the workspace root. Earlier test failures were repaired;
-the final log, not the initial README's historical claims, is authoritative.
-
-Tests include Persian RTL and English LTR, light/dark, text scale 2.0 at 320×640,
-reduced motion, reopening, isolation, failed writes/retry, draft coalescing,
-back waits for the latest durable checkpoint, retry after a failed flush,
-and meaningful user journeys. Actual Flutter main-screen captures use Nex's
-themes and bundled fonts in Persian dark and English light, under
-`review/screenshots`. These are widget renders with test fixtures, not Android-device screenshots.
-
-Maintainer integration: register the three const modules and imports in
-`nexModules`; remove the old planned IDs **`habits`, `smoke-free`, `lent`**
-(different from the actual IDs `habits`, `smoke_free`, `lent_borrowed`).
-Copy the Guide/Changelog paragraphs above into the app's content. Run the gate,
-full app checks and device/accessibility review before release.
+Final results on this pass: analyzer **clean**; module-kit gate **40/40**;
+module tests **91/91 passed** (including the Jalali pick-a-day flow, calendar
+buttons, presets, absolute-date draft round-trips, refusal of dates outside
+1900–2100 and before issue, Persian RTL and English LTR at text scale 2.0,
+light/dark, undo and recovery journeys).

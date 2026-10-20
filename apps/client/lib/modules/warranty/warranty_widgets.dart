@@ -13,8 +13,9 @@ import 'warranty_strings.dart';
 part 'warranty_widgets_more.dart';
 
 /// The rows and sections of the warranties screen, kept apart so the
-/// screen file stays about flow and storage. Every date shown is
-/// Gregorian, in the interface's digits; nothing is scheduled.
+/// screen file stays about flow and storage. Every date a person reads is
+/// shown on their saved calendar (Jalali for a Persian reader) through
+/// the shared label; nothing is scheduled.
 
 /// A section of the list: heading and rows under it.
 class WarrantySection extends StatelessWidget {
@@ -66,15 +67,17 @@ class WarrantyRow extends StatelessWidget {
     final product = WarrantyModels.readString(body, 'product');
     final brand = WarrantyModels.readString(body, 'brand');
     final end = WarrantyModels.readDate(body, 'coverageEnd');
+    // A missing or unreadable end is "date unavailable", never expired:
+    // its own glyph, its own words.
     final status = end == null
-        ? (expired: true, expiring: false, daysLeft: 0)
+        ? null
         : WarrantyLogic.statusOf(end, DateTime.now());
 
     final days = end == null
         ? strings(context, 'unknownDate')
-        : status.expired
-        ? (status.daysLeft == 0
-              ? strings(context, 'endsToday')
+        : status!.expired
+        ? (status.daysLeft == -1
+              ? strings(context, 'endedYesterday')
               : strings(context, 'expiredDaysAgo', {'count': -status.daysLeft}))
         : status.daysLeft == 0
         ? strings(context, 'endsToday')
@@ -82,18 +85,41 @@ class WarrantyRow extends StatelessWidget {
         ? strings(context, 'oneDayLeft')
         : strings(context, 'daysLeft', {'count': status.daysLeft});
 
+    final subtitle = [
+      if (brand.isNotEmpty)
+        Text(
+          brand,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+      if (end != null) WarrantyDateText(end: end),
+      Text(
+        days,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: end != null && status!.expiring && !status.expired
+              ? scheme.error
+              : scheme.onSurfaceVariant,
+        ),
+      ),
+    ];
+
     return Padding(
       padding: const EdgeInsets.only(bottom: NexSpacing.xs),
       child: ListTile(
         onTap: onOpen,
         leading: NexIconTile(
-          status.expired
+          end == null
+              ? Icons.help_outline
+              : status!.expired
               ? Icons.event_busy_outlined
               : status.expiring
               ? Icons.schedule_outlined
               : Icons.verified_outlined,
           color:
-              (status.expired
+              (end == null
+                      ? NexHue.slate
+                      : status!.expired
                       ? NexHue.slate
                       : status.expiring
                       ? NexHue.amber
@@ -106,45 +132,11 @@ class WarrantyRow extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleMedium,
         ),
-        subtitle:
-            [
-              if (brand.isNotEmpty) brand,
-              if (end != null) WarrantyDateText(end: end),
-              if (end != null)
-                Text(
-                  days,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: status.expired
-                        ? scheme.onSurfaceVariant
-                        : status.expiring
-                        ? scheme.error
-                        : scheme.onSurfaceVariant,
-                  ),
-                ),
-            ].isEmpty
-            ? null
-            : Wrap(
-                spacing: NexSpacing.sm,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (brand.isNotEmpty)
-                    Text(
-                      brand,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  if (end != null) WarrantyDateText(end: end),
-                  Text(
-                    days,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: status.expiring && !status.expired
-                          ? scheme.error
-                          : scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
+        subtitle: Wrap(
+          spacing: NexSpacing.sm,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: subtitle,
+        ),
       ),
     );
   }
@@ -184,8 +176,8 @@ class WarrantyArchivedRow extends StatelessWidget {
   );
 }
 
-/// A Gregorian date in the interface's digits, marked as such by the
-/// module's words elsewhere.
+/// A coverage-end day on the person's saved calendar — Jalali for a
+/// Persian reader — in the interface's digits.
 class WarrantyDateText extends StatelessWidget {
   const WarrantyDateText({super.key, required this.end});
 
@@ -193,19 +185,12 @@ class WarrantyDateText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-    warrantyStrings(context, 'ymd', {
-      'y': end.year,
-      'm': warrantyTwoDigits(end.month),
-      'd': warrantyTwoDigits(end.day),
-    }),
+    WarrantyFields.dayLabel(context, end),
     style: Theme.of(context).textTheme.bodySmall?.copyWith(
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     ),
   );
 }
-
-/// Two digits with a leading zero, as a string the strings map can fill.
-String warrantyTwoDigits(int value) => value < 10 ? '0$value' : '$value';
 
 /// The small sheet a claim or service note is written in: the person's
 /// own words, dated on save. No outcome is presumed.

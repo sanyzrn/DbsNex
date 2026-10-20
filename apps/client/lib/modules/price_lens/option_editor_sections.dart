@@ -43,8 +43,8 @@ class LensUnitPicker extends StatelessWidget {
                 key: ValueKey('lens-unit-${candidate.key}'),
                 label: s(
                   context,
-                  'unit${candidate.key.isEmpty ? '' : candidate.key[0].toUpperCase()}'
-                  '${candidate.key.isEmpty ? '' : candidate.key.substring(1)}',
+                  'unit${candidate.key[0].toUpperCase()}'
+                  '${candidate.key.substring(1)}',
                 ),
                 selected: candidate.key == selectedKey,
                 onTap: () => onSelected(candidate.key),

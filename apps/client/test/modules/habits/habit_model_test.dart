@@ -203,5 +203,61 @@ void main() {
       expect(daysBetweenKeys('2026-10-12', '2026-10-01'), -11);
       expect(daysBetweenKeys('garbage', '2026-10-12'), 0);
     });
+
+    test('a key becomes a local civil day for display', () {
+      final civil = civilOfKey('2026-10-12');
+      expect(civil, DateTime(2026, 10, 12));
+      // A label is a calendar day, not a UTC instant: toLocal() on it must
+      // be a no-op so a western time zone never prints the day before.
+      expect(civil!.toLocal(), civil);
+      expect(civilOfKey('garbage'), isNull);
+      expect(civilOfKey('2026-02-30'), isNull);
+    });
+  });
+
+  group('ordering', () {
+    Habit habitOf(String id, DateTime created) => Habit(
+      id: id,
+      name: '',
+      note: '',
+      weekly: false,
+      target: 1,
+      archived: false,
+      createdAt: created,
+    );
+
+    test('habits newest-first, newest creation date first', () {
+      final a = habitOf('a', DateTime(2026, 1, 1));
+      final b = habitOf('b', DateTime(2026, 1, 2));
+      final list = [a, b]..sort(newestFirst);
+      expect(list, [b, a]);
+    });
+
+    test('equal creation moments keep one stable order, never a shuffle', () {
+      // Old records without a creation date, or a bulk import: Dart's sort
+      // is not stable, so the id carries the tie.
+      final x = habitOf(
+        'x',
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      );
+      final y = habitOf(
+        'y',
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      );
+      expect(newestFirst(x, y), -newestFirst(y, x));
+      expect(newestFirst(x, y), lessThan(0));
+      final list = [y, x]..sort(newestFirst);
+      expect(list.map((h) => h.id), ['x', 'y']);
+    });
+
+    test('check-ins newest-first by day, then by when they were written', () {
+      HabitCheck checkOf(String day, DateTime at) =>
+          HabitCheck(id: 'c:$day:$at', habitId: 'h1', dateKey: day, at: at);
+      final older = checkOf('2026-10-12', DateTime(2026, 10, 12, 8));
+      final newer = checkOf('2026-10-12', DateTime(2026, 10, 12, 9));
+      final yesterday = checkOf('2026-10-11', DateTime(2026, 10, 12, 10));
+      final list = [yesterday, older, newer]..sort(newestCheckFirst);
+      expect(list, [newer, older, yesterday]);
+    });
   });
 }

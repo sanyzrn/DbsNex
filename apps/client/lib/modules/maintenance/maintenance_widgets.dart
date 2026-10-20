@@ -11,29 +11,68 @@ import 'units.dart';
 /// with their calm bars, the event rows, the group headings. Every
 /// number arrives computed; every word comes from the strings.
 
-/// "Today", "Yesterday", or "13 October" — calendar-relative, never a
-/// Jalali claim (the API offers no Jalali formatter; see the README's
-/// Platform requests).
+/// "Today", "Yesterday", or the shared calendar label — relative where
+/// that reads better, and an absolute date that always follows the
+/// person's saved calendar (Jalali with Persian digits for a solar
+/// reader), never a module-owned calendar format.
 String eventDateLabel(BuildContext context, DateTime date, DateTime now) {
   final s = maintenanceStrings;
-  final persian = NexModuleStrings.persian(context);
   if (dayOf(date) == dayOf(now)) return s(context, 'today');
   if (dayOf(date) == dayOf(now).subtract(const Duration(days: 1))) {
     return s(context, 'yesterday');
   }
-  final day = persian ? persianDigits('${date.day}') : '${date.day}';
-  final month = s(context, 'month${date.month.clamp(1, 12)}');
-  final withYear = date.year != now.year;
-  final year = persian ? persianDigits('${date.year}') : '${date.year}';
-  return withYear ? '$day $month $year' : '$day $month';
+  return nexModuleDateLabel(context, date);
 }
 
-String fullDateLabel(BuildContext context, DateTime date) {
-  final fa = NexModuleStrings.persian(context),
-      month = maintenanceStrings(context, 'month${date.month}');
-  final day = fa ? persianDigits('${date.day}') : '${date.day}',
-      year = fa ? persianDigits('${date.year}') : '${date.year}';
-  return '$day $month $year';
+/// The shared calendar label — see [eventDateLabel].
+String fullDateLabel(BuildContext context, DateTime date) =>
+    nexModuleDateLabel(context, date);
+
+/// The asset's small facts — what it counts and since when — as info
+/// lines for the asset page's panel.
+List<Widget> assetInfoLines(BuildContext context, MaintenanceAsset asset) {
+  final theme = Theme.of(context);
+  final scheme = theme.colorScheme;
+  final s = maintenanceStrings;
+  final lines = <(String, String)>[
+    (
+      s(context, 'meterKindLabel'),
+      switch (asset.meterKind) {
+        MeterKind.none => s(context, 'meterKindNone'),
+        MeterKind.distance =>
+          '${s(context, 'meterKindDistance')} · ${s(context, asset.distanceUnit == DistanceUnit.km ? 'unitKm' : 'unitMi')}',
+        MeterKind.hours => s(context, 'meterKindHours'),
+      },
+    ),
+    if (asset.purchasedAt != null)
+      (
+        s(context, 'purchasedLabel'),
+        fullDateLabel(context, asset.purchasedAt!),
+      ),
+  ];
+  return [
+    for (final (label, value) in lines)
+      Padding(
+        padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.xs),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            Text(value, style: theme.textTheme.bodyMedium),
+          ],
+        ),
+      ),
+    if (asset.notes?.isNotEmpty == true)
+      Padding(
+        padding: const EdgeInsetsDirectional.only(top: NexSpacing.xs),
+        child: Text(asset.notes!, style: theme.textTheme.bodySmall),
+      ),
+  ];
 }
 
 /// The unit word for a rule's metre.

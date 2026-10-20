@@ -61,24 +61,31 @@ class ExpensesMonthNav extends StatelessWidget {
                 child: InkWell(
                   onTap: isCurrent ? null : onCurrent,
                   borderRadius: BorderRadius.circular(NexRadius.md),
-                  child: Column(
-                    children: [
-                      Text(
-                        label,
-                        style: Theme.of(context).textTheme.titleMedium,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      // The relative name stays visible; tapping the month
-                      // itself is the way back to now.
-                      Text(
-                        relative,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  child: Semantics(
+                    label: s(context, 'monthNavSemantics', {'month': label}),
+                    excludeSemantics: true,
+                    child: Column(
+                      children: [
+                        Text(
+                          label,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                        // The relative name stays visible; tapping the month
+                        // itself is the way back to now.
+                        Text(
+                          relative,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

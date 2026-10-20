@@ -61,14 +61,12 @@ void _registerWarrantyCases(
     expect((await getInner().get('claim', 'c'))!['unknown'], isTrue);
     expect(await getInner().get('draft', 'warranty:w'), {'raw': 'input'});
   });
-  testWidgets('Gregorian years are not currency-grouped in date labels', (
-    tester,
-  ) async {
+  testWidgets('date labels are not currency-grouped', (tester) async {
     await tester.pumpWidget(
       host(
         Builder(
           builder: (context) =>
-              Text(WarrantyFields.ymd(context, DateTime(2026, 10, 13))),
+              Text(WarrantyFields.dayLabel(context, DateTime(2026, 10, 13))),
         ),
       ),
     );
@@ -81,7 +79,7 @@ void _registerWarrantyCases(
   ) async {
     await tester.pumpWidget(host(WarrantyEditorSheet(store: getStore())));
     await tester.pumpAndSettle();
-    expect(find.text('Purchase date (Gregorian)'), findsOneWidget);
+    expect(find.text('Purchase date'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('warranty-field-product')),
       'Example',
@@ -105,9 +103,7 @@ void _registerWarrantyCases(
     await tester.pumpAndSettle();
     expect(await getInner().list('warranty'), isEmpty);
     expect(
-      find.text(
-        'Enter a valid Gregorian end date or 1–2400 months ending by 2100.',
-      ),
+      find.text('Enter a valid end date or 1–2400 months ending by 2100.'),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);

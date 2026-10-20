@@ -129,28 +129,25 @@ class LocalWrites {
   static Future<Future<void> Function()> delete(
     NexModuleStore store,
     String kind,
-    String id, {
-    String? children,
-    String? parentField,
-  }) => serial(store, () async {
+    String id,
+  ) => serial(store, () async {
     final parent = await store.get(kind, id);
     if (parent == null) {
       throw StateError('Record no longer exists');
     }
+    // Deleting a record takes its edit draft with it; Undo brings both
+    // back exactly (see the controller's tests).
     final after = <LocalChange>[
-      if (children != null)
-        for (final r in await store.list(children))
-          if (r.body[parentField] == id) (kind: children, id: r.id, body: null),
-      if (children != null)
-        for (final r in await store.list('draft'))
-          if (r.body['fields'] is Map &&
-              (r.body['fields'] as Map)['parentId'] == id)
-            (kind: 'draft', id: r.id, body: null),
       (kind: 'draft', id: '$kind:$id', body: null),
       (kind: kind, id: id, body: null),
     ];
     return apply(store, after);
   });
+
+  /// Merges [fields] into an existing record inside the journal. The
+  /// module itself writes through `_put`/`saveTx`; this stays for the
+  /// app's release regression tests, which exercise the journal's
+  /// healthy path around malformed operations.
   static Future<void> patch(
     NexModuleStore store,
     String kind,

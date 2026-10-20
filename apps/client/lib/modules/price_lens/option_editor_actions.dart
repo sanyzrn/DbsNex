@@ -1,28 +1,14 @@
 part of 'option_editor.dart';
 
 extension _OfferActions on _OptionEditorSheetState {
-  Future<void> _pickDate() async {
-    final now = DateTime.now(), candidate = _date ?? DateTime.now();
-    final picked = await nexPickModuleDate(
-      context,
-      initial: candidate.isAfter(now) ? now : candidate,
-      first: DateTime(1),
-      last: now,
-    );
-    if (picked == null || !mounted) return;
-    _paint(() {
-      _date = picked;
-      _dateConfirmed = true;
-    });
-    _markDirty();
-  }
-
   Future<void> _save() async {
     final price = _parsedPrice;
     final quantity = _parsedQuantity;
     final count = parseCount(_count.text);
     final paidText = _paidCount.text.trim();
     final paid = paidText.isEmpty ? null : parseCount(paidText);
+    final dateText = _dateText.text.trim();
+    final date = dateText.isEmpty ? null : LocalValues.day(dateText);
 
     int? percent;
     int? fixedMinor;
@@ -47,7 +33,8 @@ extension _OfferActions on _OptionEditorSheetState {
       quantityDecimalsOf(_quantity.text) > _unit.decimals,
       count == null || count == -1,
       paid != null && (paid == -1 || count == null || paid > count),
-      !_dateConfirmed || (_date != null && _date!.isAfter(DateTime.now())),
+      !_dateConfirmed || (dateText.isNotEmpty && date == null),
+      date != null && date.isAfter(DateTime.now()),
       _discountKind == DiscountKind.fixed &&
           fixedMinor != null &&
           price.minor != null &&
@@ -76,7 +63,7 @@ extension _OfferActions on _OptionEditorSheetState {
       discountPercent: percent,
       discountMinor: fixedMinor,
       shippingMinor: shippingMinor,
-      date: _date,
+      date: date,
     );
     if (!optionSafe(option)) {
       _paint(() {

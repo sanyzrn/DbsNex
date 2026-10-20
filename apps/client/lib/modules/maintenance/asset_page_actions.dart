@@ -31,7 +31,24 @@ Future<void> assetPageMenu(
           s(context, 'archive'),
         );
         if (answer != true || !context.mounted) return;
+        // The words and the messenger are captured before the write, so
+        // nothing reaches across an async gap.
+        final messenger = ScaffoldMessenger.of(context);
+        final message = s(context, 'archivedAsset');
+        final undoLabel = s(context, 'undo');
+        final failure = s(context, 'undoFailed');
         await controller.setArchived(asset, true);
+        if (!context.mounted) return;
+        // The page stays open; the notice says what happened, and Undo
+        // un-archives in one guarded tap (unarchive remains in the
+        // menu for later).
+        MaintenanceUndo.offer(
+          messenger,
+          message: message,
+          undoLabel: undoLabel,
+          failureMessage: failure,
+          restore: () => controller.setArchived(asset, false),
+        );
       case 'unarchive':
         await controller.setArchived(asset, false);
       case 'delete':

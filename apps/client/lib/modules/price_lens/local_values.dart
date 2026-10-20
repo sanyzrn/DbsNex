@@ -37,16 +37,18 @@ class LocalValues {
     return day.year == y && day.month == m && day.day == d;
   }
 
+  /// A typed shopping date, civil: `yyyy/MM/dd` (the shared date entry's
+  /// format), one separator style throughout, 1900–2100 like the picker.
   static DateTime? day(String text) {
     final match = RegExp(
-      r'^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$',
+      r'^(\d{4})([/.-])(\d{1,2})\2(\d{1,2})$',
     ).firstMatch(ascii(text.trim()));
     if (match == null) {
       return null;
     }
     final y = int.parse(match[1]!);
-    final m = int.parse(match[2]!);
-    final d = int.parse(match[3]!);
+    final m = int.parse(match[3]!);
+    final d = int.parse(match[4]!);
     return y >= 1900 && y <= 2100 && realDay(y, m, d)
         ? DateTime(y, m, d)
         : null;
@@ -75,16 +77,4 @@ class LocalValues {
     }
     return DateTime.tryParse(raw);
   }
-
-  static DateTime? calendar(Object? raw) {
-    if (raw is! String || stamp(raw) == null) return null;
-    return DateTime.utc(
-      int.parse(raw.substring(0, 4)),
-      int.parse(raw.substring(5, 7)),
-      int.parse(raw.substring(8, 10)),
-    );
-  }
-
-  static DateTime civil(DateTime date) =>
-      DateTime.utc(date.year, date.month, date.day);
 }

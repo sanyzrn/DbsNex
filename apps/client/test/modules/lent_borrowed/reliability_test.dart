@@ -184,6 +184,9 @@ void main() {
       find.byKey(const ValueKey('loan-field-amount')),
       '12000',
     );
+    // Let the focused amount field finish its scroll-into-view before the
+    // test scrolls to save; otherwise the caret scroll races ensureVisible.
+    await tester.pumpAndSettle();
     store.failWrites = true;
     await tester.ensureVisible(find.byKey(const ValueKey('loan-save')));
     await tester.tap(find.byKey(const ValueKey('loan-save')));

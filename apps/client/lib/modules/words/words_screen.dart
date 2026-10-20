@@ -93,6 +93,29 @@ class _WordsScreenState extends State<WordsScreen>
                       child: NexEmptyState(
                         icon: Icons.translate_outlined,
                         message: strings(context, 'emptyWords'),
+                        // The empty state carries its own first action, not
+                        // only the floating button below the fold.
+                        action: FilledButton.tonalIcon(
+                          key: const ValueKey('words-empty-add'),
+                          onPressed: () => unawaited(
+                            Navigator.of(context).push(
+                              NexPageRoute<void>(
+                                builder: (_) =>
+                                    WordsCardPage(store: widget.store),
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add),
+                          label: Text(strings(context, 'addWord')),
+                          // Material caps buttons at 40dp tall — a label a
+                          // 2× text scale cannot fit into; let it grow with
+                          // the words instead of clipping them.
+                          style: const ButtonStyle(
+                            maximumSize: WidgetStatePropertyAll<Size?>(
+                              Size(double.infinity, double.infinity),
+                            ),
+                          ),
+                        ),
                       ),
                     )
                   else ...[
@@ -120,7 +143,9 @@ class _WordsScreenState extends State<WordsScreen>
                       Padding(
                         padding: const EdgeInsets.all(NexSpacing.lg),
                         child: Text(
-                          strings(context, 'nothingToReview'),
+                          // Some filter or search emptied the list — not
+                          // the day's schedule.
+                          strings(context, 'noMatches'),
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,

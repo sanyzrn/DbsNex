@@ -35,6 +35,7 @@ const Map<String, String> wordsStringsFa = {
   'tagsAll': 'نمایش همهٔ {count} برچسب',
   'tagsLess': 'نمایش برچسب\u200cهای کمتر',
   'clearFilters': 'پاک کردن فیلترها',
+  'noMatches': 'واژه‌ای با این فیلترها پیدا نشد.',
   'meaningNeeded':
       'پیش از پاسخ\u200cدادن، معنای این کارت را با حرف\u200cهای خودتان بنویسید.',
   'editMeaning': 'نوشتن معنا',
@@ -76,19 +77,18 @@ const Map<String, String> wordsStringsFa = {
   'dailyCapOff': 'بی‌سقف',
   'batchEntryTip': 'چسباندن فهرست',
   'learnedMark': 'آموخته',
-  'noTag': 'بی‌برچسب',
 
   // -------------------------------------------------------- due words
   'dueToday': 'امروز',
   'dueTomorrow': 'فردا',
-  'dueInDays': 'در {count} روز',
+  'dueInDays': '{count} روز دیگر',
   'dueOverdueOne': 'یک روز از سررسید گذشته',
   'dueOverdue': '{count} روز از سررسید گذشته',
   'statusNew': 'تازه',
   'whenToday': 'امروز',
   'whenYesterday': 'دیروز',
   'whenDaysAgo': '{count} روز پیش',
-  'whenDate': 'در {date} (میلادی)',
+  'whenDate': 'در {date}',
 
   // -------------------------------------------------------- the card
   'wordLabel': 'واژه یا عبارت',
@@ -122,7 +122,7 @@ const Map<String, String> wordsStringsFa = {
 
   // ------------------------------------------------------- the review
   'reviewTitle': 'مرور',
-  'tapToReveal': 'برای دیدن پاسخ بلمسید',
+  'tapToReveal': 'برای دیدن پاسخ، کارت را لمس کنید',
   'revealedSemantics': 'پاسخ نمایان شد',
   'again': 'دوباره',
   'hard': 'سخت',
@@ -130,6 +130,7 @@ const Map<String, String> wordsStringsFa = {
   'easy': 'آسان',
   'progressOf': '{n} از {total}',
   'sessionDone': 'جلسه همین بود — {count} کارت مرور شد.',
+  'sessionDoneOne': 'جلسه همین بود — یک کارت مرور شد.',
   'sessionDoneCalm': 'فردا بیایید؛ چندتایی منتظر خواهند بود.',
   'scheduleHow': 'برنامه‌ریزی چگونه کار می‌کند',
   'scheduleHowBody':
@@ -140,8 +141,6 @@ const Map<String, String> wordsStringsFa = {
 
   // --------------------------------------------------------- the batch
   'batchTitle': 'فهرست واژه‌ها را بچسبانید',
-  'batchHint':
-      'هر خط، یک واژه یا عبارت. پیش از این‌که چیزی ذخیره شود، می‌بینیدشان.',
   'batchPreview': '{count} واژه آمادهٔ افزودن',
   'batchEmpty': 'هنوز چیزی برای افزودن نیست — اول چند خط بچسبانید.',
   'batchAdd': 'افزودن {count} واژه',

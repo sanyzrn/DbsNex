@@ -26,7 +26,9 @@ class _DoneView extends StatelessWidget {
               ),
               const SizedBox(height: NexSpacing.md),
               Text(
-                strings(context, 'sessionDone', {'count': answered}),
+                answered == 1
+                    ? strings(context, 'sessionDoneOne')
+                    : strings(context, 'sessionDone', {'count': answered}),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleMedium,
               ),

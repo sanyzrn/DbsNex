@@ -110,19 +110,20 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
-  testWidgets('older created date is Persian and explicitly Gregorian', (
+  testWidgets('older created date reads in the person\'s calendar', (
     tester,
   ) async {
     final raw = {'headword': 'Example', 'createdAt': '2026-01-01T12:00:00'};
     await store.put('card', 'c', raw);
-    await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('fa'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: WordsCardPage(store: store, card: WordCard.fromRecord('c', raw)),
-      ),
+    Widget page(Locale locale) => MaterialApp(
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: WordsCardPage(store: store, card: WordCard.fromRecord('c', raw)),
     );
+    // Persian reads the shared Jalali label: 1 January 2026 is 1404/10/11,
+    // in Persian digits.
+    await tester.pumpWidget(page(const Locale('fa')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('words-card-pause')),
@@ -130,7 +131,18 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('۲۰۲۶-۰۱-۰۱ (میلادی)'), findsOneWidget);
+    expect(find.textContaining('در ۱۴۰۴/۱۰/۱۱'), findsOneWidget);
+    expect(find.textContaining('میلادی'), findsNothing);
+    // English keeps the Gregorian civil day, in its own digits.
+    await tester.pumpWidget(page(const Locale('en')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('words-card-pause')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('on 2026/01/01'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

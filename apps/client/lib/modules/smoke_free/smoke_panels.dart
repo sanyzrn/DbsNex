@@ -39,6 +39,14 @@ class NoAttempt extends StatelessWidget {
             onPressed: onStart,
             icon: const Icon(Icons.flag_outlined),
             label: Text(strings(context, 'startButton')),
+            // Material's default caps a filled button at 40 px tall,
+            // which a 2× text scale cannot fit into; let it grow with the
+            // words instead of clipping them.
+            style: const ButtonStyle(
+              maximumSize: WidgetStatePropertyAll<Size?>(
+                Size(double.infinity, double.infinity),
+              ),
+            ),
           ),
         ),
         Padding(
@@ -105,7 +113,11 @@ class SmokeDashboard extends StatelessWidget {
               Text(
                 strings(
                   context,
-                  progress.days == 0 ? 'smokeFreeToday' : 'smokeFreeFor',
+                  progress.days == 0
+                      ? 'smokeFreeToday'
+                      : progress.days == 1
+                      ? 'smokeFreeOneDay'
+                      : 'smokeFreeFor',
                   {'days': progress.days},
                 ),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -131,9 +143,13 @@ class SmokeDashboard extends StatelessWidget {
             children: [
               _EstimateLine(
                 icon: Icons.smoke_free_outlined,
-                text: strings(context, 'cigarettesAvoided', {
-                  'n': progress.cigarettesAvoided,
-                }),
+                text: strings(
+                  context,
+                  progress.cigarettesAvoided == 1
+                      ? 'cigarettesAvoidedOne'
+                      : 'cigarettesAvoided',
+                  {'n': progress.cigarettesAvoided},
+                ),
               ),
               const SizedBox(height: NexSpacing.sm),
               _EstimateLine(
@@ -218,17 +234,27 @@ class AttemptHistory extends StatelessWidget {
               vertical: NexSpacing.xs,
             ),
             child: Text(
-              smokeFreeStrings(
-                context,
-                SmokeMath.attemptSpanDays(attempt) == 0
-                    ? 'attemptSameDay'
-                    : 'attemptLine',
-                {'days': SmokeMath.attemptSpanDays(attempt)},
-              ),
+              _attemptText(context, attempt),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
       ],
     ),
   );
+
+  /// The honest span line for a past attempt: same-day attempts are said
+  /// out loud, one-day attempts read in the singular, the rest keep their
+  /// own count.
+  static String _attemptText(BuildContext context, QuitAttempt attempt) {
+    final span = SmokeMath.attemptSpanDays(attempt);
+    return smokeFreeStrings(
+      context,
+      span == 0
+          ? 'attemptSameDay'
+          : span == 1
+          ? 'attemptOneDay'
+          : 'attemptLine',
+      {'days': span},
+    );
+  }
 }

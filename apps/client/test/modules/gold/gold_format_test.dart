@@ -156,7 +156,12 @@ void main() {
         today: () => 'today',
         yesterday: () => 'yesterday',
         daysAgo: (days) => '$days days ago',
-        onDate: (date) => 'on $date',
+        onDate: (day) {
+          // A local civil date, never a UTC instant: a UTC midnight would
+          // print the day before in a zone west of Greenwich.
+          expect(day.isUtc, isFalse);
+          return 'on ${isoDay(day)}';
+        },
       );
       expect(words(DateTime(2026, 10, 12, 1, 0)), 'today');
       expect(words(DateTime(2026, 10, 11, 23, 0)), 'yesterday');

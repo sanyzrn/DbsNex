@@ -6,7 +6,7 @@ void _screenCases1() {
       tester,
     ) async {
       await pumpScreen(tester);
-      expect(find.text('Add a second offer to compare'), findsOneWidget);
+      expect(find.text('Add an offer to start comparing'), findsOneWidget);
       expect(
         find.text('No retailer prices are known — only what you type'),
         findsOneWidget,
@@ -154,6 +154,12 @@ void _screenCases1() {
       expect(find.text('1 toman = 10 rials'), findsOneWidget);
       await tester.tap(find.text('Tomans'));
       await tester.pumpAndSettle();
+      // The price field says Tomans beside the amount, like the shipping
+      // and fixed-discount fields do — the typed number is tomans.
+      expect(
+        tester.widget<TextField>(priceField()).decoration!.suffixText,
+        'Tomans',
+      );
       await tester.enterText(find.byKey(const ValueKey('lens-label')), 'Rice');
       await tester.pump();
       await tester.enterText(priceField(), '25');
@@ -191,7 +197,7 @@ void _screenCases1() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Cleared'), findsOneWidget);
-      expect(find.text('Add a second offer to compare'), findsOneWidget);
+      expect(find.text('Add an offer to start comparing'), findsOneWidget);
       expect(find.text('Bag 1kg'), findsNothing);
 
       await openMenu(tester);
@@ -286,7 +292,7 @@ void _screenCases1() {
         expect(find.text('Discard this offer?'), findsOneWidget);
         await tester.tap(find.text('Discard'));
         await tester.pumpAndSettle();
-        expect(find.text('Add a second offer to compare'), findsOneWidget);
+        expect(find.text('Add an offer to start comparing'), findsOneWidget);
       },
     );
   });

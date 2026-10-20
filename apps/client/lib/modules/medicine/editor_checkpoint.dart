@@ -26,7 +26,7 @@ class EditorCheckpoint {
   final String id;
   late final Map<String, Object?> initialExtra = Map.of(extra());
   Map<String, Object?> get _base {
-    if (existing == null) return kind == 'claim' ? Map.of(extra()) : {};
+    if (existing == null) return {};
     final nonEditable = {'quantity', 'stockEpoch', 'archived'};
     final version = existing!.body['v'];
     if (version == 1 || version == 2) nonEditable.add('v');
@@ -36,9 +36,7 @@ class EditorCheckpoint {
     };
   }
 
-  String get _draftId => kind == 'claim'
-      ? 'claim:${extra()['parentId']}:${extra()['kind']}:new'
-      : '$kind:${existing?.id ?? 'new'}';
+  String get _draftId => '$kind:${existing?.id ?? 'new'}';
   late final FormDraft draft = FormDraft(
     store,
     _draftId,

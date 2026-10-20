@@ -197,6 +197,13 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
                   onPressed: () => unawaited(_editOption()),
                   icon: const Icon(Icons.add),
                   label: Text(s(context, 'addOption')),
+                  // Material caps buttons at 40dp tall — a label a 2× text
+                  // scale cannot fit into; let it grow with the words.
+                  style: const ButtonStyle(
+                    maximumSize: WidgetStatePropertyAll<Size?>(
+                      Size(double.infinity, double.infinity),
+                    ),
+                  ),
                 ),
               )
             else ...[

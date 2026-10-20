@@ -13,6 +13,21 @@ All modules default off from 2.0.2, including upgrades from the automatic
 opt-in. Add the modules you want from Tools → Add modules. Continue all work on
 `codex/2.0-polish` and complete each module individually.
 
+## Module upgrade after 2.1.10 (still Soon)
+
+A separate upgrade pass over all eleven modules was reviewed and merged on top
+of the 2.1.10 code, with the rollout left as it was (only Cycle is available).
+It brings the shared Jalali date entry/display (`NexModuleDateEntry`,
+`nexModuleDateLabel`) to every module, the shared `NexTextField` to every
+multiline field, optional system reminders (`NexModuleReminderControl`) to
+Parking, Warranty, Maintenance and Medicine, about forty fixes (stable sorts,
+singular/plural strings, wrong "expired" state, Gregorian-only medicine dates,
+lent/borrowed draft migration) and 134 more tests. Saved records and drafts
+stay readable: dates keep their ISO form on disk and old Lent & Borrowed drafts
+are migrated on open. Re-enable each module individually after a device check
+(TalkBack, notification permission, large text) — change `nexModuleAvailable`
+in `apps/client/lib/modules/module_rollout.dart` for one id at a time.
+
 ## Inventory
 
 | Module ID | Purpose | Suggested review order |
@@ -50,13 +65,12 @@ completed.
   feeds, banking integrations, OCR, or dictionary/AI services in these sources.
 - Parking does not yet capture GPS, maps or photos. Receipt references in warranty
   are text; they are not file attachments.
-- Dates in several modules use an explicitly labeled Gregorian fallback. Review
-  Jalali date entry/display before releasing a module to Persian users.
-- Module Kit does not expose background reminders or the shared date picker yet.
-  The shared `NexTextField` is now exported and used by the multiline notes in
-  Habits, Lent & Borrowed and Smoke Free; other local editor fallbacks can be
-  reviewed individually. Medication, maintenance, warranty and parking tracking
-  do not schedule notifications.
+- Jalali date entry/display is done in every module (see above);
+  verify it on a device before releasing a module to Persian users.
+- Module Kit exposes the shared date entry and an optional reminder control as
+  of 2.1.3 and the modules use them (see above).
+  Every multiline field uses the shared `NexTextField`. Medicine, Maintenance,
+  Warranty and Parking can schedule an optional reminder; the others do not.
 - Storage recovery tests cover the current CRUD API; they do not establish
   cross-process transactions. Review concurrent writes and backup/restore as each
   module is integrated.

@@ -97,9 +97,11 @@ class _MedicineEditorSheetState extends State<MedicineEditorSheet> {
     if (doseUnits != null) _doseUnits.text = '$doseUnits';
     final expiresAt = MedicineModels.readDate(_from, 'expiresAt');
     if (expiresAt != null) {
+      // Padded like the shared calendar button writes it, so a reopened
+      // editor and a freshly picked day read the same.
       _expiry.text =
-          '${expiresAt.year}/${expiresAt.month}/'
-          '${expiresAt.day}';
+          '${expiresAt.year}/${MedicineFields.two(expiresAt.month)}/'
+          '${MedicineFields.two(expiresAt.day)}';
     }
     final refill = MedicineModels.readCount(_from, 'refillThreshold');
     if (refill != null) _refill.text = '$refill';

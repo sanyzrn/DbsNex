@@ -4,6 +4,7 @@ const _expenseEnglish = <String, String>{
   'undoFailed':
       'Could not restore: another change may conflict. Your saved data was kept.',
   'dateRequired': 'Choose a valid date',
+  'dateHint': 'Type the day as yyyy/MM/dd, or pick it',
   'currency-IRR': 'Iranian rial',
   'currency-USD': 'US dollar',
   'currency-EUR': 'Euro',
@@ -23,11 +24,7 @@ const _expenseEnglish = <String, String>{
   'retry': 'Retry',
   'saveFailed': 'Could not save. Your input is still here; try again.',
   'keepDraft': 'Keep draft & close',
-  'gregorian': 'Gregorian date',
   'searchLabel': 'Search payments',
-  'currencyChanged':
-      'Currency changed; enter the amount in the selected currency.',
-  'unknownData': 'Some saved records need attention.',
 
   'title': 'Expenses',
   'tagline':
@@ -41,7 +38,9 @@ const _expenseEnglish = <String, String>{
   'point3': 'Category budgets',
   'point4': 'Per-currency totals',
 
-  // Months (Gregorian; the Persian side never claims to be Jalali).
+  // Month buckets. Buckets are civil months; their names are honest about
+  // that (see the README's Decisions). Record dates themselves follow the
+  // app's calendar through the shared date label.
   'month1': 'January',
   'month2': 'February',
   'month3': 'March',
@@ -67,13 +66,11 @@ const _expenseEnglish = <String, String>{
   'expensesLabel': 'Expenses',
   'incomeLabel': 'Income',
   'netLabel': 'Net',
-  'netHint': 'Income minus expenses, this currency only',
   'netNegative': 'Spent more than you entered as income',
   'perCurrency': 'Totals per currency — currencies are never combined',
   'basedOnEntered': 'Based only on what you entered — not your bank balance',
   'recentTitle': 'Recent records',
   'noRecords': 'Nothing written down yet',
-  'noRecordsHint': 'Add the first payment and this month adds itself up',
   'addFirst': 'Add a payment',
   'noResults': 'Nothing matches',
   'searchHint': 'Search notes, merchants, accounts',
@@ -83,7 +80,6 @@ const _expenseEnglish = <String, String>{
   'spendingByCategory': 'Spending by category',
   'nothingSpent': 'Nothing spent in this view',
   'filterAll': 'All',
-  'filterCategory': 'Filter by category',
   'percentSuffix': '{p}%',
   'today': 'Today',
   'yesterday': 'Yesterday',
@@ -102,7 +98,6 @@ const _expenseEnglish = <String, String>{
   'cat-other': 'Other',
   'categoriesTitle': 'Categories',
   'newCategory': 'New category',
-  'categoryNameLabel': 'Name',
   'categoryNameHint': 'Shown in both languages',
   'categoryNameEmpty': 'Give the category a name',
   'deleteCategoryTitle': 'Delete category?',
@@ -111,14 +106,12 @@ const _expenseEnglish = <String, String>{
       'but the name.',
   'defaultCategoryNote': 'Built-in categories cannot be deleted',
   'add': 'Add',
-  'use': 'Use',
 
   // Editor.
   'newExpenseTitle': 'New expense',
   'newIncomeTitle': 'New income',
   'editExpenseTitle': 'Edit expense',
   'editIncomeTitle': 'Edit income',
-  'typeLabel': 'Type',
   'typeExpense': 'Expense',
   'typeIncome': 'Income',
   'amountLabel': 'Amount',
@@ -130,14 +123,11 @@ const _expenseEnglish = <String, String>{
   'errNegative': 'Enter the amount without a sign',
   'errTooLarge': 'Beyond what this module can hold',
   'currencyLabel': 'Currency',
-  'enterInLabel': 'Entered in',
   'rialUnit': 'Rials',
   'tomanUnit': 'Tomans',
   'tomanHint': '1 toman = 10 rials',
   'dateLabel': 'Date',
-  'dateTooltip': 'Change the date',
   'timeLabel': 'Time',
-  'timeTooltip': 'Change the time',
   'noteLabel': 'Note',
   'noteHint': 'Optional',
   'merchantLabel': 'Merchant or source',
@@ -147,22 +137,18 @@ const _expenseEnglish = <String, String>{
   'save': 'Save',
   'cancel': 'Cancel',
   'delete': 'Delete',
-  'edit': 'Edit',
   'undo': 'Undo',
   'discard': 'Discard',
   'keepEditing': 'Keep editing',
   'discardTitle': 'Discard this entry?',
   'discardBody': 'What you typed so far will be lost.',
-  'saved': 'Saved',
   'deletedTx': 'Deleted',
-  'undoTx': 'Undo',
   'deleteTxTitle': 'Delete this record?',
   'deleteTxBody':
       'It is removed from totals as well. Undo is offered for a short while.',
   'categoryLabel': 'Category',
   'categoryNone': 'None',
   'chooseCategory': 'Choose a category',
-  'created': 'Added',
 
   // Budgets.
   'budgetsTitle': 'Budgets',
@@ -171,17 +157,12 @@ const _expenseEnglish = <String, String>{
   'setBudget': 'Set budget',
   'editBudget': 'Edit budget',
   'clearBudget': 'Clear budget',
-  'budgetAmountLabel': 'Monthly amount',
   'budgetCategoryLabel': 'Category',
-  'budgetSpent': 'Spent',
   'budgetLeft': 'Left',
   'budgetOver': 'Over by',
-  'budgetZero': 'No budget set for this month',
   'budgetNote':
       'Budgets never roll over and changing one never changes records. '
       'Spent, left and over are plain arithmetic.',
-  'budgetBar': '{spent} of {budget}',
-  'overBudget': 'Over budget',
 
   // Templates.
   'templatesTitle': 'Templates',
@@ -201,9 +182,4 @@ const _expenseEnglish = <String, String>{
   'barSemantics': '{category}: {amount}, {percent} percent of spending',
   'netSemantics': 'Net {amount}',
   'monthNavSemantics': 'Showing {month}',
-
-  // Misc.
-  'aboutTitle': 'About Expenses',
-  'privacyNote': 'Everything stays on this device',
-  'notAnAdvisor': 'A record book, not a finance advisor',
 };

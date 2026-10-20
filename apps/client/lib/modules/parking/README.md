@@ -6,8 +6,13 @@ A manual memory of where each vehicle is parked: place, floor, spot, landmark,
 optional typed coordinates and paid-until time. One active session per normalized
 vehicle name. Found my car preserves history; recent places prefill coordinates.
 Search keeps at most eight distinct queries. The timer reads the clock while
-visible and stops in background. This does not acquire GPS, show a map, photograph
-a spot or schedule notifications.
+visible and stops in background. Dates are entered on the shared module
+calendar (Jalali for a Persian solar-calendar reader) beside the typed civil
+field, and every open parking and its detail view offer an **opt-in device
+reminder** — an explicit one-time OS alert for when paid time runs out or the
+person needs the car; the platform cancels it automatically when the record
+goes away or the parking is found. This does not acquire GPS, show a map or
+photograph a spot.
 
 ## Records
 
@@ -66,54 +71,69 @@ EN: Tap Parked here, type the place and any clues, then Save. Keep the older
 parking or explicitly close it if the vehicle already has an active entry.
 Found my car closes it. Open history to edit or delete; Undo restores only when
 it will not overwrite later data. Keep draft & close returns later to raw input.
-Paid-until is a manual foreground calculation.
+Paid-until is a manual foreground calculation — and if you want an alert when it
+runs out, set the opt-in reminder beside it once; it fires even with the app
+closed and disappears with the parking.
 
 FA: «اینجا پارک کردم» را بزنید، محل و نشانه‌ها را بنویسید و ذخیره کنید.
 برای همان خودرو، پارک قبلی را نگه دارید یا صریحاً ببندید و مورد تازه بسازید.
 «ماشینم را پیدا کردم» آن را به گذشته می‌برد. حذف، بازگردانی دارد؛ اگر اطلاعات
 بعداً تغییر کرده باشد بازگردانی متوقف می‌شود. پیش‌نویس را می‌توانید نگه دارید.
-زمان پایان پارک دستی است و اعلان پس‌زمینه ندارد.
+زمان پایان پارک دستی است؛ اگر می‌خواهد سررسیدش خبرتان کند، یادآوری اختیاریِ
+کنارش را یک بار تنظیم کنید — حتی با بسته‌بودن برنامه صادر می‌شود و با پارک
+پاک می‌شود.
 
 ## Changelog
 
 EN: Enforced one active parking per vehicle, including edits and Undo. Repaired
 strict dates/coordinates, local expiry editing, exact history, bounded search,
 fresh writes, rollback/recovery, drafts and visible storage failure. Improved
-small-screen padding and long labels; retained FA/EN and light/dark.
+small-screen padding and long labels; retained FA/EN and light/dark. Upgraded:
+shared Jalali calendar entry beside every typed date, the conforming shared
+multiline editor for notes and clues, and an opt-in device reminder on the open
+parking and its detail view.
 
 FA: پارک فعال یکتا، تاریخ و مختصات معتبر، حفظ زمان دقیق هنگام ویرایش، جستجوی
 بدون تکرار، ذخیره قابل‌بازیابی، پیش‌نویس و خطاهای قابل‌فهم اضافه یا اصلاح شد.
+ارتقا: ورودی تاریخ روی تقویم مشترک با پشتیبانی جلالی، ویرایشگر متنی مشترک
+برای یادداشت‌ها، و یادآوری اختیاریِ دستگاه برای پارکِ باز و صفحهٔ جزئیات.
 
 ## Platform requests
 
-Permission-gated location/maps, photos with backup lifecycle, opt-in local
-notifications, a shared Jalali date/time picker and the conforming multiline
-editor. Atomic compare-and-write/group transactions would harden multi-window
-races. Current fallbacks remain useful without these APIs.
+Fulfilled by the platform since 2.1.3 and used here: **opt-in local
+notifications** (`NexModuleReminderControl` on the open parking and its detail
+view — the platform auto-cancels when the record is removed, and Found my car
+clears it), the **shared Jalali date picker/label** (`NexModuleDateEntry`,
+`nexModuleDateLabel`) on every date the person enters or reads, and the
+**conforming multiline editor** (`NexTextField`) for notes and clues.
+
+Still requested: permission-gated location/maps and photos with backup
+lifecycle (the module keeps typed coordinates and text clues without them),
+and atomic compare-and-write/group transactions for multi-window races (serial
+writes, fresh reads and the recovery journal remain the honest fallback).
 
 ## Checks
 
-Reviewed against main cad5fcaeaaa7ab489f48cfdf1b03add6b6623879 on Windows.
-Flutter 3.35.5 / Dart 3.9.2; dependencies retain baseline versions/checksums.
-Exact final counts, logs, visual captures and limitations are in
-the phase's review/VALIDATION.md.
+Upgraded against Nex `main` `f196440` (v2.1.8) with Flutter **3.35.5** /
+Dart **3.9.2** on Linux. All edits stay inside `lib/modules/parking/` and
+`test/modules/parking/`. The original Windows review against `cad5fca`
+remains the module's first-pass record; its detailed evidence lives in that
+phase's review/VALIDATION.md.
+
+Commands run from `apps/client` on this upgrade pass:
 
 ~~~text
-flutter test --no-pub test/module_kit_test.dart test/modules/parking --reporter expanded
-dart analyze --fatal-infos lib/modules/parking test/modules/parking
-dart format <this module lib and test paths>
+flutter pub get
+dart format lib/modules/parking test/modules/parking
+flutter analyze --fatal-infos
+flutter test test/module_kit_test.dart -j 2
+flutter test test/modules/parking -j 2
 ~~~
 
-Tests include unit calculations/invalid/huge values, full existing flows, storage
-read/write faults, interrupted-group recovery, raw Undo, drafts, isolation,
-reopen, FA/EN, real Nex light/dark, 320×480 at scale 2 and reduced motion.
-Captured screens are Flutter widget renders with synthetic data, not device
-screenshots. Android/iOS permissions, native keyboard, TalkBack/VoiceOver and
-platform release builds still need maintainer/device acceptance.
-
-Windows plugin symlink setup lacks Developer Mode; tests use --no-pub with the
-resolved package configuration. No OS setting was changed. Only module lib/test
-directories are delivered. Registry registration is temporary for the gate and
-restored. No core/API/catalog/ARB/dependency source, Commit, Push, ZIP or external
-message is delivered. Maintainer registers the const module, retires its planned
-entry and integrates the Guide/Changelog before release.
+Final results: analyzer **clean**; format **0 changed**; module-kit gate
+**40/40**; module tests **100/100 passed** — including the reminder control's
+presence and clear flow, Jalali entry beside the typed date, storage faults,
+interrupted-group recovery, raw Undo, drafts, isolation, FA/EN, light/dark,
+320×480 at scale 2.0 and reduced motion. Android/iOS permissions, native
+keyboard, TalkBack/VoiceOver and platform release builds still need
+maintainer/device acceptance.

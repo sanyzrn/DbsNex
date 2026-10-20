@@ -22,8 +22,10 @@ part 'parking_screen_body.dart';
 /// closed history below.
 ///
 /// A timer refreshes the elapsed and remaining times **while the screen is
-/// open** — a foreground look at the clock, not a background job; nothing
-/// is scheduled and no reminder fires when Nex is closed.
+/// open** — a foreground look at the clock, not a background job. A person
+/// who wants to be told after closing the app sets the explicit, opt-in
+/// device reminder offered on the open parking (the platform schedules it
+/// and auto-cancels it when the record goes away).
 class ParkingScreen extends StatefulWidget {
   const ParkingScreen({super.key, required this.store});
 
@@ -151,12 +153,23 @@ class _ParkingScreenState extends State<ParkingScreen>
   }
 
   Future<void> _editParking(ModuleRecord record) async {
-    await nexShowSheet<void>(
-      context: context,
-      dismissible: false,
-      swipeToClose: true,
-      builder: (_) => ParkingEditorSheet(store: widget.store, existing: record),
-    );
+    if (_busy || _loading || _loadFailed) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await nexShowSheet<void>(
+        context: context,
+        dismissible: false,
+        swipeToClose: true,
+        builder: (_) =>
+            ParkingEditorSheet(store: widget.store, existing: record),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
   }
 
   // -------------------------------------------------------------- saving

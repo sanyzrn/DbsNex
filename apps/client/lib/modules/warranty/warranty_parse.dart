@@ -30,9 +30,10 @@ class WarrantyParse {
     return LocalValues.day(written) ?? invalid;
   }
 
-  /// A date as the editor's field holds it.
+  /// A date as the editor's field holds it: zero padded, exactly as the
+  /// shared calendar button writes it.
   static String dateText(DateTime value) =>
-      '${value.year}/${value.month}/${value.day}';
+      '${value.year}/${LocalValues.two(value.month)}/${LocalValues.two(value.day)}';
 
   /// The rials an amount stands for, given the unit it was typed in.
   /// Half-tomans are refused, not rounded.

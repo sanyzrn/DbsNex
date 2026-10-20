@@ -130,9 +130,11 @@ class LensOptionCard extends StatelessWidget {
                       price,
                       if (count > 1)
                         s(context, 'perPackage', {
-                          'quantity': option.quantity.toDecimalString(
-                            digits: 6,
-                          ),
+                          'quantity': persian
+                              ? persianLocal(
+                                  option.quantity.toDecimalString(digits: 6),
+                                )
+                              : option.quantity.toDecimalString(digits: 6),
                           'unit': unitWordOf(context, option.unitKey),
                           'count': count,
                         }),
@@ -191,7 +193,9 @@ class LensOptionCard extends StatelessWidget {
     final exponent = priceExponentOf(option.currency);
     return switch (option.discount) {
       DiscountKind.none => const [],
-      DiscountKind.percent => ['${option.discountPercent ?? 0}%'],
+      DiscountKind.percent => [
+        '${persian ? persianLocal('${option.discountPercent ?? 0}') : option.discountPercent ?? 0}%',
+      ],
       DiscountKind.fixed => [
         '−${formatPriceNumber(option.discountMinor ?? 0, exponent, persian: persian)}',
       ],
@@ -265,7 +269,7 @@ class LensResultPanel extends StatelessWidget {
             Padding(
               padding: const EdgeInsetsDirectional.only(top: NexSpacing.xs),
               child: Text(
-                s(context, 'tieNote'),
+                s(context, 'tieNote', {'n': bestCount}),
                 style: theme.textTheme.bodySmall?.copyWith(color: hue),
               ),
             ),
@@ -354,7 +358,7 @@ class _ResultRow extends StatelessWidget {
             ],
           ),
           if (savings != null) ...[
-            const SizedBox(height: 2),
+            const SizedBox(height: NexSpacing.xs),
             Text(
               s(context, 'savingsVsBest', {
                 'extra':

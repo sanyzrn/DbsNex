@@ -5,12 +5,17 @@ class WarrantyTextField extends StatelessWidget {
   const WarrantyTextField({
     super.key,
     required this.controller,
+    this.label,
     this.hint,
     this.helper,
     this.minLines = 2,
   });
 
   final TextEditingController controller;
+
+  /// The field's name above it; the note editor uses it, the claim sheet
+  /// names its field in the sheet's own title instead.
+  final String? label;
   final String? hint;
 
   /// An error or note under the field, shown after a failed save.
@@ -20,7 +25,11 @@ class WarrantyTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) => NexTextField(
     controller: controller,
-    decoration: InputDecoration(hintText: hint, helperText: helper),
+    decoration: InputDecoration(
+      labelText: label,
+      hintText: hint,
+      helperText: helper,
+    ),
     minLines: minLines,
     maxLines: 5,
   );

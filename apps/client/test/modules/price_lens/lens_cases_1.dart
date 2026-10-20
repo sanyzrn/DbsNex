@@ -148,6 +148,26 @@ void _lensCases1() {
     });
   });
 
+  group('typed shopping dates', () {
+    test('the shared entry format parses, in digits and separators', () {
+      expect(LocalValues.day('2026/03/14'), DateTime(2026, 3, 14));
+      expect(LocalValues.day('2026/3/4'), DateTime(2026, 3, 4));
+      expect(LocalValues.day('2026-03-14'), DateTime(2026, 3, 14));
+      expect(LocalValues.day('2026.3.14'), DateTime(2026, 3, 14));
+      expect(LocalValues.day(' ۲۰۲۶/۰۳/۱۴ '), DateTime(2026, 3, 14));
+      expect(LocalValues.day(''), isNull);
+    });
+
+    test('mixed separators, impossible days and out-of-range years refuse', () {
+      expect(LocalValues.day('2026/03-14'), isNull);
+      expect(LocalValues.day('2026/2/30'), isNull);
+      expect(LocalValues.day('2026/13/01'), isNull);
+      expect(LocalValues.day('1899/12/31'), isNull);
+      expect(LocalValues.day('2101/01/01'), isNull);
+      expect(LocalValues.day('26/03/14'), isNull);
+    });
+  });
+
   group('money', () {
     final usd = priceCurrencyOf('USD')!;
     final kwd = priceCurrencyOf('KWD')!;

@@ -257,16 +257,15 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                         }),
                       ),
                       const SizedBox(height: NexSpacing.md),
-                      NexAutoDirection(
+                      NexTextField(
+                        key: const ValueKey('expenses-template-note'),
                         controller: _note,
-                        builder: (context, direction) => TextField(
-                          controller: _note,
-                          textDirection: direction,
-                          decoration: InputDecoration(
-                            labelText: s(context, 'noteLabel'),
-                            hintText: s(context, 'noteHint'),
-                          ),
-                          onChanged: (_) => _changed(),
+                        minLines: 2,
+                        maxLines: 4,
+                        onChanged: (_) => _changed(),
+                        decoration: InputDecoration(
+                          labelText: s(context, 'noteLabel'),
+                          hintText: s(context, 'noteHint'),
                         ),
                       ),
                       const SizedBox(height: NexSpacing.md),

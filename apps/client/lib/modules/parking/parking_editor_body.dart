@@ -155,7 +155,7 @@ extension _ParkingEditorBody on _ParkingEditorSheetState {
                           hint: strings(context, 'dateHint'),
                           keyboard: TextInputType.datetime,
                           helper: _showErrors && expiry == ParkingParse.invalid
-                              ? strings(context, 'badNumber')
+                              ? strings(context, 'badExpiry')
                               : null,
                         ),
                       ),
@@ -174,13 +174,29 @@ extension _ParkingEditorBody on _ParkingEditorSheetState {
                 const SizedBox(height: NexSpacing.xs),
                 Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: ActionChip(
-                    key: const ValueKey('parking-today'),
-                    label: Text(strings(context, 'today')),
-                    onPressed: () {
-                      final now = DateTime.now();
-                      _expiryDate.text = '${now.year}/${now.month}/${now.day}';
-                    },
+                  child: Wrap(
+                    spacing: NexSpacing.sm,
+                    children: [
+                      ActionChip(
+                        key: const ValueKey('parking-today'),
+                        label: Text(strings(context, 'today')),
+                        onPressed: () {
+                          final now = DateTime.now();
+                          // Zero padded, like the calendar button writes it.
+                          _expiryDate.text =
+                              '${now.year}/${ParkingFields.two(now.month)}/${ParkingFields.two(now.day)}';
+                        },
+                      ),
+                      // The one way to take a paid time back off the record.
+                      ActionChip(
+                        key: const ValueKey('parking-clear-time'),
+                        label: Text(strings(context, 'clearTime')),
+                        onPressed: () {
+                          _expiryDate.clear();
+                          _expiryTime.clear();
+                        },
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: NexSpacing.lg),

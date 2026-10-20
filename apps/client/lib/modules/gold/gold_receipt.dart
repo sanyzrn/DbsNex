@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'gold_dates.dart';
 import 'gold_format.dart';
 import 'gold_math.dart';
 import 'gold_strings.dart';
@@ -305,7 +306,7 @@ class _Breakdown extends StatelessWidget {
         }),
       if (quoteDate.isNotEmpty)
         strings(context, 'breakdownDate', {
-          'date': goldDigits(normalizeGoldDate(quoteDate), persian),
+          'date': goldStoredDateLabel(context, quoteDate),
           'ppt': groupDigits(input.rateRefPpt, persian: persian),
         }),
     ];

@@ -12,6 +12,7 @@ void main() {
     String headword = 'serendipity',
     int step = 0,
     String due = '2026-10-12',
+    String created = '2026-10-01T10:00:00',
     int lapses = 0,
     int reps = 0,
     List<({String at, WordsGrade grade})> log = const [],
@@ -21,7 +22,7 @@ void main() {
     id: id,
     headword: headword,
     language: 'English',
-    createdAtIso: '2026-10-01T10:00:00',
+    createdAtIso: created,
     step: step,
     due: due,
     lapses: lapses,
@@ -296,6 +297,43 @@ void main() {
         newPerDay: 0,
       );
       expect(session.fresh, hasLength(3));
+    });
+
+    test('equal due days queue the older word first, never by accident', () {
+      // `List.sort` is not stable, so ties must be decided, not inherited.
+      final session = buildSession(
+        cards: [
+          card(
+            id: 'younger',
+            headword: 'younger',
+            due: '2026-10-10',
+            created: '2026-10-05T10:00:00',
+            lastReviewIso: 'x',
+          ),
+          card(
+            id: 'older',
+            headword: 'older',
+            due: '2026-10-10',
+            created: '2026-10-03T10:00:00',
+            lastReviewIso: 'x',
+          ),
+        ],
+        todayIso: '2026-10-12',
+        newPerDay: 10,
+      );
+      expect(session.due.map((c) => c.id), ['older', 'younger']);
+    });
+
+    test('new cards sharing a creation moment fall to their ids', () {
+      final session = buildSession(
+        cards: [
+          card(id: 'n2'),
+          card(id: 'n1'),
+        ],
+        todayIso: '2026-10-12',
+        newPerDay: 10,
+      );
+      expect(session.fresh.map((c) => c.id), ['n1', 'n2']);
     });
 
     test('a card introduced yesterday does not eat today\'s allowance', () {

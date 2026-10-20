@@ -34,6 +34,7 @@ const Map<String, String> wordsStringsEn = {
   'tagsAll': 'Show all {count} tags',
   'tagsLess': 'Show fewer tags',
   'clearFilters': 'Clear filters',
+  'noMatches': 'No words match these filters.',
   'meaningNeeded': 'Add your meaning before grading this card.',
   'editMeaning': 'Add meaning',
   'skipForNow': 'Skip for now',
@@ -73,7 +74,6 @@ const Map<String, String> wordsStringsEn = {
   'dailyCapOff': 'No cap',
   'batchEntryTip': 'Paste a list',
   'learnedMark': 'Learned',
-  'noTag': 'No tag',
 
   // -------------------------------------------------------- due words
   'dueToday': 'today',
@@ -85,7 +85,7 @@ const Map<String, String> wordsStringsEn = {
   'whenToday': 'today',
   'whenYesterday': 'yesterday',
   'whenDaysAgo': '{count} days ago',
-  'whenDate': 'on {date} (Gregorian)',
+  'whenDate': 'on {date}',
 
   // -------------------------------------------------------- the card
   'wordLabel': 'Word or phrase',
@@ -129,6 +129,7 @@ const Map<String, String> wordsStringsEn = {
   'easy': 'Easy',
   'progressOf': '{n} of {total}',
   'sessionDone': 'That is the session — {count} cards reviewed.',
+  'sessionDoneOne': 'That is the session — one card reviewed.',
   'sessionDoneCalm': 'Come back tomorrow; a few will be waiting.',
   'scheduleHow': 'How the schedule works',
   'scheduleHowBody':
@@ -140,9 +141,6 @@ const Map<String, String> wordsStringsEn = {
 
   // --------------------------------------------------------- the batch
   'batchTitle': 'Paste a list of words',
-  'batchHint':
-      'One word or phrase per line. You will see them before anything is '
-      'saved.',
   'batchPreview': '{count} words ready to add',
   'batchEmpty': 'Nothing to add yet — paste a few lines first.',
   'batchAdd': 'Add {count} words',

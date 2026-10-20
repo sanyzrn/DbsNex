@@ -11,8 +11,8 @@ const _lensen = <String, String>{
   'saveFailed': 'Could not save. Your offers are still here.',
   'undoFailed':
       'Could not restore because a later change conflicts. Current data was kept.',
-  'gregorian': 'Gregorian',
-  'dateRequired': 'Choose a valid shopping date or clear it',
+  'dateRequired':
+      'Choose a valid shopping date, not in the future — or clear it',
   'clearDate': 'Clear date',
   'paidTooMany': 'Paid packages cannot exceed received packages',
   'bundlePriceHint':
@@ -56,17 +56,14 @@ const _lensen = <String, String>{
   'bestLabel': 'Cheapest',
   'unitPriceOf': '{label} · {price} per {unit}',
   'savingsVsBest': '{extra} more than the cheapest',
-  'forThisAmount': '{extra} extra for this amount',
-  'tieNote': 'Two offers tie at the lowest price',
+  'tieNote': '{n} offers tie at the lowest price',
   'notComparable': 'Not comparable — different units',
   'familyHint':
       'Weights compare with weights; liquids with liquids; pieces with pieces',
   'mixedCurrencies':
       'Offers in different currencies cannot be compared — there is no exchange rate here',
-  'mixedCurrenciesShort': 'Different currencies',
-  'tooFew': 'Add a second offer to compare',
+  'tooFew': 'Add an offer to start comparing',
   'incomplete': 'An offer is incomplete — open it to fix it',
-  'zeroQuantity': 'The quantity cannot be zero',
   'smallestNote':
       'The smallest package is not always the cheapest: the price you pay '
       'is per unit, not per bag.',
@@ -77,7 +74,6 @@ const _lensen = <String, String>{
   'paidCount': 'packages paid for',
   'paidCountHint':
       'Only when the offer marks it — a 2+1 free pays for 2, receives 3',
-  'reset': 'Reset',
   'resetTooltip': 'Clear the offers — saved history stays',
   'resetDone': 'Cleared',
   'saveComparison': 'Save comparison',
@@ -97,12 +93,17 @@ const _lensen = <String, String>{
   'memoryDeleted': 'Forgotten',
   'undo': 'Undo',
   'restoreToCalculator': 'Open',
+  'backToCalculator': 'Back to the calculator',
   'savedComparisons': 'Saved comparisons',
   'noSaved': 'No saved comparisons yet',
   'deleteSavedTitle': 'Delete this comparison?',
   'savedDeleteBody': 'The calculator and price memory are untouched.',
   'savedDeleted': 'Deleted',
   'comparisonOf': '{n} offers · {date}',
+  'replaceOffersTitle': 'Replace the current offers?',
+  'replaceOffersBody':
+      'The offers in the calculator will be replaced by this saved comparison.',
+  'replaceOffers': 'Replace',
 
   // Editor.
   'newOptionTitle': 'New offer',
@@ -111,15 +112,12 @@ const _lensen = <String, String>{
   'labelHint': 'What you are comparing',
   'labelEmpty': 'Name the offer',
   'priceLabel': 'Total bundle price before discount',
-  'errEmpty': 'Enter a price',
   'errNotNumber': 'Numbers only — no signs or letters',
   'errTooPrecise': 'More decimals than this currency has',
-  'errZero': 'The price cannot be zero',
   'errTooLarge': 'Beyond what this module can hold',
   'errDiscountTooBig': 'The discount is larger than the price',
   'errQuantity': 'The quantity must be a positive number',
   'errQuantityTooPrecise': 'More decimals than this unit uses',
-  'errQuantityTooLarge': 'Beyond what this module can hold',
   'currencyLabel': 'Currency',
   'quantityLabel': 'Quantity in one package',
   'quantityHint': 'Numbers only',
@@ -144,8 +142,7 @@ const _lensen = <String, String>{
   'shippingLabel': 'Shipping or basket share',
   'shippingHint': 'Optional — only what you allocate',
   'dateLabel': 'Shopping date',
-  'dateTooltip': 'Change the date',
-  'dateUnset': 'Not set',
+  'dateHint': 'Type the day as yyyy/MM/dd, or pick it',
   'save': 'Save',
   'cancel': 'Cancel',
   'delete': 'Delete',
@@ -153,7 +150,6 @@ const _lensen = <String, String>{
   'keepEditing': 'Keep editing',
   'discardTitle': 'Discard this offer?',
   'discardBody': 'What you typed so far will be lost.',
-  'enterInLabel': 'Entered in',
   'rialUnit': 'Rials',
   'tomanUnit': 'Tomans',
   'tomanHint': '1 toman = 10 rials',
@@ -163,29 +159,10 @@ const _lensen = <String, String>{
 
   // Semantics.
   'optionSemantics': '{label}, {price}, {quantity} {unit} per package',
-  'resultSemantics': '{label} is the cheapest at {price} per {unit}',
   'memorySemantics': '{label}, {price}, {date}',
 
   // Misc.
-  'aboutTitle': 'About Price Lens',
   'noMarketRates': 'No retailer prices are known — only what you type',
   'priceComparisonNote':
       'A price comparison is not a claim that the products are equally good',
-  'privacyNote': 'Everything stays on this device',
-  'monthsAgo': '{n} months ago',
-  'daysAgo': '{n} days ago',
-  'today': 'Today',
-  'yesterday': 'Yesterday',
-  'month1': 'January',
-  'month2': 'February',
-  'month3': 'March',
-  'month4': 'April',
-  'month5': 'May',
-  'month6': 'June',
-  'month7': 'July',
-  'month8': 'August',
-  'month9': 'September',
-  'month10': 'October',
-  'month11': 'November',
-  'month12': 'December',
 };

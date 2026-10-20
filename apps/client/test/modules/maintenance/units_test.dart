@@ -45,10 +45,11 @@ void main() {
     });
 
     test('meter bounds', () {
-      expect(isValidMeter(0), isTrue);
-      expect(isValidMeter(999999999), isTrue);
-      expect(isValidMeter(-1), isFalse);
-      expect(isValidMeter(1000000001), isFalse);
+      // The parse path enforces the cap: 1e9 whole units fit, anything
+      // beyond it — or negative — is refused.
+      expect(parseMeterInput('1000000000'), isNotNull);
+      expect(parseMeterInput('1000000000.001'), isNull);
+      expect(parseMeterInput('-1'), isNull);
     });
   });
 

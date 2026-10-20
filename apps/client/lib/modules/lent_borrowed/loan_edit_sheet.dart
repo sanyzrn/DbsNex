@@ -14,14 +14,15 @@ import 'draft_guard.dart';
 import 'currency_field.dart';
 import 'loan_date_fields.dart';
 import 'number_input.dart';
+import 'loan_date_entry.dart';
 import 'loan_dates.dart';
 
 part 'loan_edit_logic.dart';
 
 /// Creates a lent or borrowed record — or edits one without ever touching
-/// its return history. Dates are asked the honest way: "N days ago" for
-/// the issue date, "in N days" for the due date, with quick presets,
-/// because the module API has no calendar picker to draw.
+/// its return history. Dates are absolute, entered as `yyyy/MM/dd` or
+/// picked on the shared calendar (Jalali for a Persian reader), with the
+/// practical presets still one tap away.
 Future<void> showLoanEditSheet(
   BuildContext context,
   NexModuleStore store, {
@@ -194,13 +195,13 @@ class _LoanEditSheetState extends State<_LoanEditSheet> with _LoanEditLogic {
                 ],
                 const SizedBox(height: NexSpacing.md),
                 LoanDateFields(
-                  daysAgo: _daysAgo,
-                  dueIn: _dueIn,
+                  issueDate: _issueDate,
+                  dueDate: _dueDate,
                   note: _note,
                   enabled: !_saving,
                   loan: widget.editing,
                   returns: _myReturns,
-                  daysError: _daysError,
+                  issueError: _issueError,
                   dueError: _dueError,
                 ),
                 const SizedBox(height: NexSpacing.lg),

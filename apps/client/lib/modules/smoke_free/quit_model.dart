@@ -65,10 +65,8 @@ class QuitAttempt {
   /// estimate basis, said out loud on the dashboard.
   final int cigarettesPerDay;
 
-  /// The price of one pack, in integer rials.
+  /// The price of one pack, in the currency's integer minor units.
   final int pricePerPackMinor;
-  int get pricePerPackRials =>
-      pricePerPackMinor; // Legacy source compatibility.
   final String currency;
   final int? currencyDecimals;
   int get digits => moneyDigits(currency, currencyDecimals);
@@ -96,16 +94,6 @@ class QuitAttempt {
     'perPack': perPack,
     'endedAt': (endedAt ?? this.endedAt)?.toIso8601String(),
     'endedWhy': endedWhy ?? this.endedWhy,
-  };
-
-  /// A defensive body for an attempt whose fields were lost or corrupt.
-  static Map<String, Object?> fallbackBody(DateTime now) => {
-    'startedAt': now.toIso8601String(),
-    'cigarettesPerDay': 0,
-    'pricePerPackRials': 0,
-    'perPack': 20,
-    'endedAt': null,
-    'endedWhy': null,
   };
 }
 

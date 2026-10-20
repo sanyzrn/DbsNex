@@ -7,6 +7,7 @@ import 'loan_detail_screen.dart';
 import 'loan_edit_sheet.dart';
 import 'loan_math.dart';
 import 'loan_model.dart';
+import 'loan_wording.dart';
 import 'money_format.dart';
 import 'module.dart';
 import 'store_state.dart';
@@ -33,6 +34,7 @@ class _LoansScreenState extends State<LoansScreen>
   List<LoanReturn> _returns = const [];
   StreamSubscription<void>? _changes;
   int _loadToken = 0;
+  bool _editorOpen = false;
   late final TabController _tabs = TabController(length: 2, vsync: this);
 
   @override
@@ -57,6 +59,22 @@ class _LoansScreenState extends State<LoansScreen>
   }
 
   Future<void> _load() => readRecords(_read);
+
+  /// One editor at a time: a double-tap on New must not stack two sheets
+  /// that each write their own record.
+  Future<void> _openEditor(LoanDirection direction) async {
+    if (_editorOpen) return;
+    _editorOpen = true;
+    try {
+      await showLoanEditSheet(
+        context,
+        widget.store,
+        initialDirection: direction,
+      );
+    } finally {
+      _editorOpen = false;
+    }
+  }
 
   Future<void> _read() async {
     await RecordBundle.recover(widget.store);
@@ -94,12 +112,8 @@ class _LoansScreenState extends State<LoansScreen>
       floatingActionButton: FloatingActionButton.extended(
         key: const ValueKey('loans-new'),
         onPressed: () => unawaited(
-          showLoanEditSheet(
-            context,
-            widget.store,
-            initialDirection: _tabs.index == 0
-                ? LoanDirection.lent
-                : LoanDirection.borrowed,
+          _openEditor(
+            _tabs.index == 0 ? LoanDirection.lent : LoanDirection.borrowed,
           ),
         ),
         icon: const Icon(Icons.add),
@@ -114,12 +128,14 @@ class _LoansScreenState extends State<LoansScreen>
               loans: _loans,
               returns: _returns,
               store: widget.store,
+              onNewRecord: () => unawaited(_openEditor(LoanDirection.lent)),
             ),
             _LoanList(
               direction: LoanDirection.borrowed,
               loans: _loans,
               returns: _returns,
               store: widget.store,
+              onNewRecord: () => unawaited(_openEditor(LoanDirection.borrowed)),
             ),
           ],
         ),
@@ -137,12 +153,14 @@ class _LoanList extends StatelessWidget {
     required this.loans,
     required this.returns,
     required this.store,
+    required this.onNewRecord,
   });
 
   final LoanDirection direction;
   final List<Loan> loans;
   final List<LoanReturn> returns;
   final NexModuleStore store;
+  final VoidCallback onNewRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -161,9 +179,7 @@ class _LoanList extends StatelessWidget {
                   : 'noLoansBorrowed',
             ),
             action: FilledButton.icon(
-              onPressed: () => unawaited(
-                showLoanEditSheet(context, store, initialDirection: direction),
-              ),
+              onPressed: onNewRecord,
               icon: const Icon(Icons.add),
               label: Text(strings(context, 'newRecord')),
             ),
@@ -174,8 +190,18 @@ class _LoanList extends StatelessWidget {
     final standings = {
       for (final loan in mine) loan.id: LoanMath.standing(loan, returns),
     };
-    final outstanding = mine.where((l) => !standings[l.id]!.settled).toList()
-      ..sort((a, b) => _dueRank(standings[b.id]!) - _dueRank(standings[a.id]!));
+    // Newest saved first within a rank: the store's own order, kept stable
+    // so a reload never shuffles the loans a person was looking at.
+    final ranked =
+        [
+          for (final (index, loan) in mine.indexed)
+            if (!standings[loan.id]!.settled) (index, loan),
+        ]..sort((a, b) {
+          final rank =
+              _dueRank(standings[b.$2.id]!) - _dueRank(standings[a.$2.id]!);
+          return rank != 0 ? rank : a.$1.compareTo(b.$1);
+        });
+    final outstanding = [for (final (_, loan) in ranked) loan];
     final settled = mine.where((l) => standings[l.id]!.settled).toList();
 
     return ListView(
@@ -298,7 +324,7 @@ class _LoanRow extends StatelessWidget {
                 color: scheme.onSurfaceVariant,
               ),
             ),
-            _dueText(context, strings, scheme),
+            _dueText(context, scheme),
           ],
         ),
         trailing: standing.settled
@@ -313,27 +339,13 @@ class _LoanRow extends StatelessWidget {
     );
   }
 
-  Widget _dueText(
-    BuildContext context,
-    NexModuleStrings strings,
-    ColorScheme scheme,
-  ) {
+  Widget _dueText(BuildContext context, ColorScheme scheme) {
     final due = standing.due;
     final style = themeOf(context).textTheme.bodySmall?.copyWith(
       color: due.status == DueStatus.overdue ? scheme.error : scheme.primary,
     );
     return Text(
-      switch (due.status) {
-        DueStatus.settled => strings(context, 'settledWord'),
-        DueStatus.none => strings(context, 'noDueWord'),
-        DueStatus.today => strings(context, 'dueTodayWord'),
-        DueStatus.dueSoon => strings(context, 'dueIn', {'n': due.days}),
-        DueStatus.later => strings(context, 'dueIn', {'n': due.days}),
-        DueStatus.overdue =>
-          due.days == 1
-              ? strings(context, 'overdueBy1')
-              : strings(context, 'overdueBy', {'n': due.days}),
-      },
+      dueWording(context, due),
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
       style: style,

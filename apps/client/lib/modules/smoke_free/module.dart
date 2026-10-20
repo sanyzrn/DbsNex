@@ -31,13 +31,11 @@ const smokeFreeStrings = NexModuleStrings(
     'restartBody':
         'Ends this attempt and starts a new one today with the same baseline and currency. All earlier attempts and cravings stay in your history.',
     'amountHint': 'e.g. {example} (dot or ٫ for decimals)',
-    'returnOffsetLabel': 'Days ago',
     'currency': 'Currency',
     'saveError': 'Could not save. Your changes are still here; try again.',
     'loadError': 'Could not load records. Try again.',
     'retry': 'Try again',
     'futureDate': 'In {n} days',
-    'dateUnknown': 'Date unknown',
     'attemptSameDay': 'Ended on the day it started',
     'startAttempt': 'Start this attempt',
     'estimateBoundary':
@@ -54,7 +52,6 @@ const smokeFreeStrings = NexModuleStrings(
     'point4': 'Attempts kept, never erased',
     'setupTitle': 'Start smoke-free',
     'setupEditTitle': 'Edit your baseline',
-    'startToday': 'Start today',
     'daysAgoLabel': 'Days since quitting',
     'daysAgoHint': '0 means today',
     'perDayLabel': 'Cigarettes a day before quitting',
@@ -64,8 +61,10 @@ const smokeFreeStrings = NexModuleStrings(
         'These three numbers only shape the estimates on the dashboard. '
         'You can correct them any time; the days you’ve kept are yours.',
     'smokeFreeFor': 'Smoke-free for {days} days',
+    'smokeFreeOneDay': 'Smoke-free for 1 day',
     'smokeFreeToday': 'Smoke-free since today',
     'cigarettesAvoided': '≈ {n} cigarettes not smoked',
+    'cigarettesAvoidedOne': '≈ 1 cigarette not smoked',
     'moneySaved': '≈ {money} kept',
     'estimateNote':
         'From {perDay} a day, {price} a pack of {perPack}. '
@@ -89,11 +88,11 @@ const smokeFreeStrings = NexModuleStrings(
     'noteHint': 'A word is enough',
     'cravingsHeading': 'Recent cravings',
     'noCravings': 'No cravings logged yet. Log one whenever you need to.',
-    'patternHeading': 'The pattern',
     'patternTop': 'Most common: {name} ({n} times)',
     'patternNone': 'No pattern yet — too few cravings.',
     'todayWord': 'Today',
     'yesterdayWord': 'Yesterday',
+    'tomorrowWord': 'Tomorrow',
     'daysAgoWord': '{n} days ago',
     'recordLapse': 'I smoked',
     'more': 'More',
@@ -124,6 +123,7 @@ const smokeFreeStrings = NexModuleStrings(
     'startButton': 'Start smoke-free',
     'historyHeading': 'Earlier attempts',
     'attemptLine': 'Lasted {days} days',
+    'attemptOneDay': 'Lasted 1 day',
     'editBaseline': 'Edit baseline',
     'cravingDeleted': 'Craving deleted',
     'deleteCraving': 'Delete',
@@ -136,13 +136,11 @@ const smokeFreeStrings = NexModuleStrings(
     'restartBody':
         'تلاش فعلی پایان می‌یابد و تلاش تازه‌ای از امروز با همان مبنا و ارز شروع می‌شود. همهٔ تلاش‌ها و هوس‌های قبلی در تاریخچه می‌مانند.',
     'amountHint': 'مثلاً {example} (اعشار با نقطه یا ٫)',
-    'returnOffsetLabel': 'چند روز پیش',
     'currency': 'ارز',
     'saveError': 'ذخیره نشد. تغییراتتان باقی است؛ دوباره تلاش کنید.',
     'loadError': 'اطلاعات بارگذاری نشد. دوباره تلاش کنید.',
     'retry': 'تلاش دوباره',
     'futureDate': '{n} روز دیگر',
-    'dateUnknown': 'تاریخ نامشخص',
     'attemptSameDay': 'در روز شروع پایان یافت',
     'startAttempt': 'شروع این تلاش',
     'estimateBoundary':
@@ -159,7 +157,6 @@ const smokeFreeStrings = NexModuleStrings(
     'point4': 'تلاش‌ها می‌مانند، پاک نمی‌شوند',
     'setupTitle': 'شروعِ بدون سیگار',
     'setupEditTitle': 'ویرایش مبنای برآورد',
-    'startToday': 'از امروز شروع می‌کنم',
     'daysAgoLabel': 'چند روز پیش ترک کردم',
     'daysAgoHint': '۰ یعنی امروز',
     'perDayLabel': 'تعداد سیگار روزانه پیش از ترک',
@@ -169,11 +166,13 @@ const smokeFreeStrings = NexModuleStrings(
         'این سه عدد فقط برآوردهای صفحه را شکل می‌دهند. هر وقت خواستید '
         'درستشان کنید؛ روزهایی که نگه داشته‌اید از آنِ خودتان است.',
     'smokeFreeFor': '{days} روز بدون سیگار',
+    'smokeFreeOneDay': '۱ روز بدون سیگار',
     'smokeFreeToday': 'از امروز بدون سیگار',
     'cigarettesAvoided': 'حدود {n} سیگار نکشیده شده',
+    'cigarettesAvoidedOne': 'حدود ۱ سیگار نکشیده شده',
     'moneySaved': 'حدود {money} صرفه‌جویی',
     'estimateNote':
-        'بر پایهٔ {perDay} در روز، {price} برای هر بستهٔ  {perPack}تایی. '
+        'بر پایهٔ {perDay} در روز، {price} برای هر بستهٔ {perPack}تایی. '
         'برآورد است، نه وعده.',
     'supportDay0':
         'اولین ساعت‌ها سخت‌ترین‌هاست. همین که اینجایید خودش مهم است.',
@@ -195,11 +194,11 @@ const smokeFreeStrings = NexModuleStrings(
     'noteHint': 'یک کلمه کافی است',
     'cravingsHeading': 'هوس‌های اخیر',
     'noCravings': 'هنوز هوسی ثبت نشده. هر وقت لازم بود، یکی ثبت کنید.',
-    'patternHeading': 'الگو',
     'patternTop': 'بیشترین راه‌انداز: {name} ({n} بار)',
     'patternNone': 'هنوز الگویی نیست — هوس‌های ثبت‌شده کم است.',
     'todayWord': 'امروز',
     'yesterdayWord': 'دیروز',
+    'tomorrowWord': 'فردا',
     'daysAgoWord': '{n} روز پیش',
     'recordLapse': 'سیگار کشیدم',
     'more': 'بیشتر',
@@ -230,6 +229,7 @@ const smokeFreeStrings = NexModuleStrings(
     'startButton': 'شروعِ بدون سیگار',
     'historyHeading': 'تلاش‌های پیشین',
     'attemptLine': '{days} روز دوام آورد',
+    'attemptOneDay': '۱ روز دوام آورد',
     'editBaseline': 'ویرایش مبنای برآورد',
     'cravingDeleted': 'هوس حذف شد',
     'deleteCraving': 'حذف',

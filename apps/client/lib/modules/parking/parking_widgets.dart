@@ -11,17 +11,22 @@ import 'parking_strings.dart';
 /// person: no field implies a sensor read it.
 ///
 /// The remaining time on a paid session is read while the screen is open,
-/// from a time the person wrote themselves; nothing is scheduled.
+/// from a time the person wrote themselves. A person who wants to be told
+/// after closing the app sets the explicit, opt-in device reminder on the
+/// open parking's card; the countdown itself never runs in the background.
 
 /// The open parking: the place big enough to read at a glance, the floor
 /// and spot beside it, and how long it has been there.
 class ParkingActiveCard extends StatelessWidget {
   const ParkingActiveCard({
     super.key,
+    required this.store,
     required this.record,
     required this.onFound,
     required this.onEdit,
   });
+
+  final NexModuleStore store;
 
   final ModuleRecord record;
 
@@ -126,6 +131,23 @@ class ParkingActiveCard extends StatelessWidget {
               icon: const Icon(Icons.directions_car_outlined),
               label: Text(strings(context, 'foundMyCar')),
             ),
+          ),
+          const SizedBox(height: NexSpacing.xs),
+          Text(
+            strings(context, 'reminderNote'),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          // Opt-in: an OS alert for when paid time runs out or the car is
+          // needed. Wired to this record, so the platform auto-cancels when
+          // the parking is deleted — and «Found my car» clears it too
+          // (parking_repository.dart).
+          NexModuleReminderControl(
+            key: const ValueKey('parking-reminders'),
+            store: store,
+            sourceKind: ParkingModels.session,
+            sourceId: record.id,
           ),
         ],
       ),
@@ -242,14 +264,17 @@ class ParkingPlaceRow extends StatelessWidget {
 
 // ---------------------------------------------------------------- helpers
 
-/// A date said as "today" when it is this day, as its date otherwise.
-/// Gregorian — never labelled as anything else.
+/// A date said as "today" when it is this day, in the person's own
+/// calendar otherwise — Jalali for a Persian reader, Gregorian for an
+/// English one.
 String _date(BuildContext context, DateTime value) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
+  // The civil day is rebuilt in the local zone, so a western time zone
+  // never prints the day before the one the parking began.
   final that = DateTime(value.year, value.month, value.day);
   if (that == today) {
     return parkingStrings(context, 'justNow');
   }
-  return ParkingFields.ymd(context, value);
+  return nexModuleDateLabel(context, that);
 }

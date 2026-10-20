@@ -33,9 +33,10 @@ and creates a new ID if requested. Failed multi-write restart compensates by
 restoring the prior attempt; histories and cravings are never deleted.
 
 Legacy records without currency/minor-price remain **IRR whole rials** and read
-`pricePerPackRials` unchanged. New IRR records also retain that legacy key.
-`pricePerPackRials` in the Dart model is only a legacy source alias; new logic
-uses `pricePerPackMinor`. Missing text/numeric fields default to safe empty/zero
+`pricePerPackMinor` unchanged. New IRR records also retain that legacy key.
+In the Dart model `pricePerPackRials` is only a legacy source alias (a
+constructor parameter and a stored key the reader accepts); new logic uses
+`pricePerPackMinor`. Missing text/numeric fields default to safe empty/zero
 values, missing start to now, invalid end to null. Pack size defaults to 20.
 
 Money is an **integer count of the selected currency's minor units**. The
@@ -65,20 +66,13 @@ Kind `craving`, store-generated ID:
 social, driving, tired, emotion, other); `coping`: water/deepBreath/walk/gum/
 waited/distraction or null; `note`: string. Unknown/duplicate triggers and coping
 keys are filtered; nonfinite intensity falls back to 1. Invalid timestamp reads
-as now. Future timestamps get an explicit “in N days” label, never a negative
-“days ago”. Deletion/Undo restores the complete raw craving body.
+as now. Future timestamps get an explicit future label ("Tomorrow", "in N
+days"), never a negative "days ago". Deletion/Undo restores the complete raw
+craving body.
 
 Drafts are stored under kind `draft`, IDs `<editor>:<record-id>` or
 `<editor>:new`, with `{v: 1, base: <JSON string of original body>, fields: {...}}`.
 Field values are strings from the editors plus typed choices described below.
-`fields.recordId` is an optional stable target ID for new records: if that record
-already exists, a leftover checkpoint is not reopened as a new unsaved record.
-A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
-marker has no fields/base and is ignored on read.
-`fields.recordId` is an optional stable target ID for new records: if that record
-already exists, a leftover checkpoint is not reopened as a new unsaved record.
-A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
-marker has no fields/base and is ignored on read.
 `fields.recordId` is an optional stable target ID for new records: if that record
 already exists, a leftover checkpoint is not reopened as a new unsaved record.
 A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
@@ -108,6 +102,17 @@ Quit draft fields: `daysAgo`, `perDay`, `price`, `perPack` strings;
 - Baseline-only edits preserve the exact original timestamp. Changed relative
   dates use calendar construction anchored at editor-open time, avoiding DST
   shifts and midnight drift. Drafts retain that anchor on reopen.
+- The person never enters or reads an absolute calendar date: the quit start is
+  "N days ago", progress is "N days", cravings are "today / yesterday / N days
+  ago". Relative wording is the honest UX for a quit streak, so the shared
+  Jalali picker has nothing to wrap here; storage stays civil ISO 8601.
+- Lists are deterministic: exact-same-instant cravings and attempts tie-break on
+  the store's time-ordered record id, so rows never swap between rebuilds.
+- One-unit counts read in the English singular ("Smoke-free for 1 day",
+  "≈ 1 cigarette not smoked", "Lasted 1 day", "Tomorrow"); Persian needs no
+  plural branch and keeps its own natural wording.
+- Empty-state and retry buttons grow with the text scale instead of carrying
+  Material's fixed 40 px height cap, so a 2× label is never clipped.
 - Encouragement is non-medical and compassionate; estimates are labelled.
   Missing craving logs do not prove there were no cravings.
 - Writes are guarded and failures preserve the editor; stable save IDs make
@@ -135,23 +140,59 @@ keep a local draft. Everything stays offline on this device.
   history after lapses, explicit restarts, preserved quit dates and local drafts.
 - FA: بدون سیگار: برآورد دقیق با ارزهای بین‌المللی، تاریخچهٔ در دسترس پس از
   لغزش، شروع تلاش تازه، حفظ زمان ترک و پیش‌نویس محلی.
+- EN: Smoke-free: honest singulars ("1 day", "1 cigarette", "Tomorrow"),
+  deterministic same-instant ordering, and text-scale-safe empty-state buttons.
+- FA: بدون سیگار: واژه‌های مفرد درست («۱ روز»، «۱ سیگار»، «فردا»)، ترتیب
+  قطعی برای ثبت‌های هم‌لحظه و دکمه‌هایی که با متن بزرگ می‌شوند، نه بریده.
 
 ## 6. Platform requests
 
-1. Evidence-reviewed localized recovery milestones as platform content; no
-   clinical recovery timeline or outcome claim is shipped without a vetted source.
-2. Shared Jalali picker/formatter through the API; relative days are the honest
-   working fallback.
-3. Export `NexTextField` for Nex's native per-paragraph note editor. The permitted
-   auto-direction Flutter fallback preserves independence; see full-app scanner
-   discrepancy in the validation report.
-4. Optional atomic storage batch for attempt end/restart. Current writes are
-   guarded and compensate failures; the kit cannot provide a crash-atomic
-   two-record transaction.
+1. Evidence-reviewed localized recovery milestones as platform content. Still
+   requested: no clinical recovery timeline or outcome claim is shipped without
+   a vetted source, and the module's own encouragement stays calm and
+   non-medical regardless.
+2. ~~Shared Jalali picker/formatter through the API; relative days are the
+   honest working fallback.~~ **Fulfilled by design — nothing to wire.** The
+   module has no absolute date a person enters or reads: the quit start is a
+   relative "days since quitting" number, progress and history are relative
+   day counts, and cravings read "today / yesterday / N days ago". That is the
+   deliberate UX for a quit streak, so `NexModuleDateEntry` and
+   `nexModuleDateLabel` have no spot to occupy; if an absolute date is ever
+   added, it will go through them. Storage stays civil ISO 8601.
+3. ~~Export `NexTextField` for Nex's native per-paragraph note editor.~~
+   **Fulfilled.** The module's only multiline note — the craving note — uses
+   the exported `NexTextField`; the remaining fields are single-line numbers
+   kept in explicit left-to-right `TextField`s on purpose (ADR-037). No local
+   multiline fallback existed to convert.
+4. Optional atomic storage batch for attempt end/restart. Still requested: the
+   kit cannot provide a crash-atomic two-record transaction. Current writes are
+   guarded, use stable save IDs, and compensate failures by restoring the
+   prior attempt; histories and cravings are never deleted.
 
 ## 7. Checks
 
-Reviewed in the owner's Windows / PowerShell workspace against Nex `main`
+Current pass (this repository, this folder only), run from `apps/client` with
+the repository's pinned Flutter **3.35.5** / Dart **3.9.2**:
+
+```text
+dart format lib/modules/smoke_free test/modules/smoke_free   # 0 changed
+flutter analyze --fatal-infos                                  # clean
+flutter test test/module_kit_test.dart -j 2                    # 40 passed
+flutter test test/modules/smoke_free -j 2                      # 92 passed
+```
+
+92 = 78 inherited (all still green, none weakened) + 14 added: English and
+Persian singular day/cigarette wording, the same-day attempt line, Tomorrow
+and in-N-days future labels, the 2×-text empty-state button height, and
+deterministic same-instant tie-breaks for cravings, the active attempt and
+history. Both language maps carry identical keys (91 each) with no empty
+value and no bidi control characters (the only isolates in the module are
+`money_format`'s long-standing LRI/PDI pair around a currency code inside a
+bidi sentence, shared verbatim with the reviewed `lent_borrowed` module);
+no file in the module's `lib` folder exceeds 400 lines. Edits are confined
+to `lib/modules/smoke_free/` and `test/modules/smoke_free/`.
+
+Originally reviewed in the owner's Windows / PowerShell workspace against Nex `main`
 `fdd70f4890b0bab67d30b88d4821273113d4b01d`, with the repository's pinned Flutter **3.35.5** / Dart **3.9.2**.
 The installed system Flutter is 3.44.8; a local validation SDK was used instead.
 

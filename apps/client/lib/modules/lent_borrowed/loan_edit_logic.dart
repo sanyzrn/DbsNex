@@ -5,8 +5,8 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
   late final TextEditingController _amount;
   late final TextEditingController _what;
   late final TextEditingController _quantity;
-  late final TextEditingController _daysAgo;
-  late final TextEditingController _dueIn;
+  late final TextEditingController _issueDate;
+  late final TextEditingController _dueDate;
   late final TextEditingController _note;
   late LoanDirection _direction;
   late LoanKind _kind;
@@ -14,14 +14,13 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
   late final FormDraft _draft;
   bool _restoring = true;
   late String _currency;
-  late LoanDates _dates;
   late int _digits;
   late final String _recordId = widget.editing?.id ?? widget.store.newId();
   String? _personError;
   String? _amountError;
   String? _whatError;
   String? _quantityError;
-  String? _daysError;
+  String? _issueError;
   String? _dueError;
 
   List<LoanReturn> get _myReturns => [
@@ -35,7 +34,6 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
     final editing = widget.editing;
     _currency = editing?.currency ?? 'IRR';
     _digits = editing?.digits ?? 0;
-    _dates = LoanDates(DateTime.now(), editing);
     _person = TextEditingController(text: editing?.person ?? '');
     _direction = editing?.direction ?? widget.initialDirection;
     _kind = editing?.kind ?? LoanKind.money;
@@ -52,11 +50,11 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
           ? '${editing.amount}'
           : '1',
     );
-    _daysAgo = TextEditingController(
-      text: editing == null ? '0' : '${_dates.issueOffset}',
+    _issueDate = TextEditingController(
+      text: dateEntryText(editing?.issued ?? civilDateKey(DateTime.now())),
     );
-    _dueIn = TextEditingController(
-      text: editing?.due == null ? '' : '${_dates.dueOffset}',
+    _dueDate = TextEditingController(
+      text: editing?.due == null ? '' : dateEntryText(editing!.due!),
     );
     _note = TextEditingController(text: editing?.note ?? '');
     _draft = FormDraft(
@@ -68,8 +66,8 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
         'amount': _amount,
         'what': _what,
         'quantity': _quantity,
-        'daysAgo': _daysAgo,
-        'dueIn': _dueIn,
+        'issueDate': _issueDate,
+        'dueDate': _dueDate,
         'note': _note,
       },
       () => {
@@ -78,7 +76,6 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
         'digits': _digits,
         'direction': _direction.key,
         'kind': _kind.key,
-        'anchor': _dates.anchor.toIso8601String(),
       },
     );
     unawaited(_restoreDraft());
@@ -93,11 +90,37 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
       _digits = moneyDigits(_currency, body['digits']);
       _direction = LoanDirection.fromKey('${body['direction']}');
       _kind = LoanKind.fromKey('${body['kind']}');
-      final anchor = DateTime.tryParse('${body['anchor'] ?? ''}');
-      if (anchor != null) _dates = LoanDates(anchor, widget.editing);
+      _migrateLegacyDateDraft(body);
     }
     _draft.start();
     setState(() => _restoring = false);
+  }
+
+  /// Drafts written before absolute date entry stored day offsets against an
+  /// open-time anchor. Bring those onto the calendar as the dates they
+  /// meant, so a checkpoint survives the upgrade.
+  void _migrateLegacyDateDraft(Map<String, Object?> body) {
+    final anchor = DateTime.tryParse('${body['anchor'] ?? ''}');
+    if (anchor == null) return;
+    final daysAgo = body['daysAgo'];
+    if (daysAgo is String) {
+      final offset = int.tryParse(daysAgo);
+      if (offset != null) {
+        _issueDate.text = dateEntryText(shiftCivilDate(anchor, -offset));
+      }
+    }
+    final dueIn = body['dueIn'];
+    if (dueIn is String) {
+      final trimmed = dueIn.trim();
+      if (trimmed.isEmpty) {
+        _dueDate.clear();
+      } else {
+        final offset = int.tryParse(trimmed);
+        if (offset != null) {
+          _dueDate.text = dateEntryText(shiftCivilDate(anchor, offset));
+        }
+      }
+    }
   }
 
   @override
@@ -107,8 +130,8 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
     _amount.dispose();
     _what.dispose();
     _quantity.dispose();
-    _daysAgo.dispose();
-    _dueIn.dispose();
+    _issueDate.dispose();
+    _dueDate.dispose();
     _note.dispose();
     super.dispose();
   }
@@ -116,16 +139,25 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
   int? _int(TextEditingController controller) =>
       parseWhole(controller.text, signed: true, max: maxMoney);
 
+  /// A stored date the field still shows untouched is kept exactly, even
+  /// when it is older than the typed-entry range (a legacy record dated a
+  /// thousand years back, say).
+  String? _unchangedDate(String written, String? stored) =>
+      stored != null && dateEntryText(stored) == written ? stored : null;
+
   Future<void> _save() async {
     final strings = lentStrings;
     final person = _person.text.trim();
     final amount = parseMoney(_amount.text, _digits);
     final quantity = _int(_quantity);
-    final days = _int(_daysAgo);
-    final dueInText = _dueIn.text.trim();
-    final int? dueIn = dueInText.isEmpty
-        ? 0
-        : parseWhole(dueInText, signed: true);
+    final issueWritten = _issueDate.text.trim();
+    final dueWritten = _dueDate.text.trim();
+    final issue =
+        parseDateEntry(issueWritten) ??
+        _unchangedDate(issueWritten, widget.editing?.issued);
+    final due =
+        parseDateEntry(dueWritten) ??
+        _unchangedDate(dueWritten, widget.editing?.due);
 
     final int total = _kind == LoanKind.money
         ? (amount ?? -1)
@@ -147,15 +179,9 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
                 ? strings(context, 'numberInvalid')
                 : strings(context, 'zeroAmount')
           : null;
-      _daysError = days == null || days < 0 || days > 365000
-          ? days == null
-                ? strings(context, 'numberInvalid')
-                : strings(context, 'daysInvalid')
-          : null;
-      _dueError = dueInText.isNotEmpty && (dueIn == null)
-          ? dueIn == null
-                ? strings(context, 'numberInvalid')
-                : strings(context, 'dueInvalid')
+      _issueError = issue == null ? strings(context, 'dateInvalid') : null;
+      _dueError = dueWritten.isNotEmpty && due == null
+          ? strings(context, 'dateInvalid')
           : null;
     });
 
@@ -163,7 +189,7 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
         _amountError != null ||
         _whatError != null ||
         _quantityError != null ||
-        _daysError != null ||
+        _issueError != null ||
         _dueError != null) {
       return;
     }
@@ -191,9 +217,9 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
     if (_saving) return;
     setState(() => _saving = true);
 
-    final issued = _dates.issued(days!);
-    final due = _dates.due(dueInText.isEmpty ? null : dueIn);
-    if (due != null && civilDaysBetween(issued, due)! < 0) {
+    // Null only means an unparseable pair, which the construction above
+    // rules out; treating it as "not before" keeps the guard total.
+    if (due != null && (civilDaysBetween(issue!, due) ?? 0) < 0) {
       setState(() {
         _saving = false;
         _dueError = strings(context, 'dueBeforeIssue');
@@ -210,7 +236,7 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
       'type': _kind.key,
       'amount': total,
       'what': _kind == LoanKind.item ? _what.text.trim() : '',
-      'issued': issued,
+      'issued': issue,
       'due': due,
       'note': _note.text.trim(),
     };

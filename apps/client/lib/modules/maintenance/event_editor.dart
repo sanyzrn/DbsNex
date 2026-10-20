@@ -277,10 +277,6 @@ class _EventEditorSheetState extends State<EventEditorSheet> {
                           onChanged: _markDirty,
                         ),
 
-                      Text(
-                        maintenanceStrings(context, 'gregorian'),
-                        style: theme.textTheme.bodySmall,
-                      ),
                       if (_showErrors &&
                           (!_dateConfirmed ||
                               dayOf(_date).isAfter(dayOf(DateTime.now()))))
@@ -295,6 +291,7 @@ class _EventEditorSheetState extends State<EventEditorSheet> {
                           maintenanceStrings(context, 'repeatVerify'),
                           style: theme.textTheme.bodySmall,
                         ),
+                      const SizedBox(height: NexSpacing.md),
                       EventCostFields(
                         controller: _cost,
                         currency: _currency,
@@ -332,22 +329,18 @@ class _EventEditorSheetState extends State<EventEditorSheet> {
                         ),
                       ),
                       const SizedBox(height: NexSpacing.md),
-                      // Single-line: a module cannot import the platform's
-                      // multi-line NexTextField (see the README's Platform
-                      // requests); direction follows the script typed.
-                      NexAutoDirection(
+                      // The shared multiline editor: the platform's own
+                      // per-paragraph direction on Android (ADR-037).
+                      NexTextField(
+                        key: const ValueKey('maintenance-event-notes'),
                         controller: _notes,
-                        builder: (context, direction) => TextField(
-                          key: const ValueKey('maintenance-event-notes'),
-                          controller: _notes,
-                          textDirection: direction,
-                          decoration: InputDecoration(
-                            labelText: s(context, 'notesLabelEvent'),
-                            hintText: s(context, 'notesHintEvent'),
-                          ),
-                          maxLines: 1,
-                          onChanged: (_) => _markDirty(),
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          labelText: s(context, 'notesLabelEvent'),
+                          hintText: s(context, 'notesHintEvent'),
                         ),
+                        onChanged: (_) => _markDirty(),
                       ),
                     ],
                   ),

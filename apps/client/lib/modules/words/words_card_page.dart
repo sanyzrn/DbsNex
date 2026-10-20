@@ -221,27 +221,22 @@ class _WordsCardPageState extends State<WordsCardPage> with _WordsCardLogic {
     );
   }
 
+  /// «Added today / yesterday / N days ago», and beyond a month the day
+  /// itself through the shared label — which follows the person's calendar
+  /// (Jalali for Persian) and their digits. Storage stays an ISO instant.
   String _createdWhen(BuildContext context) {
     final strings = wordsStrings;
     final created = wordsValidStamp(_card.createdAtIso) == null
         ? null
         : DateTime.tryParse(_card.createdAtIso)?.toLocal();
     if (created == null) return strings(context, 'whenUnknown');
-    final rawDate = isoDay(created);
-    final shownDate = NexModuleStrings.persian(context)
-        ? rawDate.replaceAllMapped(
-            RegExp(r'[0-9]'),
-            (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-          )
-        : rawDate;
+    final shownDate = nexModuleDateLabel(context, created);
     final now = DateTime.now();
     final createdDay = DateTime.utc(created.year, created.month, created.day);
     final today = DateTime.utc(now.year, now.month, now.day);
     final days = today.difference(createdDay).inDays;
     if (days == 0) return strings(context, 'whenToday');
-    if (days < 0) {
-      return wordsStrings(context, 'whenDate', {'date': shownDate});
-    }
+    if (days < 0) return strings(context, 'whenDate', {'date': shownDate});
     if (days == 1) return strings(context, 'whenYesterday');
     return days < 30
         ? strings(context, 'whenDaysAgo', {'count': days})

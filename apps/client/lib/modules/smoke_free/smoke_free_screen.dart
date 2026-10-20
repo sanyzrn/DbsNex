@@ -61,8 +61,9 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
     if (!mounted || token != _loadToken) return;
     setState(() {
       _attempts = quits.map(QuitAttempt.fromRecord).toList();
-      _cravings = cravings.map(Craving.fromRecord).toList()
-        ..sort((a, b) => b.at.compareTo(a.at));
+      _cravings = SmokeMath.cravingsNewestFirst(
+        cravings.map(Craving.fromRecord).toList(),
+      );
     });
   }
 

@@ -145,8 +145,10 @@ void main() {
     ]) {
       expect(ParkingModels.readCount({'n': raw}, 'n'), isNull);
     }
-    expect(LocalValues.writtenCount('۹۰۰۷۱۹۹۲۵۴۷۴۰۹۹۱'), LocalValues.maxExact);
-    expect(LocalValues.writtenCount('9007199254740992'), isNull);
+    expect(
+      ParkingModels.readCount({'n': LocalValues.maxExact}, 'n'),
+      LocalValues.maxExact,
+    );
   });
   test('rollback recovers raw bodies and refuses stale Undo', () async {
     final original = {

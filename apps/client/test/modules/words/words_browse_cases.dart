@@ -87,6 +87,12 @@ void _registerBrowseCases(
     await tester.pumpAndSettle();
     expect(find.text('rest'), findsOneWidget);
     expect(find.text('lantern'), findsNothing);
+
+    // A filter with nothing to show says so — about the filter, not the day.
+    await tester.tap(find.byKey(const ValueKey('words-filter-filterLearned')));
+    await tester.pumpAndSettle();
+    expect(find.text('No words match these filters.'), findsOneWidget);
+    expect(find.text('rest'), findsNothing);
   });
 
   testWidgets('Persian reads right to left with an English headword intact', (

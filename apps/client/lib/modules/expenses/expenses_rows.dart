@@ -278,20 +278,15 @@ class ExpensesTxRow extends StatelessWidget {
   }
 }
 
-/// "Today", "Yesterday", or "13 October" — calendar-relative, honest,
-/// and never a Jalali date in Persian (the API offers no Jalali
-/// formatter; see the README's Platform requests).
+/// "Today", "Yesterday", or the shared date label — calendar-relative
+/// when the words say it, the app's chosen calendar (Jalali included)
+/// through `nexModuleDateLabel` when it is an absolute day.
 String txDateLabel(BuildContext context, DateTime date, DateTime now) {
-  final persian = NexModuleStrings.persian(context);
   final localDate = DateTime.utc(date.year, date.month, date.day);
   final localNow = DateTime.utc(now.year, now.month, now.day);
   if (localDate == localNow) return expenseStrings(context, 'today');
   if (localDate == localNow.subtract(const Duration(days: 1))) {
     return expenseStrings(context, 'yesterday');
   }
-  final month = expenseStrings(context, 'month${date.month.clamp(1, 12)}');
-  final day = persian ? persianDigits('${date.day}') : '${date.day}';
-  final withYear = date.year != now.year;
-  final year = persian ? persianDigits('${date.year}') : '${date.year}';
-  return withYear ? '$day $month $year' : '$day $month';
+  return nexModuleDateLabel(context, date);
 }

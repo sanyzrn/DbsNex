@@ -10,6 +10,7 @@
 library;
 
 import 'local_values.dart';
+import 'units.dart' show groupDigits, persianDigits;
 
 /// A currency a cost can be entered in.
 class CostCurrency {
@@ -121,21 +122,21 @@ String formatCostNumber(
   var digits = exact.abs().toString();
   String text;
   if (exponent == 0) {
-    text = groupLocal(digits, persian);
+    text = groupDigits(digits, persian: persian);
   } else {
     while (digits.length <= exponent) {
       digits = '0$digits';
     }
-    final whole = groupLocal(
+    final whole = groupDigits(
       digits.substring(0, digits.length - exponent),
-      persian,
+      persian: persian,
     );
     final fraction = digits
         .substring(digits.length - exponent)
         .replaceAll(RegExp(r'0+$'), '');
     text = fraction.isEmpty
         ? whole
-        : '$whole.${persian ? persianLocal(fraction) : fraction}';
+        : '$whole.${persian ? persianDigits(fraction) : fraction}';
   }
   final sign = negative ? '−' : (signed ? '+' : '');
   return '$sign$text';
@@ -154,23 +155,6 @@ String costMajorText(int minor, int exponent) {
       .replaceAll(RegExp(r'0+$'), '');
   return fraction.isEmpty ? whole : '$whole.$fraction';
 }
-
-String groupLocal(String digits, bool persian) {
-  final grouped = StringBuffer();
-  var count = 0;
-  for (var i = digits.length - 1; i >= 0; i--) {
-    grouped.write(digits[i]);
-    count++;
-    if (count % 3 == 0 && i > 0) grouped.write(persian ? '٬' : ',');
-  }
-  final reversed = grouped.toString().split('').reversed.join('');
-  return persian ? persianLocal(reversed) : reversed;
-}
-
-String persianLocal(String text) => text.replaceAllMapped(
-  RegExp(r'[0-9]'),
-  (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-);
 
 bool costRecordValid(String? code, Map<String, Object?> body) {
   final currency = costCurrencyOf(code);

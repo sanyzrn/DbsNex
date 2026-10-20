@@ -105,7 +105,7 @@ extension _ParkingDetailBody on _ParkingDetailPageState {
                     ],
                   ),
                 ),
-                if (active)
+                if (active) ...[
                   Padding(
                     padding: const EdgeInsets.only(top: NexSpacing.md),
                     child: FilledButton.icon(
@@ -115,6 +115,25 @@ extension _ParkingDetailBody on _ParkingDetailPageState {
                       label: Text(strings(context, 'foundMyCar')),
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: NexSpacing.xs),
+                    child: Text(
+                      strings(context, 'reminderNote'),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  // The same opt-in device alert as the open parking's card,
+                  // offered here too because search is the one way a person
+                  // reaches this page while the parking is still open.
+                  NexModuleReminderControl(
+                    key: const ValueKey('parking-reminders'),
+                    store: widget.store,
+                    sourceKind: ParkingModels.session,
+                    sourceId: widget.sessionId,
+                  ),
+                ],
               ],
             ),
     );
@@ -152,7 +171,7 @@ extension _ParkingDetailBody on _ParkingDetailPageState {
     if (value == null) {
       return parkingStrings(context, 'noValue');
     }
-    return ParkingFields.startedAt(context, value);
+    return ParkingFields.when(context, value);
   }
 
   Widget _row(

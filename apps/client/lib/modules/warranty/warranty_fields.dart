@@ -5,29 +5,14 @@ import 'warranty_logic.dart';
 import 'warranty_strings.dart';
 
 /// The module's small local helpers: fields that follow the typed script,
-/// number reading tolerant of Persian digits, and the date and money
+/// number reading tolerant of Persian digits, and the money and date
 /// formats the rows share. They exist because the app's own field and
 /// date-picker widgets are not part of `module_api.dart` — see README →
-/// Platform requests. Dates are Gregorian and say so.
+/// Platform requests. Every date a person reads is shown on their saved
+/// calendar (Jalali for a Persian reader) through the shared label; entry
+/// stays civil, and the shared calendar button picks the day.
 class WarrantyFields {
   const WarrantyFields._();
-
-  /// Persian and Arabic digits typed in a number field, read as the
-  /// numbers they are — «۱۲» is 12.
-  static int? looseInt(String text) {
-    final mapped = text.characters.map((c) {
-      for (var d = 0; d < 10; d++) {
-        if (c == '۰۱۲۳۴۵۶۷۸۹'[d] || c == '٠١٢٣٤٥٦٧٨٩'[d]) {
-          return '$d';
-        }
-      }
-      return c;
-    }).join();
-    return int.tryParse(mapped.trim());
-  }
-
-  /// Two digits with a leading zero.
-  static String two(int value) => value < 10 ? '0$value' : '$value';
 
   /// ASCII digits in [text] as the interface's digits, grouped in threes.
   static String digits(BuildContext context, String text) {
@@ -39,10 +24,17 @@ class WarrantyFields {
         : text;
   }
 
-  /// A date as the module shows it: Gregorian, zero padded, grouped
-  /// digits in the interface's script.
-  static String ymd(BuildContext context, DateTime date) =>
-      digits(context, '${date.year}/${two(date.month)}/${two(date.day)}');
+  /// A civil day as the module shows it, on the saved calendar and in the
+  /// interface's digits. The day is rebuilt as a local one first, so a
+  /// date stored at UTC midnight never reads as the day before it was
+  /// written, west of Greenwich.
+  static String dayLabel(BuildContext context, DateTime day) =>
+      nexModuleDateLabel(context, DateTime(day.year, day.month, day.day));
+
+  /// An instant (a claim note's `at`) on the person's calendar: the local
+  /// day it happened, never the stored UTC one.
+  static String instantLabel(BuildContext context, DateTime at) =>
+      nexModuleDateLabel(context, at.toLocal());
 
   /// The amount in both readings, rial first, exactly converted — never
   /// a rounded toman.

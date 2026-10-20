@@ -127,11 +127,21 @@ int _increment(int value) => value >= 9007199254740991
   required int newPerDay,
   int sessionLimit = 20,
 }) {
+  // `List.sort` is not stable, so equal keys need explicit tiebreaks:
+  // among cards due the same day the one written first leads, and a
+  // shared creation moment falls to the store's time-ordered id — the
+  // queue then never depends on where the sort came from.
+  int byCreated(WordCard a, WordCard b) => a.createdAtIso == b.createdAtIso
+      ? a.id.compareTo(b.id)
+      : a.createdAtIso.compareTo(b.createdAtIso);
+  int byDue(WordCard a, WordCard b) =>
+      a.due == b.due ? byCreated(a, b) : a.due.compareTo(b.due);
+
   final due = cards.where((card) => card.isDueOn(todayIso)).toList()
-    ..sort((a, b) => a.due.compareTo(b.due));
+    ..sort(byDue);
 
   final freshAll = cards.where((card) => !card.paused && card.isNew).toList()
-    ..sort((a, b) => a.createdAtIso.compareTo(b.createdAtIso));
+    ..sort(byCreated);
 
   final introducedToday = cards
       .where((card) => !card.isNew && _firstDay(card) == todayIso)

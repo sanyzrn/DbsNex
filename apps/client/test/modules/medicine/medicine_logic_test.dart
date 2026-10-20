@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/medicine/medicine_logic.dart';
 
 /// The medicine calculations, on their own: times as they are written,
@@ -124,15 +125,31 @@ void main() {
   });
 
   group('dose history', () {
-    test('only the doses that belong to this medicine', () {
+    ModuleRecord dose(String id, Map<String, Object?> body) => ModuleRecord(
+      module: 'medicine',
+      kind: 'dose',
+      id: id,
+      body: body,
+      updatedAt: DateTime.now(),
+    );
+
+    test('only the doses that belong to this medicine, in store order', () {
       final doses = [
-        {'medicineId': 'a', 'action': 'taken'},
-        {'medicineId': 'b', 'action': 'skipped'},
-        {'medicineId': 'a', 'action': 'skipped'},
+        dose('d1', {'medicineId': 'a', 'action': 'taken'}),
+        dose('d2', {'medicineId': 'b', 'action': 'skipped'}),
+        dose('d3', {'medicineId': 'a', 'action': 'skipped'}),
       ];
       final mine = MedicineLogic.dosesFor(doses, 'a');
-      expect(mine, hasLength(2));
-      expect(mine.every((d) => d['medicineId'] == 'a'), isTrue);
+      expect(mine.map((d) => d.id), ['d1', 'd3']);
+    });
+
+    test('a broken medicineId belongs to no medicine', () {
+      final doses = [
+        dose('d1', {'medicineId': 5, 'action': 'taken'}),
+        dose('d2', {'action': 'taken'}),
+        dose('d3', {'medicineId': 'a', 'action': 'taken'}),
+      ];
+      expect(MedicineLogic.dosesFor(doses, 'a').map((d) => d.id), ['d3']);
     });
   });
 

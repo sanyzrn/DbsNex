@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'loan_date_entry.dart';
+import 'loan_dates.dart';
 import 'loan_model.dart';
 import 'money_format.dart';
 import 'module.dart';
 
 /// Every return, newest first, each removable — the honest history of what
-/// has come back so far.
+/// has come back so far, its date said both relatively and on the calendar
+/// the app is set to.
 class LoanReturnHistory extends StatelessWidget {
   const LoanReturnHistory({
     super.key,
@@ -86,18 +89,15 @@ class LoanReturnHistory extends StatelessWidget {
     NexModuleStrings strings,
     BuildContext context,
   ) {
-    final parsed = DateTime.tryParse(dateKey);
-    final now = DateTime.now();
-    if (parsed == null) return strings(context, 'dateUnknown');
-
-    final days = DateTime.utc(
-      now.year,
-      now.month,
-      now.day,
-    ).difference(DateTime.utc(parsed.year, parsed.month, parsed.day)).inDays;
-    if (days < 0) return strings(context, 'futureDate', {'n': -days});
-    if (days == 0) return strings(context, 'returnToday');
-    if (days == 1) return strings(context, 'yesterdayWord');
-    return strings(context, 'returnDaysAgo', {'n': days});
+    if (parseCivilDate(dateKey) == null) return strings(context, 'dateUnknown');
+    final days = civilDaysBetween(dateKey, civilDateKey(DateTime.now())) ?? 0;
+    final when = days < 0
+        ? strings(context, 'futureDate', {'n': -days})
+        : days == 0
+        ? strings(context, 'returnToday')
+        : days == 1
+        ? strings(context, 'yesterdayWord')
+        : strings(context, 'returnDaysAgo', {'n': days});
+    return '$when · ${loanDateLabel(context, dateKey)}';
   }
 }

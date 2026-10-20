@@ -81,9 +81,6 @@ String formatMoney(int minor, String currency, int digits, bool persian) {
   return '${formatNumber(minor ~/ factor, persian)}$fraction \u2066$currency\u2069';
 }
 
-/// Compatibility helper used by existing unit tests and legacy displays.
-String formatRials(int rials, bool persian) => formatNumber(rials, persian);
-
 String formatExactMoney(
   BigInt minor,
   String currency,

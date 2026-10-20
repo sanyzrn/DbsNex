@@ -82,14 +82,18 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
               .map(HabitCheck.fromRecord)
               .where((c) => c.habitId == widget.habitId)
               .toList()
-            ..sort((a, b) => b.dateKey.compareTo(a.dateKey));
+            ..sort(newestCheckFirst);
     });
   }
 
-  /// Today's check-in, from this page exactly as from Today.
+  /// Today's check-in, from this page exactly as from Today — including the
+  /// Undo snackbar when a check-in is taken back.
   Future<void> _toggleToday() async {
     if (_writing) return;
     setState(() => _writing = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final errorMessage = habitsStrings(context, 'saveError');
     try {
       final today = dateKeyOf(DateTime.now());
       final id = HabitCheck.idFor(widget.habitId, today);
@@ -102,6 +106,25 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
         });
       } else {
         await widget.store.delete('check', id);
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(habitsStrings(context, 'checkinDeleted')),
+              action: SnackBarAction(
+                label: l10n.undo,
+                onPressed: () => unawaited(
+                  widget.store.put('check', id, existing).catchError((
+                    Object _,
+                  ) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text(errorMessage)),
+                    );
+                  }),
+                ),
+              ),
+            ),
+          );
+        }
       }
     } catch (_) {
       writeError();

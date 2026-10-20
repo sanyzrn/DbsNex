@@ -146,7 +146,7 @@ void main() {
 
     // Done immediately: the card comes back tomorrow, not in a loop now.
     expect(
-      find.text('That is the session — 1 cards reviewed.'),
+      find.text('That is the session — one card reviewed.'),
       findsOneWidget,
     );
     final record = (await harness.services.moduleRecords(
@@ -357,13 +357,18 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('words-start-review')));
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel(RegExp('بلمسید')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('لمس کنید')), findsOneWidget);
     expect(find.text('۱ از ۱'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('words-review-card')));
     await tester.pumpAndSettle();
     expect(find.text('یافتنِ خوش‌سُرپرست'), findsOneWidget);
     expect(find.byKey(const ValueKey('words-answer-good')), findsOneWidget);
+    // The interval under each answer button is Persian digits and natural
+    // wording: Good (step 0 → 3) says «۳ روز دیگر», and both Again and
+    // Hard (1 day each) say «فردا».
+    expect(find.text('فردا'), findsNWidgets(2));
+    expect(find.text('۳ روز دیگر'), findsOneWidget);
     // The English headword stays left-to-right inside the Persian card.
     expect(
       Directionality.of(tester.element(find.text('serendipity'))),

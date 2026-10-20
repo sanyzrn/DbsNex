@@ -38,17 +38,6 @@ class HabitStanding {
   /// The last [HabitMath.recentDays] days, oldest first, each marked done or
   /// not — what the dot row on the detail page draws.
   final List<bool> recent;
-
-  /// Nothing checked in yet — today, waiting for the person.
-  static const empty = HabitStanding(
-    streak: 0,
-    graceNow: false,
-    graceInside: false,
-    todayDone: false,
-    weekCount: 0,
-    total: 0,
-    recent: [],
-  );
 }
 
 /// Streaks, weekly targets and summaries.
@@ -79,20 +68,6 @@ class HabitMath {
     // Dart's weekday: Monday 1 … Saturday 6, Sunday 7.
     final sinceSaturday = (date.weekday - firstDay.clamp(1, 7)) % 7;
     return DateTime.utc(date.year, date.month, date.day - sinceSaturday);
-  }
-
-  /// The Saturday-start week of [dateKey], as that Saturday's date key.
-  static String weekKeyOf(String dateKey, {int firstDay = DateTime.saturday}) {
-    final date = tryParseDateKey(dateKey);
-    if (date == null) {
-      return dateKey;
-    }
-    return _keyOf(weekStartOf(date, firstDay: firstDay));
-  }
-
-  static String _keyOf(DateTime date) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${date.year}-${two(date.month)}-${two(date.day)}';
   }
 
   /// The whole standing of [habit] against its check-ins on [today].

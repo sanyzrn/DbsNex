@@ -131,14 +131,31 @@ class HabitCheck {
     'at': at.toIso8601String(),
   };
 
-  /// Accepts `2026-10-12` and the longer ISO forms, falling back to today's
-  /// key so a malformed date never crashes a screen — it just reads as now.
+  /// Accepts `2026-10-12` and the longer ISO forms, keeping the civil-date
+  /// prefix of a real date. Anything else reads as unknown (`""`) — never
+  /// today, never a crash — so a malformed record can only fail to exist.
   static String _normaliseDateKey(String raw) {
     final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(raw);
     if (match == null) return '';
     final key = raw.substring(0, 10);
     return tryParseDateKey(key) == null ? '' : key;
   }
+}
+
+/// Habits newest-first: the most recently created first. Two habits
+/// created at the very same moment — a bulk import, or an old record with
+/// no creation date — fall back to the store's time-ordered id, so the
+/// list keeps one stable order from one load to the next.
+int newestFirst(Habit a, Habit b) {
+  final byCreated = b.createdAt.compareTo(a.createdAt);
+  return byCreated != 0 ? byCreated : a.id.compareTo(b.id);
+}
+
+/// Check-ins newest-first: by the day each counts for, then by when it was
+/// written — so legacy records that share a day keep one stable order.
+int newestCheckFirst(HabitCheck a, HabitCheck b) {
+  final byDay = b.dateKey.compareTo(a.dateKey);
+  return byDay != 0 ? byDay : b.at.compareTo(a.at);
 }
 
 /// The local civil date as `YYYY-MM-DD`.
@@ -162,6 +179,19 @@ DateTime? tryParseDateKey(String key) {
   final date = DateTime.tryParse(key);
   if (date == null || dateKeyOf(date) != key) return null;
   return DateTime.utc(date.year, date.month, date.day);
+}
+
+/// The civil date of [key] as a local [DateTime], for the platform calendar
+/// to draw.
+///
+/// Keys are UTC midnights and stay that way in every count; a label is a
+/// person's own calendar day, so it is rebuilt in local time before
+/// `nexModuleDateLabel` formats it — otherwise a western time zone would
+/// print the day before.
+DateTime? civilOfKey(String key) {
+  final date = tryParseDateKey(key);
+  if (date == null) return null;
+  return DateTime(date.year, date.month, date.day);
 }
 
 /// Whole civil days from [later] back to [earlier]; negative when earlier is

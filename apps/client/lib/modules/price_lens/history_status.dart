@@ -61,7 +61,10 @@ class LensInvalidRow extends StatelessWidget {
     );
     if (approved != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context),
-        message = s(context, 'memoryDeleted'),
+        message = s(
+          context,
+          kind == 'memory' ? 'memoryDeleted' : 'savedDeleted',
+        ),
         undo = s(context, 'undo'),
         failure = s(context, 'undoFailed');
     try {

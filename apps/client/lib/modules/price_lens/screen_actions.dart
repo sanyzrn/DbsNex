@@ -11,7 +11,7 @@ extension _ScreenActions on _PriceLensScreenState {
         date = await nexPickModuleDate(
           context,
           initial: now,
-          first: DateTime(1),
+          first: DateTime(1900),
           last: now,
         );
       }
@@ -107,6 +107,7 @@ extension _ScreenActions on _PriceLensScreenState {
             NexPageRoute<void>(
               builder: (_) => LensSavedPage(
                 controller: controller,
+                hasCalculatorOffers: options.isNotEmpty,
                 onOpenUnit: (unit) => commonUnitKey = unit,
                 onOpen: (restored) => _paint(() {
                   options = restored.take(4).toList();

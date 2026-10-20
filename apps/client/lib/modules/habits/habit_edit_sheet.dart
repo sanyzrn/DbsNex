@@ -217,7 +217,13 @@ class _HabitEditSheetState extends State<_HabitEditSheet> {
                           ChoiceChip(
                             key: ValueKey('habit-target-$n'),
                             label: Text(
-                              strings(context, 'targetLabel', {'n': n}),
+                              // "1 times a week" is no-one's English; the
+                              // singular chip says it properly.
+                              strings(
+                                context,
+                                n == 1 ? 'oneTarget' : 'targetLabel',
+                                {'n': n},
+                              ),
                             ),
                             selected: _target == n,
                             onSelected: _saving

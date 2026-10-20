@@ -209,7 +209,7 @@ class WarrantyCoverageFields extends StatelessWidget {
             padding: const EdgeInsets.only(top: NexSpacing.xs),
             child: Text(
               strings(context, 'endsOn', {
-                'date': WarrantyFields.ymd(context, end),
+                'date': WarrantyFields.dayLabel(context, end),
               }),
               key: const ValueKey('warranty-ends-on'),
               style: theme.textTheme.bodyMedium,

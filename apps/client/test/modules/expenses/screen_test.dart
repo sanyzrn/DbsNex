@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/expenses/controller.dart';
+import 'package:nex_client/modules/expenses/expenses_form.dart';
 import 'package:nex_client/modules/expenses/expenses_screen.dart';
+import 'package:nex_client/modules/expenses/local_values.dart';
 import 'package:nex_client/modules/expenses/models.dart';
 import 'package:nex_client/modules/module_api.dart';
 
@@ -14,6 +16,7 @@ import '../../support/nex_harness.dart';
 /// screens and 2.0 text scale.
 part 'screen_cases_1.dart';
 part 'screen_cases_2.dart';
+part 'screen_cases_3.dart';
 
 late NexTestHarness harness;
 late NexModuleStore store;
@@ -81,4 +84,5 @@ void main() {
 
   _screenCases1();
   _screenCases2();
+  _screenCases3();
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
+import 'package:nex_client/modules/lent_borrowed/loan_date_entry.dart';
+import 'package:nex_client/modules/lent_borrowed/loan_dates.dart';
 import 'package:nex_client/modules/lent_borrowed/loan_model.dart';
 import 'package:nex_client/modules/lent_borrowed/loans_screen.dart';
 
@@ -83,10 +85,11 @@ void main() {
       );
     }
     if (dueIn.isNotEmpty) {
-      await tester.enterText(
-        find.byKey(const ValueKey('loan-field-due')),
-        dueIn,
-      );
+      final preset = find.byKey(ValueKey('loan-due-preset-$dueIn'));
+      await tester.ensureVisible(preset);
+      await tester.pumpAndSettle();
+      await tester.tap(preset);
+      await tester.pumpAndSettle();
     }
     final before = await store.list('loan');
     final save = find.byKey(const ValueKey('loan-save'));
@@ -201,14 +204,14 @@ void main() {
             .widget<TextField>(
               find
                   .descendant(
-                    of: find.byKey(const ValueKey('loan-field-due')),
+                    of: find.byKey(const ValueKey('loan-due-date-entry')),
                     matching: find.byType(TextField),
                   )
                   .first,
             )
             .controller!
             .text,
-        '30',
+        dateEntryText(shiftCivilDate(DateTime.now(), 30)),
       );
     });
   });

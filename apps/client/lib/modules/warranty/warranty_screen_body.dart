@@ -13,11 +13,7 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
               .where((r) => WarrantyLogic.matchesQuery(r.body, query))
               .toList());
     final sorted = _sortSoonest
-        ? (visible.toList()..sort((a, b) {
-            final aEnd = WarrantyModels.readDate(a.body, 'coverageEnd');
-            final bEnd = WarrantyModels.readDate(b.body, 'coverageEnd');
-            return (aEnd ?? DateTime(9999)).compareTo(bEnd ?? DateTime(9999));
-          }))
+        ? WarrantyLogic.soonestEndFirst(visible)
         : visible;
 
     return Scaffold(
@@ -65,10 +61,38 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
           : _loadFailed
           ? _readError()
           : _warranties.isEmpty
-          ? NexEmptyState(
-              key: const ValueKey('warranty-empty'),
-              icon: Icons.verified_outlined,
-              message: strings(context, 'emptyMessage'),
+          // Scrolled rather than overflowing: at 2× text the empty state
+          // is taller than a small phone. The ConstrainedBox keeps it
+          // vertically centered when it does fit.
+          ? LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: NexEmptyState(
+                    key: const ValueKey('warranty-empty'),
+                    icon: Icons.verified_outlined,
+                    message: strings(context, 'emptyMessage'),
+                    // The empty state carries its own first action, not only
+                    // the floating button below it.
+                    action: FilledButton.tonalIcon(
+                      key: const ValueKey('warranty-empty-add'),
+                      onPressed: _busy || _loading || _loadFailed
+                          ? null
+                          : () => unawaited(_add()),
+                      icon: const Icon(Icons.add_outlined),
+                      label: Text(strings(context, 'add')),
+                      // Material's default caps a filled button at 40 px
+                      // tall, which a 2× text scale cannot fit into; let it
+                      // grow with the words instead of clipping them.
+                      style: const ButtonStyle(
+                        maximumSize: WidgetStatePropertyAll<Size?>(
+                          Size(double.infinity, double.infinity),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             )
           : _list(context, strings, sorted, query),
       floatingActionButton: FloatingActionButton.extended(

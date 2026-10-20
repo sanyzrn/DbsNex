@@ -61,10 +61,29 @@ extension _ParkingScreenBody on _ParkingScreenState {
           : _loadFailed
           ? _readError()
           : _sessions.isEmpty && _places.isEmpty
-          ? NexEmptyState(
-              key: const ValueKey('parking-empty'),
-              icon: Icons.local_parking_outlined,
-              message: strings(context, 'emptyMessage'),
+          ? CustomScrollView(
+              // The empty state stands centred when it fits, and scrolls
+              // when large text makes it taller than the screen.
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: NexEmptyState(
+                    key: const ValueKey('parking-empty'),
+                    icon: Icons.local_parking_outlined,
+                    message: strings(context, 'emptyMessage'),
+                    // The empty state carries its own first action, not
+                    // only the floating button below the fold.
+                    action: FilledButton.tonalIcon(
+                      key: const ValueKey('parking-empty-add'),
+                      onPressed: _busy || _loading || _loadFailed
+                          ? null
+                          : () => unawaited(_newParking()),
+                      icon: const Icon(Icons.local_parking_outlined),
+                      label: Text(strings(context, 'parkedHere')),
+                    ),
+                  ),
+                ),
+              ],
             )
           : _list(context, strings, active, history, searching),
       floatingActionButton: FloatingActionButton.extended(
@@ -146,6 +165,7 @@ extension _ParkingScreenBody on _ParkingScreenState {
             padding: const EdgeInsets.only(bottom: NexSpacing.md),
             child: ParkingActiveCard(
               key: ValueKey('parking-active-${record.id}'),
+              store: widget.store,
               record: record,
               onFound: () => unawaited(_foundCar(record)),
               onEdit: () => unawaited(_editParking(record)),
@@ -171,6 +191,16 @@ extension _ParkingScreenBody on _ParkingScreenState {
         ),
         const SizedBox(height: NexSpacing.sm),
       ],
+      if (searching && history.isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(bottom: NexSpacing.md),
+          child: Text(
+            strings(context, 'noMatches', {'query': _query.text.trim()}),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
       for (final record in history)
         ParkingHistoryRow(
           record: record,

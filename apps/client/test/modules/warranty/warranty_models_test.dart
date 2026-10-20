@@ -121,6 +121,12 @@ void main() {
       expect(WarrantyParse.count('twelve'), isNull);
     });
 
+    test('a stored day fills the field in the shared entry format', () {
+      // Zero padded, exactly as the shared calendar button writes it.
+      expect(WarrantyParse.dateText(DateTime(2026, 1, 5)), '2026/01/05');
+      expect(WarrantyParse.dateText(DateTime(2026, 10, 13)), '2026/10/13');
+    });
+
     test('amounts in either unit, exactly', () {
       expect(WarrantyParse.rials('3000000', inTomans: true), 30000000);
       expect(WarrantyParse.rials('30000000', inTomans: false), 30000000);

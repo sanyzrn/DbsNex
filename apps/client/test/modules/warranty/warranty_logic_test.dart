@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/warranty/warranty_logic.dart';
 
 /// The coverage arithmetic and the money display, on their own: month
@@ -187,18 +188,35 @@ void main() {
       );
     });
 
-    test('soonest coverage end first', () {
-      final unordered = [
-        {'product': 'a', 'coverageEnd': '2027-01-01T00:00:00'},
-        {'product': 'b', 'coverageEnd': '2026-11-01T00:00:00'},
-        {'product': 'c', 'coverageEnd': '2026-12-01T00:00:00'},
-      ];
-      expect(WarrantyLogic.soonestFirst(unordered).map((b) => b['product']), [
-        'b',
-        'c',
-        'a',
-      ]);
-    });
+    test(
+      'soonest coverage end first, unknown ends last, ties keep their order',
+      () {
+        ModuleRecord record(String product, [String? end]) => ModuleRecord(
+          module: 'warranty',
+          kind: 'warranty',
+          id: product,
+          body: {'product': product, if (end != null) 'coverageEnd': end},
+          updatedAt: DateTime.now(),
+        );
+        // The list arrives newest first, so an equal end must not swap the
+        // purchases' own order — and a purchase with no readable end belongs
+        // after every dated one, not before them.
+        final ordered = WarrantyLogic.soonestEndFirst([
+          record('a', '2027-01-01T00:00:00'),
+          record('newer tie', '2026-12-01T00:00:00'),
+          record('older tie', '2026-12-01T00:00:00'),
+          record('no readable end'),
+          record('b', '2026-11-01T00:00:00'),
+        ]);
+        expect(ordered.map((r) => r.body['product']), [
+          'b',
+          'newer tie',
+          'older tie',
+          'a',
+          'no readable end',
+        ]);
+      },
+    );
 
     test('long names order and match like any other', () {
       final long = List.filled(50, 'نام').join();

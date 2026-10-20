@@ -124,6 +124,57 @@ void main() {
     expect(records.single.body['log'], isEmpty);
   });
 
+  testWidgets('the empty state carries its own add button', (tester) async {
+    await tester.pumpWidget(wordsScreen());
+    await tester.pumpAndSettle();
+    final button = find.byKey(const ValueKey('words-empty-add'));
+    expect(button, findsOneWidget);
+    await tester.ensureVisible(button);
+    await tester.pumpAndSettle();
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    // The same page the floating button opens.
+    expect(find.byKey(const ValueKey('words-card-save')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('words-field-headword')),
+      'serendipity',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('words-field-language')),
+      'English',
+    );
+    await scrollToSave(tester);
+    await tester.tap(find.byKey(const ValueKey('words-card-save')));
+    await tester.pumpAndSettle();
+
+    // The collection is no longer empty, so the empty state is gone.
+    expect(find.text('serendipity'), findsOneWidget);
+    expect(button, findsNothing);
+  });
+
+  testWidgets('a double tap on save writes the word once', (tester) async {
+    await tester.pumpWidget(wordsScreen());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('words-add')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('words-field-headword')),
+      'once',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('words-field-language')),
+      'English',
+    );
+    await scrollToSave(tester);
+    await tester.tap(find.byKey(const ValueKey('words-card-save')));
+    await tester.tap(find.byKey(const ValueKey('words-card-save')));
+    await tester.pumpAndSettle();
+
+    expect(await harness.services.moduleRecords('words', 'card'), hasLength(1));
+    expect(find.text('once'), findsOneWidget);
+  });
+
   testWidgets('a word is needed; whitespace is folded, not kept', (
     tester,
   ) async {

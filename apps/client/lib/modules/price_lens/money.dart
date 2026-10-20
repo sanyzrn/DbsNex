@@ -60,7 +60,7 @@ int priceExponentOf(String? code) => priceCurrencyOf(code)?.exponent ?? 2;
 const priceMax = 1000000000000000;
 
 /// Why a typed price was refused.
-enum PriceAmountError { empty, notANumber, zero, tooLarge, tooPrecise }
+enum PriceAmountError { empty, notANumber, tooLarge, tooPrecise }
 
 /// A parsed price: [minor] when [error] is null.
 typedef PriceAmountResult = ({int? minor, PriceAmountError? error});
