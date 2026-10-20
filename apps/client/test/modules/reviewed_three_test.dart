@@ -169,6 +169,10 @@ void main() {
         'body': 'A habit is waiting for today.',
         'repeat': 'daily',
       });
+      // The page has a calendar now; a tall screen keeps every panel built.
+      tester.view.physicalSize = const Size(800, 3200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         app(HabitDetailScreen(store: store, habitId: 'h1')),
       );
