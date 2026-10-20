@@ -260,12 +260,21 @@ class LensResultPanel extends StatelessWidget {
         ),
       );
     }
+    final headline = _headline(context, unitWord);
     return NexPanel(
       title: s(context, 'resultTitle', {'unit': unitWord}),
       icon: Icons.emoji_events_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (headline != null) ...[
+            Text(
+              headline,
+              key: const ValueKey('lens-headline'),
+              style: theme.textTheme.titleSmall,
+            ),
+            const SizedBox(height: NexSpacing.sm),
+          ],
           ...rows,
           if (bestCount > 1)
             Padding(
@@ -308,6 +317,42 @@ class LensResultPanel extends StatelessWidget {
     );
   }
 
+  /// The answer in one sentence: the cheapest offer against the dearest, how
+  /// much less per unit as a percentage of the dearer. Display only — the
+  /// ranking above it is the exact fractions; this rounds to a tenth.
+  String? _headline(BuildContext context, String unitWord) {
+    final priced = [
+      for (final r in comparison.results)
+        if (r.unitPriceMinor != null) r,
+    ];
+    if (priced.length < 2) return null;
+    final best = priced.reduce(
+      (a, b) => a.unitPriceMinor! <= b.unitPriceMinor! ? a : b,
+    );
+    final worst = priced.reduce(
+      (a, b) => a.unitPriceMinor! >= b.unitPriceMinor! ? a : b,
+    );
+    final low = best.unitPriceMinor!;
+    final high = worst.unitPriceMinor!;
+    if (!(low < high) || high == const Fraction(0)) return null;
+    final tenths = ((high - low) * const Fraction(1000) / high).roundHalfUp();
+    final shown = tenths % 10 == 0 ? tenths ~/ 10 : tenths / 10;
+    final text = shown.toString();
+    return priceLensStrings(context, 'headline', {
+      'best': best.option.label,
+      'worst': worst.option.label,
+      'pct': persian
+          ? text
+                .replaceAll('.', '٫')
+                .replaceAllMapped(
+                  RegExp('[0-9]'),
+                  (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
+                )
+          : text,
+      'unit': unitWord,
+    });
+  }
+
   /// The result as plain lines — one per offer, the cheapest marked — for
   /// pasting into a chat or a note.
   Future<void> _copy(
@@ -316,8 +361,10 @@ class LensResultPanel extends StatelessWidget {
     int exponent,
   ) async {
     final s = priceLensStrings;
+    final headline = _headline(context, unitWord);
     final lines = [
       s(context, 'resultTitle', {'unit': unitWord}),
+      ?headline,
       for (final result in comparison.results)
         if (result.unitPriceMinor case final price?)
           '${result.isBest ? '✓ ' : '• '}${s(context, 'unitPriceOf', {'label': result.option.label, 'price': '${formatMinorFraction(price, exponent, persian: persian)} ${result.option.currency}', 'unit': unitWord})}'

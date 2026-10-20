@@ -23,10 +23,13 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('the reviewed add-ons are Habits, Price Lens and Lent & Borrowed', () {
-    expect(reviewed, {'habits', 'price_lens', 'lent_borrowed'});
-    expect(paused, hasLength(8));
-  });
+  test(
+    'the reviewed add-ons are Habits, Price Lens, Lent & Borrowed and Quit Habits',
+    () {
+      expect(reviewed, {'habits', 'price_lens', 'lent_borrowed', 'smoke_free'});
+      expect(paused, hasLength(7));
+    },
+  );
 
   test('all modules default off, including the eleven add-ons', () {
     expect(moduleIds, hasLength(11));

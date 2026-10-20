@@ -16,18 +16,27 @@ Future<void> showCravingSheet(
   BuildContext context,
   NexModuleStore store, {
   Craving? editing,
+  String habit = defaultHabit,
 }) => nexShowSheet<void>(
   context: context,
   dismissible: false,
   swipeToClose: true,
-  builder: (context) => _CravingSheet(store: store, editing: editing),
+  builder: (context) =>
+      _CravingSheet(store: store, editing: editing, habit: habit),
 );
 
 class _CravingSheet extends StatefulWidget {
-  const _CravingSheet({required this.store, required this.editing});
+  const _CravingSheet({
+    required this.store,
+    required this.editing,
+    required this.habit,
+  });
 
   final NexModuleStore store;
   final Craving? editing;
+
+  /// The habit a new craving belongs to; an edited one keeps its own.
+  final String habit;
 
   @override
   State<_CravingSheet> createState() => _CravingSheetState();
@@ -106,6 +115,10 @@ class _CravingSheetState extends State<_CravingSheet> {
       'triggers': _triggers.toList(),
       'coping': _coping,
       'note': _note.text.trim(),
+      // Only a habit other than the original cigarettes is written: older
+      // records stay exactly as they were.
+      if ((widget.editing?.habit ?? widget.habit) != defaultHabit)
+        'habit': widget.editing?.habit ?? widget.habit,
     };
     final id = _recordId;
     final saved = await storeWrite(context, () async {

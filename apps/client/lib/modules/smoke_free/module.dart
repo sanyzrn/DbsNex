@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
-import 'smoke_free_screen.dart';
+import 'quit_home_screen.dart';
 
-/// Smoke-free — a private, compassionate quit companion. Progress, honest
-/// estimates, and the patterns behind cravings; never a diagnosis, a
-/// recovery timetable, or a promise about anyone's body.
+/// Quit Habits — a private, compassionate companion for quitting smoking,
+/// vaping, alcohol or anything of the person's own, several at once.
+/// Progress, honest estimates, help for the moment of a craving and the
+/// patterns behind cravings; never a diagnosis, a recovery timetable, or a
+/// promise about anyone's body.
+///
+/// The module id stays `smoke_free`: it was Smoke-free first, and the records
+/// of those who used it are exactly what they were.
 class SmokeFreeModule extends NexStoredModule {
   const SmokeFreeModule();
 
@@ -13,7 +18,7 @@ class SmokeFreeModule extends NexStoredModule {
   String get id => 'smoke_free';
 
   @override
-  IconData get icon => Icons.smoke_free_outlined;
+  IconData get icon => Icons.self_improvement_outlined;
 
   @override
   NexHue get hue => NexHue.teal;
@@ -22,7 +27,7 @@ class SmokeFreeModule extends NexStoredModule {
   NexModuleStrings get strings => smokeFreeStrings;
 
   @override
-  Widget screen(NexModuleStore store) => SmokeFreeScreen(store: store);
+  Widget screen(NexModuleStore store) => QuitHomeScreen(store: store);
 }
 
 const smokeFreeStrings = NexModuleStrings(
@@ -41,14 +46,14 @@ const smokeFreeStrings = NexModuleStrings(
     'estimateBoundary':
         'Days count calendar boundaries, not full 24-hour periods. Savings are rounded down to the smallest currency unit.',
 
-    'title': 'Smoke-free',
+    'title': 'Quit habits',
     'tagline': 'The days you’ve kept, counted gently',
     'about':
-        'Counts the days, the cigarettes not smoked and the money kept. '
-        'A craving logged in one tap, and what sets cravings off.',
-    'point1': 'One-tap craving log',
-    'point2': 'Honest estimates',
-    'point3': 'Patterns over time',
+        'Count the days since you quit smoking, vaping, alcohol or anything else of your own. '
+        'The money and time kept, a help button for cravings, and what sets them off.',
+    'point1': 'Several habits at once',
+    'point2': 'Help button for cravings',
+    'point3': 'Honest estimates',
     'point4': 'Attempts kept, never erased',
     'setupTitle': 'Start smoke-free',
     'setupEditTitle': 'Edit your baseline',
@@ -100,7 +105,7 @@ const smokeFreeStrings = NexModuleStrings(
     'trigger_boredom': 'Boredom',
     'trigger_coffee': 'Coffee or tea',
     'trigger_afterMeal': 'After a meal',
-    'trigger_social': 'Being with smokers',
+    'trigger_social': 'A social situation',
     'trigger_driving': 'Driving',
     'trigger_tired': 'Tiredness',
     'trigger_emotion': 'A feeling',
@@ -130,6 +135,103 @@ const smokeFreeStrings = NexModuleStrings(
     'numberInvalid': 'Write that as a plain number',
     'daysInvalid': 'Days cannot be negative',
     'priceInvalid': 'The price cannot be negative',
+    'habit_cigarette': 'Smoke-free',
+    'habit_vape': 'Vaping',
+    'habit_alcohol': 'Alcohol',
+    'habit_caffeine': 'Caffeine',
+    'habit_sugar': 'Sugar',
+    'habit_social': 'Social media',
+    'habit_gambling': 'Gambling',
+    'habit_custom': 'Something else',
+    'without_cigarette': 'smoking',
+    'without_vape': 'vaping',
+    'without_alcohol': 'alcohol',
+    'without_caffeine': 'caffeine',
+    'without_sugar': 'sugar',
+    'without_social': 'social media scrolling',
+    'without_gambling': 'gambling',
+    'unit_cigarette': 'cigarettes',
+    'unit_vape': 'vape sessions',
+    'unit_alcohol': 'drinks',
+    'unit_caffeine': 'cups',
+    'unit_sugar': 'treats',
+    'unit_social': 'sessions',
+    'unit_gambling': 'bets',
+    'unit_custom': 'times',
+    'daysWithout': '{days} days without {habit}',
+    'oneDayWithout': '1 day without {habit}',
+    'todayWithout': 'Since today without {habit}',
+    'startsIn': 'Starts in {n} days',
+    'startsTomorrow': 'Starts tomorrow',
+    'counterDHM': '{d} d {h} h {m} min',
+    'unitsAvoided': '≈ {n} {unit} not had',
+    'unitsAvoidedOne': '≈ 1 {unit} not had',
+    'timeKept': '≈ {time} kept',
+    'durationHM': '{h} h {m} min',
+    'durationM': '{m} min',
+    'estimateUnits':
+        'From {perDay} {unit} a day at {price} each. Estimates, not promises.',
+    'addHabit': 'Quit something',
+    'homeEmpty': 'Choose something you want to quit, and count the days since.',
+    'activeHeading': 'Quitting',
+    'endedHeading': 'Earlier',
+    'chooseHabit': 'What are you quitting?',
+    'customName': 'Name it',
+    'customNameHint': 'e.g. Nail biting',
+    'nameRequired': 'Give it a name first',
+    'startedAlready': 'Already started',
+    'startsLater': 'Starts later',
+    'startsInDaysLabel': 'Starts in (days)',
+    'daysFromNowInvalid': 'Use a whole number of days, at least 1',
+    'perDayUnitsLabel': '{unit} a day before quitting',
+    'unitPriceLabel': 'Price of each',
+    'whyLabel': 'Why are you doing this? (optional)',
+    'whyHint': 'A line for the hard moments',
+    'goalLabel': 'Saving goal (optional)',
+    'minutesLabel': 'Minutes each one took (optional)',
+    'goalInvalid': 'The goal cannot be negative',
+    'safetyNote':
+        'If you drink heavily or take it every day, stopping suddenly can be unsafe. Talk to a doctor before you stop. Nex does not give medical advice.',
+    'sosButton': 'I need help now',
+    'whyHeading': 'Your why',
+    'goalHeading': 'Saving goal',
+    'goalProgress': '{pct}% of {goal}',
+    'marksHeading': 'Marks',
+    'markDays': '{n} d',
+    'nextMark': 'Next: {n} days',
+    'calendarHeading': 'The last five weeks',
+    'legendClean': 'Kept',
+    'legendCraving': 'Craving',
+    'legendLapse': 'Lapse',
+    'legendLater': 'Not yet',
+    'sosTitle': 'Ride it out',
+    'sosIntro':
+        'A craving rises, peaks and passes. You do not have to act on it.',
+    'tabBreathe': 'Breathe',
+    'tabWait': 'Wait',
+    'tabDistract': 'Distract',
+    'breatheIn': 'Breathe in',
+    'breatheHold': 'Hold',
+    'breatheOut': 'Breathe out',
+    'breatheStart': 'Start',
+    'breatheStop': 'Stop',
+    'breatheNote':
+        'Four counts in, seven held, eight out. Stop whenever you like.',
+    'waitStart': 'Start ten minutes',
+    'waitReset': 'Start again',
+    'waitLeft': '{time} left',
+    'waitHint':
+        'Cravings usually weaken within minutes. Just let this clock run.',
+    'waitDone': 'Ten minutes. It has passed or weakened — well done.',
+    'tip1': 'Drink a glass of water slowly.',
+    'tip2': 'Walk to another room, or outside.',
+    'tip3': 'Text someone, or call them.',
+    'tip4': 'Wash your face or hands with cold water.',
+    'tip5': 'Do something with your hands for five minutes.',
+    'logIt': 'Log this craving',
+    'remember': 'Remember why',
+    'moduleAbout': 'Count what you quit',
+    'recordLapseGeneric': 'I slipped',
   },
   fa: {
     'restartAttempt': 'شروع تلاش تازه',
@@ -146,14 +248,14 @@ const smokeFreeStrings = NexModuleStrings(
     'estimateBoundary':
         'روزها با تغییر تاریخ شمرده می‌شوند، نه دوره‌های کامل ۲۴ ساعته. برآورد پول به واحد خرد ارز رو به پایین گرد می‌شود.',
 
-    'title': 'بدون سیگار',
+    'title': 'ترک عادت',
     'tagline': 'روزهایی که نگه داشته‌اید، با مهربانی شمرده می‌شوند',
     'about':
-        'روزها، سیگارهایی که نکشیدید و پولی که ماند را می‌شمارد. '
-        'هوس را با یک لمس ثبت کنید و ببینید چه چیزی آن را راه می‌اندازد.',
-    'point1': 'ثبت هوس با یک لمس',
-    'point2': 'برآوردهای درست',
-    'point3': 'الگوها در طول زمان',
+        'روزهای ترک سیگار، ویپ، الکل یا هر چیز دیگر را بشمارید. '
+        'پول و وقتی که ماند، دکمهٔ کمک برای هوس، و آنچه هوس را راه می‌اندازد.',
+    'point1': 'چند عادت هم‌زمان',
+    'point2': 'دکمهٔ کمک برای هوس',
+    'point3': 'برآوردهای درست',
     'point4': 'تلاش‌ها می‌مانند، پاک نمی‌شوند',
     'setupTitle': 'شروعِ بدون سیگار',
     'setupEditTitle': 'ویرایش مبنای برآورد',
@@ -206,7 +308,7 @@ const smokeFreeStrings = NexModuleStrings(
     'trigger_boredom': 'بی‌کاری',
     'trigger_coffee': 'قهوه یا چای',
     'trigger_afterMeal': 'بعد از غذا',
-    'trigger_social': 'کنار سیگاری‌ها',
+    'trigger_social': 'موقعیت اجتماعی',
     'trigger_driving': 'رانندگی',
     'trigger_tired': 'خستگی',
     'trigger_emotion': 'یک حال‌وهوا',
@@ -236,5 +338,103 @@ const smokeFreeStrings = NexModuleStrings(
     'numberInvalid': 'آن را به شکل عدد ساده بنویسید',
     'daysInvalid': 'روز نمی‌تواند منفی باشد',
     'priceInvalid': 'قیمت نمی‌تواند منفی باشد',
+    'habit_cigarette': 'بدون سیگار',
+    'habit_vape': 'ویپ',
+    'habit_alcohol': 'الکل',
+    'habit_caffeine': 'کافئین',
+    'habit_sugar': 'شکر',
+    'habit_social': 'شبکه\u200cهای اجتماعی',
+    'habit_gambling': 'قمار',
+    'habit_custom': 'چیز دیگر',
+    'without_cigarette': 'سیگار',
+    'without_vape': 'ویپ',
+    'without_alcohol': 'الکل',
+    'without_caffeine': 'کافئین',
+    'without_sugar': 'شکر',
+    'without_social': 'پرسه در شبکه\u200cهای اجتماعی',
+    'without_gambling': 'قمار',
+    'unit_cigarette': 'سیگار',
+    'unit_vape': 'نوبت ویپ',
+    'unit_alcohol': 'نوشیدنی',
+    'unit_caffeine': 'فنجان',
+    'unit_sugar': 'خوراکی شیرین',
+    'unit_social': 'نوبت',
+    'unit_gambling': 'شرط\u200cبندی',
+    'unit_custom': 'بار',
+    'daysWithout': '{days} روز بدون {habit}',
+    'oneDayWithout': '۱ روز بدون {habit}',
+    'todayWithout': 'از امروز بدون {habit}',
+    'startsIn': '{n} روز دیگر شروع می\u200cشود',
+    'startsTomorrow': 'فردا شروع می\u200cشود',
+    'counterDHM': '{d} روز {h} ساعت {m} دقیقه',
+    'unitsAvoided': 'حدود {n} {unit} را نداشته\u200cاید',
+    'unitsAvoidedOne': 'حدود ۱ {unit} را نداشته\u200cاید',
+    'timeKept': 'حدود {time} وقت ماند',
+    'durationHM': '{h} ساعت و {m} دقیقه',
+    'durationM': '{m} دقیقه',
+    'estimateUnits':
+        'بر پایهٔ {perDay} {unit} در روز، هر کدام {price}. برآورد است، نه وعده.',
+    'addHabit': 'ترک چیزی',
+    'homeEmpty':
+        'چیزی را که می\u200cخواهید ترک کنید انتخاب کنید و روزها را بشمارید.',
+    'activeHeading': 'در حال ترک',
+    'endedHeading': 'پیشین',
+    'chooseHabit': 'چه چیزی را ترک می\u200cکنید؟',
+    'customName': 'اسمش را بگذارید',
+    'customNameHint': 'مثلاً جویدن ناخن',
+    'nameRequired': 'اول یک اسم برایش بنویسید',
+    'startedAlready': 'قبلاً شروع شده',
+    'startsLater': 'بعداً شروع می\u200cشود',
+    'startsInDaysLabel': 'چند روز دیگر شروع می\u200cشود',
+    'daysFromNowInvalid': 'تعداد روز را عدد صحیح و دست\u200cکم ۱ بنویسید',
+    'perDayUnitsLabel': '{unit} در روز پیش از ترک',
+    'unitPriceLabel': 'قیمت هر کدام',
+    'whyLabel': 'چرا این کار را می\u200cکنید؟ (اختیاری)',
+    'whyHint': 'یک جمله برای لحظه\u200cهای سخت',
+    'goalLabel': 'هدف پس\u200cانداز (اختیاری)',
+    'minutesLabel': 'هر بار چند دقیقه طول می\u200cکشید (اختیاری)',
+    'goalInvalid': 'هدف نمی\u200cتواند منفی باشد',
+    'safetyNote':
+        'اگر زیاد مصرف می\u200cکنید یا هر روز مصرف می\u200cکنید، قطع ناگهانی می\u200cتواند خطرناک باشد. پیش از ترک با پزشک صحبت کنید. نکس توصیهٔ پزشکی نمی\u200cدهد.',
+    'sosButton': 'همین الان کمک می\u200cخواهم',
+    'whyHeading': 'دلیلِ شما',
+    'goalHeading': 'هدف پس\u200cانداز',
+    'goalProgress': '{pct}٪ از {goal}',
+    'marksHeading': 'نشان\u200cها',
+    'markDays': '{n} روز',
+    'nextMark': 'بعدی: {n} روز',
+    'calendarHeading': 'پنج هفتهٔ اخیر',
+    'legendClean': 'نگه داشته شد',
+    'legendCraving': 'هوس',
+    'legendLapse': 'لغزش',
+    'legendLater': 'هنوز نه',
+    'sosTitle': 'تا گذشتنش صبر کنید',
+    'sosIntro':
+        'هوس بالا می\u200cآید، به اوج می\u200cرسد و می\u200cگذرد. لازم نیست دنبالش بروید.',
+    'tabBreathe': 'نفس',
+    'tabWait': 'صبر',
+    'tabDistract': 'حواس\u200cپرتی',
+    'breatheIn': 'نفس بکشید',
+    'breatheHold': 'نگه دارید',
+    'breatheOut': 'بیرون بدهید',
+    'breatheStart': 'شروع',
+    'breatheStop': 'توقف',
+    'breatheNote':
+        'چهار شماره دم، هفت شماره نگه داشتن، هشت شماره بازدم. هر وقت خواستید متوقف کنید.',
+    'waitStart': 'شروع ده دقیقه',
+    'waitReset': 'دوباره شروع',
+    'waitLeft': '{time} مانده',
+    'waitHint':
+        'هوس معمولاً ظرف چند دقیقه ضعیف می\u200cشود. فقط بگذارید این ساعت بگذرد.',
+    'waitDone': 'ده دقیقه گذشت. هوس رفته یا ضعیف شده — آفرین.',
+    'tip1': 'یک لیوان آب را آرام بنوشید.',
+    'tip2': 'به اتاق دیگری بروید یا بیرون قدم بزنید.',
+    'tip3': 'به کسی پیام بدهید یا زنگ بزنید.',
+    'tip4': 'صورت یا دست\u200cهایتان را با آب سرد بشویید.',
+    'tip5': 'پنج دقیقه با دست\u200cهایتان کاری بکنید.',
+    'logIt': 'ثبت این هوس',
+    'remember': 'دلیلت را یادت بیار',
+    'moduleAbout': 'آنچه ترک می\u200cکنید را بشمارید',
+    'recordLapseGeneric': 'لغزش کردم',
   },
 );

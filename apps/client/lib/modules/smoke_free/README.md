@@ -242,3 +242,7 @@ Maintainer integration: register the three const modules and imports in
 (different from the actual IDs `habits`, `smoke_free`, `lent_borrowed`).
 Copy the Guide/Changelog paragraphs above into the app's content. Run the gate,
 full app checks and device/accessibility review before release.
+
+## Changes since the upgrade pass
+
+- 2.1.12: Quit Habits — several habits (presets and custom) with a live count, future start, money and time kept, saving goal, a reason, marks, a five-week grid and a help sheet (4-7-8 breathing, ten-minute wait, tips). Records of the Smoke-free module read as cigarettes and are written back unchanged; new fields (`habit`, `name`, `why`, `goalMinor`, `minutesPerUnit`) appear only when used.

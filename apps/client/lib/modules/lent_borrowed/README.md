@@ -179,3 +179,4 @@ light/dark, undo and recovery journeys).
 ## 2.1.11 changes
 
 - 2.1.11: optional due-date reminder on a loan, withdrawn when settled or deleted; calendar button beside date fields; one primary action on an empty page.
+- 2.1.12: per-currency totals, search and filters, a page per person, shareable reminder messages in three tones.

@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v2.1.12
+
+- **Quit Habits.** The Smoke-free module is now Quit Habits and is available: count several things you are quitting at once — smoking, vaping, alcohol, caffeine, sugar, social media, gambling or your own — each with a live count in days, hours and minutes, the money and time kept, a saving goal, your own reason, marks along the way and the last five weeks at a glance. **I need help now** opens guided breathing, a ten-minute wait and quick ideas. You can start later, and a slip never erases earlier attempts. Everything you logged as Smoke-free is still there, as cigarettes.
+- **Lent & Borrowed.** Totals owed to you and by you in each currency, search and filters, a page for each person, and polite reminder messages (friendly, plain or formal) that you send yourself.
+- **Price Lens.** The result now says it in a sentence — "Rice 1kg costs 7.1% less per kg than Rice 750g" — and prices can be read per 100 g or 100 ml.
+
 ## v2.1.11
 
 - **Habits, Price Lens and Lent & Borrowed are available.** Add them from **Tools → Add modules**. The other eight modules stay Soon until each is finished.

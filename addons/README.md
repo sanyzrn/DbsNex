@@ -1,6 +1,6 @@
 # Nex add-on sources
 
-> Cycle, Habits, Price Lens and Lent & Borrowed are available (2.1.11). The other eight add-ons below are Soon; source, installation choices and records are preserved pending individual review.
+> Cycle, Habits, Price Lens, Lent & Borrowed and Quit Habits are available (2.1.11–2.1.12). The other seven add-ons below are Soon; source, installation choices and records are preserved pending individual review.
 
 All 11 supplied modules are integrated into the client for individual review. Sources and original READMEs are under `apps/client/lib/modules/<id>/`;
 tests are under `apps/client/test/modules/<id>/`. They were moved from this
@@ -42,6 +42,26 @@ deleted; Price Lens' Copy result (`nexModuleCopyText`). Tests:
 `test/modules/reviewed_three_test.dart`; rollout tests now expect the four
 available ids. Not done, still open: real-device check of notifications,
 TalkBack, and Price Lens barcode/OCR (outside the module API).
+
+### 2.1.12: from the three benchmark reports
+
+- **Lent & Borrowed:** per-currency totals (never summed across currencies),
+  search and filters, a page per person (grouped by the name folded for case,
+  spacing and Arabic yeh/kaf — no stable person id yet, so two people with one
+  name are one person), polite reminder messages shared only from a tap.
+  Receipts and photos, contact picking, CSV/PDF export, instalments: not done —
+  they need file, contacts or export APIs the module kit does not expose.
+- **Price Lens:** a one-sentence result with the percentage (display only, the
+  ranking stays exact), per 100 g / 100 ml units. Barcode/OCR, length/area
+  units, price charts: not done.
+- **Quit Habits (`smoke_free`):** not merged into Habits — building a streak
+  and counting time since quitting are different records and different screens
+  — but named beside it. Generalised from cigarettes to presets and custom
+  habits, several at once; records from before (kind `quit`, `craving`) read as
+  cigarettes and are written back unchanged. Added: live counter, future start,
+  money and time kept, saving goal, a reason, marks, five-week grid, the help
+  sheet (4-7-8 breathing, ten-minute wait, tips), a one-time safety note for
+  alcohol. Not done: reminders, daily confirmation, charts beyond the grid.
 
 ## Inventory
 

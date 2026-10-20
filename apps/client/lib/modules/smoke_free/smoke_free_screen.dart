@@ -5,20 +5,31 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'craving_list.dart';
 import 'craving_sheet.dart';
+import 'sos_sheet.dart';
 import 'smoke_panels.dart';
 import 'module.dart';
 import 'store_state.dart';
+import 'quit_habits.dart';
 import 'quit_model.dart';
+import 'quit_widgets.dart';
 import 'setup_sheet.dart';
 import 'smoke_math.dart';
 
 /// The smoke-free dashboard: the days kept, the honest estimates built from
 /// the person's own baseline, and the cravings logged in one tap. The
 /// primary action is logging a craving — the counter is calm on purpose.
+///
+/// One screen for one habit ([habit], a [QuitAttempt.key]): cigarettes —
+/// what the module was — unless Quit Habits opened it for another.
 class SmokeFreeScreen extends StatefulWidget {
-  const SmokeFreeScreen({super.key, required this.store});
+  const SmokeFreeScreen({
+    super.key,
+    required this.store,
+    this.habit = defaultHabit,
+  });
 
   final NexModuleStore store;
+  final String habit;
 
   @override
   State<SmokeFreeScreen> createState() => _SmokeFreeScreenState();
@@ -60,10 +71,14 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
     final cravings = await widget.store.list('craving');
     if (!mounted || token != _loadToken) return;
     setState(() {
-      _attempts = quits.map(QuitAttempt.fromRecord).toList();
-      _cravings = SmokeMath.cravingsNewestFirst(
-        cravings.map(Craving.fromRecord).toList(),
-      );
+      _attempts = [
+        for (final a in quits.map(QuitAttempt.fromRecord))
+          if (a.key == widget.habit) a,
+      ];
+      _cravings = SmokeMath.cravingsNewestFirst([
+        for (final c in cravings.map(Craving.fromRecord))
+          if (c.habit == widget.habit) c,
+      ]);
     });
   }
 
@@ -85,6 +100,10 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
   Future<void> _setup({QuitAttempt? editing}) =>
       showSetupSheet(context, widget.store, editing: editing);
 
+  QuitPreset get _preset => quitPresetOf(
+    widget.habit.startsWith('custom:') ? 'custom' : widget.habit,
+  );
+
   /// Ends the active attempt and — when [restart] — starts a new one today
   /// with the same baseline. Either way, the attempt stays in history and
   /// every craving keeps its place.
@@ -102,16 +121,10 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
             ...active.toJson(endedAt: now, endedWhy: reason),
           });
           if (restart) {
+            // The same baseline, name, reason and goal, from today.
             await widget.store.put('quit', restartId, {
+              ...active.toJson(),
               'startedAt': now.toIso8601String(),
-              'cigarettesPerDay': active.cigarettesPerDay,
-              'v': 2,
-              'pricePerPackMinor': active.pricePerPackMinor,
-              if (active.currency == 'IRR')
-                'pricePerPackRials': active.pricePerPackMinor,
-              'currency': active.currency,
-              'currencyDecimals': active.digits,
-              'perPack': active.perPack,
               'endedAt': null,
               'endedWhy': null,
             });
@@ -131,7 +144,15 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
 
     return Scaffold(
       appBar: NexAppBar(
-        title: Text(strings(context, 'title')),
+        title: Text(
+          active != null
+              ? quitHabitLabel(context, active)
+              : widget.habit.startsWith('custom:')
+              ? (past.isEmpty
+                    ? strings(context, 'habit_custom')
+                    : quitHabitLabel(context, past.first))
+              : strings(context, 'habit_${_preset.key}'),
+        ),
         actions: [
           if (active != null)
             IconButton(
@@ -158,7 +179,14 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
                 ),
                 PopupMenuItem(
                   value: 'lapse',
-                  child: Text(strings(context, 'recordLapse')),
+                  child: Text(
+                    strings(
+                      context,
+                      widget.habit == defaultHabit
+                          ? 'recordLapse'
+                          : 'recordLapseGeneric',
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -179,7 +207,14 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
           store: widget.store,
           child: active == null
               ? NoAttempt(
-                  onStart: () => unawaited(_setup()),
+                  onStart: () => unawaited(
+                    showSetupSheet(
+                      context,
+                      widget.store,
+                      habit: past.isEmpty ? _preset.key : past.first.habit,
+                      name: past.isEmpty ? '' : past.first.name,
+                    ),
+                  ),
                   past: past,
                   cravings: _cravings,
                 )
@@ -188,6 +223,8 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
                   past: past,
                   cravings: _cravings,
                   onLapse: () => unawaited(_askLapse()),
+                  onHelp: () =>
+                      unawaited(showSosSheet(context, widget.store, active)),
                 ),
         ),
         () => unawaited(_load()),
@@ -196,7 +233,7 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
   }
 
   Future<void> _logCraving(BuildContext context) =>
-      showCravingSheet(context, widget.store);
+      showCravingSheet(context, widget.store, habit: widget.habit);
 
   Future<void> _askRestart() async {
     if (_writing) return;

@@ -131,12 +131,14 @@ void _lensCases1() {
     test('the family lists and canonical units', () {
       expect(unitsOfFamily(UnitFamily.mass).map((u) => u.key), [
         'g',
+        'g100',
         'kg',
         'oz',
         'lb',
       ]);
       expect(unitsOfFamily(UnitFamily.volume).map((u) => u.key), [
         'ml',
+        'ml100',
         'l',
         'floz',
       ]);

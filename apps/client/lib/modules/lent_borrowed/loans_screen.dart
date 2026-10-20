@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
-import 'loan_detail_screen.dart';
 import 'loan_edit_sheet.dart';
+import 'loan_filter.dart';
+import 'loan_people.dart';
+import 'loan_row.dart';
+import 'loan_summary_card.dart';
+import 'people_screen.dart';
 import 'loan_math.dart';
 import 'loan_model.dart';
-import 'loan_wording.dart';
-import 'money_format.dart';
 import 'module.dart';
 import 'store_state.dart';
 import 'record_bundle.dart';
@@ -36,6 +38,8 @@ class _LoansScreenState extends State<LoansScreen>
   int _loadToken = 0;
   bool _editorOpen = false;
   late final TabController _tabs = TabController(length: 2, vsync: this);
+  final TextEditingController _search = TextEditingController();
+  LoanFilter _filter = LoanFilter.all;
 
   @override
   void initState() {
@@ -55,6 +59,7 @@ class _LoansScreenState extends State<LoansScreen>
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_changes?.cancel());
     _tabs.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -88,12 +93,81 @@ class _LoansScreenState extends State<LoansScreen>
     });
   }
 
+  Widget _searchBar(BuildContext context) {
+    final strings = lentStrings;
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        NexSpacing.md,
+        NexSpacing.sm,
+        NexSpacing.md,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          NexAutoDirection(
+            controller: _search,
+            builder: (context, direction) => TextField(
+              key: const ValueKey('loans-search'),
+              controller: _search,
+              textDirection: direction,
+              textInputAction: TextInputAction.search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: strings(context, 'searchHint'),
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: MaterialLocalizations.of(
+                          context,
+                        ).deleteButtonTooltip,
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(_search.clear),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Wrap(
+            spacing: NexSpacing.sm,
+            runSpacing: NexSpacing.xs,
+            children: [
+              for (final filter in LoanFilter.values)
+                ChoiceChip(
+                  key: ValueKey('loans-filter-${filter.name}'),
+                  label: Text(strings(context, 'filter_${filter.name}')),
+                  selected: _filter == filter,
+                  onSelected: (_) => setState(() => _filter = filter),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = lentStrings;
     return Scaffold(
       appBar: NexAppBar(
         title: Text(strings(context, 'title')),
+        actions: [
+          IconButton(
+            key: const ValueKey('loans-people'),
+            tooltip: strings(context, 'people'),
+            icon: const Icon(Icons.people_outline),
+            onPressed: () => unawaited(
+              Navigator.push(
+                context,
+                NexPageRoute<void>(
+                  builder: (_) => PeopleScreen(store: widget.store),
+                ),
+              ),
+            ),
+          ),
+        ],
         bottom: TabBar(
           key: const ValueKey('loans-tabs'),
           controller: _tabs,
@@ -126,22 +200,35 @@ class _LoansScreenState extends State<LoansScreen>
               label: Text(strings(context, 'newRecord')),
             ),
       body: recordsBody(
-        TabBarView(
-          controller: _tabs,
+        Column(
           children: [
-            _LoanList(
-              direction: LoanDirection.lent,
-              loans: _loans,
-              returns: _returns,
-              store: widget.store,
-              onNewRecord: () => unawaited(_openEditor(LoanDirection.lent)),
-            ),
-            _LoanList(
-              direction: LoanDirection.borrowed,
-              loans: _loans,
-              returns: _returns,
-              store: widget.store,
-              onNewRecord: () => unawaited(_openEditor(LoanDirection.borrowed)),
+            if (_loans.isNotEmpty) _searchBar(context),
+            Expanded(
+              child: TabBarView(
+                controller: _tabs,
+                children: [
+                  _LoanList(
+                    direction: LoanDirection.lent,
+                    loans: _loans,
+                    returns: _returns,
+                    store: widget.store,
+                    query: _search.text,
+                    filter: _filter,
+                    onNewRecord: () =>
+                        unawaited(_openEditor(LoanDirection.lent)),
+                  ),
+                  _LoanList(
+                    direction: LoanDirection.borrowed,
+                    loans: _loans,
+                    returns: _returns,
+                    store: widget.store,
+                    query: _search.text,
+                    filter: _filter,
+                    onNewRecord: () =>
+                        unawaited(_openEditor(LoanDirection.borrowed)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -159,9 +246,13 @@ class _LoanList extends StatelessWidget {
     required this.loans,
     required this.returns,
     required this.store,
+    required this.query,
+    required this.filter,
     required this.onNewRecord,
   });
 
+  final String query;
+  final LoanFilter filter;
   final LoanDirection direction;
   final List<Loan> loans;
   final List<LoanReturn> returns;
@@ -171,8 +262,15 @@ class _LoanList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = lentStrings;
-    final mine = loans.where((l) => l.direction == direction).toList();
-    if (mine.isEmpty) {
+    final all = loans.where((l) => l.direction == direction).toList();
+    final summary = LoanSummary.of(all, returns);
+    final mine = [
+      for (final loan in all)
+        if (loanMatches(loan, query) &&
+            filter.allows(LoanMath.standing(loan, returns)))
+          loan,
+    ];
+    if (all.isEmpty) {
       return ListView(
         padding: const EdgeInsetsDirectional.all(NexSpacing.md),
         children: [
@@ -194,6 +292,21 @@ class _LoanList extends StatelessWidget {
                     label: Text(strings(context, 'newRecord')),
                   )
                 : null,
+          ),
+        ],
+      );
+    }
+    if (mine.isEmpty) {
+      return ListView(
+        padding: const EdgeInsetsDirectional.all(NexSpacing.md),
+        children: [
+          LoanSummaryCard(
+            summary: summary,
+            owedToMe: direction == LoanDirection.lent,
+          ),
+          NexEmptyState(
+            icon: Icons.search_off_outlined,
+            message: strings(context, 'noMatches'),
           ),
         ],
       );
@@ -223,6 +336,11 @@ class _LoanList extends StatelessWidget {
         NexSpacing.lg + nexBottomInset(context),
       ),
       children: [
+        LoanSummaryCard(
+          summary: summary,
+          owedToMe: direction == LoanDirection.lent,
+        ),
+        const SizedBox(height: NexSpacing.md),
         if (outstanding.isNotEmpty) ...[
           NexShelfHeading(
             icon: Icons.outbox_outlined,
@@ -230,7 +348,7 @@ class _LoanList extends StatelessWidget {
           ),
           const SizedBox(height: NexSpacing.sm),
           for (final (index, loan) in outstanding.indexed)
-            _LoanRow(
+            LoanRow(
               index: index,
               count: outstanding.length,
               loan: loan,
@@ -246,7 +364,7 @@ class _LoanList extends StatelessWidget {
           ),
           const SizedBox(height: NexSpacing.sm),
           for (final (index, loan) in settled.indexed)
-            _LoanRow(
+            LoanRow(
               index: index,
               count: settled.length,
               loan: loan,
@@ -269,99 +387,4 @@ class _LoanList extends StatelessWidget {
     DueStatus.none => 1,
     DueStatus.settled => 0,
   };
-}
-
-/// One loan, legible at a glance: the person, what is still out, and how
-/// the due date reads today — in words, with respectful wording for the
-/// ones that have passed.
-class _LoanRow extends StatelessWidget {
-  const _LoanRow({
-    required this.index,
-    required this.count,
-    required this.loan,
-    required this.standing,
-    required this.store,
-  });
-
-  final int index;
-  final int count;
-  final Loan loan;
-  final LoanStanding standing;
-  final NexModuleStore store;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = lentStrings;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final persian = NexModuleStrings.persian(context);
-    final person = loan.person.isEmpty
-        ? strings(context, 'untitledPerson')
-        : loan.person;
-    final what = loan.kind == LoanKind.money
-        ? strings(context, 'money')
-        : (loan.what.isEmpty ? strings(context, 'item') : loan.what);
-
-    final amountText = loan.kind == LoanKind.money
-        ? formatMoney(standing.outstanding, loan.currency, loan.digits, persian)
-        : formatNumber(standing.outstanding, persian);
-
-    return NexGroupedRow(
-      index: index,
-      count: count,
-      child: ListTile(
-        onTap: () => unawaited(
-          Navigator.push(
-            context,
-            NexPageRoute<void>(
-              builder: (_) => LoanDetailScreen(store: store, loanId: loan.id),
-            ),
-          ),
-        ),
-        title: Text(
-          person,
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleSmall,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$what · ${strings(context, 'outstanding', {'amount': amountText})}',
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-            _dueText(context, scheme),
-          ],
-        ),
-        trailing: standing.settled
-            ? Icon(
-                Icons.check_circle_outline,
-                size: 20,
-                color: scheme.onSurfaceVariant,
-              )
-            : null,
-        isThreeLine: true,
-      ),
-    );
-  }
-
-  Widget _dueText(BuildContext context, ColorScheme scheme) {
-    final due = standing.due;
-    final style = themeOf(context).textTheme.bodySmall?.copyWith(
-      color: due.status == DueStatus.overdue ? scheme.error : scheme.primary,
-    );
-    return Text(
-      dueWording(context, due),
-      maxLines: 3,
-      overflow: TextOverflow.ellipsis,
-      style: style,
-    );
-  }
-
-  ThemeData themeOf(BuildContext context) => Theme.of(context);
 }

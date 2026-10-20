@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'loan_edit_sheet.dart';
+import 'loan_message.dart';
 import 'loan_math.dart';
 import 'loan_model.dart';
 import 'loan_date_entry.dart';
@@ -266,6 +267,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
                 child: Text(strings(context, 'markSettled')),
               ),
               const SizedBox(height: NexSpacing.md),
+              if (loan.direction == LoanDirection.lent)
+                TextButton.icon(
+                  key: const ValueKey('loan-message'),
+                  onPressed: () =>
+                      unawaited(showLoanMessageSheet(context, loan, standing)),
+                  icon: const Icon(Icons.ios_share),
+                  label: Text(strings(context, 'messageTitle')),
+                ),
               // A due date is only worth having if something says so when it
               // comes: an optional system reminder, opened on the due day.
               NexShelfHeading(

@@ -59,3 +59,4 @@ Validated against Nex main `724b999a91c5b7366fbb4d9e8f17b36a3fb16318`, Flutter 3
 ## 2.1.11 changes
 
 - 2.1.11: Copy result (plain lines); one primary action on an empty page.
+- 2.1.12: a one-sentence result with the percentage saved; per 100 g and 100 ml units.

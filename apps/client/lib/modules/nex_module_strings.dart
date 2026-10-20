@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter/widgets.dart';
 import 'package:nex_core/nex_core.dart' show nexDigits;
+import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 
@@ -54,3 +55,8 @@ class NexModuleStrings {
 /// module reaching for the platform itself.
 Future<void> nexModuleCopyText(String text) =>
     Clipboard.setData(ClipboardData(text: text));
+
+/// Opens the system share sheet with [text] — only ever from a person's own
+/// tap, never in the background.
+Future<void> nexModuleShareText(String text) =>
+    SharePlus.instance.share(ShareParams(text: text));

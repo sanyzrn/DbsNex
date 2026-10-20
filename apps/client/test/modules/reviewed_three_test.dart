@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -298,11 +297,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(copied, isNotNull);
     final lines = copied!.split('\n');
-    expect(lines, hasLength(3));
-    expect(lines[1], startsWith('• '));
-    expect(lines[1], contains('Rice 750g'));
-    // 6.50 a kilo beats 7.00: the cheaper one is the one that is marked.
-    expect(lines[2], startsWith('✓ '));
-    expect(lines[2], contains('Rice 1kg'));
+    expect(lines, hasLength(4));
+    // 6.50 against 7.00 a kilo: 0.50 less, 7.1% of the dearer one.
+    expect(lines[1], 'Rice 1kg costs 7.1% less per kg than Rice 750g.');
+    expect(lines[2], startsWith('• '));
+    expect(lines[2], contains('Rice 750g'));
+    expect(lines[3], startsWith('✓ '));
+    expect(lines[3], contains('Rice 1kg'));
+  });
+
+  test('prices can be read per 100 g and per 100 ml', () {
+    final g100 = priceUnitOf('g100')!;
+    final ml100 = priceUnitOf('ml100')!;
+    expect(
+      convertQuantity(const Fraction(750), priceUnitOf('g')!, g100),
+      const Fraction(15, 2),
+    );
+    expect(
+      convertQuantity(const Fraction(1), priceUnitOf('l')!, ml100),
+      const Fraction(10),
+    );
+    expect(convertQuantity(const Fraction(1), g100, ml100), isNull);
   });
 }

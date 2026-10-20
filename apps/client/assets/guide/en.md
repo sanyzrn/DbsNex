@@ -138,11 +138,11 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 **Finding modules.** Search in **Tools → Add modules** by name or keyword. Cards show a brief preview; tap one to expand its details and Add, Open or Remove actions. Opening a preview does not enable it.
 
-**Modules under review.** **Cycle**, **Habits**, **Price Lens** and **Lent & Borrowed** are available. The other eight modules listed below appear as **Soon**, with no install or open action, while each is reviewed and finished; their saved installation choices and records stay intact.
+**Modules under review.** **Cycle**, **Habits**, **Price Lens**, **Lent & Borrowed** and **Quit Habits** are available. The other seven modules listed below appear as **Soon**, with no install or open action, while each is reviewed and finished; their saved installation choices and records stay intact.
 
-- **Habits:** daily/weekly check-ins, history and streaks.
-- **Price Lens:** compare unit prices across differently sized offers; save comparisons.
-- **Lent & Borrowed:** track money/item loans, due dates and partial/full returns.
+- **Habits:** daily/weekly check-ins, history and streaks, with an optional daily reminder.
+- **Price Lens:** compare unit prices across differently sized offers, in plain words ("X costs 7.1% less per kg"), per 100 g or 100 ml if you like; save and copy comparisons.
+- **Lent & Borrowed:** track money/item loans, due dates and partial/full returns; totals owed to you and by you in each currency, search and filters, a page for each person, an optional due-day reminder and polite reminder messages you can share.
 - **Expenses:** manually record income/expenses, categories, budgets and separate currencies.
 - **Gold:** calculate manual gold/jewelry quotes and save receipts; no live prices.
 - **Words:** build vocabulary cards, paste a batch and review at spaced intervals.
@@ -150,7 +150,7 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 - **Medicine:** track medicines, stock, expiry and taken/skipped doses; no automatic reminders.
 - **Warranty:** keep product details, typed receipt references, warranty dates and claim notes.
 - **Maintenance:** log equipment services, costs, meter readings and service intervals.
-- **Smoke Free:** track smoke-free progress, estimated savings and cravings.
+- **Quit Habits:** count the days since you quit smoking, vaping, alcohol, caffeine, sugar, social media, gambling or anything of your own — several at once, each with a live count, the money and time kept, a saving goal, your own reason, marks along the way and the last five weeks at a glance. **I need help now** opens breathing (4-7-8), a ten-minute wait and quick ideas, with your reason on top. A slip never erases the attempts before it. Starting later is allowed. For things that are unsafe to stop suddenly, Nex says so once; it gives no medical advice.
 
 Each module stores its own data locally and in backups. These records do not enter notes, search, note widgets or the assistant. These modules have no camera, location or network integration. Dates in the available modules follow your calendar setting (Jalali or Gregorian) and are kept the same way underneath. Reminders are always your choice: a habit can nudge you at a time you pick every day (open the habit, switch on **Daily reminder**), and a loan can remind you on its due day (**Reminder** on the loan's page); the notification says only that something is waiting, and removing, archiving or settling the item takes its reminder away. The Soon modules remain inaccessible and silent. **Copy result** in Price Lens puts the comparison on the clipboard as plain lines.
 

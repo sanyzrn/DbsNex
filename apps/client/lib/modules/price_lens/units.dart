@@ -48,10 +48,12 @@ const pieceFactor = Fraction(1);
 /// Every unit the module knows, in display order.
 const priceUnits = <PriceUnit>[
   PriceUnit('g', UnitFamily.mass, gramFactor, 3),
+  PriceUnit('g100', UnitFamily.mass, Fraction(100), 3),
   PriceUnit('kg', UnitFamily.mass, kilogramFactor, 3),
   PriceUnit('oz', UnitFamily.mass, ounceFactor, 3),
   PriceUnit('lb', UnitFamily.mass, poundFactor, 3),
   PriceUnit('ml', UnitFamily.volume, millilitreFactor, 3),
+  PriceUnit('ml100', UnitFamily.volume, Fraction(100), 3),
   PriceUnit('l', UnitFamily.volume, litreFactor, 3),
   PriceUnit('floz', UnitFamily.volume, usFlOzFactor, 3),
   PriceUnit('piece', UnitFamily.piece, pieceFactor, 0),

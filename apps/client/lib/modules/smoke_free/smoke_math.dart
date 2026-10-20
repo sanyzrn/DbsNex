@@ -157,6 +157,33 @@ class SmokeMath {
   }
 }
 
+/// How long an attempt has run, as the live counter says it: whole days,
+/// then the hours and minutes into the day since it began. Never negative; an
+/// attempt that has not started yet is [untilStart] away instead.
+class QuitElapsed {
+  const QuitElapsed(this.days, this.hours, this.minutes);
+
+  final int days;
+  final int hours;
+  final int minutes;
+
+  static QuitElapsed between(DateTime from, DateTime to) {
+    final total = to.difference(from);
+    if (total.isNegative) return const QuitElapsed(0, 0, 0);
+    return QuitElapsed(total.inDays, total.inHours % 24, total.inMinutes % 60);
+  }
+}
+
+/// The marks earned at [days] and the next one to reach, or null after the
+/// last: a way to see where you are, never a rank.
+({List<int> earned, int? next}) quitMilestonesAt(int days, List<int> marks) => (
+  earned: [
+    for (final m in marks)
+      if (days >= m) m,
+  ],
+  next: marks.where((m) => days < m).firstOrNull,
+);
+
 /// A short supportive line keyed by elapsed days — deliberately non-medical:
 /// no organ names, no recovery timelines, no clinical promises. Just
 /// acknowledgment of effort, from a companion that cannot diagnose anyone.
