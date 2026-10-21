@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nex_ui/nex_ui.dart';
 import 'package:nex_core/nex_core.dart';
 import '../platform/vault_store.dart' show vaultLatinDigits;
 import 'feature_label.dart';
@@ -91,6 +92,8 @@ class RecurringOptions extends StatelessWidget {
           // row above it.
           const SizedBox(height: 12),
           DropdownButtonFormField<int>(
+            borderRadius: nexDropdownRadius,
+            dropdownColor: nexDropdownColor(context),
             initialValue: value['monthDay'] as int? ?? -1,
             style: Theme.of(context).textTheme.bodyLarge,
             decoration: InputDecoration(
@@ -156,6 +159,8 @@ class RecurringOptions extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
+          borderRadius: nexDropdownRadius,
+          dropdownColor: nexDropdownColor(context),
           initialValue: value['currency'] as String? ?? 'IRT',
           style: Theme.of(context).textTheme.bodyLarge,
           decoration: InputDecoration(

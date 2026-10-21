@@ -145,23 +145,28 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
               ),
             ),
             itemBuilder: (menuContext) => [
-              PopupMenuItem(
+              nexMenuItem(
                 value: asset.archived ? 'unarchive' : 'archive',
-                child: Text(
-                  s(menuContext, asset.archived ? 'unarchive' : 'archive'),
-                ),
+                icon: asset.archived
+                    ? Icons.unarchive_outlined
+                    : Icons.archive_outlined,
+                label: s(menuContext, asset.archived ? 'unarchive' : 'archive'),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'copyHistory',
-                child: Text(s(menuContext, 'copyHistory')),
+                icon: Icons.copy_outlined,
+                label: s(menuContext, 'copyHistory'),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'shareHistory',
-                child: Text(s(menuContext, 'shareHistory')),
+                icon: Icons.share_outlined,
+                label: s(menuContext, 'shareHistory'),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'delete',
-                child: Text(s(menuContext, 'delete')),
+                icon: Icons.delete_outline,
+                label: s(menuContext, 'delete'),
+                destructive: true,
               ),
             ],
           ),

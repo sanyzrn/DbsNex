@@ -51,31 +51,38 @@ extension _WarrantyDetailBody on _WarrantyDetailSheetState {
                   tooltip: strings(context, 'detailsTitle'),
                   onSelected: (value) => unawaited(_runAction(value)),
                   itemBuilder: (menuContext) => [
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: 'edit',
-                      child: Text(AppLocalizations.of(menuContext).edit),
+                      icon: Icons.edit_outlined,
+                      label: AppLocalizations.of(menuContext).edit,
                     ),
                     if (WarrantyModels.readArchived(body))
-                      PopupMenuItem(
+                      nexMenuItem(
                         value: 'unarchive',
-                        child: Text(warrantyStrings(menuContext, 'unarchive')),
+                        icon: Icons.unarchive_outlined,
+                        label: warrantyStrings(menuContext, 'unarchive'),
                       )
                     else
-                      PopupMenuItem(
+                      nexMenuItem(
                         value: 'archive',
-                        child: Text(warrantyStrings(menuContext, 'archived')),
+                        icon: Icons.archive_outlined,
+                        label: warrantyStrings(menuContext, 'archived'),
                       ),
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: 'copyFile',
-                      child: Text(warrantyStrings(menuContext, 'copyFile')),
+                      icon: Icons.copy_outlined,
+                      label: warrantyStrings(menuContext, 'copyFile'),
                     ),
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: 'shareFile',
-                      child: Text(warrantyStrings(menuContext, 'shareFile')),
+                      icon: Icons.share_outlined,
+                      label: warrantyStrings(menuContext, 'shareFile'),
                     ),
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: 'delete',
-                      child: Text(AppLocalizations.of(menuContext).delete),
+                      icon: Icons.delete_outline,
+                      label: AppLocalizations.of(menuContext).delete,
+                      destructive: true,
                     ),
                   ],
                 ),

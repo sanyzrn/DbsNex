@@ -47,9 +47,10 @@ extension _ParkingScreenBody on _ParkingScreenState {
               tooltip: strings(context, 'history'),
               onSelected: (_) => unawaited(_clearHistory()),
               itemBuilder: (menuContext) => [
-                PopupMenuItem(
+                nexMenuItem(
                   value: 'clear',
-                  child: Text(strings(menuContext, 'clearHistory')),
+                  icon: Icons.delete_sweep_outlined,
+                  label: strings(menuContext, 'clearHistory'),
                 ),
               ],
             ),

@@ -203,11 +203,7 @@ class GoldDropdownField<T> extends StatelessWidget {
           borderRadius: BorderRadius.circular(NexRadius.lg),
           itemBuilder: (context) => [
             for (final (itemValue, itemLabel) in items)
-              PopupMenuItem(
-                value: itemValue,
-                height: 48,
-                child: Text(itemLabel),
-              ),
+              nexMenuItem(value: itemValue, label: itemLabel),
           ],
           child: InputDecorator(
             decoration: const InputDecoration(

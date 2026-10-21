@@ -8,6 +8,9 @@
 
 ---
 
+> Every family below is being brought to one fixed shape; the register of what
+> is done and what is left is [`26-ui-consistency.md`](./26-ui-consistency.md).
+
 ## 1. Sheets
 
 A sheet is anything that rises from the bottom: a picker, a list of actions, a
@@ -144,6 +147,24 @@ with a line saying what they are for — Quit Habits asks what you are quitting 
 about money until you want it. Correcting a saved item opens everything. Nothing
 a person might find private is required to begin.
 
+### Menus
+
+The card's hold menu is **the** menu. Every other — a page's ⋮, a tag's, a date
+heading's, a link's, a picker — is drawn the same way: the same width (at least
+180, at most 320), rounded `NexRadius.lg` corners on a raised surface, an icon
+on every action line, the words in `bodyMedium`, and red for what destroys.
+
+- Build one with **`NexPopupMenuButton`** and **`nexMenuItem`** (`nexShowContextMenu`
+  at a pointer). Never a bare `PopupMenuButton`, `PopupMenuItem` or `showMenu` —
+  `test/menu_rule_test.dart` fails on them.
+- `nexMenuItem(value:, icon:, label:, destructive:)`; leave `icon` out only for a
+  menu that *chooses* a value (a currency, a repeat).
+- A dropdown field's list is a menu too: give `DropdownButton` /
+  `DropdownButtonFormField` `borderRadius: nexDropdownRadius` and
+  `dropdownColor: nexDropdownColor(context)`.
+- The theme's `popupMenuTheme` is only the floor for anything that slips
+  through; it is not a reason to skip the helpers.
+
 ## 9. Before you open the pull request
 
 - [ ] Every sheet opens with `nexShowSheet` and closes by swiping down from
@@ -155,6 +176,7 @@ a person might find private is required to begin.
       `NexMotion` token, unless the piece is a signature one (§6).
 - [ ] Reduced motion leaves nothing moving.
 - [ ] New text a person writes follows §4.
+- [ ] Every menu is `NexPopupMenuButton` + `nexMenuItem`, an icon on each line (Menus).
 
 ## 10. Optional glass material (2.0)
 

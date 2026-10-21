@@ -92,6 +92,8 @@ class _PersianDatePickerState extends State<PersianDatePicker> {
                   ),
                   Expanded(
                     child: DropdownButton<int>(
+                      borderRadius: nexDropdownRadius,
+                      dropdownColor: nexDropdownColor(context),
                       isExpanded: true,
                       value: month,
                       items: [
@@ -117,6 +119,8 @@ class _PersianDatePickerState extends State<PersianDatePicker> {
                 ],
               ),
               DropdownButton<int>(
+                borderRadius: nexDropdownRadius,
+                dropdownColor: nexDropdownColor(context),
                 value: year,
                 items: [
                   for (var y = firstYear; y <= lastYear; y++)

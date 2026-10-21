@@ -552,7 +552,7 @@ class _RepeatChip extends StatelessWidget {
       onSelected: onChanged,
       itemBuilder: (context) => [
         for (final value in NoteRepeat.values)
-          PopupMenuItem(value: value, child: Text(nexRepeatLabel(l10n, value))),
+          nexMenuItem(value: value, label: nexRepeatLabel(l10n, value)),
       ],
       child: Chip(
         label: Text('${l10n.remindRepeat}: ${nexRepeatLabel(l10n, repeat)}'),

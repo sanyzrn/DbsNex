@@ -184,7 +184,7 @@ class NexThemeSwatch extends StatelessWidget {
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(NexRadius.sm),
         border: Border.all(color: scheme.outline),
       ),
       child: Column(
@@ -219,7 +219,7 @@ class NexThemeSwatch extends StatelessWidget {
                             : nexDarkTheme(comfortMode: comfort))
                         .colorScheme
                         .surface,
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(NexRadius.sm),
               ),
             ),
           ),

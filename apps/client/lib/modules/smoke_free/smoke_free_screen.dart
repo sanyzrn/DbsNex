@@ -173,19 +173,19 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
                 if (value == 'restart') unawaited(_askRestart());
               },
               itemBuilder: (context) => [
-                PopupMenuItem(
+                nexMenuItem(
                   value: 'restart',
-                  child: Text(strings(context, 'restartAttempt')),
+                  icon: Icons.restart_alt,
+                  label: strings(context, 'restartAttempt'),
                 ),
-                PopupMenuItem(
+                nexMenuItem(
                   value: 'lapse',
-                  child: Text(
-                    strings(
-                      context,
-                      widget.habit == defaultHabit
-                          ? 'recordLapse'
-                          : 'recordLapseGeneric',
-                    ),
+                  icon: Icons.healing_outlined,
+                  label: strings(
+                    context,
+                    widget.habit == defaultHabit
+                        ? 'recordLapse'
+                        : 'recordLapseGeneric',
                   ),
                 ),
               ],

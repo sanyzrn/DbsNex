@@ -295,77 +295,24 @@ class _GroupHeader extends StatelessWidget {
             // list; this keeps a tap target the thumb can find without the
             // button deciding how tall the row is.
             padding: const EdgeInsets.all(NexSpacing.sm),
-            // Rounded, on a raised surface, sitting under the button rather
-            // than over it.
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-            ),
-            color: theme.colorScheme.surfaceContainerHigh,
-            elevation: 3,
-            popUpAnimationStyle: AnimationStyle(
-              duration: NexMotion.standard,
-              curve: NexMotion.curve,
-            ),
             onSelected: (action) => switch (action) {
               _GroupAction.ask => onAsk?.call(),
               _GroupAction.delete => onDelete(),
             },
             itemBuilder: (context) => [
               if (onAsk != null)
-                PopupMenuItem(
+                nexMenuItem(
                   value: _GroupAction.ask,
-                  child: _GroupMenuRow(
-                    icon: Icons.auto_awesome_outlined,
-                    label: l10n.groupAsk,
-                  ),
+                  icon: Icons.auto_awesome_outlined,
+                  label: l10n.groupAsk,
                 ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: _GroupAction.delete,
-                child: _GroupMenuRow(
-                  icon: Icons.delete_outline,
-                  label: l10n.groupDelete,
-                  color: theme.colorScheme.error,
-                ),
+                icon: Icons.delete_outline,
+                label: l10n.groupDelete,
+                destructive: true,
               ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// One line of the date heading's menu.
-///
-/// A plain row rather than a `ListTile`: a ListTile inside a PopupMenuItem is
-/// two sets of vertical padding and two minimum heights fighting each other,
-/// and the result was a menu whose rows were taller than they looked and
-/// whose text sat off-centre against its own icon.
-class _GroupMenuRow extends StatelessWidget {
-  const _GroupMenuRow({required this.icon, required this.label, this.color});
-
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tint = color ?? theme.colorScheme.onSurface;
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: tint),
-        const SizedBox(width: NexSpacing.md),
-        // Flexible, and so allowed to wrap. A popup menu is at most 280
-        // logical pixels wide, and "Delete this group" beside an icon and a
-        // gap does not fit that in every language — the ListTile this
-        // replaced was quietly handling it, and a bare Row is not. The item
-        // grows to a second line rather than clipping the label, because
-        // `PopupMenuItem`'s height is a minimum.
-        Flexible(
-          child: Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(color: tint),
           ),
         ),
       ],

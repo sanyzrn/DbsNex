@@ -108,23 +108,31 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
                       tooltip: l10n.tagActions,
                       onSelected: (action) => act(action, value),
                       itemBuilder: (_) => [
-                        PopupMenuItem(value: 'color', child: Text(l10n.color)),
-                        PopupMenuItem(
+                        nexMenuItem(
+                          value: 'color',
+                          icon: Icons.palette_outlined,
+                          label: l10n.color,
+                        ),
+                        nexMenuItem(
                           value: 'rename',
-                          child: Text(l10n.rename),
+                          icon: Icons.drive_file_rename_outline,
+                          label: l10n.rename,
                         ),
                         // Only when there is another tag to merge into. With
                         // one tag it opened a sheet listing every tag but this
                         // one — that is, nothing — and the way out was to
                         // dismiss it.
                         if (loaded.length > 1)
-                          PopupMenuItem(
+                          nexMenuItem(
                             value: 'merge',
-                            child: Text(l10n.merge),
+                            icon: Icons.merge_outlined,
+                            label: l10n.merge,
                           ),
-                        PopupMenuItem(
+                        nexMenuItem(
                           value: 'delete',
-                          child: Text(l10n.delete),
+                          icon: Icons.delete_outline,
+                          label: l10n.delete,
+                          destructive: true,
                         ),
                       ],
                     ),

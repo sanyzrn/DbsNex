@@ -252,21 +252,22 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
             },
             itemBuilder: (context) => [
               if (!habit.archived)
-                PopupMenuItem(
+                nexMenuItem(
                   value: 'archive',
-                  child: Text(strings(context, 'archive')),
+                  icon: Icons.archive_outlined,
+                  label: strings(context, 'archive'),
                 )
               else
-                PopupMenuItem(
+                nexMenuItem(
                   value: 'unarchive',
-                  child: Text(strings(context, 'unarchive')),
+                  icon: Icons.unarchive_outlined,
+                  label: strings(context, 'unarchive'),
                 ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'delete',
-                child: Text(
-                  AppLocalizations.of(context).delete,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+                icon: Icons.delete_outline,
+                label: AppLocalizations.of(context).delete,
+                destructive: true,
               ),
             ],
           ),

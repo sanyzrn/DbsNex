@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nex_client/modules/module_api.dart';
 
 import 'currency_scales.dart';
 import 'module.dart';
@@ -14,6 +15,8 @@ class CurrencyField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    borderRadius: nexDropdownRadius,
+    dropdownColor: nexDropdownColor(context),
     key: ValueKey(value),
     initialValue: value,
     isExpanded: true,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/nex_appearance.dart';
+import '../tokens/nex_contrast.dart';
 import '../tokens/nex_tokens.dart';
 
 /// Shared content for a card menu and a link's context menu.
@@ -32,6 +33,68 @@ class NexMenuEntryContent extends StatelessWidget {
   );
 }
 
+/// The width every menu in the app is at least, and at most. The card's hold
+/// menu, a date heading's menu, a page's ⋮ menu and a picker all share it, so
+/// no two menus are two widths.
+const nexMenuConstraints = BoxConstraints(minWidth: 180, maxWidth: 320);
+
+/// A dropdown field's list is a menu too: the same corners and surface as
+/// every other, set with these two on `DropdownButton` and
+/// `DropdownButtonFormField` (their own defaults are a square canvas).
+BorderRadius get nexDropdownRadius => BorderRadius.circular(NexRadius.lg);
+Color nexDropdownColor(BuildContext context) =>
+    Theme.of(context).colorScheme.surfaceContainerHigh;
+
+/// The ink of a menu line that destroys something. Under the glass material
+/// the plain error colour can fall below readable contrast, so it is nudged
+/// until it reads on the floating surface.
+Color nexMenuErrorColor(BuildContext context) {
+  final theme = Theme.of(context);
+  return context.nexVisualStyle.liquidGlass &&
+          !MediaQuery.highContrastOf(context)
+      ? nexReadableOn(
+          theme.colorScheme.error,
+          context.nexVisualStyle.floatingContrastGround(theme.brightness),
+        )
+      : theme.colorScheme.error;
+}
+
+/// One line of any menu in the app: an icon, the words, and red for what
+/// destroys. This is the card's hold menu, the reference every other menu is
+/// held to (`docs/16-design-language.md` §10) — never a bare [PopupMenuItem]
+/// with a [Text], which is how the page menus ended up smaller, plainer and
+/// without icons.
+///
+/// [icon] may be left out for a menu that chooses one of several values (a
+/// currency, a repeat): the selected line is then marked by the menu itself.
+PopupMenuItem<T> nexMenuItem<T>({
+  Key? key,
+  required T value,
+  IconData? icon,
+  required String label,
+  bool destructive = false,
+  bool enabled = true,
+}) => PopupMenuItem<T>(
+  key: key,
+  value: value,
+  enabled: enabled,
+  height: 48,
+  padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+  child: Builder(
+    builder: (context) {
+      final tint = destructive ? nexMenuErrorColor(context) : null;
+      return icon == null
+          ? Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: tint),
+            )
+          : NexMenuEntryContent(icon: icon, label: label, color: tint);
+    },
+  ),
+);
+
 /// The same floating material and corners as the card's hold menu, at a
 /// pointer position rather than a button. A single blur surrounds all rows.
 Future<T?> nexShowContextMenu<T>({
@@ -43,7 +106,7 @@ Future<T?> nexShowContextMenu<T>({
   return showMenu<T>(
     context: context,
     position: position,
-    constraints: const BoxConstraints(minWidth: 180, maxWidth: 320),
+    constraints: nexMenuConstraints,
     color: glass
         ? Colors.transparent
         : Theme.of(context).colorScheme.surfaceContainerHigh,
@@ -101,7 +164,14 @@ class NexPopupMenuButton<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final glass = context.nexVisualStyle.liquidGlass;
+    final scheme = Theme.of(context).colorScheme;
+    // The card's hold menu is the reference: the same width, corners, surface,
+    // shadow and padding unless a caller has a reason to differ.
     return PopupMenuButton<T>(
+      constraints: nexMenuConstraints,
+      popUpAnimationStyle:
+          popUpAnimationStyle ??
+          AnimationStyle(duration: NexMotion.standard, curve: NexMotion.curve),
       initialValue: glass ? null : initialValue,
       onOpened: onOpened,
       onSelected: onSelected,
@@ -112,13 +182,20 @@ class NexPopupMenuButton<T> extends StatelessWidget {
       padding: padding,
       offset: offset,
       position: position,
-      color: glass ? Colors.transparent : color,
-      surfaceTintColor: glass ? Colors.transparent : null,
-      elevation: glass ? 0 : elevation,
-      shape: shape,
-      popUpAnimationStyle: popUpAnimationStyle,
+      color: glass
+          ? Colors.transparent
+          : (color ?? scheme.surfaceContainerHigh),
+      surfaceTintColor: Colors.transparent,
+      elevation: glass ? 0 : (elevation ?? 3),
+      shape:
+          shape ??
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(NexRadius.lg),
+          ),
       borderRadius: borderRadius,
-      menuPadding: glass ? EdgeInsets.zero : null,
+      menuPadding: glass
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(vertical: NexSpacing.sm),
       itemBuilder: (context) {
         final entries = itemBuilder(context);
         if (!glass || entries.isEmpty) return entries;
