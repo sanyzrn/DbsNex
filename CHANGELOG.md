@@ -34,9 +34,12 @@ Working convention:
 
 ## Unreleased
 
-## v2.1.14
+## v2.1.15
 
 - **One menu everywhere.** The ⋮ menus on threads, tags, the modules and the rest now look and size like the menu you get by holding a card — rounded, an icon on every line, delete in red — and so do the dropdown lists in forms.
+
+## v2.1.14
+
 - **Shorter forms.** Adding an occasion, a medicine, a purchase, an asset, a parking or a loan now asks only the essentials; the rest (a year, a note, a reminder, a brand, coordinates, dates…) waits behind one "more details" button, and opens by itself when you edit something saved.
 - **A face for every module.** Each module's page now opens with one large, calm statement in its own colour — "12 days free", "2/3 checked today", the gold estimate, what is due — instead of a plain list.
 - **Quit Habits asks less.** A new habit asks only what you are quitting and when it started. The amounts, price, goal and reason wait behind one button, for whenever you want them.

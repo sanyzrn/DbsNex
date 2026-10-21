@@ -4,6 +4,12 @@
   tests and analysis pass) — the owner does not need to ask each time. Create,
   merge or edit pull requests only when the owner asks. Keep later edits
   together in the requested release.
+- **Before choosing a version number, always check what is already published at
+  <https://github.com/sanyzrn/DbsNex-releases>** (its tags and Releases). The
+  owner publishes from there, often between sessions: a version found there is
+  closed, and everything after it goes under the next number — never add to a
+  released version's changelog section or reuse its tag. (2.1.14 was out while a
+  later change was still being written under that number; it moved to 2.1.15.)
 - Continue work on the shared `codex/2.0-polish` branch. Do not create a new
   branch for each change or module unless the owner explicitly requests it.
 - All 11 supplied add-ons are integrated under `apps/client/lib/modules/`,

@@ -48,8 +48,8 @@ different task".
 | Family | Shared component | Status |
 |---|---|---|
 | Bottom sheets | `nexShowSheet` (handle, swipe, tap outside, keyboard) | **Done** (2.1.13–14) — `sheet_swipe_test`, `sheet_scrim_test` |
-| Menus (⋮, hold, heading, picker) | `NexPopupMenuButton` + `nexMenuItem`, `nexShowContextMenu` | **Done** (2.1.14) — `menu_rule_test`; dropdown lists via `nexDropdownRadius`/`nexDropdownColor` |
-| Pickers: time, date, Jalali | `nexPickTime`, `nexPickDate`, `nexPickModuleDate` | **Done** (2.1.14) — raw pickers at 0 |
+| Menus (⋮, hold, heading, picker) | `NexPopupMenuButton` + `nexMenuItem`, `nexShowContextMenu` | **Done** (2.1.15) — `menu_rule_test`; dropdown lists via `nexDropdownRadius`/`nexDropdownColor` |
+| Pickers: time, date, Jalali | `nexPickTime`, `nexPickDate`, `nexPickModuleDate` | **Done** (2.1.15) — raw pickers at 0 |
 | Module pages | `NexModuleHero`, `NexMoreDetails`, one empty-state button | **Done** for the 13 modules (2.1.14) |
 | Corner radii | `NexRadius` tokens | Mostly: 8 left, all 2–3 px bars/dots — ratchet |
 | Messages | `nexShowBanner` (top capsule) | **81 `SnackBar(` left** — a screen at a time |
