@@ -439,13 +439,10 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                   enabled: !busy,
                   onSelected: (_) => unawaited(_confirmDeleteAll()),
                   itemBuilder: (context) => [
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: 'delete-all',
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.delete_sweep_outlined),
-                        title: Text(_deleteAllLabel(context)),
-                      ),
+                      icon: Icons.delete_sweep_outlined,
+                      label: _deleteAllLabel(context),
                     ),
                   ],
                 ),

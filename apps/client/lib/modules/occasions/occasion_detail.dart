@@ -228,33 +228,32 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'favorite',
-                child: Text(
-                  strings(
-                    context,
-                    occasion.favorite ? 'unfavorite' : 'favorite',
-                  ),
+                icon: Icons.star_outline,
+                label: strings(
+                  context,
+                  occasion.favorite ? 'unfavorite' : 'favorite',
                 ),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'mute',
-                child: Text(
-                  strings(context, occasion.muted ? 'unmute' : 'mute'),
-                ),
+                icon: Icons.notifications_off_outlined,
+                label: strings(context, occasion.muted ? 'unmute' : 'mute'),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'archive',
-                child: Text(
-                  strings(context, occasion.archived ? 'unarchive' : 'archive'),
+                icon: Icons.archive_outlined,
+                label: strings(
+                  context,
+                  occasion.archived ? 'unarchive' : 'archive',
                 ),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'delete',
-                child: Text(
-                  strings(context, 'delete'),
-                  style: TextStyle(color: scheme.error),
-                ),
+                icon: Icons.delete_outline,
+                label: strings(context, 'delete'),
+                destructive: true,
               ),
             ],
           ),

@@ -774,6 +774,22 @@ ThemeData _theme({
         borderRadius: BorderRadius.circular(NexRadius.lg),
       ),
     ),
+    // The floor under every menu: anything that still reaches for a stock
+    // PopupMenuButton or showMenu gets the card hold menu's surface, corners
+    // and padding, not the square Material one. Menus in the app are built
+    // with NexPopupMenuButton and nexMenuItem, which add the width and the
+    // icon (docs/16-design-language.md, Menus).
+    popupMenuTheme: PopupMenuThemeData(
+      color: liquidGlass ? Colors.transparent : scheme.surfaceContainerHigh,
+      surfaceTintColor: Colors.transparent,
+      elevation: liquidGlass ? 0 : 3,
+      menuPadding: liquidGlass
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(vertical: NexSpacing.sm),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+      ),
+    ),
     dialogTheme: DialogThemeData(
       elevation: liquidGlass ? 12 : 6,
       backgroundColor: cardSurface,

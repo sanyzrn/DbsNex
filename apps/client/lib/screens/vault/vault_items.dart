@@ -57,7 +57,7 @@ extension _VaultItems on _VaultScreenState {
                     hintText: l.vaultSearch,
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(NexRadius.lg),
                     ),
                   ),
                 ),
@@ -255,32 +255,21 @@ extension _VaultItems on _VaultScreenState {
           }
         },
         itemBuilder: (context) => [
-          PopupMenuItem(
+          nexMenuItem(
             value: 'edit',
+            icon: Icons.edit_outlined,
+            label: l.vaultEdit,
             enabled: draft == null,
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.edit_outlined),
-              title: Text(l.vaultEdit),
-            ),
           ),
-          PopupMenuItem(
+          nexMenuItem(
             value: 'favorite',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                entry.favorite ? Icons.star_rounded : Icons.star_outline,
-              ),
-              title: Text(l.vaultFavorite),
-            ),
+            icon: entry.favorite ? Icons.star_rounded : Icons.star_outline,
+            label: l.vaultFavorite,
           ),
-          PopupMenuItem(
+          nexMenuItem(
             value: 'delete',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.delete_outline),
-              title: Text(l.vaultDelete),
-            ),
+            icon: Icons.delete_outline,
+            label: l.vaultDelete,
           ),
         ],
       );
@@ -571,7 +560,7 @@ extension _VaultItems on _VaultScreenState {
 
     return Material(
       color: base,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(NexRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: Ink(
         decoration: BoxDecoration(

@@ -556,22 +556,16 @@ Future<void> _showLinkMenu(BuildContext context, String href, Offset at) async {
       Offset.zero & overlay.size,
     ),
     items: [
-      PopupMenuItem(
+      nexMenuItem(
         value: _LinkAction.open,
         enabled: canOpen,
-        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
-        child: NexMenuEntryContent(
-          icon: Icons.open_in_new,
-          label: l10n.openLink,
-        ),
+        icon: Icons.open_in_new,
+        label: l10n.openLink,
       ),
-      PopupMenuItem(
+      nexMenuItem(
         value: _LinkAction.copy,
-        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
-        child: NexMenuEntryContent(
-          icon: Icons.copy_outlined,
-          label: l10n.copyLink,
-        ),
+        icon: Icons.copy_outlined,
+        label: l10n.copyLink,
       ),
     ],
   );

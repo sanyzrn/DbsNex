@@ -279,7 +279,9 @@ class _NexCameraSheetState extends State<NexCameraSheet>
           height: height,
           width: double.infinity,
           child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(NexRadius.xl),
+            ),
             child: ColoredBox(
               color: Colors.black,
               child: Stack(

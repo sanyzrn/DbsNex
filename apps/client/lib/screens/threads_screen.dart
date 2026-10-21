@@ -216,8 +216,17 @@ class _ThreadScreenState extends State<ThreadScreen> {
           NexPopupMenuButton<String>(
             onSelected: (action) => unawaited(_act(action)),
             itemBuilder: (context) => [
-              PopupMenuItem(value: 'rename', child: Text(l10n.threadRename)),
-              PopupMenuItem(value: 'delete', child: Text(l10n.threadDelete)),
+              nexMenuItem(
+                value: 'rename',
+                icon: Icons.drive_file_rename_outline,
+                label: l10n.threadRename,
+              ),
+              nexMenuItem(
+                value: 'delete',
+                icon: Icons.delete_outline,
+                label: l10n.threadDelete,
+                destructive: true,
+              ),
             ],
           ),
         ],

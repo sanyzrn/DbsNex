@@ -432,6 +432,8 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                     const SizedBox(width: NexSpacing.sm),
                     Expanded(
                       child: DropdownButtonFormField<int>(
+                        borderRadius: nexDropdownRadius,
+                        dropdownColor: nexDropdownColor(context),
                         key: const ValueKey('occasion-field-month'),
                         initialValue: _month,
                         isExpanded: true,

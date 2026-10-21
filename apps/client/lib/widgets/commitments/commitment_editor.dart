@@ -161,9 +161,9 @@ class _CommitmentEditorState extends State<CommitmentEditor>
       last: DateTime(2100),
     );
     if (picked == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_dueAt),
+    final time = await nexPickTime(
+      context,
+      initial: TimeOfDay.fromDateTime(_dueAt),
     );
     if (!mounted) return;
     setState(() {
@@ -354,6 +354,8 @@ class _CommitmentEditorState extends State<CommitmentEditor>
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.commitmentEvery),
               trailing: DropdownButton<NexCadence>(
+                borderRadius: nexDropdownRadius,
+                dropdownColor: nexDropdownColor(context),
                 value: _cadence,
                 underline: const SizedBox.shrink(),
                 style: Theme.of(context).textTheme.bodyLarge,
@@ -373,6 +375,8 @@ class _CommitmentEditorState extends State<CommitmentEditor>
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.commitmentCount),
               trailing: DropdownButton<int>(
+                borderRadius: nexDropdownRadius,
+                dropdownColor: nexDropdownColor(context),
                 value: _every,
                 underline: const SizedBox.shrink(),
                 style: Theme.of(context).textTheme.bodyLarge,
@@ -413,6 +417,8 @@ class _CommitmentEditorState extends State<CommitmentEditor>
                     : nexRelativeSpan(l10n, _lead!),
               ),
               trailing: DropdownButton<int>(
+                borderRadius: nexDropdownRadius,
+                dropdownColor: nexDropdownColor(context),
                 value: _lead?.inHours ?? -1,
                 underline: const SizedBox.shrink(),
                 style: Theme.of(context).textTheme.bodyLarge,
@@ -566,9 +572,9 @@ class _TimeField extends StatelessWidget {
       ),
     ),
     onTap: () async {
-      final picked = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
+      final picked = await nexPickTime(
+        context,
+        initial: TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
       );
       if (picked != null) onChanged(picked.hour * 60 + picked.minute);
     },

@@ -261,9 +261,9 @@ class _RecurringScreenState extends State<RecurringScreen> {
         last: DateTime(2100),
       );
       if (!mounted || d == null) return;
-      final t = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(now),
+      final t = await nexPickTime(
+        context,
+        initial: TimeOfDay.fromDateTime(now),
       );
       if (!mounted || t == null) return;
       date = DateTime(d.year, d.month, d.day, t.hour, t.minute);

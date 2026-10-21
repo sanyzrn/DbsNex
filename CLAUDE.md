@@ -18,6 +18,12 @@
   pushed with `NexPageRoute`, spacing and corners come from `NexSpacing` and
   `NexRadius`, text a person writes follows ADR-037. Read it before adding a
   page, a sheet or a dialog, and go through its checklist before a pull request.
+- **One look everywhere.** The UI is being unified one family at a time
+  ([`docs/26-ui-consistency.md`](docs/26-ui-consistency.md)): corners, cards,
+  menus, pickers, banners, buttons. When you are in a file and meet a stock or
+  copied piece, move it to the shared component in the same change and lower
+  its number in `test/ui_consistency_test.dart`. Cycle is the one deliberate
+  exception.
 - Persian and English, light and dark, right to left and left to right: every
   screen works in all of them.
 - User-facing changes get a line in both `CHANGELOG.md` and

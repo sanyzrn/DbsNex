@@ -233,7 +233,7 @@ class _VaultEditorState extends State<VaultEditor> {
         key: const ValueKey('vault-card-color'),
         contentPadding: const EdgeInsetsDirectional.only(start: 12, end: 8),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(NexRadius.md),
           side: BorderSide(color: theme.colorScheme.outline),
         ),
         leading: const Icon(Icons.palette_outlined),
@@ -300,7 +300,9 @@ class _VaultEditorState extends State<VaultEditor> {
           decoration: InputDecoration(
             labelText: label,
             counterText: '',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(NexRadius.md),
+            ),
           ),
         ),
       );
@@ -370,7 +372,9 @@ class _VaultEditorState extends State<VaultEditor> {
       decoration: InputDecoration(
         labelText: label,
         counterText: '',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(NexRadius.md),
+        ),
       ),
     );
     return Padding(

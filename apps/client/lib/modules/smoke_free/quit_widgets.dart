@@ -226,7 +226,7 @@ class QuitWeeks extends StatelessWidget {
                       color: colour(
                         d,
                       ).withValues(alpha: d.isAfter(end) ? 0.15 : 0.85),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(NexRadius.xs),
                     ),
                   ),
               ],

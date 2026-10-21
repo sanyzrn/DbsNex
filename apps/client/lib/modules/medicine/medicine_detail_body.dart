@@ -50,23 +50,28 @@ extension _MedicineDetailBody on _MedicineDetailSheetState {
                   tooltip: strings(context, 'detailsTitle'),
                   onSelected: (value) => unawaited(_runAction(value)),
                   itemBuilder: (menuContext) => [
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: 'edit',
-                      child: Text(AppLocalizations.of(menuContext).edit),
+                      icon: Icons.edit_outlined,
+                      label: AppLocalizations.of(menuContext).edit,
                     ),
                     if (MedicineModels.readArchived(body))
-                      PopupMenuItem(
+                      nexMenuItem(
                         value: 'unarchive',
-                        child: Text(medicineStrings(menuContext, 'unarchive')),
+                        icon: Icons.unarchive_outlined,
+                        label: medicineStrings(menuContext, 'unarchive'),
                       )
                     else
-                      PopupMenuItem(
+                      nexMenuItem(
                         value: 'archive',
-                        child: Text(medicineStrings(menuContext, 'archived')),
+                        icon: Icons.archive_outlined,
+                        label: medicineStrings(menuContext, 'archived'),
                       ),
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: 'delete',
-                      child: Text(AppLocalizations.of(menuContext).delete),
+                      icon: Icons.delete_outline,
+                      label: AppLocalizations.of(menuContext).delete,
+                      destructive: true,
                     ),
                   ],
                 ),

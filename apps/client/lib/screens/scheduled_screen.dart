@@ -182,20 +182,21 @@ class _ScheduledCard extends StatelessWidget {
                   tooltip: l10n.moreActions,
                   onSelected: (run) => run(),
                   itemBuilder: (context) => [
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: onSendNow,
-                      child: Text(l10n.scheduledSendNow),
+                      icon: Icons.send_outlined,
+                      label: l10n.scheduledSendNow,
                     ),
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: onChangeTime,
-                      child: Text(l10n.scheduledChangeTime),
+                      icon: Icons.schedule_outlined,
+                      label: l10n.scheduledChangeTime,
                     ),
-                    PopupMenuItem(
+                    nexMenuItem(
                       value: onDiscard,
-                      child: Text(
-                        l10n.scheduledDiscard,
-                        style: TextStyle(color: scheme.error),
-                      ),
+                      icon: Icons.delete_outline,
+                      label: l10n.scheduledDiscard,
+                      destructive: true,
                     ),
                   ],
                 ),

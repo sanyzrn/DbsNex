@@ -147,17 +147,20 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             tooltip: s(context, 'title'),
             onSelected: (action) => unawaited(_menu(action)),
             itemBuilder: (menuContext) => [
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'budgets',
-                child: Text(s(menuContext, 'budgetsTitle')),
+                icon: Icons.savings_outlined,
+                label: s(menuContext, 'budgetsTitle'),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'categories',
-                child: Text(s(menuContext, 'categoriesTitle')),
+                icon: Icons.category_outlined,
+                label: s(menuContext, 'categoriesTitle'),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'templates',
-                child: Text(s(menuContext, 'templatesTitle')),
+                icon: Icons.bookmarks_outlined,
+                label: s(menuContext, 'templatesTitle'),
               ),
             ],
           ),

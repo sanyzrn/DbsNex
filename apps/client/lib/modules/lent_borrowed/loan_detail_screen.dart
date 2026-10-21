@@ -215,12 +215,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
               if (value == 'delete') unawaited(_delete());
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'delete',
-                child: Text(
-                  strings(context, 'deleteLoan'),
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+                icon: Icons.delete_outline,
+                label: strings(context, 'deleteLoan'),
+                destructive: true,
               ),
             ],
           ),

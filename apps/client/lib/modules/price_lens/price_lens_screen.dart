@@ -145,17 +145,20 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
             tooltip: s(context, 'moreActions'),
             onSelected: (action) => unawaited(_menu(action)),
             itemBuilder: (menuContext) => [
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'save',
-                child: Text(s(menuContext, 'saveComparison')),
+                icon: Icons.bookmark_add_outlined,
+                label: s(menuContext, 'saveComparison'),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'memory',
-                child: Text(s(menuContext, 'memoryTitle')),
+                icon: Icons.history,
+                label: s(menuContext, 'memoryTitle'),
               ),
-              PopupMenuItem(
+              nexMenuItem(
                 value: 'saved',
-                child: Text(s(menuContext, 'savedComparisons')),
+                icon: Icons.bookmarks_outlined,
+                label: s(menuContext, 'savedComparisons'),
               ),
             ],
           ),
