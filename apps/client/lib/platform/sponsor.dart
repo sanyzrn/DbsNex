@@ -654,6 +654,14 @@ class NexSponsorService {
     _image = null;
   }
 
+  /// Whether [host] is `localhost` or a bare IP address: where a sponsor
+  /// picture has no business coming from.
+  static bool _isLocalHost(String host) =>
+      host.isEmpty ||
+      host == 'localhost' ||
+      host.endsWith('.local') ||
+      InternetAddress.tryParse(host) != null;
+
   /// Fetches the picture and keeps it beside the payload, or answers false.
   ///
   /// Content-addressed files avoid Flutter's stale file-image cache. The old
@@ -664,8 +672,10 @@ class NexSponsorService {
       await _dropImage();
       return true;
     }
+    // The picture comes from a name inside a file somebody else hosts: only
+    // https, and never an address on the phone's own network.
     final uri = Uri.tryParse(url);
-    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
+    if (uri == null || uri.scheme != 'https' || _isLocalHost(uri.host)) {
       return false;
     }
     try {

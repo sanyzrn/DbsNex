@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v2.2.1
+
+- **One Nex card in recent apps.** After updating and tapping **Open** in the installer, Nex could appear twice in the recent-apps list — one card for the old window, one for the new. Nex now rejoins its own window instead of starting a second one.
+- **Safer sponsor card.** The sponsor picture is only fetched over a secure connection and never from an address on your own network.
+
 ## v2.2.0
 
 - **Set aside.** Hold a note and choose **Set aside** to take it off the home screen without deleting it. Pick when it comes back — this evening, tomorrow morning, next week, a date — or leave it until you bring it back yourself. Set-aside notes wait in **Library → Set aside**, where one tap brings a note home; search still finds them, marked, and their reminders still ring. It is also in a note's details and in the bar for several selected notes. A banner offers **Undo**, and when a chosen date arrives the note returns by itself and says so. With everything set aside, the home screen says **All clear** instead of asking for a first note.
