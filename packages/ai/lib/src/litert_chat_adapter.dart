@@ -24,6 +24,7 @@ class LiteRtChatAdapter implements ChatAdapter {
     required String modelPath,
     this.preferGpu = true,
     this.requestTimeout = const Duration(minutes: 5),
+    this.beforeLoad,
     @visibleForTesting bool? availableForTest,
     @visibleForTesting LiteLmEngine? engine,
     @visibleForTesting
@@ -41,11 +42,19 @@ class LiteRtChatAdapter implements ChatAdapter {
     String Function() modelPath, {
     this.preferGpu = true,
     this.requestTimeout = const Duration(minutes: 5),
+    this.beforeLoad,
   }) : _availableForTest = null,
        _path = modelPath,
        _loadEngine = LiteLmEngine.create;
 
   final String Function() _path;
+
+  /// Run just before a model is brought into memory. The app uses it to let go
+  /// of the on-device search model first: it and the chat weights are the two
+  /// largest things Nex holds, and loading one on top of the other is how a
+  /// phone with little spare memory has the process killed. A failure here is
+  /// ignored; the load goes ahead.
+  final Future<void> Function()? beforeLoad;
 
   /// How an engine is brought up: the runtime's own loader, or a test's.
   final Future<LiteLmEngine> Function(LiteLmEngineConfig config) _loadEngine;
@@ -503,6 +512,9 @@ class LiteRtChatAdapter implements ChatAdapter {
     // Another model was picked since this one loaded: two sets of weights
     // will not fit in memory together, so the old one goes first.
     if (existing != null) await close();
+    try {
+      await beforeLoad?.call();
+    } catch (_) {}
 
     final strikes = _strikes();
     Object? lastFailure;

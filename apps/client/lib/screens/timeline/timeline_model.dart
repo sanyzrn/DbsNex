@@ -221,6 +221,14 @@ class TimelineModel extends ChangeNotifier {
     );
   }
 
+  /// Back near the top of a list that was scrolled deep: lets the service drop
+  /// the depth it kept, so later changes read one page again.
+  void trimWindow() {
+    if (services.timelineWindow <= NexServices.timelineBaseWindow + 100) return;
+    services.trimTimelineWindow();
+    _exhausted = false;
+  }
+
   Future<bool> ensureLoaded(String noteId) async {
     if (_all == null) await load();
     if (byId(noteId) != null) return true;

@@ -793,6 +793,40 @@ void main() {
     },
   );
 
+  test(
+    'trimTimelineWindow drops the depth once the reader is back at the top',
+    () async {
+      final events = <List<Note>>[];
+      final sub = services.timelineStream.listen(events.add);
+      addTearDown(sub.cancel);
+      for (var i = 0; i < 330; i++) {
+        await services.captureText('deep $i');
+      }
+      await services.refreshTimeline();
+      expect(await services.loadMoreTimeline(by: 130), isTrue);
+      await Future<void>.delayed(Duration.zero);
+      expect(services.timelineWindow, 330);
+      expect(events.last, hasLength(330));
+
+      final reads = testWorker.timelineReads;
+      services.trimTimelineWindow();
+      await Future<void>.delayed(Duration.zero);
+      // Back to one page, with no read: the head of what was already there.
+      expect(services.timelineWindow, NexServices.timelineBaseWindow);
+      expect(events.last, hasLength(NexServices.timelineBaseWindow));
+      expect(testWorker.timelineReads, reads);
+      // A later change reads one page, not the old depth.
+      await services.captureText('after');
+      await services.refreshTimeline();
+      await Future<void>.delayed(Duration.zero);
+      expect(events.last, hasLength(NexServices.timelineBaseWindow));
+      // A small overshoot is not worth a rebuild.
+      expect(await services.loadMoreTimeline(by: 20), isTrue);
+      services.trimTimelineWindow();
+      expect(services.timelineWindow, NexServices.timelineBaseWindow + 20);
+    },
+  );
+
   test('Voice capture stores hash; keyword search excludes it', () async {
     final bytes = Uint8List.fromList([1, 2, 3, 4]);
     final voice = await services.captureVoice(

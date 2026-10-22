@@ -15,6 +15,7 @@ import 'platform/route_observer.dart';
 import 'platform/app_lock.dart';
 import 'platform/download_notice.dart';
 import 'platform/feedback_service.dart';
+import 'platform/local_embedder.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/nex_widget.dart';
@@ -187,6 +188,8 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   @override
   void didHaveMemoryPressure() {
     unawaited(ChatAdapterBinding.instance.release() ?? Future<void>.value());
+    // The search model too: it reloads on the next search.
+    unawaited(NexLocalEmbedder.release().catchError((Object _) {}));
   }
 
   @override

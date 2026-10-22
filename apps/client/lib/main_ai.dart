@@ -6,6 +6,7 @@ import 'package:nex_ai/nex_ai.dart';
 import 'bootstrap_host.dart';
 import 'entry_bootstrap.dart';
 import 'platform/local_ai_support.dart';
+import 'platform/local_embedder.dart';
 import 'platform/model_store.dart';
 
 /// Entry point for the "ai" Android flavor (09-ai.md — Phase 1, ADR-031).
@@ -28,7 +29,13 @@ Future<void> main() async {
   // Follows the model picked on the on-device model screen, so switching
   // between them needs no restart.
   ChatAdapterBinding.bind(
-    LiteRtChatAdapter.following(() => store.fileFor(store.selected).path),
+    LiteRtChatAdapter.following(
+      () => store.fileFor(store.selected).path,
+      // Two sets of weights at once is how a small phone loses the process:
+      // the search model goes before the chat model comes in (it loads again
+      // by itself on the next search).
+      beforeLoad: NexLocalEmbedder.release,
+    ),
   );
   runApp(const NexBootstrapHost());
 }
