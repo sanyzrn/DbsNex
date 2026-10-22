@@ -253,11 +253,7 @@ extension NexLibraryServices on NexServices {
 
   /// Writes why an analysis was not kept in the local diagnostics log
   /// (2.1.10): the kind and the status code, never the address or the reply.
-  void _logVideoFailure(
-    NexVideoFailure failure, [
-    int? status,
-    Object? error,
-  ]) {
+  void _logVideoFailure(NexVideoFailure failure, [int? status, Object? error]) {
     final detail = [
       failure.name,
       if (status != null) 'HTTP $status',
@@ -396,6 +392,28 @@ extension NexLibraryServices on NexServices {
     _timelineController.add(notes);
   }
 
+  /// How many notes the timeline stream currently carries.
+  int get timelineWindow => _timelineWindow;
+
+  /// Shrinks the window back to its first page, without a database read, once
+  /// the reader is near the top again. Until then a deep scroll made every
+  /// capture, edit and sync re-read — and the screen re-group — all of it.
+  ///
+  /// Only worth doing when the window has grown by a real margin; a few extra
+  /// rows are not worth a rebuild. A page being fetched at the old depth is
+  /// dropped (see [_loadMoreTimelinePage]).
+  void trimTimelineWindow() {
+    if (_closed || _timelineController.isClosed) return;
+    if (_timelineWindow <= NexServices.timelineBaseWindow + 100) return;
+    final last = _lastTimeline;
+    if (last == null) return;
+    _timelineWindow = NexServices.timelineBaseWindow;
+    _timelineReads++;
+    final head = List<Note>.unmodifiable(last.take(_timelineWindow));
+    _lastTimeline = head;
+    _timelineController.add(head);
+  }
+
   Future<List<Note>> loadMore({required int offset, int limit = 50}) =>
       worker.loadMore(offset: offset, limit: limit);
 
@@ -431,6 +449,9 @@ extension NexLibraryServices on NexServices {
     final offset = _timelineWindow;
     final more = await worker.loadMore(offset: offset, limit: by);
     if (more.isEmpty) return false;
+    // The window was trimmed while this page was coming: it belongs to a
+    // depth nobody is at any more.
+    if (_closed || _timelineWindow != offset) return true;
     _timelineWindow += more.length;
     if (base != null && reads == _timelineReads && base.length == offset) {
       final seen = {for (final note in base) note.id};

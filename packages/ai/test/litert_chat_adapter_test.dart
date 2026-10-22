@@ -287,6 +287,28 @@ void main() {
       await expectLater(adapter.ensureEngine(), throwsStateError);
     });
 
+    test(
+      'beforeLoad runs before the model comes in, and its failure is ignored',
+      () async {
+        final order = <String>[];
+        final adapter = LiteRtChatAdapter(
+          modelPath: path,
+          preferGpu: false,
+          beforeLoad: () async {
+            order.add('before');
+            throw StateError('release failed');
+          },
+          loadEngine: (config) async {
+            order.add('load');
+            return _FakeEngine();
+          },
+        );
+
+        await adapter.ensureEngine();
+        expect(order, ['before', 'load']);
+      },
+    );
+
     test('a skipped backend is tried again once the strikes expire', () async {
       final old = DateTime.now()
           .subtract(LiteRtChatAdapter.strikeExpiry + const Duration(minutes: 1))

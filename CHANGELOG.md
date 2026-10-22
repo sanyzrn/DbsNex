@@ -38,6 +38,8 @@ Working convention:
 
 - **One Nex card in recent apps.** After updating and tapping **Open** in the installer, Nex could appear twice in the recent-apps list — one card for the old window, one for the new. Nex now rejoins its own window instead of starting a second one.
 - **Safer sponsor card.** The sponsor picture is only fetched over a secure connection and never from an address on your own network.
+- **A long library stays quick.** After scrolling deep into thousands of notes and coming back to the top, Nex lets go of the extra depth it had loaded, so adding or editing a note no longer re-reads everything you scrolled through.
+- **Less memory with the on-device model.** The on-device search model is now let go before the on-device chat model loads, and also when Android asks for memory, so a phone with little spare memory is less likely to close Nex.
 
 ## v2.2.0
 

@@ -545,10 +545,15 @@ class NexServices {
   /// Every mutation elsewhere — capture, tag edit, delete, sync — calls
   /// [refreshTimeline] with no idea how far the timeline has been scrolled,
   /// so the window has to live here rather than as an argument threaded
-  /// through every one of those call sites. Only [loadMoreTimeline] grows it;
-  /// nothing shrinks it, so a capture or a sync elsewhere never truncates a
-  /// scrolled-down timeline back to the first page.
-  int _timelineWindow = 200;
+  /// through every one of those call sites. Only [loadMoreTimeline] grows it,
+  /// and only [trimTimelineWindow] — called once the reader is back near the
+  /// top — shrinks it, so a capture or a sync elsewhere never truncates a
+  /// scrolled-down timeline, and a library scrolled deep once does not make
+  /// every later change re-read all of that depth.
+  int _timelineWindow = timelineBaseWindow;
+
+  /// The window the timeline starts at and returns to.
+  static const timelineBaseWindow = 200;
 
   /// What the stream last carried, and how many full reads have started —
   /// so [loadMoreTimeline] can tell whether a page may simply be appended.

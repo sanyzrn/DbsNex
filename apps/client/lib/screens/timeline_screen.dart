@@ -606,11 +606,28 @@ class TimelineScreenState extends State<TimelineScreen>
   /// machine at all.
   double _lastTickOffset = 0;
   static const _scrollTickDistance = 64.0;
+  static const _trimBelow = 1500.0;
 
   bool _onScroll(ScrollNotification notification) {
+    // A scroll that has come to rest near the top, however it got there.
+    if (notification is ScrollEndNotification &&
+        notification.metrics.pixels < _trimBelow &&
+        !_searching) {
+      _model.trimWindow();
+    }
     if (notification is! ScrollUpdateNotification) return false;
     _updateStickyDay();
     final offset = notification.metrics.pixels;
+    // Back within a few screens of the top: the depth scrolled earlier is no
+    // longer needed, so it stops costing every change a full re-read.
+    // Only for a finger moving it up: a scroll the app starts itself (to a
+    // reminder's note, say) passes through here on its way down.
+    if (offset < _trimBelow &&
+        !_searching &&
+        notification.dragDetails != null &&
+        (notification.scrollDelta ?? 0) < 0) {
+      _model.trimWindow();
+    }
     final travelled = (offset - _lastTickOffset).abs();
     if (travelled < _scrollTickDistance) return false;
     // A jump this large is not a finger — it is the list being replaced
