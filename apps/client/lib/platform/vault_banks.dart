@@ -59,9 +59,100 @@ const _bankBins = <String, VaultBank>{
   '636795': VaultBank('بانک مرکزی', 'Central Bank of Iran'),
   '507677': VaultBank('مؤسسه اعتباری نور', 'Noor Credit Institution'),
   '502938': VaultBank('بانک دی', 'Dey Bank'),
+  '627884': VaultBank('بانک پارسیان', 'Parsian Bank'),
+  '581874': VaultBank('بانک ایران ونزوئلا', 'Iran Venezuela Bank'),
+};
+
+/// Issuers whose range is longer than six digits, because a shorter one
+/// belongs to another bank: Blu issues out of Saman's 621986.
+const _longBankBins = <String, VaultBank>{
+  '62198618': VaultBank('بلوبانک', 'Blu Bank'),
+  '62198619': VaultBank('بلوبانک', 'Blu Bank'),
 };
 
 /// The bank behind [digits] (a card number, spaces already taken out), or null
 /// when fewer than six digits are typed or the range is not on the list.
-VaultBank? vaultBankFor(String digits) =>
-    digits.length < 6 ? null : _bankBins[digits.substring(0, 6)];
+VaultBank? vaultBankFor(String digits) {
+  if (digits.length < 6) return null;
+  if (digits.length >= 8) {
+    final long = _longBankBins[digits.substring(0, 8)];
+    if (long != null) return long;
+  }
+  return _bankBins[digits.substring(0, 6)];
+}
+
+/// A card network, as the first digits of a number name it. Not a bank:
+/// worldwide there are far too many issuers to list, but the handful of
+/// networks behind nearly every card are fixed by public number ranges.
+enum VaultNetwork {
+  visa('Visa'),
+  mastercard('Mastercard'),
+  amex('American Express'),
+  discover('Discover'),
+  unionPay('UnionPay'),
+  jcb('JCB'),
+  diners('Diners Club'),
+  maestro('Maestro'),
+  mir('Mir'),
+  troy('Troy'),
+  rupay('RuPay');
+
+  const VaultNetwork(this.label);
+
+  /// A brand name, written the same in every language.
+  final String label;
+}
+
+/// The network [digits] belongs to, or null when it is not one of them.
+///
+/// A suggestion like the bank: it only ever labels the number. An Iranian
+/// bank wins over it, because their ranges (62…, 50…, 58…) sit inside UnionPay
+/// and Maestro's and a Shetab card is neither.
+VaultNetwork? vaultNetworkFor(String digits) {
+  if (digits.isEmpty || vaultBankFor(digits) != null) return null;
+  int head(int n) => digits.length < n ? -1 : int.parse(digits.substring(0, n));
+  bool within(int n, int low, int high) {
+    final value = head(n);
+    return value >= low && value <= high;
+  }
+
+  if (digits.startsWith('4')) return VaultNetwork.visa;
+  if (within(2, 51, 55) || within(4, 2221, 2720)) {
+    return VaultNetwork.mastercard;
+  }
+  if (digits.startsWith('34') || digits.startsWith('37')) {
+    return VaultNetwork.amex;
+  }
+  if (within(4, 2200, 2204)) return VaultNetwork.mir;
+  if (digits.startsWith('9792')) return VaultNetwork.troy;
+  if (within(4, 3528, 3589)) return VaultNetwork.jcb;
+  if (digits.startsWith('36') ||
+      digits.startsWith('38') ||
+      digits.startsWith('39') ||
+      within(3, 300, 305) ||
+      digits.startsWith('3095')) {
+    return VaultNetwork.diners;
+  }
+  if (digits.startsWith('6011') ||
+      within(3, 644, 649) ||
+      within(6, 622126, 622925)) {
+    return VaultNetwork.discover;
+  }
+  if (digits.startsWith('508') ||
+      within(4, 6521, 6522) ||
+      within(4, 6070, 6089)) {
+    return VaultNetwork.rupay;
+  }
+  if (digits.startsWith('62')) return VaultNetwork.unionPay;
+  if (digits.startsWith('65')) return VaultNetwork.discover;
+  if (digits.startsWith('5018') ||
+      digits.startsWith('5020') ||
+      digits.startsWith('5038') ||
+      digits.startsWith('5893') ||
+      digits.startsWith('6304') ||
+      digits.startsWith('6759') ||
+      within(4, 6761, 6763)) {
+    return VaultNetwork.maestro;
+  }
+  return null;
+}

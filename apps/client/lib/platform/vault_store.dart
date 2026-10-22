@@ -262,11 +262,12 @@ String vaultLatinDigits(String text) =>
 String vaultCardDigits(String text) =>
     vaultLatinDigits(text).replaceAll(RegExp(r'[\s-]'), '');
 
-/// Whether [raw] has the shape of a card number: thirteen to nineteen digits,
+/// Whether [raw] has the shape of a card number: twelve to nineteen digits (some
+/// Maestro cards have twelve),
 /// not all the same one. This is what stops a save.
 bool validVaultCardShape(String raw) {
   final value = vaultCardDigits(raw);
-  return RegExp(r'^\d{13,19}$').hasMatch(value) &&
+  return RegExp(r'^\d{12,19}$').hasMatch(value) &&
       !RegExp(r'^(\d)\1+$').hasMatch(value);
 }
 

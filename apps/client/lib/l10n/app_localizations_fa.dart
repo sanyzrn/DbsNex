@@ -357,6 +357,29 @@ class AppLocalizationsFa extends AppLocalizations {
       'بازتابی از یادداشت‌هایتان، نه آزمون یا تشخیص.';
 
   @override
+  String get portraitStreak => 'روز پیاپی';
+
+  @override
+  String get portraitLast30 => '۳۰ روز اخیر';
+
+  @override
+  String get portraitShape => 'نیم‌رخ شما';
+
+  @override
+  String portraitBestStreak(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'بلندترین رشته: $countString روز',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get disclosurePortrait => 'پرترهٔ نوشتن';
 
   @override
@@ -4841,7 +4864,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get vaultRequired => 'این فیلد ضروری است';
 
   @override
-  String get vaultInvalidCard => 'شمارهٔ کارت باید ۱۳ تا ۱۹ رقم باشد';
+  String get vaultInvalidCard => 'شمارهٔ کارت باید ۱۲ تا ۱۹ رقم باشد';
 
   @override
   String get vaultInvalidIban => 'شمارهٔ شبا را بررسی کنید';

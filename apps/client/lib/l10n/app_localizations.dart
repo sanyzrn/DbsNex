@@ -596,6 +596,30 @@ abstract class AppLocalizations {
   /// **'A reflection of your notes, not a test or a diagnosis.'**
   String get portraitDisclaimer;
 
+  /// No description provided for @portraitStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Day streak'**
+  String get portraitStreak;
+
+  /// No description provided for @portraitLast30.
+  ///
+  /// In en, this message translates to:
+  /// **'The last 30 days'**
+  String get portraitLast30;
+
+  /// No description provided for @portraitShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Your shape'**
+  String get portraitShape;
+
+  /// Profile portrait: the longest run of days in a row with a note.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Your longest run: 1 day} other{Your longest run: {count} days}}'**
+  String portraitBestStreak(int count);
+
   /// Disclosure log purpose for the profile portrait.
   ///
   /// In en, this message translates to:
@@ -7775,7 +7799,7 @@ abstract class AppLocalizations {
   /// No description provided for @vaultInvalidCard.
   ///
   /// In en, this message translates to:
-  /// **'A card number has 13 to 19 digits'**
+  /// **'A card number has 12 to 19 digits'**
   String get vaultInvalidCard;
 
   /// No description provided for @vaultInvalidIban.

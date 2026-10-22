@@ -49,10 +49,35 @@ void main() {
       expect(validVaultCard('6104337835468074'), isFalse);
       expect(validVaultCardShape('۶۱۰۴ ۳۳۷۸ ۳۵۴۶ ۸۰۷۴'), isTrue);
       expect(validVaultCardShape('1234'), isFalse);
+      expect(validVaultCardShape('50180000373'), isFalse);
+      expect(validVaultCardShape('501800003730'), isTrue);
       expect(validVaultCardShape('1111111111111111'), isFalse);
       expect(validVaultCardShape('61043378354680749999'), isFalse);
       expect(validVaultCard('4111111111111111'), isTrue);
     });
+
+    test(
+      'the network is read from the first digits, a bank only wins first',
+      () {
+        VaultNetwork? net(String d) => vaultNetworkFor(d);
+        expect(net('4111111111111111'), VaultNetwork.visa);
+        expect(net('5555555555554444'), VaultNetwork.mastercard);
+        expect(net('2223000048400011'), VaultNetwork.mastercard);
+        expect(net('378282246310005'), VaultNetwork.amex);
+        expect(net('6011111111111117'), VaultNetwork.discover);
+        expect(net('3530111333300000'), VaultNetwork.jcb);
+        expect(net('30569309025904'), VaultNetwork.diners);
+        expect(net('2202200000000000'), VaultNetwork.mir);
+        expect(net('6200000000000005'), VaultNetwork.unionPay);
+        expect(net('501800003730'), VaultNetwork.maestro);
+        expect(net(''), isNull);
+        // 622106 is Parsian's, inside UnionPay's 62…: the bank is the answer.
+        expect(net('6221061234567890'), isNull);
+        expect(vaultBankFor('6221061234567890')?.en, 'Parsian Bank');
+        expect(vaultBankFor('6219861900001234')?.en, 'Blu Bank');
+        expect(vaultBankFor('6219861000001234')?.en, 'Saman Bank');
+      },
+    );
 
     test('an expiry is a month and a year, either way round', () {
       for (final ok in ['05/27', '5/2027', '۰۵/۲۷', '1405/08', '27/05', '']) {

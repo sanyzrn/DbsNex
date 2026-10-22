@@ -442,6 +442,7 @@ class _VaultEditorState extends State<VaultEditor> {
     final digits = vaultCardDigits(fields['number']!.text);
     final persian = l.localeName == 'fa';
     final bank = _guessedBank;
+    final network = vaultNetworkFor(digits);
     final suspicious = validVaultCardShape(digits) && !validVaultCard(digits);
     Widget line(IconData icon, String text, Color color) => Padding(
       padding: const EdgeInsetsDirectional.only(
@@ -469,6 +470,12 @@ class _VaultEditorState extends State<VaultEditor> {
           line(
             Icons.account_balance_outlined,
             l.vaultBankGuess(bank.name(persian: persian)),
+            theme.colorScheme.onSurfaceVariant,
+          ),
+        if (network != null)
+          line(
+            Icons.credit_card_outlined,
+            l.vaultBankGuess(network.label),
             theme.colorScheme.onSurfaceVariant,
           ),
         if (suspicious)

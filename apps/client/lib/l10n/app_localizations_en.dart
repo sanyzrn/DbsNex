@@ -364,6 +364,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'A reflection of your notes, not a test or a diagnosis.';
 
   @override
+  String get portraitStreak => 'Day streak';
+
+  @override
+  String get portraitLast30 => 'The last 30 days';
+
+  @override
+  String get portraitShape => 'Your shape';
+
+  @override
+  String portraitBestStreak(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Your longest run: $countString days',
+      one: 'Your longest run: 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get disclosurePortrait => 'Writing portrait';
 
   @override
@@ -4895,7 +4919,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vaultRequired => 'This field is required';
 
   @override
-  String get vaultInvalidCard => 'A card number has 13 to 19 digits';
+  String get vaultInvalidCard => 'A card number has 12 to 19 digits';
 
   @override
   String get vaultInvalidIban => 'Check the IBAN';
