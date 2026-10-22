@@ -49,6 +49,7 @@ import '../widgets/recording_sheet.dart';
 import '../widgets/voice_clip_sheet.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
+import '../widgets/set_aside_flow.dart';
 import '../widgets/tag_picker.dart';
 import '../widgets/translate_sheet.dart';
 import 'camera_sheet.dart';
@@ -574,6 +575,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             note.pinnedAt == null && _pinnedNoteCount >= 5
                             ? null
                             : _togglePin,
+                      ),
+                      _DetailAction(
+                        icon: note.isSetAside()
+                            ? Icons.unarchive_outlined
+                            : Icons.archive_outlined,
+                        label: note.isSetAside()
+                            ? l10n.setAsideBringBack
+                            : l10n.setAside,
+                        onPressed: _toggleSetAside,
                       ),
                       // Beside Pin, because the two answer the same kind of
                       // question: where this note sits on the timeline, and

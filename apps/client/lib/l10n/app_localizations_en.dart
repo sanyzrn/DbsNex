@@ -4895,7 +4895,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vaultRequired => 'This field is required';
 
   @override
-  String get vaultInvalidCard => 'Check the card number';
+  String get vaultInvalidCard => 'A card number has 13 to 19 digits';
 
   @override
   String get vaultInvalidIban => 'Check the IBAN';
@@ -5936,4 +5936,115 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiVideoFailedChanged =>
       'The note was deleted or its link changed while the video was being watched, so nothing was kept.';
+
+  @override
+  String get setAside => 'Set aside';
+
+  @override
+  String get setAsideSheetTitle => 'Set aside until…';
+
+  @override
+  String get setAsideSheetHint =>
+      'It leaves the home screen but stays in your library. You can still find it by searching.';
+
+  @override
+  String get setAsideUntilBack => 'Until I bring it back';
+
+  @override
+  String get setAsideThisEvening => 'This evening';
+
+  @override
+  String get setAsideTomorrow => 'Tomorrow morning';
+
+  @override
+  String get setAsideNextWeek => 'Next week';
+
+  @override
+  String get setAsidePickDate => 'Pick a date…';
+
+  @override
+  String get setAsideDone => 'Set aside';
+
+  @override
+  String setAsideDoneUntil(String when) {
+    return 'Set aside until $when';
+  }
+
+  @override
+  String setAsideGroupDone(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString notes set aside';
+  }
+
+  @override
+  String setAsideBackBanner(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString notes are back from being set aside';
+  }
+
+  @override
+  String get setAsideBringBack => 'Bring back';
+
+  @override
+  String get setAsideSection => 'Set aside';
+
+  @override
+  String get setAsideSectionHint => 'Off the home screen, not gone';
+
+  @override
+  String get setAsidePageTitle => 'Set aside';
+
+  @override
+  String get setAsideEmptyTitle => 'Nothing set aside';
+
+  @override
+  String get setAsideEmptyBody =>
+      'Hold a note and choose Set aside to keep it out of the way for now.';
+
+  @override
+  String setAsideBackOn(String when) {
+    return 'Back $when';
+  }
+
+  @override
+  String get setAsideUntilFurther => 'Until you bring it back';
+
+  @override
+  String get setAsideMark => 'Set aside';
+
+  @override
+  String setAsideCountLabel(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString notes set aside',
+      one: '1 note set aside',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get setAsideAllClear => 'All clear';
+
+  @override
+  String get setAsideView => 'See what’s set aside';
+
+  @override
+  String get vaultCardChecksum =>
+      'The last digit doesn’t match the rest of the number. It may still be right — check it against the card.';
+
+  @override
+  String vaultBankGuess(String bank) {
+    return 'Looks like $bank';
+  }
 }

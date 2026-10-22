@@ -72,6 +72,8 @@ class Note {
     required this.syncState,
     this.tags = const [],
     this.pinnedAt,
+    this.setAsideAt,
+    this.setAsideUntil,
     this.dueAt,
     this.dueRepeat = NoteRepeat.once,
     this.sortOrder,
@@ -127,6 +129,30 @@ class Note {
   /// are how *this device* likes its own timeline arranged, not something
   /// that means anything to another device or survives a JSON export.
   final DateTime? pinnedAt;
+
+  /// When this note was put to one side, or null.
+  ///
+  /// A set-aside note is still a live note — searchable, still carrying its
+  /// reminder, still in backups — it is only kept off the home timeline until
+  /// it is brought back. Local only, like [pinnedAt]: where *this* device
+  /// likes its own home screen is not something another device or a JSON
+  /// export has any use for.
+  final DateTime? setAsideAt;
+
+  /// When a set-aside note returns by itself, or null for "until I bring it
+  /// back". Stored in UTC like every other instant here.
+  final DateTime? setAsideUntil;
+
+  /// Whether the note is out of the home timeline at [now].
+  ///
+  /// Time-aware on purpose: a note whose [setAsideUntil] has passed is back on
+  /// the timeline the moment it passes, whether or not anything has yet
+  /// cleared the two columns.
+  bool isSetAside([DateTime? now]) {
+    if (setAsideAt == null) return false;
+    final until = setAsideUntil;
+    return until == null || until.isAfter(now ?? DateTime.now());
+  }
 
   /// When the app should bring this note back up, or null.
   ///
@@ -326,6 +352,9 @@ class Note {
     List<Tag>? tags,
     DateTime? pinnedAt,
     bool clearPinnedAt = false,
+    DateTime? setAsideAt,
+    DateTime? setAsideUntil,
+    bool clearSetAside = false,
     DateTime? dueAt,
     bool clearDueAt = false,
     NoteRepeat? dueRepeat,
@@ -371,6 +400,10 @@ class Note {
       // reminder disappeared", days later, with no error and no diff to
       // point at.
       pinnedAt: clearPinnedAt ? null : (pinnedAt ?? this.pinnedAt),
+      setAsideAt: clearSetAside ? null : (setAsideAt ?? this.setAsideAt),
+      setAsideUntil: clearSetAside
+          ? null
+          : (setAsideUntil ?? this.setAsideUntil),
       dueAt: clearDueAt ? null : (dueAt ?? this.dueAt),
       dueRepeat: dueRepeat ?? this.dueRepeat,
       sortOrder: clearSortOrder ? null : (sortOrder ?? this.sortOrder),
@@ -435,6 +468,12 @@ class Note {
       dueRepeat: NoteRepeat.fromWire(row['due_repeat'] as String?),
       pinnedAt: (row['pinned_at'] as String?) != null
           ? DateTime.parse(row['pinned_at']! as String).toUtc()
+          : null,
+      setAsideAt: (row['set_aside_at'] as String?) != null
+          ? DateTime.parse(row['set_aside_at']! as String).toUtc()
+          : null,
+      setAsideUntil: (row['set_aside_until'] as String?) != null
+          ? DateTime.parse(row['set_aside_until']! as String).toUtc()
           : null,
       sortOrder: row['sort_order'] as int?,
       attachmentCount: attachmentCount,

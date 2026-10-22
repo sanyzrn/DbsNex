@@ -275,6 +275,22 @@ class InProcessDb implements NexDb {
   Future<int> pinnedNoteCount() async => _repo.pinnedNoteCount();
 
   @override
+  Future<bool> setAside(String id, {DateTime? until}) async =>
+      _repo.setAside(id, until: until);
+
+  @override
+  Future<void> bringBack(String id) async => _repo.bringBack(id);
+
+  @override
+  Future<List<Note>> listSetAside() async => _repo.listSetAside();
+
+  @override
+  Future<int> setAsideCount() async => _repo.setAsideCount();
+
+  @override
+  Future<List<String>> releaseDueSetAside() async => _repo.releaseDueSetAside();
+
+  @override
   Future<Tag> addTag({
     required String noteId,
     required String name,

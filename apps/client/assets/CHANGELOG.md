@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v2.2.0
+
+- **Set aside.** Hold a note and choose **Set aside** to take it off the home screen without deleting it. Pick when it comes back — this evening, tomorrow morning, next week, a date — or leave it until you bring it back yourself. Set-aside notes wait in **Library → Set aside**, where one tap brings a note home; search still finds them, marked, and their reminders still ring. It is also in a note's details and in the bar for several selected notes. A banner offers **Undo**, and when a chosen date arrives the note returns by itself and says so. With everything set aside, the home screen says **All clear** instead of asking for a first note.
+- **Bank cards, reworked.** The "Continue unfinished edit" notice no longer appears when you opened a card and changed nothing, or opened a new one and typed nothing — it appears only after a real change, and goes away if you undo it. A card number is kept if it has 13–19 digits: a last digit that does not match only shows a note under the field, so a number like 6104 3378 3546 8074 can be saved. Numbers are grouped as on the card as you type, Persian digits are converted, Iranian banks are recognised from the first digits and fill the **Bank** field when it is empty, the IBAN is shown in groups, and an expiry may be month/year or year/month.
+- **A tapped reminder, when Nex was closed.** The scroll to the note and the blink around it now wait until the app has settled — and until you have unlocked it, if the app lock is on — so you see them instead of missing them behind the opening.
+
 ## v2.1.15
 
 - **One menu everywhere.** The ⋮ menus on threads, tags, the modules and the rest now look and size like the menu you get by holding a card — rounded, an icon on every line, delete in red — and so do the dropdown lists in forms.

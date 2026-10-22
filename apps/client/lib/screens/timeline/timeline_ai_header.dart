@@ -2,6 +2,16 @@ part of '../timeline_screen.dart';
 
 /// The greeting, the AI headline and recap, and the daily brief card.
 extension _TimelineAiHeader on TimelineScreenState {
+  void _onBriefPreferencesChanged() {
+    if (!mounted || _briefPreferencesQueued) return;
+    _briefPreferencesQueued = true;
+    // Let the app apply locale/settings dependencies before capturing input.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _briefPreferencesQueued = false;
+      if (mounted) unawaited(_loadAiSummary());
+    });
+  }
+
   /// True when there is a provider configured to generate anything at all.
   /// The whole header — headline and card both — is absent otherwise, rather
   /// than showing empty chrome for a feature that is switched off.

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
+import '../platform/vault_banks.dart';
 import '../platform/vault_store.dart';
 import '../platform/private_clipboard.dart';
 import '../widgets/feature_label.dart';
@@ -46,14 +48,50 @@ class _VaultEditorState extends State<VaultEditor> {
   };
   bool discard = false;
 
+  /// The bank name this editor filled in by itself, so a later digit can
+  /// replace it while a name the person typed is never touched.
+  String? _autoBank;
+  VaultBank? _guessedBank;
+
   /// A card's own colour as `#RRGGBB`, or null for the theme's. Chosen with
   /// the same picker tags and the app accent use, not a second one.
   late String? color = nexParseTagColor(widget.entry.value('color')) == null
       ? null
       : widget.entry.value('color');
   late bool favorite = widget.entry.favorite;
+
+  @override
+  void initState() {
+    super.initState();
+    fields['number']!.addListener(_onNumberText);
+    _guessedBank = vaultBankFor(vaultCardDigits(fields['number']!.text));
+  }
+
+  /// Recognises the bank from the first six digits and, when the bank field is
+  /// empty (or still holds what this did), fills it in.
+  void _onNumberText() {
+    final digits = vaultCardDigits(fields['number']!.text);
+    final bank = vaultBankFor(digits);
+    final persian = Localizations.localeOf(context).languageCode == 'fa';
+    final field = fields['bank']!;
+    if (bank != null &&
+        (field.text.trim().isEmpty || field.text == _autoBank)) {
+      final name = bank.name(persian: persian);
+      field.text = name;
+      _autoBank = name;
+      _changed();
+    } else if (bank == null && field.text == _autoBank) {
+      field.clear();
+      _autoBank = null;
+      _changed();
+    }
+    // The hints under the field follow every digit.
+    if (mounted) setState(() => _guessedBank = bank);
+  }
+
   @override
   void dispose() {
+    fields['number']!.removeListener(_onNumberText);
     for (final c in fields.values) {
       c.dispose();
     }
@@ -124,26 +162,29 @@ class _VaultEditorState extends State<VaultEditor> {
               required: true,
               ltr: true,
               keyboard: TextInputType.number,
-              validator: (v) => validVaultCard(v) ? null : l.vaultInvalidCard,
+              formatters: [_CardNumberFormatter()],
+              // Only the shape stops a save. A check digit that does not
+              // add up is said below the field and left to the person: the
+              // number may be exactly what is printed on their card.
+              validator: (v) =>
+                  validVaultCardShape(v) ? null : l.vaultInvalidCard,
+              footer: _numberHints(l, theme),
             ),
             _field(
               'expiry',
               l.vaultExpiry,
               ltr: true,
               keyboard: TextInputType.datetime,
+              formatters: [_LatinDigits(extra: '/')],
               validator: (v) =>
-                  v.trim().isEmpty ||
-                      RegExp(
-                        r'^(0?[1-9]|1[0-2])\s*/\s*(\d{2}|\d{4})$',
-                      ).hasMatch(vaultLatinDigits(v.trim()))
-                  ? null
-                  : l.vaultInvalidExpiry,
+                  validVaultExpiry(v) ? null : l.vaultInvalidExpiry,
             ),
             _field(
               'cvv2',
               l.vaultCvv2,
               ltr: true,
               keyboard: TextInputType.number,
+              formatters: [_LatinDigits(max: 4)],
               validator: (v) =>
                   v.trim().isEmpty ||
                       RegExp(r'^\d{3,4}$').hasMatch(vaultLatinDigits(v.trim()))
@@ -163,6 +204,7 @@ class _VaultEditorState extends State<VaultEditor> {
               l.vaultAccount,
               ltr: true,
               keyboard: TextInputType.number,
+              formatters: [_LatinDigits()],
             ),
             _colorRow(theme),
           ],
@@ -278,6 +320,8 @@ class _VaultEditorState extends State<VaultEditor> {
     int lines = 1,
     TextInputType? keyboard,
     String? Function(String)? validator,
+    List<TextInputFormatter>? formatters,
+    Widget? footer,
   }) {
     final l = AppLocalizations.of(context);
     if (lines > 1) {
@@ -362,6 +406,7 @@ class _VaultEditorState extends State<VaultEditor> {
       keyboardType:
           keyboard ??
           (secret ? TextInputType.visiblePassword : TextInputType.text),
+      inputFormatters: formatters,
       onChanged: (_) => _changed(),
       validator: (v) {
         if (required && (v == null || v.trim().isEmpty)) {
@@ -377,14 +422,127 @@ class _VaultEditorState extends State<VaultEditor> {
         ),
       ),
     );
+    final body = ltr
+        ? Directionality(textDirection: TextDirection.ltr, child: field)
+        : NexAutoDirection(controller: fields[key]!, builder: (_, _) => field);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: ltr
-          ? Directionality(textDirection: TextDirection.ltr, child: field)
-          : NexAutoDirection(
-              controller: fields[key]!,
-              builder: (_, _) => field,
+      child: footer == null
+          ? body
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [body, footer],
             ),
+    );
+  }
+
+  /// What the number so far tells: the bank it looks like, and — only once it
+  /// is a whole number — a check digit that does not add up.
+  Widget _numberHints(AppLocalizations l, ThemeData theme) {
+    final digits = vaultCardDigits(fields['number']!.text);
+    final persian = l.localeName == 'fa';
+    final bank = _guessedBank;
+    final suspicious = validVaultCardShape(digits) && !validVaultCard(digits);
+    Widget line(IconData icon, String text, Color color) => Padding(
+      padding: const EdgeInsetsDirectional.only(
+        start: NexSpacing.sm,
+        top: NexSpacing.xs,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: NexSpacing.xs),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (bank != null)
+          line(
+            Icons.account_balance_outlined,
+            l.vaultBankGuess(bank.name(persian: persian)),
+            theme.colorScheme.onSurfaceVariant,
+          ),
+        if (suspicious)
+          line(
+            Icons.info_outline,
+            l.vaultCardChecksum,
+            theme.colorScheme.tertiary,
+          ),
+      ],
+    );
+  }
+}
+
+/// Digits only, in Latin form, for a field that holds a number: a Persian or
+/// Arabic digit typed or pasted becomes the same digit in Latin, and anything
+/// that is not a digit (or [extra]) is dropped, up to [max] characters.
+class _LatinDigits extends TextInputFormatter {
+  _LatinDigits({this.max, this.extra = ''});
+
+  final int? max;
+  final String extra;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final keep = RegExp('[0-9${RegExp.escape(extra)}]');
+    final kept = [
+      for (final ch in vaultLatinDigits(newValue.text).split(''))
+        if (keep.hasMatch(ch)) ch,
+    ].join();
+    final text = max != null && kept.length > max!
+        ? kept.substring(0, max)
+        : kept;
+    if (text == newValue.text) return newValue;
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(
+        offset: text.length < newValue.selection.end
+            ? text.length
+            : newValue.selection.end.clamp(0, text.length),
+      ),
+    );
+  }
+}
+
+/// A card number as it is printed: digits in groups of four, whatever the
+/// person typed or pasted — Persian digits, dashes, spaces — up to nineteen.
+class _CardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String digitsOf(String text) =>
+        vaultLatinDigits(text).replaceAll(RegExp(r'\D'), '');
+    var digits = digitsOf(newValue.text);
+    if (digits.length > 19) digits = digits.substring(0, 19);
+    final grouped = [
+      for (var i = 0; i < digits.length; i += 4)
+        digits.substring(i, i + 4 > digits.length ? digits.length : i + 4),
+    ].join(' ');
+    // Keep the caret after the same digit it was after.
+    final end = newValue.selection.end.clamp(0, newValue.text.length);
+    final before = digitsOf(
+      newValue.text.substring(0, end),
+    ).length.clamp(0, digits.length);
+    final caret = before == 0 ? 0 : before + (before - 1) ~/ 4;
+    return TextEditingValue(
+      text: grouped,
+      selection: TextSelection.collapsed(
+        offset: caret.clamp(0, grouped.length),
+      ),
     );
   }
 }

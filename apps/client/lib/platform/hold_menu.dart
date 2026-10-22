@@ -25,6 +25,7 @@ enum NexHoldAction {
   share,
   addTag,
   thread,
+  setAside,
   caption,
   expand,
   open,
@@ -39,7 +40,7 @@ enum NexHoldAction {
   details,
   delete;
 
-  static const defaults = [pin, copy, edit, remind, delete];
+  static const defaults = [pin, setAside, copy, edit, remind, delete];
 
   static NexHoldAction? fromWire(String value) => values
       .where((action) => action.name == value && action.choosable)
@@ -60,6 +61,7 @@ enum NexHoldAction {
     share => Icons.ios_share,
     addTag => Icons.label_outline,
     thread => Icons.timeline_outlined,
+    setAside => Icons.archive_outlined,
     caption => Icons.short_text,
     expand => Icons.unfold_more,
     open => Icons.open_in_full,
@@ -86,6 +88,7 @@ enum NexHoldAction {
       share => l10n.share,
       addTag => l10n.addTag,
       thread => l10n.threads,
+      setAside => l10n.setAside,
       caption => nexLabel(context, 'Description', 'توضیح'),
       expand => l10n.expandCard,
       open => nexLabel(context, 'Open details', 'باز کردن جزئیات'),

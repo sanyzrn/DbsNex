@@ -710,6 +710,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
               // The gate lives here, so closing it does too. The timeline
               // only has to offer the button.
               onLock: _lock,
+              locked: _locked,
             )
           : OnboardingScreen(preferences: prefs),
     );

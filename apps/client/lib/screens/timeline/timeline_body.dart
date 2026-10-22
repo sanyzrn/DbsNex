@@ -505,6 +505,8 @@ extension _TimelineBody on TimelineScreenState {
                       unawaited(openCapture(kind: CaptureKind.voice)),
                   onPhotograph: () =>
                       unawaited(capturePhoto(ImageSource.camera)),
+                  setAsideCount: _setAsideTotal,
+                  onShowSetAside: () => unawaited(_openSetAside()),
                 )
               : _FilteredEmpty(onClear: () => unawaited(_clearFilters())),
         ),

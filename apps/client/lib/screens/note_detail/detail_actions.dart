@@ -390,6 +390,27 @@ extension _DetailActions on _NoteDetailSheetState {
     await _reload();
   }
 
+  /// Puts the note to one side and closes the sheet — it has just left the
+  /// screen this sheet was opened from — or, for a note already there, brings
+  /// it back and stays.
+  Future<void> _toggleSetAside() async {
+    final note = _note;
+    if (note == null) return;
+    if (note.isSetAside()) {
+      await widget.services.bringBack(note.id);
+      await widget.services.refreshTimeline();
+      await _reload();
+      return;
+    }
+    final count = await nexSetAsideNotes(
+      context: context,
+      services: widget.services,
+      notes: [note],
+      haptics: widget.preferences?.haptics ?? true,
+    );
+    if (count > 0 && mounted) Navigator.pop(context);
+  }
+
   Future<void> _editCaption() async {
     final note = _note;
     if (note == null || note.type == NoteType.text) return;

@@ -109,6 +109,20 @@ extension _TimelineSelection on TimelineScreenState {
     );
   }
 
+  /// Puts every selected note to one side, the way a single card's Set aside
+  /// does — one question about until when, one undo for the lot.
+  Future<void> _setAsideSelected() async {
+    final notes = _selectedNotes;
+    if (notes.isEmpty) return;
+    final count = await nexSetAsideNotes(
+      context: context,
+      services: widget.services,
+      notes: notes,
+      haptics: widget.preferences.haptics,
+    );
+    if (count > 0 && mounted) _endSelection();
+  }
+
   Future<void> _shareSelected() async {
     final notes = _selectedNotes;
     if (notes.isEmpty) return;
@@ -208,24 +222,47 @@ extension _TimelineSelection on TimelineScreenState {
       children: [
         _StaggerIn(
           index: 0,
-          child: Container(
-            key: const ValueKey('selection-count'),
-            padding: const EdgeInsets.symmetric(
-              horizontal: NexSpacing.md,
-              vertical: NexSpacing.xs + 2,
-            ),
-            margin: const EdgeInsets.only(bottom: NexSpacing.sm),
-            decoration: BoxDecoration(
-              color: scheme.primary,
-              borderRadius: BorderRadius.circular(NexRadius.pill),
-            ),
-            child: Text(
-              nexDigits(
-                l10n.selectionCount(_selected.length),
-                persian: Localizations.localeOf(context).languageCode == 'fa',
-              ),
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: scheme.onPrimary,
+          // The count is also how selecting ends: it carries the ✕ the bar
+          // no longer has room for beside seven other buttons.
+          child: Tooltip(
+            message: l10n.selectionClose,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _endSelection,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: nexMinTapTarget),
+                child: Container(
+                  key: const ValueKey('selection-count'),
+                  padding: const EdgeInsetsDirectional.fromSTEB(
+                    NexSpacing.md,
+                    NexSpacing.xs + 2,
+                    NexSpacing.sm,
+                    NexSpacing.xs + 2,
+                  ),
+                  margin: const EdgeInsets.only(bottom: NexSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(NexRadius.pill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        nexDigits(
+                          l10n.selectionCount(_selected.length),
+                          persian:
+                              Localizations.localeOf(context).languageCode ==
+                              'fa',
+                        ),
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: scheme.onPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: NexSpacing.xs),
+                      Icon(Icons.close, size: 16, color: scheme.onPrimary),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -257,11 +294,6 @@ extension _TimelineSelection on TimelineScreenState {
                   fits: fits,
                   children: [
                     for (final button in <Widget>[
-                      action(
-                        Icons.close,
-                        l10n.selectionClose,
-                        () async => _endSelection(),
-                      ),
                       action(Icons.label_outline, l10n.addTag, _tagSelected),
                       action(
                         Icons.timeline_outlined,
@@ -276,6 +308,11 @@ extension _TimelineSelection on TimelineScreenState {
                             ? l10n.unpin
                             : l10n.pin,
                         _pinSelected,
+                      ),
+                      action(
+                        Icons.archive_outlined,
+                        l10n.setAside,
+                        _setAsideSelected,
                       ),
                       if (nexCanShare)
                         action(Icons.ios_share, l10n.share, _shareSelected),

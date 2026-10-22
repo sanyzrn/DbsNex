@@ -21,7 +21,11 @@ extension NexFolderBackup on NexServices {
     String? output;
     try {
       // Nothing to keep yet: the first copy belongs to the first note.
-      if (!force && (await worker.timeline(limit: 1)).isEmpty) return false;
+      if (!force &&
+          (await worker.timeline(limit: 1)).isEmpty &&
+          await worker.setAsideCount() == 0) {
+        return false;
+      }
       final key = await _preferences.backupFolderKey();
       if (key == null) {
         await _preferences.markBackupFolderFailed(NexBackupFolderFailure.code);

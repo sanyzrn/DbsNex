@@ -295,23 +295,46 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Opens the editor. It does not make a draft: opening a card and leaving
+  /// it, or opening a new one and typing nothing, changes nothing — and used
+  /// to leave an "unfinished edit" behind that blocked everything else until
+  /// it was resumed or discarded. A draft exists from the first real change.
   void _edit(VaultEntry entry) {
     setState(() {
       editing = entry;
-      draft = entry;
       copiedField = null;
     });
     _touch();
   }
 
+  /// The saved entry the editor is working on, or null for a new one.
+  VaultEntry? _saved(VaultEntry entry) =>
+      entries.where((e) => e.id == entry.id).firstOrNull;
+
   void _changed(VaultEntry entry) {
-    draft = entry;
     _touch();
     draftTimer?.cancel();
+    if (!vaultEntryDiffers(entry, _saved(entry))) {
+      // Typed and typed back: nothing is unfinished any more.
+      if (draft != null) {
+        setState(() => draft = null);
+        unawaited(_clearDraft());
+      }
+      return;
+    }
+    draft = entry;
     draftTimer = Timer(
       const Duration(milliseconds: 350),
       () => unawaited(_writeDraft(entry)),
     );
+  }
+
+  Future<void> _clearDraft() async {
+    try {
+      await store.saveDraft(null);
+    } catch (cause) {
+      unawaited(NexCrashLog.handled('vault.draft', cause));
+    }
   }
 
   void _back() {

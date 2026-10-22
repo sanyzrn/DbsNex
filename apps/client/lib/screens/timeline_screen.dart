@@ -28,6 +28,7 @@ import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/metrics.dart';
 import 'timeline/timeline_model.dart';
+import 'set_aside_screen.dart';
 import 'cycle_screen.dart';
 import 'update_sheet.dart';
 import '../platform/brief_report.dart';
@@ -55,6 +56,7 @@ import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_brand.dart';
 import '../widgets/search_field_header.dart';
+import '../widgets/set_aside_flow.dart';
 import '../widgets/sponsor_card.dart';
 import '../widgets/search_filter_sheet.dart';
 import '../widgets/search_results.dart';
@@ -96,6 +98,7 @@ class TimelineScreen extends StatefulWidget {
     this.updates,
     this.onLock,
     this.widgets,
+    this.locked = false,
   });
   final NexServices services;
   final NexPreferences preferences;
@@ -108,6 +111,9 @@ class TimelineScreen extends StatefulWidget {
   /// is the one thing it cannot see coming, because it is filed without
   /// notifying listeners on purpose — see [NexWidgetBridge.refresh].
   final NexWidgetBridge? widgets;
+
+  /// Whether the app lock is covering this screen.
+  final bool locked;
 
   /// Null in tests that do not care about updates.
   final UpdateService? updates;
@@ -246,6 +252,8 @@ class TimelineScreenState extends State<TimelineScreen>
   Timer? _aiSummaryWake;
   bool _aiSummaryManualRequested = false;
   bool _briefPreferencesQueued = false;
+  int _setAsideTotal = 0; // read only while the home screen is empty
+  String? _arrivalHeld; // a note a tap named while the lock was up
   Locale? _briefLocale;
   late final Future<void> _briefCommitmentsReady;
 
@@ -301,9 +309,16 @@ class TimelineScreenState extends State<TimelineScreen>
   );
 
   @override
+  void didUpdateWidget(TimelineScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.locked && !widget.locked) _resumeHeldArrival();
+  }
+
+  @override
   void initState() {
     super.initState();
     _briefCommitmentsReady = _model.loadCommitments();
+    unawaited(_releaseSetAside());
     _swipe.addListener(_onSwipeChanged);
     _model.addListener(_onModelChanged);
     widget.preferences.addListener(_onBriefPreferencesChanged);
@@ -357,58 +372,8 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     widget.services.reminders.onOpenNote = _openArrived;
     final launched = widget.services.reminders.takeLaunchNoteId();
-    if (launched != null) _openArrived(launched);
-    // Both halves of a share Nex would not keep, for the same reason as the
-    // two lines above: it can arrive into a running app, or be the intent
-    // that launched it — in which case the refusal already happened, during
-    // bootstrap, with nothing on screen to say so.
-    widget.osCapture?.onRejected = _sayTooLarge;
-    final refused = widget.osCapture?.takeRejection();
-    if (refused != null) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _sayTooLarge(refused),
-      );
-    }
-    // Both halves of a widget tap, in the same two worlds and for the same
-    // reason: the Capture tile asks for the capture sheet, a Timeline row
-    // asks for the note it is showing. A tap that cold-started the app
-    // arrives while this screen is still being built, so it waits in the
-    // bridge until there is something here to answer it.
-    widget.osCapture?.onCaptureRequested = _openCaptureFromOs;
-    widget.osCapture?.onCaptureModeRequested = _captureFromOs;
-    // The platform keeps its own copy of this switch so the notification
-    // survives a reboot; this makes the two agree after a restore or an
-    // update.
-    unawaited(
-      QuickCaptureNotification.setEnabled(
-        widget.preferences.quickCaptureNotification,
-      ),
-    );
-    widget.osCapture?.onOpenNoteRequested = _openNoteFromOs;
-    widget.osCapture?.onRecapRefreshRequested = _refreshRecapFromOs;
-    widget.osCapture?.onOpenTimelineRequested = _openTimelineFromOs;
-    widget.osCapture?.onOpenCycleRequested = _openCycleFromOs;
-    final requested = widget.osCapture?.takeRequest();
-    if (requested != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        switch (requested.kind) {
-          case PendingOsRequestKind.refreshRecap:
-            _refreshRecapFromOs();
-          case PendingOsRequestKind.capture:
-            if (requested.captureMode case final mode?) {
-              _captureFromOs(mode);
-            } else {
-              _openCaptureFromOs();
-            }
-          case PendingOsRequestKind.openTimeline:
-            _openTimelineFromOs();
-          case PendingOsRequestKind.openCycle:
-            _openCycleFromOs();
-          case PendingOsRequestKind.openNote:
-            _openNoteFromOs(requested.noteId!);
-        }
-      });
-    }
+    if (launched != null) _openArrived(launched, cold: true);
+    _wireOsRequests();
     // And both halves of a tapped download. Here rather than in the app
     // widget because opening a screen needs a Navigator, and the app widget
     // sits above the one this route lives in.
@@ -575,18 +540,9 @@ class TimelineScreenState extends State<TimelineScreen>
   void _onModelChanged() {
     if (!mounted) return;
     setState(() {});
+    if (_model.all?.isEmpty ?? false) unawaited(_countSetAside());
     // Commitments and notes can arrive independently of the timeline stream.
     unawaited(_loadAiSummary());
-  }
-
-  void _onBriefPreferencesChanged() {
-    if (!mounted || _briefPreferencesQueued) return;
-    _briefPreferencesQueued = true;
-    // Let the app apply locale/settings dependencies before capturing input.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _briefPreferencesQueued = false;
-      if (mounted) unawaited(_loadAiSummary());
-    });
   }
 
   /// [setState], for the extensions in `timeline/` that carry this screen's
@@ -731,6 +687,7 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     if (state == AppLifecycleState.resumed) {
       unawaited(_loadAiSummary());
+      unawaited(_releaseSetAside());
       // A failed sponsor fetch is retried on a real return to the app rather
       // than by leaving timers behind in the timeline. The service's
       // 30-minute failure cool-off and hourly success interval still apply.

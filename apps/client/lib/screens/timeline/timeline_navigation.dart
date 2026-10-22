@@ -103,7 +103,24 @@ extension _TimelineNavigation on TimelineScreenState {
   /// [_spotlight], for a note a notification named. A reminder's note is
   /// already on the timeline and is pointed at at once; a scheduled note's
   /// may only now be arriving, so it is released first.
-  void _openArrived(String noteId) {
+  ///
+  /// [cold] is a tap that started the app. Its first frames are the busiest the
+  /// screen ever has, and a scroll and a pulse that play through them are over
+  /// before anyone is looking — so it waits for the screen to settle first.
+  /// Under the app lock it waits for the unlock, then for the gate to clear.
+  void _openArrived(String noteId, {bool cold = false}) {
+    if (widget.locked) {
+      _arrivalHeld = noteId;
+      return;
+    }
+    if (cold) {
+      unawaited(
+        Future<void>.delayed(
+          const Duration(milliseconds: 700),
+        ).then((_) => mounted ? _openArrived(noteId) : null),
+      );
+      return;
+    }
     if (_model.byId(noteId) != null) {
       _spotlight(noteId);
       return;
@@ -111,6 +128,75 @@ extension _TimelineNavigation on TimelineScreenState {
     unawaited(
       widget.services.releaseDueNotes().then((_) => _spotlight(noteId)),
     );
+  }
+
+  /// The lock has just opened: points at the note a tap named while it was up,
+  /// once the gate has finished leaving.
+  void _resumeHeldArrival() {
+    final noteId = _arrivalHeld;
+    _arrivalHeld = null;
+    if (noteId == null) return;
+    unawaited(
+      Future<void>.delayed(
+        const Duration(milliseconds: 500),
+      ).then((_) => mounted ? _openArrived(noteId) : null),
+    );
+  }
+
+  /// What the platform asked for before this screen existed, and what it asks
+  /// for from now on: shares refused, widget taps, a tapped download.
+  void _wireOsRequests() {
+    // Both halves of a share Nex would not keep, for the same reason as the
+    // two lines above: it can arrive into a running app, or be the intent
+    // that launched it — in which case the refusal already happened, during
+    // bootstrap, with nothing on screen to say so.
+    widget.osCapture?.onRejected = _sayTooLarge;
+    final refused = widget.osCapture?.takeRejection();
+    if (refused != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _sayTooLarge(refused),
+      );
+    }
+    // Both halves of a widget tap, in the same two worlds and for the same
+    // reason: the Capture tile asks for the capture sheet, a Timeline row
+    // asks for the note it is showing. A tap that cold-started the app
+    // arrives while this screen is still being built, so it waits in the
+    // bridge until there is something here to answer it.
+    widget.osCapture?.onCaptureRequested = _openCaptureFromOs;
+    widget.osCapture?.onCaptureModeRequested = _captureFromOs;
+    // The platform keeps its own copy of this switch so the notification
+    // survives a reboot; this makes the two agree after a restore or an
+    // update.
+    unawaited(
+      QuickCaptureNotification.setEnabled(
+        widget.preferences.quickCaptureNotification,
+      ),
+    );
+    widget.osCapture?.onOpenNoteRequested = _openNoteFromOs;
+    widget.osCapture?.onRecapRefreshRequested = _refreshRecapFromOs;
+    widget.osCapture?.onOpenTimelineRequested = _openTimelineFromOs;
+    widget.osCapture?.onOpenCycleRequested = _openCycleFromOs;
+    final requested = widget.osCapture?.takeRequest();
+    if (requested != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        switch (requested.kind) {
+          case PendingOsRequestKind.refreshRecap:
+            _refreshRecapFromOs();
+          case PendingOsRequestKind.capture:
+            if (requested.captureMode case final mode?) {
+              _captureFromOs(mode);
+            } else {
+              _openCaptureFromOs();
+            }
+          case PendingOsRequestKind.openTimeline:
+            _openTimelineFromOs();
+          case PendingOsRequestKind.openCycle:
+            _openCycleFromOs();
+          case PendingOsRequestKind.openNote:
+            _openNoteFromOs(requested.noteId!);
+        }
+      });
+    }
   }
 
   void _spotlight(String noteId) {

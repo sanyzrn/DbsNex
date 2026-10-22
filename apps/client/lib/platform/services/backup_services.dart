@@ -35,8 +35,9 @@ extension NexBackupServices on NexServices {
       // first-time user with "1 backup" holding nothing at all. The clock is
       // deliberately left unmarked too: the first backup belongs to the first
       // note, not to twelve hours after the app was first opened.
+      // A library whose every note is set aside is not empty.
       final anything = await worker.timeline(limit: 1);
-      if (anything.isEmpty) return false;
+      if (anything.isEmpty && await worker.setAsideCount() == 0) return false;
       await worker.backup(backupDir, mediaDir: mediaDir);
       await _backupPolicy.markDone();
       return true;

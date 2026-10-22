@@ -8,6 +8,8 @@ class EmptyTimeline extends StatelessWidget {
     this.onWrite,
     this.onSpeak,
     this.onPhotograph,
+    this.setAsideCount = 0,
+    this.onShowSetAside,
   });
 
   /// What each example row does when tapped: the first note, started from
@@ -16,10 +18,19 @@ class EmptyTimeline extends StatelessWidget {
   final VoidCallback? onWrite;
   final VoidCallback? onSpeak;
   final VoidCallback? onPhotograph;
+
+  /// How many notes are set aside. When there are some, an empty home screen is
+  /// not an empty library, and telling a person with forty notes to "write the
+  /// first one" would be wrong: it says everything is clear and offers a way
+  /// to the notes that are waiting instead.
+  final int setAsideCount;
+  final VoidCallback? onShowSetAside;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    if (setAsideCount > 0) return _clear(context, l10n, theme);
     // The clearance is reserved *outside* the Center, which is the whole
     // point. It used to be bottom padding on the scroll view, inside the
     // centred block — so it moved the content up by half of itself and left
@@ -80,6 +91,48 @@ class EmptyTimeline extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+extension on EmptyTimeline {
+  Widget _clear(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: nexFabClearance + nexBottomInset(context),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(NexSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.archive_outlined,
+                size: 48,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: NexSpacing.md),
+              Text(
+                l10n.setAsideAllClear,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.displaySmall,
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              Text(
+                l10n.setAsideCountLabel(setAsideCount),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: NexSpacing.md),
+              FilledButton.tonal(
+                onPressed: onShowSetAside,
+                child: Text(l10n.setAsideView),
+              ),
+            ],
           ),
         ),
       ),
