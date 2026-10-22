@@ -55,6 +55,28 @@ void main() {
       expect(stats.daysToGo, 0);
     });
 
+    test('knows the last 30 days and the streaks', () {
+      // Oct 3-5 and Oct 14-18 (today): a long run now, a shorter one before.
+      final stats = nexWritingStats([
+        for (final d in [3, 4, 5, 14, 15, 16, 17, 18])
+          note('d$d', at: DateTime.utc(2026, 10, d, 9)),
+        note('d18b', at: DateTime.utc(2026, 10, 18, 10)),
+        note('old', at: DateTime.utc(2026, 8, 1, 9)),
+      ], now: now);
+      expect(stats.recent, hasLength(30));
+      expect(stats.recent.last, 2);
+      expect(stats.recent[29 - 4], 1);
+      expect(stats.recent[29 - 8], 0);
+      expect(stats.streak, 5);
+      expect(stats.longestStreak, 5);
+      // Today still empty: yesterday's run counts.
+      final open = nexWritingStats([
+        note('a', at: DateTime.utc(2026, 10, 16, 9)),
+        note('b', at: DateTime.utc(2026, 10, 17, 9)),
+      ], now: now);
+      expect(open.streak, 2);
+    });
+
     test('a library written in one afternoon is not a portrait yet', () {
       final stats = nexWritingStats([
         for (var i = 0; i < 40; i++)

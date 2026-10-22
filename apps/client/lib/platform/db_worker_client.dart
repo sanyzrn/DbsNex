@@ -192,6 +192,27 @@ mixin _DbClient implements NexDb {
   @override
   Future<int> pinnedNoteCount() => _send<int>(_DbCommand.pinnedNoteCount);
 
+  @override
+  Future<bool> setAside(String id, {DateTime? until}) => _send<bool>(
+    _DbCommand.setAside,
+    {'id': id, 'until': until?.toUtc().toIso8601String()},
+  );
+
+  @override
+  Future<void> bringBack(String id) =>
+      _send<void>(_DbCommand.bringBack, {'id': id});
+
+  @override
+  Future<List<Note>> listSetAside() =>
+      _send<List<Note>>(_DbCommand.listSetAside);
+
+  @override
+  Future<int> setAsideCount() => _send<int>(_DbCommand.setAsideCount);
+
+  @override
+  Future<List<String>> releaseDueSetAside() =>
+      _send<List<String>>(_DbCommand.releaseDueSetAside);
+
   /* ----------------------------------------------------------------- tags */
 
   @override

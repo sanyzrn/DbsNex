@@ -540,7 +540,9 @@ extension _VaultItems on _VaultScreenState {
                     ),
                   ),
                   Text(
-                    entry.value(key),
+                    key == 'iban'
+                        ? _groupDigits(entry.value(key))
+                        : entry.value(key),
                     textDirection: _ltrFields.contains(key)
                         ? TextDirection.ltr
                         : null,

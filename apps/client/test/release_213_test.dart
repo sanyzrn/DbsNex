@@ -201,8 +201,8 @@ void main() {
     test(
       'a module that is not available cannot schedule reminders, and its installation choice stays',
       () async {
-        // Every shipped module is available now; an id that is not one (a
-        // module still Soon, or one from the future) must stay silent.
+        // An id that is not available (a module still Soon, or one from the
+        // future) must stay silent.
         await h.preferences.setModuleOn('future_module', true);
         final future = NexModuleStore(h.services, 'future_module');
         expect(
@@ -218,20 +218,9 @@ void main() {
         );
         expect(await future.list('__reminder'), isEmpty);
         expect(h.preferences.isModuleOn('future_module'), isTrue);
+        // Only Cycle is available since 2.2.0; the add-ons are Soon again.
         expect(nexModules.where((m) => m.available).map((m) => m.id).toSet(), {
           'cycle',
-          'habits',
-          'price_lens',
-          'lent_borrowed',
-          'smoke_free',
-          'occasions',
-          'expenses',
-          'gold',
-          'words',
-          'parking',
-          'medicine',
-          'warranty',
-          'maintenance',
         });
         expect(
           NexModuleAlarms.moduleId('a', 'b:c'),

@@ -110,6 +110,21 @@ abstract interface class NexDb {
 
   Future<int> pinnedNoteCount();
 
+  /// Puts a note to one side: off the home timeline, still searchable. A null
+  /// [until] means until it is brought back. False when the note is gone or
+  /// [until] is not in the future.
+  Future<bool> setAside(String id, {DateTime? until});
+
+  Future<void> bringBack(String id);
+
+  Future<List<Note>> listSetAside();
+
+  Future<int> setAsideCount();
+
+  /// Brings back every note whose return time has come; the ids returned are
+  /// the ones that came back.
+  Future<List<String>> releaseDueSetAside();
+
   Future<Tag> addTag({
     required String noteId,
     required String name,

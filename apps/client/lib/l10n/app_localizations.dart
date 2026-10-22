@@ -596,6 +596,30 @@ abstract class AppLocalizations {
   /// **'A reflection of your notes, not a test or a diagnosis.'**
   String get portraitDisclaimer;
 
+  /// No description provided for @portraitStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Day streak'**
+  String get portraitStreak;
+
+  /// No description provided for @portraitLast30.
+  ///
+  /// In en, this message translates to:
+  /// **'The last 30 days'**
+  String get portraitLast30;
+
+  /// No description provided for @portraitShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Your shape'**
+  String get portraitShape;
+
+  /// Profile portrait: the longest run of days in a row with a note.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Your longest run: 1 day} other{Your longest run: {count} days}}'**
+  String portraitBestStreak(int count);
+
   /// Disclosure log purpose for the profile portrait.
   ///
   /// In en, this message translates to:
@@ -7775,7 +7799,7 @@ abstract class AppLocalizations {
   /// No description provided for @vaultInvalidCard.
   ///
   /// In en, this message translates to:
-  /// **'Check the card number'**
+  /// **'A card number has 12 to 19 digits'**
   String get vaultInvalidCard;
 
   /// No description provided for @vaultInvalidIban.
@@ -9415,6 +9439,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The note was deleted or its link changed while the video was being watched, so nothing was kept.'**
   String get aiVideoFailedChanged;
+
+  /// No description provided for @setAside.
+  ///
+  /// In en, this message translates to:
+  /// **'Set aside'**
+  String get setAside;
+
+  /// No description provided for @setAsideSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set aside until…'**
+  String get setAsideSheetTitle;
+
+  /// No description provided for @setAsideSheetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'It leaves the home screen but stays in your library. You can still find it by searching.'**
+  String get setAsideSheetHint;
+
+  /// No description provided for @setAsideUntilBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Until I bring it back'**
+  String get setAsideUntilBack;
+
+  /// No description provided for @setAsideThisEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'This evening'**
+  String get setAsideThisEvening;
+
+  /// No description provided for @setAsideTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow morning'**
+  String get setAsideTomorrow;
+
+  /// No description provided for @setAsideNextWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Next week'**
+  String get setAsideNextWeek;
+
+  /// No description provided for @setAsidePickDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a date…'**
+  String get setAsidePickDate;
+
+  /// No description provided for @setAsideDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Set aside'**
+  String get setAsideDone;
+
+  /// No description provided for @setAsideDoneUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Set aside until {when}'**
+  String setAsideDoneUntil(String when);
+
+  /// No description provided for @setAsideGroupDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} notes set aside'**
+  String setAsideGroupDone(int count);
+
+  /// No description provided for @setAsideBackBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} notes are back from being set aside'**
+  String setAsideBackBanner(int count);
+
+  /// No description provided for @setAsideBringBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring back'**
+  String get setAsideBringBack;
+
+  /// No description provided for @setAsideSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Set aside'**
+  String get setAsideSection;
+
+  /// No description provided for @setAsideSectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Off the home screen, not gone'**
+  String get setAsideSectionHint;
+
+  /// No description provided for @setAsidePageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set aside'**
+  String get setAsidePageTitle;
+
+  /// No description provided for @setAsideEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing set aside'**
+  String get setAsideEmptyTitle;
+
+  /// No description provided for @setAsideEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold a note and choose Set aside to keep it out of the way for now.'**
+  String get setAsideEmptyBody;
+
+  /// No description provided for @setAsideBackOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Back {when}'**
+  String setAsideBackOn(String when);
+
+  /// No description provided for @setAsideUntilFurther.
+  ///
+  /// In en, this message translates to:
+  /// **'Until you bring it back'**
+  String get setAsideUntilFurther;
+
+  /// No description provided for @setAsideMark.
+  ///
+  /// In en, this message translates to:
+  /// **'Set aside'**
+  String get setAsideMark;
+
+  /// No description provided for @setAsideCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note set aside} other{{count} notes set aside}}'**
+  String setAsideCountLabel(int count);
+
+  /// No description provided for @setAsideAllClear.
+  ///
+  /// In en, this message translates to:
+  /// **'All clear'**
+  String get setAsideAllClear;
+
+  /// No description provided for @setAsideView.
+  ///
+  /// In en, this message translates to:
+  /// **'See what’s set aside'**
+  String get setAsideView;
+
+  /// No description provided for @vaultCardChecksum.
+  ///
+  /// In en, this message translates to:
+  /// **'The last digit doesn’t match the rest of the number. It may still be right — check it against the card.'**
+  String get vaultCardChecksum;
+
+  /// No description provided for @vaultBankGuess.
+  ///
+  /// In en, this message translates to:
+  /// **'Looks like {bank}'**
+  String vaultBankGuess(String bank);
 }
 
 class _AppLocalizationsDelegate

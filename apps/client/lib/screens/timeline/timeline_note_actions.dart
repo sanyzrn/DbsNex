@@ -305,6 +305,10 @@ extension _TimelineNoteActions on TimelineScreenState {
           showThreadPicker(context, services: widget.services, noteId: note.id),
         ),
       ),
+      NexHoldAction.setAside => NoteMenuEntry(
+        action,
+        () => unawaited(_setAside([note])),
+      ),
       NexHoldAction.caption || NexHoldAction.details => NoteMenuEntry(
         action,
         () => unawaited(_openNote(note, run: action)),
@@ -319,6 +323,55 @@ extension _TimelineNoteActions on TimelineScreenState {
       for (final action in prefs.holdMenuActions)
         if (entry(action) case final value?) value,
     ];
+  }
+
+  /// Puts [notes] to one side — off the home screen, still in the library.
+  Future<void> _setAside(List<Note> notes) => nexSetAsideNotes(
+    context: context,
+    services: widget.services,
+    notes: notes,
+    haptics: widget.preferences.haptics,
+  );
+
+  /// Brings back the notes whose set-aside time has come, and says so.
+  ///
+  /// The timeline already stops hiding them the moment their time passes, so
+  /// this is not what makes them appear — it is what tells the person they
+  /// did, once, instead of leaving a note to turn up unannounced somewhere in
+  /// the list.
+  Future<void> _releaseSetAside() async {
+    final back = await widget.services.releaseDueSetAside();
+    if (back.isEmpty || !mounted) return;
+    await widget.services.refreshTimeline();
+    if (!mounted) return;
+    nexShowBanner(
+      context,
+      message: AppLocalizations.of(context).setAsideBackBanner(back.length),
+      haptics: widget.preferences.haptics,
+    );
+  }
+
+  Future<void> _countSetAside() async {
+    final count = await widget.services.setAsideCount();
+    if (mounted && count != _setAsideTotal) {
+      _rebuild(() => _setAsideTotal = count);
+    }
+  }
+
+  /// The Set aside page, reached from an empty home screen. Whatever was
+  /// brought back there is on the timeline when this returns.
+  Future<void> _openSetAside() async {
+    await Navigator.push(
+      context,
+      NexPageRoute<void>(
+        builder: (_) => SetAsideScreen(
+          services: widget.services,
+          preferences: widget.preferences,
+        ),
+      ),
+    );
+    await widget.services.refreshTimeline();
+    if (mounted) await _countSetAside();
   }
 
   Future<void> _runSwipe(NexSwipeAction action, Note note) async {

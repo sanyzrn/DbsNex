@@ -244,42 +244,46 @@ List<Widget> searchResultSlivers({
           strings: nexCardStrings(context),
           onTap: () => onOpen(note),
         );
+        // Small notes above a card that say why it is here when the query
+        // alone would not: it matched by meaning (W2.2), or it is a note put
+        // to one side — the home screen does not show it, so search is the one
+        // place that has to say it is still there.
+        Widget marker(IconData icon, String text) => Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(
+            NexSpacing.lg,
+            NexSpacing.xs,
+            NexSpacing.lg,
+            0,
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 14, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: NexSpacing.xs),
+              Text(
+                text,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        );
+        final markers = <Widget>[
+          if (search.meaningOnly.contains(note.id))
+            marker(Icons.auto_awesome, l10n.searchByMeaning),
+          if (note.isSetAside())
+            marker(Icons.archive_outlined, l10n.setAsideMark),
+        ];
         final result = TapRegion(
           groupId: nexSearchTapGroup,
           // Ranked in with the rest (W2.2), and marked: a note that shares
           // no word with the query needs a reason to be in the list.
-          child: search.meaningOnly.contains(note.id)
-              ? Column(
+          child: markers.isEmpty
+              ? card
+              : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsetsDirectional.fromSTEB(
-                        NexSpacing.lg,
-                        NexSpacing.xs,
-                        NexSpacing.lg,
-                        0,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.auto_awesome,
-                            size: 14,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: NexSpacing.xs),
-                          Text(
-                            l10n.searchByMeaning,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    card,
-                  ],
-                )
-              : card,
+                  children: [...markers, card],
+                ),
         );
         return _Arrive(key: ValueKey(note.id), index: index, child: result);
       },

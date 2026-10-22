@@ -23,98 +23,147 @@ class _Written extends StatelessWidget {
       key: const ValueKey('profile-portrait-written'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        NexTextSurface(
-          portrait.headline,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            color: scheme.primary,
-            fontWeight: FontWeight.w700,
+        _Staged(
+          slot: 5,
+          child: _Sheen(
+            child: NexTextSurface(
+              portrait.headline,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: scheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: NexSpacing.sm),
-        NexTextSurface(
-          portrait.portrait,
-          selectable: true,
-          style: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
+        _Staged(
+          slot: 6,
+          child: NexTextSurface(
+            portrait.portrait,
+            selectable: true,
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
+          ),
         ),
         const SizedBox(height: NexSpacing.lg),
-        for (final trait in portrait.traits) ...[
-          _Trait(trait: trait, persian: persian),
+        if (portrait.traits.length >= 3) ...[
+          _Staged(
+            slot: 7,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.portraitShape,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: NexSpacing.xs),
+                _TraitRadar(traits: portrait.traits, slot: 7),
+              ],
+            ),
+          ),
           const SizedBox(height: NexSpacing.md),
         ],
-        if (portrait.strengths.isNotEmpty) ...[
-          Text(
-            l10n.portraitStrengths,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: scheme.onSurfaceVariant,
+        for (var i = 0; i < portrait.traits.length; i++) ...[
+          _Staged(
+            slot: 8 + i.clamp(0, 4),
+            child: _Trait(
+              trait: portrait.traits[i],
+              persian: persian,
+              slot: 8 + i.clamp(0, 4),
             ),
           ),
-          const SizedBox(height: NexSpacing.sm),
-          Wrap(
-            spacing: NexSpacing.sm,
-            runSpacing: NexSpacing.sm,
-            children: [
-              for (final strength in portrait.strengths)
-                Container(
-                  padding: const EdgeInsetsDirectional.fromSTEB(
-                    NexSpacing.sm,
-                    NexSpacing.xs + 2,
-                    NexSpacing.md,
-                    NexSpacing.xs + 2,
+          const SizedBox(height: NexSpacing.md),
+        ],
+        if (portrait.strengths.isNotEmpty)
+          _Staged(
+            slot: 13,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.portraitStrengths,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
-                  decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(NexRadius.xl),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_rounded,
-                        size: 16,
-                        color: scheme.primary,
-                      ),
-                      const SizedBox(width: NexSpacing.xs),
-                      Flexible(
-                        child: NexTextSurface.line(
-                          strength,
-                          style: theme.textTheme.labelMedium,
+                ),
+                const SizedBox(height: NexSpacing.sm),
+                Wrap(
+                  spacing: NexSpacing.sm,
+                  runSpacing: NexSpacing.sm,
+                  children: [
+                    for (final strength in portrait.strengths)
+                      Container(
+                        padding: const EdgeInsetsDirectional.fromSTEB(
+                          NexSpacing.sm,
+                          NexSpacing.xs + 2,
+                          NexSpacing.md,
+                          NexSpacing.xs + 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(NexRadius.xl),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: scheme.primary,
+                            ),
+                            const SizedBox(width: NexSpacing.xs),
+                            Flexible(
+                              child: NexTextSurface.line(
+                                strength,
+                                style: theme.textTheme.labelMedium,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
-            ],
-          ),
-        ],
-        if (portrait.invitation.isNotEmpty) ...[
-          const SizedBox(height: NexSpacing.lg),
-          Container(
-            padding: const EdgeInsets.all(NexSpacing.md),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerLowest.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(NexRadius.lg),
+              ],
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+        if (portrait.invitation.isNotEmpty)
+          _Staged(
+            slot: 14,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.lightbulb_outline_rounded,
-                  size: 20,
-                  color: scheme.primary,
-                ),
-                const SizedBox(width: NexSpacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                const SizedBox(height: NexSpacing.lg),
+                Container(
+                  padding: const EdgeInsets.all(NexSpacing.md),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLowest.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(NexRadius.lg),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        l10n.portraitInvitation,
-                        style: theme.textTheme.labelLarge,
+                      Icon(
+                        Icons.lightbulb_outline_rounded,
+                        size: 20,
+                        color: scheme.primary,
                       ),
-                      const SizedBox(height: NexSpacing.xs),
-                      NexTextSurface(
-                        portrait.invitation,
-                        style: theme.textTheme.bodyMedium,
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              l10n.portraitInvitation,
+                              style: theme.textTheme.labelLarge,
+                            ),
+                            const SizedBox(height: NexSpacing.xs),
+                            NexTextSurface(
+                              portrait.invitation,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -122,7 +171,6 @@ class _Written extends StatelessWidget {
               ],
             ),
           ),
-        ],
         const SizedBox(height: NexSpacing.md),
         Row(
           children: [
@@ -157,10 +205,15 @@ class _Written extends StatelessWidget {
 }
 
 class _Trait extends StatelessWidget {
-  const _Trait({required this.trait, required this.persian});
+  const _Trait({
+    required this.trait,
+    required this.persian,
+    required this.slot,
+  });
 
   final NexPortraitTrait trait;
   final bool persian;
+  final int slot;
 
   @override
   Widget build(BuildContext context) {
@@ -180,8 +233,10 @@ class _Trait extends StatelessWidget {
                   style: theme.textTheme.labelLarge,
                 ),
               ),
-              Text(
-                nexDigits('${trait.score}', persian: persian),
+              _CountUp(
+                value: trait.score,
+                slot: slot,
+                persian: persian,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: scheme.primary,
                 ),
@@ -191,12 +246,13 @@ class _Trait extends StatelessWidget {
           const SizedBox(height: NexSpacing.xs),
           ClipRRect(
             borderRadius: BorderRadius.circular(NexRadius.sm),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: trait.score / 100),
-              duration: NexMotion.of(context, NexMotion.slow),
-              curve: NexMotion.curve,
-              builder: (context, value, _) => LinearProgressIndicator(
-                value: value,
+            child: AnimatedBuilder(
+              animation: _Entrance.of(context),
+              builder: (context, _) => LinearProgressIndicator(
+                value:
+                    trait.score /
+                    100 *
+                    _slice(_Entrance.of(context).value, slot, span: 0.45),
                 minHeight: 6,
                 backgroundColor: scheme.primary.withValues(alpha: 0.12),
               ),
@@ -213,6 +269,47 @@ class _Trait extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// One soft band of light that crosses the headline once as it arrives.
+class _Sheen extends StatelessWidget {
+  const _Sheen({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final entrance = _Entrance.of(context);
+    final glint = Theme.of(context).colorScheme.onPrimary;
+    return AnimatedBuilder(
+      animation: entrance,
+      child: child,
+      builder: (context, child) {
+        final t = _slice(entrance.value, 5, span: 0.5);
+        // Off the edge before it starts and after it ends, so a settled card
+        // carries no shader at all.
+        if (t <= 0 || t >= 1) return child!;
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (rect) => LinearGradient(
+            begin: AlignmentDirectional.centerStart,
+            end: AlignmentDirectional.centerEnd,
+            colors: [
+              glint.withValues(alpha: 0),
+              glint.withValues(alpha: 0.55),
+              glint.withValues(alpha: 0),
+            ],
+            stops: [
+              (t * 1.6 - 0.6).clamp(0.0, 1.0),
+              (t * 1.6 - 0.3).clamp(0.0, 1.0),
+              (t * 1.6).clamp(0.0, 1.0),
+            ],
+          ).createShader(rect, textDirection: Directionality.of(context)),
+          child: child,
+        );
+      },
     );
   }
 }

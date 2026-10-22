@@ -261,12 +261,26 @@ String vaultLatinDigits(String text) =>
     });
 String vaultCardDigits(String text) =>
     vaultLatinDigits(text).replaceAll(RegExp(r'[\s-]'), '');
+
+/// Whether [raw] has the shape of a card number: twelve to nineteen digits (some
+/// Maestro cards have twelve),
+/// not all the same one. This is what stops a save.
+bool validVaultCardShape(String raw) {
+  final value = vaultCardDigits(raw);
+  return RegExp(r'^\d{12,19}$').hasMatch(value) &&
+      !RegExp(r'^(\d)\1+$').hasMatch(value);
+}
+
+/// Whether [raw] also passes the Luhn check digit.
+///
+/// Only ever a warning. Most cards pass it, but a number copied from a card
+/// that is perfectly good can still fail it — a bank's own range, a typo in
+/// the one place the person cannot see — and refusing to keep a number the
+/// owner is looking at on the card in their hand is worse than saying the
+/// check digit looks off.
 bool validVaultCard(String raw) {
   final value = vaultCardDigits(raw);
-  if (!RegExp(r'^\d{13,19}$').hasMatch(value) ||
-      RegExp(r'^(\d)\1+$').hasMatch(value)) {
-    return false;
-  }
+  if (!validVaultCardShape(value)) return false;
   var sum = 0;
   for (var i = value.length - 1; i >= 0; i--) {
     var n = int.parse(value[i]);
@@ -277,6 +291,65 @@ bool validVaultCard(String raw) {
     sum += n;
   }
   return sum % 10 == 0;
+}
+
+/// Whether [raw] reads as an expiry date: a month and a year, in either order,
+/// the year of two or four digits. Persian cards print the Solar Hijri year and
+/// month — «۱۴۰۵/۰۸», «۰۸/۰۵» — and a field that only accepted month-first
+/// refused what the person was reading off their own card. Blank is fine; it is
+/// optional.
+bool validVaultExpiry(String raw) {
+  final value = vaultLatinDigits(raw).trim();
+  if (value.isEmpty) return true;
+  bool month(String text) {
+    final n = int.tryParse(text);
+    return n != null && n >= 1 && n <= 12;
+  }
+
+  final monthFirst = RegExp(
+    r'^(\d{1,2})\s*/\s*(\d{2}|\d{4})$',
+  ).firstMatch(value);
+  if (monthFirst != null && month(monthFirst[1]!)) return true;
+  final yearFirst = RegExp(r'^(\d{2}|\d{4})\s*/\s*(\d{2})$').firstMatch(value);
+  return yearFirst != null && month(yearFirst[2]!);
+}
+
+/// The part of [entry] that means something, spelled the way it is saved:
+/// empty fields dropped, a card's digits in Latin form and its number and IBAN
+/// without spaces. Two entries with the same meaning compare equal.
+Map<String, String> vaultMeaning(VaultEntry entry) {
+  final meaning = <String, String>{};
+  for (final field in entry.fields.entries) {
+    var value = field.key == 'password' ? field.value : field.value.trim();
+    if (entry.kind == VaultKind.card) {
+      value = switch (field.key) {
+        'number' => vaultCardDigits(value),
+        'iban' => vaultLatinDigits(
+          value,
+        ).replaceAll(RegExp(r'\s'), '').toUpperCase(),
+        'account' || 'expiry' || 'cvv2' => vaultLatinDigits(value),
+        _ => value,
+      };
+    }
+    if (value.isNotEmpty) meaning[field.key] = value;
+  }
+  return meaning;
+}
+
+/// Whether [entry] holds anything beyond [original] — the entry as saved, or
+/// null for one that was never saved, in which case anything at all counts.
+///
+/// What decides whether an edit is worth keeping as an unfinished draft: opening
+/// a card and leaving it, or opening "new" and typing nothing, changes nothing
+/// and must leave nothing behind to resume.
+bool vaultEntryDiffers(VaultEntry entry, VaultEntry? original) {
+  final now = vaultMeaning(entry);
+  if (original == null) return now.isNotEmpty || entry.favorite;
+  final before = vaultMeaning(original);
+  if (entry.favorite != original.favorite || now.length != before.length) {
+    return true;
+  }
+  return now.entries.any((e) => before[e.key] != e.value);
 }
 
 bool validVaultIban(String raw) {

@@ -73,7 +73,8 @@ void main() {
     final l10n = await show(tester);
     expect(find.byKey(const ValueKey('profile-portrait-counted')), findsOne);
     expect(find.text(l10n.portraitRhythm), findsOneWidget);
-    expect(find.text('30'), findsOneWidget);
+    // The figure and the ring's centre both say how many notes.
+    expect(find.text('30'), findsNWidgets(2));
     expect(find.text(l10n.portraitNeedsAi), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-portrait-write')), findsNothing);
   });
@@ -88,7 +89,7 @@ void main() {
     );
     final l10n = await show(tester, lang: 'fa');
     expect(find.text(l10n.portraitPrivacy('۸۰')), findsOneWidget);
-    expect(find.text('۳۰'), findsOneWidget);
+    expect(find.text('۳۰'), findsNWidgets(2));
     // flutter_test answers every request with a 400.
     await tester.tap(find.byKey(const ValueKey('profile-portrait-write')));
     await tester.pumpAndSettle();
@@ -123,10 +124,127 @@ void main() {
     expect(find.text('Follows through'), findsOneWidget);
     expect(find.text('Try a weekly look back.'), findsOneWidget);
     expect(find.text(l10n.portraitDisclaimer), findsOneWidget);
-    // No provider: nothing to rewrite with.
-    expect(
-      find.byKey(const ValueKey('profile-portrait-rewrite')),
-      findsNothing,
+    // Even with no provider the button is there, and says what it needs.
+    await tester.tap(find.byKey(const ValueKey('profile-portrait-rewrite')));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.portraitNeedsAi), findsOneWidget);
+    expect(h.preferences.profilePortrait, isNotNull);
+  });
+
+  testWidgets('the card assembles itself: numbers count up to their value', (
+    tester,
+  ) async {
+    await seed(30);
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ProfilePortrait(
+              services: h.services,
+              preferences: h.preferences,
+            ),
+          ),
+        ),
+      ),
     );
+    // Loaded, arriving: the count has not got to 30 yet.
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('30'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('30'), findsNWidgets(2));
+  });
+
+  testWidgets('a card below the fold waits until it is scrolled to', (
+    tester,
+  ) async {
+    await seed(30);
+    tester.view.physicalSize = const Size(390, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final scroll = ScrollController();
+    addTearDown(scroll.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            controller: scroll,
+            child: Column(
+              children: [
+                const SizedBox(height: 1400),
+                ProfilePortrait(
+                  services: h.services,
+                  preferences: h.preferences,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Not on screen: not played, so nothing has counted yet.
+    expect(find.text('30'), findsNothing);
+    scroll.jumpTo(scroll.position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    expect(find.text('30'), findsNWidgets(2));
+  });
+
+  testWidgets('five traits and every figure fit a narrow Persian screen', (
+    tester,
+  ) async {
+    await seed(30);
+    await h.preferences.setProfilePortrait(
+      NexPortrait(
+        headline: 'یک برنامه‌ریز آرام',
+        portrait: 'پیش از آنکه چیزی از دست برود، آن را می‌نویسید.',
+        traits: const [
+          NexPortraitTrait(name: 'منظم', score: 82, line: 'فهرست‌ها.'),
+          NexPortraitTrait(
+            name: 'کنجکاو و پرسشگر',
+            score: 64,
+            line: 'پیوندها.',
+          ),
+          NexPortraitTrait(name: 'پیوسته', score: 71, line: 'هر روز.'),
+          NexPortraitTrait(name: 'خلاق', score: 40, line: 'ایده‌ها.'),
+          NexPortraitTrait(name: 'دقیق', score: 95, line: 'جزئیات.'),
+        ],
+        strengths: const ['پیگیری'],
+        invitation: 'یک مرور هفتگی امتحان کنید.',
+        writtenAt: DateTime.utc(2026, 10, 1),
+        basedOn: 30,
+      ),
+    );
+    tester.view.physicalSize = const Size(320, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        locale: const Locale('fa'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ProfilePortrait(
+              services: h.services,
+              preferences: h.preferences,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('کنجکاو و پرسشگر'), findsWidgets);
   });
 }

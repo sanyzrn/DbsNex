@@ -206,6 +206,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS $name USING fts5(
     // exported (see Note.pinnedAt / Note.sortOrder).
     _addColumnIfMissing('notes', 'pinned_at', 'TEXT');
     _addColumnIfMissing('notes', 'sort_order', 'INTEGER');
+    // Put to one side, off the home timeline: when, and until when (null =
+    // until brought back). Local only, like pinned_at.
+    _addColumnIfMissing('notes', 'set_aside_at', 'TEXT');
+    _addColumnIfMissing('notes', 'set_aside_until', 'TEXT');
 
     // An optional headline, on any note. Deliberately not asked for at
     // capture — see `Note.title`.
@@ -626,6 +630,8 @@ CREATE TABLE notes_rebuilt (
   due_at TEXT,
   due_repeat TEXT,
   pinned_at TEXT,
+  set_aside_at TEXT,
+  set_aside_until TEXT,
   sort_order INTEGER,
   title TEXT,
   link_excerpt TEXT

@@ -189,6 +189,19 @@ class _Worker {
         () => repo.unpinNote(arg('id')! as String),
       ),
       _DbCommand.pinnedNoteCount => repo.pinnedNoteCount(),
+      _DbCommand.setAside => repo.setAside(
+        arg('id')! as String,
+        until: switch (arg('until')) {
+          final String iso => DateTime.parse(iso),
+          _ => null,
+        },
+      ),
+      _DbCommand.bringBack => NexDbWorker._voided(
+        () => repo.bringBack(arg('id')! as String),
+      ),
+      _DbCommand.listSetAside => repo.listSetAside(),
+      _DbCommand.setAsideCount => repo.setAsideCount(),
+      _DbCommand.releaseDueSetAside => repo.releaseDueSetAside(),
       _DbCommand.addTag => tags.addTag(
         noteId: arg('noteId')! as String,
         name: arg('name')! as String,

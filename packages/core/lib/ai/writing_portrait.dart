@@ -47,6 +47,9 @@ class NexWritingStats {
     required this.tags,
     required this.checklistItems,
     required this.checklistDone,
+    this.recent = const [],
+    this.streak = 0,
+    this.longestStreak = 0,
   });
 
   /// Below either of these there is not enough to read a person from: a
@@ -75,6 +78,16 @@ class NexWritingStats {
 
   final int checklistItems;
   final int checklistDone;
+
+  /// Notes written on each of the last 30 days, oldest first; today is last.
+  final List<int> recent;
+
+  /// Days in a row up to today (or up to yesterday, while today is still
+  /// open) with a note on them.
+  final int streak;
+
+  /// The longest run of days in a row with a note, ever.
+  final int longestStreak;
 
   bool get unlocked => notes >= minNotes && days >= minDays;
 
@@ -107,6 +120,7 @@ NexWritingStats nexWritingStats(List<Note> notes, {DateTime? now}) {
   final today = DateTime.utc(local.year, local.month, local.day);
   final days = <DateTime>{};
   final recent = <DateTime>{};
+  final perDay = List<int>.filled(30, 0);
   final parts = List<int>.filled(NexDayPart.values.length, 0);
   final types = <NoteType, int>{};
   final tags = <String, int>{};
@@ -119,7 +133,9 @@ NexWritingStats nexWritingStats(List<Note> notes, {DateTime? now}) {
     final written = zoned(note.createdAt);
     final day = DateTime.utc(written.year, written.month, written.day);
     days.add(day);
-    if (today.difference(day).inDays < 30) recent.add(day);
+    final ago = today.difference(day).inDays;
+    if (ago >= 0 && ago < 30) perDay[29 - ago]++;
+    if (ago < 30) recent.add(day);
     parts[NexDayPart.of(written).index]++;
     types[note.type] = (types[note.type] ?? 0) + 1;
     for (final tag in note.tags) {
@@ -137,7 +153,28 @@ NexWritingStats nexWritingStats(List<Note> notes, {DateTime? now}) {
     return [for (final e in entries.take(take)) (e.key, e.value)];
   }
 
+  var run = 0;
+  var longest = 0;
+  final ordered = days.toList()..sort();
+  DateTime? before;
+  for (final day in ordered) {
+    run = before != null && day.difference(before).inDays == 1 ? run + 1 : 1;
+    if (run > longest) longest = run;
+    before = day;
+  }
+  var streak = 0;
+  var cursor = days.contains(today)
+      ? today
+      : today.subtract(const Duration(days: 1));
+  while (days.contains(cursor)) {
+    streak++;
+    cursor = cursor.subtract(const Duration(days: 1));
+  }
+
   return NexWritingStats(
+    recent: perDay,
+    streak: streak,
+    longestStreak: longest,
     notes: count,
     days: days.length,
     activeLast30: recent.length,

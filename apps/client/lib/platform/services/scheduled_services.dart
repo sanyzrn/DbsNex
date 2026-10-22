@@ -128,4 +128,19 @@ extension NexScheduledServices on NexServices {
   Future<void> unpinNote(String id) => worker.unpinNote(id);
 
   Future<int> pinnedNoteCount() => worker.pinnedNoteCount();
+
+  /// Puts [id] to one side: off the home timeline, still searchable, still
+  /// carrying its reminder. A null [until] keeps it there until it is
+  /// brought back. The timeline is refreshed by the caller's own reload, like
+  /// pinning — see `refreshTimeline`.
+  Future<bool> setAside(String id, {DateTime? until}) =>
+      worker.setAside(id, until: until);
+
+  Future<void> bringBack(String id) => worker.bringBack(id);
+
+  Future<List<Note>> listSetAside() => worker.listSetAside();
+
+  Future<int> setAsideCount() => worker.setAsideCount();
+
+  Future<List<String>> releaseDueSetAside() => worker.releaseDueSetAside();
 }

@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// The hold menu's contents are the user's to choose.
 void main() {
-  test('by default: pin, copy, edit, remind and delete', () async {
+  test('by default: pin, set aside, copy, edit, remind and delete', () async {
     // Open and Add tag left the default: the card opens with a tap and tags
     // with a swipe, so both were a longer way to something already one
     // gesture away.
@@ -13,6 +13,7 @@ void main() {
     final preferences = await NexPreferences.load();
     expect(preferences.holdMenuActions, [
       NexHoldAction.pin,
+      NexHoldAction.setAside,
       NexHoldAction.copy,
       NexHoldAction.edit,
       NexHoldAction.remind,

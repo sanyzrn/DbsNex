@@ -357,6 +357,29 @@ class AppLocalizationsFa extends AppLocalizations {
       'بازتابی از یادداشت‌هایتان، نه آزمون یا تشخیص.';
 
   @override
+  String get portraitStreak => 'روز پیاپی';
+
+  @override
+  String get portraitLast30 => '۳۰ روز اخیر';
+
+  @override
+  String get portraitShape => 'نیم‌رخ شما';
+
+  @override
+  String portraitBestStreak(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'بلندترین رشته: $countString روز',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get disclosurePortrait => 'پرترهٔ نوشتن';
 
   @override
@@ -4841,7 +4864,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get vaultRequired => 'این فیلد ضروری است';
 
   @override
-  String get vaultInvalidCard => 'شمارهٔ کارت را بررسی کنید';
+  String get vaultInvalidCard => 'شمارهٔ کارت باید ۱۲ تا ۱۹ رقم باشد';
 
   @override
   String get vaultInvalidIban => 'شمارهٔ شبا را بررسی کنید';
@@ -5846,4 +5869,114 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get aiVideoFailedChanged =>
       'یادداشت هنگام دیدن ویدئو حذف شد یا لینکش عوض شد و چیزی نگه داشته نشد.';
+
+  @override
+  String get setAside => 'کنار بگذار';
+
+  @override
+  String get setAsideSheetTitle => 'تا کِی کنار بگذارم؟';
+
+  @override
+  String get setAsideSheetHint =>
+      'از صفحه‌ی اصلی می‌رود ولی در کتابخانه می‌ماند. با جستجو همچنان پیدایش می‌کنی.';
+
+  @override
+  String get setAsideUntilBack => 'تا خودم برش گردانم';
+
+  @override
+  String get setAsideThisEvening => 'امروز عصر';
+
+  @override
+  String get setAsideTomorrow => 'فردا صبح';
+
+  @override
+  String get setAsideNextWeek => 'هفته‌ی بعد';
+
+  @override
+  String get setAsidePickDate => 'انتخاب تاریخ…';
+
+  @override
+  String get setAsideDone => 'کنار گذاشته شد';
+
+  @override
+  String setAsideDoneUntil(String when) {
+    return 'تا $when کنار گذاشته شد';
+  }
+
+  @override
+  String setAsideGroupDone(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString یادداشت کنار گذاشته شد';
+  }
+
+  @override
+  String setAsideBackBanner(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString یادداشت از کنار گذاشتن برگشتند';
+  }
+
+  @override
+  String get setAsideBringBack => 'برگردان';
+
+  @override
+  String get setAsideSection => 'کنار گذاشته‌ها';
+
+  @override
+  String get setAsideSectionHint => 'از صفحه‌ی اصلی کنار رفته‌اند، نه حذف';
+
+  @override
+  String get setAsidePageTitle => 'کنار گذاشته‌ها';
+
+  @override
+  String get setAsideEmptyTitle => 'چیزی کنار گذاشته نشده';
+
+  @override
+  String get setAsideEmptyBody =>
+      'یادداشتی را نگه دار و «کنار بگذار» را بزن تا فعلاً از سر راه برود.';
+
+  @override
+  String setAsideBackOn(String when) {
+    return 'برمی‌گردد $when';
+  }
+
+  @override
+  String get setAsideUntilFurther => 'تا خودت برش گردانی';
+
+  @override
+  String get setAsideMark => 'کنار گذاشته';
+
+  @override
+  String setAsideCountLabel(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString یادداشت کنار گذاشته',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get setAsideAllClear => 'همه‌چیز مرتب است';
+
+  @override
+  String get setAsideView => 'دیدن کنار گذاشته‌ها';
+
+  @override
+  String get vaultCardChecksum =>
+      'رقم آخر با بقیهٔ شماره نمی‌خواند. شاید باز هم درست باشد — با خود کارت مقایسه کنید.';
+
+  @override
+  String vaultBankGuess(String bank) {
+    return 'شبیه $bank است';
+  }
 }

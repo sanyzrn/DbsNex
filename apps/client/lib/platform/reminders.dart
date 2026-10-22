@@ -132,6 +132,11 @@ class NexReminders {
   /// re-answering the same one.
   String? _launchNoteId;
 
+  /// Stands in for the plugin's launch details in a test: the note a cold tap
+  /// would have named.
+  @visibleForTesting
+  void debugLaunchNote(String noteId) => _launchNoteId = noteId;
+
   String? takeLaunchNoteId() {
     final id = _launchNoteId;
     _launchNoteId = null;

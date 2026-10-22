@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v2.2.0
+
+- **Set aside.** Hold a note and choose **Set aside** to take it off the home screen without deleting it. Pick when it comes back — this evening, tomorrow morning, next week, a date — or leave it until you bring it back yourself. Set-aside notes wait in **Library → Set aside**, where one tap brings a note home; search still finds them, marked, and their reminders still ring. It is also in a note's details and in the bar for several selected notes. A banner offers **Undo**, and when a chosen date arrives the note returns by itself and says so. With everything set aside, the home screen says **All clear** instead of asking for a first note.
+- **Bank cards, reworked.** The "Continue unfinished edit" notice no longer appears when you opened a card and changed nothing, or opened a new one and typed nothing — it appears only after a real change, and goes away if you undo it. A card number is kept if it has 12–19 digits, from any bank in any country: a last digit that does not match only shows a note under the field, so a number like 6104 3378 3546 8074 can be saved. Under the number Nex names the card network when it can (Visa, Mastercard, American Express, Discover, UnionPay, JCB, Diners Club, Maestro, Mir, Troy, RuPay). Numbers are grouped as on the card as you type, Persian digits are converted, Iranian banks are recognised from the first digits and fill the **Bank** field when it is empty, the IBAN is shown in groups, and an expiry may be month/year or year/month.
+- **A tapped reminder, when Nex was closed.** The scroll to the note and the blink around it now wait until the app has settled — and until you have unlocked it, if the app lock is on — so you see them instead of missing them behind the opening.
+- **Your writing portrait, more alive.** The card now assembles itself when you scroll to it: the numbers count up, the busiest part of your day grows, the last 30 days rise as bars (today on the end), what you keep fills a ring, and a written portrait's traits draw a shape you can read at a glance. It also shows your current streak of days with a note and your longest run. **Write again** is always there once the portrait is unlocked; without an AI provider it tells you where to choose one, instead of being missing.
+- **Modules, paused for now.** Habits, Price Lens, Lent & Borrowed, Quit Habits, Birthdays & occasions, Expenses, Gold, Words, Parking, Medicine, Warranty and Maintenance are marked **Soon** again while they are finished properly. Only Cycle stays available. Nothing you saved in them is touched, and they come back when they are ready.
+
 ## v2.1.15
 
 - **One menu everywhere.** The ⋮ menus on threads, tags, the modules and the rest now look and size like the menu you get by holding a card — rounded, an icon on every line, delete in red — and so do the dropdown lists in forms.

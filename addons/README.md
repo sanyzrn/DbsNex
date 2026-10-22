@@ -28,6 +28,14 @@ are migrated on open. Re-enable each remaining module individually after a
 device check (TalkBack, notification permission, large text) — add its id to
 `nexAvailableModuleIds` in `apps/client/lib/modules/module_rollout.dart`.
 
+### Paused in 2.2.0: all twelve add-ons back to Soon
+
+After testing on a real device, every add-on except Cycle was set back to
+**Soon** (`nexAvailableModuleIds` is now `{'cycle'}`). Nothing was removed: the
+source, tests, data layer, installation choices and saved records are all
+kept, and a paused module shows on the Modules page as Soon with no install,
+open or reminders. To bring one back, finish it and add its id to the set.
+
 ### Finished and enabled in 2.1.11: Habits, Price Lens, Lent & Borrowed
 
 Looked at in screenshots (Persian dark, English light, sheets and detail

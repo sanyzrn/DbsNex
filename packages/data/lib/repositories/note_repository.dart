@@ -390,6 +390,106 @@ WHERE id = ? AND deleted_at IS NULL
               .first['count']
           as int;
 
+  /// The SQL term that keeps a note off the home timeline while it is set
+  /// aside, with one `?` for "now". A note whose return time has passed counts
+  /// as back whether or not [releaseDueSetAside] has cleared its columns yet.
+  static const _notSetAside =
+      '(set_aside_at IS NULL OR '
+      '(set_aside_until IS NOT NULL AND set_aside_until <= ?))';
+
+  /// Puts [noteId] to one side: off the home timeline, still searchable, still
+  /// carrying its reminder and its place in every backup. Returns false when
+  /// there is no such live note, or when [until] is not in the future.
+  ///
+  /// Touches only the two `set_aside_*` columns (and drops a pin): this is
+  /// where *this device* shows a note, not a change worth syncing — the same
+  /// reasoning as [pinNote]. A pinned note gives up its pin, so a hidden note
+  /// never holds one of the five slots on a home screen it is not on.
+  bool setAside(String noteId, {DateTime? until}) {
+    final now = DateTime.now().toUtc();
+    if (until != null && !until.toUtc().isAfter(now)) return false;
+    db.beginImmediate();
+    try {
+      final existing = db.select(
+        'SELECT id FROM notes WHERE id = ? AND deleted_at IS NULL',
+        [noteId],
+      );
+      if (existing.isEmpty) {
+        db.execute('ROLLBACK');
+        return false;
+      }
+      db.execute(
+        'UPDATE notes SET set_aside_at = ?, set_aside_until = ?, '
+        'pinned_at = NULL WHERE id = ?',
+        [now.toIso8601String(), until?.toUtc().toIso8601String(), noteId],
+      );
+      db.execute('COMMIT');
+      return true;
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
+  /// Brings [noteId] back onto the home timeline, or does nothing if it was
+  /// not set aside.
+  void bringBack(String noteId) => db.execute(
+    'UPDATE notes SET set_aside_at = NULL, set_aside_until = NULL '
+    'WHERE id = ?',
+    [noteId],
+  );
+
+  /// Every note currently set aside, the ones due back first, then the ones
+  /// that have waited longest — the order a person looking for something to
+  /// bring back would want. Notes with no return time come after those that
+  /// have one.
+  List<Note> listSetAside({int limit = 500}) {
+    final rows = db.select(
+      '''
+SELECT n.* FROM notes n
+WHERE n.deleted_at IS NULL
+  AND n.set_aside_at IS NOT NULL
+  AND (n.set_aside_until IS NULL OR n.set_aside_until > ?)
+ORDER BY (n.set_aside_until IS NULL), n.set_aside_until, n.set_aside_at DESC,
+  n.rowid DESC
+LIMIT ?
+''',
+      [DateTime.now().toUtc().toIso8601String(), limit],
+    );
+    return _withTags(rows);
+  }
+
+  int setAsideCount() =>
+      db.select(
+            'SELECT COUNT(*) AS count FROM notes '
+            'WHERE deleted_at IS NULL AND set_aside_at IS NOT NULL '
+            'AND (set_aside_until IS NULL OR set_aside_until > ?)',
+            [DateTime.now().toUtc().toIso8601String()],
+          ).first['count']
+          as int;
+
+  /// Clears the set-aside columns of every note whose return time has come,
+  /// and returns their ids so the caller can say "3 notes are back".
+  List<String> releaseDueSetAside() {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final due = [
+      for (final row in db.select(
+        'SELECT id FROM notes WHERE set_aside_at IS NOT NULL '
+        'AND set_aside_until IS NOT NULL AND set_aside_until <= ?',
+        [now],
+      ))
+        row['id']! as String,
+    ];
+    if (due.isEmpty) return const [];
+    db.execute(
+      'UPDATE notes SET set_aside_at = NULL, set_aside_until = NULL '
+      'WHERE set_aside_at IS NOT NULL AND set_aside_until IS NOT NULL '
+      'AND set_aside_until <= ?',
+      [now],
+    );
+    return due;
+  }
+
   /// Leaves `updated_at` alone, for the reason spelled out on [_bumpNote]:
   /// it is what the timeline sorts on, so it means "when this note last said
   /// something different". Deleting a note does not change what it says, and
@@ -496,6 +596,7 @@ WHERE id = ?
     // one read and the next. An independent audit saw it as a test that failed
     // on Windows and passed on rerun: Windows' clock ticks coarsely enough that
     // two captures a line apart often share a timestamp.
+    final nowIso = DateTime.now().toUtc().toIso8601String();
     const order = '''
 ORDER BY
   (pinned_at IS NOT NULL) DESC,
@@ -511,20 +612,22 @@ ORDER BY
             '''
 SELECT n.* FROM notes n
 WHERE deleted_at IS NULL
+  AND $_notSetAside
 $order
 LIMIT ? OFFSET ?
 ''',
-            [limit, offset],
+            [nowIso, limit, offset],
           )
         : db.select(
             '''
 SELECT n.* FROM notes n
 INNER JOIN note_tags nt ON nt.note_id = n.id
 WHERE n.deleted_at IS NULL AND nt.tag_id = ?
+  AND $_notSetAside
 $order
 LIMIT ? OFFSET ?
 ''',
-            [tagId, limit, offset],
+            [tagId, nowIso, limit, offset],
           );
     return _withTags(rows);
   }

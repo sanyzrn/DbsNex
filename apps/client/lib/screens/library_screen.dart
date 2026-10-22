@@ -10,6 +10,7 @@ import '../widgets/storage_panel.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'recently_deleted_screen.dart';
+import 'set_aside_screen.dart';
 import 'threads_screen.dart';
 import 'tag_manager_screen.dart';
 
@@ -42,7 +43,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   late final Future<StorageSnapshot> _storage = widget.services.storage();
 
   /// How much each shelf holds, said on its tile; null until counted.
-  ({int tags, int threads, int deleted})? _counts;
+  ({int tags, int threads, int deleted, int aside})? _counts;
 
   NexServices get services => widget.services;
   NexPreferences get preferences => widget.preferences;
@@ -55,19 +56,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Future<void> _count() async {
     try {
-      final results = await Future.wait([
+      final (tags, threads, deleted, aside) = await (
         services.listTags(),
         services.threads(),
         services.deletedNotes(),
-      ]);
-      if (!mounted) return;
-      setState(
-        () => _counts = (
-          tags: results[0].length,
-          threads: results[1].length,
-          deleted: results[2].length,
-        ),
+        services.setAsideCount(),
+      ).wait;
+      final counts = (
+        tags: tags.length,
+        threads: threads.length,
+        deleted: deleted.length,
+        aside: aside,
       );
+      if (!mounted) return;
+      setState(() => _counts = counts);
     } catch (_) {
       // The tiles still open their pages; only the counts are missing.
     }
@@ -98,6 +100,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
           // holds — the shape Tools uses, for the same reason: a place you
           // go into reads faster as a tile than as a row.
           nexShelfPairs([
+            NexShelfTile(
+              key: const ValueKey('library-set-aside'),
+              title: l10n.setAsideSection,
+              subtitle: counts == null
+                  ? l10n.setAsideSectionHint
+                  : counts.aside == 0
+                  ? l10n.setAsideSectionHint
+                  : l10n.setAsideCountLabel(counts.aside),
+              icon: Icons.archive_outlined,
+              hue: NexHue.amber,
+              onTap: () => unawaited(
+                _open(
+                  SetAsideScreen(services: services, preferences: preferences),
+                ),
+              ),
+            ),
             NexShelfTile(
               key: const ValueKey('library-tags'),
               title: l10n.tags,

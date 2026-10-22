@@ -14,7 +14,8 @@ void main() {
       .whereType<NexStoredModule>()
       .map((m) => m.id)
       .toSet();
-  // Reviewed and finished, so available; the rest are still Soon.
+  // Only the ones listed in module_rollout.dart are available (Cycle, which is
+  // not a stored add-on); the add-ons are Soon again until each is finished.
   final reviewed = moduleIds.where(nexModuleAvailable).toSet();
   final paused = moduleIds.difference(reviewed);
   late NexTestHarness harness;
@@ -23,10 +24,24 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('every add-on is reviewed and available; none is left Soon', () {
-    expect(reviewed, moduleIds);
-    expect(paused, isEmpty);
+  test('the twelve add-ons are Soon for now; their code stays', () {
+    expect(nexAvailableModuleIds, {'cycle'});
+    expect(reviewed, isEmpty);
+    expect(paused, moduleIds);
+    expect(moduleIds, hasLength(12));
   });
+
+  test(
+    'a paused add-on keeps its installation choice and is not active',
+    () async {
+      await harness.preferences.setModuleOn('habits', true);
+      expect(harness.preferences.isModuleOn('habits'), isTrue);
+      expect(nexModulesOn(harness.preferences), isEmpty);
+      final reloaded = await NexPreferences.load();
+      addTearDown(reloaded.dispose);
+      expect(reloaded.isModuleOn('habits'), isTrue);
+    },
+  );
 
   test('all modules default off, including the twelve add-ons', () {
     expect(moduleIds, hasLength(12));
@@ -49,12 +64,13 @@ void main() {
       final reloaded = await NexPreferences.load();
       addTearDown(reloaded.dispose);
       expect(reloaded.isModuleOn('habits'), isFalse);
-      expect(
-        nexModulesOn(reloaded).map((m) => m.id).toSet(),
-        {...reviewed}..remove('habits'),
-      );
+      for (final id in moduleIds.difference({'habits'})) {
+        expect(reloaded.isModuleOn(id), isTrue, reason: id);
+      }
       await reloaded.setModuleOn('habits', true);
-      expect(nexModulesOn(reloaded).map((m) => m.id).toSet(), reviewed);
+      for (final id in moduleIds) {
+        expect(reloaded.isModuleOn(id), isTrue, reason: id);
+      }
     },
   );
 
