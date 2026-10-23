@@ -138,10 +138,7 @@ abstract final class FullBackup {
       // own bound only runs once the library entry has been unpacked to
       // disk, and a hostile file could fill the phone first (1.99.96
       // reviews, SEC-11).
-      NexBackupArchive.assertReasonableSize(
-        archive,
-        File(source).lengthSync(),
-      );
+      NexBackupArchive.assertReasonableSize(archive, File(source).lengthSync());
       final format = jsonDecode(utf8.decode(meta.content)) as Map;
       if (format['version'] != 1) {
         throw const FormatException('Unsupported backup');

@@ -1670,11 +1670,18 @@ class CloudAIAdapter implements AIAdapter {
   /// the model does not have to guess them from a sample.
   ///
   /// Null when there is no answer, or the answer is not a whole portrait.
+  ///
+  /// [avoid] are the suggestions already given, and [angle] the area this one
+  /// should be about. Left to itself a model asked the same question about the
+  /// same notes gives the same answer, so "one thing to try" came back as one
+  /// thing, every time.
   Future<NexPortrait?> writePortrait(
     String source, {
     required String facts,
     required int basedOn,
     Iterable<String> notes = const [],
+    Iterable<String> avoid = const [],
+    String? angle,
     DateTime? now,
   }) => NexDisclosureLog.about(
     () async {
@@ -1699,7 +1706,12 @@ class CloudAIAdapter implements AIAdapter {
             '"score": 0 to 100 for how strongly it shows, "line": "one short '
             'sentence of evidence"}], "strengths": [3 short phrases], '
             '"invitation": "one gentle, practical suggestion"}. Every text value '
-            'in the language of your reply. ${outputLanguage.promptRule}',
+            'in the language of your reply. ${outputLanguage.promptRule}'
+            '${angle == null ? '' : ' For "invitation" this time, suggest '
+                'something about $angle.'}'
+            '${avoid.isEmpty ? '' : ' These suggestions were already made and '
+                'must not be repeated or rephrased, in any language: '
+                '${avoid.map((s) => '"${s.replaceAll('"', "'")}"').join('; ')}.'}',
         'Counted on the device:\n$facts\n\n'
             'The notes, spread across their library, one per line as '
             '`when | kind | text`:\n$source',

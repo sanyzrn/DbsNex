@@ -18,20 +18,18 @@ class _TraitRadar extends StatelessWidget {
     return ExcludeSemantics(
       child: SizedBox(
         height: 208,
-        child: AnimatedBuilder(
-          animation: entrance,
-          builder: (context, _) => CustomPaint(
-            painter: _RadarPainter(
-              names: [for (final t in traits) t.name],
-              scores: [for (final t in traits) (t.score / 100).clamp(0.0, 1.0)],
-              progress: _slice(entrance.value, slot, span: 0.45),
-              color: scheme.primary,
-              grid: scheme.primary.withValues(alpha: 0.2),
-              label: theme.textTheme.labelSmall!.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-              direction: direction,
+        child: CustomPaint(
+          painter: _RadarPainter(
+            names: [for (final t in traits) t.name],
+            scores: [for (final t in traits) (t.score / 100).clamp(0.0, 1.0)],
+            clock: entrance,
+            slot: slot,
+            color: scheme.primary,
+            grid: scheme.primary.withValues(alpha: 0.2),
+            label: theme.textTheme.labelSmall!.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
+            direction: direction,
           ),
         ),
       ),
@@ -43,20 +41,28 @@ class _RadarPainter extends CustomPainter {
   _RadarPainter({
     required this.names,
     required this.scores,
-    required this.progress,
+    required this.clock,
+    required this.slot,
     required this.color,
     required this.grid,
     required this.label,
     required this.direction,
-  });
+  }) : super(repaint: clock);
 
   final List<String> names;
   final List<double> scores;
-  final double progress;
+  final Animation<double> clock;
+  final int slot;
   final Color color;
   final Color grid;
   final TextStyle label;
   final TextDirection direction;
+
+  double get progress => _slice(clock.value, slot);
+
+  /// The names, laid out once: they do not change while the web grows, and
+  /// laying out text is the dear part of a frame here.
+  List<TextPainter>? _labels;
 
   static const _labelWidth = 76.0;
 
@@ -115,14 +121,18 @@ class _RadarPainter extends CustomPainter {
       canvas.drawCircle(at(i, radius * scores[i] * progress), 3.5, dot);
     }
 
+    final labels = _labels ??= [
+      for (final name in names)
+        TextPainter(
+          text: TextSpan(text: name, style: label),
+          textDirection: direction,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          ellipsis: '…',
+        )..layout(maxWidth: _labelWidth),
+    ];
     for (var i = 0; i < n; i++) {
-      final text = TextPainter(
-        text: TextSpan(text: names[i], style: label),
-        textDirection: direction,
-        textAlign: TextAlign.center,
-        maxLines: 2,
-        ellipsis: '…',
-      )..layout(maxWidth: _labelWidth);
+      final text = labels[i];
       final tip = at(i, radius + 10);
       final cos = (tip.dx - center.dx) / (radius + 10);
       final sin = (tip.dy - center.dy) / (radius + 10);
@@ -142,10 +152,7 @@ class _RadarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RadarPainter old) =>
-      old.progress != progress ||
-      old.color != color ||
-      old.names != names ||
-      old.scores != scores;
+      old.color != color || old.names != names || old.scores != scores;
 }
 
 /// The last 30 days as a row of bars, today on the end: tall where a lot was
@@ -164,16 +171,14 @@ class _Pulse extends StatelessWidget {
     return ExcludeSemantics(
       child: SizedBox(
         height: 56,
-        child: AnimatedBuilder(
-          animation: entrance,
-          builder: (context, _) => CustomPaint(
-            size: const Size.fromHeight(56),
-            painter: _PulsePainter(
-              days: days,
-              progress: _slice(entrance.value, slot, span: 0.45),
-              color: scheme.primary,
-              rtl: Directionality.of(context) == TextDirection.rtl,
-            ),
+        child: CustomPaint(
+          size: const Size.fromHeight(56),
+          painter: _PulsePainter(
+            days: days,
+            clock: entrance,
+            slot: slot,
+            color: scheme.primary,
+            rtl: Directionality.of(context) == TextDirection.rtl,
           ),
         ),
       ),
@@ -184,13 +189,16 @@ class _Pulse extends StatelessWidget {
 class _PulsePainter extends CustomPainter {
   _PulsePainter({
     required this.days,
-    required this.progress,
+    required this.clock,
+    required this.slot,
     required this.color,
     required this.rtl,
-  });
+  }) : super(repaint: clock);
 
   final List<int> days;
-  final double progress;
+  final Animation<double> clock;
+  final int slot;
+  double get progress => _slice(clock.value, slot);
   final Color color;
   final bool rtl;
 
@@ -233,7 +241,7 @@ class _PulsePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PulsePainter old) =>
-      old.progress != progress || old.days != days || old.color != color;
+      old.days != days || old.color != color || old.rtl != rtl;
 }
 
 /// What the library is made of, as a ring that sweeps round once.
@@ -264,16 +272,14 @@ class _KindsDonut extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           ExcludeSemantics(
-            child: AnimatedBuilder(
-              animation: entrance,
-              builder: (context, _) => CustomPaint(
-                size: const Size(104, 104),
-                painter: _DonutPainter(
-                  values: [for (final (_, count) in kinds) count.toDouble()],
-                  colors: [for (final (type, _) in kinds) tint(type)],
-                  track: scheme.primary.withValues(alpha: 0.1),
-                  progress: _slice(entrance.value, slot, span: 0.45),
-                ),
+            child: CustomPaint(
+              size: const Size(104, 104),
+              painter: _DonutPainter(
+                values: [for (final (_, count) in kinds) count.toDouble()],
+                colors: [for (final (type, _) in kinds) tint(type)],
+                track: scheme.primary.withValues(alpha: 0.1),
+                clock: entrance,
+                slot: slot,
               ),
             ),
           ),
@@ -296,13 +302,16 @@ class _DonutPainter extends CustomPainter {
     required this.values,
     required this.colors,
     required this.track,
-    required this.progress,
-  });
+    required this.clock,
+    required this.slot,
+  }) : super(repaint: clock);
 
   final List<double> values;
   final List<Color> colors;
   final Color track;
-  final double progress;
+  final Animation<double> clock;
+  final int slot;
+  double get progress => _slice(clock.value, slot);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -341,5 +350,5 @@ class _DonutPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DonutPainter old) =>
-      old.progress != progress || old.values != values;
+      old.values != values || old.track != track;
 }

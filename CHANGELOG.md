@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v2.2.2
+
+- **The portrait arrives as you scroll.** Each part of your writing portrait — the figures, the 30-day bars, the ring, the shape of your traits — now plays its entrance when you scroll to it, instead of everything finishing the moment the page opens. The page also opens lighter, so the small stutter on entering is gone.
+- **A different "One thing to try" each time.** Writing the portrait again used to give the same suggestion over and over. Nex now remembers the last few it gave and steers the next one to a different area.
+
 ## v2.2.1
 
 - **One Nex card in recent apps.** After updating and tapping **Open** in the installer, Nex could appear twice in the recent-apps list — one card for the old window, one for the new. Nex now rejoins its own window instead of starting a second one.

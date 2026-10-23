@@ -153,9 +153,9 @@ void main() {
         ),
       ),
     );
-    // Loaded, arriving: the count has not got to 30 yet.
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 300));
+    // Loaded and arriving: the count has not got to 30 yet.
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 60));
     expect(find.text('30'), findsNothing);
     await tester.pumpAndSettle();
     expect(find.text('30'), findsNWidgets(2));
@@ -246,5 +246,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('کنجکاو و پرسشگر'), findsWidgets);
+  });
+
+  testWidgets('each section arrives when it is scrolled to, not all on entry', (
+    tester,
+  ) async {
+    await seed(30);
+    tester.view.physicalSize = const Size(390, 520);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final scroll = ScrollController();
+    addTearDown(scroll.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            controller: scroll,
+            child: ProfilePortrait(
+              services: h.services,
+              preferences: h.preferences,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // The figure near the top has counted up; the ring's total, further
+    // down, has not been reached yet.
+    expect(find.text('30'), findsOneWidget);
+    scroll.jumpTo(scroll.position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    expect(find.text('30'), findsNWidgets(2));
   });
 }

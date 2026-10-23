@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'dart:isolate';
+import 'dart:math';
 import 'dart:io';
 
 // foundation exports its own Summary (a diagnostics type); the one this file
