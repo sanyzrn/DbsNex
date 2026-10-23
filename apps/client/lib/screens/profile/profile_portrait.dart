@@ -41,81 +41,30 @@ class ProfilePortrait extends StatefulWidget {
   State<ProfilePortrait> createState() => _ProfilePortraitState();
 }
 
-class _ProfilePortraitState extends State<ProfilePortrait>
-    with SingleTickerProviderStateMixin {
+class _ProfilePortraitState extends State<ProfilePortrait> {
   /// Notes a portrait is written from at most; said on the button.
   static const _sample = 80;
-
-  /// How long the card takes to assemble itself.
-  static const _arrival = Duration(milliseconds: 2400);
 
   NexWritingStats? _stats;
   bool _writing = false;
 
-  /// The clock every section of the card reads ([_Entrance]). It starts when
-  /// the card is first on screen, not when it is built: the portrait sits at
-  /// the foot of a long page, and an arrival nobody was there to see is not one.
-  late final AnimationController _enter = AnimationController(
-    vsync: this,
-    duration: _arrival,
-  );
-  ScrollPosition? _watching;
+  /// Bumped when a new portrait has been written: the sections below are
+  /// rebuilt from scratch, so each plays its arrival again as it is seen.
+  int _generation = 0;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_count());
-  }
-
-  @override
-  void dispose() {
-    _watching?.removeListener(_arriveIfSeen);
-    _enter.dispose();
-    super.dispose();
+    // After the page has come in, not during it: reading a couple of thousand
+    // notes back from the worker is the heaviest thing here, and doing it
+    // while the profile is sliding in is a stutter.
+    unawaited(Future<void>.delayed(const Duration(milliseconds: 300), _count));
   }
 
   Future<void> _count() async {
     final notes = await widget.services.portraitNotes();
     if (!mounted) return;
     setState(() => _stats = nexWritingStats(notes));
-    WidgetsBinding.instance.addPostFrameCallback((_) => _arrive());
-  }
-
-  /// Plays the arrival now if the card is on screen, else when scrolling
-  /// brings it there. With reduced motion it is simply there.
-  void _arrive() {
-    if (!mounted || _enter.value > 0) return;
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _enter.value = 1;
-      return;
-    }
-    if (_onScreen()) {
-      unawaited(_enter.forward());
-      return;
-    }
-    final position = Scrollable.maybeOf(context)?.position;
-    if (position == null) {
-      unawaited(_enter.forward());
-      return;
-    }
-    _watching = position..addListener(_arriveIfSeen);
-  }
-
-  void _arriveIfSeen() {
-    if (!mounted || !_onScreen()) return;
-    _watching?.removeListener(_arriveIfSeen);
-    _watching = null;
-    unawaited(_enter.forward());
-  }
-
-  /// Whether the card's top is inside the window, with a little margin so it
-  /// starts as it comes up rather than when it is already fully there.
-  bool _onScreen() {
-    final box = context.findRenderObject();
-    if (box is! RenderBox || !box.attached) return false;
-    final top = box.localToGlobal(Offset.zero).dy;
-    final height = MediaQuery.sizeOf(context).height;
-    return top < height * 0.85;
   }
 
   Future<void> _write() async {
@@ -126,9 +75,7 @@ class _ProfilePortraitState extends State<ProfilePortrait>
     setState(() => _writing = false);
     if (portrait != null) {
       // The new one assembles itself the way the first did.
-      if (!MediaQuery.disableAnimationsOf(context)) {
-        unawaited(_enter.forward(from: 0));
-      }
+      setState(() => _generation++);
     } else {
       nexShowBanner(
         context,
@@ -177,8 +124,8 @@ class _ProfilePortraitState extends State<ProfilePortrait>
       ),
       child: Padding(
         padding: const EdgeInsets.all(NexSpacing.lg),
-        child: _Entrance(
-          animation: _enter,
+        child: KeyedSubtree(
+          key: ValueKey(_generation),
           child: NexAnimatedSize(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

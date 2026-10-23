@@ -341,6 +341,23 @@ extension NexLibraryServices on NexServices {
   /// Writes the profile's portrait from a sample of the notes and keeps it
   /// (2.1.7). Asked for by the person, never in the background. Null when
   /// nothing usable came back; the portrait already kept stays then.
+  static const _invitationMemory = 6;
+
+  /// Where a suggestion may come from. One is picked at random each time, so
+  /// the same library does not keep producing the same advice.
+  static const _invitationAngles = [
+    'finding things again (search, tags or threads)',
+    'looking back over older notes',
+    'capturing faster, in the moment',
+    'reminders and following through on what they wrote',
+    'turning scattered notes into something finished',
+    'pace and rest: writing less, or writing differently',
+    'connecting ideas that sit in different notes',
+    'keeping some notes more private or tidier',
+    'using checklists, or breaking big things into steps',
+    'writing for the future self who will read it',
+  ];
+
   Future<NexPortrait?> writePortrait() async {
     if (!portraitWritable) return null;
     final notes = await portraitNotes();
@@ -352,13 +369,31 @@ extension NexLibraryServices on NexServices {
       outputLanguage: _preferences.aiOutputLanguage,
     );
     try {
+      // What was suggested before, including the portrait on screen now, so
+      // "one thing to try" is not the same thing each time.
+      final given = [
+        ..._preferences.profileInvitations,
+        if (_preferences.profilePortrait?.invitation.isNotEmpty ?? false)
+          _preferences.profilePortrait!.invitation,
+      ];
+      final avoid = given.length > _invitationMemory
+          ? given.sublist(given.length - _invitationMemory)
+          : given;
       final portrait = await adapter.writePortrait(
         source.text,
         facts: nexWritingFacts(stats),
         basedOn: source.ids.length,
         notes: source.ids,
+        avoid: avoid,
+        angle: _invitationAngles[Random().nextInt(_invitationAngles.length)],
       );
-      if (portrait != null) await _preferences.setProfilePortrait(portrait);
+      if (portrait != null) {
+        await _preferences.setProfilePortrait(portrait);
+        await _preferences.setProfileInvitations([
+          ...avoid,
+          if (portrait.invitation.isNotEmpty) portrait.invitation,
+        ]);
+      }
       return portrait;
     } catch (error) {
       unawaited(NexCrashLog.handled('ai.portrait', error));

@@ -37,6 +37,8 @@ void main() {
       'today | text | plan the week',
       facts: 'notes: 40',
       basedOn: 40,
+      avoid: const ['Try a weekly look back.'],
+      angle: 'reminders and following through',
     );
     expect(portrait?.headline, 'A quiet planner');
     expect(portrait?.basedOn, 40);
@@ -45,6 +47,10 @@ void main() {
     expect(prompt, contains('Never use psychology labels'));
     expect(prompt, contains('Never repeat private details'));
     expect(prompt, contains('plan the week'));
+    // The one thing to try is steered away from what was said before.
+    expect(prompt, contains('Try a weekly look back.'));
+    expect(prompt, contains('must not be repeated'));
+    expect(prompt, contains('reminders and following through'));
   });
 
   test('nothing to read from asks nothing', () async {

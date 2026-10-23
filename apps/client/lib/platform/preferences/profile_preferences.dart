@@ -94,6 +94,14 @@ mixin _ProfilePreferences on _PreferencesStore {
   NexPortrait? get profilePortrait =>
       NexPortrait.decode(_prefs.getString('profile.portrait'));
 
+  /// The "one thing to try" lines already given, newest last, so the next
+  /// portrait asks for a different one.
+  List<String> get profileInvitations =>
+      _prefs.getStringList('profile.portrait_invitations') ?? const [];
+
+  Future<void> setProfileInvitations(List<String> value) =>
+      _prefs.setStringList('profile.portrait_invitations', value);
+
   Future<void> setProfilePortrait(NexPortrait? value) async {
     if (value == null) {
       await _prefs.remove('profile.portrait');

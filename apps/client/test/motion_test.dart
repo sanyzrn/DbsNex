@@ -50,6 +50,8 @@ void main() {
       'lib/screens/camera_sheet.dart',
       'lib/screens/onboarding/onboarding_scenes.dart',
       'lib/screens/onboarding/onboarding_art.dart',
+      // The writing portrait's per-section entrance.
+      'lib/screens/profile/profile_portrait_motion.dart',
       'lib/screens/cycle/cycle_space.dart',
       'lib/widgets/nex_splash.dart',
       'lib/widgets/nex_brand.dart',
