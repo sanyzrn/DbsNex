@@ -15,10 +15,18 @@ if ! [[ "$runs" =~ ^[0-9]+$ ]] || [ "$runs" -lt 1 ]; then
   exit 2
 fi
 
+log="$(mktemp)"
+trap 'rm -f "$log"' EXIT
+
 for ((i = 1; i <= runs; i++)); do
   echo "::group::run $i of $runs: $*"
-  if ! "$@"; then
+  if ! "$@" 2>&1 | tee "$log"; then
     echo "::endgroup::"
+    # The failing test and the seed that shuffled it sit in the middle of a
+    # log thousands of lines long, inside a collapsed group. Say them here,
+    # where the job's last lines are, so a red night names what failed.
+    echo "---- what failed (run $i of $runs) ----"
+    grep -nE '❌|\[E\]|Some tests failed|randomize-ordering-seed|Shuffling test order' "$log" | head -40
     echo "::error::failed on run $i of $runs: $*"
     exit 1
   fi
