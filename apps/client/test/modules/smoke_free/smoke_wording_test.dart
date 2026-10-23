@@ -87,11 +87,23 @@ void main() {
     final now = DateTime.now();
     final store = await pump(tester, locale: const Locale('en'));
     await store.put('quit', 'q1', {
-      'startedAt': now.subtract(const Duration(days: 1)).toIso8601String(),
+      // Noon two days ago to noon yesterday: one calendar day at any hour of
+      // the day the test runs (now-1h crossed midnight before 01:00).
+      'startedAt': DateTime(
+        now.year,
+        now.month,
+        now.day - 2,
+        12,
+      ).toIso8601String(),
       'cigarettesPerDay': 10,
       'pricePerPackMinor': 0,
       'perPack': 20,
-      'endedAt': now.subtract(const Duration(hours: 1)).toIso8601String(),
+      'endedAt': DateTime(
+        now.year,
+        now.month,
+        now.day - 1,
+        12,
+      ).toIso8601String(),
       'endedWhy': 'lapse',
     });
     await tester.pumpAndSettle();
@@ -105,11 +117,23 @@ void main() {
     final now = DateTime.now();
     final store = await pump(tester, locale: const Locale('fa'));
     await store.put('quit', 'q1', {
-      'startedAt': now.subtract(const Duration(days: 1)).toIso8601String(),
+      // Noon two days ago to noon yesterday: one calendar day at any hour of
+      // the day the test runs (now-1h crossed midnight before 01:00).
+      'startedAt': DateTime(
+        now.year,
+        now.month,
+        now.day - 2,
+        12,
+      ).toIso8601String(),
       'cigarettesPerDay': 10,
       'pricePerPackMinor': 0,
       'perPack': 20,
-      'endedAt': now.subtract(const Duration(hours: 1)).toIso8601String(),
+      'endedAt': DateTime(
+        now.year,
+        now.month,
+        now.day - 1,
+        12,
+      ).toIso8601String(),
       'endedWhy': 'lapse',
     });
     await tester.pumpAndSettle();
@@ -121,14 +145,18 @@ void main() {
   testWidgets('a same-day attempt is said out loud, not as zero days', (
     tester,
   ) async {
+    // Two fixed times on one calendar day (yesterday), not "two hours ago":
+    // run between midnight and 02:00 that crossed into the next day, and the
+    // attempt was rightly one day long. The nightly run is at 01:39 UTC.
     final now = DateTime.now();
+    final day = DateTime(now.year, now.month, now.day - 1);
     final store = await pump(tester, locale: const Locale('en'));
     await store.put('quit', 'q1', {
-      'startedAt': now.subtract(const Duration(hours: 2)).toIso8601String(),
+      'startedAt': DateTime(day.year, day.month, day.day, 10).toIso8601String(),
       'cigarettesPerDay': 10,
       'pricePerPackMinor': 0,
       'perPack': 20,
-      'endedAt': now.subtract(const Duration(minutes: 1)).toIso8601String(),
+      'endedAt': DateTime(day.year, day.month, day.day, 12).toIso8601String(),
       'endedWhy': 'lapse',
     });
     await tester.pumpAndSettle();
