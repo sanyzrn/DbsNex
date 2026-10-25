@@ -62,9 +62,11 @@ void main() {
     testWidgets('pinned tools show as cards, and a hold takes one off '
         '($locale)', (tester) async {
       await harness.preferences.togglePinnedTool('vault.password');
-      await harness.preferences.togglePinnedTool('scheduled');
-      // A pin whose tool is gone is not drawn.
+      await harness.preferences.togglePinnedTool('generator');
+      // A pin whose tool is gone is not drawn — a module removed, or
+      // Scheduled, which moved to the Library in 2.3.4.
       await harness.preferences.togglePinnedTool('module.gone');
+      await harness.preferences.togglePinnedTool('scheduled');
       await tester.pumpWidget(
         host(
           PinnedTools(
@@ -80,21 +82,22 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('pinned-tool-scheduled')),
+        find.byKey(const ValueKey('pinned-tool-generator')),
         findsOneWidget,
       );
       expect(
         find.byKey(const ValueKey('pinned-tool-module.gone')),
         findsNothing,
       );
+      expect(find.byKey(const ValueKey('pinned-tool-scheduled')), findsNothing);
       expect(tester.takeException(), isNull);
 
       await tester.longPress(
-        find.byKey(const ValueKey('pinned-tool-scheduled')),
+        find.byKey(const ValueKey('pinned-tool-generator')),
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('pinned-tool-scheduled')), findsNothing);
-      expect(harness.preferences.pinnedTools, isNot(contains('scheduled')));
+      expect(find.byKey(const ValueKey('pinned-tool-generator')), findsNothing);
+      expect(harness.preferences.pinnedTools, isNot(contains('generator')));
     });
   }
 

@@ -1509,22 +1509,15 @@ void main() {
         findsOneWidget,
       );
       expect(inSheet(find.text('the machine heard this')), findsOneWidget);
-      final preview = tester.widget<Text>(
-        inSheet(find.text('the machine heard this')),
-      );
-      expect(preview.maxLines, 4);
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(NoteDetailSheet)),
-      );
-      await tester.ensureVisible(inSheet(find.byTooltip(l10n.aiResultExpand)));
-      await tester.tap(inSheet(find.byTooltip(l10n.aiResultExpand)));
-      await tester.pumpAndSettle();
       expect(
         inSheet(find.byKey(const ValueKey('ai-result-transcript'))),
         findsOneWidget,
       );
-
-      expect(inSheet(find.text('the machine heard this')), findsOneWidget);
+      // A result that fits its preview has nothing to open (2.3.4).
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(NoteDetailSheet)),
+      );
+      expect(inSheet(find.byTooltip(l10n.aiResultExpand)), findsNothing);
     },
   );
 

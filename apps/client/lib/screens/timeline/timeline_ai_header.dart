@@ -492,7 +492,7 @@ extension _TimelineAiHeader on TimelineScreenState {
         ],
         thickness: 0.6,
         laps: 1,
-        strength: 0.25,
+        strength: 0.4,
         active: !_aiSummaryCollapsed,
         token: _aiSummaryText,
         child: NexGlassSurface(

@@ -83,7 +83,7 @@ class _NexPullRefreshState extends State<NexPullRefresh>
   /// The clouds' drift: one slow lap, running only while the sky shows.
   late final AnimationController _drift = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 40),
+    duration: const Duration(seconds: 16),
   );
 
   @override
@@ -265,9 +265,12 @@ class _SkyPainter extends CustomPainter {
   /// Where each cloud sits: across (0–1), how high in the strip, how big,
   /// how faint, and how fast it drifts — the near ones faster.
   static const _clouds = [
-    (x: 0.12, y: 0.16, scale: 0.72, alpha: 0.17, speed: 0.6, seed: 1),
-    (x: 0.55, y: 0.06, scale: 0.55, alpha: 0.11, speed: 0.35, seed: 2),
-    (x: 0.86, y: 0.20, scale: 0.80, alpha: 0.20, speed: 0.9, seed: 3),
+    (x: 0.05, y: 0.16, scale: 0.72, alpha: 0.17, speed: 0.6, seed: 1),
+    (x: 0.30, y: 0.04, scale: 0.45, alpha: 0.09, speed: 0.3, seed: 2),
+    (x: 0.48, y: 0.22, scale: 0.60, alpha: 0.14, speed: 0.5, seed: 3),
+    (x: 0.66, y: 0.08, scale: 0.50, alpha: 0.10, speed: 0.35, seed: 1),
+    (x: 0.84, y: 0.18, scale: 0.80, alpha: 0.20, speed: 0.9, seed: 3),
+    (x: 0.97, y: 0.02, scale: 0.40, alpha: 0.08, speed: 0.25, seed: 2),
   ];
 
   @override
@@ -297,14 +300,14 @@ class _SkyPainter extends CustomPainter {
     }
 
     // The wordmark, fading and growing in with the pull.
-    const wordHeight = 26.0;
+    const wordHeight = 21.0;
     final bounds = NexBrand.wordBounds;
     final wordWidth = wordHeight * bounds.width / bounds.height;
     final show = ((reach - 0.25) / 0.5).clamp(0.0, 1.0);
     if (show <= 0) return;
     final scale = 0.86 + 0.14 * Curves.easeOutBack.transform(show);
     // A fixed distance above the list, so it rises with the pull.
-    final center = Offset(size.width / 2, size.height - 34);
+    final center = Offset(size.width / 2, size.height - 30);
     // The dot: arrives with a bounce once letting go will refresh, hops
     // while the work runs, and hops once more when it is done.
     final cycle = loop;
@@ -424,7 +427,7 @@ class NexRefreshSheen extends StatefulWidget {
     super.key,
     required this.pulse,
     required this.child,
-    this.strength = 0.16,
+    this.strength = 0.3,
   });
 
   final ValueListenable<int> pulse;
@@ -473,7 +476,17 @@ class _NexRefreshSheenState extends State<NexRefreshSheen>
 
   @override
   Widget build(BuildContext context) {
-    final glint = Theme.of(context).colorScheme.primary;
+    // A lit band of the accent, lightened so it reads as light on a dark
+    // page as well as a light one (2.3.4: the plain accent at a few percent
+    // was not seen at all).
+    final scheme = Theme.of(context).colorScheme;
+    final glint = Color.lerp(
+      scheme.primary,
+      Theme.of(context).brightness == Brightness.dark
+          ? Colors.white
+          : scheme.primaryContainer,
+      0.35,
+    )!;
     return AnimatedBuilder(
       animation: _sweep,
       child: widget.child,
@@ -493,9 +506,12 @@ class _NexRefreshSheenState extends State<NexRefreshSheen>
                       end: Alignment(-0.6 + eased * 3.2, 1),
                       colors: [
                         glint.withValues(alpha: 0),
-                        glint.withValues(alpha: widget.strength * (1 - t)),
+                        glint.withValues(
+                          alpha: widget.strength * math.sin(math.pi * t),
+                        ),
                         glint.withValues(alpha: 0),
                       ],
+                      stops: const [0.3, 0.5, 0.7],
                     ),
                   ),
                 ),

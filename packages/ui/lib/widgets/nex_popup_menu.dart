@@ -21,7 +21,18 @@ class NexMenuEntryContent extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 20, color: color),
+      // The theme's icon colour, never the ambient one: a menu opened from
+      // inside something that sets its own (the white of a bank card)
+      // carries that into the menu, and drew white icons on a light menu
+      // (2.3.4).
+      Icon(
+        icon,
+        size: 20,
+        color:
+            color ??
+            Theme.of(context).iconTheme.color ??
+            Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
       const SizedBox(width: NexSpacing.md),
       Flexible(
         child: Text(
