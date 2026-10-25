@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v2.3.1
+
+- **Repeating reminders: Done only.** A reminder that repeats now has just **Done** in its notification. It comes back at its own time anyway, and an extra one an hour later only muddled which time it keeps. One-time reminders still have **In an hour**, and an "in an hour" you set is no longer lost when Nex is opened before it rings.
+- **Recurring items in the notification.** A Recurring item's reminder now has **Done**: it is ticked at the moment you press it and moves on to its next turn, the same as ticking it on the page. Tapping the notification opens the Recurring page.
+- **Swipe the other way.** In the archive and the trash, a card is swiped toward the start edge to bring it back, so it no longer gets in the way of swiping back to the previous page.
+- **Undo in the archive and the trash.** Unarchiving or deleting a single note in the archive, and restoring or deleting one for good in the trash, now offers **Undo**. A permanent delete waits until its Undo is gone before it runs.
+- **Archive: Delete all.** The archive's menu now has **Delete all** beside **Unarchive all**, and both ask before they act, the way Empty trash does.
+- **What's new, in About.** It no longer opens over the home screen after an update. **About → What's new** has every release Nex has had, the current one on top, the rest folded to their headlines, and a search through all of them.
+
 ## v2.3.0
 
 - **A reminder rings on its card.** When a reminder goes off, its card swings a small bell in place of its icon until you open it, and the notification stays in your notifications until you do. Tapping a notification while Nex is closed now opens it straight onto the card, the same as when it is already open.

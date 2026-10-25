@@ -17,7 +17,32 @@ extension NexRingingServices on NexServices {
     final shown = await reminders.shownNoteIds();
     final next = {..._preferences.ringingNotes, ...shown}
       ..removeAll(acknowledged);
+    // Only notes ring on a card: a note deleted while ringing, or an id from
+    // an older recurring item's notification, has no card to stop it, and
+    // stayed in the set for good (2.3.1).
+    for (final id in [...next]) {
+      final note = await worker.getById(id);
+      if (note == null || note.deletedAt != null) next.remove(id);
+    }
     await _setRinging(next);
+  }
+
+  /// Recurring items met with **Done** in the shade, each at the moment it
+  /// was pressed. Answers how many were moved on.
+  ///
+  /// Only an item still waiting on the turn that rang is moved on: one that
+  /// was ticked in the app since, or edited to a later time, already has.
+  Future<int> applyMetFromShade() async {
+    var moved = 0;
+    for (final (id, at) in await reminders.takeMet()) {
+      final current = (await commitments())
+          .where((c) => c.id == id)
+          .firstOrNull;
+      if (current == null || current.paused) continue;
+      if (current.dueAt.isAfter(at.add(const Duration(minutes: 1)))) continue;
+      if (await markCommitmentMet(id, at: at.toLocal()) != null) moved++;
+    }
+    return moved;
   }
 
   /// A note whose reminder was just tapped, or found ringing.

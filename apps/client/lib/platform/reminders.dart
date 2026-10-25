@@ -119,6 +119,9 @@ class NexReminders {
   /// the app is running, after the button has done its work.
   void Function(String noteId, String action)? onAction;
 
+  /// Called when a recurring item's reminder is tapped while the app runs.
+  void Function()? onOpenRecurring;
+
   /// Called when the update notification is tapped.
   ///
   /// Separate from [onOpenNote] because the payload has to be told apart
@@ -189,6 +192,16 @@ class NexReminders {
   bool takeLaunchedFromUpdate() {
     final launched = _launchedFromUpdate;
     _launchedFromUpdate = false;
+    return launched;
+  }
+
+  /// Whether the app was started by a tap on a recurring item's reminder,
+  /// read once and cleared like [takeLaunchedFromUpdate].
+  bool _launchedFromRecurring = false;
+
+  bool takeLaunchedFromRecurring() {
+    final launched = _launchedFromRecurring;
+    _launchedFromRecurring = false;
     return launched;
   }
 
@@ -365,6 +378,11 @@ class NexReminders {
           return;
         }
         if (payload != null &&
+            payload.startsWith(NexReminderActions.commitmentPrefix)) {
+          onOpenRecurring?.call();
+          return;
+        }
+        if (payload != null &&
             payload.isNotEmpty &&
             !payload.startsWith('nex:module:')) {
           onOpenNote?.call(payload);
@@ -402,6 +420,9 @@ class NexReminders {
         // phone was in a pocket and the app was not running.
         if (payload == _updatePayload) {
           _launchedFromUpdate = true;
+        } else if (payload != null &&
+            payload.startsWith(NexReminderActions.commitmentPrefix)) {
+          _launchedFromRecurring = true;
         } else if (payload != null &&
             payload.isNotEmpty &&
             !payload.startsWith('nex:module:')) {
@@ -657,31 +678,6 @@ class NexReminders {
   /// The one-off "again in an hour" a reminder button sets: its own id, so
   /// it never replaces (or cancels) a repeating reminder's schedule.
   static int snoozeIdFor(String noteId) => idFor('snooze:$noteId');
-
-  /// How a note's reminder looks: the note's words, its two buttons, and
-  /// nothing on the lock screen when the app lock asks for that.
-  static NotificationDetails noteDetails({
-    required String? body,
-    required bool secret,
-    NexChannelText? text,
-  }) {
-    final words = text ?? _text;
-    return NotificationDetails(
-      android: AndroidNotificationDetails(
-        _channelId,
-        words.reminders,
-        channelDescription: words.remindersAbout,
-        importance: Importance.high,
-        priority: Priority.high,
-        styleInformation: body == null || body.isEmpty
-            ? null
-            : BigTextStyleInformation(body),
-        visibility: secret ? NotificationVisibility.secret : null,
-        actions: NexReminderActions.androidActions(words),
-      ),
-      iOS: const DarwinNotificationDetails(),
-    );
-  }
 
   /// A stable 31-bit id derived from the note's own id.
   ///

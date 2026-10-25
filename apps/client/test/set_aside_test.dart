@@ -133,4 +133,86 @@ void main() {
     expect(card('beta note'), findsOneWidget);
     expect(find.text('Archived'), findsOneWidget);
   });
+
+  testWidgets('one unarchive has an Undo; the "all" actions ask first', (
+    tester,
+  ) async {
+    for (final note in await services.worker.timeline(limit: 10)) {
+      await services.setAside(note.id);
+    }
+    await services.refreshTimeline();
+    await open(tester);
+    await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-set-aside')));
+    await tester.pumpAndSettle();
+
+    final alpha = (await services.listSetAside()).firstWhere(
+      (n) => n.content == 'alpha note',
+    );
+    await tester.tap(find.byKey(ValueKey('archive-back-${alpha.id}')));
+    await tester.pumpAndSettle();
+    expect(await services.setAsideCount(), 1);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(await services.setAsideCount(), 2);
+    expect(find.text('alpha note'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('archive-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete all'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(await services.setAsideCount(), 2, reason: 'nothing without a yes');
+
+    await tester.tap(find.byKey(const ValueKey('archive-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete all'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+    await tester.pumpAndSettle();
+    expect(await services.setAsideCount(), 0);
+    expect(await services.deletedNotes(), hasLength(2));
+  });
+
+  testWidgets('a note restored or deleted for good in the trash has an Undo', (
+    tester,
+  ) async {
+    final notes = await services.worker.timeline(limit: 10);
+    for (final note in notes) {
+      await services.deleteNote(note.id);
+    }
+    await services.refreshTimeline();
+    await open(tester);
+    await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Trash'));
+    await tester.pumpAndSettle();
+
+    final first = notes.first;
+    await tester.tap(find.byKey(ValueKey('trash-restore-${first.id}')));
+    await tester.pumpAndSettle();
+    expect(await services.deletedNotes(), hasLength(1));
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(await services.deletedNotes(), hasLength(2));
+
+    // Deleting for good waits for its Undo, and the Undo keeps the note.
+    await tester.tap(find.byKey(ValueKey('trash-purge-${first.id}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('trash-${first.id}')), findsNothing);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 8));
+    expect(await services.deletedNotes(), hasLength(2));
+    expect(find.byKey(ValueKey('trash-${first.id}')), findsWidgets);
+
+    // Left alone, it goes.
+    await tester.tap(find.byKey(ValueKey('trash-purge-${first.id}')));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pumpAndSettle();
+    expect(await services.deletedNotes(), hasLength(1));
+  });
 }

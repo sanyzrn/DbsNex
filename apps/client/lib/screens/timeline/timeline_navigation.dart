@@ -128,22 +128,40 @@ extension _TimelineNavigation on TimelineScreenState {
       _spotlight(noteId);
       return;
     }
-    unawaited(
-      widget.services.releaseDueNotes().then((_) => _spotlight(noteId)),
-    );
+    unawaited(_revealOrRecurring(noteId));
   }
 
-  /// "What's new", once after an update — not over a tapped reminder or the
-  /// lock, which leave it for the next launch, and not before the timeline
-  /// has had a moment on screen.
-  void _maybeWhatsNew() {
-    if (widget.locked) return;
-    _whatsNewWait?.cancel();
-    _whatsNewWait = Timer(const Duration(milliseconds: 900), () {
-      if (!mounted || widget.locked) return;
-      if (ModalRoute.of(context)?.isCurrent == false) return;
-      unawaited(nexMaybeShowWhatsNew(context, widget.preferences));
-    });
+  /// Not on the timeline yet: a scheduled note arriving, or — from a
+  /// notification shown before 2.3.1, whose payload was a recurring item's
+  /// bare id — a recurring item, which opens its page.
+  Future<void> _revealOrRecurring(String noteId) async {
+    await widget.services.releaseDueNotes();
+    if (!mounted) return;
+    if (_model.byId(noteId) == null &&
+        (await widget.services.commitments()).any((c) => c.id == noteId)) {
+      await _openRecurring();
+      return;
+    }
+    _spotlight(noteId);
+  }
+
+  /// A recurring item's reminder was tapped: its page, where it is ticked.
+  /// Behind the lock it waits like a note does, and is simply dropped — the
+  /// item is on the brief and the page either way.
+  Future<void> _openRecurring() async {
+    if (!mounted || widget.locked) return;
+    await _applyMetFromShade();
+    if (!mounted) return;
+    await RecurringScreen.show(context, services: widget.services);
+    await _model.loadCommitments();
+  }
+
+  /// **Done** pressed on a recurring item's reminder: met when it was
+  /// pressed, and the brief told.
+  Future<void> _applyMetFromShade() async {
+    if (await widget.services.applyMetFromShade() > 0 && mounted) {
+      await _model.loadCommitments();
+    }
   }
 
   /// Keeps the cards' bells in step with the shade: on arrival, on every
@@ -152,7 +170,10 @@ extension _TimelineNavigation on TimelineScreenState {
   void _wireRinging() {
     widget.services.ringing.addListener(_onRinging);
     widget.services.reminders.onAction = (noteId, action) {
-      if (action == NexReminderActions.done) {
+      if (action != NexReminderActions.done) return;
+      if (noteId.startsWith(NexReminderActions.commitmentPrefix)) {
+        unawaited(_applyMetFromShade());
+      } else {
         unawaited(widget.services.acknowledgeRinging(noteId));
       }
     };
@@ -161,13 +182,14 @@ extension _TimelineNavigation on TimelineScreenState {
 
   void _unwireRinging() {
     _ringingSync?.cancel();
-    _whatsNewWait?.cancel();
     widget.services.ringing.removeListener(_onRinging);
     widget.services.reminders.onAction = null;
+    widget.services.reminders.onOpenRecurring = null;
   }
 
   void _syncRinging() {
     unawaited(widget.services.syncRinging());
+    unawaited(_applyMetFromShade());
     _ringingSync?.cancel();
     _ringingSync = Timer.periodic(
       const Duration(minutes: 1),

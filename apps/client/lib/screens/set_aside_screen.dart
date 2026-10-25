@@ -10,6 +10,7 @@ import '../platform/display_date.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../widgets/collection_page.dart';
+import '../widgets/nex_banner.dart';
 
 /// The archive: notes off the home screen, not gone (2.3.0 redesign).
 ///
@@ -56,14 +57,45 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
     await widget.services.bringBack(note.id);
     await widget.services.refreshTimeline();
     await reload();
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    nexShowBanner(
+      context,
+      message: l10n.archiveUnarchived,
+      haptics: widget.preferences.haptics,
+      actionLabel: l10n.undo,
+      // Back into the archive until the same time it was waiting for.
+      onAction: () async {
+        await widget.services.setAside(note.id, until: note.setAsideUntil);
+        await widget.services.refreshTimeline();
+        await reload();
+      },
+    );
   }
 
-  Future<void> _bringBackAll() async {
+  /// The menu's two "all" actions ask first, and so need no Undo (2.3.1).
+  Future<void> _all(String action) async {
     final all = [...?notes];
     if (all.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
+    final deleting = action == 'delete';
+    final ok = await nexConfirmDestructive(
+      context,
+      title: deleting ? l10n.archiveDeleteAll : l10n.archiveBringBackAll,
+      body: deleting
+          ? l10n.archiveDeleteAllBody(all.length)
+          : l10n.archiveBringBackAllBody(all.length),
+      confirm: deleting ? l10n.delete : l10n.setAsideBringBack,
+    );
+    if (!ok || !mounted) return;
     if (widget.preferences.haptics) unawaited(HapticFeedback.mediumImpact());
+    setState(() => notes = const []);
     for (final note in all) {
-      await widget.services.bringBack(note.id);
+      if (deleting) {
+        await widget.services.deleteNote(note.id);
+      } else {
+        await widget.services.bringBack(note.id);
+      }
     }
     await widget.services.refreshTimeline();
     await reload();
@@ -110,12 +142,19 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
         actions: [
           if (loaded != null && loaded.length > 1)
             NexPopupMenuButton<String>(
-              onSelected: (_) => unawaited(_bringBackAll()),
+              key: const ValueKey('archive-menu'),
+              onSelected: (action) => unawaited(_all(action)),
               itemBuilder: (context) => [
                 nexMenuItem(
-                  value: 'all',
+                  value: 'back',
                   icon: Icons.unarchive_outlined,
                   label: l10n.archiveBringBackAll,
+                ),
+                nexMenuItem(
+                  value: 'delete',
+                  icon: Icons.delete_outline,
+                  label: l10n.archiveDeleteAll,
+                  destructive: true,
                 ),
               ],
             ),

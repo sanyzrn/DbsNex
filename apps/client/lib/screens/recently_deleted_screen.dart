@@ -7,7 +7,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../widgets/collection_page.dart';
 import '../l10n/app_localizations.dart';
-import '../widgets/nex_dialog.dart';
+import '../widgets/nex_banner.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 
@@ -39,10 +39,29 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   /// and a purge runs before the read that produces it.
   List<Note>? notes;
 
+  /// Notes deleted for good on this page whose Undo is still on screen
+  /// (2.3.1). The purge waits for the banner: a permanent delete cannot be
+  /// taken back once it has run, so it runs only once the Undo is gone — or
+  /// when the page closes, whichever comes first.
+  final _purging = <String, Timer>{};
+
+  /// A little longer than a banner with an action stays up.
+  static const _purgeAfter = Duration(seconds: 7);
+
   @override
   void initState() {
     super.initState();
     unawaited(_purgeThenLoad());
+  }
+
+  @override
+  void dispose() {
+    for (final MapEntry(key: id, value: timer) in _purging.entries) {
+      timer.cancel();
+      unawaited(widget.services.purgeNote(id));
+    }
+    _purging.clear();
+    super.dispose();
   }
 
   Future<void> _purgeThenLoad() async {
@@ -55,7 +74,12 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   Future<void> reload() async {
     final loaded = await widget.services.deletedNotes();
     if (!mounted) return;
-    setState(() => notes = loaded);
+    setState(
+      () => notes = [
+        for (final note in loaded)
+          if (!_purging.containsKey(note.id)) note,
+      ],
+    );
   }
 
   void _tick() {
@@ -70,60 +94,59 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     await widget.services.undelete(note.id);
     await widget.services.refreshTimeline();
     await reload();
+    if (!mounted) return;
+    nexShowBanner(
+      context,
+      message: AppLocalizations.of(context).trashRestored,
+      haptics: widget.preferences?.haptics ?? true,
+      actionLabel: AppLocalizations.of(context).undo,
+      onAction: () async {
+        await widget.services.deleteNote(note.id);
+        await widget.services.refreshTimeline();
+        await reload();
+      },
+    );
   }
 
-  Future<void> _purge(Note note) async {
-    final l10n = AppLocalizations.of(context);
-    final ok = await _confirm(
-      title: l10n.deleteForever,
-      body: l10n.deleteForeverBody,
-      confirm: l10n.delete,
-    );
-    if (ok != true) return;
+  /// Deleted for good — after the Undo has had its moment (see [_purging]).
+  void _purge(Note note) {
     if (widget.preferences?.haptics ?? true) HapticFeedback.mediumImpact();
-    await widget.services.purgeNote(note.id);
-    await reload();
+    setState(() => notes = [...?notes]..removeWhere((n) => n.id == note.id));
+    _purging[note.id]?.cancel();
+    _purging[note.id] = Timer(_purgeAfter, () {
+      if (_purging.remove(note.id) != null) {
+        unawaited(widget.services.purgeNote(note.id));
+      }
+    });
+    final l10n = AppLocalizations.of(context);
+    nexShowBanner(
+      context,
+      message: l10n.trashDeletedForever,
+      haptics: widget.preferences?.haptics ?? true,
+      actionLabel: l10n.undo,
+      onAction: () {
+        _purging.remove(note.id)?.cancel();
+        unawaited(reload());
+      },
+    );
   }
 
   Future<void> _emptyTrash() async {
     final l10n = AppLocalizations.of(context);
-    final ok = await _confirm(
+    final ok = await nexConfirmDestructive(
+      context,
       title: l10n.emptyTrash,
       body: l10n.emptyTrashBody(notes?.length ?? 0),
       confirm: l10n.emptyTrash,
     );
-    if (ok != true) return;
+    if (!ok) return;
     if (widget.preferences?.haptics ?? true) HapticFeedback.mediumImpact();
+    for (final timer in _purging.values) {
+      timer.cancel();
+    }
+    _purging.clear();
     await widget.services.purgeAllDeleted();
     await reload();
-  }
-
-  Future<bool?> _confirm({
-    required String title,
-    required String body,
-    required String confirm,
-  }) {
-    final l10n = AppLocalizations.of(context);
-    return nexShowDialog<bool>(
-      context: context,
-      builder: (ctx) => NexAlertDialog(
-        title: Text(title),
-        content: NexDialogBody(child: Text(body)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: Text(confirm),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -219,7 +242,8 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
           IconButton(
             tooltip: l10n.deleteForever,
             color: scheme.error,
-            onPressed: () => unawaited(_purge(note)),
+            key: ValueKey('trash-purge-${note.id}'),
+            onPressed: () => _purge(note),
             icon: const Icon(Icons.delete_forever_outlined),
           ),
         ],
