@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v2.3.2
+
+- **Scheduled, in the Library.** Notes on their way now have their own tile in the Library, beside the archive, saying how many are waiting (it is still in Tools too). The page is redesigned like the archive: each note as its own card with when it arrives, how many days are left, a bar for how much of the wait is behind it, and a button to deliver it now.
+- **Swipe back works from a card.** In the archive and the trash, a swipe back that starts on a card now takes you back, instead of doing nothing. Swiping a card toward the start edge still brings it back.
+- **Search first in What's new.** The search field now sits at the top of **About → What's new**, above the current release.
+- **One colour per shelf.** Archive, Scheduled, Tags, Threads and Trash each open in the colour of their tile in the Library, instead of a different colour inside.
+
 ## v2.3.1
 
 - **Repeating reminders: Done only.** A reminder that repeats now has just **Done** in its notification. It comes back at its own time anyway, and an extra one an hour later only muddled which time it keeps. One-time reminders still have **In an hour**, and an "in an hour" you set is no longer lost when Nex is opened before it rings.

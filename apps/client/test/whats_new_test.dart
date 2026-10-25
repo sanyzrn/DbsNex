@@ -69,24 +69,33 @@ An opening paragraph.
             home: const WhatsNewScreen(),
           ),
         );
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 200)),
-        );
+        // The bundled changelog is read for real: wait for it, however long
+        // the machine takes.
+        for (var i = 0; i < 100; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 50)),
+          );
+          await tester.pump();
+          if (find.byType(ListView).evaluate().isNotEmpty) break;
+        }
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         await tester.scrollUntilVisible(
           find.byKey(const ValueKey('whats-new-0.9.1')),
-          2000,
+          1500,
+          maxScrolls: 400,
           scrollable: find.byType(Scrollable).first,
         );
         await tester.tap(find.byKey(const ValueKey('whats-new-0.9.1')));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
-        await tester.scrollUntilVisible(
-          find.byKey(const ValueKey('whats-new-search')),
-          -2000,
-          scrollable: find.byType(Scrollable).first,
-        );
+        // Back to the top in one jump: dragging up past ninety thousand
+        // pixels of history is not what this test is about.
+        tester
+            .state<ScrollableState>(find.byType(Scrollable).first)
+            .position
+            .jumpTo(0);
+        await tester.pumpAndSettle();
         await tester.enterText(
           find.byKey(const ValueKey('whats-new-search')),
           'zzqqxx',

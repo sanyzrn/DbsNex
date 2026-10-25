@@ -5,6 +5,7 @@ import 'package:nex_client/app.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/library_screen.dart';
+import 'package:nex_client/screens/scheduled_screen.dart';
 import 'package:nex_client/screens/recently_deleted_screen.dart';
 import 'package:nex_client/screens/settings_sheet.dart';
 import 'package:nex_client/screens/tag_manager_screen.dart';
@@ -72,6 +73,13 @@ void main() {
     await tester.tap(find.text('Tags'));
     await tester.pumpAndSettle();
     expect(find.byType(TagManagerScreen), findsOneWidget);
+
+    // Scheduled sits with them (2.3.2).
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-scheduled')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ScheduledScreen), findsOneWidget);
   });
 
   testWidgets('Settings no longer holds anything containing notes', (

@@ -10,6 +10,7 @@ import '../widgets/storage_panel.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'recently_deleted_screen.dart';
+import 'scheduled_screen.dart';
 import 'set_aside_screen.dart';
 import 'threads_screen.dart';
 import 'tag_manager_screen.dart';
@@ -43,7 +44,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   late final Future<StorageSnapshot> _storage = widget.services.storage();
 
   /// How much each shelf holds, said on its tile; null until counted.
-  ({int tags, int threads, int deleted, int aside})? _counts;
+  ({int tags, int threads, int deleted, int aside, int scheduled})? _counts;
 
   NexServices get services => widget.services;
   NexPreferences get preferences => widget.preferences;
@@ -56,17 +57,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Future<void> _count() async {
     try {
-      final (tags, threads, deleted, aside) = await (
+      final (tags, threads, deleted, aside, scheduled) = await (
         services.listTags(),
         services.threads(),
         services.deletedNotes(),
         services.setAsideCount(),
+        services.scheduledNotes(),
       ).wait;
       final counts = (
         tags: tags.length,
         threads: threads.length,
         deleted: deleted.length,
         aside: aside,
+        scheduled: scheduled.length,
       );
       if (!mounted) return;
       setState(() => _counts = counts);
@@ -96,9 +99,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
           NexSpacing.md + nexBottomInset(context),
         ),
         children: [
-          // Three shelves, each in its own colour and saying how much it
-          // holds — the shape Tools uses, for the same reason: a place you
-          // go into reads faster as a tile than as a row.
+          // The shelves, each in its own colour and saying how much it holds
+          // — the shape Tools uses, for the same reason: a place you go into
+          // reads faster as a tile than as a row. Each page it opens wears
+          // the same colour (2.3.2). Scheduled sits beside the archive: both
+          // hold notes that are not on the home screen yet.
           nexShelfPairs([
             NexShelfTile(
               key: const ValueKey('library-set-aside'),
@@ -115,6 +120,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   SetAsideScreen(services: services, preferences: preferences),
                 ),
               ),
+            ),
+            NexShelfTile(
+              key: const ValueKey('library-scheduled'),
+              title: l10n.scheduledTitle,
+              subtitle: l10n.libraryScheduledCount(counts?.scheduled ?? 0),
+              icon: Icons.schedule_send_outlined,
+              hue: NexHue.sky,
+              onTap: () =>
+                  unawaited(_open(ScheduledScreen(services: services))),
             ),
             NexShelfTile(
               key: const ValueKey('library-tags'),

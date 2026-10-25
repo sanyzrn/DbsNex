@@ -3398,6 +3398,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleHint => 'Hold ↑ to schedule it for later';
 
   @override
+  String scheduledInDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'In $countString days',
+      one: 'Tomorrow',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryScheduledCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString notes on their way',
+      one: '1 note on its way',
+      zero: 'Notes on their way',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get scheduledTitle => 'Scheduled';
 
   @override

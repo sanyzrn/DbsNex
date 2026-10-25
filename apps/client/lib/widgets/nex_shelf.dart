@@ -79,6 +79,9 @@ enum NexHue {
 
   Color of(Brightness brightness) =>
       brightness == Brightness.dark ? dark : light;
+
+  /// For the theme [context] is drawn in.
+  Color on(BuildContext context) => of(Theme.of(context).brightness);
 }
 
 /// Tiles two to a row, each row as tall as its taller tile, so a large text

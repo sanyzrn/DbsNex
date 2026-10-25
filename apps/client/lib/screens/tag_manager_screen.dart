@@ -7,6 +7,7 @@ import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../widgets/collection_page.dart';
+import '../widgets/nex_shelf.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/tag_label.dart';
 import '../widgets/nex_dialog.dart';
@@ -86,7 +87,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
               children: [
                 NexCollectionHero(
                   icon: Icons.sell_outlined,
-                  color: Theme.of(context).colorScheme.tertiary,
+                  color: NexHue.violet.on(context),
                   count: loaded.length,
                   title: l10n.tags,
                   hint: l10n.tagsHint,

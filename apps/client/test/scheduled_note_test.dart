@@ -100,9 +100,7 @@ void main() {
       reason: 'the soonest first',
     );
 
-    await tester.tap(find.byTooltip('More actions').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Deliver now'));
+    await tester.tap(find.byTooltip('Deliver now').first);
     await tester.pumpAndSettle();
     expect(find.text('soon'), findsNothing);
     expect((await services.timeline(limit: 5)).map((n) => n.content), ['soon']);

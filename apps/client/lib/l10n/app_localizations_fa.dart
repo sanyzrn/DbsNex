@@ -3380,6 +3380,37 @@ class AppLocalizationsFa extends AppLocalizations {
   String get scheduleHint => 'برای فرستادن در زمانی دیگر، ↑ را نگه دارید';
 
   @override
+  String scheduledInDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString روز دیگر',
+      one: 'فردا',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryScheduledCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString یادداشت در راه',
+      one: 'یک یادداشت در راه',
+      zero: 'یادداشت‌های در راه',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get scheduledTitle => 'زمان‌بندی‌شده‌ها';
 
   @override
