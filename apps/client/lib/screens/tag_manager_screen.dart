@@ -6,7 +6,7 @@ import 'package:nex_data/nex_data.dart';
 
 import 'package:nex_ui/nex_ui.dart';
 
-import '../widgets/nex_shelf.dart';
+import '../widgets/collection_page.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/tag_label.dart';
 import '../widgets/nex_dialog.dart';
@@ -79,67 +79,83 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
                 label: Text(l10n.createTag),
               ),
             )
-          : ListView.builder(
+          : ListView(
               // Clear of the add button at the bottom, as well as the
               // system's own strip.
-              padding: EdgeInsets.fromLTRB(
-                NexSpacing.md,
-                NexSpacing.sm,
-                NexSpacing.md,
-                88 + nexBottomInset(context),
-              ),
-              itemCount: loaded.length,
-              itemBuilder: (context, index) {
-                final value = loaded[index];
-                return NexGroupedRow(
-                  index: index,
+              padding: EdgeInsets.only(bottom: 88 + nexBottomInset(context)),
+              children: [
+                NexCollectionHero(
+                  icon: Icons.sell_outlined,
+                  color: Theme.of(context).colorScheme.tertiary,
                   count: loaded.length,
-                  child: ListTile(
-                    minTileHeight: 56,
-                    // Each tag on a tile in its own colour, so the list reads
-                    // as the chips it becomes on a note.
-                    leading: NexIconTile(
-                      Icons.label_outline,
-                      color: nexParseTagColor(value.tag.color),
-                    ),
-                    title: Text(nexTagLabel(value.tag, l10n)),
-                    subtitle: Text(l10n.noteCount(value.count)),
-                    trailing: NexPopupMenuButton<String>(
-                      tooltip: l10n.tagActions,
-                      onSelected: (action) => act(action, value),
-                      itemBuilder: (_) => [
-                        nexMenuItem(
-                          value: 'color',
-                          icon: Icons.palette_outlined,
-                          label: l10n.color,
-                        ),
-                        nexMenuItem(
-                          value: 'rename',
-                          icon: Icons.drive_file_rename_outline,
-                          label: l10n.rename,
-                        ),
-                        // Only when there is another tag to merge into. With
-                        // one tag it opened a sheet listing every tag but this
-                        // one — that is, nothing — and the way out was to
-                        // dismiss it.
-                        if (loaded.length > 1)
-                          nexMenuItem(
-                            value: 'merge',
-                            icon: Icons.merge_outlined,
-                            label: l10n.merge,
-                          ),
-                        nexMenuItem(
-                          value: 'delete',
-                          icon: Icons.delete_outline,
-                          label: l10n.delete,
-                          destructive: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                  title: l10n.tags,
+                  hint: l10n.tagsHint,
+                ),
+                for (final value in loaded) _card(value, loaded, l10n),
+              ],
             ),
+    );
+  }
+
+  /// A tag as its own card: its colour down the edge and as a dot, how many
+  /// notes carry it, and a bar for its share of the busiest tag's count.
+  Widget _card(TagUsage value, List<TagUsage> all, AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    final colour = nexParseTagColor(value.tag.color);
+    final most = all.fold<int>(1, (m, t) => t.count > m ? t.count : m);
+    return NexCollectionTile(
+      key: ValueKey('tag-${value.tag.id}'),
+      accent: colour ?? scheme.outline,
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: (colour ?? scheme.outline).withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(NexRadius.md),
+        ),
+        child: Icon(Icons.sell_outlined, color: colour ?? scheme.outline),
+      ),
+      title: Text(nexTagLabel(value.tag, l10n)),
+      progress: value.count / most,
+      meta: [
+        NexMetaChip(
+          icon: Icons.notes_outlined,
+          color: colour,
+          label: l10n.noteCount(value.count),
+        ),
+      ],
+      onTap: () => unawaited(act('rename', value)),
+      trailing: NexPopupMenuButton<String>(
+        tooltip: l10n.tagActions,
+        onSelected: (action) => act(action, value),
+        itemBuilder: (_) => [
+          nexMenuItem(
+            value: 'color',
+            icon: Icons.palette_outlined,
+            label: l10n.color,
+          ),
+          nexMenuItem(
+            value: 'rename',
+            icon: Icons.drive_file_rename_outline,
+            label: l10n.rename,
+          ),
+          // Only when there is another tag to merge into. With one tag it
+          // opened a sheet listing every tag but this one — that is,
+          // nothing — and the way out was to dismiss it.
+          if (all.length > 1)
+            nexMenuItem(
+              value: 'merge',
+              icon: Icons.merge_outlined,
+              label: l10n.merge,
+            ),
+          nexMenuItem(
+            value: 'delete',
+            icon: Icons.delete_outline,
+            label: l10n.delete,
+            destructive: true,
+          ),
+        ],
+      ),
     );
   }
 

@@ -9,16 +9,15 @@ import '../l10n/app_localizations.dart';
 import '../platform/display_date.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
-import '../widgets/nex_dialog.dart';
-import '../widgets/nex_shelf.dart';
-import 'note_detail_sheet.dart';
+import '../widgets/collection_page.dart';
 
-/// The notes put to one side: off the home screen, not gone.
+/// The archive: notes off the home screen, not gone (2.3.0 redesign).
 ///
-/// Each row says when its note comes back (or that it waits for a hand), opens
-/// the note on a tap, and brings it back on the button. A note that has been
-/// set aside until a date shows that date, so "when will I see this again" is
-/// never a guess.
+/// Two runs of cards. "Coming back on their own" holds the notes archived
+/// until a time, soonest first, each saying how many days are left; "Waiting
+/// for you" holds the ones that stay until they are brought back. A card opens
+/// the note (with only the actions an archived note needs), its button or a
+/// swipe from the start edge brings it back, and its menu deletes it.
 class SetAsideScreen extends StatefulWidget {
   const SetAsideScreen({
     super.key,
@@ -50,35 +49,78 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
   }
 
   Future<void> _bringBack(Note note) async {
-    if (widget.preferences.haptics) HapticFeedback.selectionClick();
+    if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
+    // Off the list at once, so a swiped card is not drawn again under the
+    // finger that just moved it.
+    setState(() => notes = [...?notes]..removeWhere((n) => n.id == note.id));
     await widget.services.bringBack(note.id);
     await widget.services.refreshTimeline();
     await reload();
   }
 
-  Future<void> _open(Note note) async {
-    await nexShowSheet<DetailResult>(
-      context: context,
-      builder: (_) => NoteDetailSheet(
-        services: widget.services,
-        preferences: widget.preferences,
-        noteId: note.id,
-        initialNote: note,
-      ),
-    );
+  Future<void> _bringBackAll() async {
+    final all = [...?notes];
+    if (all.isEmpty) return;
+    if (widget.preferences.haptics) unawaited(HapticFeedback.mediumImpact());
+    for (final note in all) {
+      await widget.services.bringBack(note.id);
+    }
     await widget.services.refreshTimeline();
+    await reload();
+  }
+
+  Future<void> _open(Note note) async {
+    await nexOpenNoteFromCollection(
+      context,
+      services: widget.services,
+      preferences: widget.preferences,
+      note: note,
+    );
+    if (mounted) await reload();
+  }
+
+  Future<void> _delete(Note note) async {
+    setState(() => notes = [...?notes]..removeWhere((n) => n.id == note.id));
+    await nexDeleteNoteWithUndo(
+      context,
+      services: widget.services,
+      preferences: widget.preferences,
+      note: note,
+      onUndone: () => unawaited(reload()),
+    );
     if (mounted) await reload();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final persian = l10n.localeName == 'fa';
-    final solar = widget.services.solarCalendar;
+    final scheme = Theme.of(context).colorScheme;
     final loaded = notes;
+    final timed = [
+      for (final note in loaded ?? const <Note>[])
+        if (note.setAsideUntil != null) note,
+    ]..sort((a, b) => a.setAsideUntil!.compareTo(b.setAsideUntil!));
+    final waiting = [
+      for (final note in loaded ?? const <Note>[])
+        if (note.setAsideUntil == null) note,
+    ];
     return Scaffold(
-      appBar: NexAppBar(title: Text(l10n.setAsidePageTitle)),
+      appBar: NexAppBar(
+        title: Text(l10n.setAsidePageTitle),
+        actions: [
+          if (loaded != null && loaded.length > 1)
+            NexPopupMenuButton<String>(
+              onSelected: (_) => unawaited(_bringBackAll()),
+              itemBuilder: (context) => [
+                nexMenuItem(
+                  value: 'all',
+                  icon: Icons.unarchive_outlined,
+                  label: l10n.archiveBringBackAll,
+                ),
+              ],
+            ),
+        ],
+      ),
       body: loaded == null
           ? const NexLoadingList()
           : loaded.isEmpty
@@ -86,74 +128,91 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
               icon: Icons.archive_outlined,
               message: '${l10n.setAsideEmptyTitle}\n${l10n.setAsideEmptyBody}',
             )
-          : Column(
+          : ListView(
+              padding: EdgeInsets.only(
+                bottom: NexSpacing.md + nexBottomInset(context),
+              ),
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    NexSpacing.md,
-                    NexSpacing.sm,
-                    NexSpacing.md,
-                    NexSpacing.xs,
-                  ),
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      l10n.setAsideSectionHint,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
+                NexCollectionHero(
+                  icon: Icons.archive_outlined,
+                  color: scheme.primary,
+                  count: loaded.length,
+                  title: l10n.setAsidePageTitle,
+                  hint: l10n.setAsideSheetHint,
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      NexSpacing.md,
-                      0,
-                      NexSpacing.md,
-                      NexSpacing.md + nexBottomInset(context),
-                    ),
-                    itemCount: loaded.length,
-                    itemBuilder: (context, index) {
-                      final note = loaded[index];
-                      final until = note.setAsideUntil;
-                      final text = note.searchableDerivedText?.trim() ?? '';
-                      return NexGroupedRow(
-                        index: index,
-                        count: loaded.length,
-                        child: ListTile(
-                          minTileHeight: 56,
-                          onTap: () => unawaited(_open(note)),
-                          leading: NexIconTile(
-                            nexNoteTypeIcon(note.type.wireName),
-                          ),
-                          title: Text(
-                            text.isNotEmpty
-                                ? text
-                                : l10n.noteType(note.type.wireName),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            until == null
-                                ? l10n.setAsideUntilFurther
-                                : l10n.setAsideBackOn(
-                                    nexReadableDate(
-                                      until,
-                                      solar: solar,
-                                      persian: persian,
-                                    ),
-                                  ),
-                          ),
-                          trailing: TextButton(
-                            onPressed: () => unawaited(_bringBack(note)),
-                            child: Text(l10n.setAsideBringBack),
-                          ),
-                        ),
-                      );
-                    },
+                if (timed.isNotEmpty) ...[
+                  NexCollectionSection(
+                    label: l10n.archiveComingBack,
+                    icon: Icons.schedule,
                   ),
-                ),
+                  for (final note in timed) _card(note, l10n),
+                ],
+                if (waiting.isNotEmpty) ...[
+                  NexCollectionSection(
+                    label: l10n.archiveWaiting,
+                    icon: Icons.inventory_2_outlined,
+                  ),
+                  for (final note in waiting) _card(note, l10n),
+                ],
               ],
             ),
+    );
+  }
+
+  Widget _card(Note note, AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    final persian = l10n.localeName == 'fa';
+    final until = note.setAsideUntil;
+    final archived = note.setAsideAt;
+    return NexCollectionTile(
+      key: ValueKey('archive-${note.id}'),
+      leading: NexNoteKindSquare(type: note.type),
+      title: Text(nexNoteHeadline(note, l10n)),
+      accent: nexNoteTypeTint(note.type.wireName, scheme),
+      onTap: () => unawaited(_open(note)),
+      onSwipe: () => unawaited(_bringBack(note)),
+      swipeIcon: Icons.unarchive_outlined,
+      swipeLabel: l10n.setAsideBringBack,
+      meta: [
+        if (until != null)
+          NexMetaChip(
+            icon: Icons.event_repeat,
+            color: scheme.primary,
+            label:
+                '${l10n.archiveBackIn(nexDaysUntil(until).clamp(0, 9999))} · '
+                '${nexReadableDate(until, solar: widget.services.solarCalendar, persian: persian)}',
+          ),
+        if (archived != null)
+          NexMetaChip(
+            icon: Icons.archive_outlined,
+            label: l10n.archivedAgo(nexTimeAgo(context, archived)),
+          ),
+        if (note.dueAt != null)
+          NexMetaChip(icon: Icons.notifications_none, label: l10n.remind),
+      ],
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            key: ValueKey('archive-back-${note.id}'),
+            tooltip: l10n.setAsideBringBack,
+            color: scheme.primary,
+            icon: const Icon(Icons.unarchive_outlined),
+            onPressed: () => unawaited(_bringBack(note)),
+          ),
+          NexPopupMenuButton<String>(
+            onSelected: (_) => unawaited(_delete(note)),
+            itemBuilder: (context) => [
+              nexMenuItem(
+                value: 'delete',
+                icon: Icons.delete_outline,
+                label: l10n.delete,
+                destructive: true,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -436,6 +436,24 @@ class NexPreferences extends _PreferencesStore
     await _prefs.setBool(_kExactAlarmsAsked, true);
   }
 
+  /// Notes whose reminder has rung and not been looked at yet (2.3.0): their
+  /// card shows a ringing bell until it is opened, or **Done** is pressed in
+  /// the notification.
+  /// The version whose "What's new" was last shown, or the version this
+  /// install started on (2.3.0).
+  String? get whatsNewSeen => _prefs.getString('app.whats_new_seen');
+
+  Future<void> setWhatsNewSeen(String version) =>
+      _prefs.setString('app.whats_new_seen', version);
+
+  static const _kRinging = 'reminders.ringing';
+
+  Set<String> get ringingNotes =>
+      (_prefs.getStringList(_kRinging) ?? const <String>[]).toSet();
+
+  Future<void> setRingingNotes(Set<String> ids) =>
+      _prefs.setStringList(_kRinging, ids.toList());
+
   /// Whether the walk-through over the timeline's own controls has been shown.
   ///
   /// Separate from [onboardingComplete] because they run at different moments

@@ -59,21 +59,25 @@ extension _TimelineLayout on TimelineScreenState {
               icon: const Icon(Icons.search),
               onPressed: () => unawaited(revealSearch()),
             ),
-          IconButton(
-            tooltip: l10n.layoutTitle,
-            // Not `tune`: the content-type filter at the head of the tag row
-            // already wears that, and two identical icons on one screen
-            // meaning two different things is worse than either.
-            icon: const Icon(Icons.dashboard_customize_outlined),
-            onPressed: () async {
-              await nexShowSheet<void>(
-                context: context,
-                builder: (_) =>
-                    HomeLayoutSheet(preferences: widget.preferences),
-              );
-              if (mounted) _rebuild(() {});
-            },
-          ),
+          // Not while searching: the layout is the home screen's, and a
+          // sheet over search results changing what is above the notes
+          // repainted the whole page under the person searching.
+          if (!_searching)
+            IconButton(
+              tooltip: l10n.layoutTitle,
+              // Not `tune`: the content-type filter at the head of the tag row
+              // already wears that, and two identical icons on one screen
+              // meaning two different things is worse than either.
+              icon: const Icon(Icons.dashboard_customize_outlined),
+              onPressed: () async {
+                await nexShowSheet<void>(
+                  context: context,
+                  builder: (_) =>
+                      HomeLayoutSheet(preferences: widget.preferences),
+                );
+                if (mounted) _rebuild(() {});
+              },
+            ),
           // The library and the gear used to be here. They are the two things
           // on this screen somebody reaches for with a thumb rather than with
           // their eyes, and the top-right corner of a phone is the one place
@@ -324,7 +328,12 @@ extension _TimelineLayout on TimelineScreenState {
                             // screen should be the app's own reading of the
                             // day, not an advertisement.
                             if (showSummary)
-                              SliverToBoxAdapter(child: _briefCard(l10n)),
+                              SliverToBoxAdapter(
+                                child: NexRefreshSheen(
+                                  pulse: _refreshPulse,
+                                  child: _briefCard(l10n),
+                                ),
+                              ),
                             // Tools pinned from the Tools page, at the top
                             // of the cards. Always in the list, keyed, and
                             // collapsed to nothing in a search or a filtered

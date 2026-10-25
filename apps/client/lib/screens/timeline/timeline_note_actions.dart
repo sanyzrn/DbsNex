@@ -437,6 +437,8 @@ extension _TimelineNoteActions on TimelineScreenState {
   void _tapNote(Note note) {
     if (_claimedByOverlay()) return;
     if (_selecting) return _toggleSelected(note);
+    // Looked at: the bell stops, and its notification leaves the shade.
+    unawaited(widget.services.answerRinging(note.id));
     unawaited(_openNote(note));
   }
 

@@ -289,9 +289,8 @@ class TimelineModel extends ChangeNotifier {
       if (current.dueRepeat != NoteRepeat.once) continue;
       final due = current.dueAt;
       if (due == null || due.isAfter(DateTime.now().toUtc())) continue;
-      // Null clears the repeat alongside the time, and cancels the alarm the
-      // OS is still holding for it.
-      await services.setDueAt(id, null);
+      // The time goes; a notification it left in the shade stays.
+      await services.retireDue(id);
       cleared = true;
     }
     if (cleared) await services.refreshTimeline();

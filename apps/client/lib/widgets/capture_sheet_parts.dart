@@ -132,9 +132,11 @@ class _KindChip extends StatelessWidget {
                               color: scheme.onSurface.withValues(
                                 alpha: enabled ? 1 : 0.38,
                               ),
-                              fontWeight: selected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
+                              // One weight for every chip: a bolder selected
+                              // label was wider, so the row jumped sideways the
+                              // instant a kind was tapped while its colour was
+                              // still fading in.
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),

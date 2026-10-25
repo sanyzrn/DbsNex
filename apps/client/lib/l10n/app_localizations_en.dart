@@ -158,6 +158,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get layoutTagRow => 'Tag row';
 
   @override
+  String get layoutShowSection => 'On the home screen';
+
+  @override
+  String get layoutLookSection => 'Look';
+
+  @override
   String chatAboutGroup(String label, int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -1145,6 +1151,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get recapRefreshFailed =>
       'The smart summary could not be refreshed. The one below is the last one Nex made.';
+
+  @override
+  String get recapRefreshing => 'Refreshing the smart summary…';
+
+  @override
+  String get whatsNewTitle => 'What’s new';
+
+  @override
+  String whatsNewSubtitle(String version) {
+    return 'Nex $version is here. This is what changed.';
+  }
+
+  @override
+  String get whatsNewDone => 'Got it';
 
   @override
   String get shareSaved => 'Saved to Nex.';
@@ -5962,14 +5982,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'The note was deleted or its link changed while the video was being watched, so nothing was kept.';
 
   @override
-  String get setAside => 'Set aside';
+  String get setAside => 'Archive';
 
   @override
-  String get setAsideSheetTitle => 'Set aside until…';
+  String get setAsideSheetTitle => 'Archive until…';
 
   @override
   String get setAsideSheetHint =>
-      'It leaves the home screen but stays in your library. You can still find it by searching.';
+      'It leaves the home screen but stays in your library, and search still finds it. Pick a time and it comes back by itself.';
 
   @override
   String get setAsideUntilBack => 'Until I bring it back';
@@ -5987,11 +6007,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setAsidePickDate => 'Pick a date…';
 
   @override
-  String get setAsideDone => 'Set aside';
+  String get setAsideDone => 'Archived';
 
   @override
   String setAsideDoneUntil(String when) {
-    return 'Set aside until $when';
+    return 'Archived until $when';
   }
 
   @override
@@ -6000,7 +6020,7 @@ class AppLocalizationsEn extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString notes set aside';
+    return '$countString notes archived';
   }
 
   @override
@@ -6009,27 +6029,27 @@ class AppLocalizationsEn extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString notes are back from being set aside';
+    return '$countString notes are back from the archive';
   }
 
   @override
-  String get setAsideBringBack => 'Bring back';
+  String get setAsideBringBack => 'Unarchive';
 
   @override
-  String get setAsideSection => 'Set aside';
+  String get setAsideSection => 'Archive';
 
   @override
   String get setAsideSectionHint => 'Off the home screen, not gone';
 
   @override
-  String get setAsidePageTitle => 'Set aside';
+  String get setAsidePageTitle => 'Archive';
 
   @override
-  String get setAsideEmptyTitle => 'Nothing set aside';
+  String get setAsideEmptyTitle => 'The archive is empty';
 
   @override
   String get setAsideEmptyBody =>
-      'Hold a note and choose Set aside to keep it out of the way for now.';
+      'Hold a note and choose Archive to keep it out of the way for now. It stays searchable and can come back on its own.';
 
   @override
   String setAsideBackOn(String when) {
@@ -6040,7 +6060,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setAsideUntilFurther => 'Until you bring it back';
 
   @override
-  String get setAsideMark => 'Set aside';
+  String get setAsideMark => 'Archived';
 
   @override
   String setAsideCountLabel(int count) {
@@ -6051,8 +6071,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$countString notes set aside',
-      one: '1 note set aside',
+      other: '$countString archived notes',
+      one: '1 archived note',
     );
     return '$_temp0';
   }
@@ -6061,7 +6081,66 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setAsideAllClear => 'All clear';
 
   @override
-  String get setAsideView => 'See what’s set aside';
+  String get setAsideView => 'Open the archive';
+
+  @override
+  String get archiveComingBack => 'Coming back on their own';
+
+  @override
+  String get archiveWaiting => 'Waiting for you';
+
+  @override
+  String archiveBackIn(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Back in $countString days',
+      one: 'Back tomorrow',
+      zero: 'Back today',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveBringBackAll => 'Unarchive all';
+
+  @override
+  String archivedAgo(String when) {
+    return 'Archived $when';
+  }
+
+  @override
+  String trashGoneIn(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Gone for good in $countString days',
+      one: 'Gone for good tomorrow',
+      zero: 'Gone for good today',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get tagsHint =>
+      'Each tag in its own colour, with how much of your library carries it. Use a tag\'s menu to colour, rename, merge or delete it.';
+
+  @override
+  String get threadsHint =>
+      'Notes strung together into one story, read oldest first. Open a thread to follow it.';
+
+  @override
+  String threadLastActive(String when) {
+    return 'Last added $when';
+  }
 
   @override
   String get vaultCardChecksum =>

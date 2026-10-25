@@ -111,31 +111,22 @@ extension NexNoteReminders on NexReminders {
     // The same treatment a card gets: a reminder is the note's words on a
     // lock screen, and nobody wants to read the markers there either.
     final body = NexMarkdownText.preview(note.displayText ?? '').trim();
+    // The note's own words are the title: a reminder saying "Nex" tells
+    // someone nothing at the moment they most need to know what it is.
+    final title = body.isEmpty
+        ? 'Nex'
+        : NexReminders._clamp(body.split('\n').first, 60);
+    final text = body.isEmpty ? null : NexReminders._clamp(body, 1200);
+    final secret = hideOnLockScreen?.call() ?? false;
     try {
       await _plugin.zonedSchedule(
         id: NexReminders._idFor(note.id),
-        // The note's own words are the title: a reminder saying "Nex" tells
-        // someone nothing at the moment they most need to know what it is.
-        title: body.isEmpty
-            ? 'Nex'
-            : NexReminders._clamp(body.split('\n').first, 60),
-        body: body.isEmpty ? null : NexReminders._clamp(body, 1200),
+        title: title,
+        body: text,
         scheduledDate: NexReminders.scheduledDateFor(at),
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            NexReminders._channelId,
-            NexReminders._text.reminders,
-            channelDescription: NexReminders._text.remindersAbout,
-            importance: Importance.high,
-            priority: Priority.high,
-            styleInformation: body.isEmpty
-                ? null
-                : BigTextStyleInformation(NexReminders._clamp(body, 1200)),
-            visibility: hideOnLockScreen?.call() ?? false
-                ? NotificationVisibility.secret
-                : null,
-          ),
-          iOS: const DarwinNotificationDetails(),
+        notificationDetails: NexReminders.noteDetails(
+          body: text,
+          secret: secret,
         ),
         androidScheduleMode: _scheduleMode,
         // What makes it come back. The plugin re-fires on whichever fields
@@ -149,6 +140,14 @@ extension NexNoteReminders on NexReminders {
         payload: note.id,
       );
       lastError = await _verify(NexReminders._idFor(note.id));
+      // What "In an hour" will say again, kept where the button's own
+      // isolate can read it.
+      await NexReminderActions.remember(
+        note.id,
+        title: title,
+        body: text,
+        secret: secret,
+      );
       // What the OS was told, in its own terms: the instant, the wall clock
       // it resolves to, and the zone that resolved it. `_verify` can only say
       // that *an* alarm with this id exists — the plugin's queue does not

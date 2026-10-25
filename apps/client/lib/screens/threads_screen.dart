@@ -5,13 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
-import '../widgets/nex_shelf.dart';
+import '../widgets/collection_page.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/nex_dialog.dart';
-import 'note_detail_sheet.dart';
 
 /// Every thread, the most recently active first (W5.3).
 ///
@@ -80,46 +79,95 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
               ),
             )
           : ListView(
-              padding: EdgeInsets.fromLTRB(
-                NexSpacing.md,
-                NexSpacing.sm,
-                NexSpacing.md,
-                NexSpacing.sm + nexBottomInset(context),
+              padding: EdgeInsets.only(
+                bottom: NexSpacing.sm + nexBottomInset(context),
               ),
               children: [
-                for (final (index, thread) in threads.indexed)
-                  NexGroupedRow(
-                    index: index,
-                    count: threads.length,
-                    child: ListTile(
-                      leading: NexIconTile(
-                        Icons.timeline_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      title: Text(
-                        thread.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(l10n.threadNoteCount(thread.noteCount)),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          NexPageRoute<void>(
-                            builder: (_) => ThreadScreen(
-                              services: widget.services,
-                              preferences: widget.preferences,
-                              thread: thread,
-                            ),
-                          ),
-                        );
-                        await _reload();
-                      },
-                    ),
-                  ),
+                NexCollectionHero(
+                  icon: Icons.timeline_outlined,
+                  color: Theme.of(context).colorScheme.secondary,
+                  count: threads.length,
+                  title: l10n.threads,
+                  hint: l10n.threadsHint,
+                ),
+                for (final thread in threads) _card(thread, l10n),
               ],
             ),
+    );
+  }
+
+  /// A thread as its own card, with a strand of beads — one per note, up to
+  /// a dozen — so a long thread looks long before it is opened.
+  Widget _card(NoteThread thread, AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    final beads = thread.noteCount.clamp(0, 12);
+    final last = thread.lastActivityAt;
+    return NexCollectionTile(
+      key: ValueKey('thread-${thread.id}'),
+      accent: scheme.secondary,
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: scheme.secondary.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(NexRadius.md),
+        ),
+        child: Icon(Icons.timeline_outlined, color: scheme.secondary),
+      ),
+      title: Text(thread.name),
+      meta: [
+        NexMetaChip(
+          icon: Icons.notes_outlined,
+          color: scheme.secondary,
+          label: l10n.threadNoteCount(thread.noteCount),
+        ),
+        if (last != null)
+          NexMetaChip(
+            icon: Icons.schedule,
+            label: l10n.threadLastActive(nexTimeAgo(context, last)),
+          ),
+        if (beads > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < beads; i++) ...[
+                  if (i > 0)
+                    Container(
+                      width: 6,
+                      height: 2,
+                      color: scheme.secondary.withValues(alpha: 0.35),
+                    ),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: scheme.secondary.withValues(
+                        alpha: 0.35 + 0.65 * (i + 1) / beads,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () async {
+        await Navigator.push(
+          context,
+          NexPageRoute<void>(
+            builder: (_) => ThreadScreen(
+              services: widget.services,
+              preferences: widget.preferences,
+              thread: thread,
+            ),
+          ),
+        );
+        await _reload();
+      },
     );
   }
 }
@@ -159,16 +207,14 @@ class _ThreadScreenState extends State<ThreadScreen> {
   }
 
   Future<void> _open(Note note) async {
-    await nexShowSheet<DetailResult>(
-      context: context,
-      builder: (_) => NoteDetailSheet(
-        services: widget.services,
-        preferences: widget.preferences,
-        noteId: note.id,
-      ),
+    // Delete in the sheet now deletes, with Undo, as on the timeline.
+    await nexOpenNoteFromCollection(
+      context,
+      services: widget.services,
+      preferences: widget.preferences,
+      note: note,
     );
-    await widget.services.refreshTimeline();
-    await _reload();
+    if (mounted) await _reload();
   }
 
   Future<void> _act(String action) async {

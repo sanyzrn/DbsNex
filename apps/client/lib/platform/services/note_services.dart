@@ -254,4 +254,14 @@ extension NexNoteServices on NexServices {
     }
     await refreshTimeline();
   }
+
+  /// Clears a one-off reminder whose time has passed, without touching the
+  /// notification it left in the shade: that one stays until it is tapped,
+  /// dismissed, answered with **Done**, or its note is opened (2.3.0). The
+  /// old path went through [setDueAt], whose cancel also took the
+  /// notification away — on every trip out of the app.
+  Future<void> retireDue(String id) async {
+    await worker.setDueAt(id, null);
+    await reminders.withdraw(id);
+  }
 }

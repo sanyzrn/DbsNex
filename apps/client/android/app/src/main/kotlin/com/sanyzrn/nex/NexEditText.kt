@@ -424,7 +424,6 @@ private class NexEditTextView(
             if (args["suggestions"] == false) type = type or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             type = type or InputType.TYPE_TEXT_FLAG_MULTI_LINE
         }
-        if (edit.inputType != type) edit.inputType = type
         edit.enterSends = imeAction != "newline"
         var options = EditorInfo.IME_FLAG_NO_EXTRACT_UI or when (imeAction) {
             "send" -> EditorInfo.IME_ACTION_SEND
@@ -435,12 +434,21 @@ private class NexEditTextView(
             else -> EditorInfo.IME_ACTION_NONE
         }
         if (args["incognito"] == true) options = options or EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
-        if (edit.imeOptions != options) {
-            edit.imeOptions = options
+        // Options first, then the type, and the keyboard told to look again
+        // once. Setting a new input type restarts the keyboard by itself, so
+        // a kind switch that changed both (a note becoming a link) used to
+        // restart it twice — the keyboard blinking through two layouts, and
+        // the capture sheet jumping with it, which read as a bug.
+        val optionsChanged = edit.imeOptions != options
+        if (optionsChanged) edit.imeOptions = options
+        if (edit.inputType != type) {
+            // Restarts the keyboard with the options above already in place.
+            edit.inputType = type
+        } else if (optionsChanged && edit.hasFocus()) {
             // The keyboard reads the action key when it attaches, so a field
-            // whose action changes while typing — a note becoming a list, Send
-            // becoming a new line — tells it to look again.
-            if (edit.hasFocus()) keyboard()?.restartInput(edit)
+            // whose action changes while typing — a note becoming a list,
+            // Send becoming a new line — tells it to look again.
+            keyboard()?.restartInput(edit)
         }
 
         expands = args["expands"] == true

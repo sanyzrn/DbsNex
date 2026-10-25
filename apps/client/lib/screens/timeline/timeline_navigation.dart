@@ -109,6 +109,9 @@ extension _TimelineNavigation on TimelineScreenState {
   /// before anyone is looking — so it waits for the screen to settle first.
   /// Under the app lock it waits for the unlock, then for the gate to clear.
   void _openArrived(String noteId, {bool cold = false}) {
+    // A tapped reminder rings on its card until the card is opened: the
+    // scroll and the blink say where it is, the bell says it is still asking.
+    unawaited(widget.services.ring(noteId));
     if (widget.locked) {
       _arrivalHeld = noteId;
       return;
@@ -128,6 +131,52 @@ extension _TimelineNavigation on TimelineScreenState {
     unawaited(
       widget.services.releaseDueNotes().then((_) => _spotlight(noteId)),
     );
+  }
+
+  /// "What's new", once after an update — not over a tapped reminder or the
+  /// lock, which leave it for the next launch, and not before the timeline
+  /// has had a moment on screen.
+  void _maybeWhatsNew() {
+    if (widget.locked) return;
+    _whatsNewWait?.cancel();
+    _whatsNewWait = Timer(const Duration(milliseconds: 900), () {
+      if (!mounted || widget.locked) return;
+      if (ModalRoute.of(context)?.isCurrent == false) return;
+      unawaited(nexMaybeShowWhatsNew(context, widget.preferences));
+    });
+  }
+
+  /// Keeps the cards' bells in step with the shade: on arrival, on every
+  /// return to the app, after a reminder button, and once a minute while the
+  /// app is in front (a reminder can ring while it is open).
+  void _wireRinging() {
+    widget.services.ringing.addListener(_onRinging);
+    widget.services.reminders.onAction = (noteId, action) {
+      if (action == NexReminderActions.done) {
+        unawaited(widget.services.acknowledgeRinging(noteId));
+      }
+    };
+    _syncRinging();
+  }
+
+  void _unwireRinging() {
+    _ringingSync?.cancel();
+    _whatsNewWait?.cancel();
+    widget.services.ringing.removeListener(_onRinging);
+    widget.services.reminders.onAction = null;
+  }
+
+  void _syncRinging() {
+    unawaited(widget.services.syncRinging());
+    _ringingSync?.cancel();
+    _ringingSync = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => unawaited(widget.services.syncRinging()),
+    );
+  }
+
+  void _onRinging() {
+    if (mounted) _rebuild(() {});
   }
 
   /// The lock has just opened: points at the note a tap named while it was up,

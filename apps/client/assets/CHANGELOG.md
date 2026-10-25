@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+## v2.3.0
+
+- **A reminder rings on its card.** When a reminder goes off, its card swings a small bell in place of its icon until you open it, and the notification stays in your notifications until you do. Tapping a notification while Nex is closed now opens it straight onto the card, the same as when it is already open.
+- **Done and In an hour, right in the notification.** Each reminder notification has two buttons: **Done** clears it, **In an hour** brings it back an hour later. Neither needs Nex to open.
+- **Archive.** "Set aside" is now **Archive**. The archive page shows what comes back on its own and what waits for you, as separate cards with a button to unarchive, a swipe to do the same and **Unarchive all**. Deleting from it works again, and an archived note no longer offers Pin or full screen.
+- **Tags, Trash and Threads, redesigned.** Each is a page of separate cards: tags in their own colour with how much of your library carries them, trash with how many days each note has left, threads with how many notes they hold and when one was last added.
+- **Home layout at a glance.** The home layout sheet is now a set of quick tiles: what to show, card size with a small preview of each, and text size in four steps. It no longer appears while searching.
+- **A new pull to refresh.** Pull the home screen down and the arms of Nex's mark reach out; let go and they sweep round while the summary refreshes, then a light passes over the summary and the page.
+- **What's new.** After an update, Nex shows what changed once, the first time you open it.
+- **Smoother switching in the composer.** Moving between Note, Checklist and Link no longer makes the keyboard jump.
+
 ## v2.2.2
 
 - **The portrait arrives as you scroll.** Each part of your writing portrait — the figures, the 30-day bars, the ring, the shape of your traits — now plays its entrance when you scroll to it, instead of everything finishing the moment the page opens. The page also opens lighter, so the small stutter on entering is gone.

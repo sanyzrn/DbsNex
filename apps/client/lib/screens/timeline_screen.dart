@@ -6,9 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show ValueListenable, compute;
 import '../documents/text_import.dart';
 import '../platform/cycle_reminders.dart';
+import '../platform/reminders.dart';
 import '../platform/note_copy.dart';
 import '../platform/file_opener.dart';
 import '../platform/hold_menu.dart';
+import '../widgets/whats_new_sheet.dart';
+import '../widgets/nex_pull_refresh.dart';
 import '../widgets/translate_sheet.dart';
 import '../platform/photo_encoding.dart';
 import 'package:flutter/services.dart';
@@ -250,6 +253,11 @@ class TimelineScreenState extends State<TimelineScreen>
   /// is running waits for it instead of being dropped.
   Future<void>? _aiSummaryInFlight;
   Timer? _aiSummaryWake;
+  Timer? _ringingSync;
+  Timer? _whatsNewWait;
+
+  /// Bumped when a pull-to-refresh finishes: what it refreshed plays a sweep.
+  final _refreshPulse = ValueNotifier<int>(0);
   bool _aiSummaryManualRequested = false;
   bool _briefPreferencesQueued = false;
   int _setAsideTotal = 0; // read only while the home screen is empty
@@ -321,6 +329,7 @@ class TimelineScreenState extends State<TimelineScreen>
     unawaited(_releaseSetAside());
     _swipe.addListener(_onSwipeChanged);
     _model.addListener(_onModelChanged);
+    _wireRinging();
     widget.preferences.addListener(_onBriefPreferencesChanged);
     // Fire and forget, and deliberately not awaited anywhere: the card that
     // is already cached draws on this frame, and a fetch that never comes
@@ -372,7 +381,11 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     widget.services.reminders.onOpenNote = _openArrived;
     final launched = widget.services.reminders.takeLaunchNoteId();
-    if (launched != null) _openArrived(launched, cold: true);
+    if (launched != null) {
+      _openArrived(launched, cold: true);
+    } else {
+      _maybeWhatsNew();
+    }
     _wireOsRequests();
     // And both halves of a tapped download. Here rather than in the app
     // widget because opening a screen needs a Navigator, and the app widget
@@ -699,10 +712,12 @@ class TimelineScreenState extends State<TimelineScreen>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       _aiSummaryWake?.cancel();
+      _ringingSync?.cancel();
       unawaited(_model.retireSpentReminders());
       return;
     }
     if (state == AppLifecycleState.resumed) {
+      _syncRinging();
       unawaited(_loadAiSummary());
       unawaited(_releaseSetAside());
       // A failed sponsor fetch is retried on a real return to the app rather
@@ -734,6 +749,8 @@ class TimelineScreenState extends State<TimelineScreen>
     _aiSummaryWake?.cancel();
     widget.preferences.removeListener(_onBriefPreferencesChanged);
     _model.removeListener(_onModelChanged);
+    _unwireRinging();
+    _refreshPulse.dispose();
     _model.dispose();
     _swipe.removeListener(_onSwipeChanged);
     _swipe.dispose();

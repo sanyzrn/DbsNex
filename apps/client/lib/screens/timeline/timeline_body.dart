@@ -241,10 +241,8 @@ extension _TimelineBody on TimelineScreenState {
       child: child,
     );
     if (!enabled) return child;
-    final scheme = Theme.of(context).colorScheme;
-    return RefreshIndicator(
-      color: scheme.primary,
-      backgroundColor: scheme.surfaceContainerLowest,
+    return NexPullRefresh(
+      semanticsLabel: AppLocalizations.of(context).recapRefreshing,
       // Not while two fingers are on the list (2.1.7). A pinch at the top
       // of the timeline moves one finger down, which the list reads as a
       // pull, and the refresh started under the pinch that was folding the
@@ -254,19 +252,25 @@ extension _TimelineBody on TimelineScreenState {
       notificationPredicate: (notification) =>
           notification.depth == 0 &&
           (!_multiTouch || notification is ScrollEndNotification),
+      // What was refreshed shows it: a sweep of light over the brief, and a
+      // fainter one over the page.
+      onSettled: () => _refreshPulse.value++,
       // Not `force: true` for the sponsor: the gesture must not bypass its
       // daily success interval or failed-refresh cool-off.
       onRefresh: () async {
         // Not dropped while a brief is already being written: the pull
         // waits for that one (see [_loadAiSummary]).
-        nexBump();
         await Future.wait<void>([
           _sponsor.refresh(manual: true),
           _loadAiSummary(force: true),
         ]);
         if (mounted) _rebuild(() {});
       },
-      child: child,
+      child: NexRefreshSheen(
+        pulse: _refreshPulse,
+        strength: 0.06,
+        child: child,
+      ),
     );
   }
 
@@ -486,6 +490,9 @@ extension _TimelineBody on TimelineScreenState {
                         expanded: widget.preferences.isNoteExpanded(note.id),
                         threadAbove: sameRun(index - 1),
                         threadBelow: sameRun(index + 1),
+                        ringing: widget.services.ringing.value.contains(
+                          note.id,
+                        ),
                       ),
                     ),
                   ),
