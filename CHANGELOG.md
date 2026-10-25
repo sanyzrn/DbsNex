@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v2.3.3
+
+- **Archive: two buttons on each card.** Like the trash, each archived note now has two buttons side by side, **Unarchive** and **Delete**, instead of a menu for deleting. Cards in the archive and the trash no longer swipe; a sideways swipe is always the swipe back to the previous page.
+
 ## v2.3.2
 
 - **Scheduled, in the Library.** Notes on their way now have their own tile in the Library, beside the archive, saying how many are waiting (it is still in Tools too). The page is redesigned like the archive: each note as its own card with when it arrives, how many days are left, a bar for how much of the wait is behind it, and a button to deliver it now.

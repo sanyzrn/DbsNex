@@ -18,8 +18,8 @@ import '../widgets/nex_shelf.dart';
 /// Two runs of cards. "Coming back on their own" holds the notes archived
 /// until a time, soonest first, each saying how many days are left; "Waiting
 /// for you" holds the ones that stay until they are brought back. A card opens
-/// the note (with only the actions an archived note needs), its button or a
-/// swipe from the start edge brings it back, and its menu deletes it.
+/// the note (with only the actions an archived note needs); its two buttons
+/// bring it back or delete it, each with an Undo.
 class SetAsideScreen extends StatefulWidget {
   const SetAsideScreen({
     super.key,
@@ -52,8 +52,7 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
 
   Future<void> _bringBack(Note note) async {
     if (widget.preferences.haptics) unawaited(HapticFeedback.selectionClick());
-    // Off the list at once, so a swiped card is not drawn again under the
-    // finger that just moved it.
+    // Off the list at once, so the card does not linger after the tap.
     setState(() => notes = [...?notes]..removeWhere((n) => n.id == note.id));
     await widget.services.bringBack(note.id);
     await widget.services.refreshTimeline();
@@ -209,9 +208,6 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
       title: Text(nexNoteHeadline(note, l10n)),
       accent: nexNoteTypeTint(note.type.wireName, scheme),
       onTap: () => unawaited(_open(note)),
-      onSwipe: () => unawaited(_bringBack(note)),
-      swipeIcon: Icons.unarchive_outlined,
-      swipeLabel: l10n.setAsideBringBack,
       meta: [
         if (until != null)
           NexMetaChip(
@@ -239,16 +235,12 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
             icon: const Icon(Icons.unarchive_outlined),
             onPressed: () => unawaited(_bringBack(note)),
           ),
-          NexPopupMenuButton<String>(
-            onSelected: (_) => unawaited(_delete(note)),
-            itemBuilder: (context) => [
-              nexMenuItem(
-                value: 'delete',
-                icon: Icons.delete_outline,
-                label: l10n.delete,
-                destructive: true,
-              ),
-            ],
+          IconButton(
+            key: ValueKey('archive-delete-${note.id}'),
+            tooltip: l10n.delete,
+            color: Theme.of(context).colorScheme.error,
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => unawaited(_delete(note)),
           ),
         ],
       ),

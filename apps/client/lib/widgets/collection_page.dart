@@ -9,7 +9,6 @@ import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../screens/note_detail_sheet.dart';
-import 'collection_swipe.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
 
@@ -214,11 +213,10 @@ class NexMetaChip extends StatelessWidget {
 
 /// One thing in a collection, as its own card.
 ///
-/// [accent] colours its leading edge. [onSwipe], when given, is what a swipe
-/// toward the start edge does — the collection's one gentle action (bring back,
-/// restore) — shown under the card as it moves with [swipeIcon] and
-/// [swipeLabel]. [progress] draws a thin bar along the bottom (how much of
-/// the trash's thirty days is left).
+/// [accent] colours its leading edge. [progress] draws a thin bar along the
+/// bottom (how much of the trash's thirty days is left). A card does not
+/// swipe (2.3.3): its actions are its buttons, and a horizontal drag stays
+/// the page's swipe back.
 class NexCollectionTile extends StatelessWidget {
   const NexCollectionTile({
     super.key,
@@ -229,9 +227,6 @@ class NexCollectionTile extends StatelessWidget {
     this.onTap,
     this.accent,
     this.progress,
-    this.onSwipe,
-    this.swipeIcon,
-    this.swipeLabel,
   });
 
   final Widget leading;
@@ -241,16 +236,13 @@ class NexCollectionTile extends StatelessWidget {
   final VoidCallback? onTap;
   final Color? accent;
   final double? progress;
-  final VoidCallback? onSwipe;
-  final IconData? swipeIcon;
-  final String? swipeLabel;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final edge = accent ?? scheme.primary;
-    Widget card = Material(
+    final card = Material(
       color: scheme.surfaceContainerLowest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
@@ -325,35 +317,6 @@ class NexCollectionTile extends StatelessWidget {
         ),
       ),
     );
-    if (onSwipe case final swipe?) {
-      // Toward the start edge only, and giving the other way up to the
-      // page's swipe back (2.3.2) — see [NexStartSwipe].
-      card = NexStartSwipe(
-        onSwipe: swipe,
-        background: Container(
-          decoration: BoxDecoration(
-            color: edge.withValues(alpha: 0.16),
-            borderRadius: BorderRadius.circular(NexRadius.lg),
-          ),
-          padding: const EdgeInsetsDirectional.only(end: NexSpacing.lg),
-          alignment: AlignmentDirectional.centerEnd,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(swipeIcon ?? Icons.check, color: edge),
-              if (swipeLabel != null) ...[
-                const SizedBox(width: NexSpacing.sm),
-                Text(
-                  swipeLabel!,
-                  style: theme.textTheme.labelLarge?.copyWith(color: edge),
-                ),
-              ],
-            ],
-          ),
-        ),
-        child: card,
-      );
-    }
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         NexSpacing.md,

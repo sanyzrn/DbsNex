@@ -89,8 +89,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
 
   Future<void> _restore(Note note) async {
     _tick();
-    // Off the list at once, so a swiped card is not drawn again under the
-    // finger that just moved it.
+    // Off the list at once, so the card does not linger after the tap.
     setState(() => notes = [...?notes]..removeWhere((n) => n.id == note.id));
     await widget.services.undelete(note.id);
     await widget.services.refreshTimeline();
@@ -213,9 +212,6 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       accent: left <= 3 ? scheme.error : scheme.outline,
       // The thirty days, running out: a full bar on the day it went in.
       progress: left / _keep,
-      onSwipe: () => unawaited(_restore(note)),
-      swipeIcon: Icons.restore,
-      swipeLabel: l10n.restore,
       meta: [
         if (deleted != null)
           NexMetaChip(

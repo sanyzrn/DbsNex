@@ -216,7 +216,7 @@ void main() {
     expect(await services.deletedNotes(), hasLength(1));
   });
 
-  testWidgets('from a card, a swipe back leaves; toward the start acts', (
+  testWidgets('from a card, a swipe back leaves; its buttons act', (
     tester,
   ) async {
     for (final note in await services.worker.timeline(limit: 10)) {
@@ -243,11 +243,11 @@ void main() {
     expect(find.byType(SetAsideScreen), findsNothing);
     expect(await services.setAsideCount(), 2, reason: 'nothing unarchived');
 
-    // Toward the start: the card's own action.
+    // A card's actions are its two buttons (2.3.3): delete is one of them.
     await enterArchive();
-    await tester.drag(cardOf, const Offset(-300, 0));
+    await tester.tap(find.byKey(ValueKey('archive-delete-${alpha.id}')));
     await tester.pumpAndSettle();
-    expect(find.byType(SetAsideScreen), findsOneWidget);
     expect(await services.setAsideCount(), 1);
+    expect(find.text('Undo'), findsOneWidget);
   });
 }
