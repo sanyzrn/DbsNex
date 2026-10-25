@@ -167,7 +167,8 @@ extension _DetailActions on _NoteDetailSheetState {
   /// step with what is stored.
   Future<void> _toggleItem(int index) async {
     final note = _note;
-    if (note == null) return;
+    // An archived note is read until it is unarchived (2.3.3).
+    if (note == null || note.isSetAside()) return;
     final items = note.checklistItems;
     // The last open line: the one touch that finishes the list.
     final finishing =
@@ -413,7 +414,9 @@ extension _DetailActions on _NoteDetailSheetState {
 
   Future<void> _editCaption() async {
     final note = _note;
-    if (note == null || note.type == NoteType.text) return;
+    if (note == null || note.type == NoteType.text || note.isSetAside()) {
+      return;
+    }
     final preferences = widget.preferences;
     if (preferences == null) return;
     final value = await NoteEditorSheet.show(

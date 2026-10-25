@@ -261,3 +261,49 @@ class _DetailHeading extends StatelessWidget {
     );
   }
 }
+
+/// Says why an archived note offers so little (2.3.3): it is read, not worked
+/// on, until it is unarchived — and, when it has one, when it comes back.
+class _ArchivedStrip extends StatelessWidget {
+  const _ArchivedStrip({required this.note, required this.solar});
+
+  final Note note;
+  final bool solar;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final hue = NexHue.amber.on(context);
+    final until = note.setAsideUntil;
+    return Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      child: Container(
+        key: const ValueKey('detail-archived'),
+        padding: const EdgeInsets.symmetric(
+          horizontal: NexSpacing.md,
+          vertical: NexSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: hue.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(NexRadius.md),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.archive_outlined, size: 18, color: hue),
+            const SizedBox(width: NexSpacing.sm),
+            Expanded(
+              child: Text(
+                until == null
+                    ? l10n.archiveReadOnly
+                    : '${l10n.archiveReadOnly} '
+                          '${l10n.setAsideBackOn(nexReadableDate(until, solar: solar, persian: l10n.localeName == 'fa'))}',
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

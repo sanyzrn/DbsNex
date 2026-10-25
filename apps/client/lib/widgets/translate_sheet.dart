@@ -10,19 +10,26 @@ import '../platform/nex_preferences.dart';
 import '../platform/crash_reporter.dart';
 import '../platform/nex_services.dart';
 import 'nex_banner.dart';
-import 'nex_dialog.dart';
 
-/// A note in the other language, read side by side with itself.
+/// A note in the other language, inside its AI workspace (rebuilt in 2.3.3).
 ///
-/// Translation never changes the source text. The note workspace can offer
-/// an explicit caption update; all callers retain Copy and Save as note.
+/// The direction is worked out, not asked: a Persian note goes into English
+/// and an English one into Persian, shown as one line — "Persian → English".
+/// It used to offer both languages as equal choices, and the one that matched
+/// the note asked the model to translate a note into its own language, which
+/// failed. Only a note written in both, where either way is a real request,
+/// gets a swap.
+///
+/// Translation never changes the source. What comes back can be copied,
+/// kept as a new note, or (for media) added to the caption, and it is kept
+/// for the session: hiding it, switching tabs or opening the note again
+/// shows it without asking a second time.
 class TranslateSheet extends StatefulWidget {
   const TranslateSheet({
     super.key,
     required this.text,
     required this.preferences,
     required this.services,
-    this.embedded = false,
     this.onAddToCaption,
     this.addingCaption = false,
     this.adapter,
@@ -32,17 +39,12 @@ class TranslateSheet extends StatefulWidget {
   /// The note [text] came from, named in the log of what left the phone.
   final String? noteId;
 
-  /// The note's own words. Already resolved by the caller — a voice note's
-  /// transcript and a photo's extracted text are as translatable as anything
-  /// typed, and the sheet should not have to know which it was handed.
+  /// The words to translate, already resolved by the caller — a photo's
+  /// extracted text is as translatable as anything typed.
   final String text;
 
   final NexPreferences preferences;
   final NexServices services;
-
-  /// The note's AI workspace hosts the same translator inline. Other callers
-  /// keep the modal, including its language picker and Save as note action.
-  final bool embedded;
   final ValueChanged<String>? onAddToCaption;
   final bool addingCaption;
 
@@ -53,28 +55,57 @@ class TranslateSheet extends StatefulWidget {
   static bool availableFor(NexPreferences preferences) =>
       preferences.aiEnabled && aiTextAvailableWith(preferences.aiProvider);
 
-  static Future<void> show(
-    BuildContext context, {
-    required String text,
-    required NexPreferences preferences,
-    required NexServices services,
-    String? noteId,
-  }) => nexShowSheet<void>(
-    context: context,
-    builder: (_) => TranslateSheet(
-      text: text,
-      preferences: preferences,
-      services: services,
-      noteId: noteId,
-    ),
-  );
+  /// Whether [text] already has a translation this session, so its tab can
+  /// come back with the note.
+  static bool hasTranslation(String text) =>
+      _memory.containsKey(_key(text, nexTranslationTarget(text)));
+
+  @visibleForTesting
+  static void forgetAll() => _memory.clear();
+
+  static final _memory = <String, String>{};
+  static String _key(String text, AiOutputLanguage target) =>
+      '${target.name}:${text.length}:${text.hashCode}';
+
+  static void _remember(String text, AiOutputLanguage target, String result) {
+    _memory.remove(_key(text, target));
+    _memory[_key(text, target)] = result;
+    // A handful is plenty: it is the notes looked at in one sitting.
+    while (_memory.length > 40) {
+      _memory.remove(_memory.keys.first);
+    }
+  }
 
   @override
   State<TranslateSheet> createState() => _TranslateSheetState();
 }
 
+/// Which way [text] is translated by default: into whichever of the two
+/// languages it is mostly *not* written in.
+AiOutputLanguage nexTranslationTarget(String text) =>
+    nexPersianShare(text) >= 0.5
+    ? AiOutputLanguage.english
+    : AiOutputLanguage.persian;
+
+/// How much of [text]'s lettering is Persian (Arabic script), from 0 to 1.
+double nexPersianShare(String text) {
+  var persian = 0;
+  var latin = 0;
+  for (final rune in text.runes) {
+    if ((rune >= 0x0600 && rune <= 0x06FF) ||
+        (rune >= 0xFB50 && rune <= 0xFEFF)) {
+      persian++;
+    } else if ((rune >= 0x41 && rune <= 0x5A) ||
+        (rune >= 0x61 && rune <= 0x7A)) {
+      latin++;
+    }
+  }
+  final letters = persian + latin;
+  return letters == 0 ? 0 : persian / letters;
+}
+
 class _TranslateSheetState extends State<TranslateSheet> {
-  late AiOutputLanguage _target = _opposite;
+  late AiOutputLanguage _target = nexTranslationTarget(widget.text);
   late final CloudAIAdapter _adapter =
       widget.adapter ?? CloudAIAdapter(config: widget.preferences.aiProvider);
 
@@ -83,21 +114,18 @@ class _TranslateSheetState extends State<TranslateSheet> {
   bool _failed = false;
   int _request = 0;
 
-  /// The language the note is *not* in.
-  ///
-  /// The whole reason to open this sheet is that the note is hard to read, so
-  /// the useful default is the other language — never the app's own output
-  /// language, which would offer to translate a Persian note into Persian for
-  /// anyone who set that once and forgot.
-  AiOutputLanguage get _opposite =>
-      nexDirectionOf(widget.text) == TextDirection.rtl
-      ? AiOutputLanguage.english
-      : AiOutputLanguage.persian;
+  /// Written in both languages in earnest, so either direction is a real
+  /// request and the swap is offered.
+  late final bool _mixed = () {
+    final share = nexPersianShare(widget.text);
+    return share > 0.25 && share < 0.75;
+  }();
 
   @override
   void initState() {
     super.initState();
-    unawaited(_translate());
+    _result = TranslateSheet._memory[TranslateSheet._key(widget.text, _target)];
+    if (_result == null) unawaited(_translate());
   }
 
   @override
@@ -108,6 +136,7 @@ class _TranslateSheetState extends State<TranslateSheet> {
 
   Future<void> _translate() async {
     final request = ++_request;
+    final target = _target;
     setState(() {
       _loading = true;
       _failed = false;
@@ -116,35 +145,37 @@ class _TranslateSheetState extends State<TranslateSheet> {
     try {
       text = await NexDisclosureLog.about(
         notes: [?widget.noteId],
-        () => _adapter.translate(widget.text, target: _target),
+        () => _adapter.translate(widget.text, target: target),
       );
     } catch (error) {
       unawaited(NexCrashLog.handled('translation', error));
       text = null;
     }
     if (!mounted || request != _request) return;
+    final ok = text != null && text.isNotEmpty;
+    if (ok) TranslateSheet._remember(widget.text, target, text);
     setState(() {
       _loading = false;
-      _failed = text == null || text.isEmpty;
-      // A failed retry keeps the previous translation on screen rather than
-      // blanking it: the words that are already there are still readable, and
-      // a dropped connection should not take them away.
-      if (text != null && text.isNotEmpty) _result = text;
+      _failed = !ok;
+      // A failed retry keeps the translation already on screen: it is still
+      // readable, and a dropped connection should not take it away.
+      if (ok) _result = text;
     });
   }
 
-  void _retarget(AiOutputLanguage value) {
-    if (value == _target) return;
+  void _swap() {
     setState(() {
-      _target = value;
-      _result = null;
+      _target = _target == AiOutputLanguage.english
+          ? AiOutputLanguage.persian
+          : AiOutputLanguage.english;
+      _result =
+          TranslateSheet._memory[TranslateSheet._key(widget.text, _target)];
+      _failed = false;
     });
-    unawaited(_translate());
+    if (_result == null) unawaited(_translate());
   }
 
-  Future<void> _copy() async {
-    final text = _result;
-    if (text == null) return;
+  Future<void> _copy(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     nexBump();
@@ -155,177 +186,209 @@ class _TranslateSheetState extends State<TranslateSheet> {
     );
   }
 
-  Future<void> _keep() async {
-    final text = _result;
-    if (text == null) return;
-    // Both captured before the sheet goes: the confirmation is shown *after*
-    // this widget is gone, and reaching back through its context then is the
-    // "deactivated widget's ancestor" crash rather than a missing toast.
+  Future<void> _keep(String text) async {
     final host = NexBannerHost.of(context);
     final message = AppLocalizations.of(context).translateSaved;
     await widget.services.captureText(text);
     widget.services.refreshTimeline();
     if (!mounted) return;
     nexBump();
-    if (!widget.embedded) Navigator.pop(context);
     host?.show(message: message, haptics: widget.preferences.haptics);
   }
+
+  String _name(AiOutputLanguage language, AppLocalizations l10n) =>
+      language == AiOutputLanguage.english
+      ? l10n.aiOutputLanguageEnglish
+      : l10n.aiOutputLanguagePersian;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final result = _result;
-    final body = Column(
+    final source = _target == AiOutputLanguage.english
+        ? AiOutputLanguage.persian
+        : AiOutputLanguage.english;
+    return Column(
+      key: const ValueKey('translation'),
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (!widget.embedded) ...[
-          Text(l10n.translate, style: theme.textTheme.titleMedium),
-          const SizedBox(height: NexSpacing.md),
-        ],
-        Text(l10n.translateTo, style: theme.textTheme.bodySmall),
-        const SizedBox(height: NexSpacing.sm),
-        // Two, not three: `auto` means "the language of the notes", which
-        // as a translation target is a request to translate a note into its
-        // own language.
-        Row(
-          children: [
-            for (final language in const [
-              AiOutputLanguage.english,
-              AiOutputLanguage.persian,
-            ]) ...[
-              if (language != AiOutputLanguage.english)
-                const SizedBox(width: NexSpacing.sm),
-              Expanded(
-                child: ChoiceChip(
-                  selected: _target == language,
-                  onSelected: _loading ? null : (_) => _retarget(language),
-                  label: Text(
-                    language == AiOutputLanguage.english
-                        ? l10n.aiOutputLanguageEnglish
-                        : l10n.aiOutputLanguagePersian,
+        // The way it goes, as one line rather than a choice.
+        Container(
+          key: const ValueKey('translation-direction'),
+          padding: const EdgeInsetsDirectional.only(
+            start: NexSpacing.md,
+            end: NexSpacing.xs,
+          ),
+          constraints: const BoxConstraints(minHeight: 44),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(NexRadius.pill),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.translate, size: 18, color: scheme.primary),
+              const SizedBox(width: NexSpacing.sm),
+              Flexible(
+                child: Text(
+                  _name(source, l10n),
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
-            ],
-          ],
-        ),
-        const SizedBox(height: NexSpacing.md),
-        if (_loading)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const LinearProgressIndicator(minHeight: 2),
-                const SizedBox(height: NexSpacing.sm),
-                Text(l10n.translateWorking, style: theme.textTheme.bodySmall),
-              ],
-            ),
-          ),
-        if (result != null)
-          if (widget.embedded)
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240),
-              child: SingleChildScrollView(
-                primary: false,
-                child: NexTextSurface(
-                  result,
-                  style: theme.textTheme.bodyLarge,
-                  selectable: true,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xs),
+                child: Icon(
+                  Icons.arrow_forward,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
-            )
-          else
-            Flexible(
-              child: SingleChildScrollView(
-                child: Opacity(
-                  opacity: _loading ? 0.45 : 1,
-                  child: SizedBox(
-                    width: double.infinity,
-                    // The translation's direction comes from the translation,
-                    // not from the note it came from — that is the whole
-                    // point of having changed language.
-                    child: NexTextSurface(
-                      result,
-                      style: theme.textTheme.bodyLarge,
-                      selectable: true,
+              Flexible(
+                child: Text(
+                  _name(_target, l10n),
+                  key: const ValueKey('translation-target'),
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (_mixed)
+                IconButton(
+                  key: const ValueKey('translation-swap'),
+                  tooltip: l10n.translateSwap,
+                  onPressed: _loading ? null : _swap,
+                  icon: const Icon(Icons.swap_horiz, size: 20),
+                ),
+              if (result != null)
+                IconButton(
+                  key: const ValueKey('translation-again'),
+                  tooltip: l10n.translateAgain,
+                  onPressed: _loading ? null : () => unawaited(_translate()),
+                  icon: const Icon(Icons.refresh, size: 20),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: NexSpacing.md),
+        NexAnimatedSize(
+          child: _loading && result == null
+              ? Semantics(
+                  label: l10n.translateWorking,
+                  liveRegion: true,
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      NexSkeleton(height: 14),
+                      SizedBox(height: NexSpacing.sm),
+                      NexSkeleton(height: 14),
+                      SizedBox(height: NexSpacing.sm),
+                      FractionallySizedBox(
+                        widthFactor: 0.6,
+                        child: NexSkeleton(height: 14),
+                      ),
+                    ],
+                  ),
+                )
+              : result == null
+              ? const SizedBox(width: double.infinity)
+              : Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.sm,
+                  ),
+                  child: AnimatedOpacity(
+                    opacity: _loading ? 0.45 : 1,
+                    duration: NexMotion.standard,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 280),
+                      child: SingleChildScrollView(
+                        primary: false,
+                        // The translation's direction comes from the
+                        // translation, not from the note it came from.
+                        child: NexTextSurface(
+                          result,
+                          key: const ValueKey('translation-result'),
+                          selectable: true,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            height: 1.65,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
+        ),
         if (_failed && !_loading) ...[
-          Text(
-            _adapter.lastReplyTruncated
-                ? l10n.aiIncompleteReply
-                : l10n.translateFailed,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.error,
-            ),
-          ),
           const SizedBox(height: NexSpacing.sm),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
-              onPressed: () => unawaited(_translate()),
-              icon: const Icon(Icons.refresh, size: 18),
-              label: Text(l10n.retry),
+          Container(
+            key: const ValueKey('translation-failed'),
+            padding: const EdgeInsetsDirectional.only(
+              start: NexSpacing.md,
+              end: NexSpacing.xs,
+              top: NexSpacing.xs,
+              bottom: NexSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: scheme.errorContainer.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(NexRadius.md),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, size: 18, color: scheme.error),
+                const SizedBox(width: NexSpacing.sm),
+                Expanded(
+                  child: Text(
+                    _adapter.lastReplyTruncated
+                        ? l10n.aiIncompleteReply
+                        : l10n.translateFailed,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => unawaited(_translate()),
+                  child: Text(l10n.retry),
+                ),
+              ],
             ),
           ),
         ],
-        if (result != null && widget.embedded) ...[
+        if (result != null) ...[
           const SizedBox(height: NexSpacing.sm),
           Wrap(
-            spacing: NexSpacing.sm,
+            spacing: NexSpacing.xs,
             runSpacing: NexSpacing.xs,
             children: [
               TextButton.icon(
-                onPressed: _loading ? null : () => unawaited(_copy()),
+                onPressed: _loading ? null : () => unawaited(_copy(result)),
                 icon: const Icon(Icons.copy_outlined, size: 18),
                 label: Text(l10n.copy),
               ),
-              if (widget.onAddToCaption != null)
+              if (widget.onAddToCaption case final add?)
                 TextButton.icon(
                   onPressed: _loading || widget.addingCaption
                       ? null
-                      : () => widget.onAddToCaption!(result),
+                      : () => add(result),
                   icon: const Icon(Icons.playlist_add_outlined, size: 18),
                   label: Text(l10n.aiAddToCaption),
                 ),
               TextButton.icon(
-                onPressed: _loading ? null : () => unawaited(_keep()),
+                onPressed: _loading ? null : () => unawaited(_keep(result)),
                 icon: const Icon(Icons.note_add_outlined, size: 18),
                 label: Text(l10n.translateSaveAsNote),
               ),
             ],
           ),
         ],
-        if (result != null && !widget.embedded) ...[
-          const SizedBox(height: NexSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _loading ? null : () => unawaited(_copy()),
-                  icon: const Icon(Icons.copy_outlined, size: 18),
-                  label: Text(l10n.copy),
-                ),
-              ),
-              const SizedBox(width: NexSpacing.sm),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: _loading ? null : () => unawaited(_keep()),
-                  icon: const Icon(Icons.note_add_outlined, size: 18),
-                  label: Text(l10n.translateSaveAsNote),
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
     );
-    return widget.embedded ? body : NexSheetBody(child: body);
   }
 }

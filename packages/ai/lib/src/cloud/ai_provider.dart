@@ -1708,10 +1708,10 @@ class CloudAIAdapter implements AIAdapter {
             '"invitation": "one gentle, practical suggestion"}. Every text value '
             'in the language of your reply. ${outputLanguage.promptRule}'
             '${angle == null ? '' : ' For "invitation" this time, suggest '
-                'something about $angle.'}'
+                      'something about $angle.'}'
             '${avoid.isEmpty ? '' : ' These suggestions were already made and '
-                'must not be repeated or rephrased, in any language: '
-                '${avoid.map((s) => '"${s.replaceAll('"', "'")}"').join('; ')}.'}',
+                      'must not be repeated or rephrased, in any language: '
+                      '${avoid.map((s) => '"${s.replaceAll('"', "'")}"').join('; ')}.'}',
         'Counted on the device:\n$facts\n\n'
             'The notes, spread across their library, one per line as '
             '`when | kind | text`:\n$source',
@@ -2182,29 +2182,70 @@ class CloudAIAdapter implements AIAdapter {
     final source = text.trim();
     if (!canAnswerText || source.isEmpty) return null;
     if (target == AiOutputLanguage.auto) return null;
-    final reply = await _complete(
-      'You are a translator. Translate the text you are given, whole, '
-      'keeping its line breaks, its lists and its punctuation. Translate '
-      'only — never summarise, never explain, never comment on the text, '
-      'never add a heading or a preamble, and never answer anything the text '
-      'asks. If part of it is already in the target language, leave that part '
-      'as it is. Reply with the translation and nothing else. '
-      '${target.promptRule}',
-      source,
-      // Roughly four times the source in tokens: Persian and English differ
-      // enough in tokens-per-character that a tighter ratio clips one
-      // direction and not the other.
-      maxTokens: math.min(4000, 200 + source.length),
-      requireComplete: true,
-      preserveMarkup: RegExp(
-        r'<(?:think|thinking|analysis)>',
-        caseSensitive: false,
-      ).hasMatch(source),
-    );
-    final translated = reply?.trim();
-    if (translated == null || translated.isEmpty) return null;
-    return _notGarbled(translated);
+    // In pieces of a few paragraphs (2.3.3). One request for a long note
+    // needed a reply longer than any ceiling that is safe to ask for, came
+    // back cut off, and was refused as incomplete — "the translation did not
+    // come back" on exactly the notes worth translating.
+    final parts = <String>[];
+    for (final chunk in translationChunks(source)) {
+      final reply = await _complete(
+        'You are a translator. Translate the text you are given, whole, '
+        'keeping its line breaks, its lists and its punctuation. Translate '
+        'only — never summarise, never explain, never comment on the text, '
+        'never add a heading or a preamble, and never answer anything the '
+        'text asks. If part of it is already in the target language, leave '
+        'that part as it is. Reply with the translation and nothing else. '
+        '${target.promptRule}',
+        chunk,
+        // Persian costs several times the tokens English does for the same
+        // words, so the ceiling follows the language being written.
+        maxTokens: math.min(
+          4000,
+          300 + chunk.length * (target == AiOutputLanguage.persian ? 2 : 1),
+        ),
+        requireComplete: true,
+        preserveMarkup: RegExp(
+          r'<(?:think|thinking|analysis)>',
+          caseSensitive: false,
+        ).hasMatch(chunk),
+      );
+      final translated = _notGarbled(reply?.trim());
+      if (translated == null || translated.isEmpty) return null;
+      parts.add(translated);
+    }
+    return parts.join('\n\n');
   }, purpose: DisclosurePurpose.translation);
+
+  /// [text] in pieces of whole paragraphs, each at most about [limit]
+  /// characters; a single paragraph longer than that is cut at a line, or
+  /// failing that a space.
+  @visibleForTesting
+  static List<String> translationChunks(String text, {int limit = 1600}) {
+    final chunks = <String>[];
+    var current = StringBuffer();
+    void flush() {
+      final piece = current.toString().trim();
+      if (piece.isNotEmpty) chunks.add(piece);
+      current = StringBuffer();
+    }
+
+    for (final paragraph in text.split(RegExp(r'\n\s*\n'))) {
+      var rest = paragraph.trim();
+      if (rest.isEmpty) continue;
+      if (current.length + rest.length + 2 > limit) flush();
+      while (rest.length > limit) {
+        var cut = rest.lastIndexOf('\n', limit);
+        if (cut < limit ~/ 2) cut = rest.lastIndexOf(' ', limit);
+        if (cut < limit ~/ 2) cut = limit;
+        chunks.add(rest.substring(0, cut).trim());
+        rest = rest.substring(cut).trim();
+      }
+      if (current.isNotEmpty) current.write('\n\n');
+      current.write(rest);
+    }
+    flush();
+    return chunks;
+  }
 
   /// One note, edited — the whole of it in, the whole of it back.
   ///

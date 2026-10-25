@@ -414,19 +414,31 @@ extension _DetailAiPanel on _NoteDetailSheetState {
         _readingAttachments.isNotEmpty ||
         _summarizing ||
         _loadingAi;
+    // A translation made earlier this session comes back with the note
+    // (2.3.3), as a tab, without asking for it again.
+    final translationSource = _translationRequested
+        ? _translationText
+        : _translationSource(note);
+    final hasTranslation =
+        _translationRequested ||
+        (widget.preferences != null &&
+            translationSource.isNotEmpty &&
+            TranslateSheet.hasTranslation(translationSource));
     final hasResults =
-        derived.isNotEmpty || _translationRequested || _suggestions.isNotEmpty;
+        derived.isNotEmpty || hasTranslation || _suggestions.isNotEmpty;
     if (!hasResults && actions.isEmpty && !busy) {
       return const SizedBox.shrink();
     }
     final translating =
-        _translationRequested && _activeAiResult == 'translation';
+        hasTranslation &&
+        (_activeAiResult == 'translation' ||
+            (derived.isEmpty && _activeAiResult == null));
     final selected =
         derived.where((r) => r.id == _activeAiResult).firstOrNull ??
         derived.lastOrNull;
     final choices = [
       ...derived,
-      if (_translationRequested) _AiResult('translation', l10n.translate, ''),
+      if (hasTranslation) _AiResult('translation', l10n.translate, ''),
     ];
     final selectedId = translating ? 'translation' : selected?.id;
     final resultLabel = translating
@@ -640,28 +652,32 @@ extension _DetailAiPanel on _NoteDetailSheetState {
                           ),
                         ],
                         if (widget.preferences case final preferences?
-                            when _translationRequested)
+                            when hasTranslation)
                           Visibility(
                             visible: translating,
                             maintainState: true,
-                            child: TranslateSheet(
-                              key: ValueKey(
-                                'note-translation-${note.id}-${_translationText.hashCode}',
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                top: NexSpacing.sm,
                               ),
-                              text: _translationText,
-                              preferences: preferences,
-                              services: widget.services,
-                              noteId: note.id,
-                              embedded: true,
-                              addingCaption: _addingCaption,
-                              onAddToCaption: canCaption
-                                  ? (text) =>
-                                        unawaited(_addDerivedToCaption(text))
-                                  : null,
+                              child: TranslateSheet(
+                                key: ValueKey(
+                                  'note-translation-${note.id}-${translationSource.hashCode}',
+                                ),
+                                text: translationSource,
+                                preferences: preferences,
+                                services: widget.services,
+                                noteId: note.id,
+                                addingCaption: _addingCaption,
+                                onAddToCaption: canCaption
+                                    ? (text) =>
+                                          unawaited(_addDerivedToCaption(text))
+                                    : null,
+                              ),
                             ),
                           ),
                         if (_suggestions.isNotEmpty) ...[
-                          if (selected != null || _translationRequested)
+                          if (selected != null || hasTranslation)
                             Padding(
                               padding: const EdgeInsets.all(NexSpacing.sm),
                               child: Text(

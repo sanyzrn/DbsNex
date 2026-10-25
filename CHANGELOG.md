@@ -36,6 +36,9 @@ Working convention:
 
 ## v2.3.3
 
+- **An archived note is read only.** Opened from the archive it says so at the top, with when it comes back, and offers only what fits a note put away: open, share, copy, unarchive, details and delete. Editing, tags, threads, pinning and the Nex AI workspace wait until it is unarchived; a reminder it already had can still be changed or cleared.
+- **Hidden AI results stay hidden.** Hiding the Nex AI results of a note is remembered, so they stay hidden the next time you open it, until you show them again.
+- **Translation, rebuilt.** Translate no longer asks which language: a Persian note goes into English and an English one into Persian, shown as one line ("Persian → English"), so it can no longer fail by translating a note into its own language. A note written in both gets a swap. Long notes are translated in pieces, so they no longer come back cut off and fail. A translation stays for the session, as its own tab, without asking again; it can be translated again, copied, kept as a note or added to a caption.
 - **Archive: two buttons on each card.** Like the trash, each archived note now has two buttons side by side, **Unarchive** and **Delete**, instead of a menu for deleting. Cards in the archive and the trash no longer swipe; a sideways swipe is always the swipe back to the previous page.
 
 ## v2.3.2

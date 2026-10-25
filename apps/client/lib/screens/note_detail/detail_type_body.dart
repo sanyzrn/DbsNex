@@ -190,17 +190,18 @@ extension _DetailTypeBody on _NoteDetailSheetState {
             color: Theme.of(context).colorScheme.secondary,
           ),
         ),
-      Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: TextButton(
-          onPressed: _editCaption,
-          child: Text(
-            note.caption == null || note.caption!.trim().isEmpty
-                ? l10n.addCaption
-                : l10n.editCaption,
+      if (!note.isSetAside())
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton(
+            onPressed: _editCaption,
+            child: Text(
+              note.caption == null || note.caption!.trim().isEmpty
+                  ? l10n.addCaption
+                  : l10n.editCaption,
+            ),
           ),
         ),
-      ),
     ],
   ];
 }

@@ -23,6 +23,7 @@ import '../documents/docx_markdown.dart';
 import '../documents/text_import.dart';
 import '../platform/hold_menu.dart';
 import '../platform/display_date.dart' show nexReadableDate;
+import '../widgets/nex_shelf.dart' show NexHue;
 import '../l10n/app_localizations.dart';
 import '../l10n/relative_span.dart';
 import '../widgets/card_strings.dart';
@@ -148,7 +149,19 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   ///
   /// Existing output starts folded; explicitly reading media reveals it.
   bool _showAi = false;
-  bool _hideAiResults = false;
+
+  /// Remembered per note (2.3.3): results hidden here stay hidden the next
+  /// time the note is opened, until they are shown again or a new AI action
+  /// asks for them.
+  late bool _hiddenAi =
+      widget.preferences?.aiResultsHidden(widget.noteId) ?? false;
+  bool get _hideAiResults => _hiddenAi;
+  set _hideAiResults(bool hidden) {
+    if (hidden == _hiddenAi) return;
+    _hiddenAi = hidden;
+    unawaited(widget.preferences?.setAiResultsHidden(widget.noteId, hidden));
+  }
+
   bool _loadingAi = false;
   String? _activeAiResult;
   bool _translationRequested = false;
@@ -192,6 +205,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         await _reload();
         final note = _note;
         if (!mounted || note == null) return;
+        // An archived note is read only (2.3.3): a hold action from search
+        // that would change it or ask AI about it does not run on it.
+        if (note.isSetAside() && action != NexHoldAction.details) return;
         switch (action) {
           case NexHoldAction.thread:
             await _pickThreads(note.id);
@@ -331,7 +347,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         child: _read ? Text(l10n.noteNotFound) : const NexSkeleton(height: 16),
       );
     }
-    final isText = note.type == NoteType.text;
+    // An archived note is read, not worked on, until it is unarchived
+    // (2.3.3): what changes it, schedules it or asks AI about it waits.
+    final archived = note.isSetAside();
+    final isText = note.type == NoteType.text && !archived;
     final hasMedia = note.mediaUri != null;
     final editableImage =
         hasMedia &&
@@ -401,6 +420,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         time: true,
                       ),
                     ),
+                    if (archived)
+                      _ArchivedStrip(
+                        note: note,
+                        solar: widget.services.solarCalendar,
+                      ),
                     const SizedBox(height: NexSpacing.md),
                     ..._typeBody(context, note, l10n),
                     ..._attachmentStrip(context, note, l10n),
@@ -412,26 +436,29 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           TagChip(
                             tag: tag,
                             strings: nexCardStrings(context),
-                            onRemove: () async {
-                              await widget.services.removeTag(
-                                noteId: note.id,
-                                tagId: tag.id,
-                              );
-                              // Unlike _addTag, this can take a tag's usage
-                              // count to zero — without a refresh here, the
-                              // filter row on the timeline never hears about
-                              // it and keeps showing a tag nothing wears
-                              // anymore until some unrelated capture or
-                              // delete happens to trigger one.
-                              await widget.services.refreshTimeline();
-                              await _reload();
-                            },
+                            onRemove: archived
+                                ? null
+                                : () async {
+                                    await widget.services.removeTag(
+                                      noteId: note.id,
+                                      tagId: tag.id,
+                                    );
+                                    // Unlike _addTag, this can take a tag's usage
+                                    // count to zero — without a refresh here, the
+                                    // filter row on the timeline never hears about
+                                    // it and keeps showing a tag nothing wears
+                                    // anymore until some unrelated capture or
+                                    // delete happens to trigger one.
+                                    await widget.services.refreshTimeline();
+                                    await _reload();
+                                  },
                           ),
-                        ActionChip(
-                          avatar: const Icon(Icons.add, size: 16),
-                          label: Text(l10n.tag),
-                          onPressed: _addTag,
-                        ),
+                        if (!archived)
+                          ActionChip(
+                            avatar: const Icon(Icons.add, size: 16),
+                            label: Text(l10n.tag),
+                            onPressed: _addTag,
+                          ),
                         ?_attachChip(note, l10n),
                         // Threads sit with the tags: both say what a note
                         // belongs with, and neither moves it anywhere.
@@ -446,7 +473,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           ),
                       ],
                     ),
-                    _aiPanel(note, l10n),
+                    // Nothing to ask of a note put away (2.3.3): the AI
+                    // workspace comes back with the note.
+                    if (!archived) _aiPanel(note, l10n),
                   ],
                 ),
               ),
@@ -496,7 +525,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: l10n.saveToDevice,
                           onPressed: _saveToDevice,
                         ),
-                      if (note.type == NoteType.file)
+                      if (note.type == NoteType.file && !archived)
                         _DetailAction(
                           icon: Icons.drive_file_rename_outline,
                           label: l10n.rename,
@@ -518,7 +547,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: l10n.edit,
                           onPressed: _editContent,
                         ),
-                      if (editableImage)
+                      if (editableImage && !archived)
                         _DetailAction(
                           icon: Icons.crop_rotate,
                           label: l10n.edit,
@@ -529,18 +558,20 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // has them; a caller that does not gets the sheet it
                       // had before rather than a button that cannot work.
                       if (note.type == NoteType.checklist &&
+                          !archived &&
                           widget.preferences != null)
                         _DetailAction(
                           icon: Icons.edit_outlined,
                           label: l10n.edit,
                           onPressed: _editChecklist,
                         ),
-                      if (note.type == NoteType.text ||
-                          (note.type == NoteType.file &&
-                              NexTextImport.canConvert(
-                                note.originalFilename ?? note.mediaUri,
-                                mimeType: note.mimeType,
-                              )))
+                      if (!archived &&
+                          (note.type == NoteType.text ||
+                              (note.type == NoteType.file &&
+                                  NexTextImport.canConvert(
+                                    note.originalFilename ?? note.mediaUri,
+                                    mimeType: note.mimeType,
+                                  ))))
                         _DetailAction(
                           icon: Icons.description_outlined,
                           label: note.type == NoteType.text
@@ -605,7 +636,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                               : l10n.expandCard,
                           onPressed: () => unawaited(_toggleExpanded(note.id)),
                         ),
-                      if (NexReminders.supported)
+                      // Archived: only to change or clear a reminder it
+                      // already had, which still rings.
+                      if (NexReminders.supported &&
+                          (!archived || note.dueAt != null))
                         _DetailAction(
                           icon: note.dueAt == null
                               ? Icons.notifications_none
@@ -613,11 +647,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: l10n.remind,
                           onPressed: _pickReminder,
                         ),
-                      _DetailAction(
-                        icon: Icons.timeline_outlined,
-                        label: l10n.threads,
-                        onPressed: () => unawaited(_pickThreads(note.id)),
-                      ),
+                      if (!archived)
+                        _DetailAction(
+                          icon: Icons.timeline_outlined,
+                          label: l10n.threads,
+                          onPressed: () => unawaited(_pickThreads(note.id)),
+                        ),
                     ],
                     // What the note is, and getting rid of it.
                     [

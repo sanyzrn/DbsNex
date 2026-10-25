@@ -2689,6 +2689,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Swipe a note from either edge for its quick actions. Each edge is yours to set in Settings.';
 
   @override
+  String get translateSwap => 'Translate the other way';
+
+  @override
+  String get translateAgain => 'Translate again';
+
+  @override
   String get translate => 'Translate';
 
   @override
@@ -6143,6 +6149,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get setAsideView => 'Open the archive';
+
+  @override
+  String get archiveReadOnly => 'Archived — read only until you unarchive it.';
 
   @override
   String get archiveComingBack => 'Coming back on their own';
