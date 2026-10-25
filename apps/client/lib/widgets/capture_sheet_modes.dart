@@ -225,7 +225,12 @@ extension _CaptureModes on _CaptureSheetState {
           // Cut/Copy/Paste rather than replacing them — in a note, where
           // they mean something.
           formatting: kind == CaptureKind.note,
-          keyboardType: link ? TextInputType.url : TextInputType.multiline,
+          // The same keyboard for every kind. A URL keyboard has no
+          // suggestion strip, so switching to Link and back made the keyboard
+          // change height under the sheet each time — the jump that made the
+          // switch look broken. Links paste far more often than they are
+          // typed; no autocorrect is all a typed one needs.
+          keyboardType: TextInputType.multiline,
           textCapitalization: link
               ? TextCapitalization.none
               : TextCapitalization.sentences,

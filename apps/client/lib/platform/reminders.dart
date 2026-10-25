@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show DartPluginRegistrant;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -12,6 +14,7 @@ part 'reminders/scheduled_reminders.dart';
 part 'reminders/notice_reminders.dart';
 part 'reminders/note_reminders.dart';
 part 'reminders/module_reminders.dart';
+part 'reminders/reminder_actions.dart';
 
 /// Brings a note back up at the time its owner asked for.
 ///
@@ -111,6 +114,10 @@ class NexReminders {
 
   /// Called with the note id when a reminder is tapped.
   void Function(String noteId)? onOpenNote;
+
+  /// Called when **Done** or **In an hour** is pressed under a reminder while
+  /// the app is running, after the button has done its work.
+  void Function(String noteId, String action)? onAction;
 
   /// Called when the update notification is tapped.
   ///
@@ -297,6 +304,7 @@ class NexReminders {
   /// re-creating them with the new names is all a language change takes.
   Future<void> useLanguage({required bool persian}) async {
     final text = persian ? NexChannelText.fa : NexChannelText.en;
+    unawaited(NexReminderActions.rememberLanguage(persian: persian));
     if (identical(text, _text)) return;
     _text = text;
     // Before initialisation the channels are created by it, already named.
@@ -338,7 +346,19 @@ class NexReminders {
           requestSoundPermission: false,
         ),
       ),
+      onDidReceiveBackgroundNotificationResponse: nexReminderActionInBackground,
       onDidReceiveNotificationResponse: (response) {
+        if (response.notificationResponseType ==
+            NotificationResponseType.selectedNotificationAction) {
+          unawaited(
+            NexReminderActions.handle(response, _plugin).then((noteId) {
+              if (noteId != null) {
+                onAction?.call(noteId, response.actionId ?? '');
+              }
+            }),
+          );
+          return;
+        }
         final payload = response.payload;
         if (payload == _updatePayload) {
           onOpenUpdate?.call();
@@ -634,6 +654,35 @@ class NexReminders {
   @visibleForTesting
   static int arrivalIdFor(String noteId) => idFor('scheduled:$noteId');
 
+  /// The one-off "again in an hour" a reminder button sets: its own id, so
+  /// it never replaces (or cancels) a repeating reminder's schedule.
+  static int snoozeIdFor(String noteId) => idFor('snooze:$noteId');
+
+  /// How a note's reminder looks: the note's words, its two buttons, and
+  /// nothing on the lock screen when the app lock asks for that.
+  static NotificationDetails noteDetails({
+    required String? body,
+    required bool secret,
+    NexChannelText? text,
+  }) {
+    final words = text ?? _text;
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        words.reminders,
+        channelDescription: words.remindersAbout,
+        importance: Importance.high,
+        priority: Priority.high,
+        styleInformation: body == null || body.isEmpty
+            ? null
+            : BigTextStyleInformation(body),
+        visibility: secret ? NotificationVisibility.secret : null,
+        actions: NexReminderActions.androidActions(words),
+      ),
+      iOS: const DarwinNotificationDetails(),
+    );
+  }
+
   /// A stable 31-bit id derived from the note's own id.
   ///
   /// The plugin keys alarms by int, and notes by string. Hashing means
@@ -685,6 +734,8 @@ class NexChannelText {
     required this.dailyAbout,
     required this.updates,
     required this.updatesAbout,
+    required this.done,
+    required this.snooze,
   });
 
   final String reminders;
@@ -694,6 +745,10 @@ class NexChannelText {
   final String updates;
   final String updatesAbout;
 
+  /// The two buttons under a reminder (2.3.0).
+  final String done;
+  final String snooze;
+
   static const en = NexChannelText._(
     reminders: 'Reminders',
     remindersAbout: 'Notes you asked Nex to bring back up',
@@ -701,6 +756,8 @@ class NexChannelText {
     dailyAbout: 'One reminder a day, at a time you chose',
     updates: 'Updates',
     updatesAbout: 'Downloading a new version of Nex',
+    done: 'Done',
+    snooze: 'In an hour',
   );
 
   static const fa = NexChannelText._(
@@ -710,5 +767,7 @@ class NexChannelText {
     dailyAbout: 'روزی یک یادآوری، در ساعتی که خودتان انتخاب کردید',
     updates: 'به‌روزرسانی‌ها',
     updatesAbout: 'دریافت نسخهٔ تازهٔ Nex',
+    done: 'انجام شد',
+    snooze: 'یک ساعت دیگر',
   );
 }

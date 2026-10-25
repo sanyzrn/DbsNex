@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
 
+part 'note_card_bell.dart';
 part 'note_card_footnote.dart';
 
 /// The words a screen reader needs, in the language the user chose.
@@ -165,6 +167,7 @@ class NoteCard extends StatelessWidget {
     this.selected,
     this.threadAbove = false,
     this.threadBelow = false,
+    this.ringing = false,
   });
   final Note note;
   final VoidCallback? onTap;
@@ -206,6 +209,10 @@ class NoteCard extends StatelessWidget {
   /// boxes. Drawn in the gutter between cards only, never across one.
   final bool threadAbove;
   final bool threadBelow;
+
+  /// Whether this note's reminder has rung and is waiting to be looked at:
+  /// a swinging bell takes the place of the type icon until it is opened.
+  final bool ringing;
 
   @override
   Widget build(BuildContext context) {
@@ -260,6 +267,7 @@ class NoteCard extends StatelessWidget {
             showDue: showDue,
             expanded: expanded,
             selected: selected,
+            ringing: ringing,
           ),
         ),
       ),
@@ -291,8 +299,10 @@ class _CardBody extends StatelessWidget {
     required this.showDue,
     required this.expanded,
     required this.selected,
+    this.ringing = false,
   });
 
+  final bool ringing;
   final Note note;
   final VoidCallback? onTap;
   final Widget? previewOverride;
@@ -343,7 +353,7 @@ class _CardBody extends StatelessWidget {
               if (selected case final picked?)
                 _PickMark(picked: picked, note: note, strings: strings)
               else
-                _LeadingWithPin(note: note, strings: strings),
+                _LeadingWithPin(note: note, strings: strings, ringing: ringing),
               const SizedBox(width: NexSpacing.contentGap),
               Expanded(child: _withFootnote(context)),
             ],
@@ -771,9 +781,14 @@ class _Leading extends StatelessWidget {
 /// an object that is already there, which is what makes it read as part of the
 /// card rather than as something dropped on top of it.
 class _LeadingWithPin extends StatefulWidget {
-  const _LeadingWithPin({required this.note, required this.strings});
+  const _LeadingWithPin({
+    required this.note,
+    required this.strings,
+    this.ringing = false,
+  });
   final Note note;
   final NexCardStrings strings;
+  final bool ringing;
 
   @override
   State<_LeadingWithPin> createState() => _LeadingWithPinState();
@@ -825,7 +840,11 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
 
   @override
   Widget build(BuildContext context) {
-    final child = _LeadingMarkers(note: widget.note, strings: widget.strings);
+    final child = _LeadingMarkers(
+      note: widget.note,
+      strings: widget.strings,
+      ringing: widget.ringing,
+    );
     final pulse = _pulse;
     if (pulse == null) return child;
     return AnimatedBuilder(
@@ -844,16 +863,21 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
 }
 
 class _LeadingMarkers extends StatelessWidget {
-  const _LeadingMarkers({required this.note, required this.strings});
+  const _LeadingMarkers({
+    required this.note,
+    required this.strings,
+    this.ringing = false,
+  });
 
   final Note note;
   final NexCardStrings strings;
+  final bool ringing;
 
   static const _size = 20.0;
 
   @override
   Widget build(BuildContext context) {
-    final leading = _Leading(note: note);
+    final leading = ringing ? const _RingingBell() : _Leading(note: note);
     final hasTags = note.tags.isNotEmpty;
     if (note.pinnedAt == null && !hasTags) return leading;
     final scheme = Theme.of(context).colorScheme;

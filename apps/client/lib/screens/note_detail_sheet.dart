@@ -562,20 +562,24 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     // sheet — repeating them here duplicated an action that
                     // was never out of reach.
                     [
-                      _DetailAction(
-                        icon: note.pinnedAt != null
-                            ? Icons.push_pin
-                            : Icons.push_pin_outlined,
-                        label: note.pinnedAt != null
-                            ? l10n.unpin
-                            : _pinnedNoteCount >= 5
-                            ? l10n.pinLimitReached
-                            : l10n.pin,
-                        onPressed:
-                            note.pinnedAt == null && _pinnedNoteCount >= 5
-                            ? null
-                            : _togglePin,
-                      ),
+                      // An archived note is off the home screen: pinning it
+                      // to the top of that screen, or opening its card up
+                      // there, means nothing until it is back (2.3.0).
+                      if (!note.isSetAside())
+                        _DetailAction(
+                          icon: note.pinnedAt != null
+                              ? Icons.push_pin
+                              : Icons.push_pin_outlined,
+                          label: note.pinnedAt != null
+                              ? l10n.unpin
+                              : _pinnedNoteCount >= 5
+                              ? l10n.pinLimitReached
+                              : l10n.pin,
+                          onPressed:
+                              note.pinnedAt == null && _pinnedNoteCount >= 5
+                              ? null
+                              : _togglePin,
+                        ),
                       _DetailAction(
                         icon: note.isSetAside()
                             ? Icons.unarchive_outlined
@@ -589,8 +593,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // question: where this note sits on the timeline, and
                       // how hard it is to miss.
                       if (widget.preferences case final preferences?
-                          when note.displayText != null ||
-                              note.type == NoteType.checklist)
+                          when !note.isSetAside() &&
+                              (note.displayText != null ||
+                                  note.type == NoteType.checklist))
                         _DetailAction(
                           icon: preferences.isNoteExpanded(note.id)
                               ? Icons.unfold_less

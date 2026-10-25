@@ -48,6 +48,9 @@ void main() {
       );
       expect(tester.widget<NoteCard>(card).note.type, NoteType.text);
       expect(tester.takeException(), isNull);
+      // The tap left it ringing; a ringing bell never settles.
+      expect(h.services.ringing.value, contains(target.id));
+      h.services.ringing.value = const {};
       await tester.pumpAndSettle();
       // A second notification must still find an already-exhausted page.
       h.services.reminders.onOpenNote!(target.id);

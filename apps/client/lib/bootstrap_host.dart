@@ -168,6 +168,18 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
       await _closeSilently(bridge, preferences);
     }
 
+    // The notification plugin is otherwise brought up lazily, by the first
+    // reminder set. On a cold launch from a tapped reminder nothing had set
+    // one yet, so the tap's note was never read and the timeline opened with
+    // no idea where to point: no scroll, no blink, after the splash. Asked
+    // here, during the splash, so the answer is waiting when the timeline
+    // asks for it. It shows no prompt; failures are its own to record.
+    if (!silent) {
+      try {
+        await services.reminders.initialise();
+      } catch (_) {}
+    }
+
     await delay;
     return _ready = NexBootstrapSession(preferences, services, bridge, widgets);
   }

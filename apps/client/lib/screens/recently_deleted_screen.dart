@@ -5,27 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
-import '../widgets/nex_shelf.dart';
+import '../widgets/collection_page.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
-
-/// "3d ago", in the language the user chose — the same bucketing the cards
-/// use, so a note's card and its trash row agree about time.
-String _relative(BuildContext context, DateTime when) {
-  final l10n = AppLocalizations.of(context);
-  final time = nexRelativeTimeOf(when);
-  return switch (time.unit) {
-    NexRelativeUnit.now => l10n.timeNow,
-    NexRelativeUnit.minutes => l10n.timeMinutesAgo(time.count),
-    NexRelativeUnit.hours => l10n.timeHoursAgo(time.count),
-    NexRelativeUnit.days => l10n.timeDaysAgo(time.count),
-    NexRelativeUnit.weeks => l10n.timeWeeksAgo(time.count),
-    NexRelativeUnit.months => l10n.timeMonthsAgo(time.count),
-    NexRelativeUnit.years => l10n.timeYearsAgo(time.count),
-  };
-}
 
 /// The trash.
 ///
@@ -80,6 +64,9 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
 
   Future<void> _restore(Note note) async {
     _tick();
+    // Off the list at once, so a swiped card is not drawn again under the
+    // finger that just moved it.
+    setState(() => notes = [...?notes]..removeWhere((n) => n.id == note.id));
     await widget.services.undelete(note.id);
     await widget.services.refreshTimeline();
     await reload();
@@ -168,84 +155,75 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
               icon: Icons.delete_outline,
               message: l10n.recentlyDeletedEmpty,
             )
-          : Column(
+          : ListView(
+              padding: EdgeInsets.only(
+                bottom: NexSpacing.md + nexBottomInset(context),
+              ),
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    NexSpacing.md,
-                    NexSpacing.sm,
-                    NexSpacing.md,
-                    NexSpacing.xs,
-                  ),
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      l10n.trashRetention,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
+                NexCollectionHero(
+                  icon: Icons.delete_outline,
+                  color: theme.colorScheme.error,
+                  count: loaded.length,
+                  title: l10n.trash,
+                  hint: l10n.trashRetention,
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      NexSpacing.md,
-                      0,
-                      NexSpacing.md,
-                      NexSpacing.md + nexBottomInset(context),
-                    ),
-                    itemCount: loaded.length,
-                    itemBuilder: (context, index) {
-                      final note = loaded[index];
-                      return NexGroupedRow(
-                        index: index,
-                        count: loaded.length,
-                        child: ListTile(
-                          minTileHeight: 56,
-                          leading: NexIconTile(
-                            nexNoteTypeIcon(note.type.wireName),
-                          ),
-                          title: Text(
-                            note.searchableDerivedText?.trim().isNotEmpty ==
-                                    true
-                                ? note.searchableDerivedText!
-                                : l10n.noteType(note.type.wireName),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: note.deletedAt == null
-                              ? null
-                              : Text(
-                                  // The one fact a trash screen exists to
-                                  // convey: *when* this went in. It used to
-                                  // repeat the note type, which duplicated
-                                  // both the leading glyph and the title's
-                                  // own fallback and said nothing about time.
-                                  l10n.deletedWhen(
-                                    _relative(context, note.deletedAt!),
-                                  ),
-                                ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextButton(
-                                onPressed: () => unawaited(_restore(note)),
-                                child: Text(l10n.restore),
-                              ),
-                              IconButton(
-                                tooltip: l10n.deleteForever,
-                                color: theme.colorScheme.error,
-                                onPressed: () => unawaited(_purge(note)),
-                                icon: const Icon(Icons.delete_forever_outlined),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                for (final note in loaded) _card(note, l10n),
               ],
             ),
+    );
+  }
+
+  /// How long the trash keeps a note.
+  static const _keep = 30;
+
+  Widget _card(Note note, AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    final deleted = note.deletedAt;
+    final left = deleted == null
+        ? _keep
+        : (_keep + nexDaysUntil(deleted)).clamp(0, _keep);
+    return NexCollectionTile(
+      key: ValueKey('trash-${note.id}'),
+      leading: NexNoteKindSquare(type: note.type),
+      title: Text(nexNoteHeadline(note, l10n)),
+      accent: left <= 3 ? scheme.error : scheme.outline,
+      // The thirty days, running out: a full bar on the day it went in.
+      progress: left / _keep,
+      onSwipe: () => unawaited(_restore(note)),
+      swipeIcon: Icons.restore,
+      swipeLabel: l10n.restore,
+      meta: [
+        if (deleted != null)
+          NexMetaChip(
+            icon: Icons.delete_outline,
+            // The one fact a trash screen exists to convey: *when* this went
+            // in — and, now, when it goes for good.
+            label: l10n.deletedWhen(nexTimeAgo(context, deleted)),
+          ),
+        NexMetaChip(
+          icon: Icons.hourglass_bottom,
+          color: left <= 3 ? scheme.error : null,
+          label: l10n.trashGoneIn(left),
+        ),
+      ],
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            key: ValueKey('trash-restore-${note.id}'),
+            tooltip: l10n.restore,
+            color: scheme.primary,
+            icon: const Icon(Icons.restore),
+            onPressed: () => unawaited(_restore(note)),
+          ),
+          IconButton(
+            tooltip: l10n.deleteForever,
+            color: scheme.error,
+            onPressed: () => unawaited(_purge(note)),
+            icon: const Icon(Icons.delete_forever_outlined),
+          ),
+        ],
+      ),
     );
   }
 }

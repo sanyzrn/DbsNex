@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 2.2.2
+version: 2.3.0
 
 environment:
   sdk: ^3.9.0
@@ -132,6 +132,10 @@ flutter:
     # byte-for-byte, so drift between the two fails CI instead of shipping
     # silently.
     - assets/CHANGELOG.md
+    # The Persian notes, for "What's new" (2.3.0). Same rule: a copy of
+    # the root CHANGELOG.fa.md, checked byte-for-byte by
+    # changelog_panel_test.dart.
+    - assets/CHANGELOG.fa.md
     - third_party/jalaali-js-LICENSE.txt
     - third_party/Inter-OFL.txt
     - third_party/Vazirmatn-OFL.txt

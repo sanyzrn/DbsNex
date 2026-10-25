@@ -13,8 +13,8 @@ import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
 
 import '../documents/docx_markdown.dart';
+import 'collection_page.dart';
 import '../l10n/app_localizations.dart';
-import '../screens/note_detail_sheet.dart';
 import 'dismiss_on_overscroll.dart';
 import 'assistant_settings.dart';
 import 'package:nex_ai/cloud.dart';

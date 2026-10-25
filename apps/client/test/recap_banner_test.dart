@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:nex_client/widgets/nex_pull_refresh.dart';
 import 'package:nex_client/app.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_ai/cloud.dart';
@@ -97,11 +98,11 @@ void main() {
 
     // The other half, which must keep working: a gesture that visibly does
     // nothing is what a broken control looks like, so the ask is answered.
-    // A `RefreshIndicator` is attached because there is a model recap to
+    // A `NexPullRefresh` is attached because there is a model recap to
     // rewrite. Sponsor recovery piggybacks on that existing gesture without
     // putting a refresh listener on every timeline.
-    final indicator = tester.widget<RefreshIndicator>(
-      find.byType(RefreshIndicator),
+    final indicator = tester.widget<NexPullRefresh>(
+      find.byType(NexPullRefresh),
     );
 
     // Asked for by calling the callback the indicator calls, not by
@@ -154,7 +155,7 @@ void main() {
       expect(first.fontSize, rest.fontSize);
       expect(first.fontWeight, rest.fontWeight);
       final refresh = tester
-          .widget<RefreshIndicator>(find.byType(RefreshIndicator))
+          .widget<NexPullRefresh>(find.byType(NexPullRefresh))
           .onRefresh();
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));

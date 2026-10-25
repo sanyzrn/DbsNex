@@ -44,9 +44,9 @@ void main() {
   Future<void> setAside(WidgetTester tester, String text) async {
     await tester.longPress(card(text));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Set aside'));
+    await tester.tap(find.text('Archive'));
     await tester.pumpAndSettle();
-    expect(find.text('Set aside until…'), findsOneWidget);
+    expect(find.text('Archive until…'), findsOneWidget);
     await tester.tap(find.text('Until I bring it back'));
     await tester.pumpAndSettle();
   }
@@ -60,7 +60,7 @@ void main() {
     await setAside(tester, 'alpha note');
     expect(card('alpha note'), findsNothing);
     expect(card('beta note'), findsOneWidget);
-    expect(find.text('Set aside'), findsOneWidget, reason: 'the banner');
+    expect(find.text('Archived'), findsOneWidget, reason: 'the banner');
 
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
@@ -82,17 +82,17 @@ void main() {
     await tester.tap(find.byIcon(Icons.inventory_2_outlined));
     await tester.pumpAndSettle();
     expect(find.byType(LibraryScreen), findsOneWidget);
-    expect(find.text('1 note set aside'), findsOneWidget);
+    expect(find.text('1 archived note'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('library-set-aside')));
     await tester.pumpAndSettle();
     expect(find.byType(SetAsideScreen), findsOneWidget);
     expect(find.text('alpha note'), findsOneWidget);
-    expect(find.text('Until you bring it back'), findsOneWidget);
+    expect(find.text('Waiting for you'), findsOneWidget);
 
-    await tester.tap(find.text('Bring back'));
+    await tester.tap(find.byKey(ValueKey('archive-back-${alpha.id}')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Nothing set aside'), findsOneWidget);
+    expect(find.textContaining('The archive is empty'), findsOneWidget);
     expect(await services.setAsideCount(), 0);
   });
 
@@ -105,9 +105,9 @@ void main() {
     await services.refreshTimeline();
     await open(tester);
     expect(find.text('All clear'), findsOneWidget);
-    expect(find.text('2 notes set aside'), findsOneWidget);
+    expect(find.text('2 archived notes'), findsOneWidget);
 
-    await tester.tap(find.text('See what’s set aside'));
+    await tester.tap(find.text('Open the archive'));
     await tester.pumpAndSettle();
     expect(find.byType(SetAsideScreen), findsOneWidget);
     expect(find.text('alpha note'), findsOneWidget);
@@ -131,6 +131,6 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(card('beta note'), findsOneWidget);
-    expect(find.text('Set aside'), findsOneWidget);
+    expect(find.text('Archived'), findsOneWidget);
   });
 }

@@ -34,6 +34,22 @@ void main() {
     },
   );
 
+  test("the Persian copy behind What's new matches CHANGELOG.fa.md", () {
+    final root = File(
+      p.join(Directory.current.path, '..', '..', 'CHANGELOG.fa.md'),
+    );
+    final bundled = File(
+      p.join(Directory.current.path, 'assets', 'CHANGELOG.fa.md'),
+    );
+    expect(
+      bundled.readAsStringSync(),
+      root.readAsStringSync(),
+      reason:
+          'apps/client/assets/CHANGELOG.fa.md has drifted from the root '
+          'CHANGELOG.fa.md — copy the root file over it again.',
+    );
+  });
+
   testWidgets(
     'shows real bullets from the bundled CHANGELOG.md, not a network fetch',
     (tester) async {

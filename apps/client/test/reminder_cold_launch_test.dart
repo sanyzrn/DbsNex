@@ -46,6 +46,17 @@ void main() {
         tester.view.physicalSize.height / tester.view.devicePixelRatio;
     expect(rect.top, greaterThanOrEqualTo(0));
     expect(rect.bottom, lessThanOrEqualTo(height));
+    // Tapped, so it rings on its card until the card is opened.
+    expect(h.services.ringing.value, contains(target.id));
+    expect(
+      find.descendant(
+        of: card,
+        matching: find.byIcon(Icons.notifications_active_rounded),
+      ),
+      findsOneWidget,
+    );
+    // A ringing bell never settles; stop it before settling the rest.
+    h.services.ringing.value = const {};
     await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox());
   });
@@ -93,6 +104,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
     }
     expect(active(), findsOneWidget, reason: 'after $frames frames');
+    h.services.ringing.value = const {};
     await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox());
   });

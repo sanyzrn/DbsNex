@@ -51,6 +51,7 @@ part 'services/library_services.dart';
 part 'services/scheduled_services.dart';
 part 'services/cycle_services.dart';
 part 'services/note_services.dart';
+part 'services/ringing_services.dart';
 
 /// Thrown when sync is invoked before the device has been paired with a server.
 class SyncNotConfigured implements Exception {
@@ -105,6 +106,10 @@ class NexServices {
   /// and a reminder that is only scheduled by whichever screen happened to
   /// set it is a reminder that is missed by the ones that did not.
   final reminders = NexReminders();
+
+  /// Notes whose reminder is ringing: rung, and not yet looked at (2.3.0).
+  /// The cards listen to it; [NexRingingServices] keeps it.
+  final ringing = ValueNotifier<Set<String>>(const {});
 
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;

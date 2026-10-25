@@ -314,7 +314,62 @@ extension NexScheduledReminders on NexReminders {
     await initialise();
     try {
       await _plugin.cancel(id: NexReminders._idFor(noteId));
+      await _plugin.cancel(id: NexReminders.snoozeIdFor(noteId));
     } catch (_) {}
+    await NexReminderActions.forget(noteId);
+  }
+
+  /// Takes back an alarm that has not gone off yet and leaves a reminder that
+  /// already rang where it is, in the shade — for a reminder whose time has
+  /// simply passed (2.1.9; the app used to clear it on open with [cancel],
+  /// which took the notification away before anyone had seen it).
+  Future<void> withdraw(String noteId) async {
+    if (!NexReminders.supported) return;
+    await initialise();
+    await _withdraw(NexReminders._idFor(noteId));
+  }
+
+  /// The notes a **Done** was pressed for in the shade while the app was not
+  /// looking, read once.
+  Future<List<String>> takeAcknowledged() async {
+    if (!NexReminders.supported) return const [];
+    return NexReminderActions.takeAcknowledged();
+  }
+
+  /// The notes whose reminder is on screen in the notification shade now.
+  Future<Set<String>> shownNoteIds() async {
+    if (!NexReminders.supported || !Platform.isAndroid) return const {};
+    await initialise();
+    try {
+      final shown =
+          await _plugin
+              .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin
+              >()
+              ?.getActiveNotifications() ??
+          const <ActiveNotification>[];
+      return {
+        for (final notification in shown)
+          if (notification.payload case final id?
+              when id.isNotEmpty && !id.startsWith('nex:'))
+            id,
+      };
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  /// Takes a note's reminder out of the shade once it has been seen in the
+  /// app, and puts back the alarm a cancel also takes (a repeating one's
+  /// next time). [note] is null when the note no longer has a time.
+  Future<void> dismissShown(String noteId, Note? note) async {
+    if (!NexReminders.supported) return;
+    await initialise();
+    try {
+      await _plugin.cancel(id: NexReminders._idFor(noteId));
+      await _plugin.cancel(id: NexReminders.snoozeIdFor(noteId));
+    } catch (_) {}
+    if (note != null && note.dueAt != null) await schedule(note);
   }
 
   /// Rebuilds every pending alarm from the library — and prunes the ones the

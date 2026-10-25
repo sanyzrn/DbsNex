@@ -439,15 +439,10 @@ extension _ChatContext on _AiChatSheetState {
     if (changed && mounted) _rebuild(() {});
   }
 
-  Future<void> _openCited(Note note) async {
-    await nexShowSheet<DetailResult>(
-      context: context,
-      builder: (_) => NoteDetailSheet(
-        services: widget.services,
-        preferences: widget.preferences,
-        noteId: note.id,
-      ),
-    );
-    await widget.services.refreshTimeline();
-  }
+  Future<void> _openCited(Note note) => nexOpenNoteFromCollection(
+    context,
+    services: widget.services,
+    preferences: widget.preferences,
+    note: note,
+  );
 }

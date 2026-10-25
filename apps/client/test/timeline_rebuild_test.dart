@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_ai/cloud.dart';
+import 'package:nex_client/widgets/nex_pull_refresh.dart';
 import 'package:nex_client/app.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/backup_policy.dart';
@@ -166,7 +167,10 @@ void main() {
       var seen = false;
       for (var i = 0; i < 6; i++) {
         await tester.pump(const Duration(milliseconds: 50));
-        seen |= find.byType(RefreshProgressIndicator).evaluate().isNotEmpty;
+        seen |= find
+            .byKey(const ValueKey('nex-pull-refreshing'))
+            .evaluate()
+            .isNotEmpty;
       }
       await tester.pumpAndSettle();
       return seen;
@@ -981,7 +985,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(RefreshIndicator), findsNothing);
+    expect(find.byType(NexPullRefresh), findsNothing);
   });
 
   testWidgets('scrolling toward the bottom loads notes past the first 200', (
@@ -1431,7 +1435,10 @@ void main() {
 
       // And it is a moment, not a mark: nothing is left highlighted once the
       // pulses are over, or the next reminder would arrive on a timeline that
-      // is already pointing somewhere.
+      // is already pointing somewhere. (The bell on the card is the lasting
+      // mark, 2.3.0 — stopped here so the pulses can be waited out.)
+      expect(services.ringing.value, contains(target.id));
+      services.ringing.value = const {};
       await tester.pumpAndSettle(const Duration(seconds: 4));
       expect(
         tester

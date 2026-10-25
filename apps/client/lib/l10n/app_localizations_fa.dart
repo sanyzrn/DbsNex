@@ -155,6 +155,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get layoutTagRow => 'نوار برچسب‌ها';
 
   @override
+  String get layoutShowSection => 'روی صفحه‌ی اصلی';
+
+  @override
+  String get layoutLookSection => 'نما';
+
+  @override
   String chatAboutGroup(String label, int count) {
     final intl.NumberFormat countNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -1137,6 +1143,20 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get recapRefreshFailed =>
       'خلاصه تازه نشد. آنچه پایین می‌بینید آخرین خلاصه‌ای است که نکس ساخته.';
+
+  @override
+  String get recapRefreshing => 'در حال تازه کردن خلاصه‌ی هوشمند…';
+
+  @override
+  String get whatsNewTitle => 'تازه‌ها';
+
+  @override
+  String whatsNewSubtitle(String version) {
+    return 'نکس $version رسید. این‌ها عوض شده‌اند.';
+  }
+
+  @override
+  String get whatsNewDone => 'متوجه شدم';
 
   @override
   String get shareSaved => 'در نکس ذخیره شد.';
@@ -5871,14 +5891,14 @@ class AppLocalizationsFa extends AppLocalizations {
       'یادداشت هنگام دیدن ویدئو حذف شد یا لینکش عوض شد و چیزی نگه داشته نشد.';
 
   @override
-  String get setAside => 'کنار بگذار';
+  String get setAside => 'بایگانی';
 
   @override
-  String get setAsideSheetTitle => 'تا کِی کنار بگذارم؟';
+  String get setAsideSheetTitle => 'تا کِی بایگانی شود؟';
 
   @override
   String get setAsideSheetHint =>
-      'از صفحه‌ی اصلی می‌رود ولی در کتابخانه می‌ماند. با جستجو همچنان پیدایش می‌کنی.';
+      'از صفحه‌ی اصلی می‌رود ولی در کتابخانه می‌ماند و با جستجو پیدا می‌شود. اگر زمانی انتخاب کنید، خودش برمی‌گردد.';
 
   @override
   String get setAsideUntilBack => 'تا خودم برش گردانم';
@@ -5896,11 +5916,11 @@ class AppLocalizationsFa extends AppLocalizations {
   String get setAsidePickDate => 'انتخاب تاریخ…';
 
   @override
-  String get setAsideDone => 'کنار گذاشته شد';
+  String get setAsideDone => 'بایگانی شد';
 
   @override
   String setAsideDoneUntil(String when) {
-    return 'تا $when کنار گذاشته شد';
+    return 'تا $when بایگانی شد';
   }
 
   @override
@@ -5909,7 +5929,7 @@ class AppLocalizationsFa extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString یادداشت کنار گذاشته شد';
+    return '$countString یادداشت بایگانی شد';
   }
 
   @override
@@ -5918,27 +5938,27 @@ class AppLocalizationsFa extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString یادداشت از کنار گذاشتن برگشتند';
+    return '$countString یادداشت از بایگانی برگشت';
   }
 
   @override
-  String get setAsideBringBack => 'برگردان';
+  String get setAsideBringBack => 'خروج از بایگانی';
 
   @override
-  String get setAsideSection => 'کنار گذاشته‌ها';
+  String get setAsideSection => 'بایگانی';
 
   @override
   String get setAsideSectionHint => 'از صفحه‌ی اصلی کنار رفته‌اند، نه حذف';
 
   @override
-  String get setAsidePageTitle => 'کنار گذاشته‌ها';
+  String get setAsidePageTitle => 'بایگانی';
 
   @override
-  String get setAsideEmptyTitle => 'چیزی کنار گذاشته نشده';
+  String get setAsideEmptyTitle => 'بایگانی خالی است';
 
   @override
   String get setAsideEmptyBody =>
-      'یادداشتی را نگه دار و «کنار بگذار» را بزن تا فعلاً از سر راه برود.';
+      'یادداشتی را نگه دارید و «بایگانی» را بزنید تا فعلاً از سر راه برود. با جستجو پیدا می‌شود و می‌تواند خودش برگردد.';
 
   @override
   String setAsideBackOn(String when) {
@@ -5946,10 +5966,10 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get setAsideUntilFurther => 'تا خودت برش گردانی';
+  String get setAsideUntilFurther => 'تا خودتان برش گردانید';
 
   @override
-  String get setAsideMark => 'کنار گذاشته';
+  String get setAsideMark => 'بایگانی‌شده';
 
   @override
   String setAsideCountLabel(int count) {
@@ -5960,7 +5980,7 @@ class AppLocalizationsFa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$countString یادداشت کنار گذاشته',
+      other: '$countString یادداشت بایگانی‌شده',
     );
     return '$_temp0';
   }
@@ -5969,7 +5989,66 @@ class AppLocalizationsFa extends AppLocalizations {
   String get setAsideAllClear => 'همه‌چیز مرتب است';
 
   @override
-  String get setAsideView => 'دیدن کنار گذاشته‌ها';
+  String get setAsideView => 'دیدن بایگانی';
+
+  @override
+  String get archiveComingBack => 'خودشان برمی‌گردند';
+
+  @override
+  String get archiveWaiting => 'منتظر شما';
+
+  @override
+  String archiveBackIn(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString روز دیگر برمی‌گردد',
+      one: 'فردا برمی‌گردد',
+      zero: 'امروز برمی‌گردد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveBringBackAll => 'خروج همه از بایگانی';
+
+  @override
+  String archivedAgo(String when) {
+    return 'بایگانی‌شده $when';
+  }
+
+  @override
+  String trashGoneIn(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString روز دیگر برای همیشه پاک می‌شود',
+      one: 'فردا برای همیشه پاک می‌شود',
+      zero: 'امروز برای همیشه پاک می‌شود',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get tagsHint =>
+      'هر برچسب با رنگ خودش و سهمی که از کتابخانه‌تان دارد. از منوی هر برچسب می‌توانید رنگ، نام، ادغام یا حذفش را تغییر دهید.';
+
+  @override
+  String get threadsHint =>
+      'یادداشت‌هایی که به هم پیوسته‌اند و از قدیمی به جدید یک داستان می‌سازند. یک رشته را باز کنید تا دنبالش کنید.';
+
+  @override
+  String threadLastActive(String when) {
+    return 'آخرین افزودن $when';
+  }
 
   @override
   String get vaultCardChecksum =>

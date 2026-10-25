@@ -296,6 +296,18 @@ abstract class AppLocalizations {
   /// **'Tag row'**
   String get layoutTagRow;
 
+  /// No description provided for @layoutShowSection.
+  ///
+  /// In en, this message translates to:
+  /// **'On the home screen'**
+  String get layoutShowSection;
+
+  /// No description provided for @layoutLookSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Look'**
+  String get layoutLookSection;
+
   /// No description provided for @chatAboutGroup.
   ///
   /// In en, this message translates to:
@@ -1897,6 +1909,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The smart summary could not be refreshed. The one below is the last one Nex made.'**
   String get recapRefreshFailed;
+
+  /// No description provided for @recapRefreshing.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing the smart summary…'**
+  String get recapRefreshing;
+
+  /// No description provided for @whatsNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What’s new'**
+  String get whatsNewTitle;
+
+  /// No description provided for @whatsNewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex {version} is here. This is what changed.'**
+  String whatsNewSubtitle(String version);
+
+  /// No description provided for @whatsNewDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get whatsNewDone;
 
   /// No description provided for @shareSaved.
   ///
@@ -9443,19 +9479,19 @@ abstract class AppLocalizations {
   /// No description provided for @setAside.
   ///
   /// In en, this message translates to:
-  /// **'Set aside'**
+  /// **'Archive'**
   String get setAside;
 
   /// No description provided for @setAsideSheetTitle.
   ///
   /// In en, this message translates to:
-  /// **'Set aside until…'**
+  /// **'Archive until…'**
   String get setAsideSheetTitle;
 
   /// No description provided for @setAsideSheetHint.
   ///
   /// In en, this message translates to:
-  /// **'It leaves the home screen but stays in your library. You can still find it by searching.'**
+  /// **'It leaves the home screen but stays in your library, and search still finds it. Pick a time and it comes back by itself.'**
   String get setAsideSheetHint;
 
   /// No description provided for @setAsideUntilBack.
@@ -9491,37 +9527,37 @@ abstract class AppLocalizations {
   /// No description provided for @setAsideDone.
   ///
   /// In en, this message translates to:
-  /// **'Set aside'**
+  /// **'Archived'**
   String get setAsideDone;
 
   /// No description provided for @setAsideDoneUntil.
   ///
   /// In en, this message translates to:
-  /// **'Set aside until {when}'**
+  /// **'Archived until {when}'**
   String setAsideDoneUntil(String when);
 
   /// No description provided for @setAsideGroupDone.
   ///
   /// In en, this message translates to:
-  /// **'{count} notes set aside'**
+  /// **'{count} notes archived'**
   String setAsideGroupDone(int count);
 
   /// No description provided for @setAsideBackBanner.
   ///
   /// In en, this message translates to:
-  /// **'{count} notes are back from being set aside'**
+  /// **'{count} notes are back from the archive'**
   String setAsideBackBanner(int count);
 
   /// No description provided for @setAsideBringBack.
   ///
   /// In en, this message translates to:
-  /// **'Bring back'**
+  /// **'Unarchive'**
   String get setAsideBringBack;
 
   /// No description provided for @setAsideSection.
   ///
   /// In en, this message translates to:
-  /// **'Set aside'**
+  /// **'Archive'**
   String get setAsideSection;
 
   /// No description provided for @setAsideSectionHint.
@@ -9533,19 +9569,19 @@ abstract class AppLocalizations {
   /// No description provided for @setAsidePageTitle.
   ///
   /// In en, this message translates to:
-  /// **'Set aside'**
+  /// **'Archive'**
   String get setAsidePageTitle;
 
   /// No description provided for @setAsideEmptyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Nothing set aside'**
+  /// **'The archive is empty'**
   String get setAsideEmptyTitle;
 
   /// No description provided for @setAsideEmptyBody.
   ///
   /// In en, this message translates to:
-  /// **'Hold a note and choose Set aside to keep it out of the way for now.'**
+  /// **'Hold a note and choose Archive to keep it out of the way for now. It stays searchable and can come back on its own.'**
   String get setAsideEmptyBody;
 
   /// No description provided for @setAsideBackOn.
@@ -9563,13 +9599,13 @@ abstract class AppLocalizations {
   /// No description provided for @setAsideMark.
   ///
   /// In en, this message translates to:
-  /// **'Set aside'**
+  /// **'Archived'**
   String get setAsideMark;
 
   /// No description provided for @setAsideCountLabel.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 note set aside} other{{count} notes set aside}}'**
+  /// **'{count, plural, =1{1 archived note} other{{count} archived notes}}'**
   String setAsideCountLabel(int count);
 
   /// No description provided for @setAsideAllClear.
@@ -9581,8 +9617,62 @@ abstract class AppLocalizations {
   /// No description provided for @setAsideView.
   ///
   /// In en, this message translates to:
-  /// **'See what’s set aside'**
+  /// **'Open the archive'**
   String get setAsideView;
+
+  /// No description provided for @archiveComingBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming back on their own'**
+  String get archiveComingBack;
+
+  /// No description provided for @archiveWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for you'**
+  String get archiveWaiting;
+
+  /// No description provided for @archiveBackIn.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Back today} =1{Back tomorrow} other{Back in {count} days}}'**
+  String archiveBackIn(int count);
+
+  /// No description provided for @archiveBringBackAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive all'**
+  String get archiveBringBackAll;
+
+  /// No description provided for @archivedAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived {when}'**
+  String archivedAgo(String when);
+
+  /// No description provided for @trashGoneIn.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Gone for good today} =1{Gone for good tomorrow} other{Gone for good in {count} days}}'**
+  String trashGoneIn(int count);
+
+  /// No description provided for @tagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Each tag in its own colour, with how much of your library carries it. Use a tag\'s menu to colour, rename, merge or delete it.'**
+  String get tagsHint;
+
+  /// No description provided for @threadsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes strung together into one story, read oldest first. Open a thread to follow it.'**
+  String get threadsHint;
+
+  /// No description provided for @threadLastActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Last added {when}'**
+  String threadLastActive(String when);
 
   /// No description provided for @vaultCardChecksum.
   ///
