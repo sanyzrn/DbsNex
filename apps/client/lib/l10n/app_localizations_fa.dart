@@ -2672,6 +2672,12 @@ class AppLocalizationsFa extends AppLocalizations {
       'یادداشت را از هر طرف که بکشید، کارهای سریعش می‌آید. هر طرف را در تنظیمات خودتان انتخاب می‌کنید.';
 
   @override
+  String get translateSwap => 'ترجمه در جهت دیگر';
+
+  @override
+  String get translateAgain => 'ترجمهٔ دوباره';
+
+  @override
   String get translate => 'ترجمه';
 
   @override
@@ -5646,6 +5652,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiResultCollapse => 'جمع‌کردن نتیجه';
 
   @override
+  String get aiRunAgain => 'اجرای دوباره';
+
+  @override
   String get aiShowResults => 'نمایش نتیجه‌ها';
 
   @override
@@ -6051,6 +6060,10 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get setAsideView => 'دیدن بایگانی';
+
+  @override
+  String get archiveReadOnly =>
+      'بایگانی‌شده — تا از بایگانی بیرونش نیاورید فقط خواندنی است.';
 
   @override
   String get archiveComingBack => 'خودشان برمی‌گردند';

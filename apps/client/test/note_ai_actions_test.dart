@@ -105,17 +105,13 @@ void main() {
               find.descendant(of: tools, matching: find.byTooltip(label)),
               findsOneWidget,
             );
+            // Labelled now (2.3.3): a row of bare icons said nothing.
             expect(
               find.descendant(of: tools, matching: find.text(label)),
-              findsNothing,
+              findsOneWidget,
             );
           }
-          await tester.ensureVisible(find.byTooltip(l10n.summarize));
-          await tester.longPress(find.byTooltip(l10n.summarize));
-          await tester.pumpAndSettle();
-          expect(find.text(l10n.summarize), findsOneWidget);
           expect(adapter.summaries, 0);
-          Tooltip.dismissAllToolTips();
           await tester.pumpAndSettle();
           await tester.tap(find.byTooltip(l10n.summarize));
           await tester.pumpAndSettle();
@@ -123,28 +119,16 @@ void main() {
           expect(find.text(_MediaAi.summary), findsOneWidget);
           expect(find.text(l10n.aiAddToCaption), findsNothing);
           expect((await h.services.getById(note.id))!.caption, isNull);
-          final status = find.byKey(const ValueKey('note-ai-status'));
-          expect(tester.widget<Text>(status).textAlign, TextAlign.end);
-          final panelRect = tester.getRect(workspace);
-          final statusRect = tester.getRect(status);
-          expect(
-            locale == 'fa' ? statusRect.left : statusRect.right,
-            closeTo(
-              locale == 'fa'
-                  ? panelRect.left + NexSpacing.md
-                  : panelRect.right - NexSpacing.md,
-              0.1,
-            ),
-          );
-
           await tester.ensureVisible(find.byTooltip(l10n.aiTagsAction));
           await tester.tap(find.byTooltip(l10n.aiTagsAction));
           await tester.pumpAndSettle();
           expect(adapter.tags, 1);
           expect(find.text('Ideas'), findsOneWidget);
           expect((await h.services.getById(note.id))!.tags, isEmpty);
-          await tester.ensureVisible(find.byTooltip(l10n.hide));
-          await tester.tap(find.byTooltip(l10n.hide));
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('note-ai-hide-results')),
+          );
+          await tester.tap(find.byKey(const ValueKey('note-ai-hide-results')));
           await tester.pumpAndSettle();
           expect(find.text(_MediaAi.summary), findsNothing);
           expect(find.text('Ideas'), findsNothing);
@@ -165,8 +149,10 @@ void main() {
           expect(translator.onAddToCaption, isNull);
           expect(translator.text, original);
           final translationState = tester.state(find.byType(TranslateSheet));
-          await tester.ensureVisible(find.byTooltip(l10n.hide));
-          await tester.tap(find.byTooltip(l10n.hide));
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('note-ai-hide-results')),
+          );
+          await tester.tap(find.byKey(const ValueKey('note-ai-hide-results')));
           await tester.pumpAndSettle();
           expect(find.byType(TranslateSheet), findsNothing);
           await tester.ensureVisible(find.text(l10n.aiShowResults));
@@ -176,12 +162,13 @@ void main() {
             tester.state(find.byType(TranslateSheet)),
             same(translationState),
           );
-          await tester.ensureVisible(
-            find.byKey(const ValueKey('note-ai-tab-summary')),
-          );
-          await tester.tap(find.byKey(const ValueKey('note-ai-tab-summary')));
+          // The tool that made the summary now shows it, without asking
+          // again.
+          await tester.ensureVisible(find.byTooltip(l10n.summarize));
+          await tester.tap(find.byTooltip(l10n.summarize));
           await tester.pumpAndSettle();
           expect(find.text(_MediaAi.summary), findsOneWidget);
+          expect(adapter.summaries, 1);
           expect(find.text(l10n.aiAddToCaption), findsNothing);
           expect((await h.services.getById(note.id))!.content, original);
           expect((await h.services.getById(note.id))!.caption, isNull);
@@ -255,22 +242,12 @@ void main() {
             final tooltip = find.byTooltip(label);
             expect(tester.widget<Tooltip>(tooltip).preferBelow, isFalse);
             expect(
-              find.descendant(of: tooltip, matching: find.byType(Text)),
-              findsNothing,
-            );
-            final button = find.descendant(
-              of: tooltip,
-              matching: find.byType(IconButton),
-            );
-            expect(button, findsOneWidget);
-            final widget = tester.widget<IconButton>(button);
-            expect(
-              widget.style!.foregroundColor!.resolve({}),
-              theme.colorScheme.primary,
+              find.descendant(of: tooltip, matching: find.text(label)),
+              findsOneWidget,
             );
             final glyph = find
                 .descendant(
-                  of: button,
+                  of: tooltip,
                   matching: find.byWidgetPredicate(
                     (w) => w is Icon || w is NexSummariseIcon,
                   ),

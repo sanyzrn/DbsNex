@@ -1955,6 +1955,8 @@
   "@tourCardsTitle": {"description": "Tour step about gestures on a note card"},
   "tourCardsBody": "Swipe a note from either edge for its quick actions. Each edge is yours to set in Settings.",
   "@tourCardsBody": {"description": "Tour step body about gestures on a note card"},
+  "translateSwap": "Translate the other way",
+  "translateAgain": "Translate again",
   "translate": "Translate",
   "@translate": {
     "description": "Note action that translates the note's text"
@@ -3407,6 +3409,7 @@
   "relatedNotesPaused": "Temporarily paused",
   "aiResultExpand": "Show full result",
   "aiResultCollapse": "Collapse result",
+  "aiRunAgain": "Run again",
   "aiShowResults": "Show results",
   "aiSwitchResult": "Switch result",
   "aiExtractedText": "Extracted text",
@@ -3545,6 +3548,7 @@
   "@setAsideCountLabel": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "setAsideAllClear": "All clear",
   "setAsideView": "Open the archive",
+  "archiveReadOnly": "Archived — read only until you unarchive it.",
   "archiveComingBack": "Coming back on their own",
   "archiveWaiting": "Waiting for you",
   "archiveBackIn": "{count, plural, =0{Back today} =1{Back tomorrow} other{Back in {count} days}}",

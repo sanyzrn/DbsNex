@@ -216,7 +216,7 @@ void main() {
     expect(await services.deletedNotes(), hasLength(1));
   });
 
-  testWidgets('from a card, a swipe back leaves; toward the start acts', (
+  testWidgets('from a card, a swipe back leaves; its buttons act', (
     tester,
   ) async {
     for (final note in await services.worker.timeline(limit: 10)) {
@@ -243,11 +243,45 @@ void main() {
     expect(find.byType(SetAsideScreen), findsNothing);
     expect(await services.setAsideCount(), 2, reason: 'nothing unarchived');
 
-    // Toward the start: the card's own action.
+    // A card's actions are its two buttons (2.3.3): delete is one of them.
     await enterArchive();
-    await tester.drag(cardOf, const Offset(-300, 0));
+    await tester.tap(find.byKey(ValueKey('archive-delete-${alpha.id}')));
     await tester.pumpAndSettle();
-    expect(find.byType(SetAsideScreen), findsOneWidget);
     expect(await services.setAsideCount(), 1);
+    expect(find.text('Undo'), findsOneWidget);
+  });
+
+  testWidgets('an archived note opens read only', (tester) async {
+    for (final note in await services.worker.timeline(limit: 10)) {
+      await services.setAside(note.id);
+    }
+    await services.refreshTimeline();
+    await open(tester);
+    await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-set-aside')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('alpha note'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('detail-archived')), findsOneWidget);
+    expect(find.text('Tag'), findsNothing);
+    // Everything the note offers, the row and the rest of its actions.
+    await tester.tap(find.text('More actions'));
+    await tester.pumpAndSettle();
+    for (final gone in ['Edit', 'Remind', 'Pin', 'Threads']) {
+      expect(find.text(gone), findsNothing, reason: gone);
+    }
+    expect(find.text('Unarchive'), findsOneWidget);
+    expect(find.byKey(const ValueKey('note-ai-workspace')), findsNothing);
+  });
+
+  test('hidden AI results stay hidden for that note', () async {
+    final prefs = harness.preferences;
+    expect(prefs.aiResultsHidden('n1'), isFalse);
+    await prefs.setAiResultsHidden('n1', true);
+    expect(prefs.aiResultsHidden('n1'), isTrue);
+    expect(prefs.aiResultsHidden('n2'), isFalse);
+    await prefs.setAiResultsHidden('n1', false);
+    expect(prefs.aiResultsHidden('n1'), isFalse);
   });
 }

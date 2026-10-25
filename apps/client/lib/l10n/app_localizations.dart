@@ -4322,6 +4322,18 @@ abstract class AppLocalizations {
   /// **'Swipe a note from either edge for its quick actions. Each edge is yours to set in Settings.'**
   String get tourCardsBody;
 
+  /// No description provided for @translateSwap.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate the other way'**
+  String get translateSwap;
+
+  /// No description provided for @translateAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate again'**
+  String get translateAgain;
+
   /// Note action that translates the note's text
   ///
   /// In en, this message translates to:
@@ -8996,6 +9008,12 @@ abstract class AppLocalizations {
   /// **'Collapse result'**
   String get aiResultCollapse;
 
+  /// No description provided for @aiRunAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Run again'**
+  String get aiRunAgain;
+
   /// No description provided for @aiShowResults.
   ///
   /// In en, this message translates to:
@@ -9667,6 +9685,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the archive'**
   String get setAsideView;
+
+  /// No description provided for @archiveReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived — read only until you unarchive it.'**
+  String get archiveReadOnly;
 
   /// No description provided for @archiveComingBack.
   ///

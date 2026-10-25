@@ -436,16 +436,34 @@ class NexPreferences extends _PreferencesStore
     await _prefs.setBool(_kExactAlarmsAsked, true);
   }
 
-  /// Notes whose reminder has rung and not been looked at yet (2.3.0): their
-  /// card shows a ringing bell until it is opened, or **Done** is pressed in
-  /// the notification.
-  /// The version whose "What's new" was last shown, or the version this
+  /// The version whose "What's new" was last opened, or the version this
   /// install started on (2.3.0).
   String? get whatsNewSeen => _prefs.getString('app.whats_new_seen');
 
   Future<void> setWhatsNewSeen(String version) =>
       _prefs.setString('app.whats_new_seen', version);
 
+  static const _kAiHidden = 'ai.hidden_results';
+
+  /// Notes whose AI results were hidden in their details (2.3.3), so they
+  /// stay hidden the next time the note is opened. The most recent few
+  /// hundred: an old note opening with its results showing again costs
+  /// nothing.
+  bool aiResultsHidden(String noteId) =>
+      _prefs.getStringList(_kAiHidden)?.contains(noteId) ?? false;
+
+  Future<void> setAiResultsHidden(String noteId, bool hidden) {
+    final ids = [...?_prefs.getStringList(_kAiHidden)]..remove(noteId);
+    if (hidden) ids.add(noteId);
+    return _prefs.setStringList(
+      _kAiHidden,
+      ids.length > 300 ? ids.sublist(ids.length - 300) : ids,
+    );
+  }
+
+  /// Notes whose reminder has rung and not been looked at yet (2.3.0): their
+  /// card shows a ringing bell until it is opened, or **Done** is pressed in
+  /// the notification.
   static const _kRinging = 'reminders.ringing';
 
   Set<String> get ringingNotes =>

@@ -142,7 +142,7 @@ void main() {
         }
         final l10n = await open(tester, h, note.id, locale, textScale: 1.6);
         await tester.ensureVisible(
-          find.byKey(const ValueKey('note-ai-result-picker')),
+          find.byKey(const ValueKey('note-ai-tools')),
         );
         for (var i = 1; i <= 4; i++) {
           final number = nexDigits('$i', persian: locale == 'fa');

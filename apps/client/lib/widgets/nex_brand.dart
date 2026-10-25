@@ -422,28 +422,66 @@ class _LivingLogotypePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final bounds = NexBrand.wordBounds;
-    final scale = size.height / bounds.height;
-    canvas
-      ..scale(scale)
-      ..translate(-bounds.left, -bounds.top);
-    final inkPaint = Paint()..color = ink;
-    canvas
-      ..drawPath(NexBrand.wordN, inkPaint)
-      ..drawPath(NexBrand.wordE, inkPaint)
-      ..drawPath(NexBrand.wordX, inkPaint);
+    final hop = _span(t, 0.35, 0.85);
+    nexPaintLogotype(
+      canvas,
+      size,
+      ink: ink,
+      accent: accent,
+      light: Curves.easeInOutCubic.transform(_span(t, 0, 0.6)),
+      // 75 units of the wordmark's own coordinates, as it always hopped.
+      lift: math.sin(math.pi * hop) * 75 / (NexBrand.wordBounds.height * 0.55),
+      squash: math.sin(math.pi * _span(t, 0.85, 1)) * 0.18,
+    );
+  }
 
-    // The stroke, with a light running along it from its tail to its tip.
-    final stroke = Paint()..color = accent;
-    final run = Curves.easeInOutCubic.transform(_span(t, 0, 0.6));
-    if (run > 0 && run < 1) {
-      final box = NexBrand.swoosh.getBounds();
-      final light = Color.lerp(accent, Colors.white, 0.6)!;
-      final at = -0.2 + 1.4 * run;
+  @override
+  bool shouldRepaint(_LivingLogotypePainter old) =>
+      old.t != t || old.ink != ink || old.accent != accent;
+}
+
+/// Paints the "nex" wordmark into [size], the parts that move in [accent]
+/// (2.3.3: shared by the timeline's wordmark and pull to refresh).
+///
+/// [written] is how much of the x's stroke is drawn, tail to tip; [light]
+/// where a light running along it is (0 and 1 mean none); [dot] how big the
+/// dot is, overshoot allowed; [lift] how far it has hopped, as a share of
+/// the wordmark's height; [squash] how much it gives where it lands.
+void nexPaintLogotype(
+  Canvas canvas,
+  Size size, {
+  required Color ink,
+  required Color accent,
+  double written = 1,
+  double light = 0,
+  double dot = 1,
+  double lift = 0,
+  double squash = 0,
+  double opacity = 1,
+}) {
+  if (opacity <= 0) return;
+  final bounds = NexBrand.wordBounds;
+  final scale = size.height / bounds.height;
+  canvas
+    ..save()
+    ..scale(scale)
+    ..translate(-bounds.left, -bounds.top);
+  final inkPaint = Paint()..color = ink.withValues(alpha: ink.a * opacity);
+  canvas
+    ..drawPath(NexBrand.wordN, inkPaint)
+    ..drawPath(NexBrand.wordE, inkPaint)
+    ..drawPath(NexBrand.wordX, inkPaint);
+  final tone = accent.withValues(alpha: accent.a * opacity);
+  if (written > 0) {
+    final box = NexBrand.swoosh.getBounds();
+    final stroke = Paint()..color = tone;
+    if (light > 0 && light < 1) {
+      final glow = Color.lerp(tone, Colors.white, 0.6)!;
+      final at = -0.2 + 1.4 * light;
       stroke.shader = ui.Gradient.linear(
         box.bottomLeft,
         box.topRight,
-        [accent, light, accent],
+        [tone, glow, tone],
         [
           (at - 0.18).clamp(0.0, 1.0),
           at.clamp(0.0, 1.0),
@@ -451,22 +489,33 @@ class _LivingLogotypePainter extends CustomPainter {
         ],
       );
     }
-    canvas.drawPath(NexBrand.swoosh, stroke);
-
-    // The dot: up, and down with a little give where it lands.
-    final hop = _span(t, 0.35, 0.85);
-    final bounce = _span(t, 0.85, 1);
-    final lift = math.sin(math.pi * hop) * 75;
-    final squash = math.sin(math.pi * bounce) * 0.18;
+    canvas.save();
+    if (written < 1) {
+      // Written from its tail at the bottom left to its tip at the top
+      // right, the way a pen would draw it.
+      canvas.clipRect(
+        Rect.fromLTRB(
+          box.left,
+          box.bottom - box.height * written,
+          box.left + box.width * written,
+          box.bottom,
+        ),
+      );
+    }
     canvas
-      ..save()
-      ..translate(NexBrand.dot.dx, NexBrand.dot.dy - lift)
-      ..scale(1 + squash, 1 - squash)
-      ..drawCircle(Offset.zero, NexBrand.dotRadius, Paint()..color = accent)
+      ..drawPath(NexBrand.swoosh, stroke)
       ..restore();
   }
-
-  @override
-  bool shouldRepaint(_LivingLogotypePainter old) =>
-      old.t != t || old.ink != ink || old.accent != accent;
+  if (dot > 0) {
+    canvas
+      ..save()
+      ..translate(
+        NexBrand.dot.dx,
+        NexBrand.dot.dy - lift * bounds.height * 0.55,
+      )
+      ..scale(dot * (1 + squash), dot * (1 - squash))
+      ..drawCircle(Offset.zero, NexBrand.dotRadius, Paint()..color = tone)
+      ..restore();
+  }
+  canvas.restore();
 }

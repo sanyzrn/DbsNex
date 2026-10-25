@@ -1,21 +1,26 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data' show Float32List;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:nex_ui/nex_ui.dart';
 
-/// Pull to refresh, in Nex's own shape (2.3.0).
+import 'nex_brand.dart';
+
+/// Pull to refresh, in Nex's own shape (rebuilt in 2.3.3).
 ///
-/// Not a spinner in a circle. As the list is pulled down it moves with the
-/// finger and, in the gap it leaves, the eight arms of Nex's mark reach out
-/// from a centre — further the further you pull. Past the point where letting
-/// go refreshes, they are all the way out and the centre fills; while the work
-/// runs they sweep round in a wave, one after another, the way the mark's
-/// arms move in the splash. When it is done a ring spreads from the centre
-/// and the list settles back, and [onSettled] lets the page play its own
-/// "fresh" moment (a sweep of light over what was refreshed).
+/// As the list is pulled down it moves with the finger and opens a strip of
+/// sky behind it: three dotted clouds at three depths, drifting, and the
+/// "nex" wordmark in the middle. The further the pull, the more of the x's
+/// blue stroke is written in; past the point where letting go refreshes, the
+/// dot after it pops into place with a small bounce. While the work runs the
+/// wordmark does what it does at the top of the timeline — a light runs
+/// along the stroke and the dot hops — and the clouds drift a little faster.
+/// When it is done the dot gives one last hop, the list settles back, and
+/// [onSettled] lets the page play its own "fresh" moment.
 ///
 /// Works with clamping (Android) and bouncing (iOS) physics alike: it reads
 /// the overscroll notifications a pull at the top produces, not the list's
@@ -34,7 +39,7 @@ class NexPullRefresh extends StatefulWidget {
   final Widget child;
   final ScrollNotificationPredicate notificationPredicate;
 
-  /// Called once a refresh has finished, as the ring spreads.
+  /// Called once a refresh has finished, as the list settles.
   final VoidCallback? onSettled;
   final String? semanticsLabel;
 
@@ -47,11 +52,11 @@ enum _Mode { idle, dragging, armed, refreshing, done }
 class _NexPullRefreshState extends State<NexPullRefresh>
     with TickerProviderStateMixin {
   /// How far the list has to come down before letting go refreshes.
-  static const _threshold = 92.0;
+  static const _threshold = 104.0;
 
-  /// The gap held open while the refresh runs.
-  static const _hold = 76.0;
-  static const _max = 150.0;
+  /// The strip held open while the refresh runs.
+  static const _hold = 96.0;
+  static const _max = 168.0;
 
   _Mode _mode = _Mode.idle;
 
@@ -62,22 +67,35 @@ class _NexPullRefreshState extends State<NexPullRefresh>
   late final AnimationController _offset = AnimationController.unbounded(
     vsync: this,
   );
-  late final AnimationController _spin = AnimationController(
+
+  /// One turn of the wordmark's movement while the refresh runs.
+  late final AnimationController _loop = AnimationController(
     vsync: this,
     duration: NexMotion.receipt * 2,
   );
-  late final AnimationController _ripple = AnimationController(
+
+  /// The dot arriving once letting go will refresh, and its last hop.
+  late final AnimationController _pop = AnimationController(
     vsync: this,
     duration: NexMotion.receipt,
+  );
+
+  /// The clouds' drift: one slow lap, running only while the sky shows.
+  late final AnimationController _drift = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 40),
   );
 
   @override
   void dispose() {
     _offset.dispose();
-    _spin.dispose();
-    _ripple.dispose();
+    _loop.dispose();
+    _pop.dispose();
+    _drift.dispose();
     super.dispose();
   }
+
+  bool get _still => MediaQuery.disableAnimationsOf(context);
 
   /// A pull that gets heavier as it goes, like something on a spring.
   double _resist(double drag) => _max * (1 - math.exp(-drag / _max));
@@ -91,6 +109,7 @@ class _NexPullRefreshState extends State<NexPullRefresh>
       _mode = _Mode.dragging;
       _drag = 0;
       _offset.stop();
+      if (!_still && !_drift.isAnimating) unawaited(_drift.repeat());
       return false;
     }
     if (_mode == _Mode.idle) return false;
@@ -118,8 +137,10 @@ class _NexPullRefreshState extends State<NexPullRefresh>
     if (armed && _mode == _Mode.dragging) {
       nexTick();
       setState(() => _mode = _Mode.armed);
+      unawaited(_pop.forward(from: 0));
     } else if (!armed && _mode == _Mode.armed) {
       setState(() => _mode = _Mode.dragging);
+      unawaited(_pop.reverse());
     }
   }
 
@@ -127,16 +148,18 @@ class _NexPullRefreshState extends State<NexPullRefresh>
     if (_mode == _Mode.armed) {
       setState(() => _mode = _Mode.refreshing);
       unawaited(_offset.animateTo(_hold, duration: NexMotion.enter));
-      unawaited(_spin.repeat());
+      if (!_still) unawaited(_loop.repeat());
       try {
         await widget.onRefresh();
       } catch (_) {}
       if (!mounted) return;
-      _spin.stop();
+      _loop.stop();
+      _loop.value = 0;
       setState(() => _mode = _Mode.done);
       nexBump();
       widget.onSettled?.call();
-      await _ripple.forward(from: 0);
+      // The last hop, then the sky closes.
+      if (!_still) await _pop.forward(from: 0);
       if (!mounted) return;
     } else if (_mode != _Mode.dragging) {
       return;
@@ -147,23 +170,26 @@ class _NexPullRefreshState extends State<NexPullRefresh>
       duration: NexMotion.exit,
       curve: NexMotion.exitCurve,
     );
-    if (mounted) setState(() => _mode = _Mode.idle);
+    if (!mounted) return;
+    _drift.stop();
+    _pop.value = 0;
+    setState(() => _mode = _Mode.idle);
   }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final reduced = MediaQuery.disableAnimationsOf(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return NotificationListener<ScrollNotification>(
       onNotification: _onNotification,
       child: AnimatedBuilder(
-        animation: Listenable.merge([_offset, _spin, _ripple]),
+        animation: Listenable.merge([_offset, _loop, _pop, _drift]),
         child: widget.child,
         builder: (context, child) {
           final offset = math.max(0.0, _offset.value);
+          final working = _mode == _Mode.refreshing || _mode == _Mode.done;
           return Stack(
             children: [
-              Transform.translate(offset: Offset(0, offset), child: child),
               if (offset > 0.5)
                 Positioned(
                   top: 0,
@@ -171,31 +197,34 @@ class _NexPullRefreshState extends State<NexPullRefresh>
                   right: 0,
                   height: offset,
                   child: IgnorePointer(
-                    key: _mode == _Mode.refreshing || _mode == _Mode.done
-                        ? const ValueKey('nex-pull-refreshing')
-                        : null,
+                    key: working ? const ValueKey('nex-pull-refreshing') : null,
                     child: Semantics(
                       label: _mode == _Mode.refreshing
                           ? widget.semanticsLabel
                           : null,
                       liveRegion: _mode == _Mode.refreshing,
                       child: CustomPaint(
-                        painter: _ArmsPainter(
+                        painter: _SkyPainter(
+                          height: offset,
                           reach: (offset / _threshold).clamp(0.0, 1.0),
-                          armed:
-                              _mode == _Mode.armed ||
-                              _mode == _Mode.refreshing ||
-                              _mode == _Mode.done,
-                          spin: reduced ? 0 : _spin.value,
-                          spinning: _mode == _Mode.refreshing,
-                          ripple: _ripple.value,
-                          color: scheme.primary,
-                          soft: scheme.primary.withValues(alpha: 0.18),
+                          armed: _mode != _Mode.dragging,
+                          pop: _pop.value,
+                          loop: _mode == _Mode.refreshing ? _loop.value : 0,
+                          finishing: _mode == _Mode.done,
+                          drift: _drift.value * (working ? 1.6 : 1),
+                          sky: Color.alphaBlend(
+                            scheme.onSurface.withValues(alpha: 0.035),
+                            scheme.surfaceContainerLowest,
+                          ),
+                          cloud: scheme.onSurface,
+                          ink: NexBrand.ink(theme.brightness),
+                          accent: scheme.primary,
                         ),
                       ),
                     ),
                   ),
                 ),
+              Transform.translate(offset: Offset(0, offset), child: child),
             ],
           );
         },
@@ -204,91 +233,188 @@ class _NexPullRefreshState extends State<NexPullRefresh>
   }
 }
 
-/// Eight arms from a centre: their reach follows the pull, and while the
-/// refresh runs a wave travels round them.
-class _ArmsPainter extends CustomPainter {
-  _ArmsPainter({
+/// The strip of sky a pull opens: dotted clouds drifting at three depths,
+/// and the wordmark in the middle.
+class _SkyPainter extends CustomPainter {
+  _SkyPainter({
+    required this.height,
     required this.reach,
     required this.armed,
-    required this.spin,
-    required this.spinning,
-    required this.ripple,
-    required this.color,
-    required this.soft,
+    required this.pop,
+    required this.loop,
+    required this.finishing,
+    required this.drift,
+    required this.sky,
+    required this.cloud,
+    required this.ink,
+    required this.accent,
   });
 
+  final double height;
   final double reach;
   final bool armed;
-  final double spin;
-  final bool spinning;
-  final double ripple;
-  final Color color;
-  final Color soft;
+  final double pop;
+  final double loop;
+  final bool finishing;
+  final double drift;
+  final Color sky;
+  final Color cloud;
+  final Color ink;
+  final Color accent;
+
+  /// Where each cloud sits: across (0–1), how high in the strip, how big,
+  /// how faint, and how fast it drifts — the near ones faster.
+  static const _clouds = [
+    (x: 0.12, y: 0.16, scale: 0.72, alpha: 0.17, speed: 0.6, seed: 1),
+    (x: 0.55, y: 0.06, scale: 0.55, alpha: 0.11, speed: 0.35, seed: 2),
+    (x: 0.86, y: 0.20, scale: 0.80, alpha: 0.20, speed: 0.9, seed: 3),
+  ];
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2 + 2);
-    final radius = math.min(26.0, size.height * 0.36);
-    if (radius < 4) return;
-    const arms = 8;
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 3
-      ..color = color;
-    for (var i = 0; i < arms; i++) {
-      // Each arm reaches out a little after the one before it.
-      final own = ((reach * 1.4) - i * 0.05).clamp(0.0, 1.0);
-      var length = radius * own;
-      if (spinning) {
-        // A wave running round the arms.
-        final phase = (spin * 2 * math.pi) - i * (2 * math.pi / arms);
-        length = radius * (0.55 + 0.45 * (0.5 + 0.5 * math.sin(phase)));
-      }
-      if (length <= 0.5) continue;
-      final angle = -math.pi / 2 + i * (2 * math.pi / arms) + spin * math.pi;
-      // Curled, the way the mark's arms are: the end bends sideways.
-      final tip = center + Offset(math.cos(angle), math.sin(angle)) * length;
-      final bend =
-          center +
-          Offset(math.cos(angle + 0.5), math.sin(angle + 0.5)) * length * 0.6;
-      final path = Path()
-        ..moveTo(center.dx, center.dy)
-        ..quadraticBezierTo(bend.dx, bend.dy, tip.dx, tip.dy);
-      canvas.drawPath(
-        path,
-        stroke..color = color.withValues(alpha: armed ? 1 : 0.55),
-      );
-      canvas.drawCircle(tip, armed ? 2.6 : 1.8, Paint()..color = stroke.color);
-    }
-    // The head: empty while pulling, full once letting go will refresh.
-    canvas.drawCircle(
-      center,
-      armed ? 6.5 : 5 * reach,
-      Paint()
-        ..color = armed ? color : soft
-        ..style = armed ? PaintingStyle.fill : PaintingStyle.stroke
-        ..strokeWidth = 2,
+    canvas.drawRect(Offset.zero & size, Paint()..color = sky);
+    // The clouds come in once there is sky above the wordmark for them, so
+    // a short pull shows the wordmark alone rather than the two crowded.
+    final open = Curves.easeOut.transform(
+      ((size.height - 72) / 36).clamp(0.0, 1.0),
     );
-    if (ripple > 0 && ripple < 1) {
-      canvas.drawCircle(
-        center,
-        radius * (0.4 + ripple * 2.2),
+    for (final c in _clouds) {
+      if (open <= 0) break;
+      final dots = _DottedCloud.of(c.seed, c.scale);
+      // Drifting sideways, round and round, the near ones faster.
+      final span = size.width + dots.width;
+      final x = (c.x * span + drift * span * c.speed) % span - dots.width / 2;
+      // Settling into place as the strip opens.
+      final y = size.height * c.y + (1 - open) * 18;
+      canvas.drawRawPoints(
+        ui.PointMode.points,
+        dots.at(Offset(x, y)),
         Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.5 * (1 - ripple)
-          ..color = color.withValues(alpha: 0.6 * (1 - ripple)),
+          ..color = cloud.withValues(alpha: c.alpha * open)
+          ..strokeWidth = _DottedCloud.dot
+          ..strokeCap = StrokeCap.square,
       );
     }
+
+    // The wordmark, fading and growing in with the pull.
+    const wordHeight = 26.0;
+    final bounds = NexBrand.wordBounds;
+    final wordWidth = wordHeight * bounds.width / bounds.height;
+    final show = ((reach - 0.25) / 0.5).clamp(0.0, 1.0);
+    if (show <= 0) return;
+    final scale = 0.86 + 0.14 * Curves.easeOutBack.transform(show);
+    // A fixed distance above the list, so it rises with the pull.
+    final center = Offset(size.width / 2, size.height - 34);
+    // The dot: arrives with a bounce once letting go will refresh, hops
+    // while the work runs, and hops once more when it is done.
+    final cycle = loop;
+    double hop(double t, double a, double b) =>
+        math.sin(math.pi * ((t - a) / (b - a)).clamp(0.0, 1.0));
+    final dot = armed
+        ? (finishing ? 1.0 : Curves.elasticOut.transform(pop.clamp(0.0, 1.0)))
+        : 0.0;
+    final lift = finishing ? hop(pop, 0, 0.7) : hop(cycle, 0.35, 0.85);
+    final squash = finishing
+        ? hop(pop, 0.7, 1) * 0.18
+        : hop(cycle, 0.85, 1) * 0.18;
+    canvas
+      ..save()
+      ..translate(center.dx, center.dy)
+      ..scale(scale)
+      ..translate(-wordWidth / 2, -wordHeight / 2);
+    nexPaintLogotype(
+      canvas,
+      Size(wordWidth, wordHeight),
+      ink: ink,
+      accent: accent,
+      opacity: show,
+      written: armed ? 1 : reach,
+      light: Curves.easeInOutCubic.transform(((cycle) / 0.6).clamp(0.0, 1.0)),
+      dot: dot,
+      lift: lift,
+      squash: squash,
+    );
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_ArmsPainter old) =>
+  bool shouldRepaint(_SkyPainter old) =>
+      old.height != height ||
       old.reach != reach ||
       old.armed != armed ||
-      old.spin != spin ||
-      old.ripple != ripple ||
-      old.color != color;
+      old.pop != pop ||
+      old.loop != loop ||
+      old.finishing != finishing ||
+      old.drift != drift ||
+      old.sky != sky ||
+      old.accent != accent;
+}
+
+/// A cloud drawn as a grid of small square dots — solid inside, dithered
+/// toward its edge — worked out once per shape and size and kept.
+class _DottedCloud {
+  _DottedCloud._(this._points, this.width);
+
+  /// The size of a dot, and the step between them.
+  static const dot = 2.0;
+  static const _step = 3.0;
+
+  final List<Offset> _points;
+  final double width;
+
+  static final _cache = <(int, double), _DottedCloud>{};
+
+  static _DottedCloud of(int seed, double scale) =>
+      _cache[(seed, scale)] ??= _build(seed, scale);
+
+  /// Puffs of a stepped, low cloud: a flat base and two or three domes.
+  static _DottedCloud _build(int seed, double scale) {
+    final w = 120.0 * scale;
+    final h = 40.0 * scale;
+    final puffs = switch (seed) {
+      1 => [(0.30, 0.55, 0.30), (0.55, 0.38, 0.34), (0.80, 0.60, 0.24)],
+      2 => [(0.25, 0.50, 0.26), (0.50, 0.42, 0.30), (0.75, 0.55, 0.22)],
+      _ => [(0.22, 0.60, 0.22), (0.45, 0.35, 0.32), (0.72, 0.48, 0.28)],
+    };
+    double inside(double x, double y) {
+      // How deep into the cloud a point is: above 0 inside, 1 well within.
+      var best = -1.0;
+      for (final (cx, cy, r) in puffs) {
+        final dx = (x / w - cx) / (r * 1.2);
+        final dy = (y / h - cy) / r;
+        best = math.max(best, 1 - math.sqrt(dx * dx + dy * dy));
+      }
+      // The flat base.
+      if (y / h > 0.62 && y / h < 0.95 && x / w > 0.1 && x / w < 0.92) {
+        best = math.max(best, math.min(0.95 - y / h, 0.3) * 2);
+      }
+      return best;
+    }
+
+    final points = <Offset>[];
+    var row = 0;
+    for (var y = 0.0; y < h; y += _step, row++) {
+      var col = 0;
+      for (var x = 0.0; x < w; x += _step, col++) {
+        final depth = inside(x, y);
+        if (depth <= 0) continue;
+        // Dithered near the edge: every other dot, then every one.
+        if (depth < 0.22 && (row + col).isOdd) continue;
+        points.add(Offset(x, y));
+      }
+    }
+    return _DottedCloud._(points, w);
+  }
+
+  /// The dots, moved to [origin], ready to draw.
+  Float32List at(Offset origin) {
+    final out = Float32List(_points.length * 2);
+    for (var i = 0; i < _points.length; i++) {
+      out[i * 2] = _points[i].dx + origin.dx;
+      out[i * 2 + 1] = _points[i].dy + origin.dy;
+    }
+    return out;
+  }
 }
 
 /// A one-shot band of light across [child], played whenever [pulse] changes:

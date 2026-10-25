@@ -10,10 +10,15 @@ extension _DetailAttachments on _NoteDetailSheetState {
   /// Notes that can carry files: text and links gain them, photo and file
   /// notes gain more. A checklist and a voice note do not,
   /// yet (docs/14-attachments.md, "Later").
-  bool _canAttach(Note note) => switch (note.type) {
-    NoteType.text || NoteType.link || NoteType.photo || NoteType.file => true,
-    _ => false,
-  };
+  bool _canAttach(Note note) =>
+      !note.isSetAside() &&
+      switch (note.type) {
+        NoteType.text ||
+        NoteType.link ||
+        NoteType.photo ||
+        NoteType.file => true,
+        _ => false,
+      };
 
   /// The tiles, once there is something to show. A note with no
   /// attachments shows none of this: an empty tile on every text note would
