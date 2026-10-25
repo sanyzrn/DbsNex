@@ -124,7 +124,7 @@ extension NexNoteReminders on NexReminders {
         title: title,
         body: text,
         scheduledDate: NexReminders.scheduledDateFor(at),
-        notificationDetails: NexReminders.noteDetails(
+        notificationDetails: NexReminderActions.noteDetails(
           body: text,
           secret: secret,
           repeating: note.dueRepeat != NoteRepeat.once,

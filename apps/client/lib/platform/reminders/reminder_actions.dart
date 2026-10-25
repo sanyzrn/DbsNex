@@ -54,6 +54,48 @@ abstract final class NexReminderActions {
       ),
   ];
 
+  /// How a note's reminder looks: the note's words, its two buttons, and
+  /// nothing on the lock screen when the app lock asks for that.
+  static NotificationDetails noteDetails({
+    required String? body,
+    required bool secret,
+    NexChannelText? text,
+    bool repeating = false,
+  }) {
+    final words = text ?? NexReminders._text;
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        NexReminders._channelId,
+        words.reminders,
+        channelDescription: words.remindersAbout,
+        importance: Importance.high,
+        priority: Priority.high,
+        styleInformation: body == null || body.isEmpty
+            ? null
+            : BigTextStyleInformation(body),
+        visibility: secret ? NotificationVisibility.secret : null,
+        actions: androidActions(words, snoozable: !repeating),
+      ),
+      iOS: const DarwinNotificationDetails(),
+    );
+  }
+
+  /// How a recurring item's reminder looks: its title, and **Done** alone —
+  /// met now, on to its next turn (2.3.1).
+  static NotificationDetails commitmentDetails({required bool secret}) =>
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          NexReminders._channelId,
+          NexReminders._text.reminders,
+          channelDescription: NexReminders._text.remindersAbout,
+          importance: Importance.high,
+          priority: Priority.high,
+          visibility: secret ? NotificationVisibility.secret : null,
+          actions: androidActions(NexReminders._text, snoozable: false),
+        ),
+        iOS: const DarwinNotificationDetails(),
+      );
+
   /// Keeps what a reminder says, so "In an hour" can say it again.
   static Future<void> remember(
     String noteId, {
@@ -177,7 +219,7 @@ abstract final class NexReminderActions {
       title: title,
       body: body,
       scheduledDate: at,
-      notificationDetails: NexReminders.noteDetails(
+      notificationDetails: NexReminderActions.noteDetails(
         body: body,
         secret: secret,
         text: language,

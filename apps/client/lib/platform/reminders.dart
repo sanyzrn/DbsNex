@@ -679,35 +679,6 @@ class NexReminders {
   /// it never replaces (or cancels) a repeating reminder's schedule.
   static int snoozeIdFor(String noteId) => idFor('snooze:$noteId');
 
-  /// How a note's reminder looks: the note's words, its two buttons, and
-  /// nothing on the lock screen when the app lock asks for that.
-  static NotificationDetails noteDetails({
-    required String? body,
-    required bool secret,
-    NexChannelText? text,
-    bool repeating = false,
-  }) {
-    final words = text ?? _text;
-    return NotificationDetails(
-      android: AndroidNotificationDetails(
-        _channelId,
-        words.reminders,
-        channelDescription: words.remindersAbout,
-        importance: Importance.high,
-        priority: Priority.high,
-        styleInformation: body == null || body.isEmpty
-            ? null
-            : BigTextStyleInformation(body),
-        visibility: secret ? NotificationVisibility.secret : null,
-        actions: NexReminderActions.androidActions(
-          words,
-          snoozable: !repeating,
-        ),
-      ),
-      iOS: const DarwinNotificationDetails(),
-    );
-  }
-
   /// A stable 31-bit id derived from the note's own id.
   ///
   /// The plugin keys alarms by int, and notes by string. Hashing means

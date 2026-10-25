@@ -142,23 +142,8 @@ extension NexScheduledReminders on NexReminders {
         id: id,
         title: NexReminders._clamp(commitment.title, 60),
         scheduledDate: NexReminders.scheduledDateFor(at.toUtc()),
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            NexReminders._channelId,
-            NexReminders._text.reminders,
-            channelDescription: NexReminders._text.remindersAbout,
-            importance: Importance.high,
-            priority: Priority.high,
-            visibility: hideOnLockScreen?.call() ?? false
-                ? NotificationVisibility.secret
-                : null,
-            // Done alone: met now, on to its next turn (2.3.1).
-            actions: NexReminderActions.androidActions(
-              NexReminders._text,
-              snoozable: false,
-            ),
-          ),
-          iOS: const DarwinNotificationDetails(),
+        notificationDetails: NexReminderActions.commitmentDetails(
+          secret: hideOnLockScreen?.call() ?? false,
         ),
         androidScheduleMode: _scheduleMode,
         // Prefixed (2.3.1), so a tap opens the Recurring page and a Done is

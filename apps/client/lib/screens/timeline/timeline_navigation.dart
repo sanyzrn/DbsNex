@@ -128,9 +128,21 @@ extension _TimelineNavigation on TimelineScreenState {
       _spotlight(noteId);
       return;
     }
-    unawaited(
-      widget.services.releaseDueNotes().then((_) => _spotlight(noteId)),
-    );
+    unawaited(_revealOrRecurring(noteId));
+  }
+
+  /// Not on the timeline yet: a scheduled note arriving, or — from a
+  /// notification shown before 2.3.1, whose payload was a recurring item's
+  /// bare id — a recurring item, which opens its page.
+  Future<void> _revealOrRecurring(String noteId) async {
+    await widget.services.releaseDueNotes();
+    if (!mounted) return;
+    if (_model.byId(noteId) == null &&
+        (await widget.services.commitments()).any((c) => c.id == noteId)) {
+      await _openRecurring();
+      return;
+    }
+    _spotlight(noteId);
   }
 
   /// A recurring item's reminder was tapped: its page, where it is ticked.

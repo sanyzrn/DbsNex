@@ -74,7 +74,7 @@ void main() {
 
   test('a repeating reminder offers Done alone; a one-time one, both', () {
     List<String> ids({required bool repeating}) => [
-      for (final action in NexReminders.noteDetails(
+      for (final action in NexReminderActions.noteDetails(
         body: null,
         secret: false,
         repeating: repeating,
@@ -86,6 +86,15 @@ void main() {
       NexReminderActions.snooze,
     ]);
     expect(ids(repeating: true), [NexReminderActions.done]);
+    expect(
+      [
+        for (final action in NexReminderActions.commitmentDetails(
+          secret: false,
+        ).android!.actions!)
+          action.id,
+      ],
+      [NexReminderActions.done],
+    );
   });
 
   test(
