@@ -353,9 +353,17 @@ class _TranslateSheetState extends State<TranslateSheet> {
                     ),
                   ),
                 ),
-                TextButton(
-                  onPressed: () => unawaited(_translate()),
-                  child: Text(l10n.retry),
+                // Flexible: at the largest text sizes the button shares the
+                // line rather than pushing past the edge.
+                Flexible(
+                  child: TextButton(
+                    onPressed: () => unawaited(_translate()),
+                    child: Text(
+                      l10n.retry,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
               ],
             ),

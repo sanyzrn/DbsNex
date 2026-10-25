@@ -79,8 +79,6 @@ class _ActionRow extends StatelessWidget {
                     : null,
                 iconColor: action.destructive
                     ? Theme.of(context).colorScheme.error
-                    : action.accent
-                    ? Theme.of(context).colorScheme.primary
                     : null,
                 enabled: action.onPressed != null,
                 onTap: action.onPressed == null
@@ -105,7 +103,6 @@ class _DetailAction extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.destructive = false,
-    this.accent = false,
   }) : assert(
          icon != null || glyph != null,
          'an action needs something to show',
@@ -121,11 +118,6 @@ class _DetailAction extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
 
-  /// The assistant's colour. What the row was missing was not a better glyph
-  /// for each AI action but a way to see that three of them are the same kind
-  /// of thing — a tint does that across the group where no single icon can.
-  final bool accent;
-
   /// Delete's own colour: the row is otherwise neutral, and this is the one
   /// action here that cannot be undone by repeating it.
   final bool destructive;
@@ -135,14 +127,10 @@ class _DetailAction extends StatelessWidget {
     final theme = Theme.of(context);
     final color = onPressed == null
         ? theme.disabledColor
-        : accent
-        ? theme.colorScheme.primary
         : destructive
         ? theme.colorScheme.error
         : theme.colorScheme.onSurfaceVariant;
-    final labelColor = onPressed != null && accent && !destructive
-        ? theme.colorScheme.onSurface
-        : color;
+    final labelColor = color;
     return Tooltip(
       message: label,
       child: NexPress(

@@ -9008,6 +9008,12 @@ abstract class AppLocalizations {
   /// **'Collapse result'**
   String get aiResultCollapse;
 
+  /// No description provided for @aiRunAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Run again'**
+  String get aiRunAgain;
+
   /// No description provided for @aiShowResults.
   ///
   /// In en, this message translates to:

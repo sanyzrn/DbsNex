@@ -282,29 +282,33 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     });
   }
 
-  List<_DetailAction> _aiActions(Note note, AppLocalizations l10n) => [
+  /// What Nex AI can do with this note, each as a labelled tool (2.3.3).
+  /// A tool whose output is kept names the result it fills, so once there is
+  /// one the tool shows it instead of asking again.
+  List<_AiTool> _aiTools(Note note, AppLocalizations l10n) => [
     if (note.isImageMedia && widget.services.imageReadingAvailable)
-      _DetailAction(
+      _AiTool(
         icon: Icons.image_search_outlined,
         label: l10n.aiDescribeImage,
-        accent: true,
-        onPressed: _readingMedia ? null : () => unawaited(_readMedia()),
+        resultId: 'image',
+        running: _readingMedia,
+        onRun: () => unawaited(_readMedia()),
       ),
     if (note.isAudioMedia && widget.services.audioTranscriptionAvailable)
-      _DetailAction(
+      _AiTool(
         icon: Icons.transcribe_outlined,
         label: l10n.aiTranscribeAudio,
-        accent: true,
-        onPressed: _readingMedia ? null : () => unawaited(_readMedia()),
+        resultId: 'transcript',
+        running: _readingMedia,
+        onRun: () => unawaited(_readMedia()),
       ),
     if (widget.services.canAnalyzeVideo(note))
-      _DetailAction(
+      _AiTool(
         icon: Icons.smart_display_outlined,
         label: l10n.aiAnalyzeVideo,
-        accent: true,
-        onPressed: _summarizing
-            ? null
-            : () => unawaited(_analyzeVideo(note.id)),
+        resultId: 'summary',
+        running: _summarizing,
+        onRun: () => unawaited(_analyzeVideo(note.id)),
       ),
     // Not beside "Analyze video": a YouTube page's text is its title and a
     // line of description, and a summary of that is not a summary of the
@@ -314,28 +318,28 @@ extension _DetailAiPanel on _NoteDetailSheetState {
             aiTextAvailableWith(preferences.aiProvider) &&
             !widget.services.canAnalyzeVideo(note) &&
             (note.aiSourceText?.length ?? 0) > 80)
-      _DetailAction(
+      _AiTool(
         glyph: const NexSummariseIcon(),
         label: l10n.summarize,
-        accent: true,
-        onPressed: _summarizing ? null : () => unawaited(_summarize(note.id)),
+        resultId: 'summary',
+        running: _summarizing,
+        onRun: () => unawaited(_summarize(note.id)),
       ),
     if (widget.preferences case final preferences?
         when TranslateSheet.availableFor(preferences) &&
             _translationSource(note).isNotEmpty)
-      _DetailAction(
+      _AiTool(
         icon: Icons.translate,
         label: l10n.translate,
-        accent: true,
-        onPressed: _openTranslation,
+        resultId: 'translation',
+        onRun: _openTranslation,
       ),
     if (widget.preferences case final preferences?
         when AiChatSheet.availableFor(preferences))
-      _DetailAction(
-        icon: Icons.auto_awesome,
+      _AiTool(
+        icon: Icons.forum_outlined,
         label: l10n.askAboutNote,
-        accent: true,
-        onPressed: () => unawaited(
+        onRun: () => unawaited(
           AiChatSheet.show(
             context,
             preferences: preferences,
@@ -347,11 +351,11 @@ extension _DetailAiPanel on _NoteDetailSheetState {
       ),
     if (widget.preferences?.effectiveAiCapabilities.tagSuggestions == true &&
         widget.services.aiIsUsable)
-      _DetailAction(
+      _AiTool(
         icon: Icons.label_outline,
         label: l10n.aiTagsAction,
-        accent: true,
-        onPressed: _loadingAi ? null : () => unawaited(_loadTagSuggestions()),
+        running: _loadingAi,
+        onRun: () => unawaited(_loadTagSuggestions()),
       ),
   ];
 
@@ -404,18 +408,26 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     return image ? l10n.aiImageResult : l10n.aiExtractedText;
   }
 
+  /// The Nex AI workspace under a note (rebuilt in 2.3.3).
+  ///
+  /// One header — the name, whether something is working, and Hide/Show for
+  /// what came back. One row of labelled tools, which double as the switch
+  /// between results: a tool with a result wears a check and shows it, and a
+  /// result with no tool of its own (an attachment read, a file's text) joins
+  /// the row as a chip. Then the chosen result in a card of its own, with
+  /// what can be done with it, and tag suggestions under their own heading.
   Widget _aiPanel(Note note, AppLocalizations l10n) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final derived = _derivedAiResults(note, l10n);
-    final actions = _aiActions(note, l10n);
+    final tools = _aiTools(note, l10n);
     final busy =
         _readingMedia ||
         _readingAttachments.isNotEmpty ||
         _summarizing ||
         _loadingAi;
-    // A translation made earlier this session comes back with the note
-    // (2.3.3), as a tab, without asking for it again.
+    // A translation made earlier this session comes back with the note, as
+    // a result of its own, without asking for it again.
     final translationSource = _translationRequested
         ? _translationText
         : _translationSource(note);
@@ -424,37 +436,31 @@ extension _DetailAiPanel on _NoteDetailSheetState {
         (widget.preferences != null &&
             translationSource.isNotEmpty &&
             TranslateSheet.hasTranslation(translationSource));
-    final hasResults =
-        derived.isNotEmpty || hasTranslation || _suggestions.isNotEmpty;
-    if (!hasResults && actions.isEmpty && !busy) {
-      return const SizedBox.shrink();
-    }
-    final translating =
-        hasTranslation &&
-        (_activeAiResult == 'translation' ||
-            (derived.isEmpty && _activeAiResult == null));
-    final selected =
-        derived.where((r) => r.id == _activeAiResult).firstOrNull ??
-        derived.lastOrNull;
-    final choices = [
-      ...derived,
-      if (hasTranslation) _AiResult('translation', l10n.translate, ''),
+    final resultIds = {
+      for (final result in derived) result.id,
+      if (hasTranslation) 'translation',
+    };
+    final hasResults = resultIds.isNotEmpty || _suggestions.isNotEmpty;
+    if (!hasResults && tools.isEmpty && !busy) return const SizedBox.shrink();
+    final selectedId = resultIds.contains(_activeAiResult)
+        ? _activeAiResult
+        : derived.lastOrNull?.id ?? (hasTranslation ? 'translation' : null);
+    final selected = derived.where((r) => r.id == selectedId).firstOrNull;
+    final translating = selectedId == 'translation';
+    final toolResults = {for (final tool in tools) ?tool.resultId};
+    final loose = [
+      for (final result in derived)
+        if (!toolResults.contains(result.id)) result,
     ];
-    final selectedId = translating ? 'translation' : selected?.id;
-    final resultLabel = translating
-        ? l10n.translate
-        : selected?.label ?? l10n.tagSuggestions;
-    final canCaption = note.type != NoteType.text;
+    void show(String id) => _rebuild(() {
+      _activeAiResult = id;
+      _hideAiResults = false;
+    });
     return Padding(
       padding: const EdgeInsets.only(top: NexSpacing.md),
       child: NexAnimatedSize(
         child: NexSurface(
           key: const ValueKey('note-ai-workspace'),
-          // A faint wash of the accent and a hairline (2.1.6). It was
-          // `surfaceContainerLow`, which every theme makes the same colour as
-          // the sheet it sits on, so the workspace's inset read as the AI
-          // block being indented further than the note above it for no
-          // reason.
           color: Color.alphaBlend(
             scheme.primary.withValues(alpha: 0.05),
             scheme.surfaceContainerLow,
@@ -462,204 +468,174 @@ extension _DetailAiPanel on _NoteDetailSheetState {
           border: BorderSide(
             color: scheme.outlineVariant.withValues(alpha: 0.6),
           ),
-          padding: const EdgeInsets.all(NexSpacing.md),
+          padding: const EdgeInsets.fromLTRB(
+            NexSpacing.md,
+            NexSpacing.sm,
+            NexSpacing.sm,
+            NexSpacing.md,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.auto_awesome_outlined,
-                    size: 18,
-                    color: scheme.primary,
-                  ),
-                  const SizedBox(width: NexSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      l10n.aiSection,
-                      style: theme.textTheme.titleSmall,
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_outlined,
+                      size: 18,
+                      color: scheme.primary,
                     ),
-                  ),
-                  if (busy || (hasResults && !translating)) ...[
                     const SizedBox(width: NexSpacing.sm),
-                    Expanded(
+                    Flexible(
                       child: Text(
-                        busy ? l10n.aiProcessing : l10n.aiResultReady,
-                        key: const ValueKey('note-ai-status'),
-                        textAlign: TextAlign.end,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                        l10n.aiSection,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall,
                       ),
                     ),
-                  ],
-                ],
-              ),
-              if (actions.isNotEmpty) ...[
-                const SizedBox(height: NexSpacing.sm),
-                Wrap(
-                  key: const ValueKey('note-ai-tools'),
-                  spacing: NexSpacing.sm,
-                  runSpacing: NexSpacing.xs,
-                  children: [
-                    for (final action in actions) _AiActionIcon(action: action),
+                    if (busy) ...[
+                      const SizedBox(width: NexSpacing.sm),
+                      SizedBox.square(
+                        dimension: 14,
+                        child: CircularProgressIndicator(
+                          key: const ValueKey('note-ai-status'),
+                          strokeWidth: 2,
+                          semanticsLabel: l10n.aiProcessing,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: NexSpacing.sm),
+                    // Pushed to the far edge, and allowed to shrink: at the
+                    // largest text sizes "Show results" shares the line
+                    // instead of running off it.
+                    if (hasResults)
+                      Expanded(
+                        child: Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: _hideAiResults
+                              ? TextButton.icon(
+                                  key: const ValueKey('note-ai-show-results'),
+                                  onPressed: () =>
+                                      _rebuild(() => _hideAiResults = false),
+                                  icon: const Icon(
+                                    Icons.visibility_outlined,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    l10n.aiShowResults,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                )
+                              : TextButton.icon(
+                                  key: const ValueKey('note-ai-hide-results'),
+                                  onPressed: () =>
+                                      _rebuild(() => _hideAiResults = true),
+                                  icon: const Icon(
+                                    Icons.visibility_off_outlined,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    l10n.hide,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                        ),
+                      ),
                   ],
                 ),
-              ],
-              if (busy) ...[
-                const SizedBox(height: NexSpacing.sm),
-                const LinearProgressIndicator(minHeight: 2),
-              ],
-              if (hasResults) ...[
-                const SizedBox(height: NexSpacing.sm),
-                if (_hideAiResults)
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: TextButton.icon(
-                      key: const ValueKey('note-ai-show-results'),
-                      onPressed: () => _rebuild(() => _hideAiResults = false),
-                      icon: const Icon(Icons.visibility_outlined, size: 18),
-                      label: Text(l10n.aiShowResults),
-                    ),
+              ),
+              const SizedBox(height: NexSpacing.xs),
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: NexSpacing.xs),
+                child: Wrap(
+                  key: const ValueKey('note-ai-tools'),
+                  spacing: NexSpacing.sm,
+                  runSpacing: NexSpacing.sm,
+                  children: [
+                    for (final tool in tools)
+                      _AiToolChip(
+                        icon: tool.icon,
+                        glyph: tool.glyph,
+                        label: tool.label,
+                        running: tool.running,
+                        done: resultIds.contains(tool.resultId),
+                        selected:
+                            !_hideAiResults &&
+                            tool.resultId != null &&
+                            tool.resultId == selectedId,
+                        onTap: tool.running
+                            ? null
+                            : resultIds.contains(tool.resultId)
+                            ? () => show(tool.resultId!)
+                            : tool.onRun,
+                      ),
+                    for (final result in loose)
+                      _AiToolChip(
+                        key: ValueKey('note-ai-tab-${result.id}'),
+                        icon: _AiResultTabs.icon(result),
+                        label: _AiResultTabs.label(result, l10n),
+                        tooltip: result.label,
+                        done: true,
+                        selected: !_hideAiResults && result.id == selectedId,
+                        onTap: () => show(result.id),
+                      ),
+                  ],
+                ),
+              ),
+              if (!hasResults && !busy) ...[
+                const SizedBox(height: NexSpacing.md),
+                Text(
+                  l10n.aiNoResult,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
-                // Keep an already-requested translation alive while hiding it.
-                // Revealing output or switching results must not call AI again.
+                ),
+              ],
+              // Kept alive while hidden: showing it again, or switching
+              // between results, never asks the model a second time.
+              if (hasResults)
                 NexReveal(
                   visible: !_hideAiResults,
                   maintainState: true,
                   child: Padding(
                     key: const ValueKey('note-ai-results'),
-                    padding: const EdgeInsets.only(top: NexSpacing.sm),
+                    padding: const EdgeInsetsDirectional.only(
+                      top: NexSpacing.md,
+                      end: NexSpacing.xs,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: choices.length > 1
-                                  ? _AiResultTabs(
-                                      choices: choices,
-                                      selected: selectedId,
-                                      onSelected: (id) =>
-                                          _rebuild(() => _activeAiResult = id),
-                                    )
-                                  : Tooltip(
-                                      message: resultLabel,
-                                      child: Text(
-                                        !translating && selected != null
-                                            ? _AiResultTabs.label(
-                                                selected,
-                                                l10n,
-                                              )
-                                            : resultLabel,
-                                        style: theme.textTheme.labelMedium
-                                            ?.copyWith(
-                                              color: scheme.onSurfaceVariant,
-                                            ),
-                                      ),
-                                    ),
-                            ),
-                            if (!translating && selected != null)
-                              IconButton(
-                                tooltip: _showAi
-                                    ? l10n.aiResultCollapse
-                                    : l10n.aiResultExpand,
-                                onPressed: () =>
-                                    _rebuild(() => _showAi = !_showAi),
-                                icon: AnimatedRotation(
-                                  turns: _showAi ? 0.5 : 0,
-                                  duration: NexMotion.of(
-                                    context,
-                                    NexMotion.standard,
+                        if (selected != null && !translating)
+                          _AiResultCard(
+                            key: ValueKey('ai-result-${selected.id}'),
+                            icon: _AiResultTabs.icon(selected),
+                            title: _AiResultTabs.label(selected, l10n),
+                            text: selected.text,
+                            expanded: _showAi,
+                            onExpand: () => _rebuild(() => _showAi = !_showAi),
+                            onAgain: _againFor(selected.id, note),
+                            onCopy: () =>
+                                unawaited(_copyDerivedText(selected.text)),
+                            onCaption: note.type == NoteType.text
+                                ? null
+                                : () => unawaited(
+                                    _addDerivedToCaption(selected.text),
                                   ),
-                                  curve: NexMotion.curve,
-                                  child: const Icon(
-                                    Icons.expand_more,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            IconButton(
-                              key: const ValueKey('note-ai-hide-results'),
-                              tooltip: l10n.hide,
-                              onPressed: () =>
-                                  _rebuild(() => _hideAiResults = true),
-                              icon: const Icon(
-                                Icons.visibility_off_outlined,
-                                size: 20,
-                              ),
+                            captionBusy: _addingCaption,
+                            captionKey: ValueKey(
+                              'add-derived-caption-${selected.id}',
                             ),
-                          ],
-                        ),
-                        if (!translating && selected != null) ...[
-                          const SizedBox(height: NexSpacing.xs),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: NexSpacing.sm,
-                            ),
-                            child: _showAi
-                                ? ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxHeight: 240,
-                                    ),
-                                    child: SingleChildScrollView(
-                                      key: ValueKey('ai-result-${selected.id}'),
-                                      primary: false,
-                                      child: NexTextSurface(
-                                        selected.text,
-                                        selectable: true,
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(height: 1.65),
-                                      ),
-                                    ),
-                                  )
-                                : NexTextSurface(
-                                    selected.text,
-                                    maxLines: 3,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      height: 1.65,
-                                    ),
-                                  ),
                           ),
-                          const SizedBox(height: NexSpacing.xs),
-                          Wrap(
-                            spacing: NexSpacing.xs,
-                            runSpacing: NexSpacing.xs,
-                            children: [
-                              TextButton.icon(
-                                onPressed: () =>
-                                    unawaited(_copyDerivedText(selected.text)),
-                                icon: const Icon(Icons.copy_outlined, size: 18),
-                                label: Text(l10n.copy),
-                              ),
-                              if (canCaption)
-                                TextButton.icon(
-                                  key: ValueKey(
-                                    'add-derived-caption-${selected.id}',
-                                  ),
-                                  onPressed: _addingCaption
-                                      ? null
-                                      : () => unawaited(
-                                          _addDerivedToCaption(selected.text),
-                                        ),
-                                  icon: const Icon(
-                                    Icons.playlist_add_outlined,
-                                    size: 18,
-                                  ),
-                                  label: Text(l10n.aiAddToCaption),
-                                ),
-                            ],
-                          ),
-                        ],
                         if (widget.preferences case final preferences?
                             when hasTranslation)
                           Visibility(
                             visible: translating,
                             maintainState: true,
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                top: NexSpacing.sm,
-                              ),
+                            child: _AiCard(
                               child: TranslateSheet(
                                 key: ValueKey(
                                   'note-translation-${note.id}-${translationSource.hashCode}',
@@ -669,66 +645,87 @@ extension _DetailAiPanel on _NoteDetailSheetState {
                                 services: widget.services,
                                 noteId: note.id,
                                 addingCaption: _addingCaption,
-                                onAddToCaption: canCaption
-                                    ? (text) =>
-                                          unawaited(_addDerivedToCaption(text))
-                                    : null,
+                                onAddToCaption: note.type == NoteType.text
+                                    ? null
+                                    : (text) =>
+                                          unawaited(_addDerivedToCaption(text)),
                               ),
                             ),
                           ),
                         if (_suggestions.isNotEmpty) ...[
-                          if (selected != null || hasTranslation)
-                            Padding(
-                              padding: const EdgeInsets.all(NexSpacing.sm),
-                              child: Text(
-                                l10n.tagSuggestions,
-                                style: theme.textTheme.labelMedium,
-                              ),
-                            ),
-                          Wrap(
-                            spacing: NexSpacing.xs,
-                            runSpacing: NexSpacing.xs,
-                            children: [
-                              for (final suggestion in _suggestions)
-                                ActionChip(
-                                  label: Text(suggestion.name),
-                                  onPressed: () async {
-                                    await widget.services.addTag(
-                                      noteId: note.id,
-                                      name: suggestion.name,
-                                    );
-                                    if (!mounted) return;
-                                    _rebuild(
-                                      () => _suggestions = _suggestions
-                                          .where(
-                                            (s) => s.name != suggestion.name,
-                                          )
-                                          .toList(),
-                                    );
-                                    await _reload();
-                                  },
+                          if (selectedId != null)
+                            const SizedBox(height: NexSpacing.sm),
+                          _AiCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.label_outline,
+                                      size: 16,
+                                      color: scheme.primary,
+                                    ),
+                                    const SizedBox(width: NexSpacing.sm),
+                                    Expanded(
+                                      child: Text(
+                                        l10n.tagSuggestions,
+                                        style: theme.textTheme.labelLarge
+                                            ?.copyWith(color: scheme.primary),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                            ],
+                                const SizedBox(height: NexSpacing.sm),
+                                Wrap(
+                                  spacing: NexSpacing.xs,
+                                  runSpacing: NexSpacing.xs,
+                                  children: [
+                                    for (final suggestion in _suggestions)
+                                      ActionChip(
+                                        avatar: const Icon(Icons.add, size: 16),
+                                        label: Text(suggestion.name),
+                                        onPressed: () => unawaited(
+                                          _acceptSuggestion(note, suggestion),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ],
                     ),
                   ),
                 ),
-              ] else if (!busy) ...[
-                const SizedBox(height: NexSpacing.sm),
-                Text(
-                  l10n.aiNoResult,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _acceptSuggestion(Note note, TagSuggestion suggestion) async {
+    await widget.services.addTag(noteId: note.id, name: suggestion.name);
+    if (!mounted) return;
+    _rebuild(
+      () => _suggestions = _suggestions
+          .where((s) => s.name != suggestion.name)
+          .toList(),
+    );
+    await _reload();
+  }
+
+  /// "Run again" for a result a tool here can make afresh; null for one it
+  /// cannot (an attachment's reading, a file's own text).
+  VoidCallback? _againFor(String id, Note note) {
+    final tool = _aiTools(
+      note,
+      AppLocalizations.of(context),
+    ).where((t) => t.resultId == id && id != 'translation').firstOrNull;
+    if (tool == null || tool.running) return null;
+    return tool.onRun;
   }
 
   bool _summaryIsMeaningful(Note note) {

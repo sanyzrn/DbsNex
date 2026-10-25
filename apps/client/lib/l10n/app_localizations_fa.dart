@@ -5652,6 +5652,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiResultCollapse => 'جمع‌کردن نتیجه';
 
   @override
+  String get aiRunAgain => 'اجرای دوباره';
+
+  @override
   String get aiShowResults => 'نمایش نتیجه‌ها';
 
   @override

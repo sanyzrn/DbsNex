@@ -1512,7 +1512,7 @@ void main() {
       final preview = tester.widget<Text>(
         inSheet(find.text('the machine heard this')),
       );
-      expect(preview.maxLines, 3);
+      expect(preview.maxLines, 4);
       final l10n = AppLocalizations.of(
         tester.element(find.byType(NoteDetailSheet)),
       );

@@ -5742,6 +5742,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiResultCollapse => 'Collapse result';
 
   @override
+  String get aiRunAgain => 'Run again';
+
+  @override
   String get aiShowResults => 'Show results';
 
   @override

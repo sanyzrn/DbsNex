@@ -3409,6 +3409,7 @@
   "relatedNotesPaused": "Temporarily paused",
   "aiResultExpand": "Show full result",
   "aiResultCollapse": "Collapse result",
+  "aiRunAgain": "Run again",
   "aiShowResults": "Show results",
   "aiSwitchResult": "Switch result",
   "aiExtractedText": "Extracted text",
