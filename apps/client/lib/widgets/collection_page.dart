@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../screens/note_detail_sheet.dart';
+import 'collection_swipe.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
 
@@ -214,7 +215,7 @@ class NexMetaChip extends StatelessWidget {
 /// One thing in a collection, as its own card.
 ///
 /// [accent] colours its leading edge. [onSwipe], when given, is what a swipe
-/// from the start edge does — the collection's one gentle action (bring back,
+/// toward the start edge does — the collection's one gentle action (bring back,
 /// restore) — shown under the card as it moves with [swipeIcon] and
 /// [swipeLabel]. [progress] draws a thin bar along the bottom (how much of
 /// the trash's thirty days is left).
@@ -325,12 +326,10 @@ class NexCollectionTile extends StatelessWidget {
       ),
     );
     if (onSwipe case final swipe?) {
-      card = Dismissible(
-        key: key ?? UniqueKey(),
-        // Toward the start edge (2.3.1): the other way is the page's own
-        // swipe back, and a card took that gesture over.
-        direction: DismissDirection.endToStart,
-        onDismissed: (_) => swipe(),
+      // Toward the start edge only, and giving the other way up to the
+      // page's swipe back (2.3.2) — see [NexStartSwipe].
+      card = NexStartSwipe(
+        onSwipe: swipe,
         background: Container(
           decoration: BoxDecoration(
             color: edge.withValues(alpha: 0.16),
@@ -365,6 +364,30 @@ class NexCollectionTile extends StatelessWidget {
       child: card,
     );
   }
+}
+
+/// A collection's own glyph in a soft square of [color], where a card is not
+/// a note: a thread, a scheduled delivery.
+class NexCollectionSquare extends StatelessWidget {
+  const NexCollectionSquare({
+    super.key,
+    required this.icon,
+    required this.color,
+  });
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 44,
+    height: 44,
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.14),
+      borderRadius: BorderRadius.circular(NexRadius.md),
+    ),
+    child: Icon(icon, color: color),
+  );
 }
 
 /// A note's kind, as the square on its card: its type's icon on its type's

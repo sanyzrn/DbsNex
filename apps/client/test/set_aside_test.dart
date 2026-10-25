@@ -215,4 +215,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(await services.deletedNotes(), hasLength(1));
   });
+
+  testWidgets('from a card, a swipe back leaves; toward the start acts', (
+    tester,
+  ) async {
+    for (final note in await services.worker.timeline(limit: 10)) {
+      await services.setAside(note.id);
+    }
+    await services.refreshTimeline();
+    await open(tester);
+    await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+    await tester.pumpAndSettle();
+    Future<void> enterArchive() async {
+      await tester.tap(find.byKey(const ValueKey('library-set-aside')));
+      await tester.pumpAndSettle();
+      expect(find.byType(SetAsideScreen), findsOneWidget);
+    }
+
+    await enterArchive();
+    final alpha = (await services.listSetAside()).firstWhere(
+      (n) => n.content == 'alpha note',
+    );
+    final cardOf = find.byKey(ValueKey('archive-${alpha.id}'));
+    // The back direction, starting on the card: the page goes.
+    await tester.drag(cardOf, const Offset(300, 0));
+    await tester.pumpAndSettle();
+    expect(find.byType(SetAsideScreen), findsNothing);
+    expect(await services.setAsideCount(), 2, reason: 'nothing unarchived');
+
+    // Toward the start: the card's own action.
+    await enterArchive();
+    await tester.drag(cardOf, const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    expect(find.byType(SetAsideScreen), findsOneWidget);
+    expect(await services.setAsideCount(), 1);
+  });
 }

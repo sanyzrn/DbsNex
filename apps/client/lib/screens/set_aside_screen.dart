@@ -11,6 +11,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../widgets/collection_page.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/nex_shelf.dart';
 
 /// The archive: notes off the home screen, not gone (2.3.0 redesign).
 ///
@@ -126,7 +127,6 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     final loaded = notes;
     final timed = [
       for (final note in loaded ?? const <Note>[])
@@ -174,7 +174,7 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
               children: [
                 NexCollectionHero(
                   icon: Icons.archive_outlined,
-                  color: scheme.primary,
+                  color: NexHue.amber.on(context),
                   count: loaded.length,
                   title: l10n.setAsidePageTitle,
                   hint: l10n.setAsideSheetHint,
@@ -216,7 +216,7 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
         if (until != null)
           NexMetaChip(
             icon: Icons.event_repeat,
-            color: scheme.primary,
+            color: NexHue.amber.on(context),
             label:
                 '${l10n.archiveBackIn(nexDaysUntil(until).clamp(0, 9999))} · '
                 '${nexReadableDate(until, solar: widget.services.solarCalendar, persian: persian)}',
@@ -235,7 +235,7 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
           IconButton(
             key: ValueKey('archive-back-${note.id}'),
             tooltip: l10n.setAsideBringBack,
-            color: scheme.primary,
+            color: NexHue.amber.on(context),
             icon: const Icon(Icons.unarchive_outlined),
             onPressed: () => unawaited(_bringBack(note)),
           ),

@@ -214,8 +214,10 @@ class _WhatsNewScreenState extends State<WhatsNewScreen>
     ];
     final currentHit = query.isEmpty ? current : _filter(current, query);
     final rows = <Widget Function()>[
-      if (query.isEmpty) () => _hero(context, current),
+      // First, so a search is one tap away however long the newest
+      // release's notes are.
       () => _searchField(context),
+      if (query.isEmpty) () => _hero(context, current),
       if (query.isNotEmpty && currentHit != null)
         () => _ReleaseCard(
           release: currentHit,

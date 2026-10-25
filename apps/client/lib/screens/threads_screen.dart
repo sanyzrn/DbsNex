@@ -6,6 +6,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../widgets/collection_page.dart';
+import '../widgets/nex_shelf.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -85,7 +86,7 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
               children: [
                 NexCollectionHero(
                   icon: Icons.timeline_outlined,
-                  color: Theme.of(context).colorScheme.secondary,
+                  color: NexHue.teal.on(context),
                   count: threads.length,
                   title: l10n.threads,
                   hint: l10n.threadsHint,
@@ -99,26 +100,20 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
   /// A thread as its own card, with a strand of beads — one per note, up to
   /// a dozen — so a long thread looks long before it is opened.
   Widget _card(NoteThread thread, AppLocalizations l10n) {
-    final scheme = Theme.of(context).colorScheme;
     final beads = thread.noteCount.clamp(0, 12);
     final last = thread.lastActivityAt;
     return NexCollectionTile(
       key: ValueKey('thread-${thread.id}'),
-      accent: scheme.secondary,
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: scheme.secondary.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(NexRadius.md),
-        ),
-        child: Icon(Icons.timeline_outlined, color: scheme.secondary),
+      accent: NexHue.teal.on(context),
+      leading: NexCollectionSquare(
+        icon: Icons.timeline_outlined,
+        color: NexHue.teal.on(context),
       ),
       title: Text(thread.name),
       meta: [
         NexMetaChip(
           icon: Icons.notes_outlined,
-          color: scheme.secondary,
+          color: NexHue.teal.on(context),
           label: l10n.threadNoteCount(thread.noteCount),
         ),
         if (last != null)
@@ -137,16 +132,16 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
                     Container(
                       width: 6,
                       height: 2,
-                      color: scheme.secondary.withValues(alpha: 0.35),
+                      color: NexHue.teal.on(context).withValues(alpha: 0.35),
                     ),
                   Container(
                     width: 7,
                     height: 7,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: scheme.secondary.withValues(
-                        alpha: 0.35 + 0.65 * (i + 1) / beads,
-                      ),
+                      color: NexHue.teal
+                          .on(context)
+                          .withValues(alpha: 0.35 + 0.65 * (i + 1) / beads),
                     ),
                   ),
                 ],

@@ -8,6 +8,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../widgets/collection_page.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/nex_shelf.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 
@@ -185,7 +186,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
               children: [
                 NexCollectionHero(
                   icon: Icons.delete_outline,
-                  color: theme.colorScheme.error,
+                  color: NexHue.rose.on(context),
                   count: loaded.length,
                   title: l10n.trash,
                   hint: l10n.trashRetention,
@@ -235,7 +236,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
           IconButton(
             key: ValueKey('trash-restore-${note.id}'),
             tooltip: l10n.restore,
-            color: scheme.primary,
+            color: NexHue.rose.on(context),
             icon: const Icon(Icons.restore),
             onPressed: () => unawaited(_restore(note)),
           ),

@@ -5330,6 +5330,18 @@ abstract class AppLocalizations {
   /// **'Hold ↑ to schedule it for later'**
   String get scheduleHint;
 
+  /// No description provided for @scheduledInDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Tomorrow} other{In {count} days}}'**
+  String scheduledInDays(int count);
+
+  /// No description provided for @libraryScheduledCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Notes on their way} =1{1 note on its way} other{{count} notes on their way}}'**
+  String libraryScheduledCount(int count);
+
   /// No description provided for @scheduledTitle.
   ///
   /// In en, this message translates to:
