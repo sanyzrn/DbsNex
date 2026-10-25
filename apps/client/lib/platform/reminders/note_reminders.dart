@@ -127,6 +127,7 @@ extension NexNoteReminders on NexReminders {
         notificationDetails: NexReminders.noteDetails(
           body: text,
           secret: secret,
+          repeating: note.dueRepeat != NoteRepeat.once,
         ),
         androidScheduleMode: _scheduleMode,
         // What makes it come back. The plugin re-fires on whichever fields

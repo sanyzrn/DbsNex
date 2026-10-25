@@ -1156,6 +1156,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recapRefreshing => 'Refreshing the smart summary…';
 
   @override
+  String get whatsNewAbout => 'Every change, release by release';
+
+  @override
+  String get whatsNewBadge => 'New';
+
+  @override
+  String get whatsNewEarlier => 'Earlier releases';
+
+  @override
+  String get whatsNewSearchHint => 'Search every change';
+
+  @override
+  String get whatsNewNoMatch => 'No change mentions that';
+
+  @override
+  String whatsNewChanges(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString changes',
+      one: '1 change',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get whatsNewTitle => 'What’s new';
 
   @override
@@ -6101,6 +6131,50 @@ class AppLocalizationsEn extends AppLocalizations {
       other: 'Back in $countString days',
       one: 'Back tomorrow',
       zero: 'Back today',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trashRestored => 'Note restored';
+
+  @override
+  String get trashDeletedForever => 'Deleted permanently';
+
+  @override
+  String get archiveUnarchived => 'Back on the home screen';
+
+  @override
+  String get archiveDeleteAll => 'Delete all';
+
+  @override
+  String archiveDeleteAllBody(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString archived notes will move to the trash, where they stay for 30 days.',
+      one:
+          '1 archived note will move to the trash, where it stays for 30 days.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveBringBackAllBody(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString notes will return to the home screen.',
+      one: '1 note will return to the home screen.',
     );
     return '$_temp0';
   }

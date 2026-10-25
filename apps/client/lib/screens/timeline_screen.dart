@@ -10,7 +10,6 @@ import '../platform/reminders.dart';
 import '../platform/note_copy.dart';
 import '../platform/file_opener.dart';
 import '../platform/hold_menu.dart';
-import '../widgets/whats_new_sheet.dart';
 import '../widgets/nex_pull_refresh.dart';
 import '../widgets/translate_sheet.dart';
 import '../platform/photo_encoding.dart';
@@ -254,7 +253,6 @@ class TimelineScreenState extends State<TimelineScreen>
   Future<void>? _aiSummaryInFlight;
   Timer? _aiSummaryWake;
   Timer? _ringingSync;
-  Timer? _whatsNewWait;
 
   /// Bumped when a pull-to-refresh finishes: what it refreshed plays a sweep.
   final _refreshPulse = ValueNotifier<int>(0);
@@ -381,10 +379,10 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     widget.services.reminders.onOpenNote = _openArrived;
     final launched = widget.services.reminders.takeLaunchNoteId();
-    if (launched != null) {
-      _openArrived(launched, cold: true);
-    } else {
-      _maybeWhatsNew();
+    if (launched != null) _openArrived(launched, cold: true);
+    widget.services.reminders.onOpenRecurring = _openRecurring;
+    if (widget.services.reminders.takeLaunchedFromRecurring()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openRecurring());
     }
     _wireOsRequests();
     // And both halves of a tapped download. Here rather than in the app

@@ -1148,6 +1148,36 @@ class AppLocalizationsFa extends AppLocalizations {
   String get recapRefreshing => 'در حال تازه کردن خلاصه‌ی هوشمند…';
 
   @override
+  String get whatsNewAbout => 'همهٔ تغییرات، نسخه به نسخه';
+
+  @override
+  String get whatsNewBadge => 'تازه';
+
+  @override
+  String get whatsNewEarlier => 'نسخه‌های پیشین';
+
+  @override
+  String get whatsNewSearchHint => 'جست‌وجو در همهٔ تغییرات';
+
+  @override
+  String get whatsNewNoMatch => 'هیچ تغییری این را نمی‌گوید';
+
+  @override
+  String whatsNewChanges(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString تغییر',
+      one: '۱ تغییر',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get whatsNewTitle => 'تازه‌ها';
 
   @override
@@ -6009,6 +6039,49 @@ class AppLocalizationsFa extends AppLocalizations {
       other: '$countString روز دیگر برمی‌گردد',
       one: 'فردا برمی‌گردد',
       zero: 'امروز برمی‌گردد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trashRestored => 'یادداشت بازیابی شد';
+
+  @override
+  String get trashDeletedForever => 'برای همیشه حذف شد';
+
+  @override
+  String get archiveUnarchived => 'به صفحهٔ اصلی برگشت';
+
+  @override
+  String get archiveDeleteAll => 'حذف همه';
+
+  @override
+  String archiveDeleteAllBody(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString یادداشت بایگانی‌شده به سطل زباله می‌روند و ۳۰ روز آنجا می‌مانند.',
+      one: 'یک یادداشت بایگانی‌شده به سطل زباله می‌رود و ۳۰ روز آنجا می‌ماند.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String archiveBringBackAllBody(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString یادداشت به صفحهٔ اصلی برمی‌گردند.',
+      one: 'یک یادداشت به صفحهٔ اصلی برمی‌گردد.',
     );
     return '$_temp0';
   }

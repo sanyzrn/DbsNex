@@ -327,15 +327,17 @@ class NexCollectionTile extends StatelessWidget {
     if (onSwipe case final swipe?) {
       card = Dismissible(
         key: key ?? UniqueKey(),
-        direction: DismissDirection.startToEnd,
+        // Toward the start edge (2.3.1): the other way is the page's own
+        // swipe back, and a card took that gesture over.
+        direction: DismissDirection.endToStart,
         onDismissed: (_) => swipe(),
         background: Container(
           decoration: BoxDecoration(
             color: edge.withValues(alpha: 0.16),
             borderRadius: BorderRadius.circular(NexRadius.lg),
           ),
-          padding: const EdgeInsetsDirectional.only(start: NexSpacing.lg),
-          alignment: AlignmentDirectional.centerStart,
+          padding: const EdgeInsetsDirectional.only(end: NexSpacing.lg),
+          alignment: AlignmentDirectional.centerEnd,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -451,6 +453,38 @@ Future<void> nexOpenNoteFromCollection(
     );
   }
   await services.refreshTimeline();
+}
+
+/// Asks before something the page cannot take back with an Undo — emptying
+/// the trash, or one of the archive's "all" actions. True only on a yes.
+Future<bool> nexConfirmDestructive(
+  BuildContext context, {
+  required String title,
+  required String body,
+  required String confirm,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final ok = await nexShowDialog<bool>(
+    context: context,
+    builder: (ctx) => NexAlertDialog(
+      title: Text(title),
+      content: NexDialogBody(child: Text(body)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(ctx).colorScheme.error,
+          ),
+          child: Text(confirm),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
 }
 
 /// Moves a note to the trash and offers Undo.

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/nex_services.dart';
+import 'package:nex_client/platform/reminders.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
@@ -49,11 +52,78 @@ void main() {
   test('Done pressed while the app was away stops the bell', () async {
     final h = await NexTestHarness.create();
     addTearDown(h.dispose);
-    await h.services.ring('n1');
-    await h.services.ring('n2');
-    await h.services.acknowledgeRinging('n1');
-    expect(h.services.ringing.value, {'n2'});
+    final n1 = (await h.db.captureText('one'))!;
+    final n2 = (await h.db.captureText('two'))!;
+    await h.services.ring(n1.id);
+    await h.services.ring(n2.id);
+    await h.services.acknowledgeRinging(n1.id);
+    expect(h.services.ringing.value, {n2.id});
     await h.services.syncRinging();
-    expect(h.services.ringing.value, {'n2'});
+    expect(h.services.ringing.value, {n2.id});
   });
+
+  test('only notes ring: an id with no note behind it is let go', () async {
+    final h = await NexTestHarness.create();
+    addTearDown(h.dispose);
+    final note = (await h.db.captureText('kept'))!;
+    await h.services.ring(note.id);
+    await h.services.ring('a-recurring-item');
+    await h.services.syncRinging();
+    expect(h.services.ringing.value, {note.id});
+  });
+
+  test('a repeating reminder offers Done alone; a one-time one, both', () {
+    List<String> ids({required bool repeating}) => [
+      for (final action in NexReminders.noteDetails(
+        body: null,
+        secret: false,
+        repeating: repeating,
+      ).android!.actions!)
+        action.id,
+    ];
+    expect(ids(repeating: false), [
+      NexReminderActions.done,
+      NexReminderActions.snooze,
+    ]);
+    expect(ids(repeating: true), [NexReminderActions.done]);
+  });
+
+  test(
+    'Done on a recurring item meets it at the moment it was pressed',
+    () async {
+      final h = await NexTestHarness.create();
+      addTearDown(h.dispose);
+      final due = DateTime.now().subtract(const Duration(hours: 2));
+      await h.services.saveCommitment(
+        NexCommitment(
+          id: 'water',
+          title: 'water the plants',
+          cadence: NexCadence.days,
+          every: 3,
+          dueAt: due,
+          createdAt: DateTime(2026),
+          updatedAt: DateTime(2026),
+        ),
+      );
+      final answered = await NexReminderActions.handle(
+        const NotificationResponse(
+          notificationResponseType:
+              NotificationResponseType.selectedNotificationAction,
+          actionId: NexReminderActions.done,
+          payload: '${NexReminderActions.commitmentPrefix}water',
+        ),
+        FlutterLocalNotificationsPlugin(),
+      );
+      expect(answered, '${NexReminderActions.commitmentPrefix}water');
+      // Not a note: no bell is stopped for it.
+      expect(await NexReminderActions.takeAcknowledged(), isEmpty);
+
+      expect(await h.services.applyMetFromShade(), 1);
+      final met = (await h.services.commitments()).single;
+      expect(met.lastMetAt, isNotNull);
+      expect(met.dueAt.isAfter(DateTime.now()), isTrue);
+      // Read once: a second look moves nothing on again.
+      expect(await h.services.applyMetFromShade(), 0);
+    },
+  );
 }

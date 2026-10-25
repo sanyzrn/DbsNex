@@ -1916,6 +1916,42 @@ abstract class AppLocalizations {
   /// **'Refreshing the smart summary…'**
   String get recapRefreshing;
 
+  /// No description provided for @whatsNewAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'Every change, release by release'**
+  String get whatsNewAbout;
+
+  /// No description provided for @whatsNewBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get whatsNewBadge;
+
+  /// No description provided for @whatsNewEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier releases'**
+  String get whatsNewEarlier;
+
+  /// No description provided for @whatsNewSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search every change'**
+  String get whatsNewSearchHint;
+
+  /// No description provided for @whatsNewNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No change mentions that'**
+  String get whatsNewNoMatch;
+
+  /// No description provided for @whatsNewChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 change} other{{count} changes}}'**
+  String whatsNewChanges(int count);
+
   /// No description provided for @whatsNewTitle.
   ///
   /// In en, this message translates to:
@@ -9637,6 +9673,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =0{Back today} =1{Back tomorrow} other{Back in {count} days}}'**
   String archiveBackIn(int count);
+
+  /// No description provided for @trashRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Note restored'**
+  String get trashRestored;
+
+  /// No description provided for @trashDeletedForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted permanently'**
+  String get trashDeletedForever;
+
+  /// No description provided for @archiveUnarchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Back on the home screen'**
+  String get archiveUnarchived;
+
+  /// No description provided for @archiveDeleteAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all'**
+  String get archiveDeleteAll;
+
+  /// No description provided for @archiveDeleteAllBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 archived note will move to the trash, where it stays for 30 days.} other{{count} archived notes will move to the trash, where they stay for 30 days.}}'**
+  String archiveDeleteAllBody(int count);
+
+  /// No description provided for @archiveBringBackAllBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note will return to the home screen.} other{{count} notes will return to the home screen.}}'**
+  String archiveBringBackAllBody(int count);
 
   /// No description provided for @archiveBringBackAll.
   ///

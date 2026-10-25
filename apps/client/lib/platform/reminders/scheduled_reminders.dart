@@ -152,11 +152,18 @@ extension NexScheduledReminders on NexReminders {
             visibility: hideOnLockScreen?.call() ?? false
                 ? NotificationVisibility.secret
                 : null,
+            // Done alone: met now, on to its next turn (2.3.1).
+            actions: NexReminderActions.androidActions(
+              NexReminders._text,
+              snoozable: false,
+            ),
           ),
           iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: _scheduleMode,
-        payload: commitment.id,
+        // Prefixed (2.3.1), so a tap opens the Recurring page and a Done is
+        // never mistaken for a note's.
+        payload: '${NexReminderActions.commitmentPrefix}${commitment.id}',
       );
       onDiagnostic?.call(
         'commitment ${commitment.id} -> ${at.toIso8601String()} '
@@ -329,6 +336,9 @@ extension NexScheduledReminders on NexReminders {
     await _withdraw(NexReminders._idFor(noteId));
   }
 
+  /// The recurring items a **Done** was pressed for, and when, read once.
+  Future<List<(String, DateTime)>> takeMet() => NexReminderActions.takeMet();
+
   /// The notes a **Done** was pressed for in the shade while the app was not
   /// looking, read once.
   Future<List<String>> takeAcknowledged() async {
@@ -419,6 +429,13 @@ extension NexScheduledReminders on NexReminders {
         // them is in the library to be asked for.
         if (id < NexReminders.reservedIds ||
             NexReminders._cycleIds.contains(id)) {
+          continue;
+        }
+        // An "In an hour" waiting to ring is asked for by the button that
+        // set it, not by the library: the prune used to take it at the next
+        // launch (2.3.1).
+        if (request.payload case final noteId?
+            when noteId.isNotEmpty && id == NexReminders.snoozeIdFor(noteId)) {
           continue;
         }
         if (!wanted.contains(id)) {

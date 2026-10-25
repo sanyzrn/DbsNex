@@ -14,6 +14,7 @@ import '../widgets/feature_label.dart';
 import '../widgets/feedback_sheet.dart';
 import '../widgets/nex_banner.dart';
 import 'update_sheet.dart';
+import 'whats_new_screen.dart';
 
 const _websiteUrl = 'https://DbsStudio.ir';
 const _appPageUrl = 'https://DbsStudio.ir/nex/';
@@ -100,6 +101,7 @@ class AboutScreen extends StatelessWidget {
           _Group(
             divided: true,
             children: [
+              _WhatsNewTile(preferences: preferences),
               ListTile(
                 leading: const Icon(Icons.business_outlined),
                 title: Text(l10n.madeBy),
@@ -198,6 +200,59 @@ class AboutScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// "What's new" (2.3.1): the whole changelog, a page of its own. Marked
+/// **New** until it has been opened on this version.
+class _WhatsNewTile extends StatefulWidget {
+  const _WhatsNewTile({required this.preferences});
+
+  final NexPreferences preferences;
+
+  @override
+  State<_WhatsNewTile> createState() => _WhatsNewTileState();
+}
+
+class _WhatsNewTileState extends State<_WhatsNewTile> {
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final unseen = widget.preferences.whatsNewSeen != nexAppVersion;
+    return ListTile(
+      key: const ValueKey('about-whats-new'),
+      leading: const Icon(Icons.new_releases_outlined),
+      title: Text(l10n.whatsNewTitle),
+      subtitle: Text(l10n.whatsNewAbout),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (unseen)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: NexSpacing.sm,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: scheme.primary,
+                borderRadius: BorderRadius.circular(NexRadius.pill),
+              ),
+              child: Text(
+                l10n.whatsNewBadge,
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: scheme.onPrimary),
+              ),
+            ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+      onTap: () async {
+        await WhatsNewScreen.show(context, widget.preferences);
+        if (mounted) setState(() {});
+      },
     );
   }
 }
