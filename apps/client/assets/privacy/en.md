@@ -24,10 +24,22 @@ Nex is built so that what you write stays yours. This page says what is kept whe
 
 Microphone for voice notes, camera for photos, notifications and exact alarms for reminders, fingerprint or screen lock for the app lock and the vault, and — only in the copy downloaded from GitHub — installing apps, for the in-app updater; the copy from Cafe Bazaar or Myket does not ask for it, because those stores update it. Each is asked for only when you use what needs it, and Nex keeps working without any of them.
 
+### How long things are kept
+
+What is on your phone stays until you delete it or uninstall Nex; a deleted note waits 30 days in the trash, then goes for good. Nex keeps no copy anywhere else. Feedback you send is kept by the developer only as long as it takes to answer and fix what it reports. What a cloud AI provider keeps is set by that provider's own policy.
+
+### Security
+
+Notes are stored in the app's private storage, which other apps cannot read; the vault is also encrypted, as above. Everything Nex sends goes over an encrypted (HTTPS) connection — the app refuses unencrypted ones.
+
+### Children
+
+Nex is a general notes app, not made for children, and it collects no personal information from anyone — there is no account to sign up for.
+
 ### You are in control
 
 You can delete any note, your Cycle data or vault content, turn AI off, and clear the "What left this device" list. Uninstalling Nex removes all of its data from the phone, except copies you saved elsewhere yourself.
 
 ### Contact
 
-For any question about privacy, write to us from **About Nex → Send feedback** or visit DbsStudio.ir. If this policy changes, the new version arrives with an app update.
+For any question about privacy, write to us from **About Nex → Send feedback**, email zrn_sany@yahoo.com, or visit DbsStudio.ir. If this policy changes, the new version arrives with an app update.
