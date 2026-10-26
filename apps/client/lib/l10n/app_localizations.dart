@@ -2756,12 +2756,6 @@ abstract class AppLocalizations {
   /// **'Feedback isn\'t available in this build yet'**
   String get feedbackUnavailable;
 
-  /// Feedback sheet: fallback link when sending isn't possible
-  ///
-  /// In en, this message translates to:
-  /// **'Open a GitHub issue instead'**
-  String get feedbackOpenIssueInstead;
-
   /// About screen section heading
   ///
   /// In en, this message translates to:

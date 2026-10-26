@@ -1661,9 +1661,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Feedback isn\'t available in this build yet';
 
   @override
-  String get feedbackOpenIssueInstead => 'Open a GitHub issue instead';
-
-  @override
   String get capabilities => 'What Nex does';
 
   @override

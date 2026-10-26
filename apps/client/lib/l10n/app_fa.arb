@@ -706,7 +706,6 @@
   "feedbackQueuedOffline": "اینترنت وصل نیست — به محض وصل شدن ارسال می‌شود",
   "feedbackFailed": "ارسال نشد",
   "feedbackUnavailable": "قابلیت ارسال بازخورد هنوز در این نسخه فعال نیست",
-  "feedbackOpenIssueInstead": "به‌جایش در گیت‌هاب ایشو باز کنید",
   "capabilities": "Nex چه می‌کند",
   "capabilityCapture": "ثبت متن، صدا، عکس و فایل، بدون دکمهٔ ذخیره",
   "capabilitySearch": "جست‌وجوی متن، برچسب، تاریخ و نوع، همه روی همین دستگاه",

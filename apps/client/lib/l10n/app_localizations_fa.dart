@@ -1648,9 +1648,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'قابلیت ارسال بازخورد هنوز در این نسخه فعال نیست';
 
   @override
-  String get feedbackOpenIssueInstead => 'به‌جایش در گیت‌هاب ایشو باز کنید';
-
-  @override
   String get capabilities => 'Nex چه می‌کند';
 
   @override
