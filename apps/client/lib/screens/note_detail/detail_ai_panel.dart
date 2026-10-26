@@ -487,62 +487,66 @@ extension _DetailAiPanel on _NoteDetailSheetState {
                       color: scheme.primary,
                     ),
                     const SizedBox(width: NexSpacing.sm),
-                    Flexible(
-                      child: Text(
-                        l10n.aiSection,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall,
+                    // The name and, while something works, its spinner take
+                    // the line; Hide/Show sits at its far end (2.3.4).
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              l10n.aiSection,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall,
+                            ),
+                          ),
+                          if (busy) ...[
+                            const SizedBox(width: NexSpacing.sm),
+                            SizedBox.square(
+                              dimension: 14,
+                              child: CircularProgressIndicator(
+                                key: const ValueKey('note-ai-status'),
+                                strokeWidth: 2,
+                                semanticsLabel: l10n.aiProcessing,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    if (busy) ...[
-                      const SizedBox(width: NexSpacing.sm),
-                      SizedBox.square(
-                        dimension: 14,
-                        child: CircularProgressIndicator(
-                          key: const ValueKey('note-ai-status'),
-                          strokeWidth: 2,
-                          semanticsLabel: l10n.aiProcessing,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(width: NexSpacing.sm),
-                    // Pushed to the far edge, and allowed to shrink: at the
-                    // largest text sizes "Show results" shares the line
-                    // instead of running off it.
                     if (hasResults)
-                      Expanded(
-                        child: Align(
-                          alignment: AlignmentDirectional.centerEnd,
-                          child: _hideAiResults
-                              ? TextButton.icon(
-                                  key: const ValueKey('note-ai-show-results'),
-                                  onPressed: () =>
-                                      _rebuild(() => _hideAiResults = false),
-                                  icon: const Icon(
-                                    Icons.visibility_outlined,
-                                    size: 18,
-                                  ),
-                                  label: Text(
-                                    l10n.aiShowResults,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                )
-                              : TextButton.icon(
-                                  key: const ValueKey('note-ai-hide-results'),
-                                  onPressed: () =>
-                                      _rebuild(() => _hideAiResults = true),
-                                  icon: const Icon(
-                                    Icons.visibility_off_outlined,
-                                    size: 18,
-                                  ),
-                                  label: Text(
-                                    l10n.hide,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.sizeOf(context).width * 0.45,
                         ),
+                        child: _hideAiResults
+                            ? TextButton.icon(
+                                key: const ValueKey('note-ai-show-results'),
+                                onPressed: () =>
+                                    _rebuild(() => _hideAiResults = false),
+                                icon: const Icon(
+                                  Icons.visibility_outlined,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  l10n.aiShowResults,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )
+                            : TextButton.icon(
+                                key: const ValueKey('note-ai-hide-results'),
+                                onPressed: () =>
+                                    _rebuild(() => _hideAiResults = true),
+                                icon: const Icon(
+                                  Icons.visibility_off_outlined,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  l10n.hide,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                       ),
                   ],
                 ),

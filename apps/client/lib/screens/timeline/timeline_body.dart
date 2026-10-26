@@ -268,7 +268,7 @@ extension _TimelineBody on TimelineScreenState {
       },
       child: NexRefreshSheen(
         pulse: _refreshPulse,
-        strength: 0.06,
+        strength: 0.14,
         child: child,
       ),
     );

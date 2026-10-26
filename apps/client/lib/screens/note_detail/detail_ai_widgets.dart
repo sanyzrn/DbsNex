@@ -56,9 +56,9 @@ abstract final class _AiResultTabs {
   };
 }
 
-/// A tool as a labelled pill (2.3.3): the icon says what kind, the word says
-/// what it does. A tool with a kept result wears a check and, chosen, the
-/// accent; while it works its icon turns into a small spinner.
+/// A tool as a round icon (2.3.4): the icon says what it does and a long
+/// press its name. A tool with a kept result wears a small check and, chosen,
+/// the accent ring; while it works its icon turns into a small spinner.
 class _AiToolChip extends StatelessWidget {
   const _AiToolChip({
     super.key,
@@ -85,9 +85,7 @@ class _AiToolChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final tint = selected || done ? scheme.primary : scheme.onSurfaceVariant;
+    final scheme = Theme.of(context).colorScheme;
     return Tooltip(
       message: tooltip ?? label,
       preferBelow: false,
@@ -95,60 +93,74 @@ class _AiToolChip extends StatelessWidget {
       child: NexTappable(
         selected: selected,
         semanticLabel: tooltip ?? label,
-        shape: const StadiumBorder(),
+        shape: const CircleBorder(),
         onTap: onTap ?? () {},
-        child: AnimatedContainer(
-          duration: NexMotion.of(context, NexMotion.standard),
-          curve: NexMotion.curve,
-          constraints: const BoxConstraints(minHeight: 40),
-          padding: const EdgeInsetsDirectional.only(
-            start: NexSpacing.sm + 2,
-            end: NexSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            color: selected
-                ? scheme.primary.withValues(alpha: 0.16)
-                : done
-                ? scheme.primary.withValues(alpha: 0.07)
-                : scheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(NexRadius.pill),
-            border: Border.all(
-              color: selected
-                  ? scheme.primary.withValues(alpha: 0.45)
-                  : scheme.outlineVariant,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        child: SizedBox.square(
+          dimension: 48,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              SizedBox.square(
-                dimension: 18,
-                child: running
-                    ? Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: scheme.primary,
-                        ),
-                      )
-                    : IconTheme.merge(
-                        data: IconThemeData(size: 18, color: scheme.primary),
-                        child: glyph ?? Icon(icon),
-                      ),
-              ),
-              const SizedBox(width: NexSpacing.xs + 2),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelLarge?.copyWith(color: tint),
+              Positioned.fill(
+                child: AnimatedContainer(
+                  duration: NexMotion.of(context, NexMotion.standard),
+                  curve: NexMotion.curve,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: selected
+                        ? scheme.primary.withValues(alpha: 0.18)
+                        : done
+                        ? scheme.primary.withValues(alpha: 0.08)
+                        : scheme.surfaceContainerLowest,
+                    border: Border.all(
+                      width: selected ? 1.5 : 1,
+                      color: selected
+                          ? scheme.primary.withValues(alpha: 0.6)
+                          : scheme.outlineVariant,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: SizedBox.square(
+                    dimension: 22,
+                    child: running
+                        ? Padding(
+                            padding: const EdgeInsets.all(3),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: scheme.primary,
+                            ),
+                          )
+                        : IconTheme.merge(
+                            data: IconThemeData(
+                              size: 22,
+                              color: scheme.primary,
+                            ),
+                            child: glyph ?? Icon(icon),
+                          ),
+                  ),
                 ),
               ),
-              if (done && !running) ...[
-                const SizedBox(width: NexSpacing.xs),
-                Icon(Icons.check_rounded, size: 14, color: scheme.primary),
-              ],
+              if (done && !running)
+                PositionedDirectional(
+                  end: -1,
+                  bottom: -1,
+                  child: Container(
+                    width: 17,
+                    height: 17,
+                    decoration: BoxDecoration(
+                      color: scheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: scheme.surfaceContainerLow,
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      size: 11,
+                      color: scheme.onPrimary,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -212,6 +224,36 @@ class _AiResultCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final style = theme.textTheme.bodyMedium?.copyWith(height: 1.65);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Whether there is more than the preview shows (2.3.4): a result of
+        // three lines has nothing to open, and an arrow there does nothing.
+        final measure =
+            TextPainter(
+              text: TextSpan(text: text, style: style),
+              maxLines: _previewLines,
+              textDirection: nexDirectionOf(text) ?? Directionality.of(context),
+              textScaler: MediaQuery.textScalerOf(context),
+            )..layout(
+              maxWidth: math.max(0, constraints.maxWidth - 2 * NexSpacing.md),
+            );
+        final long = measure.didExceedMaxLines;
+        measure.dispose();
+        return _card(context, l10n, theme, scheme, style, long);
+      },
+    );
+  }
+
+  static const _previewLines = 4;
+
+  Widget _card(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+    ColorScheme scheme,
+    TextStyle? style,
+    bool long,
+  ) {
     return _AiCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -237,21 +279,24 @@ class _AiResultCard extends StatelessWidget {
                   onPressed: again,
                   icon: const Icon(Icons.refresh, size: 20),
                 ),
-              IconButton(
-                tooltip: expanded ? l10n.aiResultCollapse : l10n.aiResultExpand,
-                visualDensity: VisualDensity.compact,
-                onPressed: onExpand,
-                icon: AnimatedRotation(
-                  turns: expanded ? 0.5 : 0,
-                  duration: NexMotion.of(context, NexMotion.standard),
-                  curve: NexMotion.curve,
-                  child: const Icon(Icons.expand_more, size: 20),
+              if (long)
+                IconButton(
+                  tooltip: expanded
+                      ? l10n.aiResultCollapse
+                      : l10n.aiResultExpand,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onExpand,
+                  icon: AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: NexMotion.of(context, NexMotion.standard),
+                    curve: NexMotion.curve,
+                    child: const Icon(Icons.expand_more, size: 20),
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: NexSpacing.xs),
-          if (expanded)
+          if (expanded && long)
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 320),
               child: SingleChildScrollView(
@@ -261,8 +306,13 @@ class _AiResultCard extends StatelessWidget {
             )
           else
             GestureDetector(
-              onTap: onExpand,
-              child: NexTextSurface(text, maxLines: 4, style: style),
+              onTap: long ? onExpand : null,
+              child: NexTextSurface(
+                text,
+                maxLines: long ? _previewLines : null,
+                selectable: !long,
+                style: style,
+              ),
             ),
           const SizedBox(height: NexSpacing.sm),
           Wrap(

@@ -105,10 +105,10 @@ void main() {
               find.descendant(of: tools, matching: find.byTooltip(label)),
               findsOneWidget,
             );
-            // Labelled now (2.3.3): a row of bare icons said nothing.
+            // Icons, named by a long press (2.3.4).
             expect(
               find.descendant(of: tools, matching: find.text(label)),
-              findsOneWidget,
+              findsNothing,
             );
           }
           expect(adapter.summaries, 0);
@@ -242,8 +242,8 @@ void main() {
             final tooltip = find.byTooltip(label);
             expect(tester.widget<Tooltip>(tooltip).preferBelow, isFalse);
             expect(
-              find.descendant(of: tooltip, matching: find.text(label)),
-              findsOneWidget,
+              find.descendant(of: tooltip, matching: find.byType(Text)),
+              findsNothing,
             );
             final glyph = find
                 .descendant(

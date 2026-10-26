@@ -88,9 +88,12 @@ void main() {
     await waiting('later still', const Duration(days: 40));
     await waiting('soon', const Duration(days: 2));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Tools'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Scheduled'));
+    await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+    // The Library's storage figure is still being counted under a spinner,
+    // which never settles on a fake clock; the tiles are there at once.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.byKey(const ValueKey('library-scheduled')));
     await tester.pumpAndSettle();
     expect(find.byType(ScheduledScreen), findsOneWidget);
     final cards = find.textContaining(RegExp('^(soon|later still)\$'));

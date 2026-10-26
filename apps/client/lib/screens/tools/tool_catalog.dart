@@ -8,7 +8,6 @@ import '../../platform/nex_services.dart';
 import '../../platform/vault_store.dart';
 import '../../widgets/nex_shelf.dart';
 import '../password_generator_screen.dart';
-import '../scheduled_screen.dart';
 import '../vault_screen.dart';
 
 /// One thing on the Tools page: what it is called, how it looks, and where it
@@ -75,19 +74,12 @@ List<NexTool> nexPrivateTools(BuildContext context) {
   ];
 }
 
-/// The everyday tools. Scheduled notes need [services].
-List<NexTool> nexEverydayTools(BuildContext context, {NexServices? services}) {
+/// The everyday tools. Scheduled notes left this shelf in 2.3.4: they are
+/// notes, and live in the Library beside the archive; a pin to them from
+/// before is simply dropped (see [nexPinnedTools]).
+List<NexTool> nexEverydayTools(BuildContext context) {
   final l = AppLocalizations.of(context);
   return [
-    if (services case final services?)
-      NexTool(
-        id: 'scheduled',
-        title: l.scheduledTitle,
-        subtitle: l.scheduledSubtitle,
-        icon: Icons.schedule_send_outlined,
-        hue: NexHue.sky,
-        open: (_) => ScheduledScreen(services: services),
-      ),
     NexTool(
       id: 'generator',
       title: l.vaultGenerator,
@@ -132,7 +124,7 @@ List<NexTool> nexPinnedTools(
   final all = {
     for (final tool in [
       ...nexPrivateTools(context),
-      ...nexEverydayTools(context, services: services),
+      ...nexEverydayTools(context),
       ...nexModuleTools(context, services: services, preferences: preferences),
     ])
       tool.id: tool,

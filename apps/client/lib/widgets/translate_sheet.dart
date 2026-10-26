@@ -229,37 +229,46 @@ class _TranslateSheetState extends State<TranslateSheet> {
           ),
           child: Row(
             children: [
-              Icon(Icons.translate, size: 18, color: scheme.primary),
-              const SizedBox(width: NexSpacing.sm),
-              Flexible(
-                child: Text(
-                  _name(source, l10n),
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              // The direction takes the line, so the buttons sit at its far
+              // end rather than wherever a shared flex left them (2.3.4).
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.translate, size: 18, color: scheme.primary),
+                    const SizedBox(width: NexSpacing.sm),
+                    Flexible(
+                      child: Text(
+                        _name(source, l10n),
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: NexSpacing.xs,
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward,
+                        size: 16,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        _name(_target, l10n),
+                        key: const ValueKey('translation-target'),
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xs),
-                child: Icon(
-                  Icons.arrow_forward,
-                  size: 16,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              Flexible(
-                child: Text(
-                  _name(_target, l10n),
-                  key: const ValueKey('translation-target'),
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const Spacer(),
               if (_mixed)
                 IconButton(
                   key: const ValueKey('translation-swap'),

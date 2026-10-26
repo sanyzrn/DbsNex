@@ -69,8 +69,7 @@ class ToolsScreen extends StatelessWidget {
             ),
             const SizedBox(height: NexSpacing.sm),
             nexShelfPairs([
-              for (final tool in nexEverydayTools(context, services: services))
-                tile(tool),
+              for (final tool in nexEverydayTools(context)) tile(tool),
             ]),
             // The modules that are added, and the way to add more — see
             // `docs/17-modules.md`. Rebuilt from the preferences, so a module

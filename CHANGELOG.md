@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v2.3.4
+
+- **Nex AI, tidier.** The tools are round icons again — hold one for its name — with a small check on those that already have a result. **Hide** sits at the far end of the header, and the translation's **Translate again** at the far end of its line. The arrow that opens a result in full only appears when there is more to read.
+- **Pull to refresh.** More clouds, drifting faster, and a slightly smaller wordmark. The light that passes over the summary and the page after a refresh is brighter, so it can actually be seen.
+- **Menus on a bank card.** In the light theme the icons of the menu on a card in **Tools → Bank cards** were drawn in the card's own white. Every menu now draws its icons in the theme's colour.
+- **Scheduled lives in the Library.** It is no longer repeated in **Tools**; a pin of it on the home screen goes away.
+
 ## v2.3.3
 
 - **An archived note is read only.** Opened from the archive it says so at the top, with when it comes back, and offers only what fits a note put away: open, share, copy, unarchive, details and delete. Editing, tags, threads, pinning and the Nex AI workspace wait until it is unarchived; a reminder it already had can still be changed or cleared.
