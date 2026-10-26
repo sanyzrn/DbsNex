@@ -28,4 +28,24 @@ void main() {
     ).readAsStringSync();
     expect(debug, contains('10.0.2.2'));
   });
+  // An XML comment may not contain "--". The store overlay once said
+  // `--dart-define` in its comment, the manifest merger refused the file, and
+  // only a store build on CI found out.
+  test('every Android XML file has well-formed comments', () {
+    final files = Directory('android/app/src')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.xml'));
+    expect(files, isNotEmpty);
+    for (final file in files) {
+      final text = file.readAsStringSync();
+      for (final comment in RegExp(
+        r'<!--(.*?)-->',
+        dotAll: true,
+      ).allMatches(text)) {
+        expect(comment.group(1), isNot(contains('--')), reason: file.path);
+        expect(comment.group(1)!.endsWith('-'), isFalse, reason: file.path);
+      }
+    }
+  });
 }
