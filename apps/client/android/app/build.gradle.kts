@@ -1,4 +1,5 @@
 import java.io.FileInputStream
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -41,8 +42,10 @@ val ciVerifyOnly = System.getenv("NEX_CI_VERIFY_RELEASE_BUILD") == "true"
 val nexStoreBuild: Boolean =
     (project.findProperty("dart-defines") as String?)
         ?.split(",")
-        ?.mapNotNull {
-            runCatching { String(java.util.Base64.getDecoder().decode(it)) }.getOrNull()
+        ?.mapNotNull { define: String ->
+            // Imported, not written out: inside this script `java` is the
+            // project's Java extension, so `java.util.Base64` did not compile.
+            runCatching { String(Base64.getDecoder().decode(define)) }.getOrNull()
         }
         ?.any { it == "NEX_STORE_BUILD=true" } == true
 
