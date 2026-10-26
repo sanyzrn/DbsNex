@@ -443,6 +443,19 @@ jobs:
       - name: Native libraries are 16 KB aligned (report)
         if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
         run: bash ../../tools/check_16kb_alignment.sh --warn build/app/outputs/bundle/aiRelease/app-ai-release.aab
+      # The store build (2.3.5) for Cafe Bazaar and Myket: the same app without
+      # the installer permission, which both stores refuse in an app that
+      # updates itself. Built and its manifest read, so a merge that quietly
+      # kept the permission fails a pull request rather than a store review.
+      - name: Store build drops the installer permission
+        if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
+        env:
+          NEX_CI_VERIFY_RELEASE_BUILD: "true"
+        run: |
+          flutter build apk --release --flavor ai --target lib/main_ai.dart \
+            --dart-define=NEX_STORE_BUILD=true
+          bash ../../tools/check_store_permissions.sh \
+            build/app/outputs/flutter-apk/app-ai-release.apk
 
   client-windows:
     name: apps/client (Windows desktop build + platform tests)

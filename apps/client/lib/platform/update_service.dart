@@ -204,7 +204,7 @@ class UpdateService extends ChangeNotifier {
   Future<void> maybeCheck({bool force = false}) async {
     if (_busy) return;
     // A store installed this copy and updates it (REL-01).
-    if (NexInstallSource.store != null) return;
+    if (NexInstallSource.updatesFromStore) return;
     if (!force) {
       if (!preferences.autoUpdateCheck) return;
       final last = preferences.lastUpdateCheck;

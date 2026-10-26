@@ -324,6 +324,8 @@ jobs:
             build/app/outputs/flutter-apk/app-x86_64-ai-release.apk
 
       - name: Collect release assets
+        env:
+          NEX_FEEDBACK_API_URL: ${{ vars.NEX_FEEDBACK_API_URL }}
         run: |
           mkdir -p dist
           # Flavor-qualified output paths (ADR-031): Gradle nests these under
@@ -347,11 +349,36 @@ jobs:
           # the name is a contract, not a label.
           cp build/app/outputs/flutter-apk/app-ai-release.apk \
             "dist/Nex-${{ needs.version.outputs.version }}-universal.apk"
+
+          # The store build (2.3.5), for Cafe Bazaar and Myket: the same app,
+          # without the in-app updater or its installer permission, as both a
+          # bundle and one APK. Built after the copies above because it writes
+          # to the same output paths. Its name does not end in -universal.apk,
+          # so the updater of a GitHub install never picks it.
+          flutter build appbundle --release --flavor ai \
+            --target lib/main_ai.dart \
+            --dart-define="NEX_FEEDBACK_API_URL=$NEX_FEEDBACK_API_URL" \
+            --dart-define=NEX_STORE_BUILD=true \
+            --build-name=${{ needs.version.outputs.base }} \
+            --build-number=${{ needs.version.outputs.code }}
+          flutter build apk --release --flavor ai \
+            --target lib/main_ai.dart \
+            --dart-define="NEX_FEEDBACK_API_URL=$NEX_FEEDBACK_API_URL" \
+            --dart-define=NEX_STORE_BUILD=true \
+            --build-name=${{ needs.version.outputs.base }} \
+            --build-number=${{ needs.version.outputs.code }}
+          bash ../../tools/check_store_permissions.sh \
+            build/app/outputs/flutter-apk/app-ai-release.apk
+          cp build/app/outputs/bundle/aiRelease/app-ai-release.aab \
+            "dist/Nex-${{ needs.version.outputs.version }}-store.aab"
+          cp build/app/outputs/flutter-apk/app-ai-release.apk \
+            "dist/Nex-${{ needs.version.outputs.version }}-store.apk"
           ls -la dist
-          # The bundle, three splits, the universal APK. Asserted rather than
-          # assumed: shipping a release that is quietly missing the split the
-          # updater asks for is how an update stops being installable at all.
-          test "$(ls dist | wc -l)" -eq 5
+          # The bundle, three splits, the universal APK, and the store's bundle
+          # and APK. Asserted rather than assumed: shipping a release that is
+          # quietly missing the split the updater asks for is how an update
+          # stops being installable at all.
+          test "$(ls dist | wc -l)" -eq 7
 
       # Keep the signed APKs available for inspection even when the identity
       # check below fails. A failed build job otherwise discards them before we

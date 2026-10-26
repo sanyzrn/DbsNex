@@ -1075,6 +1075,7 @@
   },
   "updatesFromBazaar": "Nex was installed from Cafe Bazaar, so its updates come from Cafe Bazaar too.",
   "@updatesFromBazaar": {"description": "Update screen when the app was installed by Cafe Bazaar"},
+  "updatesFromStore": "This copy of Nex is updated by the store you installed it from.",
   "updatesFromMyket": "Nex was installed from Myket, so its updates come from Myket too.",
   "@updatesFromMyket": {"description": "Update screen when the app was installed by Myket"},
   "checkingForUpdate": "Looking for a newer release…",

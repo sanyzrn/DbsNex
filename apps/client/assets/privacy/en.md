@@ -1,6 +1,6 @@
 ## Nex privacy policy
 
-Last updated: version 2.1.7 · Developer: DbsStudio (DbsStudio.ir)
+Last updated: version 2.3.5 · Developer: DbsStudio (DbsStudio.ir)
 
 Nex is built so that what you write stays yours. This page says what is kept where, and when anything leaves your phone.
 
@@ -8,21 +8,21 @@ Nex is built so that what you write stays yours. This page says what is kept whe
 
 - Nex has no account and no server that holds your notes. Notes, photos, recordings, files, tags, reminders and your conversations with the assistant are stored on this phone only.
 - The **private vault** (passwords, bank cards and private messages) is encrypted with a key kept in Android's secure Keystore and opens only with your fingerprint or screen lock. Vault content is never given to the assistant, search or widgets.
-- **Cycle** is off by default. Its data stays on the phone, and only if you turn on "Let the assistant read Cycle" is a short summary of it given to the assistant — never its day notes. "Delete all cycle data" removes it, and the backups on this phone that held it.
+- **Cycle** — period and cycle tracking, which is health data — is off by default. Its data stays on the phone, and only if you turn on "Let the assistant read Cycle" is a short summary of it given to the assistant — never its day notes. "Delete all cycle data" removes it, and the backups on this phone that held it.
 - Backups are stored on the phone or in a folder you choose. In a complete backup, settings and service keys are encrypted with a recovery code only you have; the notes and files in it are not, so they can always be opened — keep it somewhere you trust.
-- Speed metrics, if you turn them on, stay on the phone. Nex has no advertising or tracking code.
+- Speed metrics, if you turn them on, stay on the phone. Nex has no advertising SDK, no analytics and no tracking code.
 
 ### When something leaves your phone
 
 - **Cloud AI, only if you turn it on.** AI is off by default. If you choose a provider such as OpenAI, Gemini, Anthropic or OpenRouter with your own key, only the part of your notes each request needs is sent to it, and that provider's privacy policy applies to it. Every request is recorded in **Settings → Security and privacy → What left this device**.
 - **The on-device model** sends nothing anywhere.
 - **Feedback, only when you send it.** Your message, any contact you write in, the app version and phone model, and — if you choose — redacted error reports go to the developer.
-- **What Nex does on its own:** check for a new version (not when Nex was installed from Cafe Bazaar or Myket), fetch the sponsor card, read the page of a link you save for its title and preview, and download a model you choose. None of these sends anything about you or your notes.
+- **What Nex does on its own:** check for a new version (not in the copy from Cafe Bazaar or Myket), fetch the sponsor card (a picture and a link shown on the home screen), read the page of a link you save for its title and preview, and download a model you choose. None of these sends anything about you or your notes.
 - **Sharing:** anything you share to another app is that app's from then on.
 
 ### Permissions
 
-Microphone for voice notes, camera for photos, notifications and exact alarms for reminders, and installing apps for the in-app updater. Each is asked for only when you use what needs it.
+Microphone for voice notes, camera for photos, notifications and exact alarms for reminders, fingerprint or screen lock for the app lock and the vault, and — only in the copy downloaded from GitHub — installing apps, for the in-app updater; the copy from Cafe Bazaar or Myket does not ask for it, because those stores update it. Each is asked for only when you use what needs it, and Nex keeps working without any of them.
 
 ### You are in control
 

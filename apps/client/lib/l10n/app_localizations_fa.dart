@@ -1694,6 +1694,10 @@ class AppLocalizationsFa extends AppLocalizations {
       'نکس از کافه‌بازار نصب شده، پس به‌روزرسانی‌هایش هم از کافه‌بازار می‌رسد.';
 
   @override
+  String get updatesFromStore =>
+      'این نسخهٔ نکس از طریق فروشگاهی که از آن نصبش کرده‌اید به‌روز می‌شود.';
+
+  @override
   String get updatesFromMyket =>
       'نکس از مایکت نصب شده، پس به‌روزرسانی‌هایش هم از مایکت می‌رسد.';
 

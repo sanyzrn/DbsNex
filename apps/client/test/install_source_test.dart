@@ -25,4 +25,14 @@ void main() {
       expect(NexInstallSource.fromInstaller(installer), isNull);
     }
   });
+
+  test('a store install, or a store build, leaves updates to the store', () {
+    addTearDown(() => NexInstallSource.store = null);
+    // A plain test run is not a store build (no NEX_STORE_BUILD define).
+    expect(NexInstallSource.storeBuild, isFalse);
+    NexInstallSource.store = null;
+    expect(NexInstallSource.updatesFromStore, isFalse);
+    NexInstallSource.store = NexStore.myket;
+    expect(NexInstallSource.updatesFromStore, isTrue);
+  });
 }

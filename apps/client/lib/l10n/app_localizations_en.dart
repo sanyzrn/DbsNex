@@ -1708,6 +1708,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nex was installed from Cafe Bazaar, so its updates come from Cafe Bazaar too.';
 
   @override
+  String get updatesFromStore =>
+      'This copy of Nex is updated by the store you installed it from.';
+
+  @override
   String get updatesFromMyket =>
       'Nex was installed from Myket, so its updates come from Myket too.';
 

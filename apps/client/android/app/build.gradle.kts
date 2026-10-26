@@ -31,6 +31,21 @@ val isCi = System.getenv("CI") != null
 // so it may use the debug key; this variable is never set by release.yml.
 val ciVerifyOnly = System.getenv("NEX_CI_VERIFY_RELEASE_BUILD") == "true"
 
+// A build for Cafe Bazaar and Myket (2.3.5): `--dart-define=NEX_STORE_BUILD=true`.
+// The Flutter tool hands its dart-defines to Gradle base64-encoded, so the one
+// switch reaches both halves: Dart turns the in-app updater off
+// (NexInstallSource.storeBuild), and src/store/AndroidManifest.xml takes
+// REQUEST_INSTALL_PACKAGES out of the manifest. A store reviews the file it is given, and both forbid an app
+// that updates itself from somewhere else — a permission it never uses on a
+// store install is still a permission in the file.
+val nexStoreBuild: Boolean =
+    (project.findProperty("dart-defines") as String?)
+        ?.split(",")
+        ?.mapNotNull {
+            runCatching { String(java.util.Base64.getDecoder().decode(it)) }.getOrNull()
+        }
+        ?.any { it == "NEX_STORE_BUILD=true" } == true
+
 // The versionCode the release pipeline stamps for a version name:
 // (major*10000 + minor*100 + patch) * 10000 — see release.yml and
 // docs/06-development.md. A plain local `flutter build` used Flutter's own,
@@ -102,6 +117,15 @@ android {
             //
             // What is given up is side-by-side installation, which the debug
             // build type can restore for whoever needs it. Nothing does today.
+        }
+    }
+
+    // A store build lays a small manifest over each flavor's that removes the
+    // installer permission (see nexStoreBuild above). A flavor's manifest
+    // outranks main's, so its tools:node="remove" wins in the merge.
+    if (nexStoreBuild) {
+        for (flavor in listOf("ai", "standard")) {
+            sourceSets.getByName(flavor).manifest.srcFile("src/store/AndroidManifest.xml")
         }
     }
 

@@ -2816,6 +2816,12 @@ abstract class AppLocalizations {
   /// **'Nex was installed from Cafe Bazaar, so its updates come from Cafe Bazaar too.'**
   String get updatesFromBazaar;
 
+  /// No description provided for @updatesFromStore.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy of Nex is updated by the store you installed it from.'**
+  String get updatesFromStore;
+
   /// Update screen when the app was installed by Myket
   ///
   /// In en, this message translates to:

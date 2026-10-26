@@ -235,6 +235,35 @@ The workflow builds a signed Android App Bundle plus split APKs and attaches the
 
 See [`07-contributing.md`](./07-contributing.md) for the contributor workflow.
 
+### Store builds (Cafe Bazaar, Myket)
+
+Both stores update the copies they install and refuse an app that installs its
+own updates, and they review the file they are given. Since 2.3.5 every release
+also publishes a **store build** beside the GitHub assets:
+
+- `Nex-<version>-store.aab` and `Nex-<version>-store.apk` — upload these to the
+  stores, never the `-universal.apk` or the splits.
+- Built with `--dart-define=NEX_STORE_BUILD=true`. That one switch turns the
+  in-app updater off in Dart (`NexInstallSource.storeBuild`) and, read by
+  Gradle from the dart-defines, lays `android/app/src/store/AndroidManifest.xml`
+  over the flavor manifests, which removes `REQUEST_INSTALL_PACKAGES`.
+- `tools/check_store_permissions.sh <apk>` reads the built APK's permissions and
+  fails if the installer permission is still there; the release runs it, and so
+  does CI on every pull request that touches Android.
+
+By hand:
+
+```bash
+flutter build apk --release --flavor ai --target lib/main_ai.dart \
+  --dart-define=NEX_STORE_BUILD=true
+bash ../../tools/check_store_permissions.sh \
+  build/app/outputs/flutter-apk/app-ai-release.apk
+```
+
+A copy installed from either store also turns the updater off at run time
+(`NexInstallSource.store`, read from the installer package), so a store user
+who somehow has a GitHub build is still never offered a GitHub update.
+
 ### README status badges
 
 CI runs on pull requests and is reused by the release workflow; it no longer

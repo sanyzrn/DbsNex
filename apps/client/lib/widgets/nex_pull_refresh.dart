@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:nex_ui/nex_ui.dart';
 
 import 'nex_brand.dart';
@@ -80,17 +81,34 @@ class _NexPullRefreshState extends State<NexPullRefresh>
     duration: NexMotion.receipt,
   );
 
-  /// The clouds' drift: one slow lap, running only while the sky shows.
-  late final AnimationController _drift = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 16),
-  );
+  /// How far the clouds have drifted, in seconds of drift: a clock that only
+  /// ever runs forward, so the sky never jumps (2.3.5). It used to be one
+  /// repeating lap, and at the end of each lap every cloud snapped back by a
+  /// different amount — the scene came apart every few seconds.
+  late final Ticker _driftClock = createTicker(_tickDrift);
+  final _drift = ValueNotifier<double>(0);
+  Duration _lastTick = Duration.zero;
+
+  void _tickDrift(Duration elapsed) {
+    final step = (elapsed - _lastTick).inMicroseconds / 1e6;
+    _lastTick = elapsed;
+    // A little faster while the refresh runs.
+    final working = _mode == _Mode.refreshing || _mode == _Mode.done;
+    _drift.value += step * (working ? 1.6 : 1);
+  }
+
+  void _startDrift() {
+    if (_still || _driftClock.isActive) return;
+    _lastTick = Duration.zero;
+    unawaited(_driftClock.start());
+  }
 
   @override
   void dispose() {
     _offset.dispose();
     _loop.dispose();
     _pop.dispose();
+    _driftClock.dispose();
     _drift.dispose();
     super.dispose();
   }
@@ -109,7 +127,7 @@ class _NexPullRefreshState extends State<NexPullRefresh>
       _mode = _Mode.dragging;
       _drag = 0;
       _offset.stop();
-      if (!_still && !_drift.isAnimating) unawaited(_drift.repeat());
+      _startDrift();
       return false;
     }
     if (_mode == _Mode.idle) return false;
@@ -171,7 +189,7 @@ class _NexPullRefreshState extends State<NexPullRefresh>
       curve: NexMotion.exitCurve,
     );
     if (!mounted) return;
-    _drift.stop();
+    _driftClock.stop();
     _pop.value = 0;
     setState(() => _mode = _Mode.idle);
   }
@@ -211,7 +229,7 @@ class _NexPullRefreshState extends State<NexPullRefresh>
                           pop: _pop.value,
                           loop: _mode == _Mode.refreshing ? _loop.value : 0,
                           finishing: _mode == _Mode.done,
-                          drift: _drift.value * (working ? 1.6 : 1),
+                          drift: _drift.value,
                           sky: Color.alphaBlend(
                             scheme.onSurface.withValues(alpha: 0.035),
                             scheme.surfaceContainerLowest,
@@ -264,6 +282,9 @@ class _SkyPainter extends CustomPainter {
 
   /// Where each cloud sits: across (0–1), how high in the strip, how big,
   /// how faint, and how fast it drifts — the near ones faster.
+  /// How fast the slowest cloud crosses, in logical pixels a second.
+  static const _pace = 14.0;
+
   static const _clouds = [
     (x: 0.05, y: 0.16, scale: 0.72, alpha: 0.17, speed: 0.6, seed: 1),
     (x: 0.30, y: 0.04, scale: 0.45, alpha: 0.09, speed: 0.3, seed: 2),
@@ -286,7 +307,10 @@ class _SkyPainter extends CustomPainter {
       final dots = _DottedCloud.of(c.seed, c.scale);
       // Drifting sideways, round and round, the near ones faster.
       final span = size.width + dots.width;
-      final x = (c.x * span + drift * span * c.speed) % span - dots.width / 2;
+      // Wholly outside the strip at both ends of its way across, so a cloud
+      // drifts in from the edge rather than appearing inside it.
+      final x =
+          (c.x * span + drift * _pace * c.speed * 2.5) % span - dots.width;
       // Settling into place as the strip opens.
       final y = size.height * c.y + (1 - open) * 18;
       canvas.drawRawPoints(
