@@ -137,14 +137,18 @@ class WhatsNewScreen extends StatefulWidget {
 }
 
 Future<List<WhatsNewRelease>> _load(bool persian) async {
+  // Not through the bundle's cache: a cached future belongs to the zone that
+  // first asked, and the page is read once per opening anyway. Under a test
+  // run in random order the first test's fake clock owned it, and every test
+  // after it waited on a read that never finished.
   final english = parseWhatsNewReleases(
-    await rootBundle.loadString('assets/CHANGELOG.md'),
+    await rootBundle.loadString('assets/CHANGELOG.md', cache: false),
   );
   if (!persian) return english;
   List<WhatsNewRelease>? fa;
   try {
     fa = parseWhatsNewReleases(
-      await rootBundle.loadString('assets/CHANGELOG.fa.md'),
+      await rootBundle.loadString('assets/CHANGELOG.fa.md', cache: false),
     );
   } catch (_) {}
   return mergeWhatsNew(english, fa);
