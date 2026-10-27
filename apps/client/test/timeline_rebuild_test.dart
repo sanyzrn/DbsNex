@@ -1259,6 +1259,33 @@ void main() {
     expect(field.focusNode!.hasFocus, isFalse);
   });
 
+  testWidgets('a wide window has the rail, not the dock, and the empty state '
+      'fits beside it', (tester) async {
+    // docs/27-desktop.md: from 1000 wide the left rail carries capture and the
+    // places, so there is no floating button for the empty state to clear.
+    tester.view.physicalSize = const Size(1100, 726);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(find.text('Capture'), findsOneWidget);
+    expect(find.text('Recurring'), findsOneWidget);
+    expect(find.text('Library'), findsOneWidget);
+    final line = tester.getRect(find.text('There is no Save button.'));
+    expect(line.bottom, lessThanOrEqualTo(726));
+    expect(
+      line.left,
+      greaterThan(232),
+      reason: 'beside the rail, not under it',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the empty state clears the capture button on a desktop window', (
     tester,
   ) async {
@@ -1270,7 +1297,10 @@ void main() {
     // Measured against the real widget tree on purpose: a bare Scaffold gives
     // the empty state the whole viewport, which is exactly the condition the
     // bug does not occur in.
-    tester.view.physicalSize = const Size(1100, 726);
+    //
+    // 900 wide: a desktop-sized window that is still under the breakpoint
+    // (1000) where the rail replaces the dock — see the next test.
+    tester.view.physicalSize = const Size(900, 726);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -1333,7 +1363,7 @@ void main() {
   testWidgets('the filter row and the cards share one edge on a wide window', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.physicalSize = const Size(960, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 

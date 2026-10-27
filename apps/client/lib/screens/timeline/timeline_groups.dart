@@ -177,7 +177,11 @@ class _GroupHeader extends StatelessWidget {
     required this.onToggle,
     required this.onAsk,
     required this.onDelete,
+    this.compact = false,
   });
+
+  /// The desktop's: a small label, the count always, no side gutter.
+  final bool compact;
 
   final String label;
   final int count;
@@ -193,6 +197,7 @@ class _GroupHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final persian = Localizations.localeOf(context).languageCode == 'fa';
     return Row(
       children: [
         Expanded(
@@ -219,15 +224,17 @@ class _GroupHeader extends StatelessWidget {
                 // Vertically it is weighted 60/40 toward the top. A heading belongs
                 // to what follows it, and even spacing makes it read as floating
                 // between two runs rather than opening one.
-                padding: const EdgeInsetsDirectional.fromSTEB(
-                  NexSpacing.md,
-                  _headerSpace * 0.6,
-                  // Nothing on the trailing side: the menu button beside this
-                  // carries its own, and the chevron sits just inside it rather
-                  // than out at the screen edge on its own.
-                  0,
-                  _headerSpace * 0.4,
-                ),
+                padding: compact
+                    ? const EdgeInsetsDirectional.fromSTEB(0, 12, 0, 8)
+                    : const EdgeInsetsDirectional.fromSTEB(
+                        NexSpacing.md,
+                        _headerSpace * 0.6,
+                        // Nothing on the trailing side: the menu button beside
+                        // this carries its own, and the chevron sits just
+                        // inside it rather than out at the screen edge.
+                        0,
+                        _headerSpace * 0.4,
+                      ),
                 child: Row(
                   children: [
                     // A day's name in the page's own ink, a step up from
@@ -235,16 +242,26 @@ class _GroupHeader extends StatelessWidget {
                     // long timeline is read, and they were the faintest
                     // thing on it.
                     Text(
-                      label,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      compact && !persian ? label.toUpperCase() : label,
+                      style: compact
+                          // The desktop's: small, quiet, in capitals where
+                          // the script has them (letter-spacing would pull
+                          // Persian apart).
+                          ? theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 11,
+                              letterSpacing: persian ? 0 : 0.8,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            )
+                          : theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
                     ),
                     const SizedBox(width: NexSpacing.sm),
                     // Only when folded. Open, the count is the list itself, and a
                     // number beside a heading you can already read is noise.
-                    if (collapsed)
+                    if (collapsed || compact)
                       Text(
                         l10n.timelineGroupCount(count),
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -274,12 +291,14 @@ class _GroupHeader extends StatelessWidget {
           // full height while the chevron sat inside the heading's 60/40
           // weighting, and the pair read as very slightly crooked — which is
           // the kind of thing you see before you can say what it is.
-          padding: const EdgeInsetsDirectional.fromSTEB(
-            NexSpacing.xs,
-            _headerSpace * 0.6,
-            NexSpacing.md,
-            _headerSpace * 0.4,
-          ),
+          padding: compact
+              ? const EdgeInsetsDirectional.only(top: 4)
+              : const EdgeInsetsDirectional.fromSTEB(
+                  NexSpacing.xs,
+                  _headerSpace * 0.6,
+                  NexSpacing.md,
+                  _headerSpace * 0.4,
+                ),
           child: NexPopupMenuButton<_GroupAction>(
             tooltip: l10n.groupActions,
             // Horizontal. A vertical ellipsis beside a chevron is two marks

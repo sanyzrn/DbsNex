@@ -6176,4 +6176,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String vaultBankGuess(String bank) {
     return 'شبیه $bank است';
   }
+
+  @override
+  String get desktopNotes => 'یادداشت‌ها';
 }

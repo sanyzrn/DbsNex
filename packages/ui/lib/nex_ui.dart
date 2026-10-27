@@ -15,6 +15,7 @@ export 'tokens/nex_text_direction.dart';
 export 'tokens/nex_tokens.dart';
 export 'widgets/nex_border_beam.dart';
 export 'widgets/nex_color_wheel.dart';
+export 'widgets/nex_desktop_scope.dart';
 export 'widgets/nex_empty_state.dart';
 export 'widgets/nex_navigation_dock.dart';
 export 'widgets/nex_markdown.dart';

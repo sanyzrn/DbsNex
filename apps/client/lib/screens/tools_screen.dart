@@ -10,6 +10,7 @@ import '../platform/nex_services.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_shelf.dart';
 import '../widgets/vault_open_builder.dart';
+import '../modules/module_rollout.dart' show nexDesktopPlatform;
 import 'modules_screen.dart';
 import 'tools/tool_catalog.dart';
 
@@ -74,47 +75,50 @@ class ToolsScreen extends StatelessWidget {
             // The modules that are added, and the way to add more — see
             // `docs/17-modules.md`. Rebuilt from the preferences, so a module
             // added or removed on its page is here, or gone, on the way back.
-            if ((services, preferences) case (
-              final services?,
-              final preferences?,
-            )) ...[
-              const SizedBox(height: NexSpacing.lg),
-              NexShelfHeading(
-                icon: Icons.extension_outlined,
-                title: l.modulesTitle,
-              ),
-              const SizedBox(height: NexSpacing.sm),
-              ListenableBuilder(
-                listenable: preferences,
-                builder: (context, _) => nexShelfPairs([
-                  for (final tool in nexModuleTools(
-                    context,
-                    services: services,
-                    preferences: preferences,
-                  ))
-                    KeyedSubtree(
-                      key: ValueKey('tools-${tool.id.replaceFirst('.', '-')}'),
-                      child: tile(tool),
-                    ),
-                  NexShelfTile(
-                    key: const ValueKey('tools-modules'),
-                    title: l.modulesManage,
-                    subtitle: l.modulesManageHint,
-                    icon: Icons.extension_outlined,
-                    hue: NexHue.violet,
-                    onTap: () => Navigator.push(
+            if (!nexDesktopPlatform)
+              if ((services, preferences) case (
+                final services?,
+                final preferences?,
+              )) ...[
+                const SizedBox(height: NexSpacing.lg),
+                NexShelfHeading(
+                  icon: Icons.extension_outlined,
+                  title: l.modulesTitle,
+                ),
+                const SizedBox(height: NexSpacing.sm),
+                ListenableBuilder(
+                  listenable: preferences,
+                  builder: (context, _) => nexShelfPairs([
+                    for (final tool in nexModuleTools(
                       context,
-                      NexPageRoute<void>(
-                        builder: (_) => ModulesScreen(
-                          services: services,
-                          preferences: preferences,
+                      services: services,
+                      preferences: preferences,
+                    ))
+                      KeyedSubtree(
+                        key: ValueKey(
+                          'tools-${tool.id.replaceFirst('.', '-')}',
+                        ),
+                        child: tile(tool),
+                      ),
+                    NexShelfTile(
+                      key: const ValueKey('tools-modules'),
+                      title: l.modulesManage,
+                      subtitle: l.modulesManageHint,
+                      icon: Icons.extension_outlined,
+                      hue: NexHue.violet,
+                      onTap: () => Navigator.push(
+                        context,
+                        NexPageRoute<void>(
+                          builder: (_) => ModulesScreen(
+                            services: services,
+                            preferences: preferences,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ]),
-              ),
-            ],
+                  ]),
+                ),
+              ],
             const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,

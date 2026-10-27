@@ -37,6 +37,8 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     this.onShowFilters,
     this.trailing,
     this.extent = nexSearchHeaderExtent,
+    this.gutter = NexSpacing.md,
+    this.maxWidth,
   });
 
   /// Attached to the field's own box, so the first-run tour can measure where
@@ -62,6 +64,11 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   /// filter button, which used to need a row of its own under the field.
   final Widget? trailing;
   final double extent;
+
+  /// The side padding, and the widest the row gets (left alone on a phone;
+  /// the desktop lines it up with its grid and keeps the field a field).
+  final double gutter;
+  final double? maxWidth;
 
   // Fixed, both of them, and the header is never pinned.
   //
@@ -120,28 +127,43 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
         // tag row's and is more obvious here because this strip is taller.
         child: Padding(
           // Leave room for the halo to fade before the scrolling clip.
-          padding: const EdgeInsets.all(NexSpacing.md),
-          child: Row(
-            children: [
-              Expanded(child: _pill(context, l10n, scheme)),
-              // Gives its room to the field as search opens, rather than
-              // vanishing on the frame the field is tapped.
-              if (trailing case final trailing?)
-                _Reveal(
-                  shown: !searching,
-                  child: Padding(
-                    padding: const EdgeInsetsDirectional.only(
-                      start: NexSpacing.sm,
+          padding: EdgeInsets.symmetric(
+            horizontal: gutter,
+            vertical: NexSpacing.md,
+          ),
+          child: _capped(
+            Row(
+              children: [
+                Expanded(child: _pill(context, l10n, scheme)),
+                // Gives its room to the field as search opens, rather than
+                // vanishing on the frame the field is tapped.
+                if (trailing case final trailing?)
+                  _Reveal(
+                    shown: !searching,
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        start: NexSpacing.sm,
+                      ),
+                      child: trailing,
                     ),
-                    child: trailing,
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  Widget _capped(Widget row) => maxWidth == null
+      ? row
+      : Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth!),
+            child: row,
+          ),
+        );
 
   /// The field, its edge and its icon easing to the accent as search opens
   /// and back as it closes, on the same beat as everything around it.

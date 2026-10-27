@@ -387,121 +387,125 @@ extension _TimelineBody on TimelineScreenState {
       ],
     ];
 
+    final desktop = NexDesktopScope.isDesktop(context);
     return [
-      _TimelineList(
-        rows: rows,
-        revision: _model.notes,
-        removedBuilder: (context, row) {
-          if (row.group case final group?) {
-            return _GroupHeader(
-              label: group.label,
-              count: group.notes.length,
-              collapsed: _model.collapsedGroups.contains(group.key),
-              onToggle: () {},
-              onAsk: null,
-              onDelete: () {},
-            );
-          }
-          return NoteCard(
-            note: row.note!,
-            strings: nexCardStrings(context),
-            expanded: widget.preferences.isNoteExpanded(row.note!.id),
-          );
-        },
-        builder: (context, row, index) {
-          if (row.group case final group?) {
-            // Inert while a card is open: the fold, the menu and Ask all sit
-            // in the same list as the swiped card, and the tap that puts it
-            // away must not also do one of them.
-            return NexTapGuarded(
-              controller: _guard,
-              child: _GroupHeader(
+      if (desktop)
+        ..._desktopSlivers(groups, l10n)
+      else
+        _TimelineList(
+          rows: rows,
+          revision: _model.notes,
+          removedBuilder: (context, row) {
+            if (row.group case final group?) {
+              return _GroupHeader(
                 label: group.label,
                 count: group.notes.length,
                 collapsed: _model.collapsedGroups.contains(group.key),
-                onToggle: () => unawaited(_toggleGroup(group.key)),
-                onAsk: AiChatSheet.availableFor(widget.preferences)
-                    ? () => unawaited(_askAboutGroup(group))
-                    : null,
-                onDelete: () => unawaited(_deleteGroup(group, l10n)),
-              ),
+                onToggle: () {},
+                onAsk: null,
+                onDelete: () {},
+              );
+            }
+            return NoteCard(
+              note: row.note!,
+              strings: nexCardStrings(context),
+              expanded: widget.preferences.isNoteExpanded(row.note!.id),
             );
-          }
-          final note = row.note!;
-          // Neighbours under the same heading are joined — see
-          // [NoteCard.threadAbove].
-          bool sameRun(int at) =>
-              at >= 0 &&
-              at < rows.length &&
-              rows[at].note != null &&
-              rows[at].groupKey == row.groupKey;
-          return _DayMark(
-            label: _dayLabel(note, l10n),
-            marks: _dayMarks,
-            child: _FoldingRow(
-              // Keyed on the note so the controller survives a rebuild of the
-              // list and an entrance is never restarted mid-flight.
-              key: ValueKey('fold-${note.id}'),
-              open: !_closingGroups.contains(row.groupKey),
-              animateIn: _openingGroups.contains(row.groupKey),
-              order: row.indexInGroup,
-              child: NoteSpotlight(
-                key: _spotlightId == note.id ? _spotlightAnchor : null,
-                active: _spotlightId == note.id && _spotlightReady,
-                onDone: () {
-                  if (mounted && _spotlightId == note.id) {
-                    _rebuild(() => _spotlightId = null);
-                  }
-                },
-                child: CommitReceipt(
-                  key: ValueKey(note.id),
-                  active: landedId == note.id,
-                  // Cleared when it finishes, so the receipt is a moment rather than
-                  // a permanent mark on whichever note was captured last.
+          },
+          builder: (context, row, index) {
+            if (row.group case final group?) {
+              // Inert while a card is open: the fold, the menu and Ask all sit
+              // in the same list as the swiped card, and the tap that puts it
+              // away must not also do one of them.
+              return NexTapGuarded(
+                controller: _guard,
+                child: _GroupHeader(
+                  label: group.label,
+                  count: group.notes.length,
+                  collapsed: _model.collapsedGroups.contains(group.key),
+                  onToggle: () => unawaited(_toggleGroup(group.key)),
+                  onAsk: AiChatSheet.availableFor(widget.preferences)
+                      ? () => unawaited(_askAboutGroup(group))
+                      : null,
+                  onDelete: () => unawaited(_deleteGroup(group, l10n)),
+                ),
+              );
+            }
+            final note = row.note!;
+            // Neighbours under the same heading are joined — see
+            // [NoteCard.threadAbove].
+            bool sameRun(int at) =>
+                at >= 0 &&
+                at < rows.length &&
+                rows[at].note != null &&
+                rows[at].groupKey == row.groupKey;
+            return _DayMark(
+              label: _dayLabel(note, l10n),
+              marks: _dayMarks,
+              child: _FoldingRow(
+                // Keyed on the note so the controller survives a rebuild of the
+                // list and an entrance is never restarted mid-flight.
+                key: ValueKey('fold-${note.id}'),
+                open: !_closingGroups.contains(row.groupKey),
+                animateIn: _openingGroups.contains(row.groupKey),
+                order: row.indexInGroup,
+                child: NoteSpotlight(
+                  key: _spotlightId == note.id ? _spotlightAnchor : null,
+                  active: _spotlightId == note.id && _spotlightReady,
                   onDone: () {
-                    if (mounted && landedId == note.id) {
-                      _rebuild(() => landedId = null);
+                    if (mounted && _spotlightId == note.id) {
+                      _rebuild(() => _spotlightId = null);
                     }
                   },
-                  // ADR-022: the action set is open, and each edge is bound
-                  // independently.
-                  child: SwipeableNoteCard(
-                    haptics: widget.preferences.haptics,
-                    controller: _swipe,
-                    resolveAction: ({required bool isLeading}) => _selecting
-                        ? null
-                        : nexSwipeSpec(
-                            l10n,
-                            isLeading
-                                ? widget.preferences.leadingAction
-                                : widget.preferences.trailingAction,
+                  child: CommitReceipt(
+                    key: ValueKey(note.id),
+                    active: landedId == note.id,
+                    // Cleared when it finishes, so the receipt is a moment rather than
+                    // a permanent mark on whichever note was captured last.
+                    onDone: () {
+                      if (mounted && landedId == note.id) {
+                        _rebuild(() => landedId = null);
+                      }
+                    },
+                    // ADR-022: the action set is open, and each edge is bound
+                    // independently.
+                    child: SwipeableNoteCard(
+                      haptics: widget.preferences.haptics,
+                      controller: _swipe,
+                      resolveAction: ({required bool isLeading}) => _selecting
+                          ? null
+                          : nexSwipeSpec(
+                              l10n,
+                              isLeading
+                                  ? widget.preferences.leadingAction
+                                  : widget.preferences.trailingAction,
+                            ),
+                      onAction: (action) => unawaited(_runSwipe(action, note)),
+                      child: NoteContextMenu(
+                        entriesBuilder: (menuContext, width) =>
+                            _holdEntries(note, menuContext, width),
+                        child: NoteCard(
+                          note: note,
+                          strings: nexCardStrings(context),
+                          onTap: () => _tapNote(note),
+                          selected: _selecting
+                              ? _selected.contains(note.id)
+                              : null,
+                          expanded: widget.preferences.isNoteExpanded(note.id),
+                          threadAbove: sameRun(index - 1),
+                          threadBelow: sameRun(index + 1),
+                          ringing: widget.services.ringing.value.contains(
+                            note.id,
                           ),
-                    onAction: (action) => unawaited(_runSwipe(action, note)),
-                    child: NoteContextMenu(
-                      entriesBuilder: (menuContext, width) =>
-                          _holdEntries(note, menuContext, width),
-                      child: NoteCard(
-                        note: note,
-                        strings: nexCardStrings(context),
-                        onTap: () => _tapNote(note),
-                        selected: _selecting
-                            ? _selected.contains(note.id)
-                            : null,
-                        expanded: widget.preferences.isNoteExpanded(note.id),
-                        threadAbove: sameRun(index - 1),
-                        threadBelow: sameRun(index + 1),
-                        ringing: widget.services.ringing.value.contains(
-                          note.id,
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        ),
       if (_model.notes.isEmpty)
         SliverFillRemaining(
           hasScrollBody: false,

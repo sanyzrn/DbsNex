@@ -24,7 +24,13 @@ import 'platform/reminders.dart';
 import 'platform/secure_window.dart';
 import 'platform/update_service.dart';
 import 'platform/vault_session.dart';
+import 'desktop/desktop_nav.dart';
+import 'desktop/desktop_shell.dart';
+import 'screens/library_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/settings_sheet.dart';
+import 'screens/tools_screen.dart';
+import 'widgets/commitments_sheet.dart';
 import 'screens/timeline_screen.dart';
 import 'widgets/keyboard_dismisser.dart';
 import 'widgets/nex_banner.dart';
@@ -74,6 +80,28 @@ class NexApp extends StatefulWidget {
 
 class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   final timelineKey = GlobalKey<TimelineScreenState>();
+
+  /// Where the desktop rail goes (`docs/27-desktop.md`); on a phone it only
+  /// owns the Navigator's key.
+  late final _desktopNav = NexDesktopNav(pageFor: _sectionPage);
+
+  WidgetBuilder? _sectionPage(NexSection section) => switch (section) {
+    NexSection.notes => null,
+    NexSection.recurring => (_) => RecurringScreen(services: widget.services),
+    NexSection.library => (_) => LibraryScreen(
+      services: widget.services,
+      preferences: widget.preferences,
+    ),
+    NexSection.tools => (_) => ToolsScreen(
+      services: widget.services,
+      preferences: widget.preferences,
+    ),
+    NexSection.settings => (_) => SettingsSheet(
+      services: widget.services,
+      preferences: widget.preferences,
+      updates: _updates,
+    ),
+  };
 
   /// So a toast can be raised from a listener, above any screen's own context.
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -278,6 +306,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     widget.preferences.removeListener(_refresh);
     _updates.removeListener(_announceDownload);
     _updates.dispose();
+    _desktopNav.dispose();
     _feedback.close();
     super.dispose();
   }
@@ -555,7 +584,8 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       scaffoldMessengerKey: _messengerKey,
       // The timeline listens on this to know when it has been covered and
       // uncovered again — which is what "you have seen that reminder" means.
-      navigatorObservers: [nexRouteObserver],
+      navigatorKey: _desktopNav.navigatorKey,
+      navigatorObservers: [nexRouteObserver, _desktopNav],
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       locale: prefs.locale,
@@ -627,7 +657,12 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
               child: MediaQuery(
                 data: media.copyWith(
                   disableAnimations: media.disableAnimations,
-                  textScaler: NexUiTextScaler(media.textScaler, prefs.uiScale),
+                  textScaler: NexUiTextScaler(
+                    media.textScaler,
+                    // A mouse needs less than a thumb: type is a tenth
+                    // smaller in a wide window, on top of the size chosen.
+                    prefs.uiScale * (nexWideWindow(media.size.width) ? 0.9 : 1),
+                  ),
                 ),
                 child: NexModuleCalendar(
                   solar: prefs.solarCalendar,
@@ -669,7 +704,16 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
                                 excluding: _locked,
                                 child: IgnorePointer(
                                   ignoring: _locked,
-                                  child: FocusTraversalGroup(child: child!),
+                                  child: FocusTraversalGroup(
+                                    child: NexDesktopShell(
+                                      nav: _desktopNav,
+                                      services: widget.services,
+                                      preferences: prefs,
+                                      timelineKey: timelineKey,
+                                      updates: _updates,
+                                      child: child!,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),

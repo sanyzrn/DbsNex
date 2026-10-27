@@ -6268,4 +6268,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String vaultBankGuess(String bank) {
     return 'Looks like $bank';
   }
+
+  @override
+  String get desktopNotes => 'Notes';
 }

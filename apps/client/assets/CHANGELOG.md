@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v2.3.6
+
+- **A layout for wide windows.** In a window at least 1000 wide — Nex on Windows, which is not released yet, or a tablet held sideways — Nex shows a rail down the side with Capture, Notes, Assistant, Recurring, Library, Tools, Settings and your tags, instead of the bottom bar. Pages keep to a readable width, sheets open as panels in the middle, and text is a little smaller. The phone looks exactly as before.
+- **No Cycle on a desktop.** The Cycle module is not offered on Windows; what a phone saved is left alone.
+
 ## v2.3.5
 
 - **Clouds that drift in.** In pull to refresh, a cloud now drifts in from beyond the edge instead of appearing inside the sky, and the drift runs as one smooth, endless loop — it no longer jumps every few seconds.

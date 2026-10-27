@@ -11,7 +11,18 @@ mixin _CyclePreferences on _PreferencesStore {
   ///
   /// Off until turned on in the profile — except for someone who had
   /// already set it up while it was on by default, who keeps it.
-  bool get cycleEnabled => _prefs.getBool('cycle.enabled') ?? cycleSetUp;
+  ///
+  /// Never on a desktop (`docs/27-desktop.md`): a backup restored from a phone
+  /// keeps its Cycle data, but no reminder, summary or widget is made from it.
+  bool get cycleEnabled =>
+      !_onDesktop && (_prefs.getBool('cycle.enabled') ?? cycleSetUp);
+
+  static bool get _onDesktop => switch (defaultTargetPlatform) {
+    TargetPlatform.windows ||
+    TargetPlatform.linux ||
+    TargetPlatform.macOS => true,
+    _ => false,
+  };
   Future<void> setCycleEnabled(bool value) => _setBool('cycle.enabled', value);
 
   /// Whether the three opening questions have been answered or skipped.

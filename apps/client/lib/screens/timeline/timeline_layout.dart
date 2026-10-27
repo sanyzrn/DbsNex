@@ -4,6 +4,9 @@ part of '../timeline_screen.dart';
 extension _TimelineLayout on TimelineScreenState {
   Widget _screen(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // A wide window: the rail has the wordmark and the tags, and the notes are
+    // a grid (docs/27-desktop.md).
+    final desktop = NexDesktopScope.isDesktop(context);
     final glass = context.nexVisualStyle.liquidGlass;
     // The same condition the header uses to decide whether to draw the recap
     // at all. It decides here whether the pull is wired up, because the pull
@@ -17,6 +20,7 @@ extension _TimelineLayout on TimelineScreenState {
     final filterBesideSearch = widget.preferences.showSearchField;
     final otherFilters = _model.selectedType != null || _model.onlyReminders;
     final showTagRow =
+        !desktop &&
         widget.preferences.showTagRow &&
         (!filterBesideSearch ||
             _model.filterTags.isNotEmpty ||
@@ -34,7 +38,7 @@ extension _TimelineLayout on TimelineScreenState {
         // below — which is what it always wanted to be, and what left the bar
         // free to be the small quiet strip it is here.
         titleSpacing: NexSpacing.md,
-        title: const _WordmarkTile(),
+        title: desktop ? null : const _WordmarkTile(),
         actions: [
           // First, so it never moves. The icons after it come and go with
           // settings — the search icon appears only when the field is off —
@@ -133,8 +137,10 @@ extension _TimelineLayout on TimelineScreenState {
                   // the window edge while the cards sat in a narrower column — two
                   // things that belong to each other, visibly unaligned.
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: TimelineScreenState._timelineColumnWidth,
+                    constraints: BoxConstraints(
+                      maxWidth: desktop
+                          ? TimelineScreenState._desktopColumnWidth
+                          : TimelineScreenState._timelineColumnWidth,
                     ),
                     // The pull rewrites the recap, and that is the only thing
                     // it does.
@@ -183,6 +189,14 @@ extension _TimelineLayout on TimelineScreenState {
                                   alignment: Alignment.topCenter,
                                   child: _searching
                                       ? const SizedBox.shrink()
+                                      : desktop
+                                      ? Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal:
+                                                _desktopGutter - NexSpacing.md,
+                                          ),
+                                          child: _header(l10n),
+                                        )
                                       : _header(l10n),
                                 ),
                               ),
@@ -199,6 +213,10 @@ extension _TimelineLayout on TimelineScreenState {
                               SliverPersistentHeader(
                                 key: const ValueKey('search-header'),
                                 delegate: SearchFieldHeader(
+                                  gutter: desktop
+                                      ? _desktopGutter
+                                      : NexSpacing.md,
+                                  maxWidth: desktop ? 560 : null,
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
@@ -405,7 +423,9 @@ extension _TimelineLayout on TimelineScreenState {
       // Capture is a timeline action. Left up while searching, the bar read
       // as part of the search flow itself rather than what it actually still
       // did — open a fresh note, unrelated to whatever was just searched.
-      floatingActionButton: _searching
+      // The desktop's rail replaces the dock; the selection bar stays.
+      floatingActionButton:
+          _searching || (NexDesktopScope.isDesktop(context) && !_selecting)
           ? null
           : AnimatedSwitcher(
               // The dock does not cross-fade into the selection bar: it
