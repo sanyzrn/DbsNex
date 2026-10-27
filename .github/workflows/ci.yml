@@ -357,7 +357,7 @@ jobs:
   client-android:
     name: apps/client (analyze + test + Android build)
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     needs: changes
     if: needs.changes.outputs.dart == 'true'
     defaults:
@@ -443,6 +443,21 @@ jobs:
       - name: Native libraries are 16 KB aligned (report)
         if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
         run: bash ../../tools/check_16kb_alignment.sh --warn build/app/outputs/bundle/aiRelease/app-ai-release.aab
+      # The store build (2.3.5) for Cafe Bazaar and Myket: the same app without
+      # the installer permission, which both stores refuse in an app that
+      # updates itself. Built and its manifest read, so a merge that quietly
+      # kept the permission fails a pull request rather than a store review.
+      # A debug build of the flavor built above: Gradle reuses nearly all of
+      # it, and the manifest merge is the same as release. A second release
+      # build here pushed the job past its limit; the release workflow checks
+      # the real store files.
+      - name: Store build drops the installer permission
+        if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
+        run: |
+          flutter build apk --debug --flavor standard \
+            --dart-define=NEX_STORE_BUILD=true
+          bash ../../tools/check_store_permissions.sh \
+            build/app/outputs/flutter-apk/app-standard-debug.apk
 
   client-windows:
     name: apps/client (Windows desktop build + platform tests)

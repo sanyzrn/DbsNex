@@ -105,7 +105,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
     super.initState();
     // Installed by Cafe Bazaar or Myket: updates come from there, and this
     // screen says so rather than fetching an APK from GitHub (REL-01).
-    if (NexInstallSource.store != null) {
+    if (NexInstallSource.updatesFromStore) {
       _phase = _Phase.store;
       return;
     }
@@ -365,9 +365,11 @@ class _UpdateSheetState extends State<UpdateSheet> {
       ),
       const SizedBox(height: NexSpacing.md),
       Text(
-        NexInstallSource.store == NexStore.myket
-            ? l10n.updatesFromMyket
-            : l10n.updatesFromBazaar,
+        switch (NexInstallSource.store) {
+          NexStore.myket => l10n.updatesFromMyket,
+          NexStore.bazaar => l10n.updatesFromBazaar,
+          null => l10n.updatesFromStore,
+        },
         textAlign: TextAlign.center,
         style: theme.textTheme.bodyLarge,
       ),

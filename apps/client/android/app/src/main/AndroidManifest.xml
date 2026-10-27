@@ -11,6 +11,9 @@
       install prompt, and the user must additionally allow Nex to install
       unknown apps once, in device settings. Nex is distributed outside Play,
       so there is no store to do this for it.
+
+      A store build, for Cafe Bazaar and Myket, removes it (2.3.5): see
+      src/store/AndroidManifest.xml and nexStoreBuild in app/build.gradle.kts.
     -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 

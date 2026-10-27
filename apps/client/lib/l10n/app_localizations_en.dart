@@ -1661,9 +1661,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Feedback isn\'t available in this build yet';
 
   @override
-  String get feedbackOpenIssueInstead => 'Open a GitHub issue instead';
-
-  @override
   String get capabilities => 'What Nex does';
 
   @override
@@ -1706,6 +1703,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get updatesFromBazaar =>
       'Nex was installed from Cafe Bazaar, so its updates come from Cafe Bazaar too.';
+
+  @override
+  String get updatesFromStore =>
+      'This copy of Nex is updated by the store you installed it from.';
 
   @override
   String get updatesFromMyket =>

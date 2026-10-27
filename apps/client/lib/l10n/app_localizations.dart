@@ -2756,12 +2756,6 @@ abstract class AppLocalizations {
   /// **'Feedback isn\'t available in this build yet'**
   String get feedbackUnavailable;
 
-  /// Feedback sheet: fallback link when sending isn't possible
-  ///
-  /// In en, this message translates to:
-  /// **'Open a GitHub issue instead'**
-  String get feedbackOpenIssueInstead;
-
   /// About screen section heading
   ///
   /// In en, this message translates to:
@@ -2815,6 +2809,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nex was installed from Cafe Bazaar, so its updates come from Cafe Bazaar too.'**
   String get updatesFromBazaar;
+
+  /// No description provided for @updatesFromStore.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy of Nex is updated by the store you installed it from.'**
+  String get updatesFromStore;
 
   /// Update screen when the app was installed by Myket
   ///

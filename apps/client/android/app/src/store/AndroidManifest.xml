@@ -1,0 +1,13 @@
+<!--
+  Laid over the flavor manifests only in a store build
+  (the NEX_STORE_BUILD=true dart define; see nexStoreBuild in
+  app/build.gradle.kts). Cafe Bazaar and Myket keep their copies up to date
+  themselves and forbid an app that installs its own updates, so the store's
+  file does not ask for the installer permission at all.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission
+        android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+        tools:node="remove" />
+</manifest>

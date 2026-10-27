@@ -24,6 +24,7 @@ import '../widgets/swipe_actions.dart';
 import '../widgets/tag_color_picker.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/daily_nudge.dart';
+import '../platform/install_source.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/notification_settings.dart';
 import '../platform/nex_services.dart';
@@ -702,13 +703,15 @@ class SettingsSheet extends StatelessWidget {
           text: '${l10n.checkForUpdate} update version به‌روزرسانی نسخه',
           child: _UpdateRow(updates: updates, preferences: preferences),
         ),
-        _SwitchRow(
-          icon: Icons.update_outlined,
-          title: l10n.autoUpdateCheck,
-          subtitle: l10n.autoUpdateCheckHint,
-          value: preferences.autoUpdateCheck,
-          onChanged: preferences.setAutoUpdateCheck,
-        ),
+        // Not for a copy a store keeps up to date: there is nothing to check.
+        if (!NexInstallSource.updatesFromStore)
+          _SwitchRow(
+            icon: Icons.update_outlined,
+            title: l10n.autoUpdateCheck,
+            subtitle: l10n.autoUpdateCheckHint,
+            value: preferences.autoUpdateCheck,
+            onChanged: preferences.setAutoUpdateCheck,
+          ),
         // The guide lives with the rest of "what is this app", rather than
         // as a category of its own holding one row.
         _Row(

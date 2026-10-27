@@ -20,6 +20,17 @@ abstract final class NexInstallSource {
   /// Read once at start ([load]); null until then and off Android.
   static NexStore? store;
 
+  /// A build made for Cafe Bazaar and Myket (2.3.5): `--dart-define=
+  /// NEX_STORE_BUILD=true`. Its manifest leaves out REQUEST_INSTALL_PACKAGES
+  /// (see `android/app/build.gradle.kts`), because a store reviews the file
+  /// it is given and both forbid an app updating itself from elsewhere — so
+  /// this copy never offers to, whoever installed it.
+  static const storeBuild = bool.fromEnvironment('NEX_STORE_BUILD');
+
+  /// Whether something other than Nex keeps this copy up to date: a store
+  /// installed it, or it was built for one.
+  static bool get updatesFromStore => store != null || storeBuild;
+
   static Future<void> load() async {
     if (!Platform.isAndroid) return;
     try {

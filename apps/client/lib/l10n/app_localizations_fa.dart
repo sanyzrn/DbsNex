@@ -1648,9 +1648,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'قابلیت ارسال بازخورد هنوز در این نسخه فعال نیست';
 
   @override
-  String get feedbackOpenIssueInstead => 'به‌جایش در گیت‌هاب ایشو باز کنید';
-
-  @override
   String get capabilities => 'Nex چه می‌کند';
 
   @override
@@ -1692,6 +1689,10 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get updatesFromBazaar =>
       'نکس از کافه‌بازار نصب شده، پس به‌روزرسانی‌هایش هم از کافه‌بازار می‌رسد.';
+
+  @override
+  String get updatesFromStore =>
+      'این نسخهٔ نکس از طریق فروشگاهی که از آن نصبش کرده‌اید به‌روز می‌شود.';
 
   @override
   String get updatesFromMyket =>

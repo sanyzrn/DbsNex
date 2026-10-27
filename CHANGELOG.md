@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v2.3.5
+
+- **Clouds that drift in.** In pull to refresh, a cloud now drifts in from beyond the edge instead of appearing inside the sky, and the drift runs as one smooth, endless loop — it no longer jumps every few seconds.
+- **A copy made for Cafe Bazaar and Myket.** The copy published for the stores has no in-app updater and no longer asks for permission to install apps, because the store keeps it up to date.
+- **No unencrypted connections at all.** The installed app now refuses unencrypted (http) connections everywhere; the one exception, for developers' own test machines, is left in development builds only.
+- **Privacy policy brought up to date.** It names Cycle as health data, says what the sponsor card is, lists the permissions as they are now, and adds how long things are kept, how they are secured, a note on children and a contact email. The same text is on the website, at DbsStudio.ir/nex/privacy.
+
 ## v2.3.4
 
 - **Nex AI, tidier.** The tools are round icons again — hold one for its name — with a small check on those that already have a result. **Hide** sits at the far end of the header, and the translation's **Translate again** at the far end of its line. The arrow that opens a result in full only appears when there is more to read.
