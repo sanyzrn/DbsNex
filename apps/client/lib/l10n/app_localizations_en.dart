@@ -4690,6 +4690,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.';
 
   @override
+  String get planPromptStudioTitle => 'Prompt Studio';
+
+  @override
+  String get planPromptStudioAbout =>
+      'Write what you want in plain words, and Nex turns it into a clear, complete prompt for any AI: the role, the context, the steps and the shape of the answer. Keep the ones that work as notes. It uses your own AI provider.';
+
+  @override
   String get planWordsTitle => 'Word by word';
 
   @override

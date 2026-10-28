@@ -220,16 +220,28 @@ Future<T?> nexShowSheet<T>({
         enableDrag: dismissible,
         showDragHandle: false,
         builder: (context) {
-          final handle = Padding(
-            padding: const EdgeInsets.only(top: NexSpacing.sm),
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(2),
+          // The handle is a strip the whole width of the sheet, not just the
+          // 36x4 bar: on a long note it is the one part that does not scroll,
+          // so it is what closes the sheet from anywhere in the text, and a
+          // thumb has to be able to find it without aiming.
+          final handle = SizedBox(
+            key: const ValueKey('nex-sheet-handle'),
+            width: double.infinity,
+            height: 22,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: NexSpacing.sm),
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
             ),
           );
