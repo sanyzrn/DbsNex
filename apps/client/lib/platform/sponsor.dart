@@ -559,6 +559,17 @@ class NexSponsorService {
           final raw = response.bodyBytes.length <= maxBytes
               ? decodeBody(response.bodyBytes)
               : null;
+          // A file that exists but says nothing — emptied, or `{}` — is the
+          // owner taking the campaign down without deleting the file. Treated
+          // like a 404; otherwise the old card would sit in the cache until it
+          // aged out two days later.
+          if (response.statusCode == 200 &&
+              raw != null &&
+              (raw.trim().isEmpty || raw.trim() == '{}')) {
+            await _forget();
+            await preferences.setSponsorFetchedAt(_now());
+            return true;
+          }
           final body = response.statusCode == 200 && raw != null
               ? choose(
                   raw,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -115,6 +116,49 @@ class _NexDialogRoute<T> extends DialogRoute<T> {
 /// and pages (see the Motion section of `docs/16-design-language.md`).
 const nexSheetRise = NexMotion.sheet;
 
+/// What a sheet is in a wide window: a centred panel, rounded all round, as
+/// wide as a page of text and no taller than the window (`docs/27-desktop.md`).
+/// A sheet's content is made for either; [nexShowSheet] chooses.
+Future<T?> nexShowPanel<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool dismissible = true,
+  bool swipeToClose = false,
+}) => nexShowDialog<T>(
+  context: context,
+  barrierDismissible: dismissible || swipeToClose,
+  builder: (context) {
+    final size = MediaQuery.sizeOf(context);
+    final width = math.min(nexPanelWidth, size.width - 2 * NexSpacing.lg);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(NexSpacing.lg),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: size.height * 0.88,
+            minWidth: width,
+            maxWidth: width,
+          ),
+          child: NexGlassSurface(
+            borderRadius: const BorderRadius.all(Radius.circular(NexRadius.lg)),
+            fallbackColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+            child: Material(
+              type: MaterialType.transparency,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [Flexible(child: Builder(builder: builder))],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  },
+);
+
+/// How wide a panel is.
+const nexPanelWidth = 560.0;
+
 /// Opens a bottom sheet the way every bottom sheet in Nex opens.
 ///
 /// The nine call sites had drifted into nine different presentations: some
@@ -147,92 +191,101 @@ Future<T?> nexShowSheet<T>({
   required WidgetBuilder builder,
   bool dismissible = true,
   bool swipeToClose = false,
-}) => showModalBottomSheet<T>(
-  context: context,
-  sheetAnimationStyle: nexSheetRise,
-  // This shared wrapper supplies the glass material itself. An opaque modal
-  // sheet behind it would leave the backdrop filter nothing to sample.
-  // The route keeps this colour for its lifetime. If it starts transparent
-  // in glass mode and the preference changes while it is open, the content
-  // must supply the newly opaque surface itself.
-  backgroundColor: Colors.transparent,
-  barrierColor: context.nexVisualStyle.liquidGlass
-      ? Colors.black.withValues(alpha: 0.24)
-      : null,
-  isScrollControlled: true,
-  useSafeArea: true,
-  // A sheet that guards unsaved work still closes from a tap on the dimmed
-  // area, the same way it closes from a swipe: the barrier ends in
-  // Navigator.maybePop, so the editor's PopScope decides (a clean editor
-  // closes, a dirty one asks). Flutter's own drag stays off for it.
-  isDismissible: dismissible || swipeToClose,
-  enableDrag: dismissible,
-  showDragHandle: false,
-  builder: (context) {
-    final handle = Padding(
-      padding: const EdgeInsets.only(top: NexSpacing.sm),
-      child: Container(
-        width: 36,
-        height: 4,
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-    );
-    final guarded = !dismissible && swipeToClose;
-    final sheet = NexGlassSurface(
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(NexRadius.xl),
-      ),
-      fallbackColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      // A Material above the glass's painted colour: a list row's ripple is
-      // drawn on the nearest Material, and the one the route provides sits
-      // underneath that colour, so every tap in a sheet rippled out of sight.
-      child: Material(
-        type: MaterialType.transparency,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (dismissible) handle,
-            if (guarded) _SwipeHandle(child: handle),
-            Flexible(
-              child: SafeArea(
-                top: false,
-                // Every dismissible sheet closes when its content is pulled
-                // down past the top, not only from the handle: a scrolling
-                // body wins the drag before the sheet sees it, and a sheet
-                // that cannot be swiped away reads as stuck. Here, once, so a
-                // new sheet cannot forget it (the Cycle settings did).
-                // A Builder, so the sheet's content reads the context *under*
-                // the keyboard adjustment below, not the one above it.
-                child: dismissible
-                    ? NexDismissOnOverscroll(child: Builder(builder: builder))
-                    : Builder(builder: builder),
+}) => NexDesktopScope.isDesktop(context)
+    ? nexShowPanel<T>(
+        context: context,
+        builder: builder,
+        dismissible: dismissible,
+        swipeToClose: swipeToClose,
+      )
+    : showModalBottomSheet<T>(
+        context: context,
+        sheetAnimationStyle: nexSheetRise,
+        // This shared wrapper supplies the glass material itself. An opaque modal
+        // sheet behind it would leave the backdrop filter nothing to sample.
+        // The route keeps this colour for its lifetime. If it starts transparent
+        // in glass mode and the preference changes while it is open, the content
+        // must supply the newly opaque surface itself.
+        backgroundColor: Colors.transparent,
+        barrierColor: context.nexVisualStyle.liquidGlass
+            ? Colors.black.withValues(alpha: 0.24)
+            : null,
+        isScrollControlled: true,
+        useSafeArea: true,
+        // A sheet that guards unsaved work still closes from a tap on the dimmed
+        // area, the same way it closes from a swipe: the barrier ends in
+        // Navigator.maybePop, so the editor's PopScope decides (a clean editor
+        // closes, a dirty one asks). Flutter's own drag stays off for it.
+        isDismissible: dismissible || swipeToClose,
+        enableDrag: dismissible,
+        showDragHandle: false,
+        builder: (context) {
+          final handle = Padding(
+            padding: const EdgeInsets.only(top: NexSpacing.sm),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-    final framed = guarded ? _SwipeToClose(child: sheet) : sheet;
-    // A modal sheet does not make room for the keyboard by itself: its fields
-    // sat under it and could not be reached. Lift the sheet by the keyboard's
-    // height, once, here — and tell what is inside the keyboard is already
-    // accounted for, so a sheet that also pads for it (several did) does not
-    // lift twice.
-    final media = MediaQuery.of(context);
-    return Padding(
-      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
-      child: MediaQuery(
-        data: media.copyWith(viewInsets: EdgeInsets.zero),
-        child: framed,
-      ),
-    );
-  },
-);
+          );
+          final guarded = !dismissible && swipeToClose;
+          final sheet = NexGlassSurface(
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(NexRadius.xl),
+            ),
+            fallbackColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+            // A Material above the glass's painted colour: a list row's ripple is
+            // drawn on the nearest Material, and the one the route provides sits
+            // underneath that colour, so every tap in a sheet rippled out of sight.
+            child: Material(
+              type: MaterialType.transparency,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (dismissible) handle,
+                  if (guarded) _SwipeHandle(child: handle),
+                  Flexible(
+                    child: SafeArea(
+                      top: false,
+                      // Every dismissible sheet closes when its content is pulled
+                      // down past the top, not only from the handle: a scrolling
+                      // body wins the drag before the sheet sees it, and a sheet
+                      // that cannot be swiped away reads as stuck. Here, once, so a
+                      // new sheet cannot forget it (the Cycle settings did).
+                      // A Builder, so the sheet's content reads the context *under*
+                      // the keyboard adjustment below, not the one above it.
+                      child: dismissible
+                          ? NexDismissOnOverscroll(
+                              child: Builder(builder: builder),
+                            )
+                          : Builder(builder: builder),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          final framed = guarded ? _SwipeToClose(child: sheet) : sheet;
+          // A modal sheet does not make room for the keyboard by itself: its fields
+          // sat under it and could not be reached. Lift the sheet by the keyboard's
+          // height, once, here — and tell what is inside the keyboard is already
+          // accounted for, so a sheet that also pads for it (several did) does not
+          // lift twice.
+          final media = MediaQuery.of(context);
+          return Padding(
+            padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+            child: MediaQuery(
+              data: media.copyWith(viewInsets: EdgeInsets.zero),
+              child: framed,
+            ),
+          );
+        },
+      );
 
 /// Swipe-down for a sheet whose editor guards unsaved work — from its handle,
 /// from anywhere that does not scroll, or by pulling its content past the

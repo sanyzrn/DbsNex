@@ -66,6 +66,7 @@ import '../widgets/reminder_picker.dart';
 import '../widgets/due_label.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_picker.dart';
+import '../desktop/desktop_note_card.dart';
 import 'home_layout_sheet.dart';
 import 'camera_sheet.dart';
 import 'tools_screen.dart';
@@ -78,6 +79,7 @@ import 'photo_preview_screen.dart';
 import 'settings_sheet.dart';
 
 part 'timeline/timeline_header_widgets.dart';
+part 'timeline/timeline_desktop.dart';
 part 'timeline/timeline_filter_widgets.dart';
 part 'timeline/timeline_groups.dart';
 part 'timeline/timeline_list.dart';
@@ -294,6 +296,9 @@ class TimelineScreenState extends State<TimelineScreen>
   /// column, and a bar that ran past the cards it belongs to would read as
   /// belonging to the window instead.
   static const _timelineColumnWidth = 760.0;
+
+  /// The same, in a wide window, where the notes are a grid.
+  static const _desktopColumnWidth = 1240.0;
 
   /// The tour itself, while it is running.
   OverlayEntry? _tour;

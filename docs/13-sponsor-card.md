@@ -16,7 +16,10 @@ https://saeedzarrini.ir/banner.json
 ```
 
 Taking a card down is deleting that file. A 404 is not an error: it is how a
-campaign ends, and the app clears its cache when it sees one.
+campaign ends, and the app clears its cache when it sees one. Emptying the
+file (or writing `[]` or `{}`) does the same. Phones notice at their next
+hourly check — if the host or a CDN in front of it caches the file, add that
+delay.
 
 The card's picture may be hosted anywhere. A picture on
 `raw.githubusercontent.com`, which is filtered on many networks in Iran, is

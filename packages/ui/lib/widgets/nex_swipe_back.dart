@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransition;
 import 'package:flutter/material.dart';
 import '../tokens/nex_tokens.dart';
+import 'nex_desktop_scope.dart';
 
 /// A page route that keeps the route below paintable during a full-width
 /// back-swipe. An opaque route lets the Navigator skip painting everything
@@ -72,7 +73,14 @@ class NexPageRoute<T> extends PageRoute<T> {
     BuildContext context,
     Animation<double> animation,
     Animation<double> secondaryAnimation,
-  ) => builder(context);
+  ) {
+    final page = builder(context);
+    // In a wide window a page keeps to a reading width (docs/27-desktop.md).
+    final desktop = NexDesktopScope.maybeOf(context);
+    return desktop == null
+        ? page
+        : NexDesktopPage(width: desktop.contentWidth, child: page);
+  }
 
   @override
   Widget buildTransitions(
@@ -80,12 +88,21 @@ class NexPageRoute<T> extends PageRoute<T> {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
     Widget child,
-  ) => CupertinoPageTransition(
-    primaryRouteAnimation: animation,
-    secondaryRouteAnimation: secondaryAnimation,
-    linearTransition: false,
-    child: swipeBackEnabled ? _NexSwipeBack(child: child) : child,
-  );
+  ) {
+    // A desktop page fades in; the slide and the edge swipe are a thumb's.
+    if (NexDesktopScope.isDesktop(context)) {
+      return FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: NexMotion.curve),
+        child: child,
+      );
+    }
+    return CupertinoPageTransition(
+      primaryRouteAnimation: animation,
+      secondaryRouteAnimation: secondaryAnimation,
+      linearTransition: false,
+      child: swipeBackEnabled ? _NexSwipeBack(child: child) : child,
+    );
+  }
 
   @override
   void dispose() {

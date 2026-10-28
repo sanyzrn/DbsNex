@@ -284,6 +284,17 @@ void main() {
       }
     });
 
+    test('an emptied file takes the card down like a 404', () async {
+      for (final body in ['', '  \n', '{}', '[]']) {
+        await preferences.setSponsorPayload(card());
+        await preferences.setSponsorFetchedAt(now);
+        final service = serviceReturning((_) => http.Response(body, 200));
+        await service.refresh(force: true);
+        expect(preferences.sponsorPayload, isNull, reason: 'body "$body"');
+        expect(service.visible(), isNull, reason: 'body "$body"');
+      }
+    });
+
     test('a card that arrives is cached and shown', () async {
       final service = serviceReturning((_) => http.Response(card(), 200));
       await service.refresh();

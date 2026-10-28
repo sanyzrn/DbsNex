@@ -9793,6 +9793,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Looks like {bank}'**
   String vaultBankGuess(String bank);
+
+  /// No description provided for @desktopNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get desktopNotes;
 }
 
 class _AppLocalizationsDelegate

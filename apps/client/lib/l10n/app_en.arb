@@ -3569,5 +3569,6 @@
   "@threadLastActive": {"placeholders": {"when": {"type": "String"}}},
   "vaultCardChecksum": "The last digit doesn’t match the rest of the number. It may still be right — check it against the card.",
   "vaultBankGuess": "Looks like {bank}",
-  "@vaultBankGuess": {"placeholders": {"bank": {"type": "String"}}}
+  "@vaultBankGuess": {"placeholders": {"bank": {"type": "String"}}},
+  "desktopNotes": "Notes"
 }

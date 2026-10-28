@@ -104,4 +104,21 @@ extension TimelineCommands on TimelineScreenState {
   /// [NexTapGuarded]. The capture button and the app bar are `Scaffold` slots
   /// that ask instead.
   bool _claimedByOverlay() => _guard.claim();
+
+  /// The assistant, for the desktop rail (the phone holds the capture button).
+  void showAssistant() => _openAssistant();
+
+  /// What the desktop rail reads and drives: the tags the list is narrowed to.
+  Set<String> get activeTagIds => _model.selectedTagIds;
+  Listenable get filterChanges => _model;
+
+  /// Shows only the notes with [tagId], or all of them if that is already the
+  /// one on show.
+  Future<void> showOnlyTag(String tagId) => _model.selectTags(
+    _model.selectedTagIds.length == 1 && _model.selectedTagIds.contains(tagId)
+        ? const {}
+        : {tagId},
+  );
+
+  Future<void> clearFilterForRail() => _model.clearFilters();
 }

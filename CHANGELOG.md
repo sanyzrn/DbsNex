@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v2.3.6
+
+- **A removed announcement goes away.** Emptying the announcement file now takes the card down at the next check, like deleting it, instead of staying for up to two days.
+- **Installable without a camera or microphone.** Stores no longer limit Nex to phones that have them; photos and voice notes are offered only when the phone can take them.
+
 ## v2.3.5
 
 - **Clouds that drift in.** In pull to refresh, a cloud now drifts in from beyond the edge instead of appearing inside the sky, and the drift runs as one smooth, endless loop — it no longer jumps every few seconds.
