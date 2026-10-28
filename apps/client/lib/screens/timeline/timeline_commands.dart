@@ -108,6 +108,13 @@ extension TimelineCommands on TimelineScreenState {
   /// The assistant, for the desktop rail (the phone holds the capture button).
   void showAssistant() => _openAssistant();
 
+  /// A desktop rail section closed: catch up the way the dock does when its
+  /// pages close — the timeline (Trash, Archive) and the brief (Recurring).
+  Future<void> refreshAfterSection() async {
+    await _refresh();
+    await _model.loadCommitments();
+  }
+
   /// What the desktop rail reads and drives: the tags the list is narrowed to.
   Set<String> get activeTagIds => _model.selectedTagIds;
   Listenable get filterChanges => _model;

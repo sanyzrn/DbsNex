@@ -83,11 +83,14 @@ class _NexSidebarState extends State<NexSidebar> {
   TimelineScreenState? get _timeline => widget.timelineKey.currentState;
 
   void _section(NexSection section) {
+    // Nothing happens underneath an open dialog or panel.
+    if (widget.nav.covered) return;
     if (section == NexSection.notes) unawaited(_timeline?.clearFilterForRail());
     widget.nav.go(section);
   }
 
   void _tag(String id) {
+    if (widget.nav.covered) return;
     widget.nav.go(NexSection.notes);
     unawaited(_timeline?.showOnlyTag(id));
   }
@@ -156,7 +159,9 @@ class _NexSidebarState extends State<NexSidebar> {
                   _RailItem(
                     icon: Icons.auto_awesome_outlined,
                     label: l10n.assistant,
-                    onTap: () => _timeline?.showAssistant(),
+                    onTap: () {
+                      if (!widget.nav.covered) _timeline?.showAssistant();
+                    },
                   ),
                   _RailItem(
                     icon: Icons.event_repeat_outlined,

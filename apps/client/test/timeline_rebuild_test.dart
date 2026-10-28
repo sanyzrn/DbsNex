@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'dart:async';
 import 'dart:io';
 
@@ -1261,29 +1263,36 @@ void main() {
 
   testWidgets('a wide window has the rail, not the dock, and the empty state '
       'fits beside it', (tester) async {
-    // docs/27-desktop.md: from 1000 wide the left rail carries capture and the
-    // places, so there is no floating button for the empty state to clear.
-    tester.view.physicalSize = const Size(1100, 726);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+    // A desktop platform: phones and tablets keep the dock at any width.
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      // docs/27-desktop.md: from 1000 wide the left rail carries capture and the
+      // places, so there is no floating button for the empty state to clear.
+      tester.view.physicalSize = const Size(1100, 726);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(FloatingActionButton), findsNothing);
-    expect(find.text('Capture'), findsOneWidget);
-    expect(find.text('Recurring'), findsOneWidget);
-    expect(find.text('Library'), findsOneWidget);
-    final line = tester.getRect(find.text('There is no Save button.'));
-    expect(line.bottom, lessThanOrEqualTo(726));
-    expect(
-      line.left,
-      greaterThan(232),
-      reason: 'beside the rail, not under it',
-    );
-    expect(tester.takeException(), isNull);
+      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(find.text('Capture'), findsOneWidget);
+      expect(find.text('Recurring'), findsOneWidget);
+      expect(find.text('Library'), findsOneWidget);
+      final line = tester.getRect(find.text('There is no Save button.'));
+      expect(line.bottom, lessThanOrEqualTo(726));
+      expect(
+        line.left,
+        greaterThan(232),
+        reason: 'beside the rail, not under it',
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('the empty state clears the capture button on a desktop window', (
