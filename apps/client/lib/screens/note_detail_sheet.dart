@@ -76,6 +76,10 @@ part 'note_detail/detail_facts.dart';
 /// path was unreachable.
 enum DetailResult { deleted }
 
+/// The share of the screen a note's sheet may take. Low enough that its
+/// handle is clear of the status bar's pull-down zone on every phone.
+const nexNoteSheetMaxHeight = 0.85;
+
 class NoteDetailSheet extends StatefulWidget {
   const NoteDetailSheet({
     super.key,
@@ -373,8 +377,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     // column already grows with the text and stops at the cap, so a long note
     // opens tall and a two-line thought hugs itself — which is what the floor
     // was trying to approximate in one jump.
+    //
+    // And it stops short of the top. At 92% its handle — the one part of a
+    // long note that does not scroll, so the way to close it from the last
+    // line — sat right under the status bar, and pulling it down opened the
+    // phone's notification shade instead of closing the note.
     return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: screenHeight * 0.92),
+      constraints: BoxConstraints(
+        maxHeight: screenHeight * nexNoteSheetMaxHeight,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

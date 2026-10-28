@@ -39,6 +39,7 @@ class NexModulePlan {
         'gold' => l10n.planGoldTitle,
         'parking' => l10n.planParkingTitle,
         'telegram' => l10n.planTelegramTitle,
+        'prompt-studio' => l10n.planPromptStudioTitle,
         'words' => l10n.planWordsTitle,
         'medicine' => l10n.planMedicineTitle,
         'warranty' => l10n.planWarrantyTitle,
@@ -57,6 +58,7 @@ class NexModulePlan {
         'gold' => l10n.planGoldAbout,
         'parking' => l10n.planParkingAbout,
         'telegram' => l10n.planTelegramAbout,
+        'prompt-studio' => l10n.planPromptStudioAbout,
         'words' => l10n.planWordsAbout,
         'medicine' => l10n.planMedicineAbout,
         'warranty' => l10n.planWarrantyAbout,
@@ -67,6 +69,14 @@ class NexModulePlan {
 
 /// What is coming, nearest first.
 const List<NexModulePlan> nexModulePlans = [
+  // A plain request in, a well-made prompt out, through the person's own AI
+  // provider. Planned for after the assistant's tools settle.
+  NexModulePlan(
+    'prompt-studio',
+    Icons.auto_fix_high_outlined,
+    NexHue.violet,
+    NexModuleStage.soon,
+  ),
   NexModulePlan(
     'security-tools',
     Icons.security_outlined,

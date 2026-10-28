@@ -8,9 +8,9 @@
     <!--
       Asking for the camera or the microphone would otherwise tell a store the
       app needs that hardware, and the store would hide Nex from phones and
-      tablets without it. Nex only offers a photo or a voice note when there is
-      something to take it with; everything else works without. The merger
-      replaces whatever a plugin declared for the same feature.
+      tablets without it. Everything else works without; on such a device
+      taking a photo or a voice note says it cannot. The merger replaces
+      whatever a plugin declared for the same feature.
     -->
     <uses-feature android:name="android.hardware.camera" android:required="false" tools:node="replace" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" tools:node="replace" />

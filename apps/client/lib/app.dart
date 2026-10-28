@@ -83,7 +83,10 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
 
   /// Where the desktop rail goes (`docs/27-desktop.md`); on a phone it only
   /// owns the Navigator's key.
-  late final _desktopNav = NexDesktopNav(pageFor: _sectionPage);
+  late final _desktopNav = NexDesktopNav(
+    pageFor: _sectionPage,
+    onReturn: (_) => unawaited(timelineKey.currentState?.refreshAfterSection()),
+  );
 
   WidgetBuilder? _sectionPage(NexSection section) => switch (section) {
     NexSection.notes => null,

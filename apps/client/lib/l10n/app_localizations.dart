@@ -7412,6 +7412,18 @@ abstract class AppLocalizations {
   /// **'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.'**
   String get planTelegramAbout;
 
+  /// Planned module title: turns a plain request into a well-made AI prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt Studio'**
+  String get planPromptStudioTitle;
+
+  /// Planned module: turns a plain request into a well-made AI prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Write what you want in plain words, and Nex turns it into a clear, complete prompt for any AI: the role, the context, the steps and the shape of the answer. Keep the ones that work as notes. It uses your own AI provider.'**
+  String get planPromptStudioAbout;
+
   /// Planned module title: language learning
   ///
   /// In en, this message translates to:

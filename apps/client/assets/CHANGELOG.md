@@ -36,8 +36,10 @@ Working convention:
 
 ## v2.3.6
 
+- **Close a long note from anywhere.** The handle at the top of a note stays in place while you scroll, sits lower so pulling it no longer opens the phone's notifications, and is easier to grab: read to the last line and pull it down.
+- **Coming soon: Prompt Studio.** A new module on its way — write what you want in plain words and turn it into a clear, complete prompt for any AI.
 - **A removed announcement goes away.** Emptying the announcement file now takes the card down at the next check, like deleting it, instead of staying for up to two days.
-- **Installable without a camera or microphone.** Stores no longer limit Nex to phones that have them; photos and voice notes are offered only when the phone can take them.
+- **Installable without a camera or microphone.** Stores no longer limit Nex to phones that have them; everything else works without them.
 
 ## v2.3.5
 
