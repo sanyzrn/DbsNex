@@ -113,6 +113,10 @@ void main() {
           }
           expect(adapter.summaries, 0);
           await tester.pumpAndSettle();
+          // The sheet stops at 85% of the screen (2.3.6), so the tools may
+          // be a scroll away, as on a phone.
+          await tester.ensureVisible(find.byTooltip(l10n.summarize));
+          await tester.pumpAndSettle();
           await tester.tap(find.byTooltip(l10n.summarize));
           await tester.pumpAndSettle();
           expect(adapter.summaries, 1);
