@@ -36,8 +36,6 @@ Working convention:
 
 ## v2.3.6
 
-- **A layout for wide windows.** In a window at least 1000 wide — Nex on Windows, which is not released yet, or a tablet held sideways — Nex shows a rail down the side with Capture, Notes, Assistant, Recurring, Library, Tools, Settings and your tags, instead of the bottom bar. Pages keep to a readable width, sheets open as panels in the middle, and text is a little smaller. The phone looks exactly as before.
-- **No Cycle on a desktop.** The Cycle module is not offered on Windows; what a phone saved is left alone.
 - **A removed announcement goes away.** Emptying the announcement file now takes the card down at the next check, like deleting it, instead of staying for up to two days.
 - **Installable without a camera or microphone.** Stores no longer limit Nex to phones that have them; photos and voice notes are offered only when the phone can take them.
 
