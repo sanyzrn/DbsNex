@@ -147,6 +147,26 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The runner starts with little room: the bundle, three splits, the
+      # universal APK and the store build, with Gradle's 2 GB of caches, ran
+      # 2.3.6's first attempt out of space in the 16 KB check ("No space left
+      # on device", 69 MB free). Remove the preinstalled toolchains this job
+      # never uses, and every NDK but the pinned one, before anything else.
+      - name: Free disk space
+        working-directory: .
+        run: |
+          df -h /
+          pinned="$(sed -n 's/^[[:space:]]*ndkVersion = "\([^"]*\)".*/\1/p' \
+            apps/client/android/app/build.gradle.kts | head -n 1)"
+          for ndk in "$ANDROID_HOME"/ndk/*; do
+            [ "$(basename "$ndk")" = "$pinned" ] || sudo rm -rf "$ndk"
+          done
+          sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/ghc \
+            /usr/local/share/boost /usr/share/swift /usr/local/share/powershell \
+            /usr/local/julia* /opt/hostedtoolcache/CodeQL /opt/microsoft
+          sudo docker image prune --all --force > /dev/null 2>&1 || true
+          df -h /
+
       # 21, not 17, and only as the JDK Gradle itself runs on — the app's
       # bytecode target is pinned to 17 in android/app/build.gradle.kts
       # (compileOptions + jvmTarget) and does not move with this, so the
