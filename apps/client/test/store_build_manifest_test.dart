@@ -16,6 +16,29 @@ void main() {
     expect(gradle, contains('src/store/AndroidManifest.xml'));
   });
 
+  test('the camera and the microphone are never required hardware', () {
+    // Cafe Bazaar warned that Nex was limited to phones with a camera. The
+    // permissions stay; the hardware must be optional.
+    final manifest = File(
+      'android/app/src/main/AndroidManifest.xml',
+    ).readAsStringSync();
+    for (final feature in [
+      'android.hardware.camera',
+      'android.hardware.camera.any',
+      'android.hardware.camera.autofocus',
+      'android.hardware.microphone',
+    ]) {
+      expect(
+        RegExp(
+          '<uses-feature[^>]*android:name="${RegExp.escape(feature)}"'
+          '[^>]*android:required="false"',
+        ).hasMatch(manifest),
+        isTrue,
+        reason: feature,
+      );
+    }
+  });
+
   test('a release build allows no cleartext traffic at all', () {
     final release = File(
       'android/app/src/main/res/xml/network_security_config.xml',
