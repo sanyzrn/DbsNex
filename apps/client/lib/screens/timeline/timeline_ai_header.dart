@@ -228,24 +228,17 @@ extension _TimelineAiHeader on TimelineScreenState {
     }
   }
 
-  /// Which language the generated line has to be written in.
+  /// Which language the generated line has to be written in: the app's own.
   ///
-  /// Not the global "language Nex writes in", which is what every other
-  /// generated string here follows. This one is glued onto the greeting and
-  /// read as a single sentence, and the greeting is written in the language
-  /// of the user's own name — so on the default setting ("answer in the
-  /// language of the notes") the result was half an English sentence joined
-  /// to half a Persian one, full stop at the wrong end.
-  ///
-  /// Null when there is no name to take the cue from; the line then stands
-  /// alone and the global setting is right for it.
-  AiOutputLanguage? get _headlineLanguage {
-    final name = widget.preferences.shortDisplayName;
-
-    return nexDirectionOf(name) == TextDirection.rtl
-        ? AiOutputLanguage.persian
-        : AiOutputLanguage.english;
-  }
+  /// It used to follow the script of the user's name, so a Persian interface
+  /// with a name typed in Latin letters opened with an English sentence
+  /// (2.4.0). The line is part of the interface, and the name is only a word
+  /// in it — "صبحت بخیر، Saeed" reads naturally; a whole English line in a
+  /// Persian app does not.
+  AiOutputLanguage get _headlineLanguage =>
+      Localizations.localeOf(context).languageCode == 'fa'
+      ? AiOutputLanguage.persian
+      : AiOutputLanguage.english;
 
   /// The headline over the timeline. Same shape as [_loadAiSummary] — cached
   /// per day, forced by a tap on the line itself.
@@ -257,7 +250,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     if (!force && !prefs.showGreeting) return;
     final today = _aiSummaryDateKey();
     final language = _headlineLanguage;
-    final langKey = language?.wireName;
+    final langKey = language.wireName;
     if (_aiHeadlineLoading) return;
     _rebuild(() => _aiHeadlineLoading = true);
     try {
@@ -273,6 +266,7 @@ extension _TimelineAiHeader on TimelineScreenState {
               () => adapter.headline(
                 _aiHeadlineSource(),
                 language: language,
+                portrait: _portraitHint(),
                 timeout: force || prefs.aiSummaryUnlimited
                     ? const Duration(minutes: 5)
                     : CloudAIAdapter.ambientTimeout,
@@ -291,6 +285,20 @@ extension _TimelineAiHeader on TimelineScreenState {
     } finally {
       if (mounted) _rebuild(() => _aiHeadlineLoading = false);
     }
+  }
+
+  /// The writing portrait in a line, for the greeting to know who it greets:
+  /// its headline and the traits that score highest. The provider wrote it
+  /// from the notes before, so nothing new leaves the device for it.
+  String? _portraitHint() {
+    final portrait = widget.preferences.profilePortrait;
+    if (portrait == null) return null;
+    final traits = [...portrait.traits]
+      ..sort((a, b) => b.score.compareTo(a.score));
+    return [
+      portrait.headline,
+      if (traits.isNotEmpty) traits.take(3).map((t) => t.name).join(', '),
+    ].where((part) => part.trim().isNotEmpty).join('. ');
   }
 
   /// Holding the headline explicitly asks for a new one.
@@ -550,15 +558,10 @@ extension _TimelineAiHeader on TimelineScreenState {
     // shoves the headline under it out of place.
     final name = widget.preferences.shortDisplayName;
 
-    // Greeted in the language you wrote your own name in, whatever the
-    // interface is set to. "صبح بخیر, Sany" and "Good morning, سعید" are both
-    // sentences nobody writes, and the name is the one word here the app did
-    // not choose — so it is the one that decides.
-    final l10n = name == null
-        ? interface
-        : nexDirectionOf(name) == TextDirection.rtl
-        ? lookupAppLocalizations(const Locale('fa'))
-        : lookupAppLocalizations(const Locale('en'));
+    // Greeted in the app's language, whatever script the name is in
+    // (2.4.0): the line belongs to the interface, and a name is one word in
+    // it.
+    final l10n = interface;
     final v = _greetingVariant;
     // Words only. There used to be a mark on the end of this line — a sun, a
     // moon, an owl, picked by the hour and animated in — and it is gone by
@@ -585,12 +588,13 @@ extension _TimelineAiHeader on TimelineScreenState {
       ],
       _ => [l10n.greetingNight, l10n.greetingNightB, l10n.greetingNightC],
     };
-    // A comma in the script the name is written in — the phrase came back in
-    // that language, so an ASCII comma in front of a Persian name is the same
-    // seam this used to have between two half-sentences.
+    // A comma in the interface's script — the phrase came back in that
+    // language.
     if (aiPhrase != null && aiPhrase.isNotEmpty) {
       if (name == null) return aiPhrase;
-      final comma = nexDirectionOf(name) == TextDirection.rtl ? '،' : ',';
+      final comma = Localizations.localeOf(context).languageCode == 'fa'
+          ? '،'
+          : ',';
       return '$aiPhrase$comma $name';
     }
     return name == null ? nexUnnamedGreeting(text[v]) : text[v](name);

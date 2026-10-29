@@ -2125,14 +2125,16 @@ class CloudAIAdapter implements AIAdapter {
     String recentNotesText, {
     AiOutputLanguage? language,
     Duration? timeout,
+    String? portrait,
   }) => NexDisclosureLog.about(() async {
     if (!canAnswerText) return null;
+    final about = portrait?.trim() ?? '';
     final reply = await _complete(
-      'You write the greeting a notes app opens with. Not a sentence — a '
-      'short phrase of two to five words that a name can follow, the way '
-      '"Good morning" precedes one. It is a mood tied to the hour and, '
-      'lightly, to what they have been writing down. Warm and a little '
-      'playful. '
+      'You write the greeting a notes app opens with, as a close friend '
+      'would say it. A short phrase of two to seven words that a name can '
+      'follow, the way "Good morning" precedes one. Tie it to the hour and, '
+      'lightly, to their mood and what they have been writing down: warm, '
+      'friendly, a little playful, never flat. '
       // No name in the prompt and none in the reply. The user's name never
       // leaves this device — not to a provider, not to sync — so the app
       // appends it to whatever comes back. That is also why this asks for a
@@ -2140,22 +2142,30 @@ class CloudAIAdapter implements AIAdapter {
       'Never include a name or any placeholder for one. No emoji, no quotes, '
       'no full stop, no comma at the end, never a question, never advice, '
       'never a summary. Use ordinary words and write in one language only. '
+      // The complaint that started this (2.4.0): the Persian greetings read
+      // like translations. Friends do not greet each other in written,
+      // formal Persian.
+      'In Persian, use the warm, everyday spoken register friends use with '
+      'each other, as in «صبحت بخیر» or «خسته نباشی» — never formal, '
+      'bookish or translated-sounding Persian. '
       'Reply with the phrase only. '
-      // Overridable, unlike every other call here. The phrase is shown with
-      // the user's name after it, and the name is the one word the app did
-      // not choose — so its script decides the language. Left on `auto`
-      // ("answer in the language of the notes") this produced an English
-      // phrase in front of a Persian name.
+      // The interface's language (2.4.0), set by the app: the phrase is part
+      // of the interface and the name is one word in it.
       '${(language ?? outputLanguage).promptRule}',
-      recentNotesText.trim().isEmpty
-          ? 'They have not written anything yet. The local time is '
-                '${DateTime.now().hour}:00.'
-          : 'The local time is ${DateTime.now().hour}:00. Their recent '
-                'notes:\n$recentNotesText',
-      maxTokens: unlimitedSummary ? null : 60,
+      [
+        'The local time is ${DateTime.now().hour}:00.',
+        // The portrait the provider itself wrote from their notes earlier,
+        // so the greeting knows who it is greeting. Nothing new leaves the
+        // device for it.
+        if (about.isNotEmpty) 'Who they are, as a writer: $about',
+        recentNotesText.trim().isEmpty
+            ? 'They have not written anything yet.'
+            : 'Their recent notes:\n$recentNotesText',
+      ].join('\n'),
+      maxTokens: unlimitedSummary ? null : 80,
       timeout: timeout,
     );
-    return _plausible(_clamped(cleanDecorativeReply(reply), 6));
+    return _plausible(_clamped(cleanDecorativeReply(reply), 8));
   }, purpose: DisclosurePurpose.greeting);
 
   /// A note in another language, and nothing else.

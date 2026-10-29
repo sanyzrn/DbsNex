@@ -151,7 +151,11 @@ class _NexBorderBeamState extends State<NexBorderBeam>
   @override
   Widget build(BuildContext context) {
     if (!widget.active) return widget.child;
-    if (widget.restsUnlit && !_lap.isAnimating) return widget.child;
+    // Out at rest, the light still keeps its place in the tree: returning
+    // the bare child here would move the card's contents in and out of the
+    // stack below each time a lap starts, and remount them — a brief that
+    // should cross-fade to its new words lost the old ones on the spot.
+    final lit = !widget.restsUnlit || _lap.isAnimating;
     // Keep the animated light in its own repaint boundary. Wrapping the
     // entire child isolated its BackdropFilter too: when the recap re-entered
     // the viewport its glass sampled an empty layer before the page appeared,
@@ -165,15 +169,17 @@ class _NexBorderBeamState extends State<NexBorderBeam>
             child: RepaintBoundary(
               child: AnimatedBuilder(
                 animation: _lap,
-                builder: (context, _) => CustomPaint(
-                  painter: _BeamPainter(
-                    turn: _lap.value,
-                    borderRadius: widget.borderRadius,
-                    colors: widget.colors,
-                    thickness: widget.thickness,
-                    strength: widget.strength.clamp(0.0, 1.0),
-                  ),
-                ),
+                builder: (context, _) => !lit
+                    ? const SizedBox.shrink()
+                    : CustomPaint(
+                        painter: _BeamPainter(
+                          turn: _lap.value,
+                          borderRadius: widget.borderRadius,
+                          colors: widget.colors,
+                          thickness: widget.thickness,
+                          strength: widget.strength.clamp(0.0, 1.0),
+                        ),
+                      ),
               ),
             ),
           ),

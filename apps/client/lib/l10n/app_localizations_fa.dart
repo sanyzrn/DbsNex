@@ -1780,17 +1780,17 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String greetingMorning(String name) {
-    return 'صبح بخیر، $name';
+    return 'صبحت بخیر، $name';
   }
 
   @override
   String greetingAfternoon(String name) {
-    return 'ظهر بخیر، $name';
+    return 'ظهرت بخیر، $name';
   }
 
   @override
   String greetingEvening(String name) {
-    return 'عصر بخیر، $name';
+    return 'عصرت بخیر، $name';
   }
 
   @override
@@ -1803,42 +1803,42 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String greetingMorningB(String name) {
-    return 'صفحهٔ نو، $name';
+    return 'سلام $name، روزت قشنگ';
   }
 
   @override
   String greetingMorningC(String name) {
-    return 'روز از نو، $name';
+    return 'یه روز تازه، $name';
   }
 
   @override
   String greetingAfternoonB(String name) {
-    return 'نصف راه رفته، $name';
+    return 'خسته نباشی، $name';
   }
 
   @override
   String greetingAfternoonC(String name) {
-    return 'چی داری برام، $name؟';
+    return 'روزت چطور می‌گذره، $name؟';
   }
 
   @override
   String greetingEveningB(String name) {
-    return 'آرام‌آرام، $name';
+    return 'روزت چطور بود، $name؟';
   }
 
   @override
   String greetingEveningC(String name) {
-    return 'ساعت‌های ساکت، $name';
+    return 'یه چای و کمی آرامش، $name';
   }
 
   @override
   String greetingNightB(String name) {
-    return 'سلام جغد شب، $name';
+    return 'سلام شب‌زنده‌دار، $name';
   }
 
   @override
   String greetingNightC(String name) {
-    return 'دنیا خوابه، $name';
+    return 'یه کم استراحت کن، $name';
   }
 
   @override

@@ -237,7 +237,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
                   // A new brief makes the mark twinkle once.
                   token: text,
                 ),
-                const SizedBox(height: NexSpacing.sm),
+                const SizedBox(height: NexSpacing.xs),
                 AnimatedSwitcher(
                   duration: NexMotion.of(context, NexMotion.enter),
                   reverseDuration: NexMotion.of(context, NexMotion.exit),
@@ -395,10 +395,10 @@ class _BriefHeader extends StatelessWidget {
         ),
       ),
       child: SizedBox.square(
-        dimension: 24,
+        dimension: 20,
         child: Icon(
           byModel ? Icons.auto_awesome : Icons.checklist_rtl,
-          size: 14,
+          size: 12,
           color: scheme.primary,
         ),
       ),

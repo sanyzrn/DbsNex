@@ -1205,32 +1205,32 @@
   "@updateDownloadedToast": {
     "description": "Toast raised when a background update download completes"
   },
-  "greetingMorningB": "Fresh page, {name}",
+  "greetingMorningB": "Rise and shine, {name}",
   "@greetingMorningB": {
     "description": "Second morning greeting variant",
     "placeholders": { "name": { "type": "String" } }
   },
-  "greetingMorningC": "The day is new, {name}",
+  "greetingMorningC": "A brand-new day, {name}",
   "@greetingMorningC": {
     "description": "Third morning greeting variant",
     "placeholders": { "name": { "type": "String" } }
   },
-  "greetingAfternoonB": "Halfway there, {name}",
+  "greetingAfternoonB": "How's your day going, {name}?",
   "@greetingAfternoonB": {
     "description": "Second afternoon greeting variant",
     "placeholders": { "name": { "type": "String" } }
   },
-  "greetingAfternoonC": "What have you got, {name}?",
+  "greetingAfternoonC": "Halfway through the day, {name}",
   "@greetingAfternoonC": {
     "description": "Third afternoon greeting variant",
     "placeholders": { "name": { "type": "String" } }
   },
-  "greetingEveningB": "Winding down, {name}",
+  "greetingEveningB": "How was your day, {name}?",
   "@greetingEveningB": {
     "description": "Second evening greeting variant",
     "placeholders": { "name": { "type": "String" } }
   },
-  "greetingEveningC": "The quiet hours, {name}",
+  "greetingEveningC": "Time to slow down, {name}",
   "@greetingEveningC": {
     "description": "Third evening greeting variant",
     "placeholders": { "name": { "type": "String" } }
@@ -1240,7 +1240,7 @@
     "description": "Second late-night greeting variant",
     "placeholders": { "name": { "type": "String" } }
   },
-  "greetingNightC": "The world's asleep, {name}",
+  "greetingNightC": "Get some rest soon, {name}",
   "@greetingNightC": {
     "description": "Third late-night greeting variant",
     "placeholders": { "name": { "type": "String" } }

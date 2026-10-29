@@ -2993,37 +2993,37 @@ abstract class AppLocalizations {
   /// Second morning greeting variant
   ///
   /// In en, this message translates to:
-  /// **'Fresh page, {name}'**
+  /// **'Rise and shine, {name}'**
   String greetingMorningB(String name);
 
   /// Third morning greeting variant
   ///
   /// In en, this message translates to:
-  /// **'The day is new, {name}'**
+  /// **'A brand-new day, {name}'**
   String greetingMorningC(String name);
 
   /// Second afternoon greeting variant
   ///
   /// In en, this message translates to:
-  /// **'Halfway there, {name}'**
+  /// **'How\'s your day going, {name}?'**
   String greetingAfternoonB(String name);
 
   /// Third afternoon greeting variant
   ///
   /// In en, this message translates to:
-  /// **'What have you got, {name}?'**
+  /// **'Halfway through the day, {name}'**
   String greetingAfternoonC(String name);
 
   /// Second evening greeting variant
   ///
   /// In en, this message translates to:
-  /// **'Winding down, {name}'**
+  /// **'How was your day, {name}?'**
   String greetingEveningB(String name);
 
   /// Third evening greeting variant
   ///
   /// In en, this message translates to:
-  /// **'The quiet hours, {name}'**
+  /// **'Time to slow down, {name}'**
   String greetingEveningC(String name);
 
   /// Second late-night greeting variant
@@ -3035,7 +3035,7 @@ abstract class AppLocalizations {
   /// Third late-night greeting variant
   ///
   /// In en, this message translates to:
-  /// **'The world\'s asleep, {name}'**
+  /// **'Get some rest soon, {name}'**
   String greetingNightC(String name);
 
   /// No description provided for @backupStatusNone.

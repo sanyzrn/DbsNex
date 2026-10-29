@@ -1818,32 +1818,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String greetingMorningB(String name) {
-    return 'Fresh page, $name';
+    return 'Rise and shine, $name';
   }
 
   @override
   String greetingMorningC(String name) {
-    return 'The day is new, $name';
+    return 'A brand-new day, $name';
   }
 
   @override
   String greetingAfternoonB(String name) {
-    return 'Halfway there, $name';
+    return 'How\'s your day going, $name?';
   }
 
   @override
   String greetingAfternoonC(String name) {
-    return 'What have you got, $name?';
+    return 'Halfway through the day, $name';
   }
 
   @override
   String greetingEveningB(String name) {
-    return 'Winding down, $name';
+    return 'How was your day, $name?';
   }
 
   @override
   String greetingEveningC(String name) {
-    return 'The quiet hours, $name';
+    return 'Time to slow down, $name';
   }
 
   @override
@@ -1853,7 +1853,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String greetingNightC(String name) {
-    return 'The world\'s asleep, $name';
+    return 'Get some rest soon, $name';
   }
 
   @override
