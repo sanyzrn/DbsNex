@@ -39,6 +39,7 @@ class NexBorderBeam extends StatefulWidget {
     this.laps = 4,
     this.token,
     this.period = const Duration(milliseconds: 3600),
+    this.restsUnlit = false,
   });
 
   final Widget child;
@@ -65,6 +66,12 @@ class NexBorderBeam extends StatefulWidget {
   /// How many times round before it rests.
   final int laps;
 
+  /// Whether the light goes out once its laps are run, leaving the child's
+  /// own edge. The brief does this (2.4.0): resting lit, its border was a
+  /// coloured frame beside the search field's plain one, and its heading now
+  /// says what the light was there to say.
+  final bool restsUnlit;
+
   /// Changing this plays the laps again.
   ///
   /// Whatever the light is marking: the brief's text, so a new one lights up
@@ -89,7 +96,13 @@ class _NexBorderBeamState extends State<NexBorderBeam>
   late final AnimationController _lap = AnimationController(
     vsync: this,
     duration: widget.period,
-  );
+  )..addStatusListener(_onStatus);
+
+  /// A light that goes out at rest has to be told the laps have ended: the
+  /// last tick of the run is painted while the controller is still running.
+  void _onStatus(AnimationStatus status) {
+    if (widget.restsUnlit && mounted) setState(() {});
+  }
 
   /// Whether the lap should be running: something to show, and a platform
   /// that has not asked for stillness.
@@ -138,6 +151,11 @@ class _NexBorderBeamState extends State<NexBorderBeam>
   @override
   Widget build(BuildContext context) {
     if (!widget.active) return widget.child;
+    // Out at rest, the light still keeps its place in the tree: returning
+    // the bare child here would move the card's contents in and out of the
+    // stack below each time a lap starts, and remount them — a brief that
+    // should cross-fade to its new words lost the old ones on the spot.
+    final lit = !widget.restsUnlit || _lap.isAnimating;
     // Keep the animated light in its own repaint boundary. Wrapping the
     // entire child isolated its BackdropFilter too: when the recap re-entered
     // the viewport its glass sampled an empty layer before the page appeared,
@@ -151,15 +169,17 @@ class _NexBorderBeamState extends State<NexBorderBeam>
             child: RepaintBoundary(
               child: AnimatedBuilder(
                 animation: _lap,
-                builder: (context, _) => CustomPaint(
-                  painter: _BeamPainter(
-                    turn: _lap.value,
-                    borderRadius: widget.borderRadius,
-                    colors: widget.colors,
-                    thickness: widget.thickness,
-                    strength: widget.strength.clamp(0.0, 1.0),
-                  ),
-                ),
+                builder: (context, _) => !lit
+                    ? const SizedBox.shrink()
+                    : CustomPaint(
+                        painter: _BeamPainter(
+                          turn: _lap.value,
+                          borderRadius: widget.borderRadius,
+                          colors: widget.colors,
+                          thickness: widget.thickness,
+                          strength: widget.strength.clamp(0.0, 1.0),
+                        ),
+                      ),
               ),
             ),
           ),

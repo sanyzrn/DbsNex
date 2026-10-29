@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'occasion_reminders.dart';
 import 'occasions_screen.dart';
 
 /// Birthdays and occasions — dates that matter, kept in the calendar they
@@ -25,6 +26,13 @@ class OccasionsModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => OccasionsScreen(store: store);
+
+  /// As Nex starts and returns: every date's alarms are made again, so a
+  /// birthday keeps ringing year after year without this screen being
+  /// opened (2.4.0).
+  @override
+  Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) =>
+      renewOccasionReminders(store, l10n);
 }
 
 const occasionsStrings = NexModuleStrings(
@@ -46,7 +54,7 @@ const occasionsStrings = NexModuleStrings(
     'moreDetails': 'Year, note and reminder',
     'moreDetailsHint':
         'The year gives an age; a reminder nudges you ahead. All optional.',
-    'heroEyebrow': 'Coming up',
+    'heroEyebrow': 'Next up',
     'heroToday': '{n} today',
     'heroNext': 'Next in {n} days',
     'heroNone': 'Nothing coming up',
@@ -96,14 +104,18 @@ const occasionsStrings = NexModuleStrings(
     'noteLabel': 'Note or gift ideas',
     'noteHint': 'Optional',
     'remindLabel': 'Remind me',
-    'remindOnDay': 'On the day',
+    'remindOnDay': 'Only on the day',
     'remindOneBefore': '1 day before',
     'remindThreeBefore': '3 days before',
     'remindWeekBefore': 'A week before',
     'remindAt': 'At {time}',
     'remindNote':
-        'It rings for the next two times and renews whenever you open this '
-        'module. Nothing is sent to anyone.',
+        'It rings on the day too, and keeps itself up to date every year. '
+        'Nothing is sent to anyone.',
+    'notifBodyToday': 'Today{age}. A greeting is ready in Nex.',
+    'notifBodyTomorrow': 'Tomorrow{age}.',
+    'notifBodyDays': 'In {n} days{age}.',
+    'notifAge': ' — {what}',
     'remindFailed':
         'Saved, but the reminder could not be set. Check the notification '
         'permission.',
@@ -118,6 +130,7 @@ const occasionsStrings = NexModuleStrings(
     'bothCalendars': 'Jalali: {a} · Gregorian: {b}',
     'reminderOff': 'No reminder.',
     'reminderOn': 'Reminder {when}, at {time}.',
+    'reminderBoth': 'Reminder {when} and on the day, at {time}.',
     'reminderWhenToday': 'on the day',
     'reminderWhenDays': '{n} days before',
     'reminderMuted': 'Muted: no reminder.',
@@ -129,6 +142,25 @@ const occasionsStrings = NexModuleStrings(
     'greetAnniversary': 'Happy anniversary! Here is to many more happy years.',
     'greetMemorial': 'Thinking of you today, and remembering together.',
     'greetOther': 'Thinking of you today.',
+    'greetBirthday2':
+        'Happy birthday! I hope this year brings you everything you have '
+        'been hoping for.',
+    'greetBirthday3':
+        'Another year of you — the world is luckier for it. Happy birthday!',
+    'greetAnniversary2':
+        'Happy anniversary! May your love keep growing, year after year.',
+    'greetAnniversary3':
+        'Here is to another year together, and to all the good ones still '
+        'to come.',
+    'greetMemorial2': 'Remembering with you today. Their memory lives on.',
+    'greetMemorial3': 'Thinking of you, and of them, today — with love.',
+    'greetOther2': 'Wishing you a lovely day today!',
+    'greetOther3': 'Thinking of you on this special day.',
+    'anotherGreeting': 'Another',
+    'heroTodayEyebrow': 'Today 🎉',
+    'ringDay': 'day',
+    'ringDays': 'days',
+    'kept': 'Kept in the {calendar} calendar',
     'edit': 'Edit',
     'favorite': 'Mark as important',
     'unfavorite': 'Remove from important',
@@ -167,7 +199,7 @@ const occasionsStrings = NexModuleStrings(
     'moreDetails': 'سال، یادداشت و یادآوری',
     'moreDetailsHint':
         'سال، سن را نشان می‌دهد؛ یادآوری از پیش خبر می‌دهد. همه اختیاری است.',
-    'heroEyebrow': 'در پیش رو',
+    'heroEyebrow': 'نزدیک‌ترین مناسبت',
     'heroToday': '{n} مورد امروز',
     'heroNext': 'بعدی {n} روز دیگر',
     'heroNone': 'چیزی در پیش نیست',
@@ -217,14 +249,18 @@ const occasionsStrings = NexModuleStrings(
     'noteLabel': 'یادداشت یا ایدهٔ هدیه',
     'noteHint': 'اختیاری',
     'remindLabel': 'یادآوری',
-    'remindOnDay': 'خود روز',
+    'remindOnDay': 'فقط خود روز',
     'remindOneBefore': '۱ روز قبل',
     'remindThreeBefore': '۳ روز قبل',
     'remindWeekBefore': 'یک هفته قبل',
     'remindAt': 'ساعت {time}',
     'remindNote':
-        'برای دو نوبت آینده زنگ می‌خورد و هر بار این ماژول را باز کنید '
-        'تازه می‌شود. چیزی برای کسی فرستاده نمی‌شود.',
+        'در خود روز هم زنگ می‌خورد و هر سال خودش به‌روز می‌ماند. چیزی برای '
+        'کسی فرستاده نمی‌شود.',
+    'notifBodyToday': 'امروز است{age}. پیام تبریکش در نکس آماده است.',
+    'notifBodyTomorrow': 'فردا است{age}.',
+    'notifBodyDays': '{n} روز دیگر است{age}.',
+    'notifAge': ' — {what}',
     'remindFailed':
         'ذخیره شد، اما یادآوری تنظیم نشد. مجوز اعلان را بررسی کنید.',
     'notifToday': '{name} امروز است.',
@@ -238,6 +274,7 @@ const occasionsStrings = NexModuleStrings(
     'bothCalendars': 'شمسی: {a} · میلادی: {b}',
     'reminderOff': 'یادآوری ندارد.',
     'reminderOn': 'یادآوری {when}، ساعت {time}.',
+    'reminderBoth': 'یادآوری {when} و در خود روز، ساعت {time}.',
     'reminderWhenToday': 'در خود روز',
     'reminderWhenDays': '{n} روز قبل',
     'reminderMuted': 'بی‌صدا: بدون یادآوری.',
@@ -249,6 +286,24 @@ const occasionsStrings = NexModuleStrings(
     'greetAnniversary': 'سالگردتان مبارک! آرزوی سال‌های بسیار شاد دیگر.',
     'greetMemorial': 'امروز به یاد شما هستم و با شما همراهم.',
     'greetOther': 'امروز به یادت هستم.',
+    'greetBirthday2':
+        'تولدت مبارک عزیزم! امیدوارم امسال همه‌چیز همون‌طوری بشه که دلت '
+        'می‌خواد.',
+    'greetBirthday3':
+        'یه سال دیگه پر از خنده، آرامش و آرزوهای برآورده. تولدت مبارک!',
+    'greetAnniversary2':
+        'سالگردتون مبارک! عشقتون همیشه همین‌قدر گرم و پایدار بمونه.',
+    'greetAnniversary3':
+        'یه سال دیگه کنار هم؛ به سال‌های قشنگ‌تری که در پیشه. مبارک باشه!',
+    'greetMemorial2': 'یادش همیشه گرامی. امروز به یادش هستم.',
+    'greetMemorial3': 'امروز با تمام وجود به یادش هستم؛ روحش شاد.',
+    'greetOther2': 'روزت مبارک! امیدوارم روز قشنگی داشته باشی.',
+    'greetOther3': 'به مناسبت امروز، بهترین‌ها رو برات آرزو می‌کنم.',
+    'anotherGreeting': 'یکی دیگر',
+    'heroTodayEyebrow': 'امروز 🎉',
+    'ringDay': 'روز',
+    'ringDays': 'روز',
+    'kept': 'در تقویم {calendar}',
     'edit': 'ویرایش',
     'favorite': 'مهم کردن',
     'unfavorite': 'برداشتن علامت مهم',

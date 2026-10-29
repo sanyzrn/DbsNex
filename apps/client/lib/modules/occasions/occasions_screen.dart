@@ -10,7 +10,8 @@ import 'occasion_model.dart';
 import 'occasion_reminders.dart';
 import 'occasion_row.dart';
 import 'occasion_sheet.dart';
-import 'occasion_text.dart';
+import 'occasion_greeting.dart';
+import 'occasion_visuals.dart';
 
 /// The list: what falls today, in the next week, in the next month and
 /// later, nearest first. A date that cannot be worked out is listed apart so
@@ -78,29 +79,11 @@ class _OccasionsScreenState extends State<OccasionsScreen>
     }
   }
 
-  /// Once per visit: the two alarms an occasion keeps ahead are made again,
-  /// so a date that was opened lately keeps ringing. Quiet — a failure here
-  /// is not the person's doing and nothing was just asked of them.
-  Future<void> _renewReminders() async {
-    final title = AppLocalizations.of(context).cycleNotifyTitle;
-    for (final occasion in _items) {
-      if (occasion.remindDays == null || occasion.muted || occasion.archived) {
-        continue;
-      }
-      if (!mounted) return;
-      try {
-        await armOccasionReminders(
-          widget.store,
-          occasion,
-          now: DateTime.now(),
-          title: title,
-          body: occasionNotificationBody(context, occasion),
-        );
-      } catch (_) {
-        /* The next visit tries again. */
-      }
-    }
-  }
+  /// Once per visit, as well as on every start of Nex: the alarms each
+  /// occasion keeps ahead are made again. Quiet — a failure here is not the
+  /// person's doing and nothing was just asked of them.
+  Future<void> _renewReminders() =>
+      renewOccasionReminders(widget.store, AppLocalizations.of(context));
 
   Future<void> _add() => showOccasionSheet(context, widget.store);
 
@@ -203,25 +186,52 @@ class _OccasionsScreenState extends State<OccasionsScreen>
               NexSpacing.xl * 3 + nexBottomInset(context),
             ),
             children: [
-              NexModuleHero(
-                key: const ValueKey('occasions-hero'),
-                moduleId: 'occasions',
-                icon: Icons.cake_outlined,
-                eyebrow: strings(context, 'heroEyebrow'),
-                headline: sections[0].$2.isNotEmpty
-                    ? strings(context, 'heroToday', {
-                        'n': sections[0].$2.length,
-                      })
-                    : dated.isEmpty
-                    ? strings(context, 'heroNone')
-                    : strings(context, 'heroNext', {
-                        'n': daysUntil(today, dated.first.$2.date),
-                      }),
-                chips: [
-                  if (sections[1].$2.isNotEmpty)
-                    strings(context, 'heroWeek', {'n': sections[1].$2.length}),
-                ],
-              ),
+              if (dated.isNotEmpty)
+                OccasionHeroCard(
+                  key: const ValueKey('occasions-hero'),
+                  occasion: dated.first.$1,
+                  next: dated.first.$2,
+                  today: today,
+                  eyebrow: daysUntil(today, dated.first.$2.date) == 0
+                      ? strings(context, 'heroTodayEyebrow')
+                      : strings(context, 'heroEyebrow'),
+                  onTap: () => _open(dated.first.$1),
+                  actions:
+                      daysUntil(today, dated.first.$2.date) == 0 &&
+                          dated.first.$1.kind != OccasionKind.memorial
+                      ? OccasionGreetingActions(occasion: dated.first.$1)
+                      : null,
+                )
+              else
+                NexModuleHero(
+                  key: const ValueKey('occasions-hero'),
+                  moduleId: 'occasions',
+                  icon: Icons.cake_outlined,
+                  eyebrow: strings(context, 'heroEyebrow'),
+                  headline: strings(context, 'heroNone'),
+                ),
+              if (sections[1].$2.isNotEmpty || sections[0].$2.length > 1)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    top: NexSpacing.sm,
+                    start: NexSpacing.xs,
+                  ),
+                  child: Text(
+                    [
+                      if (sections[0].$2.length > 1)
+                        strings(context, 'heroToday', {
+                          'n': sections[0].$2.length,
+                        }),
+                      if (sections[1].$2.isNotEmpty)
+                        strings(context, 'heroWeek', {
+                          'n': sections[1].$2.length,
+                        }),
+                    ].join(' · '),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
               const SizedBox(height: NexSpacing.md),
               for (final (key, rows) in sections)
                 if (rows.isNotEmpty) ...[

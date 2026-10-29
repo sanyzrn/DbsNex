@@ -218,9 +218,13 @@ void main() {
         );
         expect(await future.list('__reminder'), isEmpty);
         expect(h.preferences.isModuleOn('future_module'), isTrue);
-        // Only Cycle is available since 2.2.0; the add-ons are Soon again.
+        // Only Cycle was available from 2.2.0, with the add-ons Soon again;
+        // Pause, Birthdays & occasions and Word by Word joined it in 2.4.0.
         expect(nexModules.where((m) => m.available).map((m) => m.id).toSet(), {
           'cycle',
+          'pause',
+          'occasions',
+          'words',
         });
         expect(
           NexModuleAlarms.moduleId('a', 'b:c'),

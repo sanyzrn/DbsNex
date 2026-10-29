@@ -24,10 +24,12 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('the twelve add-ons are Soon for now; their code stays', () {
-    expect(nexAvailableModuleIds, {'cycle'});
-    expect(reviewed, isEmpty);
-    expect(paused, moduleIds);
+  test('two add-ons are back, the other ten are Soon; their code stays', () {
+    // Cycle; Pause, which is first-party; and, finished and redesigned in
+    // 2.4.0, Birthdays & occasions and Word by Word.
+    expect(nexAvailableModuleIds, {'cycle', 'pause', 'occasions', 'words'});
+    expect(reviewed, {'occasions', 'words'});
+    expect(paused, moduleIds.difference({'occasions', 'words'}));
     expect(moduleIds, hasLength(12));
   });
 

@@ -5,9 +5,10 @@ import 'module.dart';
 import 'occasion_math.dart';
 import 'occasion_model.dart';
 import 'occasion_text.dart';
+import 'occasion_visuals.dart';
 
-/// One occasion in the list: what it is, which day it next falls on in its
-/// own calendar, how old it comes to, and how far away it is.
+/// One occasion in the list (2.4.0): a calendar page with its day, who or
+/// what it is, the age it comes to, and a pill saying how far away it is.
 class OccasionRow extends StatelessWidget {
   const OccasionRow({
     super.key,
@@ -37,14 +38,8 @@ class OccasionRow extends StatelessWidget {
     final days = day == null ? null : daysUntil(today, day.date);
     final years = day == null ? null : yearsText(context, occasion, day);
     final subtitle = [
-      if (day != null)
-        occasionDateText(
-          context,
-          day.date,
-          solar: occasion.calendar == OccasionCalendar.jalali,
-        )
-      else
-        strings(context, 'fixDate'),
+      occasionKindLabel(context, occasion.kind),
+      if (day == null) strings(context, 'fixDate'),
       ?years,
       if (occasion.muted) strings(context, 'muted'),
     ].join(' · ');
@@ -60,14 +55,11 @@ class OccasionRow extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsetsDirectional.symmetric(
             horizontal: NexSpacing.md,
-            vertical: NexSpacing.md,
+            vertical: NexSpacing.sm + 2,
           ),
           child: Row(
             children: [
-              NexIconTile(
-                occasionIcon(occasion.kind),
-                color: NexHue.rose.of(theme.brightness),
-              ),
+              OccasionDateTile(occasion: occasion, date: day?.date),
               const SizedBox(width: NexSpacing.md),
               Expanded(
                 child: Column(
@@ -81,6 +73,7 @@ class OccasionRow extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
                               color: occasion.muted
                                   ? scheme.onSurfaceVariant
                                   : null,
@@ -92,7 +85,7 @@ class OccasionRow extends StatelessWidget {
                           Icon(
                             Icons.star_rounded,
                             size: 16,
-                            color: scheme.primary,
+                            color: OccasionLook.of(occasion.kind).from,
                           ),
                         ],
                       ],
@@ -111,14 +104,7 @@ class OccasionRow extends StatelessWidget {
               ),
               if (days != null) ...[
                 const SizedBox(width: NexSpacing.sm),
-                Text(
-                  countdownText(context, days),
-                  key: ValueKey('occasion-days-${occasion.id}'),
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: days == 0 ? scheme.primary : scheme.onSurfaceVariant,
-                    fontWeight: days == 0 ? FontWeight.w700 : null,
-                  ),
-                ),
+                OccasionCountdownPill(occasion: occasion, days: days),
               ],
             ],
           ),

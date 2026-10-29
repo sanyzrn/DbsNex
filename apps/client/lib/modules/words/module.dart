@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'words_reminder.dart';
 import 'words_screen.dart';
 import 'words_strings.dart';
 
@@ -24,4 +25,10 @@ class WordsModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => WordsScreen(store: store);
+
+  /// As Nex starts and returns, the review reminder moves to the next day
+  /// with words waiting (2.4.0).
+  @override
+  Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) =>
+      wordsArmReminder(store, l10n);
 }

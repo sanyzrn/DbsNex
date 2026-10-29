@@ -144,10 +144,7 @@ void _registerBrowseCases(
       tester.element(find.text('serendipity')),
     );
     expect(headwordDirection, TextDirection.ltr);
-    final row = tester.widget<NexTextSurface>(
-      find.byType(NexTextSurface).first,
-    );
-    expect(row.text, 'serendipity');
+    expect(find.text('serendipity'), findsOneWidget);
     expect(find.text('یافتنِ خوش‌سُرپرست'), findsOneWidget);
   });
 

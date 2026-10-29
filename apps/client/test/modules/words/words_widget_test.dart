@@ -114,7 +114,10 @@ void main() {
 
     // Back on the home list, with the word on it.
     expect(find.text('serendipity'), findsOneWidget);
-    expect(find.text('English · new · books'), findsOneWidget);
+    // The row (2.4.0): language and tag on one line, where it stands beside
+    // its strength meter.
+    expect(find.text('English · books'), findsOneWidget);
+    expect(find.text('new'), findsOneWidget);
     final records = await harness.services.moduleRecords('words', 'card');
     expect(records, hasLength(1));
     expect(records.single.body['headword'], 'serendipity');

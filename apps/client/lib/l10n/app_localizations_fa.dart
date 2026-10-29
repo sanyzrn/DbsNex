@@ -1780,17 +1780,17 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String greetingMorning(String name) {
-    return 'صبح بخیر، $name';
+    return 'صبحت بخیر، $name';
   }
 
   @override
   String greetingAfternoon(String name) {
-    return 'ظهر بخیر، $name';
+    return 'ظهرت بخیر، $name';
   }
 
   @override
   String greetingEvening(String name) {
-    return 'عصر بخیر، $name';
+    return 'عصرت بخیر، $name';
   }
 
   @override
@@ -1803,42 +1803,42 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String greetingMorningB(String name) {
-    return 'صفحهٔ نو، $name';
+    return 'سلام $name، روزت قشنگ';
   }
 
   @override
   String greetingMorningC(String name) {
-    return 'روز از نو، $name';
+    return 'یه روز تازه، $name';
   }
 
   @override
   String greetingAfternoonB(String name) {
-    return 'نصف راه رفته، $name';
+    return 'خسته نباشی، $name';
   }
 
   @override
   String greetingAfternoonC(String name) {
-    return 'چی داری برام، $name؟';
+    return 'روزت چطور می‌گذره، $name؟';
   }
 
   @override
   String greetingEveningB(String name) {
-    return 'آرام‌آرام، $name';
+    return 'روزت چطور بود، $name؟';
   }
 
   @override
   String greetingEveningC(String name) {
-    return 'ساعت‌های ساکت، $name';
+    return 'یه چای و کمی آرامش، $name';
   }
 
   @override
   String greetingNightB(String name) {
-    return 'سلام جغد شب، $name';
+    return 'سلام شب‌زنده‌دار، $name';
   }
 
   @override
   String greetingNightC(String name) {
-    return 'دنیا خوابه، $name';
+    return 'یه کم استراحت کن، $name';
   }
 
   @override
@@ -2320,6 +2320,12 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiDaySummaryTitle => 'خلاصه هوشمند';
+
+  @override
+  String get aiDaySummaryBadge => 'هوش مصنوعی';
+
+  @override
+  String get aiDaySummaryByModel => 'نوشتهٔ هوش مصنوعی از روی یادداشت‌های شما';
 
   @override
   String get aiDaySummarySemanticLabel => 'خلاصه امروز';
@@ -5572,6 +5578,120 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get editPhotoBeforeCaptureSubtitle =>
       'پس از گرفتن یا انتخاب عکس، پیش‌نمایش و ابزارهای ویرایش باز شوند. در حالت خاموش، عکس مستقیم ثبت می‌شود.';
+
+  @override
+  String get pauseTitle => 'وقفهٔ تنفس';
+
+  @override
+  String get pauseTagline => 'یکی دو دقیقه تنفس هدایت‌شده';
+
+  @override
+  String get pausePointModes => 'آرامش، تمرکز و آسودگی';
+
+  @override
+  String get pausePointMotion => 'حرکتی هماهنگ با هر نفس';
+
+  @override
+  String get pausePointSound =>
+      'صدایی که روی خود گوشی ساخته می‌شود، بی هیچ دانلود';
+
+  @override
+  String get pausePointHaptics =>
+      'ضربه‌هایی که با چشم بسته هم می‌شود دنبالشان کرد';
+
+  @override
+  String get pauseModeCalm => 'آرامش';
+
+  @override
+  String get pauseModeFocus => 'تمرکز';
+
+  @override
+  String get pauseModeRelax => 'آسودگی';
+
+  @override
+  String get pauseForCalm => 'برای آرامش';
+
+  @override
+  String get pauseForFocus => 'برای تمرکز';
+
+  @override
+  String get pauseForRelax => 'برای آسودگی';
+
+  @override
+  String get pauseAboutCalm => 'ذهن را آرام کنید و به تعادل برسید.';
+
+  @override
+  String get pauseAboutFocus => 'فشار را کم کنید و تمرکز را بالا ببرید.';
+
+  @override
+  String get pauseAboutRelax => 'آرام بگیرید و بهتر بخوابید.';
+
+  @override
+  String pauseRhythm(String rhythm, String breaths, String length) {
+    return '$rhythm ثانیه · $breaths نفس · $length';
+  }
+
+  @override
+  String get pauseStart => 'شروع';
+
+  @override
+  String get pauseSound => 'صدا';
+
+  @override
+  String get pauseSoundAbout => 'آکورد و زنگی آرام که با نفس همراه می‌شود';
+
+  @override
+  String get pauseHaptics => 'لرزش';
+
+  @override
+  String get pauseHapticsAbout =>
+      'ضربه‌هایی که با دم تندتر و با بازدم آرام‌تر می‌شوند';
+
+  @override
+  String get pauseInhale => 'دم';
+
+  @override
+  String get pauseExhale => 'بازدم';
+
+  @override
+  String get pauseHold => 'نگه دارید';
+
+  @override
+  String get pausePaused => 'مکث';
+
+  @override
+  String get pauseTapToResume => 'برای ادامه بزنید';
+
+  @override
+  String get pauseDoneTitle => 'عالی بود';
+
+  @override
+  String pauseDoneBody(String breaths, String length) {
+    return '$breaths نفس · $length';
+  }
+
+  @override
+  String get pauseAgain => 'دوباره';
+
+  @override
+  String pauseBreathsLeft(String count) {
+    return '$count نفس مانده';
+  }
+
+  @override
+  String get pauseSoundOn => 'صدا روشن';
+
+  @override
+  String get pauseSoundOff => 'صدا خاموش';
+
+  @override
+  String get pauseHapticsOn => 'لرزش روشن';
+
+  @override
+  String get pauseHapticsOff => 'لرزش خاموش';
+
+  @override
+  String get pauseEnd => 'پایان جلسه';
 
   @override
   String get planPauseTitle => 'مکث';

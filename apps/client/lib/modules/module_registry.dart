@@ -9,6 +9,7 @@ import 'medicine/module.dart';
 import 'nex_module.dart';
 import 'occasions/module.dart';
 import 'parking/module.dart';
+import 'pause_module.dart';
 import 'price_lens/module.dart';
 import 'smoke_free/module.dart';
 import 'warranty/module.dart';
@@ -20,6 +21,7 @@ export 'nex_module.dart';
 /// one here is what puts its card on that page — see `docs/17-modules.md`.
 const List<NexModule> nexModules = [
   CycleModule(),
+  PauseModule(),
   HabitsModule(),
   PriceLensModule(),
   LentBorrowedModule(),

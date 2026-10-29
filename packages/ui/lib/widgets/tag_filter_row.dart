@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 
+import '../tokens/nex_appearance.dart';
 import '../tokens/nex_tokens.dart';
 import 'nex_tappable.dart';
 
@@ -147,7 +148,9 @@ class _Pill extends StatelessWidget {
     final bg = selected
         ? scheme.primary.withValues(alpha: 0.12)
         : scheme.surfaceContainerLowest;
-    final fg = selected ? scheme.primary : scheme.onSurface;
+    // At rest the label is the search field's hint colour, so the row under
+    // the field reads as part of it rather than as a line of black words.
+    final fg = selected ? scheme.primary : scheme.onSurfaceVariant;
     // A tag with no colour used to get a grey dot, which reads as a broken
     // swatch rather than as an absence.
     final dot = accent == null ? null : nexParseTagColor(accent);
@@ -156,38 +159,59 @@ class _Pill extends StatelessWidget {
       selected: selected,
       semanticLabel: label,
       shape: const StadiumBorder(),
-      child: Material(
-        color: bg,
-        shape: StadiumBorder(
-          side: BorderSide(color: selected ? scheme.primary : scheme.outline),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: NexSpacing.md,
-            vertical: NexSpacing.sm,
+      child: _edge(
+        selected: selected,
+        child: Material(
+          color: selected ? bg : Colors.transparent,
+          shape: StadiumBorder(
+            side: selected
+                ? BorderSide(color: scheme.primary)
+                : BorderSide.none,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (dot != null) ...[
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: NexSpacing.md,
+              vertical: NexSpacing.sm,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (dot != null) ...[
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: dot,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: NexSpacing.sm),
+                ],
+                Text(
+                  label,
+                  // Through the theme, so the most-used control on the timeline
+                  // is not the one thing typeset outside the design system — and
+                  // so it follows the app's face rather than the platform's.
+                  style: theme.textTheme.labelLarge?.copyWith(color: fg),
                 ),
-                const SizedBox(width: NexSpacing.sm),
               ],
-              Text(
-                label,
-                // Through the theme, so the most-used control on the timeline
-                // is not the one thing typeset outside the design system — and
-                // so it follows the app's face rather than the platform's.
-                style: theme.textTheme.labelLarge?.copyWith(color: fg),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  /// At rest, the search field's own surface and edge — glass in the glass
+  /// look, the same hairline everywhere else — instead of a darker ring of
+  /// its own. Selected, the accent's fill and outline say so on their own.
+  Widget _edge({required bool selected, required Widget child}) => selected
+      ? child
+      : NexGlassSurface(
+          blur: false,
+          showShadow: false,
+          borderRadius: BorderRadius.circular(NexRadius.pill),
+          fallbackColor: theme.colorScheme.surfaceContainerLowest,
+          child: child,
+        );
 }

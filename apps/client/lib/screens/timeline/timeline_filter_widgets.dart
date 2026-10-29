@@ -142,7 +142,7 @@ class _FilterButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return NexTappable(
+    final button = NexTappable(
       onTap: onPressed,
       selected: active,
       semanticLabel: AppLocalizations.of(context).filters,
@@ -150,7 +150,7 @@ class _FilterButton extends StatelessWidget {
       child: Material(
         color: active
             ? scheme.primary.withValues(alpha: 0.12)
-            : scheme.surfaceContainerLowest,
+            : Colors.transparent,
         shape: round
             ? CircleBorder(
                 side: active
@@ -185,6 +185,17 @@ class _FilterButton extends StatelessWidget {
                 ),
               ),
       ),
+    );
+    if (active) return button;
+    // At rest it wears the search field's surface and edge, in every look:
+    // as a bare fill it had no edge beside the field's hairline, and in the
+    // glass look it was the one flat disc on a row of glass.
+    return NexGlassSurface(
+      blur: false,
+      showShadow: false,
+      borderRadius: BorderRadius.circular(NexRadius.pill),
+      fallbackColor: scheme.surfaceContainerLowest,
+      child: button,
     );
   }
 }

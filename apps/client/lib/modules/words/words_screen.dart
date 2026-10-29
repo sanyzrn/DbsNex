@@ -13,10 +13,12 @@ import 'words_card_page.dart';
 import 'words_card_row.dart';
 import 'words_daily_cap.dart';
 import 'words_models.dart';
+import 'words_reminder.dart';
 import 'words_review_page.dart';
 import 'words_scheduler.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
+import 'words_visuals.dart';
 part 'words_home_logic.dart';
 
 enum _StatusFilter { all, newWords, due, learned, paused }
@@ -177,63 +179,76 @@ class _WordsScreenState extends State<WordsScreen>
     final strings = wordsStrings;
     final theme = Theme.of(context);
     final waiting = due + fresh;
-    return NexModuleHero(
-      key: const ValueKey('words-hero'),
-      moduleId: 'words',
-      icon: Icons.translate_outlined,
-      eyebrow: strings(context, 'collection'),
-      headline: nexDigits(
-        waiting > 0
-            ? strings(context, 'heroWaiting', {'count': waiting})
-            : strings(context, 'heroDone'),
-        persian: NexModuleStrings.persian(context),
-      ),
-      caption:
-          '${strings(context, 'dueNowCount', {'count': due})} · '
-          '${strings(context, 'newTodayCount', {'count': fresh})}',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (waiting > 0)
-            FilledButton.tonalIcon(
-              key: const ValueKey('words-start-review'),
-              onPressed: () => unawaited(
-                Navigator.of(context).push(
-                  NexPageRoute<void>(
-                    builder: (_) => WordsReviewPage(store: widget.store),
+    const white = Colors.white;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        WordsDeckCard(
+          key: const ValueKey('words-hero'),
+          cards: _cards,
+          headline: nexDigits(
+            waiting > 0
+                ? strings(context, 'heroWaiting', {'count': waiting})
+                : strings(context, 'heroDone'),
+            persian: NexModuleStrings.persian(context),
+          ),
+          caption:
+              '${strings(context, 'dueNowCount', {'count': due})} · '
+              '${strings(context, 'newTodayCount', {'count': fresh})}',
+          action: waiting > 0
+              ? FilledButton.icon(
+                  key: const ValueKey('words-start-review'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: white,
+                    foregroundColor: wordsDeckFrom,
+                  ),
+                  onPressed: () => unawaited(
+                    Navigator.of(context).push(
+                      NexPageRoute<void>(
+                        builder: (_) => WordsReviewPage(store: widget.store),
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: Text(strings(context, 'startReview')),
+                )
+              : Text(
+                  strings(context, 'nothingToReview'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: white.withValues(alpha: 0.9),
                   ),
                 ),
+          settings: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              key: const ValueKey('words-review-settings'),
+              style: TextButton.styleFrom(foregroundColor: white),
+              onPressed: () => setState(() => _settingsOpen = !_settingsOpen),
+              icon: Icon(
+                _settingsOpen ? Icons.expand_less : Icons.tune_outlined,
               ),
-              icon: const Icon(Icons.play_arrow_outlined),
-              label: Text(strings(context, 'startReview')),
-            )
-          else
-            Padding(
-              padding: const EdgeInsetsDirectional.only(top: NexSpacing.xs),
-              child: Text(
-                strings(context, 'nothingToReview'),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
+              label: Text(strings(context, 'reviewSettings')),
             ),
-          const SizedBox(height: NexSpacing.sm),
-          TextButton.icon(
-            key: const ValueKey('words-review-settings'),
-            onPressed: () => setState(() => _settingsOpen = !_settingsOpen),
-            icon: Icon(_settingsOpen ? Icons.expand_less : Icons.tune_outlined),
-            label: Text(strings(context, 'reviewSettings')),
           ),
-          if (_settingsOpen) ...[
-            WordsDailyCapRow(settings: _settings, repository: _repository),
-            WordsDailyCapRow(
-              settings: _settings,
-              repository: _repository,
-              session: true,
+        ),
+        if (_settingsOpen) ...[
+          const SizedBox(height: NexSpacing.sm),
+          NexPanel(
+            child: Column(
+              children: [
+                WordsDailyCapRow(settings: _settings, repository: _repository),
+                WordsDailyCapRow(
+                  settings: _settings,
+                  repository: _repository,
+                  session: true,
+                ),
+                const Divider(),
+                WordsReminderRow(store: widget.store),
+              ],
             ),
-          ],
+          ),
         ],
-      ),
+      ],
     );
   }
 
@@ -272,42 +287,57 @@ class _WordsScreenState extends State<WordsScreen>
           ),
         ),
         const SizedBox(height: NexSpacing.sm),
-        Wrap(
-          spacing: NexSpacing.sm,
-          runSpacing: NexSpacing.xs,
-          children: [
-            for (final entry in [
-              (_StatusFilter.all, 'filterAll'),
-              (_StatusFilter.newWords, 'filterNew'),
-              (_StatusFilter.due, 'filterDue'),
-              (_StatusFilter.learned, 'filterLearned'),
-              (_StatusFilter.paused, 'filterPaused'),
-            ])
-              ChoiceChip(
-                key: ValueKey('words-filter-${entry.$2}'),
-                label: Text(strings(context, entry.$2)),
-                selected: _filter == entry.$1,
-                onSelected: (_) => setState(() => _filter = entry.$1),
-              ),
-          ],
-        ),
-        if (tags.isNotEmpty) ...[
-          const SizedBox(height: NexSpacing.xs),
-          Wrap(
-            spacing: NexSpacing.sm,
-            runSpacing: NexSpacing.xs,
+        // One row that scrolls sideways, statuses then tags: two wrapped
+        // rows of chips used to break apart at odd places (2.4.0).
+        SingleChildScrollView(
+          key: const ValueKey('words-filters'),
+          scrollDirection: Axis.horizontal,
+          child: Row(
             children: [
-              for (final tag in _showAllTags ? tags : tags.take(8))
+              for (final entry in [
+                (_StatusFilter.all, 'filterAll'),
+                (_StatusFilter.newWords, 'filterNew'),
+                (_StatusFilter.due, 'filterDue'),
+                (_StatusFilter.learned, 'filterLearned'),
+                (_StatusFilter.paused, 'filterPaused'),
+              ]) ...[
+                ChoiceChip(
+                  key: ValueKey('words-filter-${entry.$2}'),
+                  label: Text(strings(context, entry.$2)),
+                  selected: _filter == entry.$1,
+                  showCheckmark: false,
+                  onSelected: (_) => setState(() => _filter = entry.$1),
+                ),
+                const SizedBox(width: NexSpacing.xs + 2),
+              ],
+              if (tags.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.xs,
+                  ),
+                  child: SizedBox(
+                    height: 24,
+                    child: VerticalDivider(
+                      width: 1,
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                  ),
+                ),
+              for (final tag in _showAllTags ? tags : tags.take(8)) ...[
+                const SizedBox(width: NexSpacing.xs + 2),
                 FilterChip(
+                  avatar: const Icon(Icons.sell_outlined, size: 16),
                   label: Text(tag),
                   selected: _tagFilter == tag,
+                  showCheckmark: false,
                   onSelected: (_) => setState(
                     () => _tagFilter = _tagFilter == tag ? null : tag,
                   ),
                 ),
+              ],
             ],
           ),
-        ],
+        ),
         if (tags.length > 8)
           TextButton(
             onPressed: () => setState(() => _showAllTags = !_showAllTags),

@@ -2993,37 +2993,37 @@ abstract class AppLocalizations {
   /// Second morning greeting variant
   ///
   /// In en, this message translates to:
-  /// **'Fresh page, {name}'**
+  /// **'Rise and shine, {name}'**
   String greetingMorningB(String name);
 
   /// Third morning greeting variant
   ///
   /// In en, this message translates to:
-  /// **'The day is new, {name}'**
+  /// **'A brand-new day, {name}'**
   String greetingMorningC(String name);
 
   /// Second afternoon greeting variant
   ///
   /// In en, this message translates to:
-  /// **'Halfway there, {name}'**
+  /// **'How\'s your day going, {name}?'**
   String greetingAfternoonB(String name);
 
   /// Third afternoon greeting variant
   ///
   /// In en, this message translates to:
-  /// **'What have you got, {name}?'**
+  /// **'Halfway through the day, {name}'**
   String greetingAfternoonC(String name);
 
   /// Second evening greeting variant
   ///
   /// In en, this message translates to:
-  /// **'Winding down, {name}'**
+  /// **'How was your day, {name}?'**
   String greetingEveningB(String name);
 
   /// Third evening greeting variant
   ///
   /// In en, this message translates to:
-  /// **'The quiet hours, {name}'**
+  /// **'Time to slow down, {name}'**
   String greetingEveningC(String name);
 
   /// Second late-night greeting variant
@@ -3035,7 +3035,7 @@ abstract class AppLocalizations {
   /// Third late-night greeting variant
   ///
   /// In en, this message translates to:
-  /// **'The world\'s asleep, {name}'**
+  /// **'Get some rest soon, {name}'**
   String greetingNightC(String name);
 
   /// No description provided for @backupStatusNone.
@@ -3751,6 +3751,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Smart summary'**
   String get aiDaySummaryTitle;
+
+  /// Small badge beside the smart summary's title when a model writes it
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get aiDaySummaryBadge;
+
+  /// Screen-reader description of the AI badge on the smart summary
+  ///
+  /// In en, this message translates to:
+  /// **'Written by AI from your notes'**
+  String get aiDaySummaryByModel;
 
   /// Screen-reader label for the AI-generated day summary panel on the timeline
   ///
@@ -8857,6 +8869,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the preview and editing tools after taking or choosing a photo. Off saves it straight away.'**
   String get editPhotoBeforeCaptureSubtitle;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Breathing break'**
+  String get pauseTitle;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'A minute or two of guided breathing'**
+  String get pauseTagline;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Calm, Focus and Relax'**
+  String get pausePointModes;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Motion that follows each breath'**
+  String get pausePointMotion;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Sound made on the phone, nothing downloaded'**
+  String get pausePointSound;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Taps you can follow with your eyes closed'**
+  String get pausePointHaptics;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Calm'**
+  String get pauseModeCalm;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Focus'**
+  String get pauseModeFocus;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Relax'**
+  String get pauseModeRelax;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'For calm'**
+  String get pauseForCalm;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'For focus'**
+  String get pauseForFocus;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'For relax'**
+  String get pauseForRelax;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Calm your mind. Find balance.'**
+  String get pauseAboutCalm;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Ease stress. Sharpen focus.'**
+  String get pauseAboutFocus;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Wind down. Sleep better.'**
+  String get pauseAboutRelax;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'{rhythm} s · {breaths} breaths · {length}'**
+  String pauseRhythm(String rhythm, String breaths, String length);
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get pauseStart;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get pauseSound;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'A soft chord and chimes that follow the breath'**
+  String get pauseSoundAbout;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get pauseHaptics;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Taps that quicken as you breathe in and slow as you breathe out'**
+  String get pauseHapticsAbout;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Inhale'**
+  String get pauseInhale;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Exhale'**
+  String get pauseExhale;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Hold'**
+  String get pauseHold;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get pausePaused;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to carry on'**
+  String get pauseTapToResume;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Well done'**
+  String get pauseDoneTitle;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'{breaths} breaths · {length}'**
+  String pauseDoneBody(String breaths, String length);
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Again'**
+  String get pauseAgain;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'{count} breaths left'**
+  String pauseBreathsLeft(String count);
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Sound on'**
+  String get pauseSoundOn;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Sound off'**
+  String get pauseSoundOff;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration on'**
+  String get pauseHapticsOn;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration off'**
+  String get pauseHapticsOff;
+
+  /// Pause (breathing break) module
+  ///
+  /// In en, this message translates to:
+  /// **'End the session'**
+  String get pauseEnd;
 
   /// No description provided for @planPauseTitle.
   ///

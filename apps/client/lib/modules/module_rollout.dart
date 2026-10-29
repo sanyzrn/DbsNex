@@ -3,7 +3,8 @@ import 'package:flutter/foundation.dart'
 
 /// Which modules are available to people (the others would show as Soon).
 ///
-/// Cycle only, for now (2.2.0). The twelve add-ons — Habits, Price Lens, Lent &
+/// Cycle, and from 2.4.0 Pause — a breathing break, built for the phone with
+/// its own sound and haptics. The twelve add-ons — Habits, Price Lens, Lent &
 /// Borrowed, Quit Habits (`smoke_free`), Birthdays & occasions, Expenses, Gold,
 /// Words, Parking, Medicine, Warranty and Maintenance — were all integrated,
 /// reviewed and enabled (2.1.9–2.1.14), then put back to Soon after real-device
@@ -13,7 +14,9 @@ import 'package:flutter/foundation.dart'
 ///
 /// A module that is not listed here is Soon: no install, open or reminders.
 /// Rollout never changes saved installation choices or data.
-const nexAvailableModuleIds = {'cycle'};
+/// Birthdays & occasions and Word by Word are the first of them back,
+/// finished and redesigned in 2.4.0.
+const nexAvailableModuleIds = {'cycle', 'pause', 'occasions', 'words'};
 
 /// Windows, Linux and macOS. The modules are made for the phone; the desktop
 /// has none of them for now (its own tools are to come, `docs/27-desktop.md`),

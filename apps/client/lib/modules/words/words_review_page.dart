@@ -9,6 +9,7 @@
 library;
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
@@ -18,6 +19,7 @@ import 'words_scheduler.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
 import 'words_card_page.dart';
+import 'words_visuals.dart';
 part 'words_review_view.dart';
 part 'words_review_done.dart';
 

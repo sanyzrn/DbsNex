@@ -90,7 +90,9 @@ class _OccasionSheetState extends State<_OccasionSheet> {
     _yearUnknown = o != null ? o.year == null : true;
     _more = o != null;
     _nextDay = o?.nextDayInShortYears ?? false;
-    _remind = o?.remindDays != null;
+    // A new date reminds by default (2.4.0): a day ahead, and on the day.
+    // Remembering is the reason to write a birthday down.
+    _remind = o == null || o.remindDays != null;
     _remindDays = o?.remindDays ?? 1;
     _remindMinutes = o?.remindMinutes ?? Occasion.defaultRemindMinutes;
     _draft = FormDraft(
@@ -276,7 +278,6 @@ class _OccasionSheetState extends State<_OccasionSheet> {
     final failedText = occasionsStrings(context, 'saveError');
     final remindFailed = occasionsStrings(context, 'remindFailed');
     final l10n = AppLocalizations.of(context);
-    final reminderBody = occasionNotificationBody(context, occasion);
     try {
       final prior = await widget.store.get('occasion', occasion.id);
       await widget.store.put('occasion', occasion.id, {
@@ -299,8 +300,7 @@ class _OccasionSheetState extends State<_OccasionSheet> {
         widget.store,
         occasion,
         now: DateTime.now(),
-        title: l10n.cycleNotifyTitle,
-        body: reminderBody,
+        l10n: l10n,
       );
     } catch (_) {
       remindersOk = false;

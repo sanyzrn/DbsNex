@@ -54,6 +54,17 @@ const Map<String, String> wordsStringsEn = {
   'point3': 'No account, no cloud',
 
   // -------------------------------------------------------------- home
+  'streak': '{count}-day streak',
+  'stageNew': '{count} new',
+  'stageLearning': '{count} learning',
+  'stageHolding': '{count} holding',
+  'stageLearned': '{count} learned',
+  'remindLabel': 'Review reminder',
+  'remindHint': 'Once a day, only when words are waiting',
+  'remindAt': 'At {time}',
+  'remindBody': '{count} words are waiting for you. A few minutes is enough.',
+  'remindFailed':
+      'The reminder could not be set. Check the notification permission.',
   'collection': 'Your words',
   'heroWaiting': '{count} to review',
   'heroDone': 'All caught up',

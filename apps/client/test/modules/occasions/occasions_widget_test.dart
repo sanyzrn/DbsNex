@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/occasions/occasion_detail.dart';
+import 'package:nex_client/modules/occasions/occasion_row.dart';
+import 'package:nex_client/modules/occasions/occasion_visuals.dart';
 import 'package:nex_client/modules/occasions/occasions_screen.dart';
 
 import '../../support/nex_harness.dart';
@@ -109,9 +111,24 @@ void main() {
       expect(find.text('Later'), findsOneWidget);
       expect(find.text('in 3 days'), findsOneWidget);
       expect(find.byKey(const ValueKey('occasion-days-a')), findsOneWidget);
-      final today = tester.getTopLeft(find.text('Today one')).dy;
-      final soonY = tester.getTopLeft(find.text('Soon one')).dy;
-      final laterY = tester.getTopLeft(find.text('Later one')).dy;
+      // The nearest also leads the page in its coloured card (2.4.0); the
+      // order is the rows'.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('occasions-hero')),
+          matching: find.text('Today one'),
+        ),
+        findsOneWidget,
+      );
+      final today = tester
+          .getTopLeft(find.byKey(const ValueKey('occasion-a')))
+          .dy;
+      final soonY = tester
+          .getTopLeft(find.byKey(const ValueKey('occasion-b')))
+          .dy;
+      final laterY = tester
+          .getTopLeft(find.byKey(const ValueKey('occasion-c')))
+          .dy;
       expect(today, lessThan(soonY));
       expect(soonY, lessThan(laterY));
       // One primary action once there is something.
@@ -138,8 +155,12 @@ void main() {
         body(title: 'Unknown', month: soon.month, day: soon.day),
       );
       await pump(tester, OccasionsScreen(store: store));
-      expect(find.textContaining('turns 30'), findsOneWidget);
-      expect(find.textContaining('turns'), findsOneWidget);
+      Finder inRow(String id, String text) => find.descendant(
+        of: find.byKey(ValueKey('occasion-$id')),
+        matching: find.textContaining(text),
+      );
+      expect(inRow('a', 'turns 30'), findsOneWidget);
+      expect(inRow('b', 'turns'), findsNothing);
     });
 
     testWidgets('an impossible date is listed to be fixed, not guessed', (
@@ -152,7 +173,10 @@ void main() {
       );
       await pump(tester, OccasionsScreen(store: store));
       expect(find.text('Needs a date'), findsOneWidget);
-      expect(find.text('Choose a day and month for this one.'), findsOneWidget);
+      expect(
+        find.textContaining('Choose a day and month for this one.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('archived ones wait behind a button', (tester) async {
@@ -251,7 +275,13 @@ void main() {
       expect(saved['year'], 1378);
       expect(saved['yearKnown'], true);
       // It is on the list, in its own calendar.
-      expect(find.text('Sara'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(OccasionRow),
+          matching: find.text('Sara'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('refuses a day the month does not have, and a future year', (
@@ -369,14 +399,21 @@ void main() {
         body(month: soon.month, day: soon.day, year: soon.year - 20),
       );
       await openDetail(tester);
-      expect(find.text('in 4 days'), findsOneWidget);
+      // The countdown ring (2.4.0): the days left, in its middle.
+      expect(
+        find.descendant(
+          of: find.byType(OccasionCountdownRing),
+          matching: find.text('4'),
+        ),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const ValueKey('occasion-both-calendars')),
         findsOneWidget,
       );
-      expect(find.textContaining('Jalali:'), findsOneWidget);
-      expect(find.textContaining('Gregorian:'), findsAtLeast(1));
-      expect(find.text('turns 20'), findsOneWidget);
+      expect(find.text('Jalali'), findsOneWidget);
+      expect(find.text('Gregorian'), findsAtLeast(1));
+      expect(find.textContaining('turns 20'), findsOneWidget);
       expect(find.textContaining('Happy birthday'), findsOneWidget);
       expect(find.text('No reminder.'), findsOneWidget);
     });

@@ -9,6 +9,8 @@ void main() {
   for (final (font, path) in [
     ('Inter', 'third_party/Inter-OFL.txt'),
     ('Vazirmatn', 'third_party/Vazirmatn-OFL.txt'),
+    ('Fraunces', 'third_party/Fraunces-OFL.txt'),
+    ('Markazi Text', 'third_party/MarkaziText-OFL.txt'),
   ]) {
     test('$font ships its OFL text', () async {
       final text = await rootBundle.loadString(path);

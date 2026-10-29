@@ -10,6 +10,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'words_models.dart';
 import 'words_scheduler.dart';
 import 'words_strings.dart';
+import 'words_visuals.dart';
 
 class WordsCardRow extends StatelessWidget {
   const WordsCardRow({
@@ -29,47 +30,124 @@ class WordsCardRow extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final status = _status(context, strings);
+    final due = !card.paused && !card.isNew && card.due.isNotEmpty
+        ? dueWords(todayIso, card.due)
+        : null;
+    final waiting = due != null && (due.today || due.overdue);
+    final start = Directionality.of(context) == TextDirection.rtl
+        ? TextAlign.right
+        : TextAlign.left;
+    // A card of its own (2.4.0): the language as a badge, the word large in
+    // its own direction with its meaning under it, and how well it is known
+    // as a small meter beside what comes next.
     return Material(
-      color: scheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(NexRadius.lg),
+      color: scheme.surfaceContainerLowest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        side: BorderSide(
+          color: waiting
+              ? scheme.primary.withValues(alpha: 0.45)
+              : scheme.outlineVariant,
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
-      child: ListTile(
+      child: InkWell(
         key: ValueKey('words-card-${card.id}'),
         onTap: onTap,
-        title: NexTextSurface(
-          card.headword,
-          maxLines: 1,
-          style: theme.textTheme.titleMedium,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (card.meaning.isNotEmpty)
-              NexTextSurface(
-                card.meaning,
-                maxLines: 1,
-                style: theme.textTheme.bodySmall,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: NexSpacing.md,
+            vertical: NexSpacing.sm + 4,
+          ),
+          child: Row(
+            children: [
+              WordsLanguageBadge(language: card.language),
+              const SizedBox(width: NexSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Each line in its own direction, all at the page's
+                    // start edge: an English word in a Persian list lined up
+                    // with its Persian meaning, not on the far side of it.
+                    _line(
+                      context,
+                      card.headword,
+                      start,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: card.paused ? scheme.onSurfaceVariant : null,
+                      ),
+                    ),
+                    if (card.meaning.isNotEmpty)
+                      _line(
+                        context,
+                        card.meaning,
+                        start,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    if (card.tag.isNotEmpty || card.language.isNotEmpty)
+                      Text(
+                        [
+                          if (card.language.isNotEmpty) card.language,
+                          if (card.tag.isNotEmpty) card.tag,
+                        ].join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            Text(
-              [
-                if (card.language.isNotEmpty) card.language,
-                status,
-                if (card.tag.isNotEmpty) card.tag,
-              ].join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
+              const SizedBox(width: NexSpacing.sm),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (card.paused)
+                    Icon(
+                      Icons.pause_circle_outline,
+                      size: 20,
+                      color: scheme.onSurfaceVariant,
+                    )
+                  else
+                    WordsStrength(card: card),
+                  const SizedBox(height: NexSpacing.xs),
+                  Text(
+                    status,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: waiting ? scheme.primary : scheme.onSurfaceVariant,
+                      fontWeight: waiting ? FontWeight.w700 : null,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        trailing: card.paused
-            ? Icon(Icons.pause_circle_outline, color: scheme.onSurfaceVariant)
-            : null,
       ),
     );
   }
+
+  /// One line in its own direction, set at the page's start edge.
+  static Widget _line(
+    BuildContext context,
+    String text,
+    TextAlign start, {
+    TextStyle? style,
+  }) => Directionality(
+    textDirection: nexDirectionOf(text) ?? Directionality.of(context),
+    child: Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: start,
+      style: style,
+    ),
+  );
 
   String _status(BuildContext context, NexModuleStrings strings) {
     if (card.paused) return strings(context, 'filterPaused');

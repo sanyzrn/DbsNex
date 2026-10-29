@@ -8,7 +8,9 @@ import 'occasion_math.dart';
 import 'occasion_model.dart';
 import 'occasion_reminders.dart';
 import 'occasion_sheet.dart';
+import 'occasion_greeting.dart';
 import 'occasion_text.dart';
+import 'occasion_visuals.dart';
 
 /// One occasion in full: how far away it is, the day in both calendars,
 /// the age it comes to, the note, the reminder, and a greeting to copy.
@@ -87,13 +89,11 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
       await widget.store.put('occasion', widget.occasionId, next);
       final occasion = Occasion.fromBody(widget.occasionId, next);
       if (!mounted) return;
-      final body = occasionNotificationBody(context, occasion);
       await armOccasionReminders(
         widget.store,
         occasion,
         now: DateTime.now(),
-        title: l10n.cycleNotifyTitle,
-        body: body,
+        l10n: l10n,
       );
     } catch (_) {
       messenger.showSnackBar(SnackBar(content: Text(failed)));
@@ -110,8 +110,6 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final deleted = occasionsStrings(context, 'deleted');
     final failed = occasionsStrings(context, 'saveError');
-    final title = l10n.cycleNotifyTitle;
-    final body = occasionNotificationBody(context, occasion);
     try {
       final raw = await widget.store.get('occasion', occasion.id);
       await clearOccasionReminders(widget.store, occasion.id);
@@ -131,8 +129,7 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
                     widget.store,
                     Occasion.fromBody(occasion.id, raw),
                     now: DateTime.now(),
-                    title: title,
-                    body: body,
+                    l10n: l10n,
                   );
                 }
               } catch (_) {
@@ -174,7 +171,6 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
     final today = DateTime.now();
     final next = nextOccasionDay(occasion, today);
     final days = next == null ? null : daysUntil(today, next.date);
-    final years = next == null ? null : yearsText(context, occasion, next);
     final ownSolar = occasion.calendar == OccasionCalendar.jalali;
     final title = occasion.title.isEmpty
         ? strings(context, 'untitled')
@@ -183,14 +179,19 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
     String reminderLine() {
       if (occasion.remindDays == null) return strings(context, 'reminderOff');
       if (occasion.muted) return strings(context, 'reminderMuted');
-      return strings(context, 'reminderOn', {
-        'when': occasion.remindDays == 0
-            ? strings(context, 'reminderWhenToday')
-            : occasion.remindDays == 1
-            ? strings(context, 'remindOneBefore')
-            : strings(context, 'reminderWhenDays', {'n': occasion.remindDays}),
-        'time': occasionTimeText(context, occasion.remindMinutes),
-      });
+      final time = occasionTimeText(context, occasion.remindMinutes);
+      final ahead = occasion.remindDays!;
+      return ahead == 0
+          ? strings(context, 'reminderOn', {
+              'when': strings(context, 'reminderWhenToday'),
+              'time': time,
+            })
+          : strings(context, 'reminderBoth', {
+              'when': ahead == 1
+                  ? strings(context, 'remindOneBefore')
+                  : strings(context, 'reminderWhenDays', {'n': ahead}),
+              'time': time,
+            });
     }
 
     return Scaffold(
@@ -267,56 +268,70 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
           NexSpacing.lg + nexBottomInset(context),
         ),
         children: [
-          NexPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    NexIconTile(
-                      occasionIcon(occasion.kind),
-                      color: NexHue.rose.of(theme.brightness),
-                    ),
-                    const SizedBox(width: NexSpacing.md),
-                    Expanded(
-                      child: Text(
-                        occasionKindLabel(context, occasion.kind),
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                    ),
-                    if (occasion.favorite)
-                      Icon(Icons.star_rounded, color: scheme.primary),
-                  ],
-                ),
-                const SizedBox(height: NexSpacing.md),
-                if (days != null)
-                  Text(
-                    countdownText(context, days),
-                    key: const ValueKey('occasion-countdown'),
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  )
-                else
+          if (next != null)
+            OccasionHeroCard(
+              occasion: occasion,
+              next: next,
+              today: today,
+              eyebrow: [
+                occasionKindLabel(context, occasion.kind),
+                if (occasion.favorite) '★',
+              ].join(' '),
+              actions: days == 0 && occasion.kind != OccasionKind.memorial
+                  ? OccasionGreetingActions(occasion: occasion)
+                  : null,
+            )
+          else
+            NexPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
                     strings(context, 'invalidTitle'),
                     style: theme.textTheme.titleMedium,
                   ),
-                if (years != null) ...[
-                  const SizedBox(height: NexSpacing.xs),
-                  Text(years, style: theme.textTheme.titleMedium),
-                ],
-                if (next != null) ...[
                   const SizedBox(height: NexSpacing.sm),
                   Text(
-                    strings(context, 'bothCalendars', {
-                      'a': occasionDateText(context, next.date, solar: true),
-                      'b': occasionDateText(context, next.date, solar: false),
-                    }),
-                    key: const ValueKey('occasion-both-calendars'),
+                    strings(context, 'fixDate'),
                     style: theme.textTheme.bodyMedium,
                   ),
-                  const SizedBox(height: NexSpacing.xs),
+                ],
+              ),
+            ),
+          if (next != null) ...[
+            const SizedBox(height: NexSpacing.md),
+            NexPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CalendarDay(
+                          label: strings(context, 'jalali'),
+                          text: occasionDateText(
+                            context,
+                            next.date,
+                            solar: true,
+                          ),
+                          own: ownSolar,
+                        ),
+                      ),
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: _CalendarDay(
+                          label: strings(context, 'gregorian'),
+                          text: occasionDateText(
+                            context,
+                            next.date,
+                            solar: false,
+                          ),
+                          own: !ownSolar,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: NexSpacing.sm),
                   Text(
                     strings(context, 'repeatsOn', {
                       'date': nexDigits(
@@ -328,29 +343,35 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
                         ownSolar ? 'jalali' : 'gregorian',
                       ),
                     }),
+                    key: const ValueKey('occasion-both-calendars'),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
-                ] else
-                  Padding(
-                    padding: const EdgeInsets.only(top: NexSpacing.sm),
-                    child: Text(
-                      strings(context, 'fixDate'),
-                      style: theme.textTheme.bodyMedium,
-                    ),
+                  const Divider(height: NexSpacing.lg),
+                  Row(
+                    children: [
+                      Icon(
+                        occasion.remindDays == null || occasion.muted
+                            ? Icons.notifications_off_outlined
+                            : Icons.notifications_active_outlined,
+                        size: 20,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          reminderLine(),
+                          key: const ValueKey('occasion-reminder-line'),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
                   ),
-                const SizedBox(height: NexSpacing.sm),
-                Text(
-                  reminderLine(),
-                  key: const ValueKey('occasion-reminder-line'),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
           if (occasion.note.trim().isNotEmpty) ...[
             const SizedBox(height: NexSpacing.md),
             NexPanel(
@@ -359,52 +380,55 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
             ),
           ],
           const SizedBox(height: NexSpacing.md),
-          NexPanel(
-            title: strings(context, 'greetingTitle'),
-            icon: Icons.chat_bubble_outline,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                NexTextSurface(
-                  occasionGreeting(context, occasion.kind),
-                  key: const ValueKey('occasion-greeting'),
-                  selectable: true,
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                Wrap(
-                  spacing: NexSpacing.sm,
-                  children: [
-                    FilledButton.tonalIcon(
-                      key: const ValueKey('occasion-copy-greeting'),
-                      onPressed: () async {
-                        await nexModuleCopyText(
-                          occasionGreeting(context, occasion.kind),
-                        );
-                        if (!context.mounted) return;
-                        nexShowBanner(
-                          context,
-                          message: strings(context, 'greetingCopied'),
-                        );
-                      },
-                      icon: const Icon(Icons.copy_outlined),
-                      label: Text(strings(context, 'copyGreeting')),
-                    ),
-                    TextButton.icon(
-                      key: const ValueKey('occasion-share-greeting'),
-                      onPressed: () => unawaited(
-                        nexModuleShareText(
-                          occasionGreeting(context, occasion.kind),
-                        ),
-                      ),
-                      icon: const Icon(Icons.ios_share),
-                      label: Text(strings(context, 'shareGreeting')),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          OccasionGreetingPanel(occasion: occasion),
         ],
+      ),
+    );
+  }
+}
+
+/// One of the two calendars an occasion's next day is shown in; the one it
+/// is kept in is marked.
+class _CalendarDay extends StatelessWidget {
+  const _CalendarDay({
+    required this.label,
+    required this.text,
+    required this.own,
+  });
+
+  final String label;
+  final String text;
+  final bool own;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: own ? scheme.primary.withValues(alpha: 0.08) : null,
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        border: Border.all(
+          color: own
+              ? scheme.primary.withValues(alpha: 0.4)
+              : scheme.outlineVariant,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(NexSpacing.sm + 2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: own ? scheme.primary : scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(text, style: theme.textTheme.bodyMedium),
+          ],
+        ),
       ),
     );
   }

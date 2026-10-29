@@ -1,13 +1,23 @@
 import 'package:nex_client/modules/module_api.dart';
 
-/// One habit a person is building: a name, an optional note, and a simple
-/// schedule — every day, or a target number of check-ins a week.
+/// How often a habit is meant to happen (2.4.0).
+///
+///  * daily — every day;
+///  * weekly — a number of times a week, on any days;
+///  * days — on chosen weekdays only;
+///  * every — every N days, counted from the day it began.
+enum HabitPlan { daily, weekly, days, every }
+
+/// One habit a person is building: a name, an optional note, how often it is
+/// meant to happen, and what counts as done — a tick, or an amount (eight
+/// glasses, twenty pages).
 ///
 /// Kept as a JSON record in the module's store (kind `habit`), and rebuilt
 /// defensively from it: a missing name falls back to an empty string the
 /// screen replaces with placeholder words, an unknown schedule reads as
-/// daily, and a target outside 1–7 is clamped, because a habit whose record
-/// was written by an older version must still open.
+/// daily, and every number is clamped, because a habit whose record was
+/// written by an older version must still open. Version-1 records (daily or
+/// weekly, a tick) read exactly as they did.
 class Habit {
   const Habit({
     required this.id,
@@ -17,7 +27,14 @@ class Habit {
     required this.target,
     required this.archived,
     required this.createdAt,
-  });
+    HabitPlan? plan,
+    this.days = const {},
+    this.every = 2,
+    this.goal = 1,
+    this.unit = '',
+    this.icon = '',
+    this.hue = 0,
+  }) : _plan = plan;
 
   /// From the store; every field is read defensively.
   factory Habit.fromRecord(ModuleRecord record) =>
@@ -25,22 +42,42 @@ class Habit {
 
   /// From a record's body directly, for the screens that already hold it.
   factory Habit.fromBody(String id, Map<String, Object?> body) {
-    final rawTarget = body['target'];
-    final target = rawTarget is num && rawTarget.isFinite
-        ? rawTarget.toInt()
-        : 3;
-    final rawSchedule = body['schedule'];
-    final weekly = rawSchedule == 'weekly';
+    int whole(Object? value, int fallback) =>
+        value is num && value.isFinite ? value.toInt() : fallback;
+    final rawTarget = whole(body['target'], 3);
+    final plan = switch (body['schedule']) {
+      'weekly' => HabitPlan.weekly,
+      'days' => HabitPlan.days,
+      'every' => HabitPlan.every,
+      _ => HabitPlan.daily,
+    };
+    final rawDays = body['days'];
+    final days = <int>{
+      if (rawDays is List)
+        for (final day in rawDays)
+          if (day is num && day >= 1 && day <= 7) day.toInt(),
+    };
+    final rawUnit = body['unit'];
+    final rawIcon = body['icon'];
     return Habit(
       id: id,
       name: body['name'] is String ? body['name'] as String : '',
       note: body['note'] is String ? body['note'] as String : '',
-      weekly: weekly,
-      target: weekly ? target.clamp(1, 7) : 1,
+      weekly: plan == HabitPlan.weekly,
+      target: plan == HabitPlan.weekly ? rawTarget.clamp(1, 7) : 1,
       archived: body['archived'] == true,
       createdAt:
           DateTime.tryParse('${body['createdAt'] ?? ''}') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      // Chosen weekdays with none chosen is every day: a habit that can
+      // never fall due would be a habit that can never be kept.
+      plan: plan == HabitPlan.days && days.isEmpty ? HabitPlan.daily : plan,
+      days: days,
+      every: whole(body['every'], 2).clamp(2, 30),
+      goal: whole(body['goal'], 1).clamp(1, 9999),
+      unit: rawUnit is String ? rawUnit.trim() : '',
+      icon: rawIcon is String ? rawIcon : '',
+      hue: whole(body['hue'], 0).clamp(0, 7),
     );
   }
 
@@ -55,7 +92,7 @@ class Habit {
   /// Whether the schedule is a weekly target rather than daily.
   final bool weekly;
 
-  /// Check-ins a week that count, 1–7. Always 1 for a daily habit.
+  /// Check-ins a week that count, 1–7. Always 1 for any other plan.
   final int target;
 
   /// Archived habits keep their history but leave the Today list.
@@ -64,27 +101,87 @@ class Habit {
   /// When the habit was created; used only for ordering and display.
   final DateTime createdAt;
 
+  final HabitPlan? _plan;
+
+  /// How often it is meant to happen.
+  HabitPlan get plan => _plan ?? (weekly ? HabitPlan.weekly : HabitPlan.daily);
+
+  /// The weekdays (Dart's 1 Monday … 7 Sunday) of a [HabitPlan.days] habit.
+  final Set<int> days;
+
+  /// The N of a [HabitPlan.every] habit: every N days.
+  final int every;
+
+  /// What a day must reach to count as done: 1 is a tick; more is an amount
+  /// — eight glasses, twenty pages — logged a little at a time.
+  final int goal;
+
+  /// What the amount counts, in the person's words: «glasses», «pages».
+  final String unit;
+
+  /// The habit's mark, from [habitIcons]; empty for the default.
+  final String icon;
+
+  /// Its colour, an index into [habitHues].
+  final int hue;
+
+  /// Whether a day is done by reaching an amount rather than by a tick.
+  bool get counted => goal > 1;
+
   Map<String, Object?> toJson() => {
+    'v': 2,
     'name': name,
     'note': note,
-    'schedule': weekly ? 'weekly' : 'daily',
+    'schedule': plan.name,
     'target': weekly ? target : 1,
+    if (plan == HabitPlan.days) 'days': (days.toList()..sort()),
+    if (plan == HabitPlan.every) 'every': every,
+    'goal': goal,
+    if (unit.isNotEmpty) 'unit': unit,
+    if (icon.isNotEmpty) 'icon': icon,
+    'hue': hue,
     'archived': archived,
     'createdAt': createdAt.toIso8601String(),
   };
 
-  Habit withFields({String? name, String? note, bool? weekly, int? target}) =>
-      Habit(
-        id: id,
-        name: name ?? this.name,
-        note: note ?? this.note,
-        weekly: weekly ?? this.weekly,
-        target: (weekly ?? this.weekly)
-            ? (target ?? this.target).clamp(1, 7)
-            : 1,
-        archived: archived,
-        createdAt: createdAt,
-      );
+  Habit withFields({
+    String? name,
+    String? note,
+    bool? weekly,
+    int? target,
+    HabitPlan? plan,
+    Set<int>? days,
+    int? every,
+    int? goal,
+    String? unit,
+    String? icon,
+    int? hue,
+  }) {
+    final nextPlan =
+        plan ??
+        (weekly == null
+            ? this.plan
+            : weekly
+            ? HabitPlan.weekly
+            : HabitPlan.daily);
+    final isWeekly = nextPlan == HabitPlan.weekly;
+    return Habit(
+      id: id,
+      name: name ?? this.name,
+      note: note ?? this.note,
+      weekly: isWeekly,
+      target: isWeekly ? (target ?? this.target).clamp(1, 7) : 1,
+      archived: archived,
+      createdAt: createdAt,
+      plan: nextPlan,
+      days: days ?? this.days,
+      every: (every ?? this.every).clamp(2, 30),
+      goal: (goal ?? this.goal).clamp(1, 9999),
+      unit: unit ?? this.unit,
+      icon: icon ?? this.icon,
+      hue: (hue ?? this.hue).clamp(0, 7),
+    );
+  }
 }
 
 /// One check-in: the habit, and the **local civil date** it counts for.
@@ -98,6 +195,7 @@ class HabitCheck {
     required this.habitId,
     required this.dateKey,
     required this.at,
+    this.amount,
   });
 
   factory HabitCheck.fromRecord(ModuleRecord record) {
@@ -109,6 +207,9 @@ class HabitCheck {
       at:
           DateTime.tryParse('${body['at'] ?? ''}') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      amount: body['amount'] is num && (body['amount'] as num).isFinite
+          ? (body['amount'] as num).toInt().clamp(0, 99999)
+          : null,
     );
   }
 
@@ -125,10 +226,19 @@ class HabitCheck {
   /// When it happened, for the recent-activity list.
   final DateTime at;
 
+  /// How much was logged that day, for a habit with an amount goal. Null
+  /// is a plain check-in — the whole day done, as every version-1 record is.
+  final int? amount;
+
+  /// What the day counts towards [goal]: the logged amount, or the whole
+  /// goal for a plain check-in.
+  int progressFor(int goal) => amount ?? goal;
+
   Map<String, Object?> toJson() => {
     'habit': habitId,
     'date': dateKey,
     'at': at.toIso8601String(),
+    'amount': ?amount,
   };
 
   /// Accepts `2026-10-12` and the longer ISO forms, keeping the civil-date

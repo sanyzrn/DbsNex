@@ -196,6 +196,17 @@ open class MainActivity : FlutterFragmentActivity() {
                     NexVoiceRemux.playable(path, cacheDir).path
                 }
             }
+            // A breathing session keeps the display lit (Pause, 2.3.7).
+            // Window-scoped: it lasts while Nex is on screen and needs no
+            // permission.
+            "keepScreenOn" -> {
+                if (call.argument<Boolean>("on") == true) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+                result.success(null)
+            }
             "peekPending" -> result.success(nextCapture())
             // Which app installed this copy: a store that did owns its
             // updates, and the in-app updater stays out of its way (REL-01).

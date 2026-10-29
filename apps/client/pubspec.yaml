@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 2.3.6
+version: 2.4.0
 
 environment:
   sdk: ^3.9.0
@@ -139,6 +139,8 @@ flutter:
     - third_party/jalaali-js-LICENSE.txt
     - third_party/Inter-OFL.txt
     - third_party/Vazirmatn-OFL.txt
+    - third_party/Fraunces-OFL.txt
+    - third_party/MarkaziText-OFL.txt
     # The user guide, one file per language. Prose rather than labels — see
     # the note on GuideScreen for why it is not in the ARB catalogues.
     - assets/guide/
@@ -175,3 +177,12 @@ flutter:
           weight: 500
         - asset: assets/fonts/VazirmatnVariable.ttf
           weight: 600
+    # The greeting at the top of the home screen (2.4.0), and nothing else:
+    # Fraunces for English, Markazi Text for Persian (it carries Latin too, so
+    # «صبحت بخیر، Saeed» is one face). Both SIL OFL 1.1, variable, unmodified.
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/FrauncesVariable.ttf
+    - family: MarkaziText
+      fonts:
+        - asset: assets/fonts/MarkaziTextVariable.ttf

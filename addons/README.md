@@ -1,6 +1,6 @@
 # Nex add-on sources
 
-> All thirteen modules are available: Cycle, Habits, Price Lens, Lent & Borrowed, Quit Habits and Birthdays & occasions (built later, on the kit) from 2.1.11–2.1.13, and Expenses, Gold, Words, Parking, Medicine, Warranty and Maintenance from 2.1.14. Source, installation choices and records are preserved; the limits listed below still hold.
+> (History — see «Back in 2.4.0» below for what is available now.) All thirteen modules were available: Cycle, Habits, Price Lens, Lent & Borrowed, Quit Habits and Birthdays & occasions (built later, on the kit) from 2.1.11–2.1.13, and Expenses, Gold, Words, Parking, Medicine, Warranty and Maintenance from 2.1.14. Source, installation choices and records are preserved; the limits listed below still hold.
 
 All 11 supplied modules are integrated into the client for individual review. Sources and original READMEs are under `apps/client/lib/modules/<id>/`;
 tests are under `apps/client/test/modules/<id>/`. They were moved from this
@@ -27,6 +27,24 @@ stay readable: dates keep their ISO form on disk and old Lent & Borrowed drafts
 are migrated on open. Re-enable each remaining module individually after a
 device check (TalkBack, notification permission, large text) — add its id to
 `nexAvailableModuleIds` in `apps/client/lib/modules/module_rollout.dart`.
+
+### Back in 2.4.0: Word by Word
+
+Redesigned: a deck card (waiting count, a four-step ladder from new to
+learned, the streak), language badges and a strength meter on each row, one
+scrolling row of filters, a flashcard that turns over in review with coloured
+answers, and the ladder of rungs on a word's page. Added: an optional review
+reminder that rings once, on the next day with words waiting, renewed by
+`keepUp` (see `lib/modules/words/README.md`).
+
+### Back in 2.4.0: Birthdays & occasions
+
+Finished and redesigned: a coloured «next up» card with a countdown ring,
+calendar-page rows, three greetings per kind, reminders a day before *and*
+on the day, renewed by the module's `keepUp` whenever Nex starts or returns
+(see `lib/modules/occasions/README.md`). `nexAvailableModuleIds` is now
+`{'cycle', 'pause', 'occasions', 'words'}` — Pause (2.4.0) is first-party and
+lives outside this folder. The other ten stay Soon.
 
 ### Paused in 2.2.0: all twelve add-ons back to Soon
 
