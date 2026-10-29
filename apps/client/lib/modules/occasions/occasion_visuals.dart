@@ -254,7 +254,8 @@ class _OccasionSparkleState extends State<OccasionSparkle>
     with SingleTickerProviderStateMixin {
   late final AnimationController _fall = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 2200),
+    // A slow fall: seven of the app's slow beats.
+    duration: NexMotion.slow * 7,
     value: 1,
   );
 

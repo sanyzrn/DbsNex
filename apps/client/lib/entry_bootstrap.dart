@@ -21,7 +21,7 @@ Future<void> bootstrapEntry() async {
     yield LicenseEntryWithLineBreaks([
       'jalaali-js',
     ], await rootBundle.loadString('third_party/jalaali-js-LICENSE.txt'));
-    // The two bundled fonts. Pub packages' licences reach the licence page
+    // The bundled fonts. Pub packages' licences reach the licence page
     // through Flutter's NOTICES; fonts copied in by hand do not, and the SIL
     // OFL 1.1 asks for its text to travel with the font (REL-08).
     yield LicenseEntryWithLineBreaks([
@@ -30,6 +30,12 @@ Future<void> bootstrapEntry() async {
     yield LicenseEntryWithLineBreaks([
       'Vazirmatn',
     ], await rootBundle.loadString('third_party/Vazirmatn-OFL.txt'));
+    yield LicenseEntryWithLineBreaks([
+      'Fraunces',
+    ], await rootBundle.loadString('third_party/Fraunces-OFL.txt'));
+    yield LicenseEntryWithLineBreaks([
+      'Markazi Text',
+    ], await rootBundle.loadString('third_party/MarkaziText-OFL.txt'));
     // The on-device model runtime, an Android library rather than a pub
     // package, so Flutter's NOTICES never carries it (REL-04).
     yield const LicenseEntryWithLineBreaks(

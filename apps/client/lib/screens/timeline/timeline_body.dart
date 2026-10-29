@@ -97,16 +97,20 @@ extension _TimelineBody on TimelineScreenState {
     // The brief used to live here too. It is its own card now, in the slot
     // above the notes — see [_briefCard].
     if (!showLine) return const SizedBox.shrink();
-    final headlineStyle = theme.textTheme.headlineSmall?.copyWith(
-      fontWeight: FontWeight.w600,
-      fontSize: MediaQuery.sizeOf(context).height < 700 ? 20 : null,
-      height: 1.25,
+    // The greeting has a face of its own (2.4.0): Fraunces in English and
+    // Markazi Text in Persian, a size under display, at a regular weight —
+    // the date above it keeps its small label. Whether a model wrote the
+    // phrase or the app chose it, it is the same line and looks the same.
+    final persian = Localizations.localeOf(context).languageCode == 'fa';
+    final compact = MediaQuery.sizeOf(context).height < 700;
+    final headlineStyle = TextStyle(
+      fontFamily: persian ? 'MarkaziText' : 'Fraunces',
+      fontFamilyFallback: const ['Vazirmatn', 'Inter'],
+      fontSize: persian ? (compact ? 28 : 32) : (compact ? 24 : 28),
+      fontWeight: FontWeight.w400,
+      height: persian ? 1.3 : 1.2,
+      color: theme.colorScheme.onSurface,
     );
-    // The generated line is written at the daily recap's size and weight, not
-    // at display size. It is a flourish, not a title: set large and bold it
-    // was the loudest thing on a screen whose subject is the notes below it,
-    // and a model's turn of phrase does not earn that.
-    final generatedStyle = theme.textTheme.bodyMedium?.copyWith(height: 1.35);
     // The generated line has a slot as soon as there is a provider: it is a
     // skeleton first and text second, rather than appearing from nowhere and
     // pushing the card down once the request lands.
@@ -153,7 +157,7 @@ extension _TimelineBody on TimelineScreenState {
                     _GreetingLine(
                       text: greeting ?? _aiHeadlineText ?? '',
                       loading: hasHeadlineSlot && _aiHeadlineLoading,
-                      style: hasHeadlineSlot ? generatedStyle : headlineStyle,
+                      style: headlineStyle,
                     ),
                   ],
                 ),
