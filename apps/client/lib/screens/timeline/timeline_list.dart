@@ -81,12 +81,22 @@ class _TimelineListState extends State<_TimelineList> {
         duration: visible ? NexMotion.exit : Duration.zero,
       );
     }
+    // Rows only added after the last one, with every row there before still
+    // in place, are the next window arriving under a scroll — older notes,
+    // not new ones. They take their place without an entrance: sliding in
+    // at the bottom of a list someone is dragging through was a stutter, and
+    // it is not news (2.4.0).
+    final paging =
+        stable.length == _rows.length &&
+        _rows.isNotEmpty &&
+        widget.rows.length > _rows.length &&
+        widget.rows[_rows.length - 1].key == _rows.last.key;
     for (var i = 0; i < widget.rows.length; i++) {
       final row = widget.rows[i];
       if (!stable.contains(row.key)) {
         list.insertItem(
           i,
-          duration: animate && i >= first && i < first + 24
+          duration: animate && !paging && i >= first && i < first + 24
               ? NexMotion.enter
               : Duration.zero,
         );
