@@ -126,6 +126,9 @@ part of '../../platform/nex_services.dart';
           'nex_module_store.dart',
           'nex_module_strings.dart',
           'nex_stored_module.dart',
+          // First-party, like Cycle: it plays sound and taps, which the kit
+          // keeps out of a folder module.
+          'pause_module.dart',
         });
         final exports =
             RegExp(r'''^export\s+['"]([^'"]+)['"]''', multiLine: true)

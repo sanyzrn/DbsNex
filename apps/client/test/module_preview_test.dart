@@ -25,7 +25,8 @@ void main() {
   tearDown(() => harness.dispose());
 
   test('the twelve add-ons are Soon for now; their code stays', () {
-    expect(nexAvailableModuleIds, {'cycle'});
+    // Cycle, and Pause (2.3.7), which is first-party and was built for it.
+    expect(nexAvailableModuleIds, {'cycle', 'pause'});
     expect(reviewed, isEmpty);
     expect(paused, moduleIds);
     expect(moduleIds, hasLength(12));

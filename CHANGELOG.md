@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v2.3.7
+
+- **Pause: a breathing break.** A new module in Tools → Add modules. Choose Calm (5.5 seconds in, 5.5 out), Focus (box breathing, 4·4·4·4) or Relax (4-7-8): a line drawing opens and closes with each breath, the words say when to breathe in, hold and breathe out, and a soft chord, chimes and gentle taps guide you even with your eyes closed. The sound is made on the phone — nothing to download — and sound and vibration each have their own switch. Tap the card to pause; the screen stays on until the session ends with a singing bowl.
+- **The smart summary says what it is.** Its card now has a heading, and an **AI** badge when a model writes it. The plain report, which Nex writes itself, shows no badge.
+- **One edge for the top of the home screen.** The search field, the filter button beside it, the tags and the smart summary now share the same thin border in every theme, including Liquid Glass, where the filter button had been left flat. Tag names are a softer grey, like the search hint.
+
 ## v2.3.6
 
 - **Close a long note from anywhere.** The handle at the top of a note stays in place while you scroll, sits lower so pulling it no longer opens the phone's notifications, and is easier to grab: read to the last line and pull it down.

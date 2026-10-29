@@ -33,7 +33,6 @@ class NexModulePlan {
       switch (id) {
         'occasions' => l10n.planOccasionsTitle,
         'security-tools' => l10n.planSecurityToolsTitle,
-        'pause' => l10n.planPauseTitle,
         'persian-calendar' => l10n.planPersianCalendarTitle,
         'smoke-free' => l10n.planSmokeFreeTitle,
         'gold' => l10n.planGoldTitle,
@@ -52,7 +51,6 @@ class NexModulePlan {
       switch (id) {
         'occasions' => l10n.planOccasionsAbout,
         'security-tools' => l10n.planSecurityToolsAbout,
-        'pause' => l10n.planPauseAbout,
         'persian-calendar' => l10n.planPersianCalendarAbout,
         'smoke-free' => l10n.planSmokeFreeAbout,
         'gold' => l10n.planGoldAbout,
@@ -89,7 +87,6 @@ const List<NexModulePlan> nexModulePlans = [
     NexHue.sky,
     NexModuleStage.soon,
   ),
-  NexModulePlan('pause', Icons.air_outlined, NexHue.sky, NexModuleStage.soon),
   NexModulePlan(
     'telegram',
     Icons.send_outlined,

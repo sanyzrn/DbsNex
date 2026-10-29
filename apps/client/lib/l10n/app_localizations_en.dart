@@ -2337,6 +2337,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiDaySummaryTitle => 'Smart summary';
 
   @override
+  String get aiDaySummaryBadge => 'AI';
+
+  @override
+  String get aiDaySummaryByModel => 'Written by AI from your notes';
+
+  @override
   String get aiDaySummarySemanticLabel => 'Today\'s summary';
 
   @override
@@ -5663,6 +5669,119 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get editPhotoBeforeCaptureSubtitle =>
       'Open the preview and editing tools after taking or choosing a photo. Off saves it straight away.';
+
+  @override
+  String get pauseTitle => 'Breathing break';
+
+  @override
+  String get pauseTagline => 'A minute or two of guided breathing';
+
+  @override
+  String get pausePointModes => 'Calm, Focus and Relax';
+
+  @override
+  String get pausePointMotion => 'Motion that follows each breath';
+
+  @override
+  String get pausePointSound => 'Sound made on the phone, nothing downloaded';
+
+  @override
+  String get pausePointHaptics => 'Taps you can follow with your eyes closed';
+
+  @override
+  String get pauseModeCalm => 'Calm';
+
+  @override
+  String get pauseModeFocus => 'Focus';
+
+  @override
+  String get pauseModeRelax => 'Relax';
+
+  @override
+  String get pauseForCalm => 'For calm';
+
+  @override
+  String get pauseForFocus => 'For focus';
+
+  @override
+  String get pauseForRelax => 'For relax';
+
+  @override
+  String get pauseAboutCalm => 'Calm your mind. Find balance.';
+
+  @override
+  String get pauseAboutFocus => 'Ease stress. Sharpen focus.';
+
+  @override
+  String get pauseAboutRelax => 'Wind down. Sleep better.';
+
+  @override
+  String pauseRhythm(String rhythm, String breaths, String length) {
+    return '$rhythm s · $breaths breaths · $length';
+  }
+
+  @override
+  String get pauseStart => 'Start';
+
+  @override
+  String get pauseSound => 'Sound';
+
+  @override
+  String get pauseSoundAbout =>
+      'A soft chord and chimes that follow the breath';
+
+  @override
+  String get pauseHaptics => 'Vibration';
+
+  @override
+  String get pauseHapticsAbout =>
+      'Taps that quicken as you breathe in and slow as you breathe out';
+
+  @override
+  String get pauseInhale => 'Inhale';
+
+  @override
+  String get pauseExhale => 'Exhale';
+
+  @override
+  String get pauseHold => 'Hold';
+
+  @override
+  String get pausePaused => 'Paused';
+
+  @override
+  String get pauseTapToResume => 'Tap to carry on';
+
+  @override
+  String get pauseDoneTitle => 'Well done';
+
+  @override
+  String pauseDoneBody(String breaths, String length) {
+    return '$breaths breaths · $length';
+  }
+
+  @override
+  String get pauseAgain => 'Again';
+
+  @override
+  String pauseBreathsLeft(String count) {
+    return '$count breaths left';
+  }
+
+  @override
+  String get pauseSoundOn => 'Sound on';
+
+  @override
+  String get pauseSoundOff => 'Sound off';
+
+  @override
+  String get pauseHapticsOn => 'Vibration on';
+
+  @override
+  String get pauseHapticsOff => 'Vibration off';
+
+  @override
+  String get pauseEnd => 'End the session';
 
   @override
   String get planPauseTitle => 'Pause';

@@ -495,6 +495,9 @@ extension _TimelineAiHeader on TimelineScreenState {
         strength: 0.4,
         active: !_aiSummaryCollapsed,
         token: _aiSummaryText,
+        // One lap when a brief lands, then the same hairline as the search
+        // field and the tags above it.
+        restsUnlit: true,
         child: NexGlassSurface(
           blur: false,
           borderRadius: corner,
@@ -509,11 +512,16 @@ extension _TimelineAiHeader on TimelineScreenState {
             text: _aiSummaryText,
             emptyLabel: l10n.aiDaySummaryEmpty,
             collapsed: _aiSummaryCollapsed,
-            semanticLabel: l10n.aiDaySummarySemanticLabel,
+            semanticLabel: widget.preferences.briefStyle.usesModel
+                ? '${l10n.aiDaySummarySemanticLabel}. ${l10n.aiDaySummaryByModel}'
+                : l10n.aiDaySummarySemanticLabel,
             toggleTooltip: _aiSummaryCollapsed
                 ? l10n.aiDaySummaryExpand
                 : l10n.aiDaySummaryCollapse,
             onToggle: _toggleAiSummary,
+            title: l10n.aiDaySummaryTitle,
+            badge: l10n.aiDaySummaryBadge,
+            byModel: widget.preferences.briefStyle.usesModel,
           ),
         ),
       ),

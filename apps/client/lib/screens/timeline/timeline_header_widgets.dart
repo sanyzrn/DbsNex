@@ -178,7 +178,18 @@ class _AiDaySummaryPanel extends StatelessWidget {
     required this.semanticLabel,
     required this.toggleTooltip,
     required this.onToggle,
+    required this.title,
+    required this.badge,
+    required this.byModel,
   });
+
+  /// The card's name, over the brief.
+  final String title;
+
+  /// Beside the name while a model writes the brief; the plain report is
+  /// Nex's own arithmetic and does not wear it.
+  final String badge;
+  final bool byModel;
 
   final bool loading;
   final String? text;
@@ -211,36 +222,50 @@ class _AiDaySummaryPanel extends StatelessWidget {
           // the edge was the header's own margin.
           padding: const EdgeInsets.all(NexSpacing.cardInset),
           child: NexAnimatedSize(
-            // No rule down the edge any more, and still no heading. The
-            // light going round the card says the same thing the rule did —
-            // a model wrote this — and two marks for one fact is one mark
-            // too many.
-            child: AnimatedSwitcher(
-              duration: NexMotion.of(context, NexMotion.enter),
-              reverseDuration: NexMotion.of(context, NexMotion.exit),
-              switchInCurve: NexMotion.curve,
-              switchOutCurve: NexMotion.exitCurve,
-              layoutBuilder: (current, previous) => Stack(
-                alignment: AlignmentDirectional.topStart,
-                children: [
-                  for (final child in previous)
-                    ExcludeSemantics(child: IgnorePointer(child: child)),
-                  if (current != null) current,
-                ],
-              ),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: animation.drive(
-                    Tween(begin: const Offset(0, 0.025), end: Offset.zero),
-                  ),
-                  child: child,
+            // A heading again (2.3.7). The light going round the card was
+            // meant to say "a model wrote this", and it did not: readers
+            // took the card for one of their own notes. Now it says what it
+            // is, and who wrote it, in one quiet line.
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _BriefHeader(
+                  title: title,
+                  badge: badge,
+                  byModel: byModel,
+                  // A new brief makes the mark twinkle once.
+                  token: text,
                 ),
-              ),
-              child: KeyedSubtree(
-                key: ValueKey(text),
-                child: _body(context, theme),
-              ),
+                const SizedBox(height: NexSpacing.sm),
+                AnimatedSwitcher(
+                  duration: NexMotion.of(context, NexMotion.enter),
+                  reverseDuration: NexMotion.of(context, NexMotion.exit),
+                  switchInCurve: NexMotion.curve,
+                  switchOutCurve: NexMotion.exitCurve,
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: AlignmentDirectional.topStart,
+                    children: [
+                      for (final child in previous)
+                        ExcludeSemantics(child: IgnorePointer(child: child)),
+                      if (current != null) current,
+                    ],
+                  ),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: animation.drive(
+                        Tween(begin: const Offset(0, 0.025), end: Offset.zero),
+                      ),
+                      child: child,
+                    ),
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey(text),
+                    child: _body(context, theme),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -323,6 +348,110 @@ class _AiDaySummaryPanel extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The brief's heading: a mark, its name and, when a model wrote it, a small
+/// badge saying so.
+///
+/// The mark is a sparkle in a soft accent disc that turns and settles once
+/// each time a new brief arrives — the one moment the card has news — and
+/// stays still otherwise. The plain report gets a list mark instead: nothing
+/// in it was written by a model, and the card should not claim otherwise.
+class _BriefHeader extends StatelessWidget {
+  const _BriefHeader({
+    required this.title,
+    required this.badge,
+    required this.byModel,
+    required this.token,
+  });
+
+  final String title;
+  final String badge;
+  final bool byModel;
+  final Object? token;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final label = theme.textTheme.labelMedium?.copyWith(
+      color: scheme.primary,
+      fontWeight: FontWeight.w600,
+    );
+    final mark = DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: [
+            scheme.primary.withValues(alpha: 0.2),
+            scheme.tertiary.withValues(alpha: 0.12),
+          ],
+        ),
+      ),
+      child: SizedBox.square(
+        dimension: 24,
+        child: Icon(
+          byModel ? Icons.auto_awesome : Icons.checklist_rtl,
+          size: 14,
+          color: scheme.primary,
+        ),
+      ),
+    );
+    return ExcludeSemantics(
+      child: Row(
+        children: [
+          if (byModel)
+            TweenAnimationBuilder<double>(
+              key: ValueKey(token),
+              tween: Tween(begin: 0, end: 1),
+              duration: NexMotion.of(context, NexMotion.slow * 2),
+              curve: Curves.easeOutBack,
+              builder: (context, t, child) => Transform.rotate(
+                angle: (1 - t) * -0.9,
+                child: Transform.scale(scale: 0.7 + 0.3 * t, child: child),
+              ),
+              child: mark,
+            )
+          else
+            mark,
+          const SizedBox(width: NexSpacing.sm),
+          Flexible(
+            child: Text(
+              title,
+              style: label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (byModel) ...[
+            const SizedBox(width: NexSpacing.sm),
+            DecoratedBox(
+              key: const ValueKey('brief-ai-badge'),
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(NexRadius.pill),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: NexSpacing.sm,
+                  vertical: 2,
+                ),
+                child: Text(
+                  badge,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

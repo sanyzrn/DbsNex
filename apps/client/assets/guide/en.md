@@ -133,7 +133,7 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 
 ## Tools and private vault
 
-**Pause (coming soon).** Tools → Add modules previews a short offline breathing break with three modes and optional haptics.
+**Pause** is a breathing break, added from **Tools → Add modules**. Swipe between **Calm** (5.5 seconds in, 5.5 out), **Focus** (box breathing: 4 in, 4 held, 4 out, 4 held) and **Relax** (4-7-8), then tap **Start** or the card in the middle. After a three-second count, the drawing opens as you breathe in and closes as you breathe out, the words say when to hold, and the number in the corner counts the breaths left. A soft chord and chimes follow the breath, and the phone taps faster as you breathe in and slower as you breathe out, so it can be followed with your eyes closed; turn either off on the Pause page or with the buttons under the card. Tap the card to pause and again to carry on; leaving the app pauses it too. The screen stays on during a session, which ends with a singing bowl. The sound is made on the phone; nothing is downloaded or sent.
 
 
 **Modules** are extra features that stay out of the app until you want them: **Tools → Add modules** lists each one with what it does. **Add** installs it, which you can watch as its pieces gather into its icon, and puts it in Tools under **Modules**; **Remove** takes it out again — with nothing left running — and asks whether to keep its data for later or delete it. Cycle keeps its existing opt-in. Below the modules you can add, **On the way** lists the ones being planned, and the row at the bottom opens a short form that sends us your own idea for one.
