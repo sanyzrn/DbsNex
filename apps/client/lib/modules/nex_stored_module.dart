@@ -27,6 +27,12 @@ abstract class NexStoredModule extends NexModule {
   /// Its screen, opened from its tile in Tools, with its store.
   Widget screen(NexModuleStore store);
 
+  /// Called when Nex starts and each time it comes back to the front, while
+  /// this module is on and available: the moment to keep its own reminders
+  /// ahead without waiting for its screen to be opened (2.4.0). Nothing may
+  /// be shown from here. Does nothing unless a module needs it.
+  Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) async {}
+
   @override
   String title(AppLocalizations l10n) => strings.text(l10n, 'title');
 

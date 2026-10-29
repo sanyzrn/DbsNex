@@ -67,7 +67,7 @@ class NexBorderBeam extends StatefulWidget {
   final int laps;
 
   /// Whether the light goes out once its laps are run, leaving the child's
-  /// own edge. The brief does this (2.3.7): resting lit, its border was a
+  /// own edge. The brief does this (2.4.0): resting lit, its border was a
   /// coloured frame beside the search field's plain one, and its heading now
   /// says what the light was there to say.
   final bool restsUnlit;

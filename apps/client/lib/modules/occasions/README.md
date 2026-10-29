@@ -42,15 +42,30 @@ module kit does not give (see Platform requests).
 
 ## Decisions
 
-- **Reminders.** A platform reminder is a one-time alarm, and a module has no
-  honest yearly one. So two are kept ahead — for the next two times the date
-  falls (keys `occ:<id>:a`, `occ:<id>:b`) — and made again whenever the module
-  opens and whenever the occasion is saved. A date never opened for two years
-  goes quiet; the sheet says that it renews on opening. They are cleared when
-  the occasion is deleted, archived or muted. The notification names the
-  occasion — except a remembrance, which stays neutral on a lock screen. They
-  need the notification permission and the module to be available; when an
-  alarm cannot be set, saving still succeeds and the person is told once.
+- **Reminders (2.4.0).** A platform reminder is a one-time alarm, and a
+  module has no honest yearly one. So the alarms for the next two times the
+  date falls are kept ahead: on the day itself (`occ:<id>:c`, `:d`), and, when
+  a day ahead was chosen, that many days before too (`occ:<id>:a`, `:b`).
+  They are made again whenever Nex starts or comes back to the front — the
+  module's `keepUp`, which the app calls for every module that is on — as
+  well as when the module opens and when the occasion is saved, so a date
+  keeps ringing year after year without its screen being opened. A new date
+  reminds by default (a day before and on the day, at 09:00). They are
+  cleared when the occasion is deleted, archived or muted. The notification
+  is the occasion's name with its mark (🎂, 💞, 📅) and when it is, with the
+  age it comes to — except a remembrance, which stays neutral on a lock
+  screen. They need the notification permission; when an alarm cannot be
+  set, saving still succeeds and the person is told once.
+- **Not tied into the timeline.** A date is not copied into the notes, the
+  brief or the assistant: remembrances are personal, the module kit keeps a
+  module's records to itself, and the reminders already reach the person at
+  the moment it matters.
+- **The look (2.4.0).** The nearest date leads the page in a card in its
+  kind's colours (warm for a birthday, rose for an anniversary, dusk for a
+  remembrance, violet otherwise) with a countdown ring, and, on the day,
+  copy and share buttons for a greeting. Each row is a calendar page with
+  the day in the occasion's own calendar, and a pill for how far away it is.
+  Each kind has three greetings, with **Another** to switch between them.
 - **The Jalali code** is the app's own (`nexPersianDate`, `nexGregorianDate`,
   years 1–3177); outside it, an occasion has no next day and is listed to be
   fixed rather than guessed.

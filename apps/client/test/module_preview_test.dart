@@ -24,11 +24,12 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('the twelve add-ons are Soon for now; their code stays', () {
-    // Cycle, and Pause (2.3.7), which is first-party and was built for it.
-    expect(nexAvailableModuleIds, {'cycle', 'pause'});
-    expect(reviewed, isEmpty);
-    expect(paused, moduleIds);
+  test('one add-on is back, the other eleven are Soon; their code stays', () {
+    // Cycle; Pause (2.4.0), which is first-party; and Birthdays & occasions,
+    // finished and redesigned in 2.4.0.
+    expect(nexAvailableModuleIds, {'cycle', 'pause', 'occasions'});
+    expect(reviewed, {'occasions'});
+    expect(paused, moduleIds.difference({'occasions'}));
     expect(moduleIds, hasLength(12));
   });
 

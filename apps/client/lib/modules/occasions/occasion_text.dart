@@ -66,21 +66,3 @@ String? yearsText(BuildContext context, Occasion occasion, OccasionDay day) {
     {'n': years},
   );
 }
-
-/// What the notification says. Names the occasion except for a remembrance,
-/// which stays neutral on a lock screen.
-String occasionNotificationBody(BuildContext context, Occasion occasion) {
-  if (occasion.kind == OccasionKind.memorial || occasion.title.isEmpty) {
-    return occasionsStrings(context, 'notifNeutral');
-  }
-  final days = occasion.remindDays ?? 0;
-  return occasionsStrings(
-    context,
-    days == 0
-        ? 'notifToday'
-        : days == 1
-        ? 'notifTomorrow'
-        : 'notifDays',
-    {'name': occasion.title, 'n': days},
-  );
-}

@@ -7,7 +7,7 @@ import '../screens/pause/pause_screen.dart';
 import '../widgets/nex_shelf.dart';
 import 'nex_module.dart';
 
-/// «Pause», a breathing break (2.3.7).
+/// «Pause», a breathing break (2.4.0).
 ///
 /// First-party rather than a module-kit folder, because it needs what the kit
 /// keeps out: a player for its sound, the phone's haptics and a lit screen.

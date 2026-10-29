@@ -1,4 +1,5 @@
 import 'modules/module_dates.dart';
+import 'platform/module_keep_up.dart';
 import 'platform/ui_text_scaler.dart';
 export 'widgets/app_lock_gate.dart' show appLockBarrierKey;
 
@@ -160,6 +161,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // exist on the note and nowhere else — so every launch puts them back
     // from the library, which is the only copy that survives.
     unawaited(widget.services.restoreReminders());
+    unawaited(nexKeepModulesUp(widget.services, widget.preferences));
     if (_locked) WidgetsBinding.instance.addPostFrameCallback((_) => _unlock());
   }
 
@@ -292,6 +294,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       // exist on the note and nowhere else — so every launch puts them back
       // from the library, which is the only copy that survives.
       unawaited(widget.services.restoreReminders());
+      unawaited(nexKeepModulesUp(widget.services, widget.preferences));
       // Re-read the library on the way back in. This is what pull-to-refresh
       // was standing in for, and it is strictly better at the job: every
       // capture path already re-fires the timeline stream itself, so the only

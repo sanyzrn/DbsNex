@@ -39,10 +39,7 @@ void main() {
   test('the slot and its comma go, the question mark stays', () async {
     final en = await AppLocalizations.delegate.load(const Locale('en'));
     final fa = await AppLocalizations.delegate.load(const Locale('fa'));
-    expect(
-      nexUnnamedGreeting(en.greetingAfternoonB),
-      "How's your day going?",
-    );
+    expect(nexUnnamedGreeting(en.greetingAfternoonB), "How's your day going?");
     // The slot in the middle of a phrase (2.4.0): the space before it goes.
     expect(nexUnnamedGreeting(fa.greetingMorningB), 'سلام، روزت قشنگ');
     expect(nexUnnamedGreeting(en.greetingNight), 'Still up?');

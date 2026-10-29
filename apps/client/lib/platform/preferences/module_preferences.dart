@@ -10,7 +10,7 @@ mixin _ModulePreferences on _PreferencesStore {
   bool isModuleOn(String id) => _prefs.getBool('module.$id.on') ?? false;
   Future<void> setModuleOn(String id, bool on) => _setBool('module.$id.on', on);
 
-  /// Pause (2.3.7): the breathing mode last chosen, and whether a session
+  /// Pause (2.4.0): the breathing mode last chosen, and whether a session
   /// plays its sound and its haptics. Both on until turned off.
   String get pauseMode => _prefs.getString('module.pause.mode') ?? 'calm';
   Future<void> setPauseMode(String mode) =>

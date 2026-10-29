@@ -34,8 +34,10 @@ Working convention:
 
 ## Unreleased
 
-## v2.3.7
+## v2.4.0
 
+- **Birthdays & occasions is here.** Add it from Tools → Add modules. The nearest date leads the page in a coloured card with a countdown ring; every date below is a little calendar page that says how far away it is. Each kind has three greetings to copy or share, and on the day itself they are right on the card. A new date reminds you a day before and on the day, and the reminders keep themselves up to date every year without opening the module. A remembrance's notification never shows its name.
+- **Warmer greetings.** The line at the top of the home screen has new, friendlier words — the Persian ones now sound like a friend talking, not a translation — and it is always in the app's language: «صبحت بخیر، Saeed» rather than a whole English line in a Persian app. With AI on, the greeting also takes your writing portrait into account.
 - **Pause: a breathing break.** A new module in Tools → Add modules. Choose Calm (5.5 seconds in, 5.5 out), Focus (box breathing, 4·4·4·4) or Relax (4-7-8): a line drawing opens and closes with each breath, the words say when to breathe in, hold and breathe out, and a soft chord, chimes and gentle taps guide you even with your eyes closed. The sound is made on the phone — nothing to download — and sound and vibration each have their own switch. Tap the card to pause; the screen stays on until the session ends with a singing bowl.
 - **The smart summary says what it is.** Its card now has a heading, and an **AI** badge when a model writes it. The plain report, which Nex writes itself, shows no badge.
 - **One edge for the top of the home screen.** The search field, the filter button beside it, the tags and the smart summary now share the same thin border in every theme, including Liquid Glass, where the filter button had been left flat. Tag names are a softer grey, like the search hint.

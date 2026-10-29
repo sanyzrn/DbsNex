@@ -222,7 +222,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
           // the edge was the header's own margin.
           padding: const EdgeInsets.all(NexSpacing.cardInset),
           child: NexAnimatedSize(
-            // A heading again (2.3.7). The light going round the card was
+            // A heading again (2.4.0). The light going round the card was
             // meant to say "a model wrote this", and it did not: readers
             // took the card for one of their own notes. Now it says what it
             // is, and who wrote it, in one quiet line.

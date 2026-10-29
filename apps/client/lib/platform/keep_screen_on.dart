@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 /// Keeps the display lit while something is meant to be watched without a
 /// touch — a breathing session, where the screen timing out half a minute in
-/// would end the guide mid-breath (2.3.7).
+/// would end the guide mid-breath (2.4.0).
 ///
 /// Window-scoped on Android (`FLAG_KEEP_SCREEN_ON`), so it lasts only while
 /// Nex is on screen and costs no permission. Elsewhere it does nothing.

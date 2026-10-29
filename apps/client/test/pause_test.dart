@@ -14,7 +14,7 @@ import 'package:nex_client/screens/pause/pause_synth.dart';
 
 import 'support/nex_harness.dart';
 
-/// Pause, the breathing break (2.3.7).
+/// Pause, the breathing break (2.4.0).
 void main() {
   group('the breathing', () {
     test('each mode is the pattern its name stands for', () {

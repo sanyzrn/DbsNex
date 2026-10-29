@@ -26,7 +26,7 @@ so Tools and pinned tools cannot open a paused module. Re-enable each add-on
 only after its review. Newly planned modules also use the Soon badge.
 
 Since 2.2.0 the twelve add-ons are Soon again (see `addons/README.md`).
-Available now: **Cycle**, and from 2.3.7 **Pause** — a breathing break
+Available now: **Cycle**, and from 2.4.0 **Pause** — a breathing break
 (`lib/modules/pause_module.dart`, screens in `lib/screens/pause/`). Like Cycle
 it is first-party rather than a module-kit folder, because it uses what the kit
 keeps out: `just_audio` for its synthesized sound (`pause_synth.dart`, no audio

@@ -219,10 +219,11 @@ void main() {
         expect(await future.list('__reminder'), isEmpty);
         expect(h.preferences.isModuleOn('future_module'), isTrue);
         // Only Cycle was available from 2.2.0, with the add-ons Soon again;
-        // Pause joined it in 2.3.7.
+        // Pause joined it in 2.4.0, Birthdays & occasions in 2.4.0.
         expect(nexModules.where((m) => m.available).map((m) => m.id).toSet(), {
           'cycle',
           'pause',
+          'occasions',
         });
         expect(
           NexModuleAlarms.moduleId('a', 'b:c'),
