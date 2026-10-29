@@ -66,8 +66,32 @@ void main() {
         for (var d = 1; d <= 20; d += 2) key(DateTime(2026, 10, d)),
       ];
       final rate = HabitMath.dailyRate(h, keys, today, 30);
-      expect((rate.done, rate.possible), (10, 20));
-      expect(rate.percent, 50);
+      // Today (the 20th) is not yet done, and a day still being lived is not
+      // counted as a miss (2.4.0): 10 of the 19 days before it.
+      expect((rate.done, rate.possible), (10, 19));
+      expect(rate.percent, 53);
+    });
+
+    test('a habit on chosen days counts only those days', () {
+      final h = Habit(
+        id: 'd',
+        name: 'Gym',
+        note: '',
+        weekly: false,
+        target: 1,
+        archived: false,
+        createdAt: DateTime(2026, 10, 1),
+        plan: HabitPlan.days,
+        // Saturday, Monday, Wednesday.
+        days: const {DateTime.saturday, DateTime.monday, DateTime.wednesday},
+      );
+      // 1–19 October 2026 holds 8 of those days (3, 5, 7, 10, 12, 14, 17,
+      // 19); 6 are kept, and one check on a Friday counts as a bonus day.
+      final keys = [
+        for (final d in [3, 5, 7, 10, 12, 14, 9]) key(DateTime(2026, 10, d)),
+      ];
+      final rate = HabitMath.dailyRate(h, keys, today, 30);
+      expect((rate.done, rate.possible), (7, 9));
     });
 
     test('a window shorter than the habit counts the window', () {
