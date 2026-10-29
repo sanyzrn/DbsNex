@@ -14,9 +14,9 @@ import 'package:flutter/foundation.dart'
 ///
 /// A module that is not listed here is Soon: no install, open or reminders.
 /// Rollout never changes saved installation choices or data.
-/// Birthdays & occasions is the first of them back, finished and redesigned
-/// in 2.4.0.
-const nexAvailableModuleIds = {'cycle', 'pause', 'occasions'};
+/// Birthdays & occasions and Word by Word are the first of them back,
+/// finished and redesigned in 2.4.0.
+const nexAvailableModuleIds = {'cycle', 'pause', 'occasions', 'words'};
 
 /// Windows, Linux and macOS. The modules are made for the phone; the desktop
 /// has none of them for now (its own tools are to come, `docs/27-desktop.md`),

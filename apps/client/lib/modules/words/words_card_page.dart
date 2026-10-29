@@ -17,6 +17,7 @@ import 'words_models.dart';
 import 'words_scheduler.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
+import 'words_visuals.dart';
 import 'words_dates.dart';
 import 'form_draft.dart';
 import 'draft_guard.dart';
@@ -175,6 +176,8 @@ class _WordsCardPageState extends State<WordsCardPage> with _WordsCardLogic {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          WordsRungs(card: _card),
+          const SizedBox(height: NexSpacing.sm),
           Text(
             strings(context, 'statsLine', {
               'reps': _card.reps,
@@ -203,7 +206,7 @@ class _WordsCardPageState extends State<WordsCardPage> with _WordsCardLogic {
               color: scheme.onSurfaceVariant,
             ),
           ),
-          SwitchListTile(
+          NexSwitchTile(
             key: const ValueKey('words-card-pause'),
             contentPadding: EdgeInsets.zero,
             title: Text(strings(context, 'pausedLabel')),

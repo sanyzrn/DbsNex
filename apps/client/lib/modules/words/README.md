@@ -22,8 +22,9 @@ lines and meanings for retry. Card/batch drafts survive back/swipe/restart.
 Discard removes a draft; failure keeps it recoverable. A failed draft read
 blocks editing until Retry, rather than overwriting it with an empty checkpoint.
 
-No dictionary, AI translation, audio, network, Nex-note import, file export,
-reminders or background work. Every definition is user-entered.
+No dictionary, AI translation, audio, network, Nex-note import, file export
+or background work. Every definition is user-entered. The one reminder is
+optional (2.4.0, below).
 
 ## Records
 
@@ -202,3 +203,27 @@ four buttons, once per card; a card with no meaning to show is asked forward.
 The home screen can **copy the list on screen** (every word the filters leave)
 as `word<TAB>meaning`, one line each — what the paste box reads back; line
 breaks in a meaning become « ; ». No file is written.
+
+## The look and the reminder (2.4.0)
+
+Back from Soon after a redesign. The home page opens on a deck card in ink
+and violet: how many words wait, a four-step ladder of the cards that are
+not paused (new; learning, the first three rungs; holding, the next two;
+learned, the 60-day rung), and a streak of days in a row with at least one
+answer. Review settings open under it. Filters are one row that scrolls
+sideways — statuses, a divider, then tags — instead of two rows that wrapped
+apart. Each word is a card: a language badge (two letters on a colour of its
+own), the word and its meaning each in its own direction but both at the
+page's start edge, and a five-bar strength meter over where it stands. In
+review the front of the card is the deck's gradient, and Reveal turns it
+over (a quarter turn out, a quarter in; reduced motion swaps at once);
+the answers are coloured — Again red, Hard amber, Good green, Easy blue. A
+word's page shows the ladder of rungs with its own lit.
+
+**Review reminder.** Off until turned on under Review settings. One
+notification (`words:review`, source `settings`/`reminder`) at the chosen
+time on the next day with words waiting — due cards plus new ones within
+the daily allowance — and none when nothing waits in the next sixty days.
+Kept ahead by the module's `keepUp` (Nex starting or returning), by the home
+page loading, and by changing the setting. Record: kind `settings`, id
+`reminder`, `{on, minutes}`.

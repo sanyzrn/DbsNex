@@ -28,14 +28,23 @@ are migrated on open. Re-enable each remaining module individually after a
 device check (TalkBack, notification permission, large text) — add its id to
 `nexAvailableModuleIds` in `apps/client/lib/modules/module_rollout.dart`.
 
+### Back in 2.4.0: Word by Word
+
+Redesigned: a deck card (waiting count, a four-step ladder from new to
+learned, the streak), language badges and a strength meter on each row, one
+scrolling row of filters, a flashcard that turns over in review with coloured
+answers, and the ladder of rungs on a word's page. Added: an optional review
+reminder that rings once, on the next day with words waiting, renewed by
+`keepUp` (see `lib/modules/words/README.md`).
+
 ### Back in 2.4.0: Birthdays & occasions
 
 Finished and redesigned: a coloured «next up» card with a countdown ring,
 calendar-page rows, three greetings per kind, reminders a day before *and*
 on the day, renewed by the module's `keepUp` whenever Nex starts or returns
 (see `lib/modules/occasions/README.md`). `nexAvailableModuleIds` is now
-`{'cycle', 'pause', 'occasions'}` — Pause (2.4.0) is first-party and lives
-outside this folder. The other eleven stay Soon.
+`{'cycle', 'pause', 'occasions', 'words'}` — Pause (2.4.0) is first-party and
+lives outside this folder. The other ten stay Soon.
 
 ### Paused in 2.2.0: all twelve add-ons back to Soon
 

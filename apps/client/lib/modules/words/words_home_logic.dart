@@ -52,6 +52,13 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
         _loading = false;
         _failed = false;
       });
+      // The reminder follows the cards: a review moves the next due day.
+      unawaited(
+        wordsArmReminder(
+          widget.store,
+          AppLocalizations.of(context),
+        ).catchError((_) => false),
+      );
     } catch (_) {
       if (mounted && generation == _generation) {
         setState(() {

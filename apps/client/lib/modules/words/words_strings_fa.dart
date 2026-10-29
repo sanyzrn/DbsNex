@@ -57,6 +57,16 @@ const Map<String, String> wordsStringsFa = {
   'point3': 'بی‌حساب، بی‌ابر',
 
   // -------------------------------------------------------------- home
+  'streak': '{count} روز پشت سر هم',
+  'stageNew': '{count} تازه',
+  'stageLearning': '{count} در حال یادگیری',
+  'stageHolding': '{count} جاافتاده',
+  'stageLearned': '{count} آموخته',
+  'remindLabel': 'یادآوری مرور',
+  'remindHint': 'روزی یک بار، فقط وقتی واژه‌ای منتظر است',
+  'remindAt': 'ساعت {time}',
+  'remindBody': '{count} واژه منتظر شماست. چند دقیقه کافی است.',
+  'remindFailed': 'یادآوری تنظیم نشد. مجوز اعلان را بررسی کنید.',
   'collection': 'واژه‌های شما',
   'heroWaiting': '{count} مرور در انتظار',
   'heroDone': 'همه مرور شد',
