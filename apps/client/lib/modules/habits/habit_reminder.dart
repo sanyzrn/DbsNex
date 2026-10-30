@@ -106,7 +106,9 @@ Future<bool> habitArmReminder(
   // Persist v1 preferences before replacing its daily platform record.
   if (reminder.on && await store.get(habitRemindKind, habit.id) == null) {
     await store.put(habitRemindKind, habit.id, {
-      'v': 1, 'on': true, 'minutes': reminder.minutes,
+      'v': 1,
+      'on': true,
+      'minutes': reminder.minutes,
     });
   }
   if (!reminder.on || habit.archived) {
@@ -200,7 +202,11 @@ class _HabitReminderTileState extends State<HabitReminderTile> {
   Future<void> _load() async {
     try {
       final reminder = await habitReadReminder(widget.store, widget.habit.id);
-      if (mounted) setState(() { _reminder = reminder; _loadFailed = false; });
+      if (mounted)
+        setState(() {
+          _reminder = reminder;
+          _loadFailed = false;
+        });
     } catch (_) {
       if (mounted) setState(() => _loadFailed = true);
     }
@@ -211,9 +217,10 @@ class _HabitReminderTileState extends State<HabitReminderTile> {
     if (current == null || _busy) return;
     setState(() => _busy = true);
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final failed = habitsStrings(context, 'reminderFailed');
-    void say() => messenger.showSnackBar(SnackBar(content: Text(failed)));
+    void say() {
+      if (mounted) nexShowBanner(context, message: failed, kind: NexBannerKind.failed);
+    }
     try {
       final next = (on: on ?? current.on, minutes: minutes ?? current.minutes);
       await widget.store.put(habitRemindKind, widget.habit.id, {
@@ -249,8 +256,10 @@ class _HabitReminderTileState extends State<HabitReminderTile> {
   Widget build(BuildContext context) {
     final reminder = _reminder;
     if (_loadFailed) {
-      return TextButton(onPressed: () => unawaited(_load()),
-        child: Text(habitsStrings(context, 'retry')));
+      return TextButton(
+        onPressed: () => unawaited(_load()),
+        child: Text(habitsStrings(context, 'retry')),
+      );
     }
     if (reminder == null) return const SizedBox(height: 64);
     final strings = habitsStrings;

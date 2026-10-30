@@ -225,6 +225,7 @@ void main() {
           'pause',
           'occasions',
           'words',
+          'habits',
         });
         expect(
           NexModuleAlarms.moduleId('a', 'b:c'),
@@ -234,3 +235,4 @@ void main() {
     );
   });
 }
+

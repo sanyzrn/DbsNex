@@ -12,8 +12,12 @@ import '../platform/nex_services.dart';
 /// Local module facts are joined only at display time. They never enter an
 /// AI request, its cache or its fingerprint.
 class NexModuleBrief extends StatefulWidget {
-  const NexModuleBrief({super.key, required this.services,
-    required this.preferences, required this.builder});
+  const NexModuleBrief({
+    super.key,
+    required this.services,
+    required this.preferences,
+    required this.builder,
+  });
   final NexServices services;
   final NexPreferences preferences;
   final Widget Function(BuildContext, String?) builder;
@@ -77,11 +81,16 @@ class _NexModuleBriefState extends State<NexModuleBrief>
     final generation = ++_generation;
     final l10n = AppLocalizations.of(context);
     final services = widget.services;
-    final modules = nexModulesOn(widget.preferences).whereType<NexStoredModule>().toList();
+    final modules = nexModulesOn(
+      widget.preferences,
+    ).whereType<NexStoredModule>().toList();
     final lines = <String>[];
     for (final module in modules) {
       try {
-        final line = await module.briefLine(NexModuleStore(services, module.id), l10n);
+        final line = await module.briefLine(
+          NexModuleStore(services, module.id),
+          l10n,
+        );
         if (line != null && line.isNotEmpty) lines.add(line);
       } catch (_) {
         // A module's unavailable store must not hide the rest of the brief.
@@ -91,8 +100,10 @@ class _NexModuleBriefState extends State<NexModuleBrief>
     setState(() => _line = lines.isEmpty ? null : lines.join('\n'));
     _midnight?.cancel();
     final now = DateTime.now();
-    _midnight = Timer(DateTime(now.year, now.month, now.day + 1).difference(now),
-      () => unawaited(_load()));
+    _midnight = Timer(
+      DateTime(now.year, now.month, now.day + 1).difference(now),
+      () => unawaited(_load()),
+    );
   }
 
   @override

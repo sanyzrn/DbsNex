@@ -94,12 +94,21 @@ class HabitRate {
 /// the app is in, so the same history always has the same streak.
 class HabitMath {
   /// Amount-aware entry point used by all habit screens.
-  static HabitStanding fromChecks(Habit habit, Iterable<HabitCheck> checks,
-      DateTime today, {int firstDay = DateTime.saturday}) {
+  static HabitStanding fromChecks(
+    Habit habit,
+    Iterable<HabitCheck> checks,
+    DateTime today, {
+    int firstDay = DateTime.saturday,
+  }) {
     final logged = loggedDays(habit, checks, today);
     final amounts = {for (final e in logged.entries) dateKeyOf(e.key): e.value};
-    return standing(habit, amounts.keys, today,
-        firstDay: firstDay, amounts: amounts);
+    return standing(
+      habit,
+      amounts.keys,
+      today,
+      firstDay: firstDay,
+      amounts: amounts,
+    );
   }
 
   /// How many days the detail page's dot row shows.
@@ -201,7 +210,13 @@ class HabitMath {
         recent: recent,
         dueToday: dueToday,
         todayAmount: todayAmount,
-        strength: strength(habit, dateKeys, today, amounts: amounts, firstDay: firstDay),
+        strength: strength(
+          habit,
+          dateKeys,
+          today,
+          amounts: amounts,
+          firstDay: firstDay,
+        ),
       );
     }
 
@@ -222,7 +237,13 @@ class HabitMath {
       recent: recent,
       dueToday: dueToday,
       todayAmount: todayAmount,
-      strength: strength(habit, dateKeys, today, amounts: amounts, firstDay: firstDay),
+      strength: strength(
+        habit,
+        dateKeys,
+        today,
+        amounts: amounts,
+        firstDay: firstDay,
+      ),
       best: habit.weekly
           ? _bestWeekly(habit, done, firstDay)
           : _bestScheduled(habit, done, todayUtc),
@@ -558,4 +579,3 @@ class HabitMath {
     return HabitRate(met, possible);
   }
 }
-

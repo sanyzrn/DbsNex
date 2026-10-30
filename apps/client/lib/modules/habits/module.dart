@@ -33,17 +33,29 @@ class HabitsModule extends NexStoredModule {
   @override
   Future<String?> briefLine(NexModuleStore store, AppLocalizations l10n) async {
     final habits = (await store.list('habit')).map(Habit.fromRecord);
-    final checks = (await store.list('check')).map(HabitCheck.fromRecord).toList();
+    final checks = (await store.list(
+      'check',
+    )).map(HabitCheck.fromRecord).toList();
     final firstDay = readFirstDay(await store.get('settings', 'week'));
     final now = DateTime.now();
     var remaining = 0;
     for (final habit in habits.where((h) => !h.archived)) {
-      final s = HabitMath.fromChecks(habit, checks.where((c) => c.habitId == habit.id),
-        now, firstDay: firstDay);
-      if (s.dueToday && !s.todayDone && !(habit.weekly && s.weekCount >= habit.target)) remaining++;
+      final s = HabitMath.fromChecks(
+        habit,
+        checks.where((c) => c.habitId == habit.id),
+        now,
+        firstDay: firstDay,
+      );
+      if (s.dueToday &&
+          !s.todayDone &&
+          !(habit.weekly && s.weekCount >= habit.target))
+        remaining++;
     }
-    return remaining == 0 ? null : strings.text(l10n,
-      remaining == 1 ? 'briefOneLeft' : 'briefLeft', {'n': remaining});
+    return remaining == 0
+        ? null
+        : strings.text(l10n, remaining == 1 ? 'briefOneLeft' : 'briefLeft', {
+            'n': remaining,
+          });
   }
 
   @override
@@ -91,7 +103,7 @@ const habitsStrings = NexModuleStrings(
     "heroOneLeft": "1 left for today",
     "heroLeft": "{n} left for today",
     "bestGoing": "{n} in a row · {name}",
-    "amountProgress": "{amount} / {goal} {unit}",
+    "amountProgress": "{done} / {goal} {unit}",
     "ofGoal": "of {goal} {unit}",
     "addOne": "Add one",
     "amountDoneHint": "Adjust today’s amount",
@@ -116,7 +128,8 @@ const habitsStrings = NexModuleStrings(
     "day_off": "{date}, day off",
     "day_future": "{date}, upcoming",
     "day_pending": "{date}, still time today",
-    "calendarAmountHint": "Tap a day to log its amount. Days to come stay closed.",
+    "calendarAmountHint":
+        "Tap a day to log its amount. Days to come stay closed.",
     "reminder": "Reminder",
     "reminderEveryDay": "Every day, unless it is already kept",
     "reminderWeekly": "Until this week’s goal is met",
@@ -317,7 +330,7 @@ const habitsStrings = NexModuleStrings(
     "heroOneLeft": "۱ عادت برای امروز مانده",
     "heroLeft": "{n} عادت برای امروز مانده",
     "bestGoing": "{n} پشت سر هم · {name}",
-    "amountProgress": "{amount} از {goal} {unit}",
+    "amountProgress": "{done} از {goal} {unit}",
     "ofGoal": "از {goal} {unit}",
     "addOne": "یکی اضافه کن",
     "amountDoneHint": "ویرایش مقدار امروز",
@@ -342,7 +355,8 @@ const habitsStrings = NexModuleStrings(
     "day_off": "{date}، استراحت",
     "day_future": "{date}، آینده",
     "day_pending": "{date}، امروز هنوز فرصت هست",
-    "calendarAmountHint": "برای ثبت مقدار، روز را بزن. روزهای آینده بسته می‌مانند.",
+    "calendarAmountHint":
+        "برای ثبت مقدار، روز را بزن. روزهای آینده بسته می‌مانند.",
     "reminder": "یادآور",
     "reminderEveryDay": "هر روز، مگر اینکه انجام شده باشد",
     "reminderWeekly": "تا رسیدن به هدف این هفته",
@@ -502,4 +516,3 @@ const habitsStrings = NexModuleStrings(
     'nameRequired': 'اول یک نام برای عادت بنویسید',
   },
 );
-

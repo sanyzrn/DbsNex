@@ -30,11 +30,14 @@ Kind `habit`, store-generated stable ID:
 {"name":"Morning stretch","note":"5 minutes","schedule":"weekly","target":3,"archived":false,"createdAt":"2026-10-12T08:00:00.000"}
 ```
 
-`name`/`note`: string; `schedule`: daily/weekly; `target`: integer 1–7
+`name`/`note`: string; `schedule`: daily/weekly/days/every; `target`: integer 1–7
 (1 for daily); `archived`: boolean; `createdAt`: ISO timestamp. Legacy/default
 values are empty text, daily, target 3 (weekly) / 1 (daily), false, epoch.
-Editing preserves identity/history and archive state. The habit/check shape
-remains version 1 without a version field, for compatibility.
+Editing preserves identity/history and archive state. Version 2 adds `days`
+(weekday integers), `every` (2–30 days), `goal` (1–9999), `unit`, `icon` and
+`hue` (0–7). Old records need no destructive migration. A check's optional
+`amount` records partial progress; absent means a full goal, including after
+an old tick habit is edited into an amount habit.
 
 Kind `check`, deterministic ID `<habit-id>:<YYYY-MM-DD>`:
 
@@ -70,7 +73,8 @@ Cancel discards it, successful Save clears it. A baseline fingerprint rejects
 stale drafts after a final record changes. These records stay in this module's
 store/backups and never count toward progress or balances.
 
-Habit draft fields: `name`, `note` strings; `weekly` boolean; `target` integer.
+Habit draft fields include `name`, `note`, `unit`, `plan`, `weekly`, `target`,
+`days`, `every`, `counted`, `goal`, `icon` and `hue`.
 
 Compound deletion uses kind `operation`, ID `<parent-kind>:<parent-id>`, body
 `{v: 1, records: [{kind: string, id: string, body: JSON object}, ...]}`.
@@ -206,6 +210,6 @@ counts days checked of the days since the habit began (7, 30 and 90 days, the
 window cut to the habit's life) for a daily habit, and weeks that met the
 target among the last twelve *finished* weeks for a weekly one; the week in
 progress and a first week that began mid-week are never counted against it.
-Streaks and the forgiven interval are unchanged. Specific weekdays and
-every-N-days schedules are not here: they would change the streak rules.
+Streaks and the forgiven interval are unchanged. Version 2.4.1 adds specific weekdays and every-N-days plans; only scheduled
+days count towards those streaks.
 

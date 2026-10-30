@@ -71,8 +71,13 @@ class _ArchiveScreenState extends State<ArchiveScreen>
         habit.id,
         habit.toJson()..['archived'] = false,
       );
-      try { await habitArmReminder(widget.store, l10n,
-        Habit.fromBody(habit.id, habit.toJson()..['archived'] = false)); } catch (_) {}
+      try {
+        await habitArmReminder(
+          widget.store,
+          l10n,
+          Habit.fromBody(habit.id, habit.toJson()..['archived'] = false),
+        );
+      } catch (_) {}
     } catch (_) {
       writeError();
     } finally {
@@ -159,4 +164,3 @@ class _ArchiveScreenState extends State<ArchiveScreen>
     );
   }
 }
-

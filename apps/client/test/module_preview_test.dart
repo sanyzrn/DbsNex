@@ -27,7 +27,13 @@ void main() {
   test('three add-ons are back, the other nine are Soon; their code stays', () {
     // Cycle; Pause, which is first-party; and, finished and redesigned in
     // 2.4.0, Birthdays & occasions and Word by Word.
-    expect(nexAvailableModuleIds, {'cycle', 'pause', 'occasions', 'words', 'habits'});
+    expect(nexAvailableModuleIds, {
+      'cycle',
+      'pause',
+      'occasions',
+      'words',
+      'habits',
+    });
     expect(reviewed, {'occasions', 'words', 'habits'});
     expect(paused, moduleIds.difference({'occasions', 'words', 'habits'}));
     expect(moduleIds, hasLength(12));
@@ -136,4 +142,3 @@ void main() {
     });
   }
 }
-

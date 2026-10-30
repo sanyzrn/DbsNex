@@ -212,12 +212,13 @@ class HabitHero extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: NexSpacing.xs),
-                            Text(
+                            SizedBox(width: 76, child: Text(
                               strings(context, 'strength'),
+                              textAlign: TextAlign.center,
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: white.withValues(alpha: 0.85),
                               ),
-                            ),
+                            )),
                           ],
                         ),
                       ),
@@ -307,7 +308,13 @@ class HabitStatTiles extends StatelessWidget {
     final persian = NexModuleStrings.persian(context);
     final now = DateTime.now();
     final rate = habit.weekly
-        ? HabitMath.weeklyRate(habit, dateKeys, now, firstDay: firstDay, amounts: amounts)
+        ? HabitMath.weeklyRate(
+            habit,
+            dateKeys,
+            now,
+            firstDay: firstDay,
+            amounts: amounts,
+          )
         : HabitMath.dailyRate(habit, dateKeys, now, 30, amounts: amounts);
     String digits(Object v) => nexDigits('$v', persian: persian);
     return Row(

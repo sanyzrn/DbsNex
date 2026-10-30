@@ -70,7 +70,11 @@ class _HabitCalendarPanelState extends State<HabitCalendarPanel> {
       final isToday = date == today;
       final label = nexModuleDateLabel(context, date);
       final number = nexDigits('$day', persian: persian);
-      final fill = done ? widget.color : partial ? widget.color.withValues(alpha: 0.25) : Colors.transparent;
+      final fill = done
+          ? widget.color
+          : partial
+          ? widget.color.withValues(alpha: 0.25)
+          : Colors.transparent;
       final textColor = done
           ? scheme.onPrimary
           : future
@@ -80,9 +84,7 @@ class _HabitCalendarPanelState extends State<HabitCalendarPanel> {
         button: !future,
         enabled: !future,
         selected: done,
-        label: strings(context, 'day_${state.name}', {
-          'date': label,
-        }),
+        label: strings(context, 'day_${state.name}', {'date': label}),
         excludeSemantics: true,
         child: InkResponse(
           key: ValueKey('habit-day-$key'),
@@ -98,8 +100,15 @@ class _HabitCalendarPanelState extends State<HabitCalendarPanel> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: fill,
-                  border: !done && (isToday || partial || state == HabitDayState.missed)
-                      ? Border.all(color: isToday || partial ? widget.color : scheme.outline, width: 1.5)
+                  border:
+                      !done &&
+                          (isToday || partial || state == HabitDayState.missed)
+                      ? Border.all(
+                          color: isToday || partial
+                              ? widget.color
+                              : scheme.outline,
+                          width: 1.5,
+                        )
                       : null,
                 ),
                 child: Text(
@@ -174,13 +183,21 @@ class _HabitCalendarPanelState extends State<HabitCalendarPanel> {
               ],
             ),
           const SizedBox(height: NexSpacing.xs),
-          HabitMarkLegend(color: widget.color, labels: [
-            strings(context, 'legendDone'), strings(context, 'legendPartial'),
-            strings(context, 'legendMissed'), strings(context, 'legendOff'),
-          ]),
+          HabitMarkLegend(
+            color: widget.color,
+            labels: [
+              strings(context, 'legendDone'),
+              strings(context, 'legendPartial'),
+              strings(context, 'legendMissed'),
+              strings(context, 'legendOff'),
+            ],
+          ),
           const SizedBox(height: NexSpacing.sm),
           Text(
-            strings(context, widget.habit.counted ? 'calendarAmountHint' : 'calendarHint'),
+            strings(
+              context,
+              widget.habit.counted ? 'calendarAmountHint' : 'calendarHint',
+            ),
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -269,4 +286,3 @@ class HabitRatePanel extends StatelessWidget {
     );
   }
 }
-

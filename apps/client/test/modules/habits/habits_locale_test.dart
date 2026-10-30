@@ -254,6 +254,12 @@ void main() {
           tester.view.devicePixelRatio = 1;
           addTearDown(tester.view.resetPhysicalSize);
           addTearDown(tester.view.resetDevicePixelRatio);
+          final oldOnError = FlutterError.onError;
+          FlutterError.onError = (details) {
+            debugPrint(details.toString());
+            oldOnError?.call(details);
+          };
+          addTearDown(() => FlutterError.onError = oldOnError);
           await seedHistory();
           await pump(
             tester,
@@ -396,4 +402,3 @@ void main() {
     );
   });
 }
-

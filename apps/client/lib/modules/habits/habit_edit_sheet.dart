@@ -306,7 +306,12 @@ class _HabitEditSheetState extends State<_HabitEditSheet> {
                 if (!_editing) ...[
                   section('ideas'),
                   SizedBox(
-                    height: 40 + (MediaQuery.textScalerOf(context).scale(14) - 14).clamp(0, 60),
+                    height:
+                        40 +
+                        (MediaQuery.textScalerOf(context).scale(14) - 14).clamp(
+                          0,
+                          60,
+                        ),
                     child: ListView(
                       key: const ValueKey('habit-templates'),
                       scrollDirection: Axis.horizontal,

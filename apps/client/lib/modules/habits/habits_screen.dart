@@ -129,18 +129,22 @@ class _HabitsScreenState extends State<HabitsScreen>
       final day = dateKeyOf(DateTime.now());
       final existing = await log.toggle(habit, day);
       if (existing == null) return;
-      messenger.showSnackBar(SnackBar(
-        content: Text(removed),
-        action: SnackBarAction(label: undo,
-        onPressed: () => unawaited(
-          log
-              .restore(habit, day, existing)
-              .catchError(
-                (Object _) =>
-                    messenger.showSnackBar(SnackBar(content: Text(failed))),
-              ),
-        )),
-      ));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(removed),
+          action: SnackBarAction(
+            label: undo,
+            onPressed: () => unawaited(
+              log
+                  .restore(habit, day, existing)
+                  .catchError(
+                    (Object _) =>
+                        messenger.showSnackBar(SnackBar(content: Text(failed))),
+                  ),
+            ),
+          ),
+        ),
+      );
     });
   }
 

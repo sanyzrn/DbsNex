@@ -174,7 +174,10 @@ void main() {
       await tester.pumpAndSettle();
       // Tap the segment's own words, not the middle of the row: the seam
       // belongs to whichever segment the direction hands it.
-      await tapHabitControl(tester, find.byKey(const ValueKey('habit-plan-weekly')));
+      await tapHabitControl(
+        tester,
+        find.byKey(const ValueKey('habit-plan-weekly')),
+      );
       await tester.pumpAndSettle();
 
       // The seven choices are counts; the first is also its own word, so
@@ -192,7 +195,10 @@ void main() {
       await tester.pumpAndSettle();
       // The segment's own words again: at the row's seam, right-to-left hit
       // testing hands the tap to «روزانه» instead of «هفتگی».
-      await tapHabitControl(tester, find.byKey(const ValueKey('habit-plan-weekly')));
+      await tapHabitControl(
+        tester,
+        find.byKey(const ValueKey('habit-plan-weekly')),
+      );
       await tester.pumpAndSettle();
 
       // «یک بار در هفته» via the {n} pipeline, so the digit is Persian.
@@ -262,4 +268,3 @@ void main() {
     });
   });
 }
-

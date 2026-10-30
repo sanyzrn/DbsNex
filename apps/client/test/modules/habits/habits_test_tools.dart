@@ -59,7 +59,10 @@ Future<String> createHabit(
   await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const ValueKey('habit-field-name')), name);
   if (weekly) {
-    await tapHabitControl(tester, find.byKey(const ValueKey('habit-plan-weekly')));
+    await tapHabitControl(
+      tester,
+      find.byKey(const ValueKey('habit-plan-weekly')),
+    );
     await tester.pumpAndSettle();
     await tapHabitControl(tester, find.byKey(ValueKey('habit-target-$target')));
     await tester.pumpAndSettle();
@@ -70,4 +73,3 @@ Future<String> createHabit(
   expect(habits, hasLength(1), reason: 'the habit was really saved');
   return habits.first.id;
 }
-

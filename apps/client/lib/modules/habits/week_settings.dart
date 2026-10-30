@@ -43,7 +43,9 @@ class _WeekSettingsState extends State<_WeekSettings> {
     final l10n = AppLocalizations.of(context);
     try {
       await widget.store.put('settings', 'week', {'v': 1, 'firstDay': _day});
-      try { await habitsKeepUp(widget.store, l10n); } catch (_) {}
+      try {
+        await habitsKeepUp(widget.store, l10n);
+      } catch (_) {}
       if (mounted) Navigator.pop(context);
     } catch (_) {
       if (mounted) setState(() => _error = habitsStrings(context, 'saveError'));
@@ -101,4 +103,3 @@ class _WeekSettingsState extends State<_WeekSettings> {
     ),
   );
 }
-
