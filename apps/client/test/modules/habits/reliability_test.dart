@@ -1,3 +1,4 @@
+import 'habits_test_tools.dart' show tapHabitControl;
 import 'package:nex_client/modules/habits/record_bundle.dart';
 import 'dart:async';
 import 'package:nex_client/modules/habits/module.dart';
@@ -198,7 +199,7 @@ void main() {
     );
     store.failWrites = true;
     await tester.ensureVisible(find.byKey(const ValueKey('habit-save')));
-    await tester.tap(find.byKey(const ValueKey('habit-save')));
+    await tapHabitControl(tester, find.byKey(const ValueKey('habit-save')));
     await tester.pumpAndSettle();
     expect(
       find.text('Could not save. Your changes are still here; try again.'),
@@ -206,7 +207,7 @@ void main() {
     );
     expect(await store.inner.list('habit'), isEmpty);
     store.failWrites = false;
-    await tester.tap(find.byKey(const ValueKey('habit-save')));
+    await tapHabitControl(tester, find.byKey(const ValueKey('habit-save')));
     await tester.pumpAndSettle();
     expect(await store.inner.list('habit'), hasLength(1));
     expect(tester.takeException(), isNull);

@@ -38,6 +38,14 @@ Future<void> settle(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> tapHabitControl(WidgetTester tester, Finder finder) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+}
+
 /// Creates a habit through the real sheet, and returns the id the store
 /// gave it — a UUID v7, never a guess.
 Future<String> createHabit(
@@ -51,12 +59,15 @@ Future<String> createHabit(
   await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const ValueKey('habit-field-name')), name);
   if (weekly) {
-    await tester.tap(find.byKey(const ValueKey('habit-field-schedule')));
+    await tapHabitControl(
+      tester,
+      find.byKey(const ValueKey('habit-plan-weekly')),
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('habit-target-$target')));
+    await tapHabitControl(tester, find.byKey(ValueKey('habit-target-$target')));
     await tester.pumpAndSettle();
   }
-  await tester.tap(find.byKey(const ValueKey('habit-save')));
+  await tapHabitControl(tester, find.byKey(const ValueKey('habit-save')));
   await settle(tester);
   final habits = await store.list('habit');
   expect(habits, hasLength(1), reason: 'the habit was really saved');

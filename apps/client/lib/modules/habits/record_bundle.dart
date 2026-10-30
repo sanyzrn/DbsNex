@@ -17,11 +17,13 @@ class RecordBundle {
     final parent = await store.get(kind, id);
     final dependent = await store.list(children);
     final draft = await store.get('draft', '$kind:$id');
+    final reminder = kind == 'habit' ? await store.get('remind', id) : null;
     return RecordBundle(store, [
       for (final record in dependent)
         if (record.body[parentField] == id)
           (kind: children, id: record.id, body: Map.of(record.body)),
       if (draft != null) (kind: 'draft', id: '$kind:$id', body: Map.of(draft)),
+      if (reminder != null) (kind: 'remind', id: id, body: Map.of(reminder)),
       if (parent != null) (kind: kind, id: id, body: Map.of(parent)),
     ]);
   }

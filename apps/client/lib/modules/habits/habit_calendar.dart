@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'habit_math.dart';
 import 'habit_model.dart';
 import 'module.dart';
+import 'habit_visuals.dart';
 
 /// A habit's whole history as months, in the calendar the reader uses —
 /// Jalali or Gregorian. A tap marks or unmarks that day, today or earlier:
@@ -15,14 +16,18 @@ import 'module.dart';
 class HabitCalendarPanel extends StatefulWidget {
   const HabitCalendarPanel({
     super.key,
-    required this.doneKeys,
+    required this.habit,
+    required this.logged,
+    required this.color,
     required this.firstDay,
     required this.onToggle,
     this.busy = false,
   });
 
   /// Civil dates (`YYYY-MM-DD`) with a check-in.
-  final Set<String> doneKeys;
+  final Habit habit;
+  final Map<DateTime, int> logged;
+  final Color color;
 
   /// Dart weekday (1 Monday … 7 Sunday) the weeks start on.
   final int firstDay;
@@ -58,12 +63,18 @@ class _HabitCalendarPanelState extends State<HabitCalendarPanel> {
       if (day < 1 || day > month.days) return const SizedBox(height: 44);
       final date = month.dayAt(day);
       final key = dateKeyOf(date);
-      final done = widget.doneKeys.contains(key);
+      final state = HabitMath.dayState(widget.habit, date, widget.logged, now);
+      final done = state == HabitDayState.done;
+      final partial = state == HabitDayState.partial;
       final future = date.isAfter(today);
       final isToday = date == today;
       final label = nexModuleDateLabel(context, date);
       final number = nexDigits('$day', persian: persian);
-      final fill = done ? scheme.primary : Colors.transparent;
+      final fill = done
+          ? widget.color
+          : partial
+          ? widget.color.withValues(alpha: 0.25)
+          : Colors.transparent;
       final textColor = done
           ? scheme.onPrimary
           : future
@@ -73,9 +84,7 @@ class _HabitCalendarPanelState extends State<HabitCalendarPanel> {
         button: !future,
         enabled: !future,
         selected: done,
-        label: strings(context, done ? 'dayDone' : 'dayNotDone', {
-          'date': label,
-        }),
+        label: strings(context, 'day_${state.name}', {'date': label}),
         excludeSemantics: true,
         child: InkResponse(
           key: ValueKey('habit-day-$key'),
@@ -91,8 +100,15 @@ class _HabitCalendarPanelState extends State<HabitCalendarPanel> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: fill,
-                  border: isToday && !done
-                      ? Border.all(color: scheme.primary, width: 1.5)
+                  border:
+                      !done &&
+                          (isToday || partial || state == HabitDayState.missed)
+                      ? Border.all(
+                          color: isToday || partial
+                              ? widget.color
+                              : scheme.outline,
+                          width: 1.5,
+                        )
                       : null,
                 ),
                 child: Text(
@@ -167,8 +183,21 @@ class _HabitCalendarPanelState extends State<HabitCalendarPanel> {
               ],
             ),
           const SizedBox(height: NexSpacing.xs),
+          HabitMarkLegend(
+            color: widget.color,
+            labels: [
+              strings(context, 'legendDone'),
+              strings(context, 'legendPartial'),
+              strings(context, 'legendMissed'),
+              strings(context, 'legendOff'),
+            ],
+          ),
+          const SizedBox(height: NexSpacing.sm),
           Text(
-            strings(context, 'calendarHint'),
+            strings(
+              context,
+              widget.habit.counted ? 'calendarAmountHint' : 'calendarHint',
+            ),
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),

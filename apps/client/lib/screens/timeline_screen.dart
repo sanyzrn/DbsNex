@@ -44,6 +44,7 @@ import '../platform/os_capture_bridge.dart';
 import '../platform/sharing.dart';
 import '../platform/update_service.dart';
 import '../widgets/ai_chat_sheet.dart';
+import '../widgets/module_brief.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/capture_flick.dart';
 import '../widgets/card_strings.dart';
@@ -791,3 +792,4 @@ class TimelineScreenState extends State<TimelineScreen>
 
   bool _pinchApplied = false;
 }
+

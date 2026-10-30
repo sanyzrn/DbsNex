@@ -5,6 +5,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'habit_detail_screen.dart';
 import 'habit_model.dart';
+import 'habit_reminder.dart';
 import 'module.dart';
 import 'store_state.dart';
 import 'record_bundle.dart';
@@ -63,12 +64,20 @@ class _ArchiveScreenState extends State<ArchiveScreen>
   Future<void> _unarchive(Habit habit) async {
     if (_writing) return;
     setState(() => _writing = true);
+    final l10n = AppLocalizations.of(context);
     try {
       await widget.store.put(
         'habit',
         habit.id,
         habit.toJson()..['archived'] = false,
       );
+      try {
+        await habitArmReminder(
+          widget.store,
+          l10n,
+          Habit.fromBody(habit.id, habit.toJson()..['archived'] = false),
+        );
+      } catch (_) {}
     } catch (_) {
       writeError();
     } finally {

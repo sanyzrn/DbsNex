@@ -174,6 +174,11 @@ void main() {
     /// list builds a little beyond the screen, so "found" is not "visible".
     Future<void> reveal(WidgetTester tester, Finder finder) async {
       for (var i = 0; i < 12; i++) {
+        if (finder.evaluate().isEmpty) {
+          await tester.drag(find.byType(ListView).first, const Offset(0, -300));
+          await tester.pumpAndSettle();
+          continue;
+        }
         final y = tester.getCenter(finder).dy;
         if (y > 80 && y < 520) return;
         await tester.drag(
@@ -238,12 +243,13 @@ void main() {
       final tomorrow = DateTime.now().add(const Duration(days: 1));
       if (tomorrow.month == DateTime.now().month) {
         final finder = find.byKey(ValueKey('habit-day-${key(tomorrow)}'));
-        await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+        await reveal(tester, finder);
         await tester.pumpAndSettle();
         await tester.tap(finder);
         await settle(tester);
         expect(await store.get('check', 'h1:${key(tomorrow)}'), isNull);
       }
+      await reveal(tester, find.byKey(const ValueKey('habit-month-next')));
       // The month after this one is not reachable at all.
       expect(
         tester
@@ -259,6 +265,7 @@ void main() {
       final store = await seeded();
       await tester.pumpWidget(app(store, locale: const Locale('fa')));
       await settle(tester);
+      await reveal(tester, find.byKey(const ValueKey('habit-month-title')));
       final title = tester.widget<Text>(
         find.byKey(const ValueKey('habit-month-title')),
       );

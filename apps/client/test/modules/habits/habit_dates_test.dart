@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/habits/habit_detail_screen.dart';
 import 'package:nex_client/modules/habits/habit_model.dart';
+import 'package:nex_client/modules/habits/habit_visuals.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_core/nex_core.dart' show nexDisplayDate;
 
@@ -148,32 +149,20 @@ void main() {
     },
   );
 
-  testWidgets('the two-week window names its first and last day', (
-    tester,
-  ) async {
-    final store = await seedHabit(daysBack: [1]);
-    await pumpDetail(tester, store, const Locale('en'));
-    final range =
-        '${label(civil(13), const Locale('en'))} – '
-        '${label(civil(0), const Locale('en'))}';
-    expect(find.text(range), findsOneWidget);
-  });
+  for (final language in ['en', 'fa']) {
+    testWidgets('the new season shows sixteen weeks ($language)', (tester) async {
+      final store = await seedHabit(daysBack: [1]);
+      await pumpDetail(tester, store, Locale(language));
+      final heatmap = tester.widget<HabitHeatmap>(find.byType(HabitHeatmap));
+      expect(heatmap.weeks, 16);
+      expect(find.text(language == 'fa' ? '۱۶ هفته اخیر' : 'Last 16 weeks'), findsOneWidget);
+    });
+  }
 
-  testWidgets('and in Persian, with «تا» between the two Jalali days', (
-    tester,
-  ) async {
-    final store = await seedHabit(daysBack: [1]);
-    await pumpDetail(tester, store, const Locale('fa'));
-    final range =
-        '${label(civil(13), const Locale('fa'))} تا '
-        '${label(civil(0), const Locale('fa'))}';
-    expect(find.text(range), findsOneWidget);
-  });
-
-  testWidgets('a single check-in reads in the singular', (tester) async {
+  testWidgets('a single completed day appears in the total tile', (tester) async {
     final store = await seedHabit(daysBack: [0]);
     await pumpDetail(tester, store, const Locale('en'));
-    expect(find.text('1 check-in'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('habit-stat-total')), matching: find.text('1')), findsOneWidget);
     expect(find.text('1 check-ins'), findsNothing);
   });
 
@@ -199,6 +188,7 @@ void main() {
     // two records — once per row.
     expect(find.text('5 days ago'), findsNWidgets(2));
     expect(find.text('2 check-ins'), findsNWidgets(2));
-    expect(find.text('1 check-in'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('habit-stat-total')), matching: find.text('1')), findsOneWidget);
   });
 }
+
