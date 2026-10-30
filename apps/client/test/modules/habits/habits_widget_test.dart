@@ -82,7 +82,7 @@ void main() {
 
       await tester.tap(find.byKey(ValueKey('habit-today-$id')));
       await settle(tester);
-      expect(find.text('1 of 1 done'), findsOneWidget);
+      expect(find.text('1/1'), findsOneWidget);
 
       // The check-in is a real record, keyed by the civil date.
       final checks = await store.list('check');
@@ -156,7 +156,7 @@ void main() {
         tester.widget(find.byKey(const ValueKey('habit-field-note'))),
         isA<NexTextField>(),
       );
-      await tester.tap(find.byKey(const ValueKey('habit-save')));
+      await tapHabitControl(tester, find.byKey(const ValueKey('habit-save')));
       await tester.pumpAndSettle();
       expect(find.text('Give the habit a name first'), findsOneWidget);
       expect(
@@ -174,7 +174,7 @@ void main() {
       await tester.pumpAndSettle();
       // Tap the segment's own words, not the middle of the row: the seam
       // belongs to whichever segment the direction hands it.
-      await tester.tap(find.text('Weekly'));
+      await tapHabitControl(tester, find.byKey(const ValueKey('habit-plan-weekly')));
       await tester.pumpAndSettle();
 
       // The seven choices are counts; the first is also its own word, so
@@ -192,7 +192,7 @@ void main() {
       await tester.pumpAndSettle();
       // The segment's own words again: at the row's seam, right-to-left hit
       // testing hands the tap to «روزانه» instead of «هفتگی».
-      await tester.tap(find.text('هفتگی'));
+      await tapHabitControl(tester, find.byKey(const ValueKey('habit-plan-weekly')));
       await tester.pumpAndSettle();
 
       // «یک بار در هفته» via the {n} pipeline, so the digit is Persian.
@@ -218,10 +218,10 @@ void main() {
         find.byKey(const ValueKey('habit-field-name')),
         'Evening stretch',
       );
-      await tester.tap(find.byKey(const ValueKey('habit-save')));
+      await tapHabitControl(tester, find.byKey(const ValueKey('habit-save')));
       await settle(tester);
 
-      expect(find.text('Evening stretch'), findsOneWidget);
+      expect(find.text('Evening stretch'), findsNWidgets(2));
       final habits = await store.list('habit');
       expect(habits.first.body['name'], 'Evening stretch');
       // The check-in from before the rename is untouched.
@@ -252,7 +252,8 @@ void main() {
       await tester.tap(find.text('Morning stretch'));
       await tester.pumpAndSettle();
       expect(find.text('3-day streak'), findsOneWidget);
-      expect(find.text('3 check-ins'), findsOneWidget);
+      expect(find.byKey(const ValueKey('habit-stat-total')), findsOneWidget);
+      expect(find.text('3'), findsWidgets);
 
       // Back navigation returns to Today.
       await tester.pageBack();
@@ -261,3 +262,4 @@ void main() {
     });
   });
 }
+

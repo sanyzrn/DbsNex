@@ -1,23 +1,26 @@
-# Habits
+# Habits 2.4.1
 
-## 1. What it does
+Available from Tools → Add modules. Existing habits and check-ins are preserved.
 
-Today lists active habits with a clear, semantic 48dp completion toggle and
-a daily count. Detail shows a forgiving streak, weekly target progress, the
-last 14 days with their calendar range, completion total, the habit's start
-day, note and recent check-ins. Recent check-ins keep relative words where
-they read best and carry the platform calendar's own date beside them
-(`nexModuleDateLabel`), so a Persian reader sees Jalali — never a Gregorian
-date labelled as one. Create/edit supports daily or 1–7 times per week.
-Archive/unarchive keeps history; delete has Undo — and so does taking a
-day's check-in back, which restores the exact original record.
-The settings action selects any of seven start days for all weekly summaries.
-Empty, archived, loading and retry states have working actions — the empty
-archive says where archiving happens and carries the way back to Today — and
-the long empty states scroll rather than clip at large text.
-Compact/large-text forms use wrapping choices. Screens refresh on store changes
-and device resume; date labels are also recalculated on interaction/reopening.
-There are no reminders, widgets, social features, network calls or AI features.
+Plans: daily, selected weekdays, N times per week, or every N days from the
+creation date. Goals can be ticks or numeric amounts. Legacy check-ins without
+an amount represent a completed goal. Partial logs never count as complete
+in streaks, totals or weekly completion rates.
+
+Today shows pending, completed and resting habits. Detail includes the current
+and best streak, consistency, completion rate, a 16-week heatmap, a calendar
+with done/partial/missed/off states, and exact history. Calendar dates use the
+chosen calendar; arithmetic uses civil dates and the saved first weekday.
+
+Reminder preferences live in `remind/<habit-id>`. Legacy daily alarms migrate
+before replacement. Reminders are one-shot alarms for the next due unfinished
+day; app start/resume, logging and edits rearm them. They do not guarantee
+recurrence while the app remains unopened. Archiving cancels the alarm but
+keeps the preference. Delete and Undo preserve history, drafts and settings.
+
+The optional module brief hook calculates remaining habits locally. The
+presentation widget joins it to the daily brief only at display time; no
+module records enter the AI request, cache or fingerprint.
 
 ## 2. Records
 
@@ -205,3 +208,4 @@ target among the last twelve *finished* weeks for a weekly one; the week in
 progress and a first week that began mid-week are never counted against it.
 Streaks and the forgiven interval are unchanged. Specific weekdays and
 every-N-days schedules are not here: they would change the streak rules.
+

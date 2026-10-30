@@ -85,7 +85,7 @@ void main() {
       expect(find.text('عادت‌ها'), findsOneWidget);
       expect(find.text('امروز'), findsOneWidget);
       expect(
-        find.text('۱ از ۱ انجام شد'),
+        find.text('۱/۱'),
         findsOneWidget,
         reason: 'numbers in Persian digits',
       );
@@ -101,7 +101,7 @@ void main() {
         textScale: 2.0,
       );
       expect(find.text('عادت‌ها'), findsOneWidget);
-      expect(find.text('۱ از ۱ انجام شد'), findsOneWidget);
+      expect(find.text('۱/۱'), findsOneWidget);
       expectNoOverflow(tester);
     });
 
@@ -187,7 +187,7 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 60));
       });
       await tester.pumpAndSettle();
-      expect(find.text('۱ از ۱ انجام شد'), findsOneWidget);
+      expect(find.text('۱/۱'), findsOneWidget);
       expectNoOverflow(tester);
       // No snackbar timer may outlive the test.
       await tester.pumpWidget(const SizedBox());
@@ -205,7 +205,7 @@ void main() {
         TextDirection.ltr,
       );
       expect(find.text('Habits'), findsOneWidget);
-      expect(find.text('1 of 1 done'), findsOneWidget);
+      expect(find.text('1/1'), findsOneWidget);
       expectNoOverflow(tester);
     });
 
@@ -217,7 +217,7 @@ void main() {
         brightness: Brightness.dark,
         textScale: 2.0,
       );
-      expect(find.text('1 of 1 done'), findsOneWidget);
+      expect(find.text('1/1'), findsOneWidget);
       expectNoOverflow(tester);
     });
   });
@@ -396,3 +396,4 @@ void main() {
     );
   });
 }
+

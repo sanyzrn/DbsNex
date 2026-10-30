@@ -86,7 +86,7 @@ void main() {
       expect(after.id, before.id);
       expect(after.body, before.body);
       expect(after.body['at'], before.body['at']);
-      expect(find.text('1 of 1 done'), findsOneWidget);
+      expect(find.text('1/1'), findsOneWidget);
     });
 
     testWidgets('the detail page’s check-in button has the same Undo', (
@@ -145,7 +145,8 @@ void main() {
         reason: 'the check-in came back too, not only the name',
       );
       expect(find.text('Morning stretch'), findsOneWidget);
-      expect(find.text('1 of 1 done'), findsOneWidget);
+      expect(find.text('1/1'), findsOneWidget);
     });
   });
 }
+

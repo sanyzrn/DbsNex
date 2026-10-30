@@ -24,24 +24,24 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('two add-ons are back, the other ten are Soon; their code stays', () {
+  test('three add-ons are back, the other nine are Soon; their code stays', () {
     // Cycle; Pause, which is first-party; and, finished and redesigned in
     // 2.4.0, Birthdays & occasions and Word by Word.
-    expect(nexAvailableModuleIds, {'cycle', 'pause', 'occasions', 'words'});
-    expect(reviewed, {'occasions', 'words'});
-    expect(paused, moduleIds.difference({'occasions', 'words'}));
+    expect(nexAvailableModuleIds, {'cycle', 'pause', 'occasions', 'words', 'habits'});
+    expect(reviewed, {'occasions', 'words', 'habits'});
+    expect(paused, moduleIds.difference({'occasions', 'words', 'habits'}));
     expect(moduleIds, hasLength(12));
   });
 
   test(
     'a paused add-on keeps its installation choice and is not active',
     () async {
-      await harness.preferences.setModuleOn('habits', true);
-      expect(harness.preferences.isModuleOn('habits'), isTrue);
+      await harness.preferences.setModuleOn('parking', true);
+      expect(harness.preferences.isModuleOn('parking'), isTrue);
       expect(nexModulesOn(harness.preferences), isEmpty);
       final reloaded = await NexPreferences.load();
       addTearDown(reloaded.dispose);
-      expect(reloaded.isModuleOn('habits'), isTrue);
+      expect(reloaded.isModuleOn('parking'), isTrue);
     },
   );
 
@@ -136,3 +136,4 @@ void main() {
     });
   }
 }
+

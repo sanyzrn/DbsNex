@@ -83,7 +83,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Morning stretch'), findsOneWidget);
-    expect(find.text('1 of 1 done'), findsOneWidget);
+    expect(find.text('1/1'), findsOneWidget);
   });
 
   testWidgets('another module’s store cannot see these records', (
@@ -130,3 +130,4 @@ void main() {
     await tester.pumpAndSettle();
   });
 }
+

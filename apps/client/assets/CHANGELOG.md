@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v2.4.1
+
+- **Habits is back.** A new Today page groups what is left, done and resting; each habit has its own colour, icon, progress ring, calendar and history.
+- **Make the plan yours.** Choose every day, selected weekdays, a weekly target or every few days. Log a tick or part of an amount, start from a ready-made idea, and see your best streak and consistency without losing older check-ins.
+- **Reminders follow the plan.** A reminder skips days off and completed goals. Opening Nex renews the next reminder. Archiving pauses it and restoring a habit keeps its history and reminder preference.
+- **Habits in your daily brief.** A short line shows how many habits are left today. This is calculated on your device and never sent to AI.
+
 ## v2.4.0
 
 - **Birthdays & occasions is here.** Add it from Tools → Add modules. The nearest date leads the page in a coloured card with a countdown ring; every date below is a little calendar page that says how far away it is. Each kind has three greetings to copy or share, and on the day itself they are right on the card. A new date reminds you a day before and on the day, and the reminders keep themselves up to date every year without opening the module. A remembrance's notification never shows its name.
@@ -2700,3 +2707,4 @@ shape of, and a storage figure that tells you the truth.
 - With an AI provider configured, the timeline now opens with a short,
   friendly recap of recent notes, generated once a day; it collapses on the
   first scroll and reopens from a small chip beside the greeting.
+

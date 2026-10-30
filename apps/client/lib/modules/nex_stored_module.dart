@@ -33,6 +33,9 @@ abstract class NexStoredModule extends NexModule {
   /// be shown from here. Does nothing unless a module needs it.
   Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) async {}
 
+  /// Optional on-device fact for the daily brief; never supplied to AI.
+  Future<String?> briefLine(NexModuleStore store, AppLocalizations l10n) async => null;
+
   @override
   String title(AppLocalizations l10n) => strings.text(l10n, 'title');
 
@@ -107,3 +110,4 @@ abstract class NexStoredModule extends NexModule {
     child: screen(NexModuleStore(services, id)),
   );
 }
+

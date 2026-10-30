@@ -93,6 +93,15 @@ class HabitRate {
 /// back. Weeks run Saturday to Friday (see [weekStartOf]) whatever language
 /// the app is in, so the same history always has the same streak.
 class HabitMath {
+  /// Amount-aware entry point used by all habit screens.
+  static HabitStanding fromChecks(Habit habit, Iterable<HabitCheck> checks,
+      DateTime today, {int firstDay = DateTime.saturday}) {
+    final logged = loggedDays(habit, checks, today);
+    final amounts = {for (final e in logged.entries) dateKeyOf(e.key): e.value};
+    return standing(habit, amounts.keys, today,
+        firstDay: firstDay, amounts: amounts);
+  }
+
   /// How many days the detail page's dot row shows.
   static const recentDays = 14;
 
@@ -192,7 +201,7 @@ class HabitMath {
         recent: recent,
         dueToday: dueToday,
         todayAmount: todayAmount,
-        strength: strength(habit, dateKeys, today, amounts: amounts),
+        strength: strength(habit, dateKeys, today, amounts: amounts, firstDay: firstDay),
       );
     }
 
@@ -213,7 +222,7 @@ class HabitMath {
       recent: recent,
       dueToday: dueToday,
       todayAmount: todayAmount,
-      strength: strength(habit, dateKeys, today, amounts: amounts),
+      strength: strength(habit, dateKeys, today, amounts: amounts, firstDay: firstDay),
       best: habit.weekly
           ? _bestWeekly(habit, done, firstDay)
           : _bestScheduled(habit, done, todayUtc),
@@ -484,15 +493,6 @@ class HabitMath {
     return since;
   }
 
-  static Set<DateTime> _doneUntil(Iterable<String> dateKeys, DateTime today) {
-    final todayUtc = DateTime.utc(today.year, today.month, today.day);
-    return dateKeys
-        .map(tryParseDateKey)
-        .whereType<DateTime>()
-        .where((d) => !d.isAfter(todayUtc))
-        .toSet();
-  }
-
   /// Due days kept of the last [days] days — a daily (or chosen-days, or
   /// every-N-days) habit's completion rate. Only the habit's own days count,
   /// and today only once it is done: a day still being lived is not a miss.
@@ -532,11 +532,12 @@ class HabitMath {
     Habit habit,
     Iterable<String> dateKeys,
     DateTime today, {
+    Map<String, int>? amounts,
     int weeks = 12,
     int firstDay = DateTime.saturday,
   }) {
     final todayUtc = DateTime.utc(today.year, today.month, today.day);
-    final done = _doneUntil(dateKeys, today);
+    final done = _days(habit, dateKeys, amounts, todayUtc).done;
     final since = _since(habit, done);
     if (since == null) return const HabitRate(0, 0);
     final thisWeek = weekStartOf(todayUtc, firstDay: firstDay);
@@ -557,3 +558,4 @@ class HabitMath {
     return HabitRate(met, possible);
   }
 }
+

@@ -511,13 +511,16 @@ extension _TimelineAiHeader on TimelineScreenState {
           borderRadius: corner,
           showShadow: false,
           fallbackColor: scheme.surfaceContainerLowest,
-          child: _AiDaySummaryPanel(
+          child: NexModuleBrief(
+            services: widget.services,
+            preferences: widget.preferences,
+            builder: (context, moduleLine) => _AiDaySummaryPanel(
             // Keyed so a test can say "the brief is on screen" without
             // reaching for a glyph. It used to be found by its sparkle,
             // which is a thing any other surface could start wearing.
             key: const ValueKey('timeline-recap'),
             loading: _aiSummaryLoading,
-            text: _aiSummaryText,
+            text: [if (_aiSummaryText?.isNotEmpty == true) _aiSummaryText!, if (moduleLine != null) moduleLine].join('\n'),
             emptyLabel: l10n.aiDaySummaryEmpty,
             collapsed: _aiSummaryCollapsed,
             semanticLabel: widget.preferences.briefStyle.usesModel
@@ -530,6 +533,7 @@ extension _TimelineAiHeader on TimelineScreenState {
             title: l10n.aiDaySummaryTitle,
             badge: l10n.aiDaySummaryBadge,
             byModel: widget.preferences.briefStyle.usesModel,
+            ),
           ),
         ),
       ),
@@ -609,3 +613,4 @@ extension _TimelineAiHeader on TimelineScreenState {
 /// a trailing comma used to be taken off.
 String nexUnnamedGreeting(String Function(String name) phrase) =>
     phrase('\u0000').replaceFirst(RegExp('[,،]?\\s*\u0000'), '').trim();
+

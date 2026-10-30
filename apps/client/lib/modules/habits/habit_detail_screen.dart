@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'habit_calendar.dart';
+import 'habit_log.dart';
+import 'habit_visuals.dart';
 import 'habit_edit_sheet.dart';
 import 'habit_math.dart';
 import 'habit_model.dart';
@@ -94,47 +96,45 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
 
   /// A day's check-in: made if there is none, taken back (with Undo) if
   /// there is. The calendar uses it for any day up to today.
-  Future<void> _toggleDay(String day) async {
-    if (_writing) return;
+  Future<void> _toggleDay(String day, {bool addOne = false}) async {
+    final habit = _habit;
+    if (_writing || habit == null) return;
     setState(() => _writing = true);
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final errorMessage = habitsStrings(context, 'saveError');
+    final removed = habitsStrings(context, 'checkinDeleted');
+    final log = HabitLog(widget.store, l10n);
     try {
-      final id = HabitCheck.idFor(widget.habitId, day);
-      final existing = await widget.store.get('check', id);
-      if (existing == null) {
-        await widget.store.put('check', id, {
-          'habit': widget.habitId,
-          'date': day,
-          'at': DateTime.now().toIso8601String(),
-        });
+      Map<String, Object?>? existing;
+      if (habit.counted) {
+        final body = await widget.store.get('check', HabitCheck.idFor(habit.id, day));
+        final amount = body == null ? 0 : (body['amount'] is int ? body['amount'] as int : habit.goal);
+        if (!mounted) return;
+        final value = addOne ? amount + 1 : await showHabitAmountSheet(context, habit: habit, current: amount);
+        if (value == null || value == amount) return;
+        existing = await log.setAmount(habit, day, value);
+        if (value != 0) return;
       } else {
-        await widget.store.delete('check', id);
-        if (mounted) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(habitsStrings(context, 'checkinDeleted')),
-              action: SnackBarAction(
-                label: l10n.undo,
-                onPressed: () => unawaited(
-                  widget.store.put('check', id, existing).catchError((
-                    Object _,
-                  ) {
-                    messenger.showSnackBar(
-                      SnackBar(content: Text(errorMessage)),
-                    );
-                  }),
-                ),
-              ),
-            ),
-          );
-        }
+        existing = await log.toggle(habit, day);
       }
-    } catch (_) {
-      writeError();
-    } finally {
-      if (mounted) setState(() => _writing = false);
+      if (existing != null && mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(removed), action: SnackBarAction(
+          label: l10n.undo,
+          onPressed: () => unawaited(log.restore(habit, day, existing).catchError((Object _) {
+            messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
+          })),
+        )));
+      }
+    } catch (_) { writeError(); }
+    finally { if (mounted) setState(() => _writing = false); }
+  }
+
+  Future<void> _preserveReminder(Habit habit) async {
+    final reminder = await habitReadReminder(widget.store, habit.id);
+    if (reminder.on && await widget.store.get(habitRemindKind, habit.id) == null) {
+      await widget.store.put(habitRemindKind, habit.id,
+        {'v': 1, 'on': true, 'minutes': reminder.minutes});
     }
   }
 
@@ -148,13 +148,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
   }
 
   Future<void> _edit() =>
-      showHabitEditSheet(context, widget.store, habit: _habit);
+      showHabitEditSheet(context, widget.store, habit: _habit, firstDay: _firstDay);
 
   Future<void> _setArchived(bool archived) async {
     final habit = _habit;
     if (habit == null || _writing) return;
     setState(() => _writing = true);
+    final l10n = AppLocalizations.of(context);
     try {
+      await _preserveReminder(habit);
       await widget.store.put(
         'habit',
         habit.id,
@@ -162,7 +164,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
       );
       // An archived habit stops nudging; the daily reminder is its own
       // record, so it goes with it rather than ringing for nothing.
-      if (archived) await _clearReminder(habit.id);
+      if (archived) {
+        await _clearReminder(habit.id);
+      } else {
+        try { await habitArmReminder(widget.store, l10n,
+          Habit.fromBody(habit.id, habit.toJson()..['archived'] = false)); } catch (_) {}
+      }
     } catch (_) {
       writeError();
     } finally {
@@ -182,6 +189,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     final l10n = AppLocalizations.of(context);
     final errorMessage = habitsStrings(context, 'saveError');
     try {
+      await _preserveReminder(habit);
       final bundle = await RecordBundle.capture(
         widget.store,
         'habit',
@@ -199,7 +207,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
           action: SnackBarAction(
             label: l10n.undo,
             onPressed: () => unawaited(
-              bundle.restore().catchError((Object _) {
+              bundle.restore().then((_) async {
+                await habitArmReminder(widget.store, l10n, habit);
+              }).catchError((Object _) {
                 messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
               }),
             ),
@@ -223,12 +233,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
       );
     }
     final strings = habitsStrings;
-    final standing = HabitMath.standing(
+    final standing = HabitMath.fromChecks(
       habit,
-      _dates(),
+      _checks,
       DateTime.now(),
       firstDay: _firstDay,
     );
+    final color = habitColor(context, habit);
+    final logged = HabitMath.loggedDays(habit, _checks, DateTime.now());
+    final amounts = {for (final e in logged.entries) dateKeyOf(e.key): e.value};
     final name = habit.name.isEmpty ? strings(context, 'untitled') : habit.name;
 
     return Scaffold(
@@ -282,44 +295,43 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
             NexSpacing.lg + nexBottomInset(context),
           ),
           children: [
-            FilledButton.icon(
-              key: ValueKey('habit-toggle-${habit.id}'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-              ),
-              onPressed: _writing ? null : () => unawaited(_toggleToday()),
-              icon: Icon(standing.todayDone ? Icons.undo : Icons.check_rounded),
-              label: Text(
-                strings(
-                  context,
-                  standing.todayDone ? 'undoCheckIn' : 'checkIn',
+            HabitHero(habit: habit, standing: standing, firstDay: _firstDay),
+            const SizedBox(height: NexSpacing.md),
+            Row(children: [
+              Expanded(child: FilledButton.icon(
+                key: ValueKey('habit-toggle-${habit.id}'),
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52), backgroundColor: color),
+                onPressed: _writing ? null : () => unawaited(_toggleToday()),
+                icon: Icon(habit.counted ? Icons.tune : standing.todayDone ? Icons.undo : Icons.check_rounded),
+                label: Text(habit.counted
+                  ? strings(context, 'logAmount', {'amount': standing.todayAmount, 'goal': habit.goal})
+                  : strings(context, standing.todayDone ? 'undoCheckIn' : 'checkIn')),
+              )),
+              if (habit.counted) ...[
+                const SizedBox(width: NexSpacing.sm),
+                IconButton.filledTonal(
+                  key: const ValueKey('habit-add-one'),
+                  tooltip: strings(context, 'addOne'),
+                  onPressed: _writing ? null : () => unawaited(_toggleDay(dateKeyOf(DateTime.now()), addOne: true)),
+                  icon: const Icon(Icons.add),
                 ),
-              ),
-            ),
+              ],
+            ]),
             const SizedBox(height: NexSpacing.md),
-            HabitStreakPanel(habit: habit, standing: standing),
+            HabitStatTiles(habit: habit, standing: standing, dateKeys: amounts.keys,
+              amounts: amounts, firstDay: _firstDay, color: color),
             const SizedBox(height: NexSpacing.md),
-            HabitRatePanel(
-              habit: habit,
-              dateKeys: _dates(),
-              firstDay: _firstDay,
-            ),
+            HabitSeasonPanel(habit: habit, logged: logged, color: color, firstDay: _firstDay),
             const SizedBox(height: NexSpacing.md),
-            HabitCalendarPanel(
-              doneKeys: _dates().where((k) => k.isNotEmpty).toSet(),
-              firstDay: _firstDay,
-              busy: _writing,
-              onToggle: (day) => unawaited(_toggleDay(day)),
-            ),
-            const SizedBox(height: NexSpacing.md),
-            HabitTwoWeekDots(standing: standing),
+            HabitCalendarPanel(habit: habit, logged: logged, color: color,
+              firstDay: _firstDay, busy: _writing, onToggle: (day) => unawaited(_toggleDay(day))),
             if (habit.note.isNotEmpty) ...[
               const SizedBox(height: NexSpacing.md),
               HabitNotePanel(note: habit.note),
             ],
             if (!habit.archived) ...[
               const SizedBox(height: NexSpacing.md),
-              HabitReminderTile(store: widget.store, habitId: habit.id),
+              HabitReminderTile(store: widget.store, habit: habit, color: color),
             ],
             const SizedBox(height: NexSpacing.lg),
             NexShelfHeading(
@@ -327,7 +339,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
               title: strings(context, 'history'),
             ),
             const SizedBox(height: NexSpacing.sm),
-            HabitHistory(checks: _checks),
+            HabitHistory(habit: habit, checks: _checks, color: color),
             const SizedBox(height: NexSpacing.xl),
           ],
         ),
@@ -336,5 +348,6 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     );
   }
 
-  Iterable<String> _dates() => _checks.map((c) => c.dateKey);
+
 }
+

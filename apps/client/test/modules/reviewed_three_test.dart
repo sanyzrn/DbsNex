@@ -177,8 +177,8 @@ void main() {
         app(HabitDetailScreen(store: store, habitId: 'h1')),
       );
       await settle(tester);
-      expect(find.text('Daily reminder'), findsOneWidget);
-      expect(find.text('Every day at 20:00'), findsOneWidget);
+      expect(find.text('Reminder'), findsOneWidget);
+      expect(find.text('At 20:00'), findsOneWidget);
       final toggle = find.byKey(const ValueKey('habit-reminder-switch'));
       await tester.ensureVisible(toggle);
       await tester.tap(toggle);
@@ -201,7 +201,7 @@ void main() {
         app(HabitDetailScreen(store: store, habitId: 'h1')),
       );
       await settle(tester);
-      expect(find.text('Daily reminder'), findsNothing);
+      expect(find.text('Reminder'), findsNothing);
     });
   });
 
@@ -324,3 +324,4 @@ void main() {
     expect(convertQuantity(const Fraction(1), g100, ml100), isNull);
   });
 }
+
