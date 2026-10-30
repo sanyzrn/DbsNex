@@ -202,11 +202,12 @@ class _HabitReminderTileState extends State<HabitReminderTile> {
   Future<void> _load() async {
     try {
       final reminder = await habitReadReminder(widget.store, widget.habit.id);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _reminder = reminder;
           _loadFailed = false;
         });
+      }
     } catch (_) {
       if (mounted) setState(() => _loadFailed = true);
     }

@@ -48,8 +48,9 @@ class HabitsModule extends NexStoredModule {
       );
       if (s.dueToday &&
           !s.todayDone &&
-          !(habit.weekly && s.weekCount >= habit.target))
+          !(habit.weekly && s.weekCount >= habit.target)) {
         remaining++;
+      }
     }
     return remaining == 0
         ? null
