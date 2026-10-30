@@ -15,8 +15,9 @@ void main() {
   });
   tearDown(() => harness.dispose());
   for (final persian in [true, false]) {
+    for (final dark in [true, false]) {
     testWidgets(
-      'actual main screen in ${persian ? 'Persian dark' : 'English light'}',
+      'habit flows ${persian ? 'fa' : 'en'} ${dark ? 'dark' : 'light'}',
       (tester) async {
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
@@ -25,7 +26,7 @@ void main() {
         final store = NexModuleStore(harness.services, 'habits');
         final today = DateTime.now();
         for (final entry in [
-          ('h1', persian ? 'کشش صبحگاهی' : 'Morning stretch', false, 1),
+          ('h1', persian ? 'آب خوردن' : 'Drink water', false, 1),
           ('h2', persian ? 'پیاده‌روی' : 'A short walk', true, 3),
           ('h3', persian ? 'مطالعه' : 'Read a few pages', false, 1),
         ]) {
@@ -35,6 +36,10 @@ void main() {
             'schedule': entry.$3 ? 'weekly' : 'daily',
             'target': entry.$4,
             'archived': false,
+            'goal': entry.$1 == 'h1' ? 8 : 1,
+            'unit': entry.$1 == 'h1' ? (persian ? 'لیوان' : 'glasses') : '',
+            'icon': entry.$1 == 'h1' ? 'water' : 'book',
+            'hue': entry.$1 == 'h1' ? 5 : 1,
             'createdAt': today.toIso8601String(),
           });
           for (var n = entry.$1 == 'h3' ? 1 : 0; n < 3; n++) {
@@ -43,6 +48,7 @@ void main() {
                 '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
             await store.put('check', '${entry.$1}:$key', {
               'habit': entry.$1,
+              if (entry.$1 == 'h1') 'amount': n == 0 ? 5 : 8,
               'date': key,
               'at': day.toIso8601String(),
             });
@@ -68,34 +74,58 @@ void main() {
               locale: Locale(persian ? 'fa' : 'en'),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              theme: persian
-                  ? nexDarkTheme(fontFamily: 'Vazirmatn')
-                  : nexLightTheme(fontFamily: 'Inter'),
+              theme: dark
+                  ? nexDarkTheme(fontFamily: persian ? 'Vazirmatn' : 'Inter')
+                  : nexLightTheme(fontFamily: persian ? 'Vazirmatn' : 'Inter'),
               home: HabitsScreen(store: store),
             ),
           ),
         );
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
-        const output = String.fromEnvironment('NEX_CAPTURE');
-        if (output.isNotEmpty) {
+        Future<void> capture(String scene) async {
+          expect(tester.takeException(), isNull, reason: scene);
+          const output = String.fromEnvironment('NEX_CAPTURE');
+          if (output.isEmpty) return;
           await tester.runAsync(() async {
-            final image =
-                await (boundary.currentContext!.findRenderObject()!
-                        as RenderRepaintBoundary)
-                    .toImage();
-            final bytes = await image.toByteData(
-              format: ui.ImageByteFormat.png,
-            );
+            final image = await (boundary.currentContext!.findRenderObject()!
+              as RenderRepaintBoundary).toImage();
+            final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
             final dir = Directory(output)..createSync(recursive: true);
-            await File(
-              '${dir.path}/habits_${persian ? 'fa_dark' : 'en_light'}.png',
-            ).writeAsBytes(bytes!.buffer.asUint8List());
+            await File('${dir.path}/habits_${persian ? 'fa' : 'en'}_${dark ? 'dark' : 'light'}_$scene.png')
+              .writeAsBytes(bytes!.buffer.asUint8List());
             image.dispose();
           });
         }
+        await capture('today');
+        final open = find.byKey(const ValueKey('habit-open-h1'));
+        await tester.scrollUntilVisible(open, 150, scrollable: find.byType(Scrollable).first);
+        await tester.tap(open);
+        await tester.pumpAndSettle();
+        await capture('detail');
+        final amount = find.byKey(const ValueKey('habit-toggle-h1'));
+        await tester.ensureVisible(amount);
+        await tester.tap(amount);
+        await tester.pumpAndSettle();
+        await capture('amount');
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        final calendar = find.byKey(const ValueKey('habit-month-title'));
+        await tester.scrollUntilVisible(calendar, 200, scrollable: find.byType(Scrollable).first);
+        await capture('calendar');
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('habits-new')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('habit-template-water')));
+        await tester.pumpAndSettle();
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+        await capture('editor');
         await tester.pumpWidget(const SizedBox());
       },
     );
+    }
   }
 }
+

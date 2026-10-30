@@ -318,7 +318,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
               ],
             ]),
             const SizedBox(height: NexSpacing.md),
-            HabitStatTiles(habit: habit, standing: standing, dateKeys: amounts.keys,
+            HabitStatTiles(habit: habit, standing: standing, dateKeys: amounts.keys.toList(),
               amounts: amounts, firstDay: _firstDay, color: color),
             const SizedBox(height: NexSpacing.md),
             HabitSeasonPanel(habit: habit, logged: logged, color: color, firstDay: _firstDay),

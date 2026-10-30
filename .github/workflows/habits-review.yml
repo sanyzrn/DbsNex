@@ -1,0 +1,43 @@
+name: Habits visual review
+
+on:
+  pull_request:
+    paths:
+      - 'apps/client/lib/modules/habits/**'
+      - 'apps/client/test/modules/habits/**'
+      - '.github/workflows/habits-review.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: habits-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      - run: flutter pub get
+        working-directory: apps/client
+      - name: Format review patch
+        run: |
+          mkdir -p apps/client/build/habits-review
+          dart format apps/client/lib/modules/habits apps/client/lib/widgets/module_brief.dart apps/client/lib/modules/nex_stored_module.dart apps/client/lib/screens/timeline/timeline_ai_header.dart apps/client/test/modules/habits apps/client/test/module_preview_test.dart
+          git diff > apps/client/build/habits-review/format.patch
+      - name: Habits regression tests and bilingual screenshots
+        run: flutter test --dart-define=NEX_CAPTURE=build/habits-review test/modules/habits
+        working-directory: apps/client
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: habits-review
+          path: apps/client/build/habits-review
+          retention-days: 7
