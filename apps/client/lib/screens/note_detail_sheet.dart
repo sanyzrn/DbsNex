@@ -53,6 +53,7 @@ import '../widgets/reminder_picker.dart';
 import '../widgets/set_aside_flow.dart';
 import '../widgets/tag_picker.dart';
 import '../widgets/translate_sheet.dart';
+import '../widgets/ai_failure_message.dart';
 import 'camera_sheet.dart';
 import 'photo_crop_screen.dart';
 import 'threads_screen.dart';
@@ -264,6 +265,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     if (!mounted) return;
     setState(() {
       _note = loaded;
+      if (loaded != null) {
+        final source = _translationSource(loaded);
+        TranslateSheet.invalidate(loaded.id, source);
+        if (_translationRequested && _translationText != source) {
+          _translationText = source;
+          _translationRequested = false;
+          if (_activeAiResult == 'translation') _activeAiResult = null;
+        }
+      }
       _pinnedNoteCount = pinnedNoteCount;
       _threads = threads;
       _attachments = attachments;

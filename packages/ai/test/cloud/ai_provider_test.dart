@@ -469,30 +469,41 @@ void main() {
       expect(adapter.embed('x'), isNull);
     });
 
-    test('a capability a provider lacks is unavailable, not guessed at', () {
-      // Only Gemini and OpenAI can hear audio. Claiming otherwise would send a
-      // recording somewhere that cannot read it and store whatever came back.
-      for (final provider in AiProvider.values) {
-        final adapter = CloudAIAdapter(
-          config: AiProviderConfig(provider: provider, apiKey: 'k'),
-          client: MockClient((_) async => http.Response('{}', 200)),
-        );
-        final call = adapter.transcribe(
-          const AudioRef(mediaUri: '/tmp/does-not-exist.m4a'),
-        );
-        if (provider.hearsAudio) {
-          // Available in principle; null here only because the file is absent.
-          expect(call, isNull, reason: '${provider.wireName}: no such file');
-        } else {
-          expect(call, isNull, reason: provider.wireName);
+    test(
+      'a capability a provider lacks is unavailable, not guessed at',
+      () async {
+        // Only Gemini and OpenAI can hear audio. Claiming otherwise would send a
+        // recording somewhere that cannot read it and store whatever came back.
+        for (final provider in AiProvider.values) {
+          final adapter = CloudAIAdapter(
+            config: AiProviderConfig(provider: provider, apiKey: 'k'),
+            client: MockClient((_) async => http.Response('{}', 200)),
+          );
+          final call = adapter.transcribe(
+            const AudioRef(mediaUri: '/tmp/does-not-exist.m4a'),
+          );
+          if (provider.hearsAudio) {
+            await expectLater(
+              call,
+              throwsA(
+                isA<AiUnavailableException>().having(
+                  (e) => e.kind,
+                  'kind',
+                  AiFailureKind.missingFile,
+                ),
+              ),
+            );
+          } else {
+            expect(call, isNull, reason: provider.wireName);
+          }
         }
-      }
-      expect(AiProvider.gemini.hearsAudio, isTrue);
-      expect(AiProvider.openai.hearsAudio, isTrue);
-      expect(AiProvider.anthropic.hearsAudio, isFalse);
-      expect(AiProvider.openrouter.hearsAudio, isFalse);
-      expect(AiProvider.none.hearsAudio, isFalse);
-    });
+        expect(AiProvider.gemini.hearsAudio, isTrue);
+        expect(AiProvider.openai.hearsAudio, isTrue);
+        expect(AiProvider.anthropic.hearsAudio, isFalse);
+        expect(AiProvider.openrouter.hearsAudio, isFalse);
+        expect(AiProvider.none.hearsAudio, isFalse);
+      },
+    );
 
     test('a provider only claims embeddings it can actually serve', () {
       // Same rule as `hearsAudio` directly above, which was already applied
@@ -854,7 +865,10 @@ void main() {
 
     test('a picture with no words is an answer, not a failure', () async {
       expect((await replying(200, 'NO_TEXT').ocr(image)!).text, '');
-      expect((await replying(200, '').ocr(image)!).text, '');
+      await expectLater(
+        replying(200, '').ocr(image),
+        throwsA(isA<AiUnavailableException>()),
+      );
     });
 
     test('a failed request still keeps the photo in the backlog', () async {

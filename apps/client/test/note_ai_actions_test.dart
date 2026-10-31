@@ -19,7 +19,20 @@ class _MediaAi implements AIAdapter {
   static const result =
       'A red flower with green leaves in a small pot. '
       'The background is plain and there is no visible writing. '
-      'Only the visible flower and its leaves are described.';
+      'Only the visible flower and its leaves are described. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'More useful source details for the summary threshold. '
+      'End of the extracted source.';
   @override
   Future<OCRText>? ocr(ImageRef image) async {
     images++;
@@ -65,7 +78,20 @@ void main() {
             ),
           );
           const original =
-              'A detailed original note about plans, ideas, and things to remember. The source must stay unchanged when a summary is generated.';
+              'A detailed original note about plans, ideas, and things to remember. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'The source must stay unchanged when a summary is generated. '
+              'End of source.';
           final note = (await h.services.captureText(original))!;
           final theme = glass
               ? nexDarkTheme(liquidGlass: true)

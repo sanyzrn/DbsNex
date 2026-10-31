@@ -126,6 +126,12 @@ mixin _AiPreferences on _PreferencesStore {
   AiOutputLanguage get aiOutputLanguage =>
       AiOutputLanguage.fromWire(_prefs.getString('ai.outputLanguage'));
 
+  String? get translationTarget => _prefs.getString('ai.translationTarget');
+
+  Future<void> setTranslationTarget(String code) async {
+    await _prefs.setString('ai.translationTarget', code);
+  }
+
   Future<void> setAiOutputLanguage(AiOutputLanguage value) async {
     await _prefs.setString('ai.outputLanguage', value.wireName);
     // Output language is part of the brief fingerprint. Keep its readable

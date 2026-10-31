@@ -171,6 +171,10 @@ class EnrichmentService {
         }
       }
       return text;
+    } on AiUnavailableException {
+      // Explicit reads carry a factual failure to the detail UI. Background
+      // enrichment retains its own best-effort catch above.
+      rethrow;
     } catch (_) {
       return null;
     }
@@ -230,7 +234,23 @@ class EnrichmentService {
     }
   }
 
+  final _summaryReads = <String, Future<Summary?>>{};
+
   Future<Summary?> summarizeOnDemand(String noteId) async {
+    final pending = _summaryReads[noteId];
+    if (pending != null) return pending;
+    final request = _summarizeOnDemand(noteId);
+    _summaryReads[noteId] = request;
+    try {
+      return await request;
+    } finally {
+      if (identical(_summaryReads[noteId], request)) {
+        _summaryReads.remove(noteId);
+      }
+    }
+  }
+
+  Future<Summary?> _summarizeOnDemand(String noteId) async {
     if (!_capabilities.summarization) return null;
     final note = _repo.getById(noteId);
     if (note == null) return null;

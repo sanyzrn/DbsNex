@@ -16,10 +16,12 @@ extension _DetailAiPanel on _NoteDetailSheetState {
       _activeAiResult = note.isImageMedia ? 'image' : 'transcript';
     });
     String? result;
+    Object? failure;
     try {
       result = await widget.services.readMediaOnDemand(note.id);
       await _reload();
     } catch (error) {
+      failure = error;
       unawaited(NexCrashLog.handled('ai.readMedia', error));
       result = null;
     } finally {
@@ -29,7 +31,11 @@ extension _DetailAiPanel on _NoteDetailSheetState {
     final l10n = AppLocalizations.of(context);
     nexShowBanner(
       context,
-      message: result == null ? l10n.aiMediaFailed : l10n.aiMediaEmpty,
+      message: result == null
+          ? nexAiFailureMessage(failure, l10n)
+          : note.isAudioMedia
+          ? l10n.aiAudioNoSpeech
+          : l10n.aiImageUnreadable,
       kind: result == null ? NexBannerKind.failed : NexBannerKind.done,
     );
   }
@@ -51,19 +57,35 @@ extension _DetailAiPanel on _NoteDetailSheetState {
           'attachment-${attachment.id}-${audio ? 'transcript' : 'image'}';
     });
     var success = false;
+    Object? failure;
     try {
       success = await widget.services.readAttachmentOnDemand(attachment.id);
       await _reload();
     } catch (error) {
+      failure = error;
       unawaited(NexCrashLog.handled('ai.readAttachment', error));
       success = false;
     } finally {
       if (mounted) _rebuild(() => _readingAttachments.remove(attachment.id));
     }
-    if (!mounted || success) return;
+    if (!mounted) return;
+    if (success) {
+      for (final current in _attachments) {
+        if (current.id != attachment.id) continue;
+        final text = audio ? current.transcriptText : current.ocrText;
+        if (text != null && text.trim().isEmpty) {
+          final l10n = AppLocalizations.of(context);
+          nexShowBanner(
+            context,
+            message: audio ? l10n.aiAudioNoSpeech : l10n.aiImageUnreadable,
+          );
+        }
+      }
+      return;
+    }
     nexShowBanner(
       context,
-      message: AppLocalizations.of(context).aiMediaFailed,
+      message: nexAiFailureMessage(failure, AppLocalizations.of(context)),
       kind: NexBannerKind.failed,
     );
   }
@@ -317,7 +339,7 @@ extension _DetailAiPanel on _NoteDetailSheetState {
         when preferences.effectiveAiCapabilities.summarization &&
             aiTextAvailableWith(preferences.aiProvider) &&
             !widget.services.canAnalyzeVideo(note) &&
-            (note.aiSourceText?.length ?? 0) > 80)
+            CloudAIAdapter.hasSummaryWorthwhileText(note.aiSourceText))
       _AiTool(
         glyph: const NexSummariseIcon(),
         label: l10n.summarize,
@@ -435,7 +457,11 @@ extension _DetailAiPanel on _NoteDetailSheetState {
         _translationRequested ||
         (widget.preferences != null &&
             translationSource.isNotEmpty &&
-            TranslateSheet.hasTranslation(translationSource));
+            TranslateSheet.hasTranslation(
+              translationSource,
+              noteId: note.id,
+              preferences: widget.preferences,
+            ));
     final resultIds = {
       for (final result in derived) result.id,
       if (hasTranslation) 'translation',
