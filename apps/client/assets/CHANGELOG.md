@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.5.1
 
+- **Consistent home AI.** Greetings follow the app language even after a failed request. Changing the brief's length or style applies on return from settings, without waiting for the hourly refresh.
 - **Better AI editing.** Auto style corrects and organises writing. All six tools better preserve meaning and key details; Undo and Save remain under your control.
 - **Clearer What's New.** Release history focuses on useful features and important fixes, with concise titles and clearer Persian.
 - **A matching filter button.** When search is hidden, the filter button shares the tag pills' height and style.

@@ -463,6 +463,20 @@ enum AiOutputLanguage {
     _ => AiOutputLanguage.auto,
   };
 
+  /// Interface greetings fall back locally when a model ignores the language.
+  bool acceptsGreeting(String? phrase) {
+    if (phrase == null || phrase.trim().isEmpty) return false;
+    if (this == AiOutputLanguage.auto) return true;
+    final arabic = RegExp(
+      r'(?=\p{L})[\u0600-\u06ff]',
+      unicode: true,
+    ).allMatches(phrase).length;
+    final latin = RegExp(r'[A-Za-z]').allMatches(phrase).length;
+    return this == AiOutputLanguage.persian
+        ? arabic > latin
+        : latin > 0 && arabic == 0;
+  }
+
   /// The sentence appended to every system prompt.
   ///
   /// Named languages rather than locale codes: models follow "Reply in
@@ -2224,7 +2238,9 @@ class CloudAIAdapter implements AIAdapter {
   }) => NexDisclosureLog.about(() async {
     if (!canAnswerText) return null;
     final about = portrait?.trim() ?? '';
+    final target = language ?? outputLanguage;
     final reply = await _complete(
+      '${target.leadRule} '
       'You write the greeting a notes app opens with, as a close friend '
       'would say it. A short phrase of two to seven words that a name can '
       'follow, the way "Good morning" precedes one. Tie it to the hour and, '
@@ -2246,7 +2262,7 @@ class CloudAIAdapter implements AIAdapter {
       'Reply with the phrase only. '
       // The interface's language (2.4.0), set by the app: the phrase is part
       // of the interface and the name is one word in it.
-      '${(language ?? outputLanguage).promptRule}',
+      '${target.promptRule}',
       [
         'The local time is ${DateTime.now().hour}:00.',
         // The portrait the provider itself wrote from their notes earlier,
@@ -2260,7 +2276,8 @@ class CloudAIAdapter implements AIAdapter {
       maxTokens: unlimitedSummary ? null : 80,
       timeout: timeout,
     );
-    return _plausible(_clamped(cleanDecorativeReply(reply), 8));
+    final phrase = _plausible(_clamped(cleanDecorativeReply(reply), 8));
+    return target.acceptsGreeting(phrase) ? phrase : null;
   }, purpose: DisclosurePurpose.greeting);
 
   /// A note in another language, and nothing else.

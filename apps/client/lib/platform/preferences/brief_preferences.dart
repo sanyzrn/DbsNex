@@ -163,10 +163,8 @@ mixin _BriefPreferences on _PreferencesStore {
 
   /// Which language the cached line was written in.
   ///
-  /// The headline is joined onto the greeting as one sentence, and the
-  /// greeting follows the script of the user's own name — so a name changed
-  /// from Persian to Latin (or back) has to throw the cached line away, not
-  /// glue yesterday's Persian half onto today's English greeting.
+  /// This is the interface language, independent of the user's name. A cache
+  /// from a different language must not replace the local greeting on failure.
   String? get aiHeadlineLang => _prefs.getString('ai.headline.lang');
 
   Future<void> setAiHeadline({
