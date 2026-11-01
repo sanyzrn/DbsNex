@@ -59,12 +59,8 @@ void main() {
     await tester.enterText(find.byKey(key), text);
   }
 
-  /// A SnackBar can swallow the next tap; put it away first.
-  void hideSnackBar(WidgetTester tester) {
-    ScaffoldMessenger.of(
-      tester.element(find.byType(Scaffold).first),
-    ).hideCurrentSnackBar();
-  }
+  /// Dismiss the top capsule before the next action.
+  void hideBanner() => nexHideBanner();
 
   testWidgets('the first screen is an honest empty state', (tester) async {
     await tester.pumpWidget(wordsScreen());
@@ -194,8 +190,8 @@ void main() {
     expect(find.text('The word itself is needed.'), findsOneWidget);
     expect(await harness.services.moduleRecords('words', 'card'), isEmpty);
 
-    // The SnackBar must be out of the way before the next tap.
-    hideSnackBar(tester);
+    // Dismiss the capsule before the next tap.
+    hideBanner();
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('words-field-headword')),

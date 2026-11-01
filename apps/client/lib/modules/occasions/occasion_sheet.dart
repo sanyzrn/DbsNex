@@ -274,7 +274,7 @@ class _OccasionSheetState extends State<_OccasionSheet> {
     final occasion = _build();
     if (occasion == null) return;
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final failedText = occasionsStrings(context, 'saveError');
     final remindFailed = occasionsStrings(context, 'remindFailed');
     final l10n = AppLocalizations.of(context);
@@ -285,7 +285,7 @@ class _OccasionSheetState extends State<_OccasionSheet> {
         ...occasion.toJson(),
       });
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(failedText)));
+      messenger?.show(kind: NexBannerKind.failed, message: failedText);
       if (mounted) setState(() => _saving = false);
       return;
     }
@@ -307,7 +307,7 @@ class _OccasionSheetState extends State<_OccasionSheet> {
     }
     if (!mounted) return;
     if (!remindersOk && occasion.remindDays != null) {
-      messenger.showSnackBar(SnackBar(content: Text(remindFailed)));
+      messenger?.show(kind: NexBannerKind.failed, message: remindFailed);
     }
     setState(() => _saving = false);
     Navigator.of(context).pop();

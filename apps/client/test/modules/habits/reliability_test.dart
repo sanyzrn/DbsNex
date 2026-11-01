@@ -68,6 +68,8 @@ class FaultStore implements NexModuleStore {
   @override
   Future<void> clearReminder(String key) => inner.clearReminder(key);
   @override
+  Future<void> withdrawReminder(String key) => inner.withdrawReminder(key);
+  @override
   String get module => inner.module;
   @override
   Stream<void> get changes => inner.changes;

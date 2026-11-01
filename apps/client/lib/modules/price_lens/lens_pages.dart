@@ -70,7 +70,7 @@ class _LensMemoryPageState extends State<LensMemoryPage> {
       ),
     );
     if (answer != 'delete' || !mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final message = s(context, 'memoryDeleted');
     final undoLabel = s(context, 'undo');
     try {

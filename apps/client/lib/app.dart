@@ -161,8 +161,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // backup, or an OS that dropped its alarm list all leave reminders that
     // exist on the note and nowhere else — so every launch puts them back
     // from the library, which is the only copy that survives.
-    unawaited(widget.services.restoreReminders());
-    unawaited(nexKeepModulesUp(widget.services, widget.preferences));
+    unawaited(nexRefreshReminders(widget.services, widget.preferences));
     if (_locked) WidgetsBinding.instance.addPostFrameCallback((_) => _unlock());
   }
 
@@ -294,8 +293,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       // backup, or an OS that dropped its alarm list all leave reminders that
       // exist on the note and nowhere else — so every launch puts them back
       // from the library, which is the only copy that survives.
-      unawaited(widget.services.restoreReminders());
-      unawaited(nexKeepModulesUp(widget.services, widget.preferences));
+      unawaited(nexRefreshReminders(widget.services, widget.preferences));
       // Re-read the library on the way back in. This is what pull-to-refresh
       // was standing in for, and it is strictly better at the job: every
       // capture path already re-fires the timeline stream itself, so the only

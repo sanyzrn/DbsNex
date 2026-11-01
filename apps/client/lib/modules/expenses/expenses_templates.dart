@@ -98,7 +98,7 @@ class _TemplatesSheetState extends State<_TemplatesSheet> {
     if (answer != 'delete' || !mounted) return;
     setState(() => _busy = true);
     try {
-      final messenger = ScaffoldMessenger.of(context);
+      final messenger = NexBannerHost.of(context);
       final message = expenseStrings(context, 'deletedTx'),
           undoLabel = expenseStrings(context, 'undo');
       final undoFailure = expenseStrings(context, 'undoFailed');

@@ -178,7 +178,7 @@ class _CategoriesSheetState extends State<_CategoriesSheet> {
       ),
     );
     if (answer != 'delete' || !mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final message = expenseStrings(context, 'deletedTx');
     final undoLabel = expenseStrings(context, 'undo');
     final undoFailure = expenseStrings(context, 'undoFailed');

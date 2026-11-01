@@ -57,6 +57,7 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
         wordsArmReminder(
           widget.store,
           AppLocalizations.of(context),
+          preserveShown: true,
         ).catchError((_) => false),
       );
     } catch (_) {

@@ -337,8 +337,9 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(parkingStrings(context, 'saveFailed'))),
+    NexBannerHost.of(context)?.show(
+      kind: NexBannerKind.failed,
+      message: parkingStrings(context, 'saveFailed'),
     );
   }
 

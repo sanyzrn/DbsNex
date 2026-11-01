@@ -104,10 +104,9 @@ class _WarrantyClaimSheetState extends State<WarrantyClaimSheet> {
                             }
                           } catch (_) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(strings(context, 'saveFailed')),
-                                ),
+                              NexBannerHost.of(context)?.show(
+                                kind: NexBannerKind.failed,
+                                message: strings(context, 'saveFailed'),
                               );
                             }
                           } finally {

@@ -37,6 +37,38 @@ void main() {
   tearDown(() => prefs.dispose());
 
   test(
+    'old-format summaries refresh once without waiting for the old hour',
+    () async {
+      await ask();
+      final raw = await SharedPreferences.getInstance();
+      await raw.remove('ai.daySummary.revision');
+      expect(refresh.needs('new'), isTrue);
+      await ask();
+      expect(calls, 2);
+      expect(prefs.aiDaySummaryCurrent, isTrue);
+      await ask();
+      expect(calls, 2);
+    },
+  );
+
+  test(
+    'a failed old-format refresh still backs off for fifteen minutes',
+    () async {
+      await ask();
+      final raw = await SharedPreferences.getInstance();
+      await raw.remove('ai.daySummary.revision');
+      await ask(request: () async => null);
+      expect(refresh.needs('new'), isFalse);
+      expect(
+        refresh.nextAllowedAt().toUtc(),
+        now.add(const Duration(minutes: 15)),
+      );
+      now = now.add(const Duration(minutes: 15));
+      expect(refresh.needs('new'), isTrue);
+    },
+  );
+
+  test(
     'automatic needs changed information AND a full hour since success',
     () async {
       await ask();

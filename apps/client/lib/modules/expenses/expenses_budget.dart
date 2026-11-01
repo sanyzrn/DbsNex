@@ -141,7 +141,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
   Future<void> _clear() async {
     if (widget.existing == null || _saving) return;
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final message = expenseStrings(context, 'deletedTx'),
         undoLabel = expenseStrings(context, 'undo');
     final undoFailure = expenseStrings(context, 'undoFailed');

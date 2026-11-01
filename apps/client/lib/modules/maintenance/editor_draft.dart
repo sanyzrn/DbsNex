@@ -149,6 +149,7 @@ class MaintenanceDraftFrame extends StatelessWidget {
 }
 
 void maintenanceWriteFailure(BuildContext context) =>
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(maintenanceStrings(context, 'saveFailed'))),
+    NexBannerHost.of(context)?.show(
+      kind: NexBannerKind.failed,
+      message: maintenanceStrings(context, 'saveFailed'),
     );

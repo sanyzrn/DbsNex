@@ -52,8 +52,9 @@ mixin StoreState<T extends StatefulWidget> on State<T> {
 
   void writeError() {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(habitsStrings(context, 'saveError'))),
+      NexBannerHost.of(context)?.show(
+        kind: NexBannerKind.failed,
+        message: habitsStrings(context, 'saveError'),
       );
     }
   }
@@ -82,13 +83,13 @@ Future<bool> storeWrite(
   BuildContext context,
   Future<void> Function() write,
 ) async {
-  final messenger = ScaffoldMessenger.of(context);
+  final messenger = NexBannerHost.of(context);
   final message = habitsStrings(context, 'saveError');
   try {
     await write();
     return true;
   } catch (_) {
-    messenger.showSnackBar(SnackBar(content: Text(message)));
+    messenger?.show(message: message);
     return false;
   }
 }

@@ -5,10 +5,10 @@ import 'controller.dart';
 import 'strings.dart';
 import 'lens_undo.dart';
 
-void lensWriteFailure(BuildContext context) =>
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(priceLensStrings(context, 'saveFailed'))),
-    );
+void lensWriteFailure(BuildContext context) => NexBannerHost.of(context)?.show(
+  kind: NexBannerKind.failed,
+  message: priceLensStrings(context, 'saveFailed'),
+);
 
 class LensReadError extends StatelessWidget {
   const LensReadError({super.key, required this.controller});
@@ -60,7 +60,7 @@ class LensInvalidRow extends StatelessWidget {
       ),
     );
     if (approved != true || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context),
+    final messenger = NexBannerHost.of(context),
         message = s(
           context,
           kind == 'memory' ? 'memoryDeleted' : 'savedDeleted',

@@ -15,7 +15,7 @@ extension _MedicineDetailBody on _MedicineDetailSheetState {
     return ScaffoldMessenger(
       child: Builder(
         builder: (inner) {
-          _sheetMessenger = ScaffoldMessenger.of(inner);
+          _sheetMessenger = NexBannerHost.of(inner);
           return PopScope(
             canPop: !_busy,
             child: AbsorbPointer(absorbing: _busy, child: _sheet(inner)),
@@ -166,7 +166,7 @@ extension _MedicineDetailBody on _MedicineDetailSheetState {
       if (!mounted) {
         return;
       }
-      final messenger = ScaffoldMessenger.of(context);
+      final messenger = NexBannerHost.of(context);
       final undo = AppLocalizations.of(context).undo;
       MedicineDialogs.offerUndo(
         messenger,
@@ -228,7 +228,7 @@ extension _MedicineDetailBody on _MedicineDetailSheetState {
         return;
       }
       MedicineDialogs.offerUndo(
-        ScaffoldMessenger.of(context),
+        NexBannerHost.of(context),
         medicineStrings(context, 'medicineDeleted'),
         AppLocalizations.of(context).undo,
         undo,

@@ -200,7 +200,7 @@ class _ParkingScreenState extends State<ParkingScreen>
         return;
       }
       ParkingDialogs.offerUndo(
-        ScaffoldMessenger.of(context),
+        NexBannerHost.of(context),
         parkingStrings(context, 'deletedOne'),
         AppLocalizations.of(context).undo,
         undo,
@@ -234,7 +234,7 @@ class _ParkingScreenState extends State<ParkingScreen>
         return;
       }
       ParkingDialogs.offerUndo(
-        ScaffoldMessenger.of(context),
+        NexBannerHost.of(context),
         parkingStrings(context, 'clearedHistory'),
         AppLocalizations.of(context).undo,
         undo,
@@ -268,8 +268,9 @@ class _ParkingScreenState extends State<ParkingScreen>
       await run();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(parkingStrings(context, 'saveFailed'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: parkingStrings(context, 'saveFailed'),
         );
       }
     } finally {

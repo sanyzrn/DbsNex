@@ -132,6 +132,8 @@ class ExpensesDraftFrame extends StatelessWidget {
         );
 }
 
-void expenseWriteFailure(BuildContext context) => ScaffoldMessenger.of(
-  context,
-).showSnackBar(SnackBar(content: Text(expenseStrings(context, 'saveFailed'))));
+void expenseWriteFailure(BuildContext context) =>
+    NexBannerHost.of(context)?.show(
+      kind: NexBannerKind.failed,
+      message: expenseStrings(context, 'saveFailed'),
+    );

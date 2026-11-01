@@ -126,11 +126,19 @@ class _NexMarkdownState extends State<NexMarkdown> {
     _links.recognizers
       ..onTap = widget.onTapLink
       ..onHold = widget.onHoldLink;
-    final sheet = _sheet(
-      theme,
-      widget.style ?? theme.textTheme.bodyLarge,
-      direction,
-    );
+    final sheet =
+        _sheet(
+          theme,
+          widget.style ?? theme.textTheme.bodyLarge,
+          direction,
+        ).copyWith(
+          // The renderer scrolls intrinsic tables on their own horizontal axis.
+          // Cap long cells so a paragraph does not become one enormous column.
+          tableColumnWidth: _NexMarkdownColumnWidth(
+            MediaQuery.textScalerOf(context).scale(320),
+          ),
+          tableScrollbarThumbVisibility: true,
+        );
     // Every paragraph, heading and list item is its own text widget, so a
     // copy across them needs its line breaks put back — see
     // [NexSelectableLines].
@@ -244,6 +252,25 @@ class _NexMarkdownState extends State<NexMarkdown> {
       checkbox: base.copyWith(color: scheme.primary),
     );
   }
+}
+
+class _NexMarkdownColumnWidth extends IntrinsicColumnWidth {
+  const _NexMarkdownColumnWidth(this.maximum);
+  final double maximum;
+
+  @override
+  double minIntrinsicWidth(Iterable<RenderBox> cells, double containerWidth) =>
+      super
+          .minIntrinsicWidth(cells, containerWidth)
+          .clamp(0.0, maximum)
+          .toDouble();
+
+  @override
+  double maxIntrinsicWidth(Iterable<RenderBox> cells, double containerWidth) =>
+      super
+          .maxIntrinsicWidth(cells, containerWidth)
+          .clamp(0.0, maximum)
+          .toDouble();
 }
 
 /// Keeps links inside the paragraph, with tap and hold recognizers on each

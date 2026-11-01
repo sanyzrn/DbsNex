@@ -159,8 +159,9 @@ class _MedicineScreenState extends State<MedicineScreen>
       await run();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(medicineStrings(context, 'saveFailed'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: medicineStrings(context, 'saveFailed'),
         );
       }
     } finally {

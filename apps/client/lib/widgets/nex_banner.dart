@@ -46,12 +46,16 @@ void nexShowBanner(
   NexBannerKind kind = NexBannerKind.done,
   String? actionLabel,
   VoidCallback? onAction,
+  Key? actionKey,
+  Duration? duration,
   bool haptics = true,
 }) => NexBannerHost.of(context)?.show(
   message: message,
   kind: kind,
   actionLabel: actionLabel,
   onAction: onAction,
+  actionKey: actionKey,
+  duration: duration,
   haptics: haptics,
 );
 
@@ -67,6 +71,9 @@ class NexBannerHost {
 
   final OverlayState _overlay;
 
+  bool get mounted => _overlay.mounted;
+  BuildContext get context => _overlay.context;
+
   /// Null when there is no overlay to show in — a widget built outside a
   /// Navigator, which happens in tests.
   static NexBannerHost? of(BuildContext context) {
@@ -79,6 +86,8 @@ class NexBannerHost {
     NexBannerKind kind = NexBannerKind.done,
     String? actionLabel,
     VoidCallback? onAction,
+    Key? actionKey,
+    Duration? duration,
     bool haptics = true,
   }) {
     if (!_overlay.mounted) return;
@@ -88,6 +97,8 @@ class NexBannerHost {
       kind: kind,
       actionLabel: actionLabel,
       onAction: onAction,
+      actionKey: actionKey,
+      duration: duration,
       haptics: haptics,
     );
   }
@@ -99,6 +110,8 @@ void _show(
   required NexBannerKind kind,
   required String? actionLabel,
   required VoidCallback? onAction,
+  required Key? actionKey,
+  required Duration? duration,
   required bool haptics,
 }) {
   _current?.remove();
@@ -111,6 +124,8 @@ void _show(
       kind: kind,
       actionLabel: actionLabel,
       onAction: onAction,
+      actionKey: actionKey,
+      duration: duration,
       haptics: haptics,
       onDismissed: () {
         // Only while it is still the one showing. A newer banner (or
@@ -144,6 +159,8 @@ class _NexBanner extends StatefulWidget {
     required this.kind,
     required this.actionLabel,
     required this.onAction,
+    this.actionKey,
+    this.duration,
     required this.haptics,
     required this.onDismissed,
   });
@@ -152,6 +169,8 @@ class _NexBanner extends StatefulWidget {
   final NexBannerKind kind;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final Key? actionKey;
+  final Duration? duration;
   final bool haptics;
   final VoidCallback onDismissed;
 
@@ -173,9 +192,11 @@ class _NexBannerState extends State<_NexBanner>
   /// Longer when there is something to press. Four seconds is enough to read a
   /// confirmation; it is not enough to notice a delete, decide against it, and
   /// reach the Undo.
-  Duration get _life => widget.actionLabel == null
-      ? const Duration(milliseconds: 3400)
-      : const Duration(milliseconds: 6000);
+  Duration get _life =>
+      widget.duration ??
+      (widget.actionLabel == null
+          ? const Duration(milliseconds: 3400)
+          : const Duration(milliseconds: 6000));
 
   @override
   void initState() {
@@ -250,6 +271,7 @@ class _NexBannerState extends State<_NexBanner>
     final action = widget.actionLabel == null
         ? null
         : TextButton(
+            key: widget.actionKey,
             onPressed: _act,
             style: TextButton.styleFrom(
               foregroundColor: accent,

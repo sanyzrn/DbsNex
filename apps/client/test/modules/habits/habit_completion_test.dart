@@ -50,6 +50,8 @@ class MemoryHabits implements NexModuleStore {
   @override
   Future<void> clearReminder(String key) => delete('__reminder', key);
   @override
+  Future<void> withdrawReminder(String key) => delete('__reminder', key);
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

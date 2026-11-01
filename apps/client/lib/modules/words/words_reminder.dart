@@ -82,10 +82,13 @@ Future<bool> wordsArmReminder(
   NexModuleStore store,
   AppLocalizations l10n, {
   DateTime? now,
+  bool preserveShown = false,
 }) async {
   final reminder = await wordsReadReminder(store);
   if (!reminder.on) {
-    await store.clearReminder(_reminderKey);
+    await (preserveShown
+        ? store.withdrawReminder(_reminderKey)
+        : store.clearReminder(_reminderKey));
     return true;
   }
   final repository = WordsRepository(store);
@@ -98,7 +101,9 @@ Future<bool> wordsArmReminder(
     now: now ?? DateTime.now(),
   );
   if (next == null) {
-    await store.clearReminder(_reminderKey);
+    await (preserveShown
+        ? store.withdrawReminder(_reminderKey)
+        : store.clearReminder(_reminderKey));
     return true;
   }
   return store.setReminder(

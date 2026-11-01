@@ -380,8 +380,9 @@ class _MedicineEditorSheetState extends State<MedicineEditorSheet> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(medicineStrings(context, 'saveFailed'))),
+    NexBannerHost.of(context)?.show(
+      kind: NexBannerKind.failed,
+      message: medicineStrings(context, 'saveFailed'),
     );
   }
 

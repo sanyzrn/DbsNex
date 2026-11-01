@@ -4,12 +4,11 @@ import 'package:nex_client/modules/module_api.dart';
 import 'strings.dart';
 
 /// The time a deletion stays reversible — a plain data value, not a
-/// motion token; the module API exports no capsule notice, so this is
-/// the standard SnackBar the module may show.
+/// motion token; shared with the app’s top capsule.
 const expensesUndoWindow = Duration(seconds: 6);
 
 /// Offers Undo for a deletion, in the screen's own
-/// [ScaffoldMessengerState] — captured **before** the editor sheet
+/// [NexBannerHost] — captured **before** the editor sheet
 /// pops, because the sheet's context does not outlive its route.
 ///
 /// The words and the restore closure are captured with it, so nothing
@@ -19,7 +18,7 @@ const expensesUndoWindow = Duration(seconds: 6);
 class ExpensesUndo {
   ExpensesUndo._();
   static void offer(
-    ScaffoldMessengerState messenger, {
+    NexBannerHost? messenger, {
     required String message,
     required String undoLabel,
     required Future<void> Function() restore,
@@ -29,24 +28,23 @@ class ExpensesUndo {
       try {
         await restore();
       } catch (_) {
-        if (messenger.mounted) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(failureMessage ?? message),
-              duration: expensesUndoWindow,
-              action: SnackBarAction(label: undoLabel, onPressed: attempt),
-            ),
+        if ((messenger?.mounted ?? false)) {
+          messenger?.show(
+            kind: NexBannerKind.failed,
+            message: failureMessage ?? message,
+            duration: expensesUndoWindow,
+            actionLabel: undoLabel,
+            onAction: attempt,
           );
         }
       }
     }
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: expensesUndoWindow,
-        action: SnackBarAction(label: undoLabel, onPressed: attempt),
-      ),
+    messenger?.show(
+      message: message,
+      duration: expensesUndoWindow,
+      actionLabel: undoLabel,
+      onAction: attempt,
     );
   }
 }

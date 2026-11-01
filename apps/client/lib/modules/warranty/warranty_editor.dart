@@ -379,8 +379,9 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(warrantyStrings(context, 'saveFailed'))),
+    NexBannerHost.of(context)?.show(
+      kind: NexBannerKind.failed,
+      message: warrantyStrings(context, 'saveFailed'),
     );
   }
 

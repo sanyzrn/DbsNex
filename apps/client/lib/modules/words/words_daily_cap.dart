@@ -66,14 +66,16 @@ class _WordsDailyCapRowState extends State<WordsDailyCapRow> {
         sessionLimit: widget.session ? picked : null,
       );
       if (!saved && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(wordsStrings(context, 'saveFailed'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: wordsStrings(context, 'saveFailed'),
         );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(wordsStrings(context, 'saveFailed'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: wordsStrings(context, 'saveFailed'),
         );
       }
     } finally {

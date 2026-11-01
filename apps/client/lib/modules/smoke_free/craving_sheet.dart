@@ -141,7 +141,7 @@ class _CravingSheetState extends State<_CravingSheet> {
     final editing = widget.editing;
     if (editing == null || _saving) return;
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
     final errorMessage = smokeFreeStrings(context, 'saveError');
     Map<String, Object?>? snapshot;
@@ -159,18 +159,13 @@ class _CravingSheetState extends State<_CravingSheet> {
     if (!mounted) return;
     setState(() => _saving = false);
     Navigator.of(context).pop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(smokeFreeStrings(context, 'cravingDeleted')),
-        action: SnackBarAction(
-          label: l10n.undo,
-          onPressed: () => widget.store
-              .put('craving', editing.id, raw)
-              .catchError((Object _) {
-                messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
-              }),
-        ),
-      ),
+    messenger?.show(
+      message: smokeFreeStrings(context, 'cravingDeleted'),
+      actionLabel: l10n.undo,
+      onAction: () =>
+          widget.store.put('craving', editing.id, raw).catchError((Object _) {
+            messenger.show(kind: NexBannerKind.failed, message: errorMessage);
+          }),
     );
   }
 

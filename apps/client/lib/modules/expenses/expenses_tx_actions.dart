@@ -62,9 +62,9 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     final day = _typedDay;
     if (day == null) {
       _paint(() => _showErrors = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(expenseStrings(context, 'dateRequired'))),
-      );
+      NexBannerHost.of(
+        context,
+      )?.show(message: expenseStrings(context, 'dateRequired'));
       return;
     }
 
@@ -140,7 +140,7 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     _paint(() => _saving = true);
     // The messenger and the words are captured while the sheet is still
     // mounted: this context does not outlive the route about to pop.
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final message = expenseStrings(context, 'deletedTx');
     final undoLabel = expenseStrings(context, 'undo');
     final undoFailure = expenseStrings(context, 'undoFailed');

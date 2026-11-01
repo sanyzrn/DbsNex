@@ -127,36 +127,29 @@ class ParkingDialogs {
   /// A time-limited Undo for whatever was just removed. The [undoLabel]
   /// is taken before the write, not from a context that may have gone.
   static void offerUndo(
-    ScaffoldMessengerState messenger,
+    NexBannerHost? messenger,
     String message,
     String undoLabel,
     Future<void> Function() restore,
   ) {
     // One at a time: a new question replaces the one still on screen.
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        action: SnackBarAction(
-          key: const ValueKey('parking-undo'),
-          label: undoLabel,
-          onPressed: () async {
-            try {
-              await restore();
-            } catch (_) {
-              if (messenger.mounted) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      parkingStrings(messenger.context, 'undoFailed'),
-                    ),
-                  ),
-                );
-              }
-            }
-          },
-        ),
-      ),
+    final failureMessage = messenger == null
+        ? ''
+        : parkingStrings(messenger.context, 'undoFailed');
+    nexHideBanner();
+    messenger?.show(
+      message: message,
+      actionKey: const ValueKey('parking-undo'),
+      actionLabel: undoLabel,
+      onAction: () async {
+        try {
+          await restore();
+        } catch (_) {
+          if (messenger.mounted) {
+            messenger.show(kind: NexBannerKind.failed, message: failureMessage);
+          }
+        }
+      },
     );
   }
 }

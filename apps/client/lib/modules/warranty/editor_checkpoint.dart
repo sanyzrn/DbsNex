@@ -177,8 +177,9 @@ class _CheckpointFrameState extends State<CheckpointFrame> {
     } else {
       if (!widget.session.failed) widget.session.draft.resume();
       setState(() => _closing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.strings(context, 'saveFailed'))),
+      NexBannerHost.of(context)?.show(
+        kind: NexBannerKind.failed,
+        message: widget.strings(context, 'saveFailed'),
       );
     }
   }

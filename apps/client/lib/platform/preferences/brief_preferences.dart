@@ -10,6 +10,9 @@ mixin _BriefPreferences on _PreferencesStore {
 
   bool get aiDaySummaryIncludesHabits =>
       _prefs.getBool('ai.daySummary.habits') ?? false;
+  // Revision 1 includes ordinary notes in factual briefs and balances habits.
+  // Older generated summaries may stay visible until their replacement arrives.
+  bool get aiDaySummaryCurrent => _prefs.getInt('ai.daySummary.revision') == 1;
   NexBriefStyle get briefStyle =>
       NexBriefStyle.fromWire(_prefs.getString('brief.style'));
 
@@ -146,6 +149,7 @@ mixin _BriefPreferences on _PreferencesStore {
       (at ?? DateTime.now()).millisecondsSinceEpoch,
     );
     await _prefs.setString('ai.daySummary.source', source);
+    await _prefs.setInt('ai.daySummary.revision', 1);
     await _prefs.remove('ai.daySummary.failedAt');
   }
 

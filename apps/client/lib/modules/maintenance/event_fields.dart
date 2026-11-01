@@ -312,7 +312,7 @@ Future<void> deleteServiceEvent(
   );
   if (answer != true || !context.mounted) return;
   onSaving?.call(true);
-  final messenger = ScaffoldMessenger.of(context);
+  final messenger = NexBannerHost.of(context);
   final message = s(context, 'deletedEvent');
   final undoLabel = s(context, 'undo');
   try {

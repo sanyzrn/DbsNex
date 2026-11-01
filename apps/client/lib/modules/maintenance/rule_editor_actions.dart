@@ -100,7 +100,7 @@ extension _EditorActions on _RuleEditorSheetState {
       body: maintenanceStrings(context, 'deleteRuleBody'),
     );
     if (!ok || !mounted) return;
-    final messenger = ScaffoldMessenger.of(context),
+    final messenger = NexBannerHost.of(context),
         message = maintenanceStrings(context, 'deletedRule'),
         undo = maintenanceStrings(context, 'undo'),
         failure = maintenanceStrings(context, 'undoFailed');

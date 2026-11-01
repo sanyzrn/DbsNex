@@ -34,7 +34,7 @@ Future<void> assetPageMenu(
         if (answer != true || !context.mounted) return;
         // The words and the messenger are captured before the write, so
         // nothing reaches across an async gap.
-        final messenger = ScaffoldMessenger.of(context);
+        final messenger = NexBannerHost.of(context);
         final message = s(context, 'archivedAsset');
         final undoLabel = s(context, 'undo');
         final failure = s(context, 'undoFailed');
@@ -71,7 +71,7 @@ Future<void> assetPageMenu(
         );
         if (answer != true || !context.mounted) return;
         final snapshot = controller.snapshotOf(asset.id);
-        final messenger = ScaffoldMessenger.of(context);
+        final messenger = NexBannerHost.of(context);
         final message = s(context, 'deletedAsset');
         final undoLabel = s(context, 'undo');
         final failure = s(context, 'undoFailed');

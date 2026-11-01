@@ -60,6 +60,36 @@ void main() {
   });
   tearDown(() => NexReminders.debugSupported = null);
 
+  test(
+    'a module notice survives automatic withdrawal, rearm and startup pruning',
+    () async {
+      const module = 'habits', key = 'habit:walk';
+      final id = NexModuleAlarms.moduleId(module, key);
+      await reminders.scheduleModule(
+        module,
+        key,
+        at: DateTime.now().add(const Duration(hours: 1)),
+        title: 'Walking',
+        body: 'Due',
+      );
+      plugin.ring(id);
+      await reminders.withdrawModule(module, key);
+      expect(plugin.showing, contains(id));
+      await reminders.scheduleModule(
+        module,
+        key,
+        at: DateTime.now().add(const Duration(days: 1)),
+        title: 'Walking',
+        body: 'Due',
+      );
+      await reminders.syncFromLibrary(const [], moduleReminderIds: {id});
+      expect(plugin.showing, contains(id));
+      expect(plugin.pending, contains(id));
+      await reminders.cancelModule(module, key);
+      expect(plugin.showing, isNot(contains(id)));
+    },
+  );
+
   Note daily(String id) {
     final now = DateTime.now().toUtc();
     return Note(

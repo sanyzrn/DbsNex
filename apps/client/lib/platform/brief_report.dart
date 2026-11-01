@@ -16,6 +16,8 @@ import 'package:nex_ai/cloud.dart';
 /// Null rather than a sentence when nothing is waiting. A quiet day is a real
 /// answer and the card already has a line for it; inventing "you have 4
 /// notes" to fill the space is the habit this whole setting exists to break.
+/// When [notes] are provided, their recent content is also reported in short
+/// excerpts after the dated facts. A note does not need a reminder to matter.
 ///
 /// The [maxLines] budget is spent from the top, so a long list of overdue
 /// items can take the whole card. That is the right failure: a brief that
@@ -32,10 +34,12 @@ String? nexBriefReport(
   NexBriefFacts facts,
   AppLocalizations l10n, {
   int maxLines = 4,
+  List<Note> notes = const [],
+  int maxWords = 28,
   DateTime? now,
   String Function(DateTime local)? clock,
 }) {
-  if (facts.nothingWaiting || maxLines <= 0) return null;
+  if (maxLines <= 0) return null;
   final at = now ?? DateTime.now();
   final persian = l10n.localeName == 'fa';
   String time(DateTime local) =>
@@ -83,6 +87,28 @@ String? nexBriefReport(
     add(
       '☑️ ${l10n.briefLineChecklist(entry.title, entry.remaining!, entry.total!)}',
     );
+  }
+
+  // A report includes ordinary notes too. Without these, a library of plans
+  // and ideas with no reminder produced no note lines beside habit progress.
+  final covered = {
+    for (final entry in [
+      ...facts.overdue,
+      ...facts.dueSoon,
+      ...facts.unfinished,
+    ])
+      entry.title.trim(),
+  };
+  final selected = nexRecapNoteIds(notes, now: at).toSet();
+  final recent = notes.where((note) => selected.contains(note.id)).toList()
+    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  for (final note in recent) {
+    if (lines.length >= maxLines) break;
+    final text = note.displayText?.trim() ?? '';
+    if (text.isEmpty || !covered.add(text)) continue;
+    final words = text.replaceAll(RegExp(r'\s+'), ' ').split(' ');
+    final excerpt = words.take(maxWords).join(' ');
+    add('📝 $excerpt${words.length > maxWords ? '…' : ''}');
   }
 
   return lines.isEmpty ? null : lines.join('\n');

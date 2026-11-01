@@ -99,7 +99,7 @@ class NexBriefRefresh {
   }
 
   bool needs(String fingerprint) => needsRefresh(
-    at: preferences.aiDaySummaryAt,
+    at: preferences.aiDaySummaryCurrent ? preferences.aiDaySummaryAt : null,
     text: preferences.aiDaySummaryText,
     storedSource: preferences.aiDaySummarySource,
     fingerprint: fingerprint,
@@ -111,7 +111,8 @@ class NexBriefRefresh {
   DateTime nextAllowedAt() {
     var next = _clock();
     for (final date in [
-      preferences.aiDaySummaryAt?.add(successInterval),
+      if (preferences.aiDaySummaryCurrent)
+        preferences.aiDaySummaryAt?.add(successInterval),
       preferences.aiDaySummaryFailedAt?.add(failureInterval),
     ]) {
       if (date != null && date.isAfter(next)) next = date;
