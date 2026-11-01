@@ -118,7 +118,6 @@ void main() {
   testWidgets('a calendar day says what it is, and opens with TalkBack '
       '(LOC-02, LOC-13)', (tester) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
     final harness = await openCycle(
       tester,
       preferences: {'cycle.set_up': true},
@@ -132,14 +131,15 @@ void main() {
     // scroll it into view before checking the exposed TalkBack node.
     final label = RegExp(r', today, Period$');
     final days = find.byWidgetPredicate(
-      (widget) => widget is Semantics &&
-          label.hasMatch(widget.properties.label ?? ''),
+      (widget) =>
+          widget is Semantics && label.hasMatch(widget.properties.label ?? ''),
     );
     await scrollTo(tester, find.byType(CycleCalendar));
     await scrollTo(tester, days.first);
     final node = tester.getSemantics(days.first);
     expect(node.getSemanticsData().label, matches(label));
     expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+    semantics.dispose();
   });
 
   testWidgets("today's log is saved and summarised", (tester) async {

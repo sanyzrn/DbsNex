@@ -12,7 +12,9 @@ void _registerBrowseCases(
   ) async {
     final now = DateTime.now();
     String day(int offset) => DateTime(
-      now.year, now.month, now.day + offset,
+      now.year,
+      now.month,
+      now.day + offset,
     ).toIso8601String().substring(0, 10);
     final store = NexModuleStore(getHarness().services, 'words');
     Future<void> add(String id, String word, String meaning, String due) =>
