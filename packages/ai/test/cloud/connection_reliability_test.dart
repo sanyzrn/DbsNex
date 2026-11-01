@@ -203,7 +203,14 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 4));
       await tester.pump();
-      expect(error, isA<TimeoutException>());
+      expect(
+        error,
+        isA<AiUnavailableException>().having(
+          (failure) => failure.kind,
+          'kind',
+          AiFailureKind.timeout,
+        ),
+      );
       expect(stream.hasListener, isFalse);
       expect(client.closed, isFalse, reason: 'an injected client is borrowed');
       unawaited(stream.close());
