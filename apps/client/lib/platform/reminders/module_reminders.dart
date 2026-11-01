@@ -8,6 +8,9 @@ extension NexModuleAlarms on NexReminders {
     required String title,
     required String body,
     bool daily = false,
+    String sourceKind = '',
+    String sourceId = '',
+    bool? habitCounted,
   }) async {
     if (!NexReminders.supported) return false;
     await initialise();
@@ -17,6 +20,24 @@ extension NexModuleAlarms on NexReminders {
       await _withdraw(moduleId(module, key));
       return false;
     }
+    final target = NexModuleTarget(
+      module,
+      kind: sourceKind,
+      id: sourceId,
+      key: key,
+      day:
+          '${at.year.toString().padLeft(4, '0')}-${at.month.toString().padLeft(2, '0')}-${at.day.toString().padLeft(2, '0')}',
+    );
+    final secret = hideOnLockScreen?.call() ?? false;
+    if (habitCounted != null) {
+      await NexHabitNotificationActions.remember(
+        target.payload,
+        title: title,
+        body: body,
+        counted: habitCounted,
+        secret: secret,
+      );
+    }
     lastError = null;
     try {
       await _plugin.zonedSchedule(
@@ -24,23 +45,29 @@ extension NexModuleAlarms on NexReminders {
         title: nexNotificationText(title),
         body: nexNotificationText(body),
         scheduledDate: NexReminders.scheduledDateFor(at.toUtc()),
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            NexReminders._channelId,
-            NexReminders._text.reminders,
-            styleInformation: nexNotificationStyle(null),
-            channelDescription: NexReminders._text.remindersAbout,
-            importance: Importance.high,
-            priority: Priority.high,
-            visibility: NotificationVisibility.private,
-          ),
-          iOS: const DarwinNotificationDetails(),
-        ),
+        notificationDetails: habitCounted != null
+            ? NexHabitNotificationActions.details(
+                body: body,
+                counted: habitCounted,
+                secret: secret,
+              )
+            : NotificationDetails(
+                android: AndroidNotificationDetails(
+                  NexReminders._channelId,
+                  NexReminders._text.reminders,
+                  styleInformation: nexNotificationStyle(null),
+                  channelDescription: NexReminders._text.remindersAbout,
+                  importance: Importance.high,
+                  priority: Priority.high,
+                  visibility: NotificationVisibility.private,
+                ),
+                iOS: const DarwinNotificationDetails(),
+              ),
         androidScheduleMode: _scheduleMode,
         // A habit's nudge rings at the same wall time every day, so it
         // is scheduled once and repeated by the system.
         matchDateTimeComponents: daily ? DateTimeComponents.time : null,
-        payload: 'nex:module:$module',
+        payload: target.payload,
       );
       return true;
     } catch (error) {
@@ -62,10 +89,10 @@ extension NexModuleAlarms on NexReminders {
     await initialise();
     if (key != null) {
       await _plugin.cancel(id: moduleId(module, key));
-      return;
     }
     for (final request in await _plugin.pendingNotificationRequests()) {
-      if (request.payload == 'nex:module:$module') {
+      final target = NexModuleTarget.parse(request.payload);
+      if (target?.module == module && (key == null || target?.key == key)) {
         await _plugin.cancel(id: request.id);
       }
     }

@@ -13,7 +13,7 @@ import 'module.dart';
 /// Nex starts or returns (the module's `keepUp`), whenever a day is checked
 /// in, and when the setting or the habit changes.
 ///
-/// The notification says only that a habit is waiting, never which.
+/// Names the habit and its real progress; the smart-brief permission is separate.
 
 /// Where a habit's reminder setting lives: kind `remind`, id the habit's.
 const habitRemindKind = 'remind';
@@ -133,13 +133,27 @@ Future<bool> habitArmReminder(
     await store.clearReminder(key);
     return true;
   }
+  final standing = HabitMath.fromChecks(habit, mine, at, firstDay: week);
+  final name = habit.name.isEmpty
+      ? habitsStrings.text(l10n, 'untitled')
+      : habit.name;
+  final body = habit.counted
+      ? habitsStrings.text(l10n, 'reminderNamedProgress', {
+          'name': name,
+          'done': standing.todayAmount,
+          'goal': habit.goal,
+          'unit': habit.unit.isEmpty
+              ? habitsStrings.text(l10n, 'unitTimes')
+              : habit.unit,
+        })
+      : habitsStrings.text(l10n, 'reminderNamed', {'name': name});
   return store.setReminder(
     key,
     sourceKind: 'habit',
     sourceId: habit.id,
     at: at,
-    title: habitsStrings.text(l10n, 'reminderTitle'),
-    body: habitsStrings.text(l10n, 'reminderBody'),
+    title: habitsStrings.text(l10n, 'title'),
+    body: body,
   );
 }
 
@@ -220,8 +234,11 @@ class _HabitReminderTileState extends State<HabitReminderTile> {
     final l10n = AppLocalizations.of(context);
     final failed = habitsStrings(context, 'reminderFailed');
     void say() {
-      if (mounted) nexShowBanner(context, message: failed, kind: NexBannerKind.failed);
+      if (mounted) {
+        nexShowBanner(context, message: failed, kind: NexBannerKind.failed);
+      }
     }
+
     try {
       final next = (on: on ?? current.on, minutes: minutes ?? current.minutes);
       await widget.store.put(habitRemindKind, widget.habit.id, {

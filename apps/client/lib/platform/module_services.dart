@@ -76,6 +76,11 @@ extension NexModuleServices on NexServices {
       title: title,
       body: body,
       daily: daily,
+      sourceKind: sourceKind,
+      sourceId: sourceId,
+      habitCounted: module == 'habits' && sourceKind == 'habit'
+          ? source.body['goal'] is num && (source.body['goal'] as num) > 1
+          : null,
     );
   }
 
@@ -118,6 +123,17 @@ extension NexModuleServices on NexServices {
           await reminders.cancelModule(module.id, record.id);
           continue;
         }
+        final target = NexModuleTarget(
+          module.id,
+          kind: b['sourceKind'] as String,
+          id: b['sourceId'] as String,
+          key: record.id,
+          day:
+              '${at.toLocal().year.toString().padLeft(4, '0')}-${at.toLocal().month.toString().padLeft(2, '0')}-${at.toLocal().day.toString().padLeft(2, '0')}',
+        );
+        if (module.id == 'habits') {
+          wanted.add(NexReminders.snoozeIdFor(target.payload));
+        }
         // Past: it has rung, or was missed. Its notification, if showing,
         // stays until it is tapped or dismissed (2.1.9).
         if (!at.isAfter(DateTime.now())) {
@@ -132,6 +148,11 @@ extension NexModuleServices on NexServices {
           title: b['title'] as String,
           body: b['body'] as String,
           daily: daily,
+          sourceKind: b['sourceKind'] as String,
+          sourceId: b['sourceId'] as String,
+          habitCounted: module.id == 'habits' && b['sourceKind'] == 'habit'
+              ? source.body['goal'] is num && (source.body['goal'] as num) > 1
+              : null,
         );
       }
     }

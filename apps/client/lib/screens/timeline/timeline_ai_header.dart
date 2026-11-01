@@ -9,7 +9,7 @@ extension _TimelineAiHeader on TimelineScreenState {
       source:
           '${config.provider.wireName}|${config.resolvedBaseUrl}|'
           '${config.resolvedModel}|${prefs.aiEnabled}|'
-          '${prefs.aiSummaryUnlimited}|${prefs.locale}',
+          '${prefs.aiSummaryUnlimited}|${prefs.locale}|${prefs.briefHabitsAllowed}',
       style: prefs.briefStyle,
       tone: prefs.briefTone,
       length: prefs.briefLength,
@@ -25,6 +25,15 @@ extension _TimelineAiHeader on TimelineScreenState {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _briefPreferencesQueued = false;
       if (!mounted) return;
+      if (!widget.preferences.briefHabitsAllowed &&
+          (widget.preferences.aiDaySummaryIncludesHabits ||
+              _aiSummaryHasHabits)) {
+        _aiSummaryHasHabits = false;
+        _rebuild(
+          () => _aiSummaryText =
+              widget.preferences.aiDaySummaryText ?? _notesOnlyBrief(),
+        );
+      }
       // Settings save while typing. Apply the final choice on return instead
       // of spending a request on each edit to a custom instruction.
       if (ModalRoute.of(context)?.isCurrent == false) return;
@@ -71,6 +80,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     if (force) _aiSummaryManualRequested = true;
     final pending = _aiSummaryInFlight;
     if (pending != null) return pending;
+    _habitBriefDirty = false;
     final settings = _briefSettingsSignature();
     final work = _askAiSummary(force: force);
     final flight = work.whenComplete(() {
@@ -82,6 +92,8 @@ extension _TimelineAiHeader on TimelineScreenState {
           if (ModalRoute.of(context)?.isCurrent != false) {
             unawaited(_loadAiSummary(force: true));
           }
+        } else if (_habitBriefDirty) {
+          unawaited(_loadAiSummary());
         } else {
           _armBriefRefresh();
         }
@@ -94,7 +106,8 @@ extension _TimelineAiHeader on TimelineScreenState {
   String _briefFingerprint() {
     final prefs = widget.preferences;
     final config = prefs.aiProvider;
-    final stableSource = _aiRecapSource(forFingerprint: true);
+    final stableSource =
+        '${_aiRecapSource(forFingerprint: true)}\n${widget.preferences.briefHabitsAllowed ? _habitBriefSource : ''}';
     final budget = nexBriefLines(
       '\n'.allMatches(stableSource).length + 1,
       ceiling: prefs.briefLength.lines,
@@ -134,7 +147,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     if (!_aiHeaderAvailable ||
         !prefs.showDaySummary ||
         !prefs.briefStyle.usesModel ||
-        _aiRecapSource().isEmpty ||
+        (_aiRecapSource().isEmpty && _habitBriefSource.isEmpty) ||
         !_briefForeground) {
       return;
     }
@@ -160,9 +173,28 @@ extension _TimelineAiHeader on TimelineScreenState {
         cached != null &&
         cached.isNotEmpty &&
         cached != _aiSummaryText) {
-      _rebuild(() => _aiSummaryText = cached);
+      _rebuild(() {
+        _aiSummaryText = cached;
+        _aiSummaryHasHabits =
+            prefs.aiDaySummaryIncludesHabits && prefs.briefHabitsAllowed;
+      });
     }
-    final source = _aiRecapSource();
+    final habits = await widget.services.habitsForBrief();
+    if (!mounted) return;
+    _habitBriefSource = prefs.briefHabitsAllowed ? habits.source : '';
+    final includesHabits = _habitBriefSource.isNotEmpty;
+    final habitText = includesHabits
+        ? habits.localText(AppLocalizations.of(context))
+        : '';
+    if (!prefs.briefHabitsAllowed && prefs.aiDaySummaryIncludesHabits) {
+      _rebuild(
+        () => _aiSummaryText = prefs.aiDaySummaryText ?? _notesOnlyBrief(),
+      );
+    }
+    final source = [
+      _aiRecapSource(),
+      if (includesHabits) _habitBriefSource,
+    ].where((s) => s.isNotEmpty).join('\n');
     if (source.isEmpty) return;
     // Which notes the brief is written from, for the log of what left the
     // phone: it used to name none (1.99.96 reviews, SEC-01).
@@ -176,6 +208,9 @@ extension _TimelineAiHeader on TimelineScreenState {
       '\n'.allMatches(source).length + 1,
       ceiling: length.lines,
     );
+    final localHabitLines = includesHabits && !style.usesModel
+        ? (budget ~/ 2).clamp(1, 4)
+        : 0;
     final written = style.statesFacts
         ? nexBriefReport(
             nexBriefFacts(
@@ -183,7 +218,9 @@ extension _TimelineAiHeader on TimelineScreenState {
               commitments: _model.commitments,
             ),
             AppLocalizations.of(context),
-            maxLines: style.usesModel ? (budget - 1).clamp(1, budget) : budget,
+            maxLines: style.usesModel
+                ? (budget - 1).clamp(1, budget)
+                : (budget - localHabitLines).clamp(1, budget),
             clock: (local) => nexDueClock(context, local),
           )
         : null;
@@ -191,7 +228,12 @@ extension _TimelineAiHeader on TimelineScreenState {
       if (mounted) {
         _rebuild(() {
           _aiSummaryLoading = false;
-          _aiSummaryText = written;
+          _aiSummaryHasHabits = includesHabits;
+          _aiSummaryText = [
+            written ?? '',
+            if (localHabitLines > 0)
+              habitText.split('\n').take(localHabitLines).join('\n'),
+          ].where((s) => s.isNotEmpty).join('\n');
         });
       }
       _refreshDailyNudge();
@@ -202,7 +244,11 @@ extension _TimelineAiHeader on TimelineScreenState {
     final refresh = widget.services.briefRefresh;
     if (!force && !refresh.needs(fingerprint)) return;
     final config = prefs.aiProvider;
-    final language = prefs.aiOutputLanguage;
+    final language =
+        prefs.aiOutputLanguage == AiOutputLanguage.auto &&
+            _aiRecapSource().isEmpty
+        ? _headlineLanguage
+        : prefs.aiOutputLanguage;
     final unlimited = prefs.aiSummaryUnlimited;
     final tone = prefs.briefTone;
     final instruction = prefs.briefInstruction;
@@ -213,7 +259,10 @@ extension _TimelineAiHeader on TimelineScreenState {
         fingerprint: fingerprint,
         dateKey: _aiSummaryDateKey(),
         force: force,
+        includesHabits: includesHabits,
+        notesOnlyFallback: _notesOnlyBrief(),
         request: () async {
+          if (includesHabits && !prefs.briefHabitsAllowed) return null;
           final adapter = CloudAIAdapter(
             config: config,
             outputLanguage: language,
@@ -224,6 +273,7 @@ extension _TimelineAiHeader on TimelineScreenState {
               notes: sourceNotes,
               () => adapter.digest(
                 source,
+                includesHabits: includesHabits,
                 lines: budget,
                 style: style,
                 tone: tone,
@@ -252,6 +302,8 @@ extension _TimelineAiHeader on TimelineScreenState {
       if (!mounted || settings != _briefSettingsSignature()) return;
       _rebuild(() {
         _aiSummaryText = result.text ?? _aiSummaryText ?? written;
+        _aiSummaryHasHabits =
+            prefs.aiDaySummaryIncludesHabits && prefs.briefHabitsAllowed;
       });
       if ((force || _aiSummaryManualRequested) && result.failed) {
         NexBannerHost.of(context)?.show(
@@ -436,7 +488,9 @@ extension _TimelineAiHeader on TimelineScreenState {
         context: context,
         preferences: widget.preferences,
         reminders: widget.services.reminders,
-        recap: widget.preferences.lastRecap,
+        recap: !widget.preferences.briefHabitsAllowed && _aiSummaryHasHabits
+            ? widget.preferences.lastRecap
+            : _aiSummaryText ?? widget.preferences.lastRecap,
       ),
     );
   }
@@ -514,6 +568,18 @@ extension _TimelineAiHeader on TimelineScreenState {
     unawaited(_loadAiHeadline());
   }
 
+  String _notesOnlyBrief() =>
+      nexBriefReport(
+        nexBriefFacts(
+          _model.all ?? _model.notes,
+          commitments: _model.commitments,
+        ),
+        AppLocalizations.of(context),
+        maxLines: widget.preferences.briefLength.lines,
+        clock: (local) => nexDueClock(context, local),
+      ) ??
+      '';
+
   /// The brief, as the first card above the notes.
   ///
   /// It has the note card's insets and corner, and none of its height rule.
@@ -554,32 +620,27 @@ extension _TimelineAiHeader on TimelineScreenState {
           borderRadius: corner,
           showShadow: false,
           fallbackColor: scheme.surfaceContainerLowest,
-          child: NexModuleBrief(
-            services: widget.services,
-            preferences: widget.preferences,
-            builder: (context, moduleLine) => _AiDaySummaryPanel(
-              // Keyed so a test can say "the brief is on screen" without
-              // reaching for a glyph. It used to be found by its sparkle,
-              // which is a thing any other surface could start wearing.
-              key: const ValueKey('timeline-recap'),
-              loading: _aiSummaryLoading,
-              text: [
-                if (_aiSummaryText?.isNotEmpty == true) _aiSummaryText!,
-                if (moduleLine != null) moduleLine,
-              ].join('\n'),
-              emptyLabel: l10n.aiDaySummaryEmpty,
-              collapsed: _aiSummaryCollapsed,
-              semanticLabel: widget.preferences.briefStyle.usesModel
-                  ? '${l10n.aiDaySummarySemanticLabel}. ${l10n.aiDaySummaryByModel}'
-                  : l10n.aiDaySummarySemanticLabel,
-              toggleTooltip: _aiSummaryCollapsed
-                  ? l10n.aiDaySummaryExpand
-                  : l10n.aiDaySummaryCollapse,
-              onToggle: _toggleAiSummary,
-              title: l10n.aiDaySummaryTitle,
-              badge: l10n.aiDaySummaryBadge,
-              byModel: widget.preferences.briefStyle.usesModel,
-            ),
+          child: _AiDaySummaryPanel(
+            // Keyed so a test can say "the brief is on screen" without
+            // reaching for a glyph. It used to be found by its sparkle,
+            // which is a thing any other surface could start wearing.
+            key: const ValueKey('timeline-recap'),
+            loading: _aiSummaryLoading,
+            text: !widget.preferences.briefHabitsAllowed && _aiSummaryHasHabits
+                ? widget.preferences.aiDaySummaryText ?? _notesOnlyBrief()
+                : _aiSummaryText ?? '',
+            emptyLabel: l10n.aiDaySummaryEmpty,
+            collapsed: _aiSummaryCollapsed,
+            semanticLabel: widget.preferences.briefStyle.usesModel
+                ? '${l10n.aiDaySummarySemanticLabel}. ${l10n.aiDaySummaryByModel}'
+                : l10n.aiDaySummarySemanticLabel,
+            toggleTooltip: _aiSummaryCollapsed
+                ? l10n.aiDaySummaryExpand
+                : l10n.aiDaySummaryCollapse,
+            onToggle: _toggleAiSummary,
+            title: l10n.aiDaySummaryTitle,
+            badge: l10n.aiDaySummaryBadge,
+            byModel: widget.preferences.briefStyle.usesModel,
           ),
         ),
       ),

@@ -89,6 +89,7 @@ extension NexScheduledServices on NexServices {
     // What came due while the app was closed arrives first, so its alarm is
     // not re-armed below for a moment already past.
     await releaseDueNotes();
+    await applyHabitActions();
     if (!NexReminders.supported) return;
     try {
       // Commitments as well as notes, and not as an afterthought: the sweep

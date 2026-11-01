@@ -54,7 +54,7 @@ different task".
 | Corner radii | `NexRadius` tokens | Mostly: 8 left, all 2–3 px bars/dots — ratchet |
 | Messages | `nexShowBanner` (top capsule) | **81 `SnackBar(` left** — a screen at a time |
 | Buttons | `FilledButton` / tonal / `TextButton` | 5 stock `OutlinedButton`/`ElevatedButton` left |
-| Cards and panels | `NexPanel`, shelf widgets | 4 stock `Card(` left (vault, brief) |
+| Cards and panels | `NexPanel`, shelf widgets | 3 stock `Card(` left (vault) |
 | Dialogs | `nexShowDialog` | Done (no raw `showDialog`/`AlertDialog`) |
 | Text entry (single line / search) | `NexTextField` line + the search field header | **To audit:** per-screen `InputDecoration` copies |
 | Multi-line text a person writes | `NexTextField` (ADR-037) | Done |

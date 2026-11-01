@@ -145,6 +145,22 @@ extension _TimelineNavigation on TimelineScreenState {
     _spotlight(noteId);
   }
 
+  void _openModuleFromNotification(NexModuleTarget target) {
+    if (!mounted) return;
+    if (widget.locked) {
+      _moduleArrivalHeld = target;
+      return;
+    }
+    unawaited(
+      nexOpenModuleNotification(
+        context,
+        target: target,
+        services: widget.services,
+        preferences: widget.preferences,
+      ),
+    );
+  }
+
   /// A recurring item's reminder was tapped: its page, where it is ticked.
   /// Behind the lock it waits like a note does, and is simply dropped — the
   /// item is on the brief and the page either way.
@@ -170,6 +186,10 @@ extension _TimelineNavigation on TimelineScreenState {
   void _wireRinging() {
     widget.services.ringing.addListener(_onRinging);
     widget.services.reminders.onAction = (noteId, action) {
+      if (action == NexHabitNotificationActions.done) {
+        unawaited(widget.services.applyHabitActions());
+        return;
+      }
       if (action != NexReminderActions.done) return;
       if (noteId.startsWith(NexReminderActions.commitmentPrefix)) {
         unawaited(_applyMetFromShade());
@@ -185,11 +205,13 @@ extension _TimelineNavigation on TimelineScreenState {
     widget.services.ringing.removeListener(_onRinging);
     widget.services.reminders.onAction = null;
     widget.services.reminders.onOpenRecurring = null;
+    widget.services.reminders.onOpenModule = null;
   }
 
   void _syncRinging() {
     unawaited(widget.services.syncRinging());
     unawaited(_applyMetFromShade());
+    unawaited(widget.services.applyHabitActions());
     _ringingSync?.cancel();
     _ringingSync = Timer.periodic(
       const Duration(minutes: 1),
@@ -204,6 +226,13 @@ extension _TimelineNavigation on TimelineScreenState {
   /// The lock has just opened: points at the note a tap named while it was up,
   /// once the gate has finished leaving.
   void _resumeHeldArrival() {
+    final module = _moduleArrivalHeld;
+    _moduleArrivalHeld = null;
+    if (module != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _openModuleFromNotification(module),
+      );
+    }
     final noteId = _arrivalHeld;
     _arrivalHeld = null;
     if (noteId == null) return;

@@ -15,6 +15,7 @@ Future<void> nexKeepModulesUp(
   NexServices services,
   NexPreferences preferences,
 ) async {
+  await services.applyHabitActions();
   final l10n = _localizations(preferences);
   for (final module in nexModulesOn(preferences)) {
     if (module is! NexStoredModule) continue;

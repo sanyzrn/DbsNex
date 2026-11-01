@@ -217,6 +217,12 @@ extension NexScheduledReminders on NexReminders {
         ),
         androidScheduleMode: _scheduleMode,
         matchDateTimeComponents: daily ? DateTimeComponents.time : null,
+        payload: NexModuleTarget(
+          'cycle',
+          kind: key,
+          day:
+              '${when.year.toString().padLeft(4, '0')}-${when.month.toString().padLeft(2, '0')}-${when.day.toString().padLeft(2, '0')}',
+        ).payload,
       );
     } catch (error) {
       lastError = error.toString();

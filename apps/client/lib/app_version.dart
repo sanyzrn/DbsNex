@@ -5,4 +5,3 @@
 /// pointing at the previous release. `version_test.dart` fails the build if
 /// this and `pubspec.yaml` ever drift apart again.
 const nexAppVersion = '2.5.1';
-

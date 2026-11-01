@@ -128,4 +128,40 @@ extension TimelineCommands on TimelineScreenState {
   );
 
   Future<void> clearFilterForRail() => _model.clearFilters();
+
+  // Search and filter commands share the timeline's existing state.
+  void _exitSearch() {
+    // Left with words in the field: a search worth offering again.
+    unawaited(widget.preferences.rememberSearch(_search.query.text));
+    _searchStarted = null;
+    _searchFocus.unfocus();
+    _search.clear();
+    _rebuild(() => _searching = false);
+    _fadeInBody();
+    // No scroll on the way out. Leaving search used to push the list back down
+    // past the field to re-hide it; the field lives at the top now, so that
+    // would just be the timeline jumping for no reason a user could name.
+  }
+
+  Future<void> _selectTags(Set<String> tagIds) async {
+    _tick();
+    await _model.selectTags(tagIds);
+  }
+
+  Future<void> _selectType(NoteType? type) async {
+    _tick();
+    await _model.selectType(type);
+  }
+
+  Future<void> _selectOnlyReminders(bool only) async {
+    _tick();
+    await _model.selectOnlyReminders(only);
+  }
+
+  void _tick() => nexTick();
+
+  Future<void> _clearFilters() async {
+    _tick();
+    await _model.clearFilters();
+  }
 }

@@ -9,6 +9,7 @@ import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/settings_group.dart';
+import '../widgets/nex_shelf.dart';
 import '../widgets/nex_text_field.dart';
 import '../widgets/nex_dialog.dart';
 
@@ -85,17 +86,22 @@ class _BriefScreenState extends State<BriefScreen> {
         // The whole card, on or off, before any of its options: somebody who
         // does not want it should not have to read five styles to find out
         // how to stop it (1.94.0). Off sends nothing to a provider.
-        Card(
-          margin: const EdgeInsets.only(bottom: NexSpacing.md),
-          child: SwitchListTile(
-            key: const ValueKey('brief-enabled'),
-            secondary: const Icon(Icons.auto_awesome_outlined),
-            title: Text(l10n.briefEnabled),
-            subtitle: Text(
-              prefs.showDaySummary ? l10n.briefEnabledOn : l10n.briefEnabledOff,
+        Padding(
+          padding: const EdgeInsets.only(bottom: NexSpacing.md),
+          child: NexPanel(
+            padding: EdgeInsets.zero,
+            child: NexSwitchTile(
+              key: const ValueKey('brief-enabled'),
+              secondary: const Icon(Icons.auto_awesome_outlined),
+              title: Text(l10n.briefEnabled),
+              subtitle: Text(
+                prefs.showDaySummary
+                    ? l10n.briefEnabledOn
+                    : l10n.briefEnabledOff,
+              ),
+              value: prefs.showDaySummary,
+              onChanged: (on) => unawaited(prefs.setShowDaySummary(on)),
             ),
-            value: prefs.showDaySummary,
-            onChanged: (on) => unawaited(prefs.setShowDaySummary(on)),
           ),
         ),
         if (prefs.showDaySummary) ...[
@@ -236,6 +242,28 @@ class _BriefScreenState extends State<BriefScreen> {
                     ),
                   ],
                 ),
+              ),
+              NexSwitchTile(
+                key: const ValueKey('brief-use-habits'),
+                secondary: const Icon(Icons.event_repeat_outlined),
+                title: Text(
+                  nexLabel(
+                    context,
+                    'Use habits in the smart summary',
+                    'استفاده از عادت‌ها در خلاصه هوشمند',
+                  ),
+                ),
+                subtitle: Text(
+                  nexLabel(
+                    context,
+                    'Include relevant goals, progress and short statistics. '
+                        'Habit reminders stay separate. No notes or raw history are sent.',
+                    'هدف، پیشرفت و آمار کوتاه عادت‌های مرتبط استفاده می‌شود؛ '
+                        'توضیحات شخصی و تاریخچه کامل ارسال نمی‌شود. یادآور هر عادت مستقل است.',
+                  ),
+                ),
+                value: prefs.briefUseHabits,
+                onChanged: (on) => unawaited(prefs.setBriefUseHabits(on)),
               ),
               // Only where a model writes something: the plain report asks
               // for no tokens at all.

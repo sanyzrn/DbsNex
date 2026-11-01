@@ -4637,6 +4637,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get moduleNotificationUnavailable =>
+      'This module is currently unavailable or switched off.';
+
+  @override
+  String get moduleNotificationItemMissing =>
+      'This item was removed or archived. Opening its module.';
+
+  @override
   String moduleRemovedBanner(String name) {
     return '$name removed';
   }
@@ -4694,6 +4702,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get planTelegramAbout =>
       'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.';
+
+  @override
+  String get planChequeManagerTitle => 'Cheque manager';
+
+  @override
+  String get planChequeManagerAbout =>
+      'Track incoming and outgoing cheques, due dates and collection status, with Persian-calendar dates and reminders tailored to the Iranian market.';
+
+  @override
+  String get planLanguageLearningTitle => 'Language learning';
+
+  @override
+  String get planLanguageLearningAbout =>
+      'Learn and review a language through short lessons and exercises, learning cards on the home screen and interactive notification reminders.';
 
   @override
   String get planPromptStudioTitle => 'Prompt Studio';

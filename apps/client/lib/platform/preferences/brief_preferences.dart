@@ -3,6 +3,13 @@ part of '../nex_preferences.dart';
 /// The daily brief, the day summary and the timeline headline, with their
 /// caches.
 mixin _BriefPreferences on _PreferencesStore {
+  bool get briefUseHabits => _prefs.getBool('brief.useHabits') ?? false;
+  bool get briefHabitsAllowed =>
+      briefUseHabits && (_prefs.getBool('module.habits.on') ?? false);
+  Future<void> setBriefUseHabits(bool on) => _setBool('brief.useHabits', on);
+
+  bool get aiDaySummaryIncludesHabits =>
+      _prefs.getBool('ai.daySummary.habits') ?? false;
   NexBriefStyle get briefStyle =>
       NexBriefStyle.fromWire(_prefs.getString('brief.style'));
 
@@ -74,7 +81,10 @@ mixin _BriefPreferences on _PreferencesStore {
   /// No [notifyListeners] here: this cache is read by the one screen that
   /// writes it, on its own schedule, not something the rest of the app
   /// reacts to.
-  String? get aiDaySummaryText => _prefs.getString('ai.daySummary.text');
+  String? get aiDaySummaryText =>
+      aiDaySummaryIncludesHabits && !briefHabitsAllowed
+      ? _prefs.getString('ai.daySummary.notesOnly')
+      : _prefs.getString('ai.daySummary.text');
   String? get aiDaySummaryDate => _prefs.getString('ai.daySummary.date');
 
   /// When the recap on file was written, and a fingerprint of the notes it
@@ -112,7 +122,23 @@ mixin _BriefPreferences on _PreferencesStore {
     required String dateKey,
     DateTime? at,
     String source = '',
+    bool includesHabits = false,
+    String? notesOnlyFallback,
   }) async {
+    if (includesHabits && !briefHabitsAllowed) return;
+    if (!includesHabits) {
+      await _prefs.setString('ai.daySummary.notesOnly', text);
+    } else if (_prefs.getString('ai.daySummary.notesOnly') == null) {
+      await _prefs.setString(
+        'ai.daySummary.notesOnly',
+        !aiDaySummaryIncludesHabits
+            ? (_prefs.getString('ai.daySummary.text') ??
+                  notesOnlyFallback ??
+                  '')
+            : (notesOnlyFallback ?? ''),
+      );
+    }
+    await _prefs.setBool('ai.daySummary.habits', includesHabits);
     await _prefs.setString('ai.daySummary.text', text);
     await _prefs.setString('ai.daySummary.date', dateKey);
     await _prefs.setInt(

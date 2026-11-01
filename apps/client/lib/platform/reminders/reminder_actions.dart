@@ -170,6 +170,9 @@ abstract final class NexReminderActions {
     NotificationResponse response,
     FlutterLocalNotificationsPlugin plugin,
   ) async {
+    if (NexModuleTarget.parse(response.payload) != null) {
+      return NexHabitNotificationActions.handle(response, plugin);
+    }
     final noteId = response.payload;
     if (noteId == null ||
         noteId.isEmpty ||
