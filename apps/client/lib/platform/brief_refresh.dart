@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:nex_ai/cloud.dart';
+
 import 'nex_preferences.dart';
 
 /// One request per service graph, including while the timeline is recreated.
@@ -15,6 +17,7 @@ class NexBriefRefresh {
   static const failureInterval = Duration(minutes: 15);
   Future<NexBriefRefreshResult>? _pending;
   Future<String?>? _headlinePending;
+  String? _headlinePendingLanguage;
 
   Future<String?> headline({
     required String dateKey,
@@ -22,10 +25,22 @@ class NexBriefRefresh {
     required Future<String?> Function() request,
     bool force = false,
   }) {
+    bool accepts(String? text) =>
+        AiOutputLanguage.fromWire(language).acceptsGreeting(text);
+    String? cachedHeadline() {
+      final text = preferences.aiHeadlineText;
+      return preferences.aiHeadlineLang == language && accepts(text)
+          ? text
+          : null;
+    }
+
     final pending = _headlinePending;
-    if (pending != null) return pending;
+    if (pending != null) {
+      if (_headlinePendingLanguage == language) return pending;
+      return pending.then((text) => accepts(text) ? text : null);
+    }
     if (!force) {
-      final cached = preferences.aiHeadlineText;
+      final cached = cachedHeadline();
       if (preferences.aiHeadlineDate == dateKey &&
           preferences.aiHeadlineLang == language &&
           cached != null &&
@@ -38,8 +53,12 @@ class NexBriefRefresh {
       }
     }
     final completer = Completer<String?>();
-    final flight = completer.future.whenComplete(() => _headlinePending = null);
+    final flight = completer.future.whenComplete(() {
+      _headlinePending = null;
+      _headlinePendingLanguage = null;
+    });
     _headlinePending = flight;
+    _headlinePendingLanguage = language;
     Future.sync(() async {
       String? text;
       try {
@@ -47,12 +66,12 @@ class NexBriefRefresh {
       } catch (_) {
         text = null;
       }
-      if (text == null || text.isEmpty) {
+      if (!accepts(text)) {
         await preferences.setAiHeadlineFailure(_clock());
-        return preferences.aiHeadlineText;
+        return cachedHeadline();
       }
       await preferences.setAiHeadline(
-        text: text,
+        text: text!,
         dateKey: dateKey,
         lang: language,
       );

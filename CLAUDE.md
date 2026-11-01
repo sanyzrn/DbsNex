@@ -38,3 +38,16 @@
   `apps/client/assets/CHANGELOG.md`, its Persian in `CHANGELOG.fa.md` (what
   the update screen shows a Persian reader), and the guide (`apps/client/assets/guide/`)
   in both languages when they change how something is used.
+
+## Release-note editorial policy
+
+Root and bundled `CHANGELOG.md` / `CHANGELOG.fa.md` are user-facing content.
+Include usable new features, noticeable improvements and important visible
+fixes. Use short descriptive titles and explain the benefit. Write Persian
+naturally, never as a literal translation. Omit internal architecture,
+dependency/build/CI details and insignificant cosmetic adjustments. Keep
+bundled copies identical to their roots. Preserve technical history in git
+and `docs/development/CHANGELOG*.md`, outside the app's notes. Apply the same
+standard to historical entries. Internal-only releases may be absent from
+the user-facing history. Updating historical wording does not add new
+features to those releases; new changes belong to an unreleased version.
