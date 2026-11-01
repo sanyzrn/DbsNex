@@ -35,7 +35,7 @@ jobs:
       - name: Habits regression tests and bilingual screenshots
         run: flutter test --dart-define=NEX_CAPTURE=build/habits-review test/modules/habits
         working-directory: apps/client
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: habits-review
