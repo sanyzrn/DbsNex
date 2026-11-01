@@ -10147,6 +10147,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A different target language was suggested because the source already uses your default language.'**
   String get translationSuggestedLanguage;
+
+  /// No description provided for @aiEditTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'This note is too long to edit in one AI request. Try a shorter text. Your original text is unchanged.'**
+  String get aiEditTooLong;
 }
 
 class _AppLocalizationsDelegate

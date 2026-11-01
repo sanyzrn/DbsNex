@@ -3672,5 +3672,6 @@
   "aiFailureUnknown": "The AI service could not complete this request. The exact cause is not available. You can try again.",
   "aiImageUnreadable": "The image was processed, but no recognizable content could be described. Try a clearer image.",
   "aiAudioNoSpeech": "The recording was processed, but no intelligible speech was returned. Try a clearer recording.",
-  "translationSuggestedLanguage": "A different target language was suggested because the source already uses your default language."
+  "translationSuggestedLanguage": "A different target language was suggested because the source already uses your default language.",
+  "aiEditTooLong": "This note is too long to edit in one AI request. Try a shorter text. Your original text is unchanged."
 }

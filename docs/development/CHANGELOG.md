@@ -1,0 +1,2723 @@
+# Changelog
+
+What ships in the update sheet, one release at a time — written for the
+person tapping "Check for update", not for someone reading `git log`. No PR
+titles, no commit hashes, no internal refactors: only what changes for
+someone using the app.
+
+## How this file is used
+
+The section named after the tag being released — `## vX.Y.Z` — is exactly
+what `release.yml` publishes as the GitHub Release body, and exactly what
+the in-app update sheet then shows. That is the whole mechanism: no separate
+changelog service, no template rendered at request time.
+
+It is looked up *by name*, not by position, which is what lets the fresh
+`## Unreleased` below sit above the newest release without being mistaken
+for it. Position was tried and is wrong at both ends: this prose section is
+itself a `## ` heading, so "the first `## ` heading" published these
+instructions as the release notes; and "the first release-shaped heading"
+would match the empty `## Unreleased` on every release after the first.
+
+Working convention:
+
+- Add each user-facing change as a short bullet under **Unreleased**, in the
+  same pull request that makes the change. If it does not change anything a
+  user would notice, it does not belong here — that is what the commit
+  history is for.
+- When cutting a release, rename `## Unreleased` to `## vX.Y.Z` (matching
+  the tag about to be pushed) and start a fresh `## Unreleased` above it for
+  whatever comes next.
+- `release.yml` refuses to publish a tag that has no section of its own, so
+  forgetting to rename `## Unreleased` fails the release instead of shipping
+  a version with someone else's notes — or none at all.
+
+## Unreleased
+
+## v2.5.0
+
+- Long text-file previews, including Markdown, DOCX and source files, use the same More/Less control as long notes.
+- Tap inline code in an assistant reply to copy just that snippet, with a confirmation.
+- The smart-summary border moves once when you expand the card, fades out smoothly, and stays quiet when you return from an item.
+- Notification titles and bodies align to their own text language, including Persian in an English phone interface.
+- Multiline note selections have an even highlight across mixed font runs while keeping selection and copying intact.
+- Calendar days remain separate TalkBack controls, including at the start of a month.
+- Nex AI summaries keep important decisions, figures, dates and next actions, with a length that follows the content. Short notes no longer show an unnecessary Summarize tool.
+- Translation detects source languages and offers 36 searchable target languages. Your last choice is remembered, with a different language suggested for a same-language source.
+- Long translations show a warning and progress. Completed parts survive closing the result and retry resumes from the failed part while the app stays open; editing the source invalidates that progress.
+- Image reading and transcription distinguish supported file, upload, connection, service and incomplete-response failures when known, and explain empty results without guessing a cause.
+
+## v2.4.1
+
+- **Habits is back.** A new Today page groups what is left, done and resting; each habit has its own colour, icon, progress ring, calendar and history.
+- **Make the plan yours.** Choose every day, selected weekdays, a weekly target or every few days. Log a tick or part of an amount, start from a ready-made idea, and see your best streak and consistency without losing older check-ins.
+- **Reminders follow the plan.** A reminder skips days off and completed goals. Opening Nex renews the next reminder. Archiving pauses it and restoring a habit keeps its history and reminder preference.
+- **Habits in your daily brief.** A short line shows how many habits are left today. This is calculated on your device and never sent to AI.
+
+## v2.4.0
+
+- **Birthdays & occasions is here.** Add it from Tools → Add modules. The nearest date leads the page in a coloured card with a countdown ring; every date below is a little calendar page that says how far away it is. Each kind has three greetings to copy or share, and on the day itself they are right on the card. A new date reminds you a day before and on the day, and the reminders keep themselves up to date every year without opening the module. A remembrance's notification never shows its name.
+- **Word by Word is here.** Keep the words you meet and review them on a ladder of days. A new look: a deck card showing what is waiting, how your words are spread from new to learned and your streak; each word with its language and a strength meter; a flashcard that turns over in review, with coloured answers. New: an optional review reminder, only on days with words waiting.
+- **Warmer greetings.** The line at the top of the home screen is larger, in a typeface of its own (Fraunces in English, Markazi in Persian), and has new, friendlier words — the Persian ones now sound like a friend talking, not a translation — and it is always in the app's language: «صبحت بخیر، Saeed» rather than a whole English line in a Persian app. With AI on, the greeting also takes your writing portrait into account.
+- **Pause: a breathing break.** A new module in Tools → Add modules. Choose Calm (5.5 seconds in, 5.5 out), Focus (box breathing, 4·4·4·4) or Relax (4-7-8): a line drawing opens and closes with each breath, the words say when to breathe in, hold and breathe out, and a soft chord, chimes and gentle taps guide you even with your eyes closed. The sound is made on the phone — nothing to download — and sound and vibration each have their own switch. Tap the card to pause; the screen stays on until the session ends with a singing bowl.
+- **The smart summary says what it is.** Its card now has a heading, and an **AI** badge when a model writes it. The plain report, which Nex writes itself, shows no badge.
+- **One edge for the top of the home screen.** The search field, the filter button beside it, the tags and the smart summary now share the same thin border in every theme, including Liquid Glass, where the filter button had been left flat. Tag names are a softer grey, like the search hint.
+
+## v2.3.6
+
+- **Close a long note from anywhere.** The handle at the top of a note stays in place while you scroll, sits lower so pulling it no longer opens the phone's notifications, and is easier to grab: read to the last line and pull it down.
+- **Coming soon: Prompt Studio.** A new module on its way — write what you want in plain words and turn it into a clear, complete prompt for any AI.
+- **A removed announcement goes away.** Emptying the announcement file now takes the card down at the next check, like deleting it, instead of staying for up to two days.
+- **Installable without a camera or microphone.** Stores no longer limit Nex to phones that have them; everything else works without them.
+
+## v2.3.5
+
+- **Clouds that drift in.** In pull to refresh, a cloud now drifts in from beyond the edge instead of appearing inside the sky, and the drift runs as one smooth, endless loop — it no longer jumps every few seconds.
+- **A copy made for Cafe Bazaar and Myket.** The copy published for the stores has no in-app updater and no longer asks for permission to install apps, because the store keeps it up to date.
+- **No unencrypted connections at all.** The installed app now refuses unencrypted (http) connections everywhere; the one exception, for developers' own test machines, is left in development builds only.
+- **Privacy policy brought up to date.** It names Cycle as health data, says what the sponsor card is, lists the permissions as they are now, and adds how long things are kept, how they are secured, a note on children and a contact email. The same text is on the website, at DbsStudio.ir/nex/privacy.
+
+## v2.3.4
+
+- **Nex AI, tidier.** The tools are round icons again — hold one for its name — with a small check on those that already have a result. **Hide** sits at the far end of the header, and the translation's **Translate again** at the far end of its line. The arrow that opens a result in full only appears when there is more to read.
+- **Pull to refresh.** More clouds, drifting faster, and a slightly smaller wordmark. The light that passes over the summary and the page after a refresh is brighter, so it can actually be seen.
+- **Menus on a bank card.** In the light theme the icons of the menu on a card in **Tools → Bank cards** were drawn in the card's own white. Every menu now draws its icons in the theme's colour.
+- **Scheduled lives in the Library.** It is no longer repeated in **Tools**; a pin of it on the home screen goes away.
+
+## v2.3.3
+
+- **An archived note is read only.** Opened from the archive it says so at the top, with when it comes back, and offers only what fits a note put away: open, share, copy, unarchive, details and delete. Editing, tags, threads, pinning and the Nex AI workspace wait until it is unarchived; a reminder it already had can still be changed or cleared.
+- **Hidden AI results stay hidden.** Hiding the Nex AI results of a note is remembered, so they stay hidden the next time you open it, until you show them again.
+- **Pull to refresh, with the wordmark.** Pulling the home screen down now opens a strip of sky above it: dotted clouds drifting at three depths and the "nex" wordmark in the middle. The further you pull, the more of the x's blue stroke is written in; when letting go will refresh, the dot after it pops into place. While the summary refreshes a light runs along the stroke and the dot hops, and when it is done the dot hops once more and the strip closes.
+- **Nex AI, redesigned.** The section under a note is rebuilt from scratch. Its tools are labelled buttons instead of bare icons; a tool that already has a result shows a check and shows it rather than asking again, and the separate row of result tabs is gone. The chosen result sits in a card of its own with **Run again**, the full text on request, **Copy** and **Add to caption**; suggested tags get their own card; **Hide** and **Show** sit in the section's header, aligned with its title.
+- **Translation, rebuilt.** Translate no longer asks which language: a Persian note goes into English and an English one into Persian, shown as one line ("Persian → English"), so it can no longer fail by translating a note into its own language. A note written in both gets a swap. Long notes are translated in pieces, so they no longer come back cut off and fail. A translation stays for the session, as its own tab, without asking again; it can be translated again, copied, kept as a note or added to a caption.
+- **Archive: two buttons on each card.** Like the trash, each archived note now has two buttons side by side, **Unarchive** and **Delete**, instead of a menu for deleting. Cards in the archive and the trash no longer swipe; a sideways swipe is always the swipe back to the previous page.
+
+## v2.3.2
+
+- **Scheduled, in the Library.** Notes on their way now have their own tile in the Library, beside the archive, saying how many are waiting (it is still in Tools too). The page is redesigned like the archive: each note as its own card with when it arrives, how many days are left, a bar for how much of the wait is behind it, and a button to deliver it now.
+- **Swipe back works from a card.** In the archive and the trash, a swipe back that starts on a card now takes you back, instead of doing nothing. Swiping a card toward the start edge still brings it back.
+- **Search first in What's new.** The search field now sits at the top of **About → What's new**, above the current release.
+- **One colour per shelf.** Archive, Scheduled, Tags, Threads and Trash each open in the colour of their tile in the Library, instead of a different colour inside.
+
+## v2.3.1
+
+- **Repeating reminders: Done only.** A reminder that repeats now has just **Done** in its notification. It comes back at its own time anyway, and an extra one an hour later only muddled which time it keeps. One-time reminders still have **In an hour**, and an "in an hour" you set is no longer lost when Nex is opened before it rings.
+- **Recurring items in the notification.** A Recurring item's reminder now has **Done**: it is ticked at the moment you press it and moves on to its next turn, the same as ticking it on the page. Tapping the notification opens the Recurring page.
+- **Swipe the other way.** In the archive and the trash, a card is swiped toward the start edge to bring it back, so it no longer gets in the way of swiping back to the previous page.
+- **Undo in the archive and the trash.** Unarchiving or deleting a single note in the archive, and restoring or deleting one for good in the trash, now offers **Undo**. A permanent delete waits until its Undo is gone before it runs.
+- **Archive: Delete all.** The archive's menu now has **Delete all** beside **Unarchive all**, and both ask before they act, the way Empty trash does.
+- **What's new, in About.** It no longer opens over the home screen after an update. **About → What's new** has every release Nex has had, the current one on top, the rest folded to their headlines, and a search through all of them.
+
+## v2.3.0
+
+- **A reminder rings on its card.** When a reminder goes off, its card swings a small bell in place of its icon until you open it, and the notification stays in your notifications until you do. Tapping a notification while Nex is closed now opens it straight onto the card, the same as when it is already open.
+- **Done and In an hour, right in the notification.** Each reminder notification has two buttons: **Done** clears it, **In an hour** brings it back an hour later. Neither needs Nex to open.
+- **Archive.** "Set aside" is now **Archive**. The archive page shows what comes back on its own and what waits for you, as separate cards with a button to unarchive, a swipe to do the same and **Unarchive all**. Deleting from it works again, and an archived note no longer offers Pin or full screen.
+- **Tags, Trash and Threads, redesigned.** Each is a page of separate cards: tags in their own colour with how much of your library carries them, trash with how many days each note has left, threads with how many notes they hold and when one was last added.
+- **Home layout at a glance.** The home layout sheet is now a set of quick tiles: what to show, card size with a small preview of each, and text size in four steps. It no longer appears while searching.
+- **A new pull to refresh.** Pull the home screen down and the arms of Nex's mark reach out; let go and they sweep round while the summary refreshes, then a light passes over the summary and the page.
+- **What's new.** After an update, Nex shows what changed once, the first time you open it.
+- **Smoother switching in the composer.** Moving between Note, Checklist and Link no longer makes the keyboard jump.
+
+## v2.2.2
+
+- **The portrait arrives as you scroll.** Each part of your writing portrait — the figures, the 30-day bars, the ring, the shape of your traits — now plays its entrance when you scroll to it, instead of everything finishing the moment the page opens. The page also opens lighter, so the small stutter on entering is gone.
+- **A different "One thing to try" each time.** Writing the portrait again used to give the same suggestion over and over. Nex now remembers the last few it gave and steers the next one to a different area.
+
+## v2.2.1
+
+- **One Nex card in recent apps.** After updating and tapping **Open** in the installer, Nex could appear twice in the recent-apps list — one card for the old window, one for the new. Nex now rejoins its own window instead of starting a second one.
+- **Safer sponsor card.** The sponsor picture is only fetched over a secure connection and never from an address on your own network.
+- **A long library stays quick.** After scrolling deep into thousands of notes and coming back to the top, Nex lets go of the extra depth it had loaded, so adding or editing a note no longer re-reads everything you scrolled through.
+- **Less memory with the on-device model.** The on-device search model is now let go before the on-device chat model loads, and also when Android asks for memory, so a phone with little spare memory is less likely to close Nex.
+
+## v2.2.0
+
+- **Set aside.** Hold a note and choose **Set aside** to take it off the home screen without deleting it. Pick when it comes back — this evening, tomorrow morning, next week, a date — or leave it until you bring it back yourself. Set-aside notes wait in **Library → Set aside**, where one tap brings a note home; search still finds them, marked, and their reminders still ring. It is also in a note's details and in the bar for several selected notes. A banner offers **Undo**, and when a chosen date arrives the note returns by itself and says so. With everything set aside, the home screen says **All clear** instead of asking for a first note.
+- **Bank cards, reworked.** The "Continue unfinished edit" notice no longer appears when you opened a card and changed nothing, or opened a new one and typed nothing — it appears only after a real change, and goes away if you undo it. A card number is kept if it has 12–19 digits, from any bank in any country: a last digit that does not match only shows a note under the field, so a number like 6104 3378 3546 8074 can be saved. Under the number Nex names the card network when it can (Visa, Mastercard, American Express, Discover, UnionPay, JCB, Diners Club, Maestro, Mir, Troy, RuPay). Numbers are grouped as on the card as you type, Persian digits are converted, Iranian banks are recognised from the first digits and fill the **Bank** field when it is empty, the IBAN is shown in groups, and an expiry may be month/year or year/month.
+- **A tapped reminder, when Nex was closed.** The scroll to the note and the blink around it now wait until the app has settled — and until you have unlocked it, if the app lock is on — so you see them instead of missing them behind the opening.
+- **Your writing portrait, more alive.** The card now assembles itself when you scroll to it: the numbers count up, the busiest part of your day grows, the last 30 days rise as bars (today on the end), what you keep fills a ring, and a written portrait's traits draw a shape you can read at a glance. It also shows your current streak of days with a note and your longest run. **Write again** is always there once the portrait is unlocked; without an AI provider it tells you where to choose one, instead of being missing.
+- **Modules, paused for now.** Habits, Price Lens, Lent & Borrowed, Quit Habits, Birthdays & occasions, Expenses, Gold, Words, Parking, Medicine, Warranty and Maintenance are marked **Soon** again while they are finished properly. Only Cycle stays available. Nothing you saved in them is touched, and they come back when they are ready.
+
+## v2.1.15
+
+- **One menu everywhere.** The ⋮ menus on threads, tags, the modules and the rest now look and size like the menu you get by holding a card — rounded, an icon on every line, delete in red — and so do the dropdown lists in forms.
+
+## v2.1.14
+
+- **Shorter forms.** Adding an occasion, a medicine, a purchase, an asset, a parking or a loan now asks only the essentials; the rest (a year, a note, a reminder, a brand, coordinates, dates…) waits behind one "more details" button, and opens by itself when you edit something saved.
+- **A face for every module.** Each module's page now opens with one large, calm statement in its own colour — "12 days free", "2/3 checked today", the gold estimate, what is due — instead of a plain list.
+- **Quit Habits asks less.** A new habit asks only what you are quitting and when it started. The amounts, price, goal and reason wait behind one button, for whenever you want them.
+- **Tap outside to close.** Form sheets — adding an occasion, a habit, a payment and the like — now close when you tap the dimmed area above them, like every other sheet. If you have typed something, they still ask before discarding it.
+- **Expenses, Gold, Words, Parking, Medicine, Warranty and Maintenance are available.** The last seven modules are out of Soon: add them from **Tools → Add modules**. Each was checked page by page; no new ones are Soon.
+- **Dates you type show in your calendar.** Where you type a date in a module, a line under it reads that day back in your own calendar (a Jalali reader sees the Jalali date). **Expenses** shows the Jalali span of the month you are looking at.
+- **Pages with nothing yet have one button.** The empty Expenses, Words, Parking, Medicine, Warranty and Maintenance pages show a single button instead of a button and a floating one.
+- **Forms no longer hide under the keyboard.** Every sheet that opens over the keyboard — in the modules and the rest of the app — now lifts above it, so each field can be reached and the form completed.
+- **Lent & Borrowed.** On the second tab, a swipe returns to the first; the next swipe goes back.
+
+## v2.1.13
+
+- **Birthdays & occasions.** A new module for the dates you do not want to miss — birthdays, anniversaries, remembrances. Each date repeats in its own calendar, so a Jalali birthday comes back on the same Jalali day every year. You see a countdown, the age it comes to (when you know the year), the day in both calendars, a greeting to copy or share, and an optional reminder ahead of the day. Nothing is sent for you and no contacts are read. Add it from **Tools → Add modules**.
+- **Habits.** A calendar of every month, in your own calendar: tap any day up to today to mark it, tap again to take it back. A new **How often** panel shows the days you kept it out of the days since you started.
+
+## v2.1.12
+
+- **Quit Habits.** The Smoke-free module is now Quit Habits and is available: count several things you are quitting at once — smoking, vaping, alcohol, caffeine, sugar, social media, gambling or your own — each with a live count in days, hours and minutes, the money and time kept, a saving goal, your own reason, marks along the way and the last five weeks at a glance. **I need help now** opens guided breathing, a ten-minute wait and quick ideas. You can start later, and a slip never erases earlier attempts. Everything you logged as Smoke-free is still there, as cigarettes.
+- **Lent & Borrowed.** Totals owed to you and by you in each currency, search and filters, a page for each person, and polite reminder messages (friendly, plain or formal) that you send yourself.
+- **Price Lens.** The result now says it in a sentence — "Rice 1kg costs 7.1% less per kg than Rice 750g" — and prices can be read per 100 g or 100 ml.
+
+## v2.1.11
+
+- **Habits, Price Lens and Lent & Borrowed are available.** Add them from **Tools → Add modules**. The other eight modules stay Soon until each is finished.
+- **Habits:** an optional **Daily reminder** at a time you choose, on each habit's page. Dates follow your calendar (Jalali or Gregorian).
+- **Lent & Borrowed:** an optional **Reminder** on a loan, opened on its due day; settling or deleting the loan removes it. Dates in the forms use the calendar button beside the field.
+- **Price Lens:** **Copy result** puts the comparison on the clipboard as plain lines. The empty page now has one **Add offer** button instead of two.
+- Pages with nothing yet show a single button, not a button and a floating one; reminder messages appear in Nex's top capsule.
+
+## v2.1.10
+
+- **YouTube analysis now shows its result.** "Analyze video" ran, finished and kept the analysis, but showed nothing: a note's summary is hidden when it is not shorter than the note's own words, and a YouTube link's words are only a title and a line, so every real analysis was hidden. The analysis of a YouTube link now always appears in the note's AI section.
+- **More failures are in the diagnostics report.** A video that could not be analysed, an AI request the provider refused, a failed backup, export or restore, a photo or recording that could not be saved, a stopped update, a private-area error and a module that could not read or save its records are now written to the local log, which **Send feedback** and **Share diagnostics** can attach. Only the kind and status code are written — never an address, a key, a reply or anything from your notes.
+
+## v2.1.9
+
+- **Reminders stay until you deal with them.** A reminder that has rung now stays in the notification shade until you tap or dismiss it. Opening Nex used to clear them all, because putting every alarm back on launch also took away the ones already showing — repeating reminders, recurring items, Cycle and module reminders and the daily nudge alike. Clearing a reminder or deleting its note still takes its notification away.
+- **YouTube analysis that works on real videos.** The video is now watched at a lower resolution and half the frame rate — about a fifth of the tokens, still plenty to follow a talk or a tutorial — so a long video no longer runs into a free plan's per-minute limit, and the wait before giving up is longer. The capability check makes the same request, so a check that passes means analysis works. A model or gateway that refuses those settings is asked again the ordinary way.
+- **When a video cannot be analysed, Nex says why.** The plan's limit, taking too long, Gemini refusing (with its reason and code, such as a private video), or an answer with nothing in it — instead of one sentence for all of them. An analysis that finished is kept even if the page's description arrived meanwhile; it used to be thrown away.
+
+## v2.1.8
+
+- **Nex finds out what your AI model can do.** **Test connection** now also checks, with four small test requests, whether the model reads pictures, hears recordings, searches by meaning and watches YouTube videos, and the provider page shows the answer row by row — with the reason when one does not work: the provider has no such service, the model refused, or it could not be checked just then. The three **Image input**, **Transcription** and **Search embeddings** dropdowns are gone; what the check finds decides which features Nex offers. The check sends only test material Nex makes itself — a picture of a number, a second of tone, one sentence and a public YouTube video — never your notes, and runs only when you test.
+- **Gemini from a reseller, with everything Gemini can do.** Google Gemini now takes an optional **Service address**: a reseller's or gateway's address in Gemini's own format, with or without `/v1beta`. Entered there instead of under Custom, the same model can watch YouTube videos and take recordings in Gemini's own way, and the test checks what the reseller passes on. Your key and requests go to that address; only a full `https://` address is accepted, outside your own network.
+- **Pick a model from your provider's list.** The list button in the model field shows the models your key can use, with search, and the field says which model is used when it is left empty. The speech and search model fields are under **Speech and search models**.
+- **New search waits for you.** When a check finds that a provider you already use can now search by meaning — OpenRouter, for example — search stays off until you turn it on in Intelligence, because it sends your notes' text to be indexed.
+- **Intelligence says why.** An ability your provider or model cannot do is greyed with the reason, such as "Anthropic has no speech-to-text service", instead of one general line. The count of working abilities leaves out the paused one, the heading over them says **Abilities**, the provider row shows the model in use and asks you to test it when its abilities have not been checked yet, and **On-device only** and **Custom** read in Persian in Persian. **Analyze video** is offered only for a Gemini model that can watch videos.
+- **Persian digits everywhere.** Two dozen counts that still showed Latin digits in Persian — among them the assistant's choice of how many notes it reads — now use Persian digits.
+
+## v2.1.7
+
+- **Your writing portrait.** At the foot of your profile, once you have 30 notes written on at least 7 days, Nex shows how you write: the part of the day most of your notes come from, how many days you wrote on in the last month, how many checklist items you tick, what kinds of notes you keep and your most used tags — all counted on the phone. Until then, a ring shows how far there is to go. With an AI provider, **Write my portrait** asks it for a short portrait in words: a headline, a few sentences, five traits with how strongly each shows, your strengths and one thing to try. It reads a sample of up to 80 notes, sent once when you tap, and is a reflection of your notes — not a test or a diagnosis.
+- **Analyze a YouTube video.** A link note with a YouTube video offers **Analyze video** in its AI tools when your provider is Gemini: the video itself is watched, and you get what it is about, its main points with their times, and who it is for — instead of a summary of the page's few words. The result is kept as the note's summary.
+- **The second line of a compact card is whole again.** With compact cards and small or standard text, a two-line note with a reminder or an attachment no longer loses the bottom of its second line, in Persian or any language, whatever the phone's own text size.
+- **Pinching the timeline never refreshes it.** Folding or opening every day with two fingers no longer sets off pull to refresh when the pinch starts at the top of the list.
+- **Privacy, said exactly.** Onboarding, the backup screen and the privacy policy now say what a backup protects: settings and service keys are encrypted with your recovery code, the notes are kept as files you can always open. **What left this device** now names the notes behind the smart summary, the greeting, a translation, a rewrite and the search index, and the notes the assistant read in Recently Deleted.
+- **Safer by default.** A link preview no longer fetches a page whose name points inside your own network. With the app lock on, Cycle reminders stay off the lock screen like note reminders. Restoring settings from another phone no longer brings a sync server address with it. A complete backup that claims to unpack far larger than it is is refused before anything is written, and deleting a module's data always replaces the older backups on this phone.
+- **Small fixes.** Daily and weekly recurring items keep their time across a daylight-saving change. The backup just made is never removed by its own rotation when the phone's clock has moved back. Taps in sheets show their ripple again. The photo editor's ratio and colour buttons are full-size and no longer clip with large text, and an annotated photo keeps exactly its original size. Sizes, counts, the voice speed (۱٫۵×) and the annotation slider use Persian digits in Persian. The Cycle widget points to Tools → Modules when Cycle is off. A search you confirm for the assistant always runs, and app questions asked casually ("how's…", «چجوری…») find the guide.
+
+## v2.1.6
+
+- **Swipe through a PDF.** Pages turn by swiping sideways, the way the interface reads, and the page you are heading for is prepared while you swipe. The slider under the page is gone: a small capsule over the page holds the arrows and the page count, and tapping the count opens a sheet of page numbers to jump straight to one. Double-tap zooms in where you tapped, and a white page now has a visible edge.
+- **A smart summary that knows what a reminder is.** A reminder you set is said as when to do the thing — "call the plumber tomorrow at 9" — instead of as a deadline counting down hours. Days are counted by the calendar, so a reminder five days away is no longer "four days". The summary never suggests a reminder you already have, and a deadline written in the note itself (such as "until 1405/08/07") is kept apart from the reminder's time; it now knows today's Solar Hijri date to read such dates. The plain report says reminders the same way: "dentist — tomorrow at 09:00".
+- **Every summary line alike.** Each line's emoji sits in a column of its own with the words lined up beside it, and the first line no longer reads as a heading over the rest.
+- **The greeting without a name reads properly.** With no name set, "What have you got, ?" is now "What have you got?".
+- **Smaller polish.** The Nex AI section of a note is a visible card rather than an unexplained indent; the actions and history sheets of a recurring item have the handle, swipe-to-close and glass of every other sheet; a few Persian labels now use one spelling.
+- **Gemini works again without a model typed.** Nex now uses Google's current Flash model (the `gemini-flash-latest` alias) when the model field is empty. The previous default, Gemini 2.5 Flash, was retired in October 2026, so a Gemini key with the field left empty could fail on every request.
+- **Newer OpenAI models answer.** GPT-5 and later reasoning models, including the suggested `gpt-6.1-sol`, now receive the request format OpenAI requires for them (`max_completion_tokens`, no custom temperature) instead of failing on the first message.
+- **Sharing into Nex is safe on every Android version.** The invisible share window no longer requests a fixed orientation, which Android 8.0 refuses with a crash and which could turn the app you were sharing from. "Save to Nex" from selected text uses the same window.
+- **Suggest tags says when there is nothing new.** A tap that finds no new tags now explains it instead of appearing to do nothing.
+- **Links end where the address ends.** Persian written straight after a web address, without a space, is no longer read as part of the domain; Persian paths such as Wikipedia articles still open in full.
+- **Tap to pause a video.** Tap a playing video to pause it and tap again to resume.
+- **Restore a Windows backup without losing the phone's settings.** A backup made in Nex for Windows brings back only the shared appearance — theme, accent, language, calendar, text and card size — and leaves this phone's AI keys, private settings and device identity as they were. Exports and imports also find the files of notes and attachments saved on Windows.
+
+## v2.1.5
+
+- Smart summaries refresh automatically only after relevant information changes and at least one hour after the last successful generation. Failed requests wait 15 minutes before retrying; manual refresh remains available immediately. Existing text stays readable, concurrent requests are shared, and every summary line uses the same type size.
+- Show in full appears only when expanding a card reveals more content, taking its width and text size into account.
+- PDF pages stay visible while the next page loads, with a steady viewer height and smoother transitions. A failed page keeps the current page and offers retry.
+- Birthdays & occasions joins the Soon module catalogue, with planned Persian/Gregorian dates, anniversaries, advance reminders and gift notes.
+- Phone screens stay in portrait until the landscape layout is redesigned.
+
+## v2.1.4
+
+- Link cards can now carry photos, recordings and files through Attach, like text notes. Sharing keeps the URL alongside its caption and files.
+- Videos play inside note details in a rounded player, with seeking, speed and mute controls. Playback starts only when requested and pauses when leaving or covering the note.
+- PDFs open inside note details with page navigation, a page slider and pinch or button zoom. PDF and video attachments open in the same detail sheet; Open in another app remains available.
+
+## v2.1.3
+
+- Stop remains available during assistant lookups and context refresh; cancelled work cannot start a later cloud request.
+- A late timeline refresh is ignored after restore/restart closes its old library session.
+- Translations, rewrites and media readings keep existing text when a provider returns a filtered, paused or unfinished response, including truncated Gemini transcripts.
+- Damaged binary module fields are isolated without interrupting healthy records; their original bytes are preserved for recovery.
+- Larger system text keeps its accessibility scaling, including nonlinear font sizes. Detail actions and Tools headings grow to fit larger text. Keyboard activation now performs the normal tap.
+- Module drafts save after a brief typing pause and flush on close, without reloading saved lists for every keystroke.
+- Module editors use Nex's shared bilingual text editor. Shared date entry offers the saved Jalali/Gregorian calendar while preserving existing record formats.
+- Shared OS reminders support explicitly chosen one-time alerts and rebuild from saved requests. Medicine has an explicit reminder control for its future rollout; reference dose times remain unchanged.
+- Malformed module rows and unsupported recovery journals are isolated with their originals preserved for recovery. Healthy records remain accessible.
+- Only Cycle remains available; all other modules stay Soon, retaining installation choices and data.
+
+## v2.1.2
+
+- Incomplete AI translations, rewrites and image readings no longer replace complete text; authored markup is preserved.
+- Switching translation language clears the previous result, so a failed request cannot show the wrong language.
+- Assistant questions are saved before waiting; Retry repeats the original question. Cloud responses can be stopped and long conversations use bounded context.
+- Search upgrades rebuild outdated indexed text in batches. Filtered results load in pages, and nearby-match suggestions avoid repeated tag reads.
+- Important handled failures enter bounded, redacted local diagnostics; database errors retain their category across the worker boundary.
+
+## v2.1.1
+
+- **A calmer Appearance page.** Themes and app icons have their own pages. Four new looks — Bauhaus, Kintsugi, Circuit and Afterimage — bring distinct static motifs, with readable colours and room for larger text.
+- **Connection before saving.** Cloud provider changes are saved only after a successful test of those exact settings. Credential writes are verified; Models and capabilities follows the app’s normal type and spacing.
+- **Restore without closing the app.** Full-backup restoration rebuilds the library and settings screens together so restored notes and credentials are available immediately.
+- **A reliable note editor.** Changing between full screen and compact keeps the same Android text field, text and selection. Saving or discarding closes the keyboard; AI undo restores the original spacing and selection.
+- **Gentle transitions.** The smart summary folds smoothly, AI edits acknowledge progress and completion, and detail actions have a subtle press response. Effects respect reduced motion and stop when finished.
+- **Direct AI results.** Compact result tabs replace the dropdown and extra nested panel. Previously requested translations keep their state while switching or hiding results.
+- **Modules under review.** Only Cycle stays available. All other modules show Soon; their code, saved installation choices and data are retained for a later return.
+
+## v2.1.0
+
+- **Safer AI settings.** A delayed connection test cannot save a different provider; a failed credential save keeps the previous setup and reports the failure. Connection-test guidance now distinguishes chat from media and search.
+- **Reliable AI requests.** Audio deadlines cover the full response, provider errors remain retriable, and switching the search model discards late query vectors. OpenAI o-series requests use their supported token parameter while existing gateway payloads stay unchanged.
+- **Orderly on-device answers.** Local generation runs one request at a time. Expired work is skipped and late answers are discarded without freeing a native session mid-generation.
+- **Accurate assistant state.** Output-language changes reach the next chat turn, retired provider connections finish active reads before closing, and Gemini audio is recorded correctly in the local disclosure log.
+
+- **Models and capabilities.** Separate speech/search models and custom endpoints, per-model feature controls, and opt-in OpenRouter transcription and embeddings. Manual summaries and tag suggestions can use the downloaded model; capture stays quick. Provider-picker examples are current without replacing saved models.
+- **Fresh sponsor cards.** Campaigns revalidate hourly on launch/resume; closing a card hides it for eight hours, including across restarts, and it can be closed again when it returns.
+- **Complete backups import again.** Android can select `.nexfull` files, and complete backups are recognized even when the document provider renames the selected copy.
+- **Clearer reminders.** Expanded notifications include up to 1,200 characters. Tapping a reminder scrolls to its card, even beyond the first page, with an outline matching Compact, Standard and Easy Read cards.
+- **Cleaner note results.** Converting text to a Markdown document no longer presents its source as a Nex AI result.
+- **All missed release notes.** Updating across several versions shows their changes together, in the selected language. The security toolbox joins Modules as Coming soon.
+
+## v2.0.10
+
+- **Custom gateway voice transcription.** OpenAI-compatible custom providers with a standard chat endpoint now offer transcription and voice input. Audio is sent to the matching `/audio/transcriptions` endpoint, leaving chat, images and other providers unchanged.
+
+## v2.0.9
+
+- **Softer card changes.** Deleted and filtered cards fade and fold away, restored cards settle back in, and pinned notes move between their groups. Unchanged cards keep their state; the list stays lazy and off-screen changes skip the animation.
+- **Quiet feedback.** Adding a tag or changing a pin gives the card marker a brief pulse. Updated daily briefs blend into their new text, and switching glass on or off uses the same reveal as a theme change. Reduced motion is respected.
+- **Clear search indexing.** The former Catch up section now explains that it indexes existing note text for semantic search and related notes, up to 25 notes per pass. It does not transcribe audio or read images, and a zero-result pass no longer claims the backlog is complete.
+- **On the way: Persian calendar & prayer times.** A single coming-soon module groups the Solar Hijri calendar, occasions, date conversion, city-based prayer times and optional adhan alerts.
+
+## v2.0.8
+
+- **Smooth focus outlines.** Settings search and the assistant composer now keep a continuous rounded focus border in light and dark themes. The main search keeps its blue glow with a softer fade and no clipped rectangle.
+- **A livelier assistant wait.** While a reply is on its way, a sparkle, thinking text and three gently moving dots replace the empty loading bar. Reduced motion keeps the indicator still.
+
+## v2.0.7
+
+- **Accurate result names for files.** Cached Markdown and other non-image file text is labelled Extracted text. Image descriptions keep their own title; attached files follow the same rule. Existing content is preserved.
+- **Compact AI tools below your note.** The AI workspace returns below the content and tags. Its actions, including Suggest tags, use icons with long-press labels, and the result status aligns with the edge.
+- **Tidier results, fully hideable.** Results have their own reading area and a compact result selector. Hide removes the output and its controls; Show results brings it back without requesting AI again.
+- **Text notes keep their own body.** Summaries and translations no longer offer Add to caption for text notes. Copy and translation's Save as note remain available.
+- **Clearer dialog boundaries.** Details, caption confirmation, discard confirmation and other standard dialogs now have a visible theme-matched border and dim the content beneath them in light and dark mode. Glass keeps its existing finish.
+- **Orderly caption choices.** Append text, Replace caption and Cancel use equally wide buttons with consistent spacing, including Persian and larger text.
+
+## v2.0.6
+
+- **Experimental text magnifier.** Native Android editing now feeds its selection geometry to Flutter’s built-in magnifier, keeping the app’s surface renderer. Cursor/handle dragging and behavior on individual phones still need real-device testing.
+
+- **AI actions where you can see them.** Each note has an AI workspace above its content, with relevant actions, colored icons and readable labels. Results appear in the same place with a short preview, an expandable reading area, and copy or add-to-caption controls. Translation stays alongside other results, with language selection and Save as note.
+- **Choose how AI updates a caption.** When a caption already exists, choose Cancel, Append or Replace caption. A replacement preserves the original note and media, and refuses to overwrite a caption edited while the confirmation was open.
+- **Similar notes paused.** The similar-notes section and its lookups are temporarily disabled. Your saved preference is retained; semantic search remains available.
+
+## v2.0.5
+
+- **Lighter everyday screens.** In-page cards, settings controls, chat bubbles and search keep their glass edges and finish without repeatedly blurring the page behind them. Floating menus, sheets and navigation keep their live glass.
+- **Restore the normal Android renderer.** The main app no longer renders every page into a texture for the selection magnifier. The native editor still preserves mixed Persian/English paragraphs, formatting and private copying. The Android system magnifier remains a device-validation limitation; this update does not claim to fix it.
+- **Less work while writing.** Unchanged editor settings and formatting labels are reused across typing and parent rebuilds, without recreating the editor or sending its text back to Android.
+- **Clearer AI actions.** Image reading, audio transcription and other assistant actions use accent-coloured icons and the theme's normal text colour: dark in light mode, light in dark mode. Destructive and unavailable actions keep their own states.
+
+## v2.0.4
+
+- **Selection without keyboard surprises.** A small halo around the focused input protects taps near text-selection handles while a farther tap still dismisses the keyboard.
+- **Matching context menus.** Link Open/Copy uses the card menu's type, icon size, spacing, rounded corners and optional floating glass.
+- **Pause is on the way.** The module catalog now previews an offline breathing break with calm, focus and relax modes; it is not installed or enabled.
+- **AI actions fit the item.** Images offer Describe & read image; recordings offer Transcribe audio. Media is read only when requested, including attachments. Translate and Summarize operate on suitable text rather than a filename; images no longer offer a generic Translate action.
+- **Descriptions as well as text.** Image reading starts with a short visual description, even for photos without words. Screenshots retain structured useful content and documents keep faithful transcription.
+- **AI text into your caption, by choice.** Beside Copy, Add to caption accepts a result without touching the original body or media. An existing caption asks before appending; concurrent edits are preserved.
+- **One clean writing surface.** Capture and every Android multiline editor use the surrounding field's fill again; the separate grey rectangle introduced in 2.0.3 is removed, including unfilled and translucent fields.
+- **Lighter Android editing.** Editors use texture composition again instead of forcing the whole scene through hybrid composition. The Android host uses TextureView so the system magnifier can sample the text and its background together; selection, formatting and keyboard behaviour are preserved.
+
+## v2.0.3
+
+- **Consistent glass borders.** The settings search field, profile card, birthday row and home-widget settings panels use the shared glass surface and edge.
+- **Clearer floating glass.** Card menus, popup menus and the home navigation/selection bars reveal more of the blurred page beneath them, with readable ink and opaque high-contrast fallbacks.
+- **Save selected text to Nex.** Android's text-selection menu offers **Save to Nex** in compatible apps. It uses quick capture, leaves the source text unchanged and returns to the app you were using.
+
+- **Cleaner text selection.** Android's editor uses native composition and a readable magnifier background instead of an empty floating lens.
+- **A compact module catalog.** Search names and descriptions; tap a card to reveal full details and Add, Open or Remove actions. Browsing leaves modules off.
+- **Edit attached images.** Hold an image attached to a note and choose Edit to crop or annotate it. Saving preserves its position and caption, keeps the original file safe and refreshes image text.
+- **Useful image reading.** AI turns screenshots into organized reports focused on the main content, skipping keyboard keys and routine interface clutter. Documents and receipts keep faithful transcription; unclear details are never guessed.
+
+## v2.0.2
+
+- **Small, visible swipe feedback.** Standard icons give one brief pulse when revealed and when a full swipe arms. The motion finishes while your finger pauses and stays still with reduced motion.
+- **Glass reaches the assistant and modules.** The chat sheet no longer covers glass with an opaque layer; assistant settings, composer, module headers, dialogs and menus share the same material. A fine rim reflection adds depth, with solid high-contrast fallbacks.
+- **Modules start off.** All modules are available in Tools → Add modules and are off until you add them. The automatic 2.0.1 preview no longer enables them; explicit Add/Remove choices are preserved.
+- **Bold keeps your line breaks.** Formatting part of a note no longer pulls the next line up beside it; typed Enter stays a new line.
+- **The + button follows the shortcut colour.** Its fill gradually takes the selected capture type's colour as you swipe and returns when you cancel.
+- **Faster editing scroll.** A quick vertical flick in Android's editor continues with bounded momentum. Touching again stops it, while long-press selection and handles keep their normal behaviour.
+
+## v2.0.1
+
+- **Eleven modules to try.** Habits, Price Lens, Lent & Borrowed, Expenses, Gold, Words, Parking, Medicine, Warranty, Maintenance and Smoke Free are available and already added in Tools for this preview. Remove or re-add each independently. Their data stays local and in backups, separate from notes, search and the assistant; camera, GPS, network and background reminders remain future integrations.
+
+- **Glass across the app.** Page headers, confirmation dialogs, popup and note-action menus, Settings groups and Tools/Library panels now share the optional frosted material. High contrast stays opaque and note cards keep their reading surface.
+- **Ready-made swipe motion.** Replaced the hand-drawn swipe glyphs with bundled useAnimations and Animate UI assets. Motion follows the swipe and reverses as you pull back, works offline and respects reduced motion.
+
+## v2.0.0
+
+- **Paste without a keyboard blink.** The capture editor keeps its active focus when pasting in Note, Checklist and Link.
+- **Photos arrive straight away.** Camera and gallery captures save directly by default. Turn on “Edit photos before capture” in Settings → Capture to open the preview first; existing photos remain editable from their detail page.
+- **Swipe icons tell their own story.** The bin lid opens, the tag unfolds, the pin presses down, the bell clapper swings, the share arrow rises and the assistant's stars light up as you swipe. Pull back to reverse the gesture; the action thresholds stay the same. Reduced motion keeps the icons still.
+- **Liquid glass returns as an optional material.** Enable it in Settings → Appearance. Floating controls and sheets gain frosted depth and a fine optical rim while notes stay solid and readable. Off by default, independent of your theme, with opaque surfaces in high contrast.
+- **Widgets refresh their colours completely.** Old custom tints no longer linger after restoring default colours; the logo keeps its own light/dark colours and custom action colours stay legible.
+- **Two finishing touches.** The birthday countdown follows light/dark correctly in Nex and Graphite. Library and Settings now give the same optional haptic tick as the other home-dock destinations.
+
+## v1.99.99
+
+- **Sponsor cards in both interfaces.** Campaigns prefer the interface language; when none matches, an available campaign still appears in Persian or English. Switching languages no longer hides the cached card.
+- **Repeating reminders show their clock.** A repeat icon and “Daily · 09:00” replace “Every day”; weekly reminders name the weekday and time. Hold the label for the full schedule, also available to screen readers.
+- **Tap away to stop selecting.** Tapping outside a note or caption clears the text selection and its menu, including notes with links. Copy, selection handles and link gestures keep working.
+- **Sponsor cards recover more reliably.** A temporary picture error keeps a usable cached picture; missing pictures retry after the shorter cool-off. Unreadable pictures show the campaign’s words, and network reads stay within their time and size limits.
+- **Paste, inside the capture box.** A small clipboard icon in the editor's corner works for Note, Checklist and Link. It pastes at the caret or replaces selected words, keeping the rest of your text.
+- **Card indicators stay together.** Reminders and attached-file counts sit on a compact, consistent row below the preview, independent of the note's language. Both preview lines keep their full width; cards without indicators stay compact.
+
+## v1.99.98
+
+- **A cleaner capture box.** One outline around the editor; Note, Checklist and Link stay together above it. Voice joins Camera, Gallery and File below, each directly reachable in its own type colour.
+- **Swiping + has its own light.** A border in the shortcut’s Settings colour traces the screen as your finger moves, completes before the shortcut opens, and retracts if you cancel. Left and right keep your chosen actions in every theme and language.
+- **A deliberate hold for the assistant.** A short pause before its glow starts keeps taps and sideways swipes from flashing the assistant. Holding still continues to open it; reduced motion skips the light.
+- **The keyboard leaves with the editor.** After adding a link to selected words, saving or leaving the note editor or capture box no longer leaves the keyboard behind. Saving or cancelling the link returns to the original field; all other text formats keep working.
+- **Links work as soon as you write them.** Web addresses in ordinary notes and captions are recognised without adding another formatted link first. Tap a link to open it in your browser; hold it for Open link and Copy link. Ordinary words still select and copy as before.
+
+## v1.99.97
+
+- **One capture box for everything.** Note, voice, checklist and link now sit at the top of the box and switch in place — what you typed stays, so a note becomes a list without typing it again, and a pasted address becomes a link (a line around it becomes its caption).
+- **Record right in the box.** Voice turns the box itself into a recorder with a live waveform; stop keeps it, the bin throws it away and brings your words back.
+- **A shorter row of tools.** The camera keeps its own button; the gallery and files share one clip menu.
+- **Flick + for a shortcut.** Flick the + button left or right to start a voice note or the camera straight away — choose both in Settings → Gestures.
+
+## v1.99.96
+
+- **Ask the assistant about Nex itself.** "How do I pin a tool?", "why did my reminder not ring?", "how do I move to a new phone?" — it now answers from the app's own guide, in your language, and says where in the app to go.
+- **A fuller guide.** The guide now explains the app lock in detail, lists what each settings page holds, and answers the common questions.
+- **The app lock is harder to loosen.** Making Nex lock later — or only when you ask — now asks for your fingerprint first, so nobody holding your phone for a moment can change it. Locking sooner still takes one tap.
+- **Locking closes everything.** When Nex locks, the private tools lock with it and the keyboard closes, so nothing typed at the lock lands in a hidden note.
+- **The lock says what is wrong.** After too many wrong fingerprints it tells you to wait or to unlock the phone first, and if the phone has no screen lock it offers to open the phone's settings to set one.
+- **A better photo editor.** A photo the camera saved on its side now opens the right way up for cropping, and comes out that way. Crop pills, round tools and a new **Flip**; in drawing, a tap leaves a dot, lines are smoother, the slider also sets the size of text, a label can be held to change or remove it, **Redo** joins Undo, and text sits where you tapped. The editor is dark in every theme, so none of its buttons fade into the background, and turning and cropping a camera photo is quicker and no longer makes a much larger file along the way.
+
+## v1.99.95
+
+- **Reminders and attachments cost a card no line.** They sit at the end of the note's last line, the way a message's time does in a chat: a short note keeps them on its one line, and a long one fades out just before them. Its words keep every line they had.
+- **A folded smart summary stays folded.** It used to open again on its own when you came back to the app, as if it were opening to update; now it updates inside the folded card, and only a tap opens it.
+- **The lock on private tools opens with them.** On the Tools page and on tools pinned to the home screen, the lock shows open while Passwords, Bank cards and Private messages are unlocked, and closes again when they lock.
+- A voice note whose file will not open now says so under the player instead of leaving its button dimmed, and a recording that wrote nothing is no longer saved as an empty note.
+
+## v1.99.94
+
+- **Voice notes open again.** In 1.99.93 opening a voice note or an audio file froze the app and left a grey box where the player should be. It opens and plays again.
+- **Reminders and attachments fit on every card.** The line under the note's words takes the place of its last line, so on a compact card it is no longer cut off at the bottom, and it sits on the same side as the words — on the right under a Persian note. A voice note's length joins it on that line.
+
+## v1.99.93
+
+- **A new player for recordings.** Voice notes, audio files and attached voice clips play in one new player: a round button that turns play into pause and glows while it plays, the recording's own shape as the bar — touch or drag it to move — and a speed button for 1×, 1.5× and 2×. It is there the moment the note opens, instead of appearing a second later.
+- **Voice notes are recorded the way voice clips are.** On some phones a voice note recorded with **+** still played nothing, while a clip attached on the same phone played. A voice note is now recorded exactly like that clip.
+- **Search, as it should be.** With nothing typed, a touch outside the search box leaves search. With words typed and the keyboard up, the first touch anywhere — a result included — only closes the keyboard; then a result opens with a tap, and the keyboard no longer comes back when you close it.
+- **Reminders and attachments under the words.** On a card they now sit on a small line beneath the note instead of in a column beside it, so the note's words get the card's whole width.
+- The filter and clear buttons sit in the middle of the search box.
+
+## v1.99.92
+
+- **Voice notes play on every phone.** On some phones a voice note recorded with **+** played nothing, while a clip attached on the same phone played: the recording was labelled with the sample rate and channels that were asked for, not the ones the phone used. Each recording now carries the phone's own, and voice notes recorded before play from a corrected copy — the original stays as it is.
+- **Attaching no longer holds everything else up.** With reading text in photos or transcription on, each attached photo or voice clip made the app wait for the AI before doing anything else — a file attached or a note deleted could take minutes to appear. It is read in the background now, the way a photo note's own text always was.
+- **Tools on the home screen.** Hold any tool on the Tools page — passwords, bank cards, scheduled notes, the generator, a module — to pin it to the top of the timeline, in its own colour and icon. A pinned private tool shows only its name and still asks for your fingerprint. Hold it there to take it off.
+- **Recent searches.** Before you type, your last five searches are there to tap again, next to the saved ones, with a button to clear them.
+- **A finished checklist says so.** Ticking the last open line makes the list glow once, the phone gives a single tap, and the progress line reads **All done**.
+- **Touch the Nex wordmark** on the home screen and it plays its little movement there and then.
+
+## v1.99.91
+
+- **Meaning search speaks again.** Since 1.99.82 it could find nothing at all. When no note stands out for a search, the few notes plainly close to it are shown again — still only those, and still after the notes with your words.
+- **Search waits for the keyboard.** While you type in the search, the first touch outside the field only closes the keyboard — it no longer opens a result or closes the search by accident. Then a result opens with a tap, the field brings the keyboard back, and a touch anywhere else leaves the search.
+- **Save to device works for every item again.** A photo — a note's own or an attached one — and a note of words (saved as Markdown) said "Couldn't save"; they now go wherever you choose, as files and recordings already did.
+- **Voice notes play.** A voice note just recorded could play nothing at all: its first moment was the recorder's setup, written as if it were sound. New recordings start with the sound itself. At the end of a recording the button turns back to Play and the next tap starts from the beginning.
+- **The progress bar stays put.** Playing a voice note or an attached recording, the bar no longer runs ahead for a moment and snaps back to the start.
+- **Holding an attachment.** The held tile settles back into its place before its menu opens, instead of passing over the menu.
+- **Nex's diagnostics can be shared to Nex.** Sending the diagnostics file from **About** to Nex itself makes a note of it, instead of a warning.
+- A photo whose file is missing shows as missing in the viewer, instead of being logged as an error.
+
+## v1.99.90
+
+- **Attachments, grown up.** Photos open in one gallery with every photo of the note — swipe between them, with each caption at the bottom and where you are at the top. Tiles show what each file is: a PDF by its first page, a video by a frame, a voice clip by its length, any other file by its kind and extension, and a photo's caption along its bottom. The **Attached** row says how many files there are and how much room they take.
+- **Voice clips on notes.** **Attach → Record a voice clip** adds a spoken note to a photo of a receipt or a whiteboard. Tap it to play it in place; with transcription on, what is said is found by search.
+- **More from a hold.** Hold an attachment and let go for its menu: share it or save it to your device on its own, rename a file, make an attached photo the note's own photo, or take it out as a note of its own.
+- **The reminder and the paperclip together.** On a card, the reminder and the count of attached files now sit together at the end, one above the other, instead of at opposite ends of the note's words.
+
+## v1.99.82
+
+- **Search by meaning finds what is about your search, or nothing.** The same few short notes — a list of hashtags, a two-word reminder — were listed as found by meaning for almost every search. A note now has to stand out against the rest of your notes for that search to be listed, so they no longer come up for everything, and a search with nothing related in your notes shows no meaning results at all.
+
+## v1.99.81
+
+- **Search keeps what you typed on top.** Notes that contain your words now always come first, in the order they first appear, and no longer move when the search by meaning answers a moment later. Notes found only by meaning follow them — only the few closest, marked as before. Before, a note that merely resembled the query could sit above the notes that held the words, and a long tail of unrelated notes was listed as found by meaning.
+- **Search by meaning, stricter.** It now keeps only matches close to its best one, and the on-device search model needs a closer match than before, so a query with nothing related in your notes is no longer answered with unrelated ones.
+- **Opening search, visible.** The field now lights up with a soft glow in your accent colour, and the results rise into place one after another.
+
+## v1.99.80
+
+- **Share several files into Nex at once.** Choose several photos or files in your gallery or file manager and share them to Nex: they become one note — the first is the note, the rest are attached to it. Before, Nex was not even offered for more than one file.
+- **Drag attachments into order.** Hold an attachment on a note and drag it; hold it and let go for its menu, which can now also move it earlier or later.
+- **Words in attached photos are searchable.** With reading text in photos on, the photos attached to a note are read like a photo note's own, so a serial number on the third photo finds the note.
+- **Details that tell you something.** **More → Details** now says how long ago a note was made and last changed (or that it never was), how many words it has, how much of a checklist is ticked, a recording's length, a link's site, and how much room the note takes with its attachments. It closes with **Close**, not Cancel.
+- **The profile's sky works.** The constellation behind your name was drawn into a single dot. It now fills the card: a star for each letter of your name, drifting and twinkling, with a spark now and then running along its lines.
+- **The floating date, calmer.** The date that appears as you scroll the timeline now drops in from under the filters and tucks back, rolls to the next day in the direction you are scrolling, and has no shadow.
+- **Search opens and closes smoothly.** The field, its buttons and the results now ease in and out together instead of switching on a frame.
+- **A form just for module ideas.** The row at the foot of the Modules page opens a short form for your idea, without the bug and diagnostics options of the general feedback form — and its arrow points the right way in Persian.
+
+## v1.99.70
+
+- **Several files on one note.** On a text, photo or file note, tap **Attach** beside Tag to add photos from the camera, several from the gallery at once, or any file, and they stay with the note. The card shows a paperclip with how many more it holds. Hold one to give it a caption or remove it, with Undo. Captions are searched with the note, Share sends every file together, and attachments travel with the note in exports and complete backups.
+- **Choose several photos at once.** Picking photos from the gallery when you capture now lets you choose more than one: the first becomes the note and the rest are attached to it.
+
+## v1.99.60
+
+- **Modules: add only what you need.** Extra features now live in **Tools → Modules**, each on a card that says what it does. One that is not added takes no room and runs nothing — no tile, no reminders, no widgets, no assistant tools — and removing one asks whether to keep its data or delete it. More modules will arrive this way, so Nex stays light for everyone who does not want them.
+- **Cycle is the first module.** It moved from your profile to Tools → Modules. If you already use it, it stays on, with all its data; it now appears in Tools under Modules.
+- **Note colours that match your theme.** The colour of each item's icon (lists, links, voice, photos, files) used to be fixed: a mustard link on a blue theme. Now every type takes a shade of your own accent, fanned out around it on the colour wheel. Each theme gets its own family of colours, and every icon stays easy to read against its square.
+- **What is coming to Modules.** Tools → Modules now lists what is on the way, each marked Soon or Planned: Smoke-free, Where I parked, Gold check, Word by word, Telegram bridge, Medicine cabinet, Warranties, Lent & borrowed and Habits. A row at the bottom sends your own idea for a module straight to us.
+- **Adding a module feels like installing it.** Tap Add and you watch it go in: small pieces in the module's colour gather into its icon while a ring closes around it, with each step and the percentage below. When the ring meets itself a check pops on, and the card moves up to the modules you have added. Removing one runs it backwards, then tells you it is gone. With animations turned off it happens at once.
+- **One way of moving, everywhere.** Sheets, dialogs, pages and cards now arrive and leave in the same rhythm: they arrive softly, and leave a little quicker than they came. Dialogs used to fade in at a different speed from the sheets they opened over, and some sheets slid while others rose. Now everything moves alike.
+
+## v1.99.50
+
+- **Notes open faster.** A note's sheet now opens with the note already in it — it used to rise with a placeholder and wait for the library before growing to fit — and it rises in about a third less time.
+- **A clearer top to every note.** The sheet opens on its type in the colour its card wears, and the date with the month in words and the time to the minute; the exact time to the second is still under Details.
+- **Days fold like a fan.** Folding a day — by tapping its heading or pinching the timeline — now moves its notes one after another: opening, they fan out from the heading and settle into place; closing, the lowest go first and the rest fold up after them.
+- **The wordmark takes your accent, and comes alive.** The stroke through the x and the dot after it in the corner of the timeline now wear the app's accent colour instead of a fixed blue — green with Forest, and so on — and every few seconds a light runs along the stroke and the dot gives a small hop. Never with animations turned off.
+
+## v1.99.40
+
+- **A first run that shows instead of tells.** The welcome pages are new: the octopus catches the pieces of a day as they drift in, notes land on a small timeline with nothing to save, a search finds «کتاب» even when it is typed with Arabic letters, and a lock closes round all of it. Each picture plays once and holds still while you read. Six pages became four, with a bar showing how far along you are.
+- **Your greeting, before you start.** The last welcome page draws the top of the timeline live: type your name and Nex greets you by it, in the theme and language you are picking, so you can see what each answer changes.
+- **Each kind of note has its colour.** On every card the square beside the note takes its type's colour — text in your theme's accent, voice violet, checklists teal, links amber, photos rose, files grey — so a day's voice notes and lists stand out at a glance. The empty timeline's three ways in wear the same colours.
+- **A day reads as one strand.** The notes under each date are joined by a thin thread down their squares, and the date headings are bolder and easier to scan.
+- **A lighter top of the timeline.** Today's date — in your calendar, with the month in words — sits over the greeting, now set at the start of the line; the filter button moved beside the search field, and the row of tag chips appears only once there are tags to pick, so the first notes start well up the screen.
+- **Appearance and Security, chosen in place.** Theme, text size and card size are now the choices themselves on the Theme page — card size drawn as stacks of cards — instead of rows that each opened a sheet. Security opens on whether Nex asks before it opens, and when to lock is three choices with a line each, plus the delay as chips.
+- **A clearer password generator.** The password sits on its own card with a meter for how strong it is, and copy and a fresh one side by side.
+
+## v1.99.30
+
+- **Sharing no longer says "could not be stored" over a share that was saved.** An older share whose file could no longer be read stayed waiting in Nex and was tried again under every new share, so each one reported a failure while its note was already in the timeline. Only the share you just made is reported now, and one that keeps failing is let go after a few tries.
+- **The assistant's light leaves the way it came.** When the assistant closes, its border no longer vanishes at once: the ring of light runs back down both sides of the screen to the + button and goes out there in a soft pulse.
+- **Language & calendar, at a glance.** The calendar choice shows today's date on a little calendar leaf in each calendar, a preview card shows how a day heading and a note will look with your language and calendar, and the language AI answers in can be set here as well.
+- **Intelligence, redesigned.** Its page opens on whether it is on, with whom, and how many abilities are working; the six abilities are tiles you switch with one tap, greyed with the reason when your provider cannot do them; and "What left this device" sits next to the provider. The Intelligence category shows the same at a glance.
+- **Tools, on two shelves.** The private tools (passwords, bank cards, private messages) sit together under a lock, and Cycle, Scheduled and the password generator under Everyday; each tool has its own colour, so it is found at a glance.
+- **Library and its lists, in the new look.** The Library opens on three coloured shelves — Tags, Threads and Trash — each saying how much it holds, above the storage card; the lists of tags, threads, deleted notes and requests that left the device are drawn as rounded cards, each tag on a tile in its own colour; Recurring's three counts each have their own colour; Speed and reliability sits on cards.
+- **Tidier settings pages.** Home screen widget and About Nex are grouped into cards like the rest of Settings.
+- **Fixes.** "Persian" is shown in Persian letters on the language cards, longer choice names wrap instead of being cut off, and a photo whose file has gone no longer logs an error.
+- **Receipts stay with their Recurring item.** A receipt photo added to a Recurring item no longer appears among your notes on the home screen, and deleting a note no longer takes a receipt off its item: receipts are the item's own, shown as thumbnails you tap to see full screen. Ones added before this update are still linked notes.
+- **A colour you pick shows as that colour.** On every palette but Nex, a chosen accent was muted to fit the palette — a red came out brown — and on Graphite it was ignored altogether. It now keeps its own colour, and on Graphite it is the one colour among the greys.
+
+## v1.99.20
+
+- **Settings is a page.** It opens like Tools and the Library instead of rising from the bottom, so a pull at its top can no longer close it by accident; the search box at its top now has the same rounded shape as everything under it.
+- **A new Profile page.** Your picture sits on a coloured header with a small constellation drawn from your name — every name draws its own — and the name and bio show there as you type them. Tap the picture to choose one from the gallery, take one with Nex's camera, or remove it: removing it is no longer a wide button under the picture that a tap beside it could hit. The birthday shows your age and counts the days to the next one, by the Persian calendar when you use it, and the bio's label sits where it belongs.
+- **Gestures and menus in one tap.** Every swipe action is now a chip under its edge, and a small card shows what each swipe will uncover in its own colour; the hold menu's actions are switched on and off on the same page, without opening another one.
+- **App icons: dark above, light below.** The blue octopus is gone and the swirl now also comes on light, so each of the three icons has a dark and a light version in the same column; the previews are a little smaller.
+- **Every theme has its own motif, higher up.** Autumn now has falling leaves, Rose atelier blossoms, Saffron threads of saffron and Graphite graph paper, and Midnight gains a crescent moon among its stars; only the plain Nex look stays plain. The motifs now rise over the lower half of the screen instead of the bottom third.
+- **Themes you can see before you choose.** The palettes on the Theme page are now a gallery of small previews, each in its own page colour with a note card in its tones and its motif, and the settings above them sit on a card like the rest of Settings.
+
+## v1.99.10
+
+- **Speaking to the assistant happens in the message bar.** The microphone no longer opens the voice-note sheet over the assistant: the message bar itself becomes the recording, with the conversation still in view — **✕** cancels, the time and your voice as it is heard in the middle, **↑** sends. The microphone and send share one button: the microphone while the box is empty.
+- **Backup & restore, simpler.** The page (formerly "Taking it with you") now starts with whether you are backed up and one **Back up now**; then what happens automatically, the restore points on this phone (tap one to restore, share or delete it), and three plain choices: a complete backup, an export of your notes, and one **Restore or import from a file** for every kind of file.
+- **Automatic backups no longer wait for a restart.** They ran only when Nex was started from scratch, and Android often keeps it running in the background for days — so a day could pass with no backup. They now also run whenever you come back to Nex. The daily folder copy no longer adds a second restore point on the phone, which pushed older ones out.
+- **Private saved messages, redesigned.** Messages have room between them, are grouped by day and show their time, and the box and its buttons no longer touch. A photo opens full screen with zoom, as on the home screen; a file opens with a tap or goes to another app with its share icon; a voice message shows how far it has played. Tap a message for copy, open, share or delete.
+- **Everything about a bank card, on the card.** The number, name, CVV2 and expiry on its face, and the IBAN, account number, bank and notes beneath it on the same card — each copied with a tap, nothing listed twice.
+- **Nex's own camera in more places.** A receipt for a Recurring item and a photo in Private saved messages are now taken with the same camera panel as a photo note — and in private messages the photo goes straight into the vault, never into your notes.
+- **No sponsor card in your first days.** A new install sees none until it is ten days old or holds five notes, whichever comes first.
+- **Cycle: a ring you can touch.** Touch the ring to see any day of the cycle — its date, its day and its stage — and the middle to come back to today. Today's stage (period, follicular, fertile window or luteal) is named under the ring.
+- **Cycle: a word for today and one-tap mood.** A short, gentle tip for where you are in the cycle, different each day, and a row of faces to log your mood without opening the day.
+- **Cycle asks when a period seems forgotten.** A period left open longer than yours usually last brings a gentle "Has it ended?" instead of the page going on with "period, day 12".
+- **Cycle fixes.** A period can now be ended in Breastfeeding and Menopause modes, where only "Period started" appeared; a late period no longer leaves predicted days in the past on the calendar; and a month you forgot to log is no longer flagged as a long cycle.
+
+## v1.99.9
+
+- **Talk to the assistant.** With Gemini or OpenAI as your provider, the microphone in the assistant now sends what you say as your message, so you can ask and get things done by voice; anything it would change still waits for your confirmation. To see the words first, turn on **Check what I said before sending** in the assistant's settings.
+- **Voice, photos and files in private messages.** The **+** beside the box in Private saved messages attaches a voice message, a photo or a file, with what you typed as its caption. Attachments are encrypted on this phone and are not part of backups.
+- **The smart summary sees your reminders.** A reminder set more than a week ahead was invisible to it, so it could advise setting a reminder you had already set. It now knows about every reminder.
+- **The assistant knows more about your notes.** Every note it reads now says whether it is pinned, its reminder if it has one, the thread it is in, and the day it was written, so it no longer offers a reminder or a pin that is already there and can answer "what did I write last week". It can also look at your tags, your recurring items with when each is next due, and Recently Deleted, so "when is the insurance due?" and "bring back the note I deleted" work, and it knows your current settings before changing one. Ticking a checklist item by voice or chat now ticks the right one.
+- **A link is kept when you close its sheet,** as text and checklists are, as long as it is a complete address.
+- **The assistant asks before reading a tag or a thread you did not mention.** It already asked before searching for words you had not used; a note could otherwise point it at a whole tag of notes to send to the provider.
+- **A Cycle summary read on the phone stays on the phone.** If a conversation the phone's model had about your cycle is continued with a cloud provider, that summary is no longer sent along; the provider gets Cycle only by asking for it, with your permission, as before.
+
+## v1.99.8
+
+- **A recording survives the app closing.** If Nex was closed in the middle of a voice memo — the phone ran short of memory, or the app crashed — the recording was lost, and the file left behind could not even be played. Recordings are now saved as they are made, and the next time you open Nex the interrupted one appears as a voice note, up to the moment it stopped.
+- **Search by meaning on the phone shows real matches only.** With the on-device search model, a search could list every note as "Found by meaning", even ones about something else entirely. That model now has a cut-off of its own, so unrelated notes stay out.
+- **What's new is in Persian too.** With the app in Persian, the update screen shows the release notes in Persian.
+- **Scrolling far back stays fast.** Each page of older notes used to reload every note above it, so a long scroll got slower the further it went. New pages are now added to the end.
+- **A quicker start for heavy assistant users.** Saved conversations moved out of the app's settings into a file of their own, read only when you open the assistant; they still go into settings backups.
+- **A note being typed is not wound back.** In a rare case, reopening the app could restore an older copy of a note you were typing over a newer one already saved. The newer one is now kept.
+- **Opening a library from a newer Nex.** If an older version of Nex is installed over a newer one, it now says the library needs the newer version, instead of offering to restore a backup over it.
+- **Under the hood.** The on-device assistant counts code and symbols more carefully, so a library of code notes no longer overflows it; the build without on-device models no longer carries their 22 MB runtime; release builds report whether native libraries suit phones with 16 KB memory pages; a test opens a library from the first release and checks that nothing is lost.
+
+## v1.99.7
+
+- **Cycle stays private when the app locks.** A home-screen Cycle widget that was refreshing at the moment the app lock closed could show your dates again afterwards. It now always ends on the locked state.
+- **Deleting Cycle really deletes it from this phone.** The backups on the phone still held every period and logged day. They are now replaced with one that does not, and the confirmation says plainly that copies you saved elsewhere are not changed.
+- **No leftover copies of imported files.** Importing a password CSV or restoring a backup left a full, unencrypted copy of the file in the app's cache. The copy is now deleted as soon as it has been read, and any old ones are cleared when the app starts.
+- **Updates from Cafe Bazaar and Myket.** If you installed Nex from Cafe Bazaar or Myket, the app no longer looks for updates on its own; the update screen tells you they come from the store. Copies installed another way keep updating in the app.
+- **A privacy policy in the app.** Under About Nex → Privacy policy, in Persian and English: what stays on the phone, when anything leaves it, and what you control. The guide's privacy paragraph now also mentions link previews and model downloads.
+- **TalkBack can read and copy the recovery code,** and the Cycle calendar says what each day is (period, expected, fertile, likely ovulation, logged) and opens it. The recurring-items calendar's days open with TalkBack too.
+- **Cycle periods can no longer overlap.** Editing a period onto another's dates is refused with a message, instead of quietly skewing every prediction.
+- **Search by meaning follows your edits.** An edited note used to be found by what it said before; it is now prepared again in the background after each change.
+- **The on-device smart summary no longer spins forever.** A summary the phone's model never finishes is given up on after two minutes.
+- **No raw instructions in the chat.** When the assistant wrote an action without its usual wrapping, the chat showed it as code above the confirmation card. It now shows only the card.
+- **Sharing a video no longer says it failed.** A video shared from Telegram, WhatsApp or the gallery was saved, but the message said "Capture could not be stored". A share that is in your notes is now always reported as saved.
+- **Words under a shared video or photo come with it.** When Telegram, WhatsApp or another app sends text along with a file, it becomes the note's caption.
+- **The assistant knows which checklist items are done.** It used to read ticked items as still to do; it now sees what is left and what is already done.
+- **More actions closes with a swipe down,** like every other sheet.
+- **Gemma 4's licence is Apache 2.0.** The on-device model page now shows that licence and links to it, instead of the older Gemma terms.
+
+- **More from the same review, smaller but real:**
+  - Deleting all assistant conversations now asks first, and an assistant change that fails part-way says how many changes were made instead of only "That didn't work".
+  - A note shared into Nex from another app can be found by meaning right away, not only after the next launch; a very long note no longer stops the others from being prepared for search; and asking the phone's model about one note lets it read the whole note.
+  - The on-device assistant no longer gets a line telling it to answer general questions when "Stay in my notes" is on.
+  - The Cycle calendar marks the likely ovulation day with its own ring and legend; the ring's text fits at the largest text sizes; and a few Persian phrases are corrected.
+  - Persian users get the solar calendar by default until they choose otherwise.
+  - An export now carries notes scheduled for later, and importing an export is all-or-nothing, so a retry never duplicates notes.
+  - The download notification shows its percentage in Persian digits, and a long model download pauses cleanly when Android 15's daily limit for background transfers is reached.
+  - A backup that would unpack to far more than its own size is refused; file previews and "Save to device" only open the app's own files; the search model is only loaded from where Nex installed it; and the app no longer asks for access to your photos, videos and audio, which it never used.
+  - The licences page now lists the on-device model runtime.
+  - Android's notification settings name Nex's channels (Reminders, Daily digest, Updates) in the app's language.
+  - "OCR" is now "Text in the photo", and the empty search says "Start typing to find a note".
+
+## v1.99.6
+
+- **The on-device assistant answers questions about your period.** Asked "how many days until my period?", the model on your phone guessed a number or said it could not see Cycle, because it is meant to ask for your Cycle summary first and seldom did. Now, when you ask about your period, cycle, ovulation or pregnancy and the assistant is allowed to read Cycle, Nex reads the summary for it before it answers, and you see "Read your Cycle summary" as you do with a cloud provider. Nothing leaves your phone for this.
+- **Fewer raw instructions in the chat.** When the on-device model wrote a request to look something up in a slightly wrong shape, the chat showed it as code instead of carrying it out. Those shapes are now understood.
+
+## v1.99.5
+
+- **The on-device assistant answers with many notes and long conversations.** The phone's model reads about 4,000 tokens at a time — the assistant's instructions, your notes and the conversation together — and once a library or a chat grew past that, every message was refused and the chat said the model would not start. Requests are now fitted to it: the notes found for your question come first, each note line is kept short, older turns of a long conversation give way to the newest, and the action instructions take a shorter form when room is tight. Your newest question is always kept.
+- **The smart summary is written in the language you chose.** With the summary language set to Persian, the on-device model could still answer in English, even repeating labels like "DUE" from what it was given. The language is now the first thing it is told and the last, and those labels are no longer copied into the summary.
+- **Clearer expectations for each assistant.** The on-device model page now says plainly that a model on the phone does not reach the quality of a cloud model, and the cloud provider page that how good the results are depends entirely on the model you choose.
+
+## v1.99.4
+
+- **The on-device assistant starts reliably.** Opening the assistant and sending a message at the same moment loaded the model twice, which does not fit in a phone's memory, and the app could close mid-load. After that, the model could refuse to start for good, showing "would not start on this phone" on every message. Now it loads once whoever asks, a load that was cut short is simply tried again, and the on-device model page has **Try loading it again**, so you never have to download it again to recover. When it still will not start, the chat shows the runtime's own message under the error.
+- **MiniCPM5 is no longer offered.** It closed the app on the phones it was tried on, so Gemma 4 E2B is the on-device model again. If you had MiniCPM installed, its 1.45 GB is freed the next time you open the on-device model page.
+
+## v1.99.3
+
+- **Search by meaning, right on your phone.** A new on-device search model, **EmbeddingGemma 2** (about 160 MB), is in **Settings → Intelligence → On-device search**. Once downloaded, Nex finds notes by what they mean with no internet and no AI provider: in search, in related notes, and when the assistant looks for the notes that answer your question — so the on-device assistant finds the right note even when you ask in different words. Nothing you write is sent anywhere for it. It only finds; it does not chat, so it sits beside the assistant's models rather than among them. Your notes are prepared for it in the background after it is installed.
+
+## v1.99.2
+
+- **The smart summary reads what you just wrote.** Reminders and open lists used to take every line, so a note from this morning without a reminder never made it in. A share of the summary is now kept for the last two days' notes: it says where you left off, and when a note mentions a day or time — "tomorrow", "on the 14th" — with no reminder set, it suggests one. Your tags are read too, so related things are said together ("three things left for the trip"), and a note that is only a record, like a saved link or a receipt, is not mentioned on its own.
+- **"Full" in the smart summary is really fuller.** It was held to the same four short lines as "Standard", so choosing it changed nothing. Now "Brief" is two short lines, "Standard" four, and "Full" up to eight, each with room to say why it matters or what to do next. A quiet day is still short under all three.
+- **The assistant sees Cycle as soon as you allow it.** After turning on "Let the assistant read Cycle", an open chat still said it could not see Cycle until you started a new one. It now goes by the setting as it is when you ask, and turning the setting off stops what it read earlier from being sent again.
+
+## v1.99.1
+
+- **MiniCPM5 installs now.** In 1.99.0 its download finished and then the model was removed by mistake, so it never became active. Download it again from the on-device model page. Nothing from the failed attempts is left on your phone: leftover and half-finished files are cleared, and the page shows how much of an unfinished download is already there.
+- **On-device model downloads keep going in the background.** Like an app update, the download shows its progress in the notification shade and continues when you leave Nex; Back on the home screen sends Nex to the background instead of stopping it.
+- **The on-device assistant knows it is Nex's assistant.** It now sees its instructions and your notes on every model, so it answers about your notes instead of introducing itself as the bare model.
+- **What the assistant looks up is no longer shown as your message.** When it reads your Cycle summary or searches your notes, a small line says so — "Read your Cycle summary", "Searched your notes" — instead of a bubble of raw data in your name.
+- **Pull to refresh always refreshes the smart summary.** A pull made while a summary was already being written used to do nothing; it now waits for that one, and asks again if it brought nothing new. With the length limit lifted, a summary that never comes back no longer blocks the card.
+- **The sponsor card recovers after a wrong phone date.** A phone whose date was once set in the future no longer holds the card back until that date comes round.
+
+## v1.99.0
+
+- **Cycle is now turned on in your profile, and off by default.** A card in **Profile** says in a few lines what Cycle does, with the switch to turn it on and a way straight in. If you were already using Cycle, it stays on. The old switch in **Settings → Sections** is gone; searching Settings for "Cycle" points to your profile.
+- **Every sheet closes with a swipe down.** Pulling a sheet's content down from the top now closes it, not only its handle — Cycle's settings and day log included, which could not be swiped away before.
+- **A second on-device model to try.** In the on-device model page you can now choose between **Gemma 4 E2B** and the lighter **MiniCPM5 2B** (1.45 GB). Each downloads separately, and the one you pick is the one the assistant uses — no restart needed. A full backup includes the model in use.
+- **Two Cycle widgets.** **Cycle** shows the ring, where you are in your cycle, the fertile window and a kind word for the day, in Cycle's own soft colours. **Cycle, discreet** is just the ring and one number, with no words. Both stay right day by day without opening Nex, open Cycle when tapped, and show nothing while the app lock is closed.
+
+## v1.98.0
+
+- **Cycle has a space of its own.** The page now feels like stepping into a quieter room: a soft blush-to-lavender light whose glows drift gently as you scroll, rounded frosted cards, a glowing ring and a rose button. It opens with a greeting for the time of day and a kind line for where you are in your cycle — "Be gentle with yourself today" during a period. Its sheets and dialogs share the same colours. With reduced motion, nothing moves.
+- **Fertility signs when trying to conceive.** In **Trying to conceive** mode, a day's log also takes your temperature on waking, an ovulation test and cervical mucus. A positive test is shown on the page for the rest of that cycle, and the assistant (only if you allowed it to read Cycle) sees these signs too.
+- **Gentle companion.** A new switch in Cycle's settings, off by default. When it is on, on the days that are often harder — the few days before a period, its first days, or a day you logged feeling low, sensitive or in pain — the assistant answers more softly and patiently, like a caring friend. It never brings up your cycle or suggests a reason for how you feel. Only a line about tone is sent to your AI provider, never your cycle data.
+- **After the due date, Cycle asks.** In **Pregnant** mode, once the due date has passed Cycle asks whether your baby has arrived and offers to switch to **Breastfeeding** or back to **Normal** in one tap.
+
+## v1.97.0
+
+- **Cycle, version two.**
+  - **Modes.** Choose one in Cycle's settings:
+    - **Trying to conceive** puts the fertile window and likely ovulation first.
+    - **Pregnant** counts weeks and days, with the due date and trimester. It counts from the first day of the last period, or from a due date you already know.
+    - **Breastfeeding** and **perimenopause or menopause** turn predictions off and keep logging.
+  - **Patterns.** After a couple of cycles with symptoms logged, Cycle points out the ones that come back at the same time, such as "Headache: usually about 2 days before your period".
+  - **Report for a doctor.** A one-page summary — averages, recent periods with their lengths, symptoms of the last six months and patterns — saved as a PDF or shared. In Persian it looks exactly as it does in the app.
+  - **Assistant access, only if you allow it.** With **Let the assistant read Cycle** on (it is off by default), the assistant can answer questions about your cycle from a short summary. Your day notes are never included.
+- **Turn Cycle off completely.** **Settings → Sections → Show Cycle** (on by default). Turning it off asks whether to keep or delete your cycle data; either way its page and reminders are gone until you turn it back on.
+
+## v1.96.0
+
+- **Cycle — a menstrual cycle assistant.** A new **Cycle** page in **Tools**. Three optional questions to begin; then one large button for "Period started" and "Period ended", a ring showing where you are in your cycle, and a month calendar (in the solar calendar when you use it) with your periods, the expected ones and the likely fertile days.
+  - **Predictions from your own history**, not a fixed 28 days: a range rather than a single date, and a plain note of how sure it is. A month you forgot to log is not mistaken for one long cycle.
+  - **A day's log in a few taps:** flow, mood, energy, symptoms, pain relief, intimacy, the pill and a short note.
+  - **Your averages and past periods**, each period editable or deletable.
+  - **A gentle word, never a diagnosis,** when something is unusual: a period much later than expected, one lasting more than eight days, very short or long cycles, or cycles that vary a lot.
+  - **Optional reminders** two days before a period, each evening of a period, and for a daily pill. They only ever say "Nex reminder".
+  - **Private by design:** kept only on this phone and in your backups, never in your notes, search or widgets, and never sent to an AI service. **Delete all cycle data** removes everything at once.
+  - Cycle is not a method of contraception and does not replace a doctor.
+
+## v1.95.0
+
+- **Schedule a note for later.** While writing a note, hold the send button instead of tapping it, and choose when it should arrive: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is nowhere in your notes, search or widgets; at its time it lands on the timeline as an ordinary note, with a notification. **Tools → Scheduled** lists what is on its way, where each one can be delivered now, moved to another time or discarded.
+- **Compact cards sit closer together.** With **Card size → Compact**, the cards on the timeline are spaced more tightly, so a screen holds more of them. The other two sizes are unchanged.
+- **Picking notes feels like one bar turning into another.** When you start selecting notes, the bottom bar narrows and sinks away while the selection bar rises in its place and its buttons appear one after another. With reduced motion, the bars simply swap.
+
+## v1.94.0
+
+- **Save to device.** Every item now has **Save to device** in its details: Android's own save window opens and you choose where the copy goes — Downloads, Documents, Google Drive — with no extra permission. Files, photos and recordings are saved as they are (photos without where and when they were taken); a note of words is saved as a Markdown file.
+- **A real full-screen editor.** Full screen used to be the same editing sheet made taller, so with the keyboard up the note got the same few lines in both sizes. Now the page is the note: a thin row at the top to go back to the smaller editor, the AI edits behind one button at the bottom, and Save beside it, above the keyboard.
+- **Rename a file.** A file item can be renamed from its details. The extension stays, a name the phone cannot store is refused with the reason, and the new name is used in search, sharing and saving.
+- **Markdown files get real names.** **Save as Markdown** names the file after the note's first line instead of `note.md`.
+- **Empty pages show where to start.** An empty timeline offers Write, Speak and Photograph as buttons, and an empty Threads page has a button to make the first thread.
+- **Turn the smart summary off completely.** **Show the smart summary** at the top of its settings stops it entirely: nothing is shown, nothing is written, and nothing is sent to a provider for it.
+- **Copied secrets are cleared even if Nex is closed.** A password or card number copied from the private vault is cleared after 30 seconds even if Android closed Nex in the meantime. On Android 10 and later, where an app in the background cannot see the clipboard, it is cleared the moment you return to Nex.
+- **Fewer closes with an offline model.** When the phone runs short of memory with Nex open, the offline model is let go so Android does not close the app; your next question loads it again.
+
+## v1.93.5
+
+- **A diagnostics report that keeps what matters.** The report on your phone now keeps up to 100 errors and 50 other app events, apart, so routine events can no longer push real errors out. An event that repeats is recorded once, with how many times and since when. It used to keep only 20 entries in all, and a reminder rescheduled on every launch could fill them by itself.
+- **Attach the report to feedback.** When you send feedback you can tick **Attach the diagnostics report**. The exact report is shown before sending, with links, keys and passwords removed and nothing from your notes. It is never sent unless you tick it.
+
+## v1.93.4
+
+- **Password import no longer fails on one bad row.** Importing from Chrome or Google Password Manager now brings in every row it can read and lists the ones it could not, by line and with the reason. A row with no password, which Google exports for passkeys and "never save" sites, no longer stops the whole file. Passwords with Persian letters, numbers a spreadsheet saved as formulas, semicolon-separated files and files saved again in Windows-1256 all import, and the private section now holds up to 10,000 items.
+- **CVV2 on bank cards.** A bank card can keep its CVV2, shown on the card beside the expiry and copyable like every other field.
+- **Delete all.** Passwords, bank cards and private messages each have a "Delete all" option in the page's menu, after a confirmation.
+- **Links shared from a browser become link notes.** Sharing a page from Chrome or another browser now saves a link note with its preview, instead of a text note holding the address. Any title shared with it is kept as the note's caption.
+- **Privacy and security.** The password generator now blocks screenshots and the recent-apps preview while it is open. Link previews no longer contact addresses inside your phone or your local network. A failed update download no longer writes its details to the system log.
+
+## v1.93.3
+
+- **Language and calendar, in one look.** The Language and calendar page now shows every language and both calendars straight away; pick one with a single tap, without opening a menu first.
+
+## v1.93.2
+
+- **Settings, reorganised.** Settings now opens on a short list of categories — Appearance, Language and calendar, Capture, Gestures and menus, Reminders and notifications, Home screen widget, Intelligence, Security and privacy, Data and backup, About — each with its current state beside it, and each opens on its own page. Search still finds any setting from the top.
+- **Copied text keeps its line breaks.** Selecting and copying text from a note's details — a note mixing Persian and English lines, or one with formatting, lists or headings — used to paste as one long line. Each line now stays a line.
+- **New tags get more distinct colours.** A new tag is given one of twelve colours, the least used one first, so colours no longer repeat after the first few tags.
+- **The sponsor card shows more reliably.** Persian text no longer comes out garbled when the server does not name its encoding, a blocked or failing server no longer hides the card for a day, and a new picture replaces the old one straight away. The card has no close button for now.
+- **Under the hood.** The shipping build is verified before each release, and a build made outside the release pipeline can install over an installed release.
+
+## v1.93.1
+
+- **One permission fewer.** Nex no longer asks Android for access to your photo library: photos are picked through the system picker, which needs no permission.
+- **Font licences.** The licences page now includes the Inter and Vazirmatn font licences.
+
+## v1.93.0
+
+- **The Smart summary widget scrolls.** A summary longer than the widget used to be cut off; it now scrolls inside it.
+- **Captions show their formatting.** Bold, italic, links and lists you add to a caption appear formatted in the item's details.
+- **Copy any message in the assistant** with the small copy button under it.
+- **A link shows your caption.** Once you caption a link, its card shows your words instead of the page's description.
+- **Copying a text or Markdown file copies its text**, not its file name. Word (.docx) files too.
+- **Long documents open smoothly.** A long Markdown or text file now rises with the same animation as everything else, and its text fades in.
+- **New checklists save themselves.** There is no Capture button any more: close the sheet and the list is kept, like quick text. Clearing the box before closing keeps nothing.
+- **Safer updates.** An update is only offered when its checksum can be verified, and a downloaded installer is never trusted on its size alone.
+- **Shared photos no longer carry where they were taken.** Location and other camera details are removed from the copy you share; the picture still stands the right way up.
+- **Links in notes only open websites, email and phone numbers**, never other apps through hidden addresses.
+- **Safer link previews and backups.** A huge or endless web page can no longer fill memory while its title is read, and a damaged or crafted backup can no longer fill the phone's storage while it is restored.
+- **Clearer privacy wording.** The guide now says exactly what Nex itself sends: an update check and the sponsor card, at most once a day, with nothing about you or your notes.
+- **Easier to read.** Error messages in dark mode, links and quiet buttons in the default light theme, and custom accent colours that were too pale all now meet contrast guidelines.
+- **Persian text in the English interface uses Vazirmatn**, the same face as the Persian interface and the editor.
+- **The quick-capture notification and the Quick Settings tile follow the app's language**, like the widgets.
+- **Persian polish.** Consistent polite wording across the app, "عقب‌افتاده" for overdue items as in the guide, Persian digits in the download percentage and the calendar, and weekdays in the recurring editor start on Saturday.
+- **Fixes.** The multi-select bar fits on narrow phones; the camera's close arrow points the right way in Persian; tags in English details are separated by an English comma; a checklist's item count sits next to its title; the guide uses the widget names the launcher shows; and the first-run setup no longer asks about the AI language before any AI is set up.
+
+## v1.92.3
+
+- **Smoother typing on slower phones.** Drafts are still kept as you type, but saved in a pause rather than after every letter, so the keyboard no longer stutters on slow storage. Leaving the app saves them at once.
+- **Smoother photo capture.** Taking or cropping a photo no longer freezes the screen for a moment while it is kept and fingerprinted.
+- **The on-device assistant gives back its memory** after five minutes unused or when you leave the app, instead of holding about 2.6 GB until the app closes. It loads again the next time you ask.
+
+## v1.92.2
+
+- **Persian search finds a word however it was spelled.** Arabic ي and ك (common in old Windows text files and pasted text), vowel marks, the stretching ـ, a missing or extra half-space (کتابها / کتاب‌ها) and Persian, Arabic or Latin digits no longer hide a note from search. Your library's search index is updated once, on the first launch.
+- **Export now carries your reminders, recurring items and threads.** Before, an export moved to a new phone arrived without them.
+- **A voice note that fails to save says so** and offers Retry, instead of disappearing.
+- **Faster with a large library.** Opening the search box no longer reads every note, and the timeline updates faster after each change.
+- An edit cut short by the app closing can no longer leave search showing a note's old text.
+- **The assistant works again with Google and Claude out of the box.** The default models had been retired by their providers, so choosing Google Gemini with a working key failed on every request. Gemini now uses a current model for answers and for meaning search, and Claude a current Sonnet.
+- **The assistant's confirmation card names each note it will change**, so approving "delete these" shows which ones, and it reads fully in Persian: setting names, recurring cadences, repeats and counts.
+- **"Untick" unticks.** Asking the assistant to remove a tick used to flip the item whatever it was.
+- **A reminder time that has already passed is flagged on the card** and is not reported as set.
+- **Safer with what your notes say.** Text inside notes, photos and saved pages is treated as content, never as instructions to the assistant, and a search for something you did not ask about waits for your confirmation.
+- **Photos with no text no longer hold up reading the rest.** One picture without words stopped text recognition for every older photo and voice note behind it.
+
+## v1.92.1
+
+- **The sponsor card keeps its size.** Changing the card size in Appearance no longer stretches or squeezes it, and its words no longer spill past its bottom edge.
+- **The theme motifs are visible now.** In 1.92.0 they were drawn under the page and never seen; they now show along the bottom of the screen on Paper, Forest, Isfahan turquoise, Midnight and Deep sea, still faint.
+- **Feedback says which phone it came from**: the Android version and the phone's model, beside the app version. Nothing that identifies you.
+
+## v1.92.0
+
+- **A note opens the way the assistant does** — rising smoothly from the bottom of the screen.
+- **Copy takes a photo's caption first.** The text read out of the picture is copied only when it has no caption.
+- **The assistant's light is brighter**, the way the system assistant's is, and while the assistant is open a thin band of the same colours keeps circling the edge of the screen.
+- **The assistant can do more of what you can.** It reads every note with a tag or in a thread — "summarise my work notes", "what is in the Trip thread" — acts on several notes in one request (tag, pin, remind, delete, restore), and can put notes into a thread, starting it if needed. Every change still waits for your confirmation.
+- **Five themes have a faint motif of their own** along the bottom of the screen: paper grain on Paper, contour lines on Forest, tile stars on Isfahan turquoise, stars on Midnight and waves on Deep sea.
+- **Widgets, polished.** The Timeline widget shows the Nex logo alone, and its + became a row that starts a note, a voice note, a photo from the camera or the gallery, or a checklist in one tap; each note's time now sits under it, smaller. The Recap widget shows just the logo and the summary — tap it when there is none yet to ask for one.
+
+## v1.91.1
+
+- **Touches work as before while typing, except in the settings search.** In 1.91.0 a touch outside the box you were typing in only closed the keyboard, everywhere — which stopped tags from being picked with the keyboard up, sometimes closed the keyboard on a tap inside the box, and made selection handles hard to catch in a note being read. That rule now applies only to the settings search, where it keeps a setting from being changed by accident.
+- **Editing opens and scrolls smoothly again.** The editor is drawn the way the rest of the app is, and its fonts are read when the app starts rather than when you tap Edit.
+- **The coloured wave is back** when you hold + and while the assistant is open. What goes instead is the light-blue drop that poured out of the + button as the assistant opened; the assistant now simply rises.
+
+## v1.91.0
+
+- **While the keyboard is open, a touch outside the box you are typing in only closes the keyboard.** Nothing under your finger is pressed or scrolled — no more clearing a birthday while typing a name, or opening a setting while dismissing a search. The box itself, its clear button, Send and Save, and moving to another box still work with one touch.
+- **Writing in two languages edits the way it reads.** In a note, the capture box, the assistant and every other place you write several lines, each line now keeps its own direction while you edit it — the `!` at the end of a Persian sentence stays at its end, the caret reaches it, and the selection handles no longer flip. On Android this is the phone's own editor, the one Telegram uses, with its own handles, magnifier and menu; Bold, Italic and the rest are on that menu too.
+- **Links, server addresses and amounts are typed left to right** in a Persian interface, and the search boxes follow the language you type in.
+
+## v1.90.1
+
+- **Backups work again on the phone.** Automatic backups, and the copy into a chosen folder, failed once any photo or file had been backed up before ("FormatException"). They no longer do, and a failed folder copy now says exactly why.
+- **The update keeps downloading when you leave Nex.** Going back out of the home screen during a download used to stop it; now Nex steps into the background instead, as Home does.
+- **A card opens into its note without a flash** at the end of the opening.
+- **Recovery codes copy with one tap** — on the code itself or its copy icon.
+- **Pinching the timeline folds and opens every day with the same animation** a single day's heading has.
+- **Card size** is now on the Theme page, right under Text & UI size.
+- **Adding a recurring item no longer opens the keyboard by itself**, and its form is evenly spaced and sized.
+- **Colour themes reach the search boxes, switches and outlined buttons too.**
+- **No more multicoloured light** when holding + or while the assistant is open.
+
+## v1.90.0
+
+- **Pick several notes at once.** Hold a card and choose **Select** — it is at the top of every card's menu. Then tap cards to add them or take them back out. The bar along the bottom shows how many are picked and lets you tag, add to a thread, pin, share, copy or delete them all together; a delete of many has one Undo. Close it with ✕, with Back, or by taking the last one out.
+- **A card opens into its note.** Tapping a note grows its details out of the card itself, with the card's icon and words staying where they were until the note takes their place.
+- **The day stays on screen.** Scrolling through older notes, the day of the one you are passing is shown under the filters.
+- **Card size.** Settings → Appearance → Card size: compact, standard, or easier to read.
+- **Recurring, taken seriously.** Recurring is now a full page: what is overdue, due today and due this week at a glance (tap one to see just those), payments in the next 30 days, a list or a calendar, and a clear button to add one. Adding or editing one opens a full page too.
+- **Five new looks.** Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite, in light and dark. Changing the look now opens out as a circle from where you tapped.
+- **The Nex logotype is the app's mark.** It is the app icon, the icon on notifications and the Quick Settings tile, and the mark on the Timeline widget; the opening animation is unchanged. The wordmark on the home screen is a little smaller.
+- **Threads are off by default.** Turn them on in Settings if you use them.
+- **Fixes.** Buttons in some colour themes showed their icon in the wrong shade (the capture arrow, the vault's add buttons, the private messages send button, voice play). A backup to a folder that could not be written now falls back to another way of writing, and says why if it still fails. Settings search results no longer hide under the keyboard. Changing or removing your profile picture shows at once. The assistant can set a reminder in one go — "remind me Saturday at 9 about the doctor". The colour ring around the assistant's opening is gone.
+
+## v1.89.0
+
+- **See how fast Nex is on your phone.** Settings → About → Speed and reliability can time how long Nex takes to open, how long a capture takes from opening to saved, and how long a search takes to find the note you open. It is off until you switch it on. The numbers stay on your phone, never include your notes or searches, and are deleted when you switch it off.
+- **Send the numbers with feedback, if you want.** With measuring on, the feedback form offers to attach them and shows exactly what will be added before you send. The form also scrolls now, so nothing is cut off on a small screen with the keyboard open.
+
+## v1.88.0
+
+- **Groundwork, nothing to relearn.** This release reorganises how Nex is built — the assistant's connection to AI providers, the home screen and the larger sheets — so the home-screen features coming next (a date that stays on screen while scrolling, compact or roomier cards, selecting several notes at once) can be added safely. Everything works and looks as it did.
+
+## v1.87.0
+
+- **Your notes survive losing the phone — no server needed.** Settings → Data & backup → Automatic copy to a folder puts a complete backup into a folder you choose once a day: on the phone, or one Google Drive, Nextcloud or Syncthing offers. The newest three are kept. Settings and keys in it are locked with a recovery code; the private vault is never included.
+- **Better with a screen reader and large text.** The home screen no longer announces an unnamed button covering the whole screen, and the search box reads as one control. At the largest text sizes the home screen, a note's details and the Recurring page no longer break or run off the edge.
+
+## v1.86.0
+
+- **A tap that only closes.** On the home screen, while a card's menu is open or a card is swiped aside, the next tap anywhere — the card itself, a date heading, the filters — closes it and does nothing else. Opening a menu also puts away a swiped card.
+- **Translations keep each line's direction.** A translation that mixes Persian and English lays out each line in its own direction, the way notes already do.
+
+## v1.85.0
+
+- **See what left your phone.** Settings → Security → What left this device lists every request Nex made to an AI provider: which provider, what it was for, what kind of content went (text, file, image or audio) and from which notes. The list stays on the phone, is never uploaded or backed up, and can be cleared at any time. An offline model sends nothing and never appears in it.
+
+## v1.84.0
+
+- **Nex's own camera.** Taking a photo opens a panel over the timeline with the live view, a large shutter and a back button; ⋮ switches between front and back camera and sets the flash. Pull it down to close it. If the camera cannot be opened, Nex offers the phone's camera app instead.
+- **The wordmark in the corner.** The home screen's top corner shows the "nex" wordmark, in light and dark.
+- **Fixed:** closing the recurring-item editor asked to discard unsaved changes even when nothing had been changed. It now asks only when something was typed or changed.
+
+## v1.83.0
+
+- **A new face for Nex.** The octopus — one mind, many arms — is the new app icon, and the notification, Quick Settings tile and home-screen widget use it too.
+- **An opening worth watching.** Nex now opens with a short animation: the octopus gathers the scattered pieces of a day — a thought, a photo, a person, a task — into one picture. With animations turned off in Android, it shows the finished picture at once.
+- **Six icons to choose from.** Settings → Appearance → Theme → App icon offers the octopus on dark, light or blue, the "nex" wordmark on dark or light, and the previous icon.
+
+## v1.82.0
+
+- **Search puts the best match first.** Results are ranked by how well they match rather than by date.
+- **Words and meaning in one list.** With semantic search on, notes about the same thing join the results even without a shared word, marked "Found by meaning" — no longer only when nothing else matched.
+- **Much faster meaning search.** On a large library it answers in a fraction of the time and the database takes far less space. The first launch after updating converts the stored vectors once.
+- **Typing a search stays quick** in large libraries, even for one or two letters.
+- **The assistant looks up what you ask about.** Each question brings in the notes that best match it, so answers come from the notes about your question, not only the most recent ones.
+
+## v1.81.0
+
+- **The assistant shows which notes it used.** An answer drawn from your notes lists them underneath; tap one to open it. With "Stay in my notes" off, an answer from general knowledge says so.
+- **Capture from anywhere.** Add the "Nex capture" tile to Quick Settings, or turn on Settings → Capture → "Capture from notifications" for a silent row with Note, Voice and Photo.
+- **Threads.** Gather notes about the same thing without moving them. When a note you just saved clearly continues a thread, Nex offers to add it — one tap, never automatic, and it can be turned off. Library → Threads, or from a note's details and hold menu.
+- **A calendar for Recurring.** See a month or a week, how busy each day is, and move the next occurrence without changing the schedule.
+- **Attachments on recurring items.** Add receipt photos, link any note, and link a bank card that only opens after unlocking the vault.
+- **Search in Settings.** Find any setting by name, or by something on the page it opens.
+- A notice that offered a follow-up notice could, rarely, crash while leaving; it no longer does.
+
+## v1.80.2
+
+- **A tap on a note whose hold menu is open only closes the menu.** It no longer opens the note's details behind it.
+- **Something shared into Nex while the app is busy saving is no longer lost.** When the share window and the app wrote at the same moment and the phone was slow to finish, the share could fail with "database is locked"; it now waits its turn.
+
+## v1.80.1
+
+- **A tap outside the hold menu only closes it.** It no longer goes on to open another note or press whatever was underneath.
+- **A tap on a swiped-open card only closes it.** It no longer opens the note's details.
+- **Choose what the hold menu offers.** Settings → Capture → Hold menu lists every action from a note's details and its More menu. By default it shows Pin, Copy, Edit, Remind and Delete.
+- **Swipe the Recurring editor away from anywhere on it**, not only its handle — the same goes for the note, checklist and link editors. Each still asks first if you have typed something.
+- **A smoother assistant opening.** The liquid that pours out of the + button turns into the panel's own colour as it spreads, instead of flashing a large block of accent colour.
+- **Saved AI keys are safer.** A key that Android briefly could not read is no longer deleted, either by the storage itself or by saving the provider screen while it looked empty.
+
+## v1.80.0
+
+- **The assistant grows out of the + button.** Hold + and a wave of light crosses the screen while the panel pours out of the button like liquid. Opening it no longer stutters.
+- **Notices drip from the top.** Every confirmation and warning is now one capsule that drops out of the top edge and is drawn back up when it leaves. Tap it or swipe it up to dismiss it; Undo stays long enough to reach.
+- **One unlock for all private tools.** Passwords, bank cards and private messages stay open together for two minutes after you last touch them, even while you paste a password in another app. Leaving the app still hides everything, and Lock closes them at once.
+- **Everything on one page in the vault.** Each password shows its login, password, website and notes on the list, and each bank card shows every detail beneath it — tap any value to copy it. Bank cards can have their own colour, chosen with the same picker as tags.
+- **A more compact Tools page.** All four tools fit on one screen.
+- **Turn documents into notes.** Convert to note now works for plain text, Word (.docx and .doc), OpenDocument, RTF, web pages, e-books, CSV tables and code files as well as Markdown, including older Persian text files. A note is still only ever turned into Markdown.
+- **Swipe to close editors.** The Recurring editor — and the note, checklist and link editors — close with a swipe down on their handle, asking first if you have typed something.
+- **A tidier Theme page.** Mode, text size and accent come first, followed by the palettes with a little room between them. Choosing a palette brings its own accent, and the accent row now shows the colour actually in use.
+- **Better feedback.** Say whether it is a problem, an idea or something else, and leave a Telegram ID or email if you want a reply. If sending is unavailable, your message can be copied instead.
+- **A complete guide, now under About.** How Nex works has been rewritten for every current feature, with pictures, and sits with About Nex. About links to DbsStudio.ir and Nex's own page.
+- **Choose your app icon.** The end of the Theme page offers six launcher icons.
+- **Custom AI providers are called at exactly the address you enter.** Nothing is appended to it any more, so gateways whose chat endpoint is not at `/v1/chat/completions` work.
+- **Smart summary for thinking models.** An optional No token limit switch, with a warning about cost, lets models that reason before answering finish their summary.
+- **Card previews read on from the first paragraph** instead of showing the first line of each paragraph.
+- **A tidier hold menu.** Every action has an icon, the menu matches the rest of the app, and Delete is red.
+- **The sponsor card reaches more phones.** When GitHub is unreachable it is fetched from a mirror, and a card whose picture cannot load is shown in words.
+- **The assistant changes only settings you can see.** It can switch the whole-app palette, no longer offers the retired background patterns or Comfort Mode, and applies an accent colour written without its `#` instead of dropping it after you confirm.
+
+## v1.70.0
+
+- **A richer Recurring hub.** Today, overdue and next-week views; snooze or skip one occurrence; subscription, installment, task and habit templates; completion history with notes and Undo.
+- **Schedules that fit your calendar.** Choose several weekdays, a day of the month or its last day, including actual Persian monthly/yearly recurrence. Optional amounts show upcoming 30-day totals separately for each currency.
+- **Whole-app themes.** Paper, Autumn, Rose atelier and Forest join the classic look. Theme mode, accent and text size now share one page. Liquid Glass is temporarily disabled while it is redesigned.
+- **Faster private tools.** Tools is now at the left of the home dock, beside Recurring and Capture. The password generator has its own tile; unlocked passwords and cards are immediately readable. Import Chrome password CSV files with duplicate detection.
+- **Private saved messages.** A separate, device-authenticated space to save, copy and delete text, included only when you explicitly back up the encrypted vault.
+- **A more useful note menu.** Hold a home item to pin, copy, edit, remind or delete it. Long note details expand with More, and the first-launch hint explains holding Capture for the assistant.
+- **Small details, restored.** Capsule notices and Undo, swipe-back navigation in Tools, the original layout icon, and a fading backdrop for pinned tags. Settings remember opened categories; Security, Intelligence and Appearance start open. Widget settings now live under Appearance, and the guide sits above About.
+
+## v1.60.0
+
+- **A cleaner tag strip.** Tags sit directly on the home background and gain a solid backing only when pinned during scrolling.
+- **A clearer capture action.** The larger capture button stays in place beside a quieter reminder control with its full touch target.
+- **A separate home for tools.** Open Tools from Settings for passwords and bank cards, away from the note timeline and AI.
+- **A private local vault.** Device authentication, masked details, favorites, search, field-by-field copy and a random password generator. Leaving the app or two minutes of inactivity locks it; unfinished edits have encrypted drafts.
+- **Optional encrypted vault backups.** Include the vault in Complete app backup after device authentication. Older backups without a vault preserve the receiving device's vault.
+
+## v1.50.0
+
+- **Resume more unfinished edits.** Text, captions, checklists, links, profile details, commitments and unsent chat text recover when their editor is reopened. Photo capture, crop position and completed annotations keep local recovery checkpoints.
+- **Complete backup option.** Export the library with encrypted settings and AI/sync keys, plus the installed offline model when selected. Keep the generated recovery code separately; library/media and model entries are not encrypted. Interrupted restores retain a recovery copy.
+- **Persian calendar throughout date controls.** Birthdays, commitments and reminder selection now support Persian months and days; date labels follow the selected calendar and interface numbers follow the app language.
+- **Convert long notes to Markdown and back.** Conversion keeps the same item, tags, pin and reminder, without leaving a duplicate note behind.
+- **A tidier home and settings.** Pinch date groups closed or open, see a greeting without setting a name, and read mixed Persian/English summaries with the correct alignment. Settings use collapsible categories, Smart summary is last in AI settings, and off switches have a visible track in both themes.
+- **Clearer media and guidance.** Crop ratios have a visible scroll indicator. Voice details show a waveform decoded from the actual recording on Android. The in-app guide has been rewritten in English and Persian.
+
+- **Recover interrupted text capture.** Draft text is journaled locally and replayed without creating duplicate notes after a restart.
+- **More durable incoming attachments.** Android retains shared files while permission is available, coordinates simultaneous share receivers and rejects private file paths.
+- **Backups use less space and memory.** Local backups reuse unchanged media; Share still produces a complete portable copy. Large attachments no longer require a full compression buffer. Restores validate file checksums and reject missing media.
+- **Safer settings and cleanup.** Unavailable secure storage no longer prevents opening the local library, profile mirrors are written atomically, and old export/staging files are cleaned up. Deleting a backup no longer reads a removed file during a screen rebuild.
+- **More reliable photo editing.** Rotation and annotation recover from errors, native image resources are released, and edited JPEG photos can use smaller files at their original dimensions. Lossless and transparent sources remain lossless.
+
+- **Clearer recovery actions.** Camera and microphone denials link to app settings; assistant errors distinguish connection, credentials and service failures. Retry keeps the original question and any new draft.
+- **A quieter, clearer home.** Active filters show their names on an opaque strip, greeting refresh requires a hold, and known AI reasoning/prompt echoes are filtered from summaries and widgets.
+- **Persian dates and labels.** Choose a Persian calendar for note details, backups and reminders. Untouched starter tags have Persian display names without renaming your data.
+- **Better voice and accessibility controls.** Voice cards show duration, empty media hides irrelevant actions, small screens and large text have more room, and high-contrast boundaries are clearer.
+- **Home-screen widgets follow the app.** Widget language and accents update with app settings, controls have room, and locking the app prevents a pending refresh from publishing older private content.
+- **Desktop and diagnostics polish.** Notes have a secondary-click/keyboard action menu, the Windows window has a usable minimum size, and shared diagnostics redact common credentials and URLs.
+
+## v1.40.0
+
+- **More reliable capture.** Incoming shares are queued and acknowledged after saving, repeated delivery is deduplicated, and closing text capture waits for the complete draft. Shared attachments use short internal filenames while retaining their original display names.
+- **Safer, portable library backups.** Backups can be shared and opened from a file. Restore saves a recovery copy first and reopens the library after a failed attempt. Archive media is streamed, backup compression runs separately from database requests, and unsafe archive paths are rejected.
+- **Edits are harder to lose.** Editors ask before discarding unsaved changes, photo editing no longer uses the app's sideways back gesture, crop controls fit their viewport, and Send stays in place while typing.
+- **Updates download when requested.** Checking for a new release no longer starts downloading the installer automatically.
+- **Clearer content and controls.** Photo previews show the whole image, note types are translated, release notes render their formatting, and more controls have accessible labels and larger touch areas.
+
+## v1.30.0
+
+- **Edit photos already in the library.** Open a photo note or an image shared into Nex to crop, rotate and annotate it. The editor offers common crop ratios and a reset control.
+
+- **A calmer home screen.** The open daily recap has a thinner, single-color accent edge. The resting search field matches the closed recap's fill and border. The recap leaves the screen while searching, Comfort Mode is hidden from Settings, and note cards leave exact timestamps to their details.
+
+- **Clearer actions in note details.** Common actions have labels; the remaining actions sit in a readable More menu.
+
+## v1.22.2
+
+- **Photos keep their natural proportions in note previews.** Images in a note's detail sheet and timeline card no longer look stretched after capture or import.
+
+- **Full-screen photos respond reliably to touch.** A sideways swipe stays on the photo; swipe down at normal zoom to close it. Pinch, double-tap and panning no longer fight each other or let the picture drift out of view.
+
+## v1.22.1
+
+- **Glass stays steady as the home screen scrolls or refreshes.** The search field and daily recap no longer flash dark grey, and their drop shadows are gone. Settings keeps its own background when Liquid Glass is switched off while the sheet is open.
+
+- **Search finds text inside a word.** A search for `tor` now finds a note containing `Generator`. The whole search field, including the hint text, is easier to tap.
+
+- **Photos return sooner and stay findable.** Profile pictures can be found again when an older saved path goes stale, and nearby note images begin loading before they scroll into view.
+
+- **Profile details have a second local copy.** Your name, birthday and bio are kept with the profile photo in the library backup, so they can be restored if app settings are lost.
+
+## v1.22.0
+
+- **Liquid Glass feels lighter and clearer.** Floating controls now catch a
+  subtle highlight and keep more of the chosen background's colour. The search
+  field and shared sheets use the same material, and a sheet now actually blurs
+  the page behind it instead of blurring an opaque layer of its own. Comfort
+  Mode keeps the glass warm.
+
+- **The bottom of the timeline has one calmer home.** The four destinations
+  share a single floating dock, with Capture raised in the centre so the action
+  you use most is easiest to spot. The fade behind it follows the page colour
+  rather than leaving a dark band across notes.
+
+## v1.21.1
+
+- **A restore that fails leaves your notes where they were.** Restoring a
+  backup replaced the database first and the photos second, deleting each
+  live copy before the new one was in place. A failure between the two — a
+  full disk, the app closed mid-way — could leave the backup's notes over
+  your newer ones, and could lose the photos outright, while saying the
+  restore had failed. Nothing live is deleted now until the whole restore
+  has succeeded; anything that goes wrong puts it all back, including when
+  the app was killed part way — the next launch finishes the undo before it
+  shows you anything.
+
+- **An edit that could not be saved is not treated as saved.** If writing a
+  change to a note failed, the capture sheet still counted it as stored, so
+  closing the sheet never tried again and the text was lost without a word.
+  A failed write now says so, and is written again when the sheet closes.
+
+- **Text that begins with an Arabic comma, a vowel mark, or a direction mark
+  lines up correctly.** Pasted text starting with one of these could lay an
+  English sentence out right to left. Invisible left-to-right and
+  right-to-left marks, which other apps add to pin a paragraph's direction,
+  are now honoured.
+
+- **Restoring a backup, or importing a Keep export, no longer needs the whole
+  file in memory.** Both read the archive into memory before opening a single
+  entry, so a large backup — or a Takeout export full of photos — could fail
+  on an older phone for want of free memory. They now read one entry at a
+  time, straight from the file.
+
+- **Notes saved in the same instant stay in the same order.** Two files
+  shared at once, or an import, could swap places on the timeline from one
+  look to the next. They now appear in the order they were saved, newest
+  first, every time.
+
+## v1.21.0
+
+- **Other apps are off the selection menu again.** Select a word and the menu
+  offers what Nex and your phone can do with it — not Ask Copilot, Ask
+  ChatGPT, Read aloud and whatever else happens to be installed. This was
+  fixed in v1.5.5, but the fix was written into the two screens you *write*
+  on — so when text you only read became selectable in v1.20.0, every other
+  surface took the phone's default menu and the names came back. The rule
+  lives in one place now and every selection in the app reads from it: notes,
+  captions, the assistant's replies, the guide, search, tags, every field.
+
+- **Rendered text keeps its taps when it is selectable.** Markdown used to
+  reach selection in a way that swallowed every gesture inside it — a link or
+  a `code` span in the same block stopped answering — so the screens that
+  needed both worked around it one at a time. Selection sits around the block
+  now rather than inside it, which costs nothing and leaves the taps alone.
+
+## v1.20.1
+
+- **Persian selection handles come up on the right ends.** Double-tapping a
+  word worked; reaching for the handles to take more did not — they were
+  drawn the wrong way round, so dragging one widened the selection from the
+  wrong side. The paragraph was right-to-left and the overlay on top of it
+  was not. Text fields were given this in v1.13.0; text you only read became
+  selectable in v1.20.0 and never got it.
+
+- **Selecting through a Persian note is smooth.** A note was drawn one line at
+  a time, which is only needed when the lines disagree about which way they
+  run. A note written wholly in one language is one paragraph now, so a
+  handle dragged down through it is not handed from line to line on the way.
+
+## v1.20.0
+
+- **Text you are reading can be selected now.** A note, a photo's caption, a
+  link's excerpt, a shared text file, what the assistant wrote and what the
+  assistant replied — hold a word and you get the word, the handles and
+  Copy, the way the rest of the phone works. Before this, most of what Nex
+  showed you answered no gesture at all: whether a note could be copied out of
+  depended on whether it happened to contain an asterisk. In the assistant, a
+  long press used to copy the whole reply and nothing smaller could be taken;
+  it now selects the word under your finger, and Select all in the menu that
+  appears is the old gesture one tap later.
+
+- **Selecting in a text field stops fighting back.** Dragging a handle, moving
+  the caret, holding a word — all of them could die halfway through, because
+  the field was being rebuilt underneath the finger and the handles do not
+  survive that. Three fields still did it on every caret move, and both
+  writing surfaces did it on every keystroke and every frame of the keyboard
+  sliding open.
+
+- **Persian selections are painted to the word.** Every text field in the app
+  now draws a selection the width of what is selected instead of running it to
+  the end of the line, and takes its direction from what is typed into it. Four
+  fields had this already; the search box, tag names, the feedback sheet, the
+  name dialogs and the rest have it now.
+
+## v1.19.0
+
+- **The Daily brief settings are a page like the others now.** They were a
+  sheet that slid up from the bottom, sitting among pages that push in from
+  the side — so it closed differently, scrolled differently, and was the one
+  page in that part of Settings that behaved unlike the rest. It opens, looks
+  and closes the way **Assistant** and the provider page beside it do, because
+  it is now built out of the same pieces rather than ones that resemble them.
+
+- **Tap anywhere off the keyboard to put it away.** It covers half the screen
+  and had no way out other than the back gesture, which on most screens also
+  leaves the screen. Now a tap on anything that is not a field — the space
+  beside a title, the padding around a sheet — closes it, and a tap on a
+  button still presses the button.
+
+## v1.18.0
+
+- **Zooming a photo works properly now.** Pinch it, or double-tap where you
+  want to look — it zooms around that point and you can pan right to the
+  edges. The last attempt left the photo pinned inside its original bounds,
+  which is why it shoved back the moment you let go.
+
+- **The walkthrough on first launch is switched off.** Four stops asking to be
+  clicked through before you have written anything is a toll, and the one
+  thing Nex promises is that writing something down costs nothing. The guide
+  in Settings says all of it and waits until you ask.
+
+- **The Daily brief page scrolls.** Everything below the fold was simply off
+  the screen with no way to reach it.
+
+- **The AI language lives with the brief now**, instead of in two places. It
+  is still one setting — the assistant answers in it and transcriptions come
+  back in it — and the line under it says so.
+
+- **The assistant reads Word documents too.** Markdown, plain text, code,
+  spreadsheets and now `.docx` — if Nex can show you the file, it can answer
+  questions about it.
+
+- **The fade under the bottom bar reaches the bottom of the screen.** Twice
+  now it has been too timid; a card sliding under the bar met a dark grey
+  rather than the page ending.
+
+- **The guide is up to date** — the bar along the bottom, recurring items,
+  choosing several tags at once, the five kinds of daily brief, and what the
+  assistant can see.
+
+## v1.17.0
+
+- **A photo in a note can be zoomed.** Pinch it, or double-tap it. There was
+  a zoom all along; a swipe-to-close gesture sitting over it was winning the
+  argument, so whether a pinch zoomed or started to close the photo came down
+  to which one the phone noticed first. It goes further in now too — far
+  enough to read the small print on a photographed receipt.
+
+- **The assistant can see the picture you are asking about.** Ask about a
+  photo on a note and it looks at it, instead of saying it has no access to
+  images. It does not go through your other photos: only the note you opened
+  the assistant on, and only where your provider can read images at all.
+
+- **And it can read the file.** A markdown, text, code or CSV file attached to
+  a note now goes to the assistant along with the note, so a question about a
+  document is answered from the document. Word and PDF files are still named
+  rather than read — Nex cannot open those itself yet, and telling the
+  assistant about a file it cannot read would only produce a confident guess.
+
+- **A line of Persian no longer comes out left-aligned on the timeline.** A
+  card took one direction for its whole preview — the first line's — so a note
+  that begins in English laid its Persian lines out the wrong way round, and a
+  note that begins in Persian did the same to its English ones. Every line now
+  follows its own script.
+
+- **Changing what the daily brief says now changes the daily brief.** The
+  style, tone, length, language or your own instruction: any of them used to
+  leave the old brief on the card until you happened to write a note. This is
+  also why the five kinds of brief added in the last release seemed not to
+  take — they did, on your next note. They take now.
+
+- **The AI language is in the Daily brief sheet too.** It is the most visible
+  thing about a brief and it was three rows below the provider. It is still
+  one setting — the assistant answers in it and transcriptions come back in it
+  — and the line under it says so.
+
+## v1.16.0
+
+- **The daily brief is yours to define.** Five kinds, in Settings →
+  Intelligence → Daily brief. The assistant writing the whole thing is still
+  the default and still works the way it did; beside it now sit a brief where
+  Nex states the facts and the model adds only the one thing that can be seen
+  by looking at everything at once, a planner that suggests one next step, a
+  plain report that asks nothing of anybody, and one you describe in your own
+  words.
+
+- **The plain report needs no provider, no key and no signal.** What has
+  slipped, what falls due this week, what is half-ticked — all of it is
+  already on your phone, so none of it is sent anywhere. It is the one brief
+  that cannot be wrong about a date and cannot fail to appear because you are
+  on a plane. If intelligence is switched off, this is the brief that shows;
+  everything else is unchanged.
+
+- **A brief that loses its connection no longer loses your reminders with
+  it.** Under the two kinds where Nex states the facts itself, they are
+  written before the model is asked anything, so a request that times out
+  costs you the observation and not the rent being overdue.
+
+- **How the brief sounds, and how much of it there is.** The same five tones
+  the assistant has, and short, medium or long — a ceiling rather than a
+  target, so a quiet day is still one line.
+
+- **Nex opens markdown files.** Tap a `.md` in a file manager, or use
+  Telegram's "Open in", and Nex is in the list. The file becomes a note, so
+  it is still there tomorrow and still searchable next month. Plain text
+  files too.
+
+- **Liquid Glass you can actually see.** In the light themes a glass panel
+  was coming out two shades away from the page behind it — correct by every
+  measurement except the one that matters. The material now stands off the
+  page as clearly in light as it always did in dark, the hairline round every
+  card is a line rather than a rumour, and text on glass reads better than
+  before rather than worse.
+
+- **The light around the brief is finer and slower**, and the fade under the
+  bottom bar reaches three times as far up the screen so cards go quiet
+  behind it instead of running into it.
+
+## v1.15.0
+
+- **The Next button on the welcome screens could not be read.** In the dark
+  theme it was near-white text on a pale blue. Every filled button in the app
+  now takes a colour it can actually carry a label on.
+
+- **The walk-through no longer opens over another screen.** It could arrive
+  seconds after launch while you were already in Settings, and point at
+  controls that were not on screen. It waits for the timeline now.
+
+- **The assistant keeps its place in the bar.** It used to disappear when
+  intelligence was off, which left the bar lopsided. Tapping it with nothing
+  set up says so, and offers the screen that turns it on.
+
+- **More than one tag at once.** Tap to add a tag to the filter, tap again to
+  take it away; turning the last one off goes back to All. Notes under
+  *either* tag are shown — not only notes under both.
+
+- **The daily brief is the first card, and the sponsor card is the last.**
+  The brief has a light travelling round its border while it is being
+  written, and grows with its text instead of taking a fixed height.
+
+- **Recurring items have their own page.** They have left Settings for the
+  bar along the bottom, and the page now says what a recurring item is for,
+  counts them, and sorts them into what has slipped, what is coming, and
+  what is paused.
+
+- **A soft fade behind the bottom bar**, so the buttons are not read against
+  a passing line of a note.
+
+## v1.14.0
+
+- **A brighter blue.** The accent is `#0084F7` now — the blue that was asked
+  for, four units short of `#08F` so that a focus ring still clears the
+  legibility floor on Comfort Mode's warm background.
+
+- **The greeting is words again.** The mark on the end of it — a sun in the
+  morning, an owl at night — is gone.
+
+- **The daily brief notices things, not just lists them.** It can say that two
+  things are due within an hour of each other, that something has been overdue
+  long enough to be worth moving, or that a task is written down twice. It
+  still never invents a date or a task: reading two of your notes together is
+  not the same as making a third one up.
+
+- **The assistant stops saying hello.** Every reply used to open with a
+  greeting before getting to the answer. The first words are the answer now.
+
+- **Glass that is actually glass.** Panels used to be a near-opaque grey with a
+  heavy blur behind it and a card's drop shadow under it — a painted panel
+  wearing a blur. They are now built the way Apple's own kit builds them, so a
+  coloured note passing behind a panel tints it, and the edge catches light
+  down the left and right the way a curved edge does. Text on them keeps its
+  contrast on every background, light or dark.
+
+- **A bar along the bottom.** Four things that used to be out of a thumb's
+  reach in the top corner, or buried in Settings, are now two pairs of buttons
+  either side of the capture button: the recurring items and the assistant on
+  one side, the library and settings on the other. The order stays put when the
+  app is in Persian — it is a place on the screen, not a sentence.
+
+- **The daily brief is no longer a box.** It reads as the opening paragraph of
+  the page: no card, no border, no heading, just the text with a thin accent
+  rule beside it. Its three buttons are gone and none of them was lost — the
+  recurring items moved to the new bar, tapping the text still folds it away,
+  and pulling the timeline down asks for a fresh one.
+
+## v1.13.0
+
+- **Search no longer claims to find things by meaning when it cannot.** With no
+  AI provider set up, a search that found nothing still offered a list under
+  "matches by meaning". Those matches were produced by a hash of the text —
+  numbers with no relationship to what a note is about, so two notes on the
+  same subject scored no closer than two unrelated ones. Nex now says it has
+  nothing rather than offering that.
+
+- **Turning the intelligence layer off now takes effect immediately.** There
+  was a moment at startup, before the setting had been read, when background
+  work could run with every AI capability enabled regardless of the switch.
+
+- **Tapping a widget takes you to the timeline.** It used to take you back to
+  wherever you had last been in Nex — so if you had closed the app on the
+  Settings screen, tapping the brief on your home screen opened Settings.
+  Every way into Nex from outside it now lands where the tap meant: a
+  reminder on its note, the Capture tile on a new note, the brief's refresh on
+  the brief.
+
+## v1.12.0
+
+- **Writing a note never waits for the AI any more.** Transcribing a recording,
+  reading a photo or searching by meaning can take a provider up to three
+  minutes — and while one of those was running, the *next* note you typed was
+  queued behind it before it reached the disk. Capture and the timeline now go
+  straight past that work instead of lining up behind it.
+
+- **Changing your AI provider no longer poisons search by meaning.** The
+  vectors Nex builds to find notes by meaning only make sense to the model
+  that made them. Switching provider left the old ones in place and compared
+  them against the new model's — which produces a confident similarity score
+  that means nothing. They are now thrown away and rebuilt when the provider
+  or the endpoint changes.
+
+- **OpenRouter no longer offers search by meaning that it cannot do.** It was
+  listed as supporting it and then failed when you searched. It now says so up
+  front, in the same place every other capability is listed.
+
+- **The assistant's "About you" says where it goes.** The name and
+  introduction you give the assistant are sent with your messages — that is
+  what makes them work — but nothing on the panel said so, and the name under
+  your profile genuinely never leaves the device. One line now tells the two
+  apart.
+
+- **The speed promises are checked at a realistic size now.** Writing a note
+  and searching were already timed against their limits on every change;
+  writing is now also timed against a two-thousand-note library, which is
+  where a slowdown would actually show. The two promises that need a real
+  phone to measure honestly are described as what they are instead of being
+  listed as if a machine checked them.
+
+- **Recurring commitments can ring on their own.** Until now a commitment only
+  reached you through the morning brief. Each one can now raise its own
+  notification at the moment it comes due — the eight-hourly tablet, the
+  monthly instalment — and each one has its own switch, so the ones you only
+  want mentioned in the brief stay silent.
+
+- **Recurring commitments are where you actually see them.** Setting them up
+  was buried in Settings, which is not where anyone looks after the first
+  time. The brief card at the top of the timeline — the place commitments
+  turn up — now has a button that opens the list directly. Settings still has
+  it too.
+
+- **Selecting text works properly again.** Dragging a selection handle in the
+  note editor, the caption box or the assistant's message box fought back: the
+  field was being rebuilt underneath the drag, several times a second, because
+  it was watching the whole text box rather than the one thing it needed. Every
+  writing box in Nex now also runs in the direction of what is typed into it —
+  the words, the hint and the selection handles all on the same side, instead
+  of the text turning one way and its handles the other.
+
+- **A brief in two languages reads in two languages.** A smart brief that
+  mentions a Persian note and an English one was aligned all one way, by
+  whichever language its first line happened to be in. Each line now sits the
+  way that line is written.
+
+- **The on-device model says what it needs from your phone.** It runs on the
+  phone's own processor, so a slower or older device answers slowly and one
+  short of memory may not start it at all. That is now said before the download
+  rather than discovered after it.
+
+- **Choosing a cloud model comes with a word of advice.** The model you name is
+  what does the work, and a small or cheap one summarises poorly and follows
+  instructions loosely. The setup screen now says so, under the field it is
+  about.
+
+## v1.11.0
+
+- **Nex now holds the things that come back round.** The insurance every year,
+  the rent every month, a tablet every eight hours, a glass of water every two.
+  Settings → Recurring. Each one knows how often it comes round, when it is
+  next due, and how far ahead you want telling — a year's notice gets a week,
+  a month's a couple of days, and you can change any of it.
+
+- **They stay off your timeline, and turn up in the digest instead.** That is
+  the point of them: a tablet three times a day would be ninety cards a month.
+  Marking one done does not finish it, it moves it to its next turn — and
+  works out the date for you, including keeping the rent on the 31st in the
+  months that have one.
+
+- **Something every couple of hours can be told when you sleep.** Water every
+  two hours would otherwise come round while you are in bed. Give it waking
+  hours and it stays inside them, and the digest shows it as one line with a
+  count — "3 of 7 today" — rather than seven separate nags.
+
+- **The assistant can set them up, tick them off and remove them**, the same
+  way it handles everything else: it asks, and nothing happens until you press
+  the button.
+
+## v1.10.0
+
+- **The daily digest reads like an assistant now.** It was a paragraph about
+  your week. It is a short list of the things actually waiting on you —
+  overdue first, then what is due soon, then what is unfinished — one line
+  each, and no longer than it needs to be. A quiet day gets one line, not
+  four padded ones.
+
+- **A new home-screen widget for the digest alone.** Just the brief and a
+  refresh button, in whatever size you resize it to. Tapping refresh opens Nex
+  and writes a new one: making a digest means asking the model, and a widget
+  has nothing to ask with. Nothing shows there while the app lock is closed.
+
+- **The assistant can do much more of what you can do by hand.** It could
+  write, edit, delete, tag, merge and search. It can now also **set a reminder**
+  (including repeating ones, and clearing one), pin and unpin, give a note a
+  title, bring one back from Recently Deleted, rename a tag or change its
+  colour, and make a real checklist rather than a note with lines in it. It
+  also knows what day it is now, which is what "remind me Friday at nine"
+  needs.
+
+- **And more of your settings.** Text size, background, accent colour, comfort
+  mode, haptics, the four parts of the home screen, and the morning
+  notification with its time — on top of theme and language. Nothing about
+  the app lock, your provider key or sync is on that list, and nothing ever
+  will be.
+
+  As before, nothing happens until you press the button: every one of these
+  is shown to you as a sentence first.
+
+## v1.9.0
+
+- **The note editor is a proper editor.** It was a dialog with three lines in
+  it that could not grow. It opens from the bottom like everything else now,
+  and a button turns it into a full-height editor for a note that needs the
+  room.
+
+- **AI can edit a note's words, when you ask it to.** With a model available —
+  a provider or one downloaded onto the phone — the editor offers **Auto
+  style**, which adds headings and bold without changing a word, alongside
+  **Fix writing**, **Formal**, **Friendly**, **Shorter** and **Plain**. Nothing
+  is saved until you save, and one tap puts the text back the way it was.
+
+## v1.8.1
+
+- **The status bar reads properly again.** The clock, the battery and the
+  signal bars are drawn by Android in light or dark to suit *its* theme, not
+  Nex's — so a phone in dark mode with Nex set to light lost them into the
+  white header, and the other way round lost them into the black one. They now
+  follow the theme you picked inside Nex.
+
+- **You can take a screenshot of your own notes.** Turning the app lock on
+  used to block screenshots for good, even with the lock set to "only when I
+  ask" and the library sitting open in front of you. Screenshots work while
+  you are in the app and it is unlocked; the recent-apps preview is still
+  blanked, and so is a screenshot taken over the lock.
+
+- **The widget can show several tags.** Tapping a tag adds it, tapping it
+  again drops it, and the widget shows notes wearing any of them — Work and
+  Errands on the home screen, and none of the other six.
+
+- **Opening the app on a network that is not really connected.** Joined to the
+  Wi-Fi, no way out to the internet: the recap and the greeting at the top of
+  the timeline used to sit there spinning for a minute and a half before
+  giving up, because they were waiting on the same budget a question you typed
+  gets. They give up in twenty seconds now, and leave the last recap where it
+  was.
+
+- **The recap keeps up with the day.** It was written once a calendar day, so
+  a recap made at nine in the morning still described nine in the morning at
+  bedtime. It now refreshes at most once an hour, and only when the notes it
+  is summarising have actually changed — an app sitting open with nothing
+  written into it asks for nothing at all.
+
+- **Hiding a sponsor card no longer hides it for good.** Tapping the close
+  button used to mean "never show this one again on this phone", which is more
+  than anybody means by a close button. It now means "not now": the card goes
+  for the rest of the session and the day, and comes back afterwards if the
+  campaign is still running. Hiding one card still says nothing about the
+  next.
+
+## v1.8.0
+
+- **A checklist can be edited.** It could be ticked and nothing else — a typo
+  stayed a typo, a forgotten item stayed forgotten. Edit opens the list the
+  same way you wrote it, one item per line: Enter adds one, deleting the line
+  removes it, and whatever you had already ticked off stays ticked.
+
+- **The widget shows two lines of each note.** One line was a title and
+  nothing else, which for most notes is not enough to tell them apart. The
+  rows are a step lighter as well, so a full widget reads as a list rather
+  than a wall of text. The spacing is unchanged.
+
+- **The widget can ignore pinning.** Settings → Home screen widget: pinned
+  notes can sit at the top the way they do in Nex, or stay wherever their own
+  date puts them. Left alone it does what it always did.
+
+- **The assistant looks like a different mode of the app.** The light that
+  runs around the screen when you hold the capture button now leaves a thread
+  of itself there for as long as the assistant is open. The Summarize button
+  has a new icon too — the old one was a page with lines on it, the same as
+  every other note icon beside it.
+
+## v1.7.1
+
+- **The widget stops emptying itself for a lock that is not closed.** With the
+  app lock on, the widget showed nothing at all — even with the lock set to
+  close after an hour, and even while Nex was wide open. It now hides the
+  notes exactly while the lock is closed, and Settings → Home screen widget
+  has a switch for people who would rather it never hid them at all.
+
+- **"Lock after a while" now locks after a while.** It was decided only when
+  you came back to Nex, so a phone left on a table stayed unlocked as far as
+  everything outside the app was concerned — the widget included. The lock
+  now closes while you are away, at the time you set.
+
+- **The lock stops asking for the same fingerprint over and over.** Android
+  backgrounds Nex to show its own fingerprint sheet, and every return from
+  that sheet was read as another long absence: unlock, and it locked itself
+  again and asked again. Answering it once is enough now.
+
+- **The widget can be told what to show.** Settings → Home screen widget picks
+  which kinds of note appear — only checklists, only photos, any combination —
+  and narrows it to one tag. Left alone it does what it always did: the top of
+  your timeline.
+
+- **The widget can be made much bigger.** It stopped at about three cells in
+  either direction, which is smaller than most launchers will let you drag it.
+  It now goes to five wide and six tall, and shows more of the timeline as it
+  grows.
+
+- **The lock no longer asks every single time.** It used to close the instant
+  Nex left the screen, so switching to a browser to copy a link and coming
+  straight back cost a fingerprint. There are three choices now, under Security:
+  as soon as you leave, after a delay you pick, or only when you tap the new
+  lock button at the top of the timeline. Whichever you choose survives Android
+  stopping the app in the background — a lock you closed stays closed.
+
+- **Reminder sounds.** Settings → Notifications now opens Android's own screen
+  for the reminder channel, where the sound, the vibration and how loudly it
+  interrupts are all yours to set — including any ringtone on the phone. It is
+  the OS's screen rather than one of ours because Android hands a channel to
+  the user the moment it exists, and no app can change it afterwards.
+
+- **Nex stays free.** There is no paid tier and nothing is held back. In its
+  place the timeline can carry a single sponsor card, exactly the size of one
+  note and clearly marked as what it is — words, or a picture that fills it.
+  It appears only when there is actually something to show — no card, no gap,
+  no placeholder — and it goes quiet on a phone that has been off the network,
+  rather than leaving a finished campaign sitting there. It never reads or
+  sends anything about your notes, and hiding one hides it for good.
+
+## v1.6.2
+
+- **The colour wheel hands back the colour you touched.** The disc was drawn a
+  quarter turn out of step with the arithmetic behind it, so the marker sat on
+  green and the picker chose orange, sat on blue and chose green. Underneath
+  that, the quarter of the disc between twelve and three o'clock was not really
+  a spectrum at all — it was one flat red wedge, because that part of the
+  circle fell outside the range the gradient was given. Both are fixed, and the
+  paint, the marker and your finger now read from one number instead of three
+  that had to agree.
+
+- **Setting a reminder is one screen.** It was a list of four shortcuts and a
+  "Pick a time…" row that opened the calendar dialog, then the clock dialog —
+  and backing out of the clock threw the date away. Now the day, the hour and
+  the minute are three columns you scroll, the button underneath says exactly
+  what it will do ("Remind tomorrow at 09:00"), and the four shortcuts are
+  still there as chips that move the wheels rather than closing the sheet, so
+  "tomorrow morning, but at eight" is a tap and a flick. A time that has
+  already gone by cannot be set any more — it used to be accepted and then
+  quietly dropped.
+
+## v1.6.1
+
+- **The Timeline widget works.** It never has: the one placed on a home
+  screen showed "Can't load widget" instead of your notes, from the day it
+  shipped. Its layout used a spacer view that Android does not allow a widget
+  to draw — the app built, installed and ran perfectly well, and only the home
+  screen ever saw the failure. The spacer is gone, and the build now refuses
+  any widget layout with the same problem in it. The Capture widget was never
+  affected, which is why one of the two always worked.
+
+## v1.6.0
+
+- **The daily recap no longer says it has nothing on a library full of
+  notes.** Opening Nex fresh could leave the card sitting on "nothing to
+  summarise yet" for minutes, with the recap it already had appearing later
+  by itself — usually the moment you captured something or came back from
+  another app. Your notes were never affected and nothing was lost or
+  re-fetched: the card was waiting to be told the library had loaded, and the
+  message telling it had already gone past. It now asks the moment the notes
+  are actually there.
+
+- **Undoing a delete puts the note back where it was.** It used to reappear
+  at the very top of the timeline stamped "now", as though it had just been
+  written — a note from last month came back somewhere it had never been.
+  Delete and undo now leave the note's own time alone, so undo really is an
+  undo. Trash still lists what you deleted in the order you deleted it.
+
+- **"Show in full" has a ceiling.** A card asked to show its whole note had
+  no limit at all, so one long note could take the entire screen and push
+  everything under it out of reach. It now shows up to twelve lines and
+  trails off, exactly as a collapsed card does — and a long checklist says
+  how many items it is holding back.
+
+- **The colour picker is new.** Three sliders — hue, saturation, brightness —
+  are gone, replaced by a colour wheel you can put a finger anywhere on. The
+  hex code underneath can be read off or typed in, for a colour that has to
+  match something outside Nex, and the colours you picked before are offered
+  under the built-in ones. Tag colours and the app accent both use it.
+
+- **The accent picker no longer offers "No color".** Nex always has an accent
+  — something is drawing the caret right now — so the choice that actually
+  resets it now says "Default" and shows the colour it goes back to, instead
+  of an empty crossed-out circle.
+
+- **Four more backgrounds.** Two quiet ones in the register of the others —
+  Dots, a sparse grid, and Dusk, a single wash of your accent rising off the
+  bottom edge — and two that are unmistakably a choice: Topography, contour
+  lines like a map, and Prism, wide diagonal bands of colour.
+
+## v1.5.5
+
+- **There is a second widget: the top of your timeline on the home screen.**
+  Your last few captures, each with its type, its own line and how long ago
+  it was, and a capture button in its corner. Tapping a row opens that note.
+  It refreshes itself the moment anything changes in Nex — nothing polls, so
+  it costs no battery for standing there.
+
+- **And it respects the app lock.** With the lock on, the widget shows that
+  Nex is locked and nothing else: not the text, not the times, not even how
+  many notes there are. The lock hides the fact of your notes and not only
+  their contents, so what the home screen is given to draw contains none of
+  them in the first place.
+
+- **The capture widget now actually opens the capture sheet.** Tapping it
+  opened Nex and then stopped — the request reached the app and nothing was
+  listening for it, so the one thing the widget exists to do was the one
+  thing it did not do. It has been like that for as long as the widget has
+  existed.
+
+- **The widgets look like Nex, and speak Persian.** The old one was a black
+  rectangle with English text on it whatever your phone was set to. Both now
+  follow your light or dark theme, use your wallpaper's colours on Android
+  12 and later, are fully right-to-left, and are named and described in your
+  own language in the widget picker.
+
+- **The daily recap now reminds you of your notes instead of remarking on
+  them.** It used to be a line about what you had been writing lately, which
+  is a second decorative sentence in an app that already has one above it. It
+  now leads with what is due or overdue, then what is unfinished — a shopping
+  list with three items left is unfinished business — and only then what you
+  were in the middle of. It could not have done that before: it was only ever
+  shown the text of your twenty newest notes, with no dates and no reminders
+  in it at all, so a reminder set last month for tomorrow morning was
+  invisible to it. It is now told which notes are due and when, and it is
+  told not to say anything it was not told.
+
+- **And it says as much as there is to say.** The recap was capped at thirty
+  words whether you had one note or a fortnight of them. It now runs from a
+  clause on a quiet day to a short paragraph on a full one — and the morning
+  notification can be opened out to read all of it, rather than showing the
+  first line and hiding the rest.
+
+- **The text selection menu is Nex's own again.** Selecting a word in a note
+  offered Ask Copilot, Ask ChatGPT, Translate, Read aloud, Ask Grok, Ask
+  Perplexity, Ask Kimi and Ask DeepSeek before it offered Bold — Android lets
+  any installed app add itself to every selection menu on the phone, and Nex
+  was passing all of them along, which pushed its own formatting onto a second
+  page. The menu now carries Cut, Copy, Paste and Select all, then Nex's
+  formatting, and nothing from apps that have nothing to do with your note.
+
+- **Sharing something into Nex no longer opens Nex.** It used to launch the
+  app over whatever you were doing — a loading screen, then a timeline you did
+  not ask for, and a gesture to get back out — for something that should take
+  a moment and leave you where you were. A share now goes straight into your
+  library with nothing on screen, and a short message says it was saved. You
+  stay in the app you were sharing from.
+
+- **A file that is too big is now refused straight away.** The size limit
+  worked, but it was checked in the wrong order: Nex copied the whole file
+  before measuring it, so refusing a two-gigabyte video took as long as
+  accepting one would have — with the app apparently frozen throughout, and
+  on a share that launched it, stuck on the opening screen. It now asks how
+  big the file is before touching it, so the message comes back at once and
+  nothing is copied that is not going to be kept. Sharing a file you *are*
+  keeping is quicker too, for the same reason.
+
+- **An update download now keeps going after you leave the app.** Android
+  suspends an app's work shortly after you switch away, and the download
+  stopped with it — then nothing started it again until you went back to the
+  update screen and asked. It now runs as a proper background transfer, with
+  its progress in the notification shade for as long as it lasts. And if it
+  is stopped anyway — by the system, or by the app being closed — coming back
+  to Nex picks it up from the byte it reached rather than from the beginning.
+
+## v1.5.4
+
+- **The app lock no longer shows your notes while it is asking who you are.**
+  With liquid glass or a background pattern on, the timeline was readable
+  straight through the unlock prompt — every note on screen, behind the thing
+  that was supposed to be hiding them. The lock screen is now opaque whatever
+  the appearance settings say.
+
+- **Nex is now hidden from the recent-apps screen while the lock is on.** The
+  lock asked for a fingerprint to open the app, and then Android showed a
+  picture of your timeline in the app switcher to anyone who pressed the
+  square. Turning the lock on now also blanks that thumbnail and blocks
+  screenshots, for as long as it stays on — the security screen says so. With
+  the lock off nothing changes: screenshots keep working as they always have.
+
+- **Nex no longer reports a failed recap you never asked it to make.** The
+  daily recap is fetched once at launch, and when that quietly failed — no
+  signal, a provider having a bad day — the app said so out loud, seconds
+  after opening, on top of whatever screen you had gone to by then, about a
+  card you may not have looked at. That message now appears only when *you*
+  press refresh on the recap, where the alternative would be a button that
+  seems to do nothing. A failure nobody asked about leaves the last recap
+  where it is and says nothing.
+
+## v1.5.3
+
+- **Attachments are now limited to 100 MB, with a message that says so.**
+  Nex is a notes app, and a large file costs far more than it weighs: the
+  automatic backup packs the whole media folder and keeps five of them, so a
+  2 GB video came to roughly fourteen gigabytes of storage and made every
+  backup after it slower and larger for good. Anything over the limit is now
+  declined by name and size instead of being taken in.
+
+- **Sharing a very large file no longer breaks the app.** It was read into
+  memory whole — twice — so a big video ran the phone out of memory, and the
+  next launch opened on an error instead of your notes. Files are now copied
+  and checked in pieces, so their size no longer matters.
+
+- **Nex reminders no longer take over the phone's alarm indicator.** A
+  reminder was being scheduled the way a clock app schedules an alarm, so
+  Android showed it as the device's next alarm — the alarm icon in the status
+  bar, and a tile reading e.g. "Alarm · Sat 10:00" in quick settings. Because
+  that indicator shows the next alarm across *all* apps, any Nex reminder
+  earlier than your real wake-up alarm hid it, and tapping the tile opened
+  Nex instead of your clock. Reminders are still exact and still arrive while
+  the phone is idle; they just no longer claim to be alarm clocks.
+
+- **A failed share no longer says your library could not be opened.** That
+  screen offered to restore a backup over a library that was never touched.
+  A share that fails now leaves the app to open normally and records the
+  reason in the diagnostics.
+
+- **Sharing a file into Nex no longer keeps two copies of it.** A temporary
+  copy was left behind every time and never cleaned up, so each attachment
+  quietly took twice the space until Android reclaimed it. Your original file
+  is untouched either way — Nex only ever removes copies it made itself.
+
+- **The reminder-timing warning is withdrawn.** v1.5.1 and v1.5.2 asked you
+  not to rely on a reminder that has to arrive on time, after one report of a
+  10:00 reminder arriving at 1:10 in the morning. It has not happened again
+  on the phone it came from, across both releases. No cause was ever found,
+  so this is a warning being lifted rather than a fix being claimed — if it
+  ever happens to you, **Settings → About → Share diagnostics** now records
+  the exact moment and time zone each reminder was given.
+
+## v1.5.2
+
+- **Typing quickly no longer leaves half-finished copies of a note behind.**
+  The first keystroke is what saves a note — there is no Save button — and
+  until that write came back, every further keystroke started another one. A
+  word typed faster than the save could land left "h", "he" and "hel" in the
+  library as notes of their own, permanently: the sheet only kept the last of
+  them, so nothing you did afterwards touched the rest. It took no unusual
+  speed — a keyboard that sends a whole word at once, or a paste, was enough.
+  Now the first save is the only one, and whatever you typed while it was in
+  flight lands on the note it belongs to.
+
+- **The app lock now covers the lock screen too.** A reminder's notification
+  puts the note's own words in its title, and Android shows them in full on the
+  lock screen by default — so a note kept behind a fingerprint was still being
+  read out on a locked phone. With the app lock on, reminders are hidden from
+  the lock screen and appear once you unlock. With it off, nothing changes:
+  hiding every reminder from everyone would take a medication reminder off the
+  lock screen of people who never asked for a lock.
+
+- **Sharing or picking a large file no longer freezes the app.** The file is
+  copied into Nex before anything else happens, and that copy was running on
+  the same thread that draws the screen — so a video or a big PDF locked the
+  app up for as long as it took, and past a few seconds Android offered to
+  close it. The copy now happens in the background.
+
+- **Restoring a backup no longer duplicates the last thing you shared into
+  Nex.** A share that arrived while the app was already open was handled, but
+  the system kept a copy of it queued. Restoring a backup restarts the app's
+  internals, which picked that copy up and captured it a second time — so the
+  photo or file you had just shared appeared twice.
+
+- **The banner that said "The operation failed" now says what failed, and
+  why.** One sentence was doing the work of five different failures — a sync,
+  a backup, an export, a restore, a recap — and every one of them threw the
+  reason away. It named neither the thing that went wrong nor the cause, and
+  it is a banner: it is gone by the time you have finished wondering. Each
+  now names its own operation and carries what the app was actually told,
+  and the full text is kept in the file "Share diagnostics" sends, so a
+  failure can still be read after the banner has passed.
+
+- **A restore now says that restored notes stay on this device.** Notes
+  brought back from an export are written as already up to date, so sync
+  never uploads them — which is fine on the phone you restored onto, and not
+  fine if you took it to mean your library was back on the server. The app
+  now says so when a sync server is set up. It is a disclosure, not a fix:
+  the upload itself is a change to how sync decides what to send, and that
+  is worth doing carefully rather than quickly.
+
+- **Messages at the top of the screen are now read aloud by screen readers.**
+  They used to be announced, and stopped being when they moved out of the
+  system's own message bar and into Nex's. Nothing looked wrong, so nothing
+  caught it. It mattered most after deleting a note: the only way to undo
+  that is a button in a message that lasts six seconds, and someone using
+  TalkBack was never told it was there.
+
+- **The swipe-action arrows in Settings pointed the wrong way in Persian.**
+  Each row shows an arrow for which way your finger travels, and the app was
+  flipping those arrows for right-to-left — on top of the flip the system
+  already does. Two flips cancel, so in Persian both arrows pointed the way
+  they do in English, and the row for the starting edge was illustrating the
+  gesture for the other one.
+
+- **A note starting with Persian digits no longer flips the line around.**
+  Persian and Arabic digits were being treated as Persian *letters*, so a
+  note that began with a phone number, a price or a date was laid out
+  right-to-left even when the rest of it was English. Numbers now leave the
+  direction to the words around them, which is what the rest of the app
+  already did for ordinary digits.
+
+- **Checklist and link cards no longer clip their text at larger UI sizes.**
+  The card itself grew with the text size, but the rows inside it were pinned
+  to the height of one line at the default size — so turning the size up made
+  the card taller while squeezing the words into a slot built for smaller
+  ones. Both now grow together.
+
+- **The reminder arriving at the wrong hour is still not fixed.** The report
+  from v1.5.1 — a daily reminder set for 10:00 arriving at 1:10 in the morning
+  — has not been explained yet, and nothing in this release claims to. The
+  recording added in v1.5.1 is still the way to find it: if it happens to you,
+  please send **Settings → About → Share diagnostics**. Until it is
+  understood, please do not rely on a reminder for something that has to
+  happen on time.
+
+## v1.5.1
+
+- **A reminder arriving at the wrong hour is still being looked into.** One
+  report has a daily reminder set for 10:00 arriving at 1:10 in the morning, on
+  a phone that allows exact alarms, with the note itself still showing the time
+  it was given. The cause is not found, so this release does not claim to fix
+  it — what it adds is the record needed to find it, below. Until it is
+  understood, please do not rely on a reminder for something that has to happen
+  on time.
+
+- **Dismissing the clock no longer sets a reminder for nine o'clock.** Backing
+  out of the time picker fell through to a default instead of cancelling, so a
+  dialog you had just closed set a reminder at an hour you never chose — and
+  said "Reminder set" about it. Backing out of the clock now cancels, the same
+  as backing out of the calendar one step earlier.
+
+- **Nex now records what it actually asked the system for.** When a reminder
+  arrives at the wrong hour there is nothing to look at: the note still shows
+  the time you set, and the alarm queue can only say an alarm exists, not when
+  it is for. Every reminder now writes the exact moment, time zone and alarm
+  precision it was given into the diagnostics that **Settings → About → Share
+  diagnostics** sends.
+
+- **A note's reminder can no longer collide with the update notification.**
+  Every reminder gets an id derived from the note it belongs to, and a small
+  block of ids is reserved for the app's own notifications. When the update
+  download took the fourth of those, the arithmetic that keeps reminders out
+  of the block was still only skipping three — so a note landing there took
+  the download's id, and the two would have replaced each other silently. Rare
+  by construction; wrong every time it happened.
+
+- **A malformed release tag no longer breaks the update check.** A version
+  number too large to hold threw where it was supposed to answer "no update",
+  which would have stopped every install from seeing updates until the tag was
+  renamed.
+
+- **A shared video's cover is a fraction of the size it was.** It was encoded
+  the way a PDF page is, which is right for a page of text and wrong for a
+  photograph — the same frame is a few hundred kilobytes now instead of
+  several megabytes.
+
+- **Previews no longer draw on the thread that draws the app.** Rendering a
+  PDF page or pulling a frame out of a video happened on the main thread, so a
+  large file could freeze the interface while it worked — long enough, on a
+  big one, for Android to offer to close the app.
+
+- **The timeline stops re-reading its settings on every card.** Whether a card
+  is shown in full was read back out of storage once per card per frame,
+  rebuilding a list and a set each time to answer a question about one note.
+
+## v1.5.0
+
+- **A reminder can be set while you are still writing.** Once you have typed
+  something, an alarm button appears beside the send button — one tap, pick a
+  time, carry on typing. Nothing has to be decided before you start: the button
+  is not there on an empty sheet, and by the time it is, what you typed has
+  already been saved.
+
+- **The home screen can show only what has a reminder coming.** The filter
+  behind the icon on the tag row has a **Has a reminder** row under the note
+  kinds. It layers on top of them rather than replacing them, so "photos with
+  a reminder" is a thing you can ask for — and a reminder that has already rung
+  and been seen drops off by itself, so what is listed is what is still ahead.
+
+- **A video shared into Nex shows a frame of itself.** Until now a shared video
+  was a filename and a size, which is nothing to recognise a clip by. It gets a
+  cover now — a frame from a second in, past the fade a lot of video opens with
+  — and tapping it hands the file to whatever plays video on your device, which
+  is where scrubbing and volume belong. Android only for now, the same as the
+  PDF preview and for the same reason: it uses what Android already has instead
+  of adding a video engine to the app.
+
+- **The changelog on About is a card of its own.** It arrived as ten releases of
+  text down the page, which put everything under it a long scroll away. It is a
+  bounded card now that you scroll through without scrolling the page.
+
+## v1.4.0
+
+- **A file you share into Nex is shown, not just named.** Markdown already
+  opened inside the note; now a plain text file, a spreadsheet exported as
+  `.csv` or `.tsv`, and a source or configuration file do too — each read the
+  way it should be read, so a text file is not mistaken for Markdown and a
+  table arrives as a table.
+
+- **Music plays inside the note.** An `.mp3`, `.m4a`, `.wav`, `.ogg`, `.opus`
+  or `.flac` gets the same player a voice note has, instead of being a
+  filename and a size.
+
+- **A picture shared as a file looks like a picture.** The same photo used to
+  look completely different depending on whether it was taken in the app or
+  shared into it; now either one opens full screen from the same tap.
+
+- **Text you write can be formatted.** Select a word while writing or editing a
+  note and the menu that already offers Cut and Copy now also offers **Bold**,
+  *Italic*, `Mono`, ~~Strikethrough~~, Quote, Link, and Regular to take it all
+  back off. A note that has formatting in it is shown formatted when you open
+  it; one that does not is shown exactly as you typed it, so an asterisk you
+  meant as an asterisk stays one. Timeline cards and reminders show the words
+  without the marks.
+
+- **Tap a `mono` word to copy it.** Inside an open note, one touch on a span
+  you set in monospace puts it on the clipboard and says so. Links inside a
+  note — and inside a Markdown file opened in one — are tappable now too, and
+  the whole body can still be selected by dragging across it.
+
+- **Word documents open inside the note.** A `.docx` shared into Nex is read
+  and shown the way everything else in the app is written: headings, bold,
+  italic, strikethrough, lists, quotes, links and tables all survive. What Word
+  can express and this cannot — fonts, colours, columns, images — does not, and
+  the file itself is still one tap from whatever opens it properly. A very long
+  document shows its beginning and says that is what it is showing.
+
+- **A PDF shows its first page.** Enough to tell one report from another at a
+  glance; tapping it hands the file to whatever opens PDFs on your device,
+  which is where searching and turning pages belong. Android only for now —
+  it uses the renderer Android already has rather than adding several
+  megabytes of one to the app — and elsewhere the file is named as before.
+
+- **Fixes a bug that deleted your profile picture.** The background clean-up
+  that removes attachments left behind by deleted notes was looking through
+  every folder under the media directory, and the profile picture lives in one
+  of them. No note pointed at it, so it was treated as a leftover and removed.
+  It now only looks where a note's attachments are actually written. A picture
+  already lost cannot be recovered — it has to be set again.
+
+- **The reminder test row is out of Settings again.** It was taken out once on
+  purpose and came back in an imported change nobody meant to include.
+
+- **A stopped update download stays where it stopped.** It used to throw the
+  whole screen away and replace it with a full-page error whose button started
+  the check over. Now it says so in a line under the progress bar, with a
+  Resume beside it that picks the transfer up from the byte it reached — the
+  part already downloaded is kept, not fetched again. Running out of space
+  says that instead, because that one you have to go and fix.
+
+- **Reopening the update screen during a download shows the download.** It was
+  still running the whole time — leaving never stopped it — but the screen
+  showed a Download button as though nothing was happening.
+
+- **The update screen shows only the version it is offering.** The full history
+  of every past release is no longer stacked underneath a question about one
+  build — it moved to About, where the last ten releases are listed on the page
+  rather than in a small box that scrolls inside itself.
+
+- **The download shows up in the notification shade.** While an update is
+  downloading there is a progress notification you can watch without opening
+  Nex — and swipe away if you would rather not, which does not stop the
+  download. When it finishes, the same notification says so, and tapping it
+  opens the update ready to install.
+
+- **A note can stay open on the timeline.** Cards show two lines, which is
+  right for almost everything and wrong for the one checklist you need in
+  front of you. Open a note and choose **Show in full**: that card grows to
+  fit all of it — every item of a checklist, every line of a note — and stays
+  that way until you put it back. Every other card is unchanged.
+
+- **There is a guide now.** Settings opens with **How Nex works** — a short,
+  friendly walk through everything the app does, from writing a note to adding
+  an API key to changing the theme. In English and Persian.
+
+- **The first-run introduction covers more of the app**, and ends by pointing
+  at that guide, so nothing has to be discovered by accident.
+
+## v1.3.2
+
+- **A swiped-open card takes the next tap, whatever it lands on.** Tapping
+  another card already only put the open one away, but the date headings did
+  not know that yet — so a tap meant to close a card also folded the group it
+  was in. Nothing on the screen acts while a card is waiting: the touch puts
+  it away, and that is all it does.
+
+- **Old attachments left behind by deleted notes are cleared out.** Until
+  1.3.0, emptying the trash removed the note but left its photo or recording
+  on the device for good. Deleting takes the file with it now, but that does
+  nothing about what earlier versions already left — so Nex sweeps those up
+  in the background, once a day, and only ever removes a file no note points
+  at any more.
+- **Swiping back no longer flashes through to the page underneath**, and a
+  swipe in the wrong direction no longer makes the page transparent for as
+  long as you hold it.
+- **Settings rows have more room between them.**
+
+## v1.3.1
+
+- **Fixes a crash that stopped 1.3.0 opening at all.** On every launch Nex
+  reported that it could not open your local library and offered to try
+  again, which could not help: the fault was in the code that opens the
+  database, not in the database. Your notes were never touched — the library
+  was never reached, let alone changed. If you are on 1.3.0 you will need to
+  install this one by hand, because the in-app updater lives behind the
+  screen that will not open.
+
+## v1.3.0
+
+The reliability release. Most of it is the app refusing to lose things or lie
+to you — the same instincts as 1.2.6, turned toward the parts that had to be
+trusted instead of seen.
+
+- **"Delete forever" now deletes forever.** Emptying the trash (or purging a
+  note from it) removed the database row but left the photo, recording or
+  attachment file on disk for good — still swept into every backup. The file
+  goes with the note now.
+- **Reminders stop outliving their notes.** Deleting a note left its alarm
+  armed in the OS, so it still fired — and re-armed after every reboot.
+  Restoring a backup left ghost alarms for notes the restore had removed.
+  Both are cleaned up now, undoing a delete brings its reminder back, and
+  editing a note refreshes the text of its pending notification.
+- **A one-off reminder clears itself once it has rung.** It used to stay on
+  the note for good — the card stopped showing it, but the note still carried
+  a reminder and the only way to be rid of it was to open it and press
+  Remove. A reminder is a thing to be reminded of, and once it has happened
+  it is finished. Repeating reminders are untouched: a daily or weekly one is
+  never spent, because it is always about to ring again.
+- **A reminder series can no longer retire itself.** A daily reminder whose
+  start had drifted more than about two years into the past stopped being
+  rescheduled at launch, silently. The next occurrence is now computed
+  directly instead of stepped day by day.
+- **A failed transcription, OCR pass or embedding no longer burns its slot.**
+  One timed-out request used to permanently mark a voice note "no transcript"
+  or hide a note from semantic search. Failures now leave the slot open for a
+  retry; only a real answer — including "nothing was heard" — closes it.
+- **Nex never invents a transcript.** With AI on but no provider configured,
+  voice and photo notes received fabricated text and it was stored, searched
+  and shown like the real thing. It is not produced any more.
+- **Your library no longer rides Google's cloud backup.** Android's automatic
+  backup silently uploaded the whole database to Google Drive — and without
+  its write-ahead log, which is how a restored copy can come back corrupt.
+  Nex keeps its own backups, on the device, where the data was always meant
+  to stay.
+- **Search filters finally have buttons.** Tag, type and date filters existed
+  under the hood but were reachable only by typing `tag:` and `type:` into
+  the search field. A filter button beside the field opens a sheet of chips
+  that combine and apply as you tap.
+- **A failed first read of your timeline says so, with a retry** — instead of
+  showing skeletons until you gave up.
+- **The app survives a database it cannot open.** The failure is named on
+  screen, and if you have a backup file, a Restore button right there will
+  put your library back without the app ever having to open.
+- **Backups restored onto a reinstall find their files again.** A `.nexbak`
+  restored into a new sandbox used to keep pointing every photo and recording
+  at the old device's paths. Media paths are rewritten to where the files
+  actually landed.
+- **Restores that fail say so.** A failed restore used to brick the session
+  silently; it now reports what happened.
+- **The Gemini API key moved out of the request URL** into a header, so it
+  stops appearing in anything that logs request lines.
+- **The exact-alarm permission screen is shown once per install**, at the
+  first reminder, instead of teleporting you to system Settings every time
+  you set one.
+- **A test notification row in Settings** — one notification now and one in
+  ten seconds, to tell "Nex never sent it" from "my phone swallowed it".
+- Smaller honesty: the trash shows when a note was deleted instead of
+  repeating its type; a filtered timeline says notes are hiding behind your
+  filters instead of claiming the library is empty; the update-available dot
+  is visible to screen readers; the AI recap says when its refresh failed;
+  the on-device chat prompt finally receives its scope ceiling.
+
+## v1.2.7
+
+- **Starting Nex for the first time lets you write straight away.** A fresh
+  install opened on five pages of introduction, then a name it would not go
+  past, then a four-stop tour laid over the screen — all before there was
+  anywhere to put a thought. Skip now finishes rather than jumping to the one
+  page it could not leave, the name is optional, and the walk-through waits
+  until there is a note to point at, so it can show you where what you just
+  wrote went instead of describing an empty screen. Nothing was removed: the
+  pages are still there for anyone who wants them, and every choice on the
+  setup page has always lived in Settings too.
+- **The assistant no longer says "Done." when nothing was done.** If it named
+  a note that was not there — one it had misremembered, or one already
+  deleted earlier in the same conversation — the change quietly matched
+  nothing and it reported success anyway. Every note an action names is
+  checked before any of it runs.
+- **The switches are smaller.** They were the loudest thing on a settings row.
+  Tapping anywhere on the row still works, so there is more to aim at than
+  there was before, not less.
+
+## v1.2.6
+
+Mostly a round of the app telling the truth: several controls that did
+nothing, said nothing, or said the wrong thing now report what actually
+happened.
+
+- **The microphone button says why it did nothing.** Refuse Nex permission to
+  record once and both voice capture and the assistant's dictation went
+  silently inert for good — no sheet, no message, no reason. They explain
+  now, and say where the permission can be given back.
+- **Four screens no longer claim to be empty while they are still loading.**
+  Tags, Recently Deleted, Backups and a note opened from the timeline all
+  rendered before their first read came back, so "no tags yet", "nothing in
+  the trash", "no backups" and "note not found" were what you saw for as long
+  as the read took, and then the real thing appeared. On the screens that
+  exist to reassure you your notes are safe, that is a wait told as loss.
+- **Summarize appears only where it can work, and says when it cannot.** It
+  was offered on every note, including with summarization switched off or no
+  provider set up, and in all of those cases tapping it did nothing at all.
+- **A search that fails says so, with a way to try again.** If the search
+  itself errored, the results area kept showing placeholder cards for ever
+  and leaving search was the only way out.
+- **Empty trash is no longer offered before the trash has been counted**, and
+  **Merge no longer appears on your only tag**, where it opened a list of
+  every other tag — that is, nothing.
+- **A finished model download no longer announces that offline chat works
+  when the model would not start.** The screen showed the reason underneath
+  at the same time, which is two answers to the same question.
+- **The search box is one box again, and the strip of colour under it is
+  gone.** A second frame was being drawn inside the rounded field, in both
+  its resting and typing states, and the row itself sat on a band of flat
+  colour laid across whatever background you had chosen.
+- **The top bar is frosted under the glass appearance instead of merely
+  see-through.** It was a half-transparent tint with no blur behind it, so
+  what sat behind it stayed perfectly readable, only paler.
+- **Pages no longer go transparent on the way in and out.** The previous
+  release fixed this for the back-swipe; entering and leaving a screen is an
+  animation rather than a gesture, and went on briefly showing two pages
+  through each other every time.
+
+## v1.2.5
+
+A round of fixes to the glass appearance, to how text finds its own
+direction, and to the surfaces both of them touch.
+
+- **The glass appearance is frosted now, not see-through.** It was tuned like
+  a pane of glass — half transparent, a bright rim, a diagonal sheen — so
+  whatever sat behind a surface stayed readable through it and text landed on
+  text. The blur is heavier, the tint carries text at full contrast, the sheen
+  is gone and the edge is a hairline. Depth comes from the blur, not from
+  letting you read the layer underneath.
+- **Sheets have a surface of their own again.** Under the glass appearance a
+  sheet was drawn fully transparent, on the assumption that every one of them
+  wrapped itself in a glass panel — and most do not, so the reminder picker
+  and the chat history were painting their text straight onto the timeline.
+- **The page no longer goes see-through mid-swipe.** Sliding a screen back
+  revealed the page underneath *and* kept the moving page transparent, so for
+  the length of the gesture both were legible at once.
+- **Switches are smaller.** Material draws one at 52x32 and then pads it to a
+  48-pixel target on every side, which made it the loudest thing on a
+  settings row; the tick inside the thumb is gone with it.
+- **A reminder that has rung now clears itself when you put the app away.** It
+  was only cleared by opening another screen first, so anyone who read the
+  note and closed the app kept the chip until they deleted the reminder by
+  hand.
+- **Mixed Persian and English no longer flips as you type.** Direction was
+  decided by counting: once enough of a note was Persian, the whole box —
+  English lines included — swung right, at some keystroke nothing announced.
+  The same note then sat on the timeline aligned one way or the other
+  depending on how much of each language it happened to contain. The first
+  letter decides now and nothing after it does, which is the rule Unicode
+  specifies and the reason nothing moves while you write.
+- **Tone is one control instead of two.** The five response styles and the
+  free-text instruction were both about how the assistant sounds, so picking
+  "Formal" and writing "be witty and sarcastic" left nothing to say which one
+  won. "Custom" is now the sixth style — the one you write yourself — and the
+  box appears under it. Your sentence is kept either way, so switching to a
+  preset and back does not ask for it again. An instruction written before
+  this still works: it is read as a custom style rather than quietly dropped.
+- **The daily summary lines up in Persian.** Its icon and its text were placed
+  with left-and-right padding rather than start-and-end, so in a right-to-left
+  layout both stayed pinned to the side they were written for and sat out of
+  step with everything around them.
+- **The search box is one box again.** A second, filled frame was being drawn
+  inside the rounded field — the app's own input styling landing on top of the
+  one the field already had.
+- **The tag row only takes a background when it needs one.** It carried a band
+  of colour at all times, which showed as a stripe across a chosen background
+  image. The band now appears when the row actually sticks to the top of a
+  scrolling list, which is the moment it has something to cover.
+
+## v1.2.2
+
+- **A new optional Liquid Glass appearance sits beside the existing light and
+  dark themes.** It uses adaptive translucent surfaces, real background blur,
+  restrained edge highlights, and softer press feedback while preserving an
+  opaque high-contrast fallback. Four built-in minimal backgrounds — Plain,
+  Aurora, Ripple, and Weave — work independently in either theme.
+- **Profile and assistant preferences are now complete screens.** A profile can
+  hold a local photo, name, birthday, and bio; the assistant can learn what to
+  call you, a short introduction, and a response style including Romantic.
+- **Nex can lock itself with the device credential or biometrics.** The lock is
+  local to the device and returns whenever the app leaves the foreground.
+- **Navigation and reading are more consistent.** Swipe-back reveals the page
+  underneath, Persian and English lines align by their own script, date-group
+  headings share the timeline gutter, and up to five notes can now stay pinned.
+## v1.2.1
+- **Reminder and daily-nudge controls work again in release builds.** The
+  Android optimizer was removing the notification icon because its keep rule
+  lived in the wrong resource folder. The notification service could not
+  start, so both controls appeared to ignore taps even though nudges scheduled
+  by an older version kept arriving. The icon is retained now, and release
+  builds refuse to publish if it disappears again.
+
+## v1.2.0
+
+A small round of fixes to make reminders more reliable.
+
+- **Reminders no longer initialise twice at the same time.** Two parts of
+  Nex could ask the reminder service to start together, racing each other and
+  doing the same setup twice. Initialisation is shared now, so the second
+  request waits for the first instead of starting another one.
+- **Notification permission is checked after Android answers.** The immediate
+  result of a permission request can say "no" simply because the system has
+  not returned the user's answer yet. Nex now reads the actual permission state
+  after the request finishes, so a reminder is not incorrectly treated as
+  unable to use exact alarms.
+
+## v1.1.0
+
+The first round of fixes from v1.0.0 in real use.
+
+- **The assistant's own protocol stopped leaking into the chat.** Asked to
+  make a note, it answered with `{"action": "create", ...}` as visible text
+  and made nothing. An unfenced action had to *be* JSON, so one emoji in front
+  of it broke the parse — and the emoji was there because v1.0.0 had just
+  asked the assistant to use them. Any JSON object in a reply is found
+  now, wherever it sits, and the protocol says plainly that a reply carrying
+  an action carries nothing else.
+- **Reminders: the exact-alarm state is no longer thrown away every time one
+  is set.** Asking Android for the permission opens a settings screen and
+  returns "no" on the spot, because the user has not answered yet — and that
+  "no" was being stored as the answer, putting every alarm back on the
+  inexact path v1.0.0 had just taken it off. The state is read back
+  instead. A reminder that cannot be scheduled now says why, in the system's
+  own words, rather than a sentence nobody can act on.
+- **A note's sheet grows with the note.** Past 220 characters it used to jump
+  to two thirds of the screen and leave the bottom third empty under its own
+  last line. There is no step now; it is as tall as what is in it.
+- **The date heading's menu**: a horizontal ellipsis, level with the chevron
+  beside it, opening a rounded menu instead of a square one.
+
+## v1.0.0
+
+Nex reaches 1.0. Reminders that arrive and repeat, an assistant you can
+reach and tune from the conversation itself, a home screen you decide the
+shape of, and a storage figure that tells you the truth.
+
+- **The daily note arrives when you asked for it.** Set for seven, it came at
+  twenty past — an inexact alarm, which Android is free to batch, and the same
+  mode already proven wrong for note reminders and fixed there. Worse, the
+  flag deciding exact-versus-inexact was only ever set while *asking* for
+  permission, so every launch quietly re-armed every alarm — reminders
+  included — as inexact regardless of what the phone actually allowed. The
+  state is read at startup now, and the daily note is scheduled exactly. If
+  the phone refuses either the permission or the alarm, the switch says so
+  instead of sitting on.
+- **And it no longer says your library is empty.** Its text is fixed when the
+  alarm is set, and it read the day's recap through a gate that only opened if
+  the summary had been written *today* — which, at seven the next morning, it
+  never has been. So it fell back to "nothing written down yet today", every
+  single morning, to people with hundreds of notes. It carries the last recap
+  there is now, which is yesterday's, which is the useful thing for a morning
+  greeting to be carrying.
+- **Tagging a note no longer moves it to the top.** The timeline puts an
+  edited note first, which is right — it is the one you were just working on.
+  Filing one under a tag was doing the same thing, and it is not the same
+  thing: the note still says exactly what it said.
+- **Fixes found reviewing this release.** A swipe-back on a screen that
+  declines to close left the page sitting where the finger let go, with the
+  gesture dead for the rest of its life. A repeating reminder stopped coming
+  back after a reboot, and wore "Overdue" on its card between firings — it is
+  never overdue, and now says how often it repeats instead.
+- **Reminders can repeat.** Every day, or every week, chosen beside the four
+  shortcut times rather than instead of them — a repeating reminder still has
+  a first firing, and the confirmation names both. A repeat is cleared when
+  the reminder is.
+- **Storage, rebuilt into something you can act on.** The row said "41 MB"
+  and stopped — a number nobody can do anything with, and the wrong number
+  besides: it left out the offline model, which on an install that has one is
+  larger than the notes, photos and backups put together. It is now the real
+  total, a proportion bar, and the parts: offline model, photos, recordings,
+  backups, notes and index.
+- **The assistant's settings, rebuilt and reachable from the chat.** They were
+  one flat column of five section titles with nothing saying which went with
+  which; they are three groups now — how it talks, what it can see, and your
+  standing instruction — in the same cards Settings uses. A control in the
+  chat's own header opens them over the conversation, which is where you
+  actually notice one needs changing.
+- **The chat rises to meet the keyboard.** Tapping the composer takes the
+  sheet to full height instead of leaving the thread squeezed into whatever
+  the keyboard left.
+- **The history and settings panels close with a downward swipe**, from
+  anywhere in them rather than only from the handle.
+- **Holding the capture button lights a spectrum, not the accent.** Tapping
+  that button and holding it are different things, and lighting the same blue
+  for both said they were the same.
+- **A warmer assistant.** It may use an emoji where one does real work — at
+  most one per line, never inside a sentence.
+- **A spent reminder stops shouting.** A reminder still ahead keeps its chip
+  on the card — that is what it is for. One that has already rung gets one
+  last showing, and then the slot goes back to the note's own timestamp
+  instead of wearing "Overdue" for ever.
+- **A layout control in the app bar.** The greeting, the smart daily summary,
+  the search box and the tag row can each be switched off — all four are the
+  app's idea rather than yours, on a screen whose subject is the notes under
+  them. Turning the search box off brings its app-bar icon back.
+- **Date headings can act on their whole run.** A menu beside the chevron
+  deletes the day's notes in one go, after asking, or opens the assistant with
+  just that day as its context. The menu is outside the heading's own tap
+  area, so reaching it never folds the group on the way.
+- **A tapped reminder now points at its note.** It opened the app and stopped
+  there — the notification named the note and the timeline showed the same
+  list it always shows. The card is scrolled into view and its border pulses
+  twice, including when the tap is what started the app.
+- **Swipe back from anywhere.** Every screen with a back arrow could already
+  be dragged shut, but only from a 20-pixel strip at the very edge — the same
+  far corner the arrow is in. The whole page answers now, mirrored for
+  Persian, and a row of chips inside it still scrolls on its own.
+- **A long note's sheet closes by dragging it down**, not only by its handle.
+- **The bottom of the home screen no longer fights Android's gestures.** The
+  list drew and listened all the way down, so a swipe up from the bottom edge
+  was a coin toss between scrolling and going home.
+- **Reminder times fit on the card again.** A note due in thirteen hours was
+  spending most of its line saying so, and pushing its own words off the end.
+  It now says `13h`.
+- **The reminder notification carries the app's mark**, not a white square.
+  Android silhouettes a status-bar icon, so the launcher artwork came through
+  as a solid blob.
+- **A quieter home screen.** The daily digest card and the search field sit
+  flatter against the page, tag chips are outlined only while they are on,
+  and tapping a date heading no longer flashes a filled block behind it.
+- **Fewer switches in Settings.** "Reduce motion" is gone — the app already
+  follows the system's own reduced-motion setting, and the two of them
+  disagreeing was the only thing the switch added. The test-notification row
+  is gone with it, and capture haptics moved up into Capture where it belongs.
+- The Persian for the export screen's title said "output" in the arithmetic
+  sense.
+
+## v0.9.9
+
+- **Reminders arrive.** They never have. The alarm was set correctly and the
+  app said so, but nothing in the build claimed the message Android sends when
+  it goes off, so it went nowhere — which is why the phone's own notification
+  settings for Nex listed no categories at all. Nex now also verifies with the
+  system that an alarm was really kept, and says so when it was not, instead of
+  confirming a reminder that will never come. Settings › Notifications has a
+  test button that sends one immediately and one ten seconds later, so a phone
+  that still refuses can be told apart from an app that never asked.
+- Typing in the wrong direction is fixed everywhere it was still wrong — the
+  checklist, tag names, your own name, the annotation box, feedback and tag
+  search. Each of them now follows the script you are typing rather than the
+  language the app is set to, so a Persian line in an English app stops
+  reordering itself as you write it.
+- Folding a date group no longer makes the groups below it flicker open.
+- The reminder no longer squeezes a note's own words off its card: on a note
+  with one, the countdown takes the timestamp's place rather than sitting
+  beside it.
+- The separators in a note's action row can be seen now. They were set two
+  steps quieter than the quietest boundary colour, which came to the same thing
+  as not being there.
+- The Persian throughout the app speaks to you one way instead of two. It
+  drifted between formal and informal from screen to screen; it is formal
+  everywhere now, apart from the greeting, which is meant to sound like a
+  person. Three descriptions that had gone stale were corrected as well —
+  including one that claimed your provider key is stored unencrypted, which
+  stopped being true when keys moved into the device's secure storage.
+- The Gemma licence notice keeps its English wording, because those terms
+  require that exact sentence, but it is laid out left-to-right in a Persian
+  interface now and has a plain Persian line under it saying what it means.
+
+## v0.9.8
+
+- A reminder that has been set says when it is for. The card carries how long
+  is left — "in 2 hours", "in 3 days", or "Overdue" — and opening the reminder
+  shows the exact day and time above the choices that would replace it. It used
+  to be a bell and nothing else, so the only thing you could do to a reminder
+  you could not read was delete it.
+- The swipe on a card starts from almost anywhere on it. It used to need the
+  outer third of either edge — a strip that existed to protect the long press
+  that lifted a card for reordering, and reordering is gone. Now it is 45% from
+  each side, leaving a narrow band down the middle that starts nothing, so
+  there is still somewhere to put a thumb and scroll.
+- A swipe can do more than delete or tag. Pin, Remind, Share and Ask the
+  assistant join the list — everything the note detail sheet could already do,
+  one gesture closer. Settings shows each edge as a row saying what it does
+  now, with the whole list behind it; two grids of preview cards was fine at
+  two actions and a wall at six.
+- The date headings line up with the notes under them, sit further from the
+  rows around them, and fold with an animation instead of a jump cut. A run
+  closing now shrinks away; one opening grows in.
+- The timeline is quieter: more space between cards, and the shadow under each
+  one is gone. The card's own fill carries the boundary now, and the dark
+  theme's page colour was deepened to keep that boundary visible without it.
+- A photo no longer goes straight into the cropper. It opens on the photo
+  itself with two buttons — use it, or edit it first — because most photos need
+  no edit and putting one in the way of every capture made it a toll. The
+  editor's own controls moved to the bottom of the screen at a size a thumb can
+  reach, instead of small icons in the top corner.
+- A Markdown file opens in Nex instead of only being listed. Share a `.md` into
+  the app and the note shows the document itself — headings, lists, quotes,
+  tables and code — under the filename, laid out in the direction the file is
+  written in rather than the direction the app is set to. Very large files are
+  still named rather than rendered, and say why.
+- The assistant's answers are formatted. It has always written lists and bold
+  text; you were reading the asterisks. Your own messages are left exactly as
+  you typed them.
+
+## v0.9.7
+
+- The timeline is grouped by date — Today, Yesterday, Last week, Last month,
+  Older — and each heading folds. A folded group says how many notes are under
+  it, and stays folded until you open it, including after you close the app.
+- Notes can no longer be dragged into a hand-made order, and the order is
+  always the dates. A heading that says "Yesterday" has to be telling the
+  truth about every note beneath it, and a hand-placed note lands in whichever
+  group it was dropped next to. A pinned note keeps its place at the top,
+  under its own heading.
+- Reminders arrive on time. They were scheduled as approximate alarms, which
+  Android is free to defer for hours while the phone is idle — so a note due at
+  nine could turn up at lunchtime, or not that day. Nex now asks for the same
+  kind of alarm the clock app uses, and falls back to the old behaviour only if
+  the phone refuses.
+- Setting a reminder says how far off it is — "2 hours from now" — the way
+  setting an alarm does, instead of only "reminder set". And if the phone
+  refuses the alarm outright, it says that too, rather than confirming
+  something that will not happen.
+- The row of actions under a note is grouped now, with a hairline between
+  groups, and the assistant's three — ask, translate, summarise — sit together
+  in the accent colour. Asking about a note is the sparkle the rest of the app
+  uses for AI, instead of a speech bubble that could have meant anything.
+- Opening the assistant from a note says which note it is about. It always
+  answered from that one note; there was just no way to tell.
+- Importing from Google Keep brings the photos across. It only ever read the
+  words: a note that was a picture with a line under it imported as the line,
+  and a note that was only a picture imported as nothing at all. Both are notes
+  now, with the photo. A picture the export did not actually carry is still
+  counted as skipped rather than quietly dropped.
+- The date and time pickers look like the phone's own again. Nex's text-size
+  setting was being applied to them, and a dial laid out at fixed sizes does
+  not survive that.
+- A once-a-day notification, off until you turn it on in Settings under
+  Notifications, at a time you pick. It opens with your name and carries the
+  day's recap under it. What it can say is whatever Nex last knew: the
+  notification arrives while the app is closed, so the line is written the last
+  time you had it open rather than at the moment it appears.
+- The assistant can read more of your notes. It stopped at fifty; a hundred and
+  two hundred are now offered, and picking one of those says what it costs —
+  every question gets slower, because the model reads all of them before it
+  answers, and on the on-device model it is very noticeable.
+- The home screen opens with one sentence instead of two. The greeting and the
+  generated line were separate thoughts sitting on top of each other; the model
+  now writes the greeting itself, your name follows it, and if there is no
+  model the app's own wording takes its place.
+- Typing a Persian sentence with an English word in it no longer scrambles as
+  you type. The chat box took its direction from the interface language rather
+  than from what was in it, so the words reordered around the wrong side and
+  only settled once the message was sent. It now turns to whichever script you
+  are writing in, and turns back.
+- The mark in the top corner is drawn the same size as the icons opposite it.
+  The image has transparent space built into it, so a box that matched them
+  drew something visibly smaller.
+
+## v0.9.6
+
+- The assistant can run on your phone, with nothing sent anywhere. Settings ›
+  On-device model downloads Gemma 4 E2B once — about 2.6 GB, over Wi-Fi, and it
+  stays on the phone — and from then on the assistant answers with no internet
+  and no provider key. Ask it something on a plane and it answers.
+- The download has Pause, Resume and Stop, and leaving the screen does not
+  touch it. Pause keeps everything that has arrived; Stop throws it away and
+  says so before it does. It shows how much has come down against how much
+  there is, in gigabytes rather than a percentage, because on a data plan that
+  is the number that matters.
+- It survives a dropped connection, resuming where it stopped rather than
+  starting the 2.6 GB again, checks the file against a known fingerprint before
+  using it, and tells you if your phone does not have room before it begins
+  instead of after. You can delete the model later and get the space back.
+- The model is started up while you are still looking at the screen that
+  finished the download, and says so, rather than making your first question
+  wait for it with nothing on screen.
+- Google's terms for the model are shown and have to be accepted before the
+  download starts, not linked somewhere afterwards.
+- Phones that cannot run it say so plainly — 64-bit ARM only, which is nearly
+  every Android phone made since 2018 — instead of offering a 2.6 GB download
+  that would fail at the end.
+- The welcome screens sit in the middle of the screen rather than pinned to
+  the top, and the little dots that show how far along you are can actually be
+  seen on a dark background.
+- Hold any message in the assistant to copy it.
+- Nothing else changes. The online assistant, your provider keys and every
+  other AI feature work exactly as before; the on-device model is an option
+  beside them, not a replacement.
+
+## v0.9.5
+
+- Notes can be brought in from another app. Settings › Import notes takes the
+  `.zip` Google Takeout gives you for Keep — labels become tags, lists become
+  checklists, and every note keeps the date it was actually written rather than
+  arriving all at once today. Notes you had already deleted in Keep stay
+  deleted. It also reads a folder of `.md` or `.txt` files, which is what every
+  other notes app exports, so this is not only about Keep.
+- Any note can be translated. Open it, tap Translate, and read it in the other
+  language — a recording's transcript and the text read out of a photo too, not
+  only what you typed. It does not touch the note: copy the translation, or
+  keep it as a note of its own beside the original.
+- A first launch now walks you around the home screen once — what the button
+  does, what holding it does, and where your tags, deleted notes and settings
+  are. Skippable from the first step, and it never comes back.
+- Ask the assistant out loud. The microphone beside the chat box records your
+  question and puts what you said in the box — you read it before it is sent,
+  because a name heard wrong is an argument about a question nobody asked.
+- Tell the assistant how you want to be answered. Settings › Assistant has a
+  line of your own now — "answer with a bit of humour", "keep it short" — sent
+  with every question. It changes the tone, not what the assistant is allowed
+  to do.
+- Text across the app is a step smaller. A card holds what it should, and
+  Settings stops running past the fold. If you liked it as it was, Settings ›
+  Text & UI size, one step up, is very close.
+- Settings buzzes when you touch it. Every switch, row and picker in there was
+  the one part of the app the Haptics switch did not reach.
+- The greeting and the AI's line are one sentence in one language now — the
+  language you wrote your own name in. It was a Persian half glued to an
+  English half, full stop at the wrong end.
+- The daily summary card keeps its height when it is folded away, instead of
+  shrinking to a strip too thin to comfortably tap.
+
+## v0.9.4
+
+- A note with a reminder shows a small bell on its card, so you can see one
+  is set without opening the note. It greys out once the time has passed.
+- Notes can have a reminder. Open a note, tap Remind, and pick — in an hour,
+  this evening, tomorrow morning, next week, or a time of your own. Nex
+  brings the note back up as a notification at that time.
+- Your reminders survive a reinstall, a restore from a backup and a reboot:
+  the time is kept on the note itself and the alarms are rebuilt from your
+  notes every time the app starts.
+- The daily summary card is one control now: tap anywhere on it to fold it
+  away or open it again. Open, it keeps a refresh button; closed, it does
+  not — there is nothing on screen for a refresh to change, and the chevron
+  was a second control for what the card already does.
+- The greeting and the line the AI writes are one line instead of two.
+- Nex greets you in the language you wrote your own name in, whatever the
+  app's language is set to. "Good morning, سعید" and "صبح بخیر, Sany" are
+  both sentences nobody writes.
+- The app buzzes where it should: swipes, pickers, opening a note, the
+  summary's refresh — and a small tick as the list scrolls under your
+  finger. All of it follows the Haptics switch in Settings, which was
+  already there and was reaching almost none of this.
+- Your website and repository links in About open when tapped. They were
+  copying, which made the copy button beside them look like it did nothing
+  different.
+- Sync is no longer offered in Settings. The server exists and the app can
+  talk to it, but there is no way to pair a device from inside the app yet —
+  the row asked for a URL and a token nobody has a way to get. It comes back
+  when pairing does.
+- The assistant can look through your whole library, not just the last
+  handful of notes. When it needs one it does not have, it searches for it
+  and answers from what it finds.
+- It can do more than write and delete now: combine several notes into one,
+  turn a note into a checklist, tick an item off, and change your theme,
+  language or the language it writes in. Those four settings are the only
+  ones it can touch — never your API key, your sync server, or anything that
+  would be hard to undo.
+- When a request needs more than one change, it asks for all of them at once
+  and shows you every one before anything happens. It still never acts on
+  its own.
+- Search by meaning now actually works on the notes you already had. Nex
+  could always find a note by what it means rather than the words in it —
+  but only for notes captured after you set up an AI provider. Everything
+  written before that was never indexed, and never would be, so the feature
+  quietly found nothing. The backlog is worked through now.
+- The search box takes `tag:` and `type:` — `tag:work type:link cooler`.
+  Quotes hold a phrase or a tag with a space together: `tag:"to read"`.
+  These combine with the filter chips rather than replacing them. A search
+  you want back can be kept — it appears as a chip on the empty search
+  screen, which is the one moment it is useful.
+- A note's detail sheet has an Ask button: the assistant, about that one
+  note. It reads the note's transcript or the text found in a photo too, so
+  you can ask about a recording or a picture, not only about typed notes.
+- Backups now contain your photos, voice recordings and attached files. They
+  never did: a backup was the database and nothing else, so restoring on a
+  new phone brought back every note with every picture missing — and said
+  nothing, because the notes were all there. Backups written from now on are
+  `.nexbak` files, which are ordinary zips: your notes can be pulled out of
+  one with any unzip tool, without this app. Older `.sqlite` backups still
+  restore, and restoring one leaves the files on your device alone.
+- The assistant remembers your conversations. The history button in its
+  header lists them, reopens one where it left off, and deletes any or all
+  of them. Nothing is sent anywhere — they are kept on this device.
+- The assistant has settings of its own, under Settings › Assistant:
+  how creative it is, how long its answers may be, how many recent notes it
+  can see, and whether it stays inside your notes or answers anything.
+- It can now write to your notes: create one, rewrite one, delete one, or
+  change its tags. It never does any of that on its own — it asks, you see
+  exactly what it would do, and it happens only when you press the button.
+- The assistant's send button no longer sits under the phone's own
+  navigation buttons.
+- Your own messages in the chat are readable again — the text and the bubble
+  behind it were being coloured independently.
+- The light around the screen while you hold the capture button is softer and
+  moves as it builds, and it fades as the chat opens instead of blinking out.
+- The Chat row in Settings used to open a chat that answered "unavailable" to
+  everything on every published build. It opens the assistant's settings now,
+  and there is one chat in the app: hold the capture button.
+
+## v0.9.3
+
+- Timeline cards are back to their original height. The two-line preview
+  stayed; the time a note was last touched moved next to its icon, which
+  is what was taking the room.
+- The greeting and the line under it are centred, and both now follow the
+  language they are written in — a Persian line no longer came out with
+  its full stop at the wrong end.
+- The daily summary reads right-to-left when it is written in Persian.
+- The logo in the corner lost the grey tile behind it; it was not a
+  button, so it should not have looked like one.
+- Naming a note by hand is gone again. Nex is not a filing app, and a
+  capture is meant to be finished the moment it exists. Links still show
+  the page's own name, which is what that was ever really for.
+- The daily summary card and the search field are the same roundness now.
+- Pull-to-refresh is gone from the timeline; it had nothing left to do.
+  Coming back to the app re-reads your notes instead, which covers the
+  one case the pull was there for.
+- The generated line under the greeting is set at the daily summary's size
+  now, instead of at headline size. It is a flourish, not a title.
+- The capture box's placeholder sits at the right edge in Persian, where it
+  belongs, instead of the left.
+- The AI service screen stopped mirroring itself in Persian. Keys, endpoints,
+  model names and provider names are Latin text and now read left to right;
+  the Persian explanations around them are unchanged.
+- The daily summary and the line above it are written to a better brief:
+  warmer, drier, and about the actual thing you wrote rather than the
+  category it falls into.
+- A reply that is not a sentence — several scripts deep, words repeating,
+  the shape small free models fail into — is now discarded rather than shown
+  as the app's own voice. You get the previous line and a tap to try again.
+- Fixed replies arriving as mojibake from providers that send UTF-8 without
+  saying so. This affected Persian output specifically.
+- Hold the capture button to ask the assistant something. The screen lights
+  up around its edge while you hold, and the chat opens as a small panel at
+  the bottom that you can drag up to full screen. It uses the AI provider
+  you set up in Settings, and answers in the language you chose there; with
+  no provider configured, the hold does nothing.
+
+## v0.9.2
+
+- Timeline cards show two lines of a note instead of one.
+- Fixed a brand-new install already listing a backup — of an empty library.
+- Fixed the last update refusing to install over the previous version. Both
+  causes are gone: releases stopped shipping the per-architecture APKs at
+  all, and the version numbering let an older build outrank a newer one.
+- Messages arrive from the top of the screen now, as a rounded banner with a
+  small vibration, instead of a bar at the bottom. Tap it or flick it up to
+  send it away early.
+- Any note can be given a title now, from its detail sheet. A named note
+  shows its name in the list, and is still searchable by what is inside it.
+- Added checklists. Write one item per line, and tick them off later — a
+  checklist exports as a real markdown checklist too.
+- Added link captures. Paste a link and Nex reads the page's own title and
+  description, and summarises it if you have an AI provider set up.
+- A first launch now opens with a short introduction to what Nex is, ending
+  with your name, theme, language, and the language Nex writes in. It appears
+  once, and never for an install that already has notes in it.
+- The top of the home screen is a real header now: a short line written for
+  you, your greeting above it, and the daily summary in a card under both.
+  Tap the line for a different one.
+- The daily summary card keeps its own refresh and collapse buttons, so it
+  folds away and comes back from the same place instead of from the app bar.
+- Settings is one line per setting now, with what it is set to beside it.
+  Every picker still opens — from the row that names it — instead of all of
+  them sitting open at once.
+- Your name sits at the top of Settings as a profile card rather than in a
+  section of its own halfway down.
+- Added a setting for which language Nex writes in — follow your notes,
+  English, or Persian — separate from the language of the app itself.
+
+## v0.9.1
+
+- Settings' swipe-action picker now looks like the rest of Settings, not a
+  system pop-up menu.
+- Android updates download a much smaller file — the app matches its own
+  device architecture instead of always fetching the universal build.
+- The Voice/Camera/Gallery/File icons on the capture sheet are icon-only now.
+- A caption you write for a photo or voice note takes priority over the
+  text Nex read out of it, for both display and the copy button.
+- Delete moved into the same icon row as the note's other actions, in red.
+- Added a Settings control to scale the app's text and UI size up or down.
+- Enter now submits your first line of text by default instead of starting
+  a new line — Shift+Enter still does, and it can be turned off in Settings.
+- Added a way to send feedback straight from the About screen.
+- The About screen's logo and the splash screen are a bit smaller.
+- Tags you add without picking a colour get a colour of their own instead
+  of staying grey.
+- Every note now shows how long ago it was last touched — "5m", "2h", "3d".
+- Fixed the capture button showing up while searching.
+- Fixed tapping a search result sometimes closing search instead of opening
+  the note.
+- Fixed a tag not disappearing from the filter row after its last note was
+  moved to Recently Deleted, until the trash was emptied.
+- The icon next to each note is rounder, and lost its outline.
+- Added an accent-colour picker in Settings — pick one colour, and the caret,
+  focus rings, and every other accent-tinted control follow it.
+- The update screen now shows what actually changed, as a real list, instead
+  of one long paragraph.
+- Toasts pop in instead of just fading.
+- Feedback is now a compose-and-send sheet instead of a link to copy, with a
+  confirmation when it lands and an automatic retry if you were offline.
+- Rotating and freehand drawing/text are now part of the photo crop step.
+- Search now also looks by meaning, not just matching words, when nothing
+  else turns up.
+- The update screen now shows the full changelog inline, past versions
+  included, instead of only the newest release's notes.
+- Fixed pasting a long block of text into a capture pushing the send button
+  off the screen — the text box now scrolls instead of growing forever.
+- Fixed the feedback compose box ending up hidden behind the keyboard.
+- Toasts now settle into place with a visible pop instead of the effect
+  barely registering.
+- Fixed the changelog list not showing on a real install (it bundles its own
+  copy now instead of an asset path that only worked under tests).
+- The note detail action icons fade at the edge when there is more to
+  scroll to, on phones too narrow to show them all at once.
+- Tag colours now show as small dots on the note's own icon instead of a
+  column beside it, and that icon is smaller and rounder.
+- The timeline's dark background is a touch warmer.
+- With an AI provider configured, the timeline now opens with a short,
+  friendly recap of recent notes, generated once a day; it collapses on the
+  first scroll and reopens from a small chip beside the greeting.
+

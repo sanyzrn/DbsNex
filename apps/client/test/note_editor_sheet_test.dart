@@ -151,6 +151,31 @@ void main() {
     expect(find.text('Edited by AI'), findsNothing);
   });
 
+  testWidgets('oversized AI edits keep the draft and explain the limit', (
+    tester,
+  ) async {
+    await enableAi();
+    final before = 'A long note. ' * 1000;
+    var calls = 0;
+    await open(
+      tester,
+      initial: before,
+      client: MockClient((_) async {
+        calls++;
+        return http.Response('{}', 200);
+      }),
+    );
+    await tester.tap(find.text('Auto style'));
+    await tester.pumpAndSettle();
+    expect(calls, 0);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      before,
+    );
+    expect(find.textContaining('too long to edit'), findsOneWidget);
+    expect(find.text('Edited by AI'), findsNothing);
+  });
+
   testWidgets('a rewrite that comes back empty leaves the note alone', (
     tester,
   ) async {

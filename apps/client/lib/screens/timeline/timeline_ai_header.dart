@@ -2,13 +2,39 @@ part of '../timeline_screen.dart';
 
 /// The greeting, the AI headline and recap, and the daily brief card.
 extension _TimelineAiHeader on TimelineScreenState {
+  String _briefSettingsSignature() {
+    final prefs = widget.preferences;
+    final config = prefs.aiProvider;
+    return nexBriefSignature(
+      source:
+          '${config.provider.wireName}|${config.resolvedBaseUrl}|'
+          '${config.resolvedModel}|${prefs.aiEnabled}|'
+          '${prefs.aiSummaryUnlimited}|${prefs.locale}',
+      style: prefs.briefStyle,
+      tone: prefs.briefTone,
+      length: prefs.briefLength,
+      language: prefs.aiOutputLanguage,
+      instruction: prefs.briefInstruction,
+    );
+  }
+
   void _onBriefPreferencesChanged() {
     if (!mounted || _briefPreferencesQueued) return;
     _briefPreferencesQueued = true;
     // Let the app apply locale/settings dependencies before capturing input.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _briefPreferencesQueued = false;
-      if (mounted) unawaited(_loadAiSummary());
+      if (!mounted) return;
+      // Settings save while typing. Apply the final choice on return instead
+      // of spending a request on each edit to a custom instruction.
+      if (ModalRoute.of(context)?.isCurrent == false) return;
+      final settings = _briefSettingsSignature();
+      final changed =
+          _briefSettingsKey != null && _briefSettingsKey != settings;
+      _briefSettingsKey = settings;
+      // A settings change is explicit, unlike an hourly data refresh.
+      unawaited(_loadAiSummary(force: changed));
+      unawaited(_loadAiHeadline());
     });
   }
 
@@ -45,11 +71,21 @@ extension _TimelineAiHeader on TimelineScreenState {
     if (force) _aiSummaryManualRequested = true;
     final pending = _aiSummaryInFlight;
     if (pending != null) return pending;
+    final settings = _briefSettingsSignature();
     final work = _askAiSummary(force: force);
     final flight = work.whenComplete(() {
       _aiSummaryInFlight = null;
       _aiSummaryManualRequested = false;
-      if (mounted) _armBriefRefresh();
+      if (mounted) {
+        if (settings != _briefSettingsSignature()) {
+          // Finish the old request before asking once with the latest choice.
+          if (ModalRoute.of(context)?.isCurrent != false) {
+            unawaited(_loadAiSummary(force: true));
+          }
+        } else {
+          _armBriefRefresh();
+        }
+      }
     });
     _aiSummaryInFlight = flight;
     return flight;
@@ -170,6 +206,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     final unlimited = prefs.aiSummaryUnlimited;
     final tone = prefs.briefTone;
     final instruction = prefs.briefInstruction;
+    final settings = _briefSettingsSignature();
     if (mounted) _rebuild(() => _aiSummaryLoading = true);
     try {
       final result = await refresh.refresh(
@@ -212,7 +249,7 @@ extension _TimelineAiHeader on TimelineScreenState {
         },
       );
       if (result.updated) unawaited(widget.widgets?.refresh());
-      if (!mounted) return;
+      if (!mounted || settings != _briefSettingsSignature()) return;
       _rebuild(() {
         _aiSummaryText = result.text ?? _aiSummaryText ?? written;
       });
@@ -277,13 +314,16 @@ extension _TimelineAiHeader on TimelineScreenState {
           }
         },
       );
-      if (mounted && text != null && text.isNotEmpty) {
+      if (mounted && language == _headlineLanguage) {
         _rebuild(
           () => _aiHeadlineText = CloudAIAdapter.cleanDecorativeReply(text),
         );
       }
     } finally {
-      if (mounted) _rebuild(() => _aiHeadlineLoading = false);
+      if (mounted) {
+        _rebuild(() => _aiHeadlineLoading = false);
+        if (language != _headlineLanguage) unawaited(_loadAiHeadline());
+      }
     }
   }
 
@@ -600,7 +640,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     };
     // A comma in the interface's script — the phrase came back in that
     // language.
-    if (aiPhrase != null && aiPhrase.isNotEmpty) {
+    if (_headlineLanguage.acceptsGreeting(aiPhrase)) {
       if (name == null) return aiPhrase;
       final comma = Localizations.localeOf(context).languageCode == 'fa'
           ? '،'
