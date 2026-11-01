@@ -123,6 +123,29 @@ class TagFilterRow extends StatelessWidget {
   }
 }
 
+/// Icon-only filter using the tag pills' exact surface and interaction style.
+class NexTagFilterButton extends StatelessWidget {
+  const NexTagFilterButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.selected = false,
+  });
+  final String label;
+  final VoidCallback onTap;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => _Pill(
+    label: '',
+    semanticLabel: label,
+    icon: Icons.tune,
+    selected: selected,
+    onTap: onTap,
+    theme: Theme.of(context),
+  );
+}
+
 class _Pill extends StatelessWidget {
   const _Pill({
     required this.label,
@@ -130,9 +153,13 @@ class _Pill extends StatelessWidget {
     required this.onTap,
     required this.theme,
     this.accent,
+    this.icon,
+    this.semanticLabel,
   });
 
   final String label;
+  final IconData? icon;
+  final String? semanticLabel;
   final bool selected;
   final VoidCallback onTap;
   final ThemeData theme;
@@ -157,7 +184,7 @@ class _Pill extends StatelessWidget {
     return NexTappable(
       onTap: onTap,
       selected: selected,
-      semanticLabel: label,
+      semanticLabel: semanticLabel ?? label,
       shape: const StadiumBorder(),
       child: _edge(
         selected: selected,
@@ -187,13 +214,23 @@ class _Pill extends StatelessWidget {
                   ),
                   const SizedBox(width: NexSpacing.sm),
                 ],
-                Text(
-                  label,
-                  // Through the theme, so the most-used control on the timeline
-                  // is not the one thing typeset outside the design system — and
-                  // so it follows the app's face rather than the platform's.
-                  style: theme.textTheme.labelLarge?.copyWith(color: fg),
-                ),
+                if (icon != null)
+                  SizedBox(
+                    height:
+                        MediaQuery.textScalerOf(
+                          context,
+                        ).scale(theme.textTheme.labelLarge?.fontSize ?? 14) *
+                        (theme.textTheme.labelLarge?.height ?? 1.43),
+                    child: Icon(icon, size: 18, color: fg),
+                  )
+                else
+                  Text(
+                    label,
+                    // Through the theme, so the most-used control on the timeline
+                    // is not the one thing typeset outside the design system — and
+                    // so it follows the app's face rather than the platform's.
+                    style: theme.textTheme.labelLarge?.copyWith(color: fg),
+                  ),
               ],
             ),
           ),

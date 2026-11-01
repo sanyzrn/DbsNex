@@ -463,6 +463,20 @@ enum AiOutputLanguage {
     _ => AiOutputLanguage.auto,
   };
 
+  /// Interface greetings fall back locally when a model ignores the language.
+  bool acceptsGreeting(String? phrase) {
+    if (phrase == null || phrase.trim().isEmpty) return false;
+    if (this == AiOutputLanguage.auto) return true;
+    final arabic = RegExp(
+      r'(?=\p{L})[\u0600-\u06ff]',
+      unicode: true,
+    ).allMatches(phrase).length;
+    final latin = RegExp(r'[A-Za-z]').allMatches(phrase).length;
+    return this == AiOutputLanguage.persian
+        ? arabic > latin
+        : latin > 0 && arabic == 0;
+  }
+
   /// The sentence appended to every system prompt.
   ///
   /// Named languages rather than locale codes: models follow "Reply in
@@ -2224,7 +2238,9 @@ class CloudAIAdapter implements AIAdapter {
   }) => NexDisclosureLog.about(() async {
     if (!canAnswerText) return null;
     final about = portrait?.trim() ?? '';
+    final target = language ?? outputLanguage;
     final reply = await _complete(
+      '${target.leadRule} '
       'You write the greeting a notes app opens with, as a close friend '
       'would say it. A short phrase of two to seven words that a name can '
       'follow, the way "Good morning" precedes one. Tie it to the hour and, '
@@ -2246,7 +2262,7 @@ class CloudAIAdapter implements AIAdapter {
       'Reply with the phrase only. '
       // The interface's language (2.4.0), set by the app: the phrase is part
       // of the interface and the name is one word in it.
-      '${(language ?? outputLanguage).promptRule}',
+      '${target.promptRule}',
       [
         'The local time is ${DateTime.now().hour}:00.',
         // The portrait the provider itself wrote from their notes earlier,
@@ -2260,7 +2276,8 @@ class CloudAIAdapter implements AIAdapter {
       maxTokens: unlimitedSummary ? null : 80,
       timeout: timeout,
     );
-    return _plausible(_clamped(cleanDecorativeReply(reply), 8));
+    final phrase = _plausible(_clamped(cleanDecorativeReply(reply), 8));
+    return target.acceptsGreeting(phrase) ? phrase : null;
   }, purpose: DisclosurePurpose.greeting);
 
   /// A note in another language, and nothing else.
@@ -2352,6 +2369,9 @@ class CloudAIAdapter implements AIAdapter {
     return chunks;
   }
 
+  /// Whole-note editing is a single bounded request, never silent truncation.
+  static const maxRewriteCharacters = 12000;
+
   /// One note, edited — the whole of it in, the whole of it back.
   ///
   /// What each style means and what it is forbidden from doing lives in
@@ -2369,10 +2389,16 @@ class CloudAIAdapter implements AIAdapter {
   }) => NexDisclosureLog.about(() async {
     final source = text.trim();
     if (!canAnswerText || source.isEmpty) return null;
+    if (source.length > maxRewriteCharacters) {
+      throw const AiUnavailableException(
+        'The note is too long for a single complete rewrite.',
+        AiFailureKind.tooLarge,
+      );
+    }
     final reply = await _complete(
       style.prompt,
       source,
-      maxTokens: math.min(4000, 300 + source.length),
+      maxTokens: math.min(8192, 512 + source.length),
       requireComplete: true,
       preserveMarkup: RegExp(
         r'<(?:think|thinking|analysis)>',
@@ -2383,7 +2409,14 @@ class CloudAIAdapter implements AIAdapter {
     );
     final edited = reply?.trim();
     if (edited == null || edited.isEmpty) return null;
-    return _notGarbled(edited);
+    // Short-answer checks reject valid amounts (10000) and markdown rules.
+    // Here, reject only newly introduced decoder stalls and lost values.
+    final stuck = RegExp(
+      r'(\p{L})\1{15,}',
+      unicode: true,
+    ).allMatches(edited).any((m) => !source.contains(m[0]!));
+    if (stuck || !NexRewriteStyle.preservesNumbers(source, edited)) return null;
+    return edited;
   }, purpose: DisclosurePurpose.rewrite);
 
   /// A real multi-turn exchange, normalised across all three wire shapes.

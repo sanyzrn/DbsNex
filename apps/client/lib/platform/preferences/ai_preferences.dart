@@ -136,7 +136,7 @@ mixin _AiPreferences on _PreferencesStore {
     await _prefs.setString('ai.outputLanguage', value.wireName);
     // Output language is part of the brief fingerprint. Keep its readable
     // cache and success time until a permitted automatic or manual refresh.
-    // The greeting independently keys its language on the user's name.
+    // The greeting independently follows the interface language.
     notifyListeners();
   }
 

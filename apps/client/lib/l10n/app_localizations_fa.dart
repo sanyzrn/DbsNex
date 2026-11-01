@@ -1281,7 +1281,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiEditUndo => 'بازگرداندن';
 
   @override
-  String get aiEditFailed => 'آن ویرایش برنگشت. متن شما دست‌نخورده است.';
+  String get aiEditFailed => 'ویرایش انجام نشد. متن اصلی شما حفظ شده است.';
 
   @override
   String get aiEditUnchanged => 'چیزی برای تغییر نبود — همین‌طور خوب است.';
@@ -6378,4 +6378,8 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get translationSuggestedLanguage =>
       'چون متن به زبان مقصد پیش‌فرض بود، زبان متفاوتی پیشنهاد شد.';
+
+  @override
+  String get aiEditTooLong =>
+      'این متن برای ویرایش کامل در یک درخواست طولانی است. متن کوتاه‌تری را امتحان کنید؛ متن اصلی شما حفظ شده است.';
 }

@@ -187,13 +187,17 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
     setState(() => _running = style);
     final adapter = _adapter();
     String? edited;
+    var tooLong = false;
     try {
       edited = await NexDisclosureLog.about(
         notes: [?widget.noteId],
         () => adapter.rewrite(before, style: style),
       );
     } catch (error) {
-      unawaited(NexCrashLog.handled('editor.rewrite', error));
+      tooLong =
+          error is AiUnavailableException &&
+          error.kind == AiFailureKind.tooLarge;
+      if (!tooLong) unawaited(NexCrashLog.handled('editor.rewrite', error));
       edited = null;
     } finally {
       adapter.close();
@@ -203,7 +207,9 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
     if (_text.text != original.text) return;
     if (edited == null) {
       NexBannerHost.of(context)?.show(
-        message: adapter.lastReplyTruncated
+        message: tooLong
+            ? AppLocalizations.of(context).aiEditTooLong
+            : adapter.lastReplyTruncated
             ? AppLocalizations.of(context).aiIncompleteReply
             : AppLocalizations.of(context).aiEditFailed,
         kind: NexBannerKind.failed,
