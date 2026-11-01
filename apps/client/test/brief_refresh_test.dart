@@ -152,6 +152,83 @@ void main() {
     expect(calls, 1);
   });
 
+  test(
+    'a cached English greeting cannot appear in a Persian interface',
+    () async {
+      await prefs.setAiHeadline(
+        text: 'Ready when you are',
+        dateKey: 'today',
+        lang: 'fa',
+      );
+      final result = await refresh.headline(
+        dateKey: 'today',
+        language: 'fa',
+        request: () async {
+          calls++;
+          return null;
+        },
+      );
+      expect(result, isNull);
+      expect(calls, 1);
+      expect(prefs.aiHeadlineFailedAt!.isAtSameMomentAs(now), isTrue);
+      await refresh.headline(dateKey: 'today', language: 'fa', request: answer);
+      expect(calls, 1, reason: 'a rejected cache must not cause a retry loop');
+    },
+  );
+
+  test(
+    'failure after a language change does not reuse the old language',
+    () async {
+      await prefs.setAiHeadline(
+        text: 'Ready when you are',
+        dateKey: 'today',
+        lang: 'en',
+      );
+      expect(
+        await refresh.headline(
+          dateKey: 'today',
+          language: 'fa',
+          request: () async => throw StateError('offline'),
+        ),
+        isNull,
+      );
+    },
+  );
+
+  test('a failed refresh keeps a compatible Persian greeting', () async {
+    await prefs.setAiHeadline(text: 'صبحت بخیر', dateKey: 'today', lang: 'fa');
+    expect(
+      await refresh.headline(
+        dateKey: 'today',
+        language: 'fa',
+        force: true,
+        request: () async => 'Ready when you are',
+      ),
+      'صبحت بخیر',
+    );
+    expect(prefs.aiHeadlineText, 'صبحت بخیر');
+  });
+
+  test(
+    'an English flight is not displayed after switching to Persian',
+    () async {
+      final reply = Completer<String?>();
+      final english = refresh.headline(
+        dateKey: 'today',
+        language: 'en',
+        request: () => reply.future,
+      );
+      final persian = refresh.headline(
+        dateKey: 'today',
+        language: 'fa',
+        request: () async => 'صبحت بخیر',
+      );
+      reply.complete('Good morning');
+      expect(await english, 'Good morning');
+      expect(await persian, isNull);
+    },
+  );
+
   test('headline requests coalesce and failures survive reopening', () async {
     final reply = Completer<String?>();
     Future<String?> headline({bool force = false}) => refresh.headline(

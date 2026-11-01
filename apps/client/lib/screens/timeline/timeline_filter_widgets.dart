@@ -141,49 +141,34 @@ class _FilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!round) {
+      return NexTagFilterButton(
+        label: AppLocalizations.of(context).filters,
+        selected: active,
+        onTap: onPressed,
+      );
+    }
     final scheme = Theme.of(context).colorScheme;
     final button = NexTappable(
       onTap: onPressed,
       selected: active,
       semanticLabel: AppLocalizations.of(context).filters,
-      shape: round ? const CircleBorder() : const StadiumBorder(),
+      shape: const CircleBorder(),
       child: Material(
         color: active
             ? scheme.primary.withValues(alpha: 0.12)
             : Colors.transparent,
-        shape: round
-            ? CircleBorder(
-                side: active
-                    ? BorderSide(color: scheme.primary)
-                    : BorderSide.none,
-              )
-            : StadiumBorder(
-                // Only the selected chip is outlined. The rest sat in rings that
-                // did no work the fill was not already doing.
-                side: active
-                    ? BorderSide(color: scheme.primary)
-                    : BorderSide.none,
-              ),
-        child: round
-            ? SizedBox.square(
-                dimension: nexMinTapTarget,
-                child: Icon(
-                  Icons.tune,
-                  size: 20,
-                  color: active ? scheme.primary : scheme.onSurfaceVariant,
-                ),
-              )
-            : Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: NexSpacing.contentGap - NexSpacing.xs,
-                  vertical: NexSpacing.sm,
-                ),
-                child: Icon(
-                  Icons.tune,
-                  size: 18,
-                  color: active ? scheme.primary : scheme.onSurface,
-                ),
-              ),
+        shape: CircleBorder(
+          side: active ? BorderSide(color: scheme.primary) : BorderSide.none,
+        ),
+        child: SizedBox.square(
+          dimension: nexMinTapTarget,
+          child: Icon(
+            Icons.tune,
+            size: 20,
+            color: active ? scheme.primary : scheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
     if (active) return button;

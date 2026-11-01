@@ -261,6 +261,7 @@ class TimelineScreenState extends State<TimelineScreen>
   final _refreshPulse = ValueNotifier<int>(0);
   bool _aiSummaryManualRequested = false;
   bool _briefPreferencesQueued = false;
+  String? _briefSettingsKey;
   int _setAsideTotal = 0; // read only while the home screen is empty
   String? _arrivalHeld; // a note a tap named while the lock was up
   Locale? _briefLocale;
@@ -702,7 +703,10 @@ class TimelineScreenState extends State<TimelineScreen>
   /// or the Library. [_maybeStartTour] now declines in that case, which would
   /// leave the tour never shown at all without somewhere to ask again.
   @override
-  void didPopNext() => _tourWhenReady();
+  void didPopNext() {
+    _tourWhenReady();
+    _onBriefPreferencesChanged();
+  }
 
   /// Leaving the app counts as leaving the timeline.
   ///

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +46,33 @@ An opening paragraph.
     expect(merged.first.items.single.title, 'الف');
     expect(merged.last.items.single.title, 'B');
   });
+
+  test(
+    'curated notes have concise titles and keep technical history separately',
+    () {
+      final en = parseWhatsNewReleases(
+        File('assets/CHANGELOG.md').readAsStringSync(),
+      );
+      final fa = parseWhatsNewReleases(
+        File('assets/CHANGELOG.fa.md').readAsStringSync(),
+      );
+      for (final release in [...en, ...fa]) {
+        expect(release.intro, isEmpty);
+        for (final item in release.items) {
+          expect(item.title, isNotEmpty);
+          expect(item.title.length, lessThan(65));
+          expect(item.body, isNotEmpty);
+        }
+      }
+      expect(en.map((r) => r.version), containsAll(fa.map((r) => r.version)));
+      final archived = parseWhatsNewReleases(
+        File('../../docs/development/CHANGELOG.md').readAsStringSync(),
+      );
+      expect(archived.any((r) => r.version == '1.88.0'), isTrue);
+      expect(en.any((r) => r.version == '1.88.0'), isFalse);
+      expect(en.first.version, nexAppVersion);
+    },
+  );
 
   test('this version has notes in both languages', () async {
     TestWidgetsFlutterBinding.ensureInitialized();

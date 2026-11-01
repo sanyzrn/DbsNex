@@ -69,14 +69,12 @@ void main() {
   });
 
   group('auto style', () {
-    test('is the one that may not touch the words', () {
-      // The whole value of this action. "Tidy this up" from something also
-      // allowed to reword means never knowing quite what it did, and in a
-      // note the words are the point.
+    test('corrects writing and may organise the structure', () {
       final instruction = NexRewriteStyle.autoStyle.instruction;
-      expect(instruction, contains('change nothing else'));
-      expect(instruction, contains('may not reword'));
-      expect(instruction, contains('markdown heading'));
+      expect(instruction, contains('correct spelling, grammar'));
+      expect(instruction, contains('may reword and restructure'));
+      expect(instruction, contains('markdown headings'));
+      expect(instruction, isNot(contains('may not reword')));
     });
   });
 
@@ -99,11 +97,58 @@ void main() {
         NexRewriteStyle.simple,
       ]) {
         expect(
-          style.instruction,
+          style.prompt,
           contains('every fact, name, number'),
           reason: '${style.name} may drop what the note was for',
         );
       }
     });
+  });
+  test('shortening preserves negation without a fixed target', () {
+    expect(NexRewriteStyle.concise.instruction, contains('Do not target half'));
+    expect(NexRewriteStyle.concise.instruction, contains('NOT cancelled'));
+    expect(NexRewriteStyle.concise.instruction, contains('owners'));
+  });
+  test(
+    'numeric guard permits digit shapes, grouping, lists and deduplication',
+    () {
+      expect(
+        NexRewriteStyle.preservesNumbers(
+          '۱. بودجه ۱۰٬۰۰۰ و ۲.۵ درصد، دوباره ۱۰٬۰۰۰',
+          '- بودجه 10,000 و 2.50 درصد',
+        ),
+        isTrue,
+      );
+      expect(
+        NexRewriteStyle.preservesNumbers('Budget 4.0', 'Budget 4'),
+        isTrue,
+      );
+      expect(
+        NexRewriteStyle.preservesNumbers('Due 15, budget 12000', 'Due 15'),
+        isFalse,
+      );
+      expect(
+        NexRewriteStyle.preservesNumbers(
+          'Price 10000, date 2026/11/01',
+          'Price 9000, date 2026/11/01',
+        ),
+        isFalse,
+      );
+      expect(
+        NexRewriteStyle.preservesNumbers('1. task\n2. task', '- task\n- task'),
+        isTrue,
+      );
+    },
+  );
+  test('numeric guard keeps signs and accepts equivalent decimal notation', () {
+    expect(
+      NexRewriteStyle.preservesNumbers('Balance −5', 'Balance 5'),
+      isFalse,
+    );
+    expect(
+      NexRewriteStyle.preservesNumbers('Balance −5', 'Balance -5'),
+      isTrue,
+    );
+    expect(NexRewriteStyle.preservesNumbers('Rate .5', 'Rate 0.50'), isTrue);
   });
 }

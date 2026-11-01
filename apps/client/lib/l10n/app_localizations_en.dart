@@ -6469,4 +6469,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get translationSuggestedLanguage =>
       'A different target language was suggested because the source already uses your default language.';
+
+  @override
+  String get aiEditTooLong =>
+      'This note is too long to edit in one AI request. Try a shorter text. Your original text is unchanged.';
 }

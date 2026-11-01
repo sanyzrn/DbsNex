@@ -103,4 +103,63 @@ void main() {
     expect(given, {'a'});
     expect(reported(), isNot(same(given)));
   });
+  for (final look in ['light', 'dark', 'glass']) {
+    for (final rtl in [false, true]) {
+      for (final scale in [1.0, 1.8]) {
+        testWidgets(
+          'filter matches tag surface ($look, rtl=$rtl, scale=$scale)',
+          (tester) async {
+            var opened = false;
+            await tester.pumpWidget(
+              MaterialApp(
+                theme: look == 'dark'
+                    ? nexDarkTheme()
+                    : nexLightTheme(liquidGlass: look == 'glass'),
+                home: MediaQuery(
+                  data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+                  child: Directionality(
+                    textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+                    child: Scaffold(
+                      body: TagFilterRow(
+                        tags: [tag('work', rtl ? 'کار' : 'Work')],
+                        selectedTagIds: const {},
+                        leading: NexTagFilterButton(
+                          label: 'Filters',
+                          onTap: () => opened = true,
+                        ),
+                        onSelected: (_) {},
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+            final filter = find.descendant(
+              of: find.byType(NexTagFilterButton),
+              matching: find.byType(NexGlassSurface),
+            );
+            final pill = find.ancestor(
+              of: find.text(rtl ? 'کار' : 'Work'),
+              matching: find.byType(NexGlassSurface),
+            );
+            expect(
+              tester.getSize(filter).height,
+              closeTo(tester.getSize(pill).height, 0.6),
+            );
+            final target = find.descendant(
+              of: find.byType(NexTagFilterButton),
+              matching: find.byType(NexTappable),
+            );
+            expect(
+              tester.getSize(target).height,
+              greaterThanOrEqualTo(nexMinTapTarget),
+            );
+            await tester.tap(find.byType(NexTagFilterButton));
+            expect(opened, isTrue);
+            expect(tester.takeException(), isNull);
+          },
+        );
+      }
+    }
+  }
 }
