@@ -23,6 +23,35 @@ void main() {
 
   tearDown(nexHideBanner);
 
+  testWidgets(
+    'module Undo keeps its key, retry action and duration in the top capsule',
+    (tester) async {
+      var attempts = 0;
+      await tester.pumpWidget(
+        host(
+          onTap: (context) => nexShowBanner(
+            context,
+            message: 'Removed',
+            actionLabel: 'Undo',
+            actionKey: const ValueKey('module-undo'),
+            duration: const Duration(seconds: 12),
+            haptics: false,
+            onAction: () => attempts++,
+          ),
+        ),
+      );
+      await tester.tap(find.text('go'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 7));
+      expect(find.byType(SnackBar), findsNothing);
+      expect(tester.getTopLeft(find.text('Removed')).dy, lessThan(150));
+      await tester.tap(find.byKey(const ValueKey('module-undo')));
+      await tester.pumpAndSettle();
+      expect(attempts, 1);
+      expect(find.text('Removed'), findsNothing);
+    },
+  );
+
   testWidgets('a banner comes in from the top and leaves on its own', (
     tester,
   ) async {

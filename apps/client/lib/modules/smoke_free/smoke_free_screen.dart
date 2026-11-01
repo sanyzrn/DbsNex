@@ -260,9 +260,9 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
     if (choice != true || !mounted) return;
     final saved = await _recordLapse(restart: true, reason: 'restart');
     if (saved && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(smokeFreeStrings(context, 'newAttemptStarted'))),
-      );
+      NexBannerHost.of(
+        context,
+      )?.show(message: smokeFreeStrings(context, 'newAttemptStarted'));
     }
   }
 
@@ -298,12 +298,11 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
     final saved = await _recordLapse(restart: restart);
     if (!saved) return;
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          strings(context, restart ? 'newAttemptStarted' : 'lapseRecorded'),
-        ),
+    final messenger = NexBannerHost.of(context);
+    messenger?.show(
+      message: strings(
+        context,
+        restart ? 'newAttemptStarted' : 'lapseRecorded',
       ),
     );
   }

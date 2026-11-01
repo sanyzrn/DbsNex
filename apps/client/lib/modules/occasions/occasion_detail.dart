@@ -79,7 +79,7 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
   Future<void> _patch(Map<String, Object?> change) async {
     if (_busy || _occasion == null) return;
     setState(() => _busy = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final failed = occasionsStrings(context, 'saveError');
     final l10n = AppLocalizations.of(context);
     try {
@@ -96,7 +96,7 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
         l10n: l10n,
       );
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(failed)));
+      messenger?.show(kind: NexBannerKind.failed, message: failed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -106,7 +106,7 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
     final occasion = _occasion;
     if (occasion == null || _busy) return;
     setState(() => _busy = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
     final deleted = occasionsStrings(context, 'deleted');
     final failed = occasionsStrings(context, 'saveError');
@@ -116,31 +116,27 @@ class _OccasionDetailScreenState extends State<OccasionDetailScreen> {
       await widget.store.delete('occasion', occasion.id);
       if (!mounted) return;
       Navigator.of(context).maybePop();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(deleted),
-          action: SnackBarAction(
-            label: l10n.undo,
-            onPressed: () => unawaited(() async {
-              try {
-                if (raw != null) {
-                  await widget.store.put('occasion', occasion.id, raw);
-                  await armOccasionReminders(
-                    widget.store,
-                    Occasion.fromBody(occasion.id, raw),
-                    now: DateTime.now(),
-                    l10n: l10n,
-                  );
-                }
-              } catch (_) {
-                messenger.showSnackBar(SnackBar(content: Text(failed)));
-              }
-            }()),
-          ),
-        ),
+      messenger?.show(
+        message: deleted,
+        actionLabel: l10n.undo,
+        onAction: () => unawaited(() async {
+          try {
+            if (raw != null) {
+              await widget.store.put('occasion', occasion.id, raw);
+              await armOccasionReminders(
+                widget.store,
+                Occasion.fromBody(occasion.id, raw),
+                now: DateTime.now(),
+                l10n: l10n,
+              );
+            }
+          } catch (_) {
+            messenger.show(kind: NexBannerKind.failed, message: failed);
+          }
+        }()),
       );
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(failed)));
+      messenger?.show(kind: NexBannerKind.failed, message: failed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

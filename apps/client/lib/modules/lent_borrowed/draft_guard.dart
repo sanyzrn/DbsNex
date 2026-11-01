@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:nex_client/modules/module_api.dart';
 import 'form_draft.dart';
 import 'module.dart';
 
@@ -30,8 +31,9 @@ class _DraftGuardState extends State<DraftGuard> {
     if (!saved) {
       widget.draft.resume();
       setState(() => _closing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(lentStrings(context, 'saveError'))),
+      NexBannerHost.of(context)?.show(
+        kind: NexBannerKind.failed,
+        message: lentStrings(context, 'saveError'),
       );
       return;
     }

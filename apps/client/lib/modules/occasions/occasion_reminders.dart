@@ -120,6 +120,7 @@ Future<bool> armOccasionReminders(
   Occasion occasion, {
   required DateTime now,
   required AppLocalizations l10n,
+  bool preserveShown = false,
 }) async {
   final plan = occasionAlarmPlan(occasion, now);
   var ok = true;
@@ -142,7 +143,9 @@ Future<bool> armOccasionReminders(
         );
         ok = ok && set;
       } else {
-        await store.clearReminder(key);
+        await (preserveShown
+            ? store.withdrawReminder(key)
+            : store.clearReminder(key));
       }
     }
   }
@@ -165,6 +168,7 @@ Future<void> renewOccasionReminders(
         occasion,
         now: now ?? DateTime.now(),
         l10n: l10n,
+        preserveShown: true,
       );
     } catch (_) {
       /* The next time tries again. */

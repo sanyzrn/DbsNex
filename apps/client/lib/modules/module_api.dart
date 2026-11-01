@@ -19,7 +19,8 @@ export '../platform/display_date.dart'
         nexPersianDate,
         nexPersianMonthDays,
         nexReadableDate;
-export '../widgets/nex_banner.dart' show nexShowBanner, NexBannerKind;
+export '../widgets/nex_banner.dart'
+    show nexShowBanner, nexHideBanner, NexBannerKind, NexBannerHost;
 export '../widgets/nex_dialog.dart'
     show nexShowDialog, nexShowSheet, NexDialogBody;
 export '../widgets/nex_shelf.dart';

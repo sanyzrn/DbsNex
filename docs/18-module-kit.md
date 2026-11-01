@@ -222,3 +222,16 @@ habit reminder. Amount-based habits open the existing progress form without
 saving automatically. Snooze reuses the same destination and notification text,
 tries exact then inexact scheduling, and preserves the original notification if
 both fail. Reminder text metadata is pruned daily after 14 days.
+
+## Notices and reminder upkeep (2.5.2)
+
+Use `nexShowBanner` or a captured `NexBannerHost` for in-app feedback. The
+module API exports both; preserve Undo callbacks, action keys and the intended
+notice lifetime. Do not use `SnackBar` or `ScaffoldMessenger.showSnackBar`.
+
+Automatic reminder upkeep uses `NexModuleStore.withdrawReminder` when a slot
+no longer has a future alarm; it preserves an already shown device notification.
+Explicit removal or disabling a reminder still uses `clearReminder`. Startup
+and resume run upkeep before restoring/pruning alarms through the shared
+`nexRefreshReminders` flight, preventing a new alarm from being pruned against
+an earlier module snapshot.

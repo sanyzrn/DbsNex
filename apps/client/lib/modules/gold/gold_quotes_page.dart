@@ -181,8 +181,9 @@ class _GoldQuotesPageState extends State<GoldQuotesPage>
       await bundle.delete();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(goldStrings(context, 'quoteSaveFailed'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: goldStrings(context, 'quoteSaveFailed'),
         );
       }
       return;
@@ -192,15 +193,11 @@ class _GoldQuotesPageState extends State<GoldQuotesPage>
     if (!mounted) return;
     // The Undo is time-limited and restores the whole record, exactly as
     // it was, under its own id.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(goldStrings(context, 'quoteDeleted')),
-        duration: const Duration(seconds: 6),
-        action: SnackBarAction(
-          label: AppLocalizations.of(context).undo,
-          onPressed: () => unawaited(_restore(bundle)),
-        ),
-      ),
+    NexBannerHost.of(context)?.show(
+      message: goldStrings(context, 'quoteDeleted'),
+      duration: const Duration(seconds: 6),
+      actionLabel: AppLocalizations.of(context).undo,
+      onAction: () => unawaited(_restore(bundle)),
     );
   }
 
@@ -208,13 +205,14 @@ class _GoldQuotesPageState extends State<GoldQuotesPage>
     try {
       await bundle.restore();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(goldStrings(context, 'quoteRestored'))),
-      );
+      NexBannerHost.of(
+        context,
+      )?.show(message: goldStrings(context, 'quoteRestored'));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(goldStrings(context, 'quoteSaveFailed'))),
+      NexBannerHost.of(context)?.show(
+        kind: NexBannerKind.failed,
+        message: goldStrings(context, 'quoteSaveFailed'),
       );
     }
   }

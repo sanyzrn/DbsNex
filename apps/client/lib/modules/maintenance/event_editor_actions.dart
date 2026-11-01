@@ -178,7 +178,7 @@ extension _EditorActions on _EventEditorSheetState {
       body: maintenanceStrings(context, 'deleteEventBody'),
     );
     if (!confirmed || !mounted) return;
-    final messenger = ScaffoldMessenger.of(context),
+    final messenger = NexBannerHost.of(context),
         message = maintenanceStrings(context, 'deletedEvent'),
         undo = maintenanceStrings(context, 'undo'),
         failure = maintenanceStrings(context, 'undoFailed');

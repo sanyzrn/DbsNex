@@ -81,8 +81,9 @@ class _WordsBatchSheetState extends State<_WordsBatchSheet> {
 
   void _error() {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(wordsStrings(context, 'saveFailed'))),
+      NexBannerHost.of(context)?.show(
+        kind: NexBannerKind.failed,
+        message: wordsStrings(context, 'saveFailed'),
       );
     }
   }
@@ -129,22 +130,18 @@ class _WordsBatchSheetState extends State<_WordsBatchSheet> {
         }
       }
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
+      final messenger = NexBannerHost.of(context);
       if (pending.isNotEmpty) {
         _text.text = [
           for (final line in pending)
             line.meaning.isEmpty ? line.word : '${line.word}\t${line.meaning}',
         ].join('\n');
         _draft.changed();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              wordsStrings(context, 'batchPartial', {
-                'added': added,
-                'remaining': pending.length,
-              }),
-            ),
-          ),
+        messenger?.show(
+          message: wordsStrings(context, 'batchPartial', {
+            'added': added,
+            'remaining': pending.length,
+          }),
         );
         return;
       }
@@ -156,7 +153,7 @@ class _WordsBatchSheetState extends State<_WordsBatchSheet> {
           wordsStrings(context, 'batchSkipped', {'count': skipped}),
       ].join(' · ');
       Navigator.pop(context);
-      messenger.showSnackBar(SnackBar(content: Text(message)));
+      messenger?.show(message: message);
       await widget.onDone();
     } catch (_) {
       _error();

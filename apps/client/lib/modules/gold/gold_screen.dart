@@ -115,13 +115,14 @@ class _GoldScreenState extends State<GoldScreen> {
       await state.markSaved(quote);
       if (mounted) setState(() => _saved = true);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(goldStrings(context, 'quoteSaved'))),
-      );
+      NexBannerHost.of(
+        context,
+      )?.show(message: goldStrings(context, 'quoteSaved'));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(goldStrings(context, 'quoteSaveFailed'))),
+      NexBannerHost.of(context)?.show(
+        kind: NexBannerKind.failed,
+        message: goldStrings(context, 'quoteSaveFailed'),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -158,8 +159,9 @@ class _GoldScreenState extends State<GoldScreen> {
     try {
       final cleared = await _formKey.currentState?.discardDraft();
       if (cleared == false && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(goldStrings(context, 'saveError'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: goldStrings(context, 'saveError'),
         );
       }
     } finally {

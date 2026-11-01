@@ -112,7 +112,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     final habit = _habit;
     if (_writing || habit == null) return;
     setState(() => _writing = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
     final errorMessage = habitsStrings(context, 'saveError');
     final removed = habitsStrings(context, 'checkinDeleted');
@@ -142,17 +142,14 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
         existing = await log.toggle(habit, day);
       }
       if (existing != null && mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(removed),
-            action: SnackBarAction(
-              label: l10n.undo,
-              onPressed: () => unawaited(
-                log.restore(habit, day, existing).catchError((Object _) {
-                  messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
-                }),
-              ),
-            ),
+        messenger?.show(
+          message: removed,
+
+          actionLabel: l10n.undo,
+          onAction: () => unawaited(
+            log.restore(habit, day, existing).catchError((Object _) {
+              messenger.show(kind: NexBannerKind.failed, message: errorMessage);
+            }),
           ),
         );
       }
@@ -231,7 +228,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     final habit = _habit;
     if (habit == null || _writing) return;
     setState(() => _writing = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
     final errorMessage = habitsStrings(context, 'saveError');
     try {
@@ -247,24 +244,21 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
       await _clearReminder(habit.id);
       if (!mounted) return;
       Navigator.of(context).maybePop();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(habitsStrings(context, 'habitDeleted')),
-          action: SnackBarAction(
-            label: l10n.undo,
-            onPressed: () => unawaited(
-              bundle
-                  .restore()
-                  .then((_) async {
-                    await habitArmReminder(widget.store, l10n, habit);
-                  })
-                  .catchError((Object _) {
-                    messenger.showSnackBar(
-                      SnackBar(content: Text(errorMessage)),
-                    );
-                  }),
-            ),
-          ),
+      messenger?.show(
+        message: habitsStrings(context, 'habitDeleted'),
+        actionLabel: l10n.undo,
+        onAction: () => unawaited(
+          bundle
+              .restore()
+              .then((_) async {
+                await habitArmReminder(widget.store, l10n, habit);
+              })
+              .catchError((Object _) {
+                messenger.show(
+                  kind: NexBannerKind.failed,
+                  message: errorMessage,
+                );
+              }),
         ),
       );
     } catch (_) {

@@ -52,7 +52,7 @@ different task".
 | Pickers: time, date, Jalali | `nexPickTime`, `nexPickDate`, `nexPickModuleDate` | **Done** (2.1.15) — raw pickers at 0 |
 | Module pages | `NexModuleHero`, `NexMoreDetails`, one empty-state button | **Done** for the 13 modules (2.1.14) |
 | Corner radii | `NexRadius` tokens | Mostly: 8 left, all 2–3 px bars/dots — ratchet |
-| Messages | `nexShowBanner` (top capsule) | **81 `SnackBar(` left** — a screen at a time |
+| Messages | `nexShowBanner` / `NexBannerHost` (top capsule) | **0 `SnackBar(` left** — shared across the app |
 | Buttons | `FilledButton` / tonal / `TextButton` | 5 stock `OutlinedButton`/`ElevatedButton` left |
 | Cards and panels | `NexPanel`, shelf widgets | 3 stock `Card(` left (vault) |
 | Dialogs | `nexShowDialog` | Done (no raw `showDialog`/`AlertDialog`) |

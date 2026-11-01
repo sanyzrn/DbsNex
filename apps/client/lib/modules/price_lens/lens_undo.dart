@@ -1,12 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:nex_client/modules/module_api.dart';
 
 /// The time a deletion stays reversible — a plain data value, not a
-/// motion token; this is a standard SnackBar, chosen deliberately for a
-/// module-owned screen.
+/// motion token; shared with the app’s top capsule.
 const lensUndoWindow = Duration(seconds: 6);
 
 /// Offers Undo for a deletion, in the screen's own
-/// [ScaffoldMessengerState] — captured **before** the editor sheet
+/// [NexBannerHost] — captured **before** the editor sheet
 /// pops, because the sheet's context does not outlive its route.
 ///
 /// The words and the restore closure are captured with it, so nothing
@@ -17,7 +16,7 @@ const lensUndoWindow = Duration(seconds: 6);
 class LensUndo {
   LensUndo._();
   static void offer(
-    ScaffoldMessengerState messenger, {
+    NexBannerHost? messenger, {
     required String message,
     required String undoLabel,
     required Future<void> Function() restore,
@@ -27,24 +26,23 @@ class LensUndo {
       try {
         await restore();
       } catch (_) {
-        if (messenger.mounted) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(failureMessage ?? message),
-              duration: lensUndoWindow,
-              action: SnackBarAction(label: undoLabel, onPressed: attempt),
-            ),
+        if ((messenger?.mounted ?? false)) {
+          messenger?.show(
+            kind: NexBannerKind.failed,
+            message: failureMessage ?? message,
+            duration: lensUndoWindow,
+            actionLabel: undoLabel,
+            onAction: attempt,
           );
         }
       }
     }
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: lensUndoWindow,
-        action: SnackBarAction(label: undoLabel, onPressed: attempt),
-      ),
+    messenger?.show(
+      message: message,
+      duration: lensUndoWindow,
+      actionLabel: undoLabel,
+      onAction: attempt,
     );
   }
 }

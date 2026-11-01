@@ -30,5 +30,5 @@ class WordsModule extends NexStoredModule {
   /// with words waiting (2.4.0).
   @override
   Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) =>
-      wordsArmReminder(store, l10n);
+      wordsArmReminder(store, l10n, preserveShown: true);
 }

@@ -40,11 +40,10 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
   bool _loadFailed = false;
   bool _busy = false;
 
-  /// The messenger inside the sheet, where its own snackbars belong.
-  ScaffoldMessengerState? _sheetMessenger;
+  /// Captured during build so Undo survives the sheet closing.
+  NexBannerHost? _sheetMessenger;
 
-  ScaffoldMessengerState _messenger() =>
-      _sheetMessenger ?? ScaffoldMessenger.of(context);
+  NexBannerHost? _messenger() => _sheetMessenger ?? NexBannerHost.of(context);
 
   @override
   void initState() {
@@ -194,7 +193,7 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
       if (!mounted) {
         return;
       }
-      final messenger = ScaffoldMessenger.of(context);
+      final messenger = NexBannerHost.of(context);
       final undo = AppLocalizations.of(context).undo;
       WarrantyDialogs.offerUndo(
         messenger,
@@ -254,7 +253,7 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
         return;
       }
       WarrantyDialogs.offerUndo(
-        ScaffoldMessenger.of(context),
+        NexBannerHost.of(context),
         warrantyStrings(context, 'warrantyDeleted'),
         AppLocalizations.of(context).undo,
         undo,
@@ -289,8 +288,9 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
       await run();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(warrantyStrings(context, 'saveFailed'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: warrantyStrings(context, 'saveFailed'),
         );
       }
     } finally {

@@ -123,7 +123,7 @@ void _screenCases3() {
       await tester.tap(find.byKey(const ValueKey('expenses-save')));
       await tester.pumpAndSettle();
       expect(find.text('New expense'), findsOneWidget);
-      // The field says it, and so does the refused save's SnackBar.
+      // The field and the top capsule both explain the refused save.
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('expenses-date')),
@@ -131,7 +131,8 @@ void _screenCases3() {
         ),
         findsOneWidget,
       );
-      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.text('Choose a valid date'), findsNWidgets(2));
       expect(await store.list('tx'), isEmpty);
       // Persian digits parse to the same refusal and the same day.
       await tester.enterText(

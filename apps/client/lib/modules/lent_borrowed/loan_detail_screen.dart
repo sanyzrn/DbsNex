@@ -133,7 +133,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
   Future<void> _delete() => _guard(() async {
     final loan = _loan;
     if (loan == null) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
     final errorMessage = lentStrings(context, 'saveError');
     final bundle = await RecordBundle.capture(
@@ -147,17 +147,13 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
     await _clearReminder(loan.id);
     if (!mounted) return;
     Navigator.of(context).maybePop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(lentStrings(context, 'loanDeleted')),
-        action: SnackBarAction(
-          label: l10n.undo,
-          onPressed: () => unawaited(
-            bundle.restore().catchError((Object _) {
-              messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
-            }),
-          ),
-        ),
+    messenger?.show(
+      message: lentStrings(context, 'loanDeleted'),
+      actionLabel: l10n.undo,
+      onAction: () => unawaited(
+        bundle.restore().catchError((Object _) {
+          messenger.show(kind: NexBannerKind.failed, message: errorMessage);
+        }),
       ),
     );
   });
@@ -326,24 +322,20 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
   /// Taking a mistaken return back: the SnackBar's Undo re-`put`s the
   /// complete record, so balances return to exactly what they were.
   Future<void> _deleteReturn(LoanReturn record) => _guard(() async {
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
     final errorMessage = lentStrings(context, 'saveError');
     final raw = await widget.store.get('return', record.id);
     if (raw == null) return;
     await widget.store.delete('return', record.id);
     if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(lentStrings(context, 'returnDeleted')),
-        action: SnackBarAction(
-          label: l10n.undo,
-          onPressed: () => unawaited(
-            widget.store.put('return', record.id, raw).catchError((Object _) {
-              messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
-            }),
-          ),
-        ),
+    messenger?.show(
+      message: lentStrings(context, 'returnDeleted'),
+      actionLabel: l10n.undo,
+      onAction: () => unawaited(
+        widget.store.put('return', record.id, raw).catchError((Object _) {
+          messenger.show(kind: NexBannerKind.failed, message: errorMessage);
+        }),
       ),
     );
   });

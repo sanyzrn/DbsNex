@@ -14,7 +14,7 @@ extension _WarrantyDetailBody on _WarrantyDetailSheetState {
     return ScaffoldMessenger(
       child: Builder(
         builder: (inner) {
-          _sheetMessenger = ScaffoldMessenger.of(inner);
+          _sheetMessenger = NexBannerHost.of(inner);
           return PopScope(
             canPop: !_busy,
             child: AbsorbPointer(absorbing: _busy, child: _sheet(inner)),

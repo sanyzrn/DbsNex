@@ -63,8 +63,9 @@ mixin _WordsCardLogic on State<WordsCardPage> {
 
   void _error() {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(wordsStrings(context, 'saveFailed'))),
+      NexBannerHost.of(context)?.show(
+        kind: NexBannerKind.failed,
+        message: wordsStrings(context, 'saveFailed'),
       );
     }
   }
@@ -73,9 +74,9 @@ mixin _WordsCardLogic on State<WordsCardPage> {
     if (_saving || _restoring || _draftLoadFailed) return;
     final headword = foldWhitespace(_headword.text);
     if (headword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(wordsStrings(context, 'wordRequired'))),
-      );
+      NexBannerHost.of(
+        context,
+      )?.show(message: wordsStrings(context, 'wordRequired'));
       if (_scroll.hasClients) {
         await _scroll.animateTo(
           0,
@@ -198,28 +199,25 @@ mixin _WordsCardLogic on State<WordsCardPage> {
         _error();
         return;
       }
-      final messenger = ScaffoldMessenger.of(context);
+      final messenger = NexBannerHost.of(context);
       final removed = wordsStrings(context, 'wordDeleted');
       final restored = wordsStrings(context, 'wordRestored');
       final failed = wordsStrings(context, 'saveFailed');
       final undo = AppLocalizations.of(context).undo;
       Navigator.pop(context);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(removed),
-          duration: const Duration(seconds: 6),
-          action: SnackBarAction(
-            label: undo,
-            onPressed: () => unawaited(
-              _repository
-                  .restoreBundle(bundle)
-                  .then(
-                    (ok) => messenger.showSnackBar(
-                      SnackBar(content: Text(ok ? restored : failed)),
-                    ),
-                  ),
-            ),
-          ),
+      messenger?.show(
+        message: removed,
+        duration: const Duration(seconds: 6),
+        actionLabel: undo,
+        onAction: () => unawaited(
+          _repository
+              .restoreBundle(bundle)
+              .then(
+                (ok) => messenger.show(
+                  kind: ok ? NexBannerKind.done : NexBannerKind.failed,
+                  message: ok ? restored : failed,
+                ),
+              ),
         ),
       );
     } catch (_) {

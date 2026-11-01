@@ -86,8 +86,9 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     if (!mounted) return;
     if (result.status == WordsAnswerStatus.failed) {
       setState(() => _answering = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(wordsStrings(context, 'saveFailed'))),
+      NexBannerHost.of(context)?.show(
+        kind: NexBannerKind.failed,
+        message: wordsStrings(context, 'saveFailed'),
       );
       return;
     }
@@ -105,9 +106,9 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
       }
     });
     if (result.status != WordsAnswerStatus.saved) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(wordsStrings(context, 'reviewChanged'))),
-      );
+      NexBannerHost.of(
+        context,
+      )?.show(message: wordsStrings(context, 'reviewChanged'));
     }
   }
 
@@ -146,8 +147,9 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     } catch (_) {
       if (mounted) {
         setState(() => _answering = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(wordsStrings(context, 'saveFailed'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: wordsStrings(context, 'saveFailed'),
         );
       }
     }

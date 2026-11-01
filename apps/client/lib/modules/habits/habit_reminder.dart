@@ -100,6 +100,7 @@ Future<bool> habitArmReminder(
   List<HabitCheck>? checks,
   int? firstDay,
   DateTime? now,
+  bool preserveShown = false,
 }) async {
   final key = habitReminderKey(habit.id);
   final reminder = await habitReadReminder(store, habit.id);
@@ -112,7 +113,9 @@ Future<bool> habitArmReminder(
     });
   }
   if (!reminder.on || habit.archived) {
-    await store.clearReminder(key);
+    await (preserveShown
+        ? store.withdrawReminder(key)
+        : store.clearReminder(key));
     return true;
   }
   final mine =
@@ -130,7 +133,9 @@ Future<bool> habitArmReminder(
     firstDay: week,
   );
   if (at == null) {
-    await store.clearReminder(key);
+    await (preserveShown
+        ? store.withdrawReminder(key)
+        : store.clearReminder(key));
     return true;
   }
   final standing = HabitMath.fromChecks(habit, mine, at, firstDay: week);
@@ -178,6 +183,7 @@ Future<void> habitsKeepUp(NexModuleStore store, AppLocalizations l10n) async {
         checks: checks.where((c) => c.habitId == habit.id).toList(),
         firstDay: firstDay,
         now: now,
+        preserveShown: true,
       );
     } catch (_) {
       // One habit's reminder failing must not stop the others.

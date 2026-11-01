@@ -89,6 +89,12 @@ extension NexModuleServices on NexServices {
     await reminders.cancelModule(module, key);
   }
 
+  /// Automatic housekeeping withdraws future alarms, preserving a rung notice.
+  Future<void> withdrawModuleReminder(String module, String key) async {
+    await worker.moduleDelete(module, '__reminder', key);
+    await reminders.withdrawModule(module, key);
+  }
+
   Future<void> cancelModuleReminders(String module) =>
       reminders.cancelModule(module);
 

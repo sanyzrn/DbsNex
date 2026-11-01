@@ -36,9 +36,9 @@ extension _ScreenActions on _PriceLensScreenState {
       );
       _pendingMemoryIds.remove(option.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(priceLensStrings(context, 'saved'))),
-        );
+        NexBannerHost.of(
+          context,
+        )?.show(message: priceLensStrings(context, 'saved'));
       }
     } catch (_) {
       if (mounted) lensWriteFailure(context);
@@ -54,23 +54,17 @@ extension _ScreenActions on _PriceLensScreenState {
       options = [];
       commonUnitKey = null;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(priceLensStrings(context, 'resetDone')),
-        action: previous.isEmpty
-            ? null
-            : SnackBarAction(
-                label: priceLensStrings(context, 'undo'),
-                onPressed: () {
-                  if (options.isEmpty) {
-                    _paint(() {
-                      options = previous;
-                      commonUnitKey = oldUnit;
-                    });
-                  }
-                },
-              ),
-      ),
+    NexBannerHost.of(context)?.show(
+      message: priceLensStrings(context, 'resetDone'),
+      actionLabel: previous.isEmpty ? null : priceLensStrings(context, 'undo'),
+      onAction: () {
+        if (options.isEmpty) {
+          _paint(() {
+            options = previous;
+            commonUnitKey = oldUnit;
+          });
+        }
+      },
     );
   }
 
@@ -88,9 +82,9 @@ extension _ScreenActions on _PriceLensScreenState {
           );
           _pendingComparisonId = null;
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(priceLensStrings(context, 'saved'))),
-            );
+            NexBannerHost.of(
+              context,
+            )?.show(message: priceLensStrings(context, 'saved'));
           }
         case 'memory':
           if (!mounted) return;

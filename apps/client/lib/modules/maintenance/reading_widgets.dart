@@ -115,7 +115,7 @@ class _ReadingRow extends StatelessWidget {
       body: s(context, 'readingDeleteBody'),
     );
     if (!approved || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context),
+    final messenger = NexBannerHost.of(context),
         message = s(context, 'readingDeleted'),
         undo = s(context, 'undo'),
         failure = s(context, 'undoFailed');
@@ -186,7 +186,7 @@ class InvalidRuleRow extends StatelessWidget {
       body: s(context, 'deleteRuleBody'),
     );
     if (!accepted || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context),
+    final messenger = NexBannerHost.of(context),
         message = s(context, 'deletedRule'),
         undo = s(context, 'undo'),
         failure = s(context, 'undoFailed');

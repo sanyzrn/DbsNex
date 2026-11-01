@@ -41,12 +41,10 @@ class _MedicineDetailSheetState extends State<MedicineDetailSheet> {
   bool _loadFailed = false;
   bool _busy = false;
 
-  /// The messenger inside the sheet, where its own snackbars belong —
-  /// captured during build, below the nested ScaffoldMessenger.
-  ScaffoldMessengerState? _sheetMessenger;
+  /// Captured during build so Undo survives the sheet closing.
+  NexBannerHost? _sheetMessenger;
 
-  ScaffoldMessengerState _messenger() =>
-      _sheetMessenger ?? ScaffoldMessenger.of(context);
+  NexBannerHost? _messenger() => _sheetMessenger ?? NexBannerHost.of(context);
 
   @override
   void initState() {
@@ -170,8 +168,9 @@ class _MedicineDetailSheetState extends State<MedicineDetailSheet> {
       await run();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(medicineStrings(context, 'saveFailed'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: medicineStrings(context, 'saveFailed'),
         );
       }
     } finally {

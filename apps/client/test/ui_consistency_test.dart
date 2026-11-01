@@ -78,14 +78,14 @@ void main() {
     );
   });
 
-  test('messages: SnackBars still to move to the top capsule', () {
+  test('messages always use the top capsule', () {
     // The banner (nexShowBanner) is the app's one message surface; a SnackBar
     // is the Material one, at the bottom, over the bottom bar. Move them a
     // screen at a time.
     ratchet(
       'a SnackBar(',
-      count(RegExp(r'\bSnackBar\(')),
-      81,
+      count(RegExp(r'\bSnackBar\(|\.showSnackBar\s*\(')),
+      0,
       'Use nexShowBanner.',
     );
   });

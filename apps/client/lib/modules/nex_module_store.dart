@@ -112,6 +112,11 @@ class NexModuleStore {
   Future<void> clearReminder(String key) =>
       _services.clearModuleReminder(module, key);
 
+  /// For automatic renewal: remove a future alarm without clearing a notice
+  /// already in the shade. Explicit user changes still use [clearReminder].
+  Future<void> withdrawReminder(String key) =>
+      _services.withdrawModuleReminder(module, key);
+
   /// A new, unique, time-ordered id for a record.
   String newId() => newUuidV7();
 

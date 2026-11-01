@@ -121,7 +121,7 @@ class _HabitsScreenState extends State<HabitsScreen>
         ),
       );
     }
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = NexBannerHost.of(context);
     final undo = AppLocalizations.of(context).undo;
     final removed = habitsStrings(context, 'checkinDeleted');
     final failed = habitsStrings(context, 'saveError');
@@ -129,20 +129,16 @@ class _HabitsScreenState extends State<HabitsScreen>
       final day = dateKeyOf(DateTime.now());
       final existing = await log.toggle(habit, day);
       if (existing == null) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(removed),
-          action: SnackBarAction(
-            label: undo,
-            onPressed: () => unawaited(
-              log
-                  .restore(habit, day, existing)
-                  .catchError(
-                    (Object _) =>
-                        messenger.showSnackBar(SnackBar(content: Text(failed))),
-                  ),
-            ),
-          ),
+      messenger?.show(
+        message: removed,
+        actionLabel: undo,
+        onAction: () => unawaited(
+          log
+              .restore(habit, day, existing)
+              .catchError(
+                (Object _) =>
+                    messenger.show(kind: NexBannerKind.failed, message: failed),
+              ),
         ),
       );
     });

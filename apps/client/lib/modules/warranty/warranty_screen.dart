@@ -154,8 +154,9 @@ class _WarrantyScreenState extends State<WarrantyScreen>
       await run();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(warrantyStrings(context, 'saveFailed'))),
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: warrantyStrings(context, 'saveFailed'),
         );
       }
     } finally {
