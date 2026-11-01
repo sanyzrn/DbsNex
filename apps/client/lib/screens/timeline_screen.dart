@@ -552,19 +552,6 @@ class TimelineScreenState extends State<TimelineScreen>
     unawaited(_search.run());
   }
 
-  void _exitSearch() {
-    // Left with words in the field: a search worth offering again.
-    unawaited(widget.preferences.rememberSearch(_search.query.text));
-    _searchStarted = null;
-    _searchFocus.unfocus();
-    _search.clear();
-    setState(() => _searching = false);
-    _fadeInBody();
-    // No scroll on the way out. Leaving search used to push the list back down
-    // past the field to re-hide it; the field lives at the top now, so that
-    // would just be the timeline jumping for no reason a user could name.
-  }
-
   Future<void> _loadTimeline() async {
     // Both sides of this matter and neither replaces the other: the model's
     // failure state is what a read that never returns needs, and the tour
@@ -621,23 +608,6 @@ class TimelineScreenState extends State<TimelineScreen>
     }
   }
 
-  Future<void> _selectTags(Set<String> tagIds) async {
-    _tick();
-    await _model.selectTags(tagIds);
-  }
-
-  Future<void> _selectType(NoteType? type) async {
-    _tick();
-    await _model.selectType(type);
-  }
-
-  Future<void> _selectOnlyReminders(bool only) async {
-    _tick();
-    await _model.selectOnlyReminders(only);
-  }
-
-  void _tick() => nexTick();
-
   /// Where the list was when it last buzzed.
   ///
   /// A tick every [_scrollTickDistance] of travel, which is the trick the
@@ -678,11 +648,6 @@ class TimelineScreenState extends State<TimelineScreen>
     _lastTickOffset = offset;
     if (!jumped) nexTick();
     return false;
-  }
-
-  Future<void> _clearFilters() async {
-    _tick();
-    await _model.clearFilters();
   }
 
   /// Grows the timeline window when the list is close to its end.
