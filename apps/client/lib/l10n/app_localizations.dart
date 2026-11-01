@@ -7322,6 +7322,18 @@ abstract class AppLocalizations {
   /// **'{name} is in Tools now'**
   String moduleAddedBanner(String name);
 
+  /// Notification destination fallback message
+  ///
+  /// In en, this message translates to:
+  /// **'This module is currently unavailable or switched off.'**
+  String get moduleNotificationUnavailable;
+
+  /// Notification destination fallback message
+  ///
+  /// In en, this message translates to:
+  /// **'This item was removed or archived. Opening its module.'**
+  String get moduleNotificationItemMissing;
+
   /// Banner after a module is removed
   ///
   /// In en, this message translates to:

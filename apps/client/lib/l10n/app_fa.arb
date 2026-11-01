@@ -1706,6 +1706,8 @@
   "@moduleStepTidy": {"description": "Remove step"},
   "moduleAddedBanner": "{name} حالا در ابزارهاست",
   "@moduleAddedBanner": {"description": "Banner after a module is added", "placeholders": {"name": {"type": "String"}}},
+  "moduleNotificationUnavailable": "این ماژول در حال حاضر غیرفعال یا در دسترس نیست.",
+  "moduleNotificationItemMissing": "این آیتم حذف یا بایگانی شده؛ صفحهٔ ماژول باز می‌شود.",
   "moduleRemovedBanner": "{name} حذف شد",
   "@moduleRemovedBanner": {"description": "Banner after a module is removed", "placeholders": {"name": {"type": "String"}}},
   "modulesComing": "در راه",

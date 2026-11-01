@@ -4587,6 +4587,14 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get moduleNotificationUnavailable =>
+      'این ماژول در حال حاضر غیرفعال یا در دسترس نیست.';
+
+  @override
+  String get moduleNotificationItemMissing =>
+      'این آیتم حذف یا بایگانی شده؛ صفحهٔ ماژول باز می‌شود.';
+
+  @override
   String moduleRemovedBanner(String name) {
     return '$name حذف شد';
   }

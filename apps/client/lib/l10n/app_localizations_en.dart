@@ -4637,6 +4637,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get moduleNotificationUnavailable =>
+      'This module is currently unavailable or switched off.';
+
+  @override
+  String get moduleNotificationItemMissing =>
+      'This item was removed or archived. Opening its module.';
+
+  @override
   String moduleRemovedBanner(String name) {
     return '$name removed';
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
+import '../l10n/app_localizations.dart';
 import '../modules/module_dates.dart';
 import '../modules/module_registry.dart';
 import '../modules/nex_stored_module.dart';
@@ -14,7 +15,6 @@ import '../modules/warranty/warranty_detail.dart';
 import '../modules/parking/parking_detail.dart';
 import '../modules/words/words_review_page.dart';
 import '../screens/cycle_screen.dart';
-import '../widgets/feature_label.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_dialog.dart';
 import 'module_notification.dart';
@@ -32,11 +32,7 @@ Future<void> nexOpenModuleNotification(
   if (module == null || !module.available || !module.isOn(preferences)) {
     nexShowBanner(
       context,
-      message: nexLabel(
-        context,
-        'This module is currently unavailable or switched off.',
-        'این ماژول در حال حاضر غیرفعال یا در دسترس نیست.',
-      ),
+      message: AppLocalizations.of(context).moduleNotificationUnavailable,
       kind: NexBannerKind.failed,
     );
     return;
@@ -108,11 +104,7 @@ Future<void> nexOpenModuleNotification(
   if (missing) {
     nexShowBanner(
       context,
-      message: nexLabel(
-        context,
-        'This item was removed or archived. Opening its module.',
-        'این آیتم حذف یا بایگانی شده؛ صفحهٔ ماژول باز می‌شود.',
-      ),
+      message: AppLocalizations.of(context).moduleNotificationItemMissing,
       kind: NexBannerKind.failed,
     );
   }
