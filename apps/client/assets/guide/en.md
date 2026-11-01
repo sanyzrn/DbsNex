@@ -53,6 +53,8 @@ Tags group related notes and can carry any colour. **Library → Tags** shows ea
 
 ## Read, edit and share
 
+**Edit with AI:** Auto style corrects writing and organises the note with Markdown. Fix writing only corrects mistakes; Formal and Friendly adjust tone; Shorter removes repetition while keeping key information; Plain simplifies language. Changes stay in the editor until **Save**. **Undo** restores the previous text. Very long notes may need shorter input.
+
 Long notes and text files (including Markdown, DOCX and source files) show a short preview. Tap **More** to read the rest and **Less** to fold it again. In assistant replies, tap an inline code snippet to copy only that snippet; the copy button below the reply still copies the whole message.
 
 Repeating reminder labels show **Daily · time** or the weekday and time beside a repeat icon; hold one for its full schedule. Tap outside selected text to clear the selection and its menu.

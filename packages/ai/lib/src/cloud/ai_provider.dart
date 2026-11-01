@@ -2352,6 +2352,9 @@ class CloudAIAdapter implements AIAdapter {
     return chunks;
   }
 
+  /// Whole-note editing is a single bounded request, never silent truncation.
+  static const maxRewriteCharacters = 12000;
+
   /// One note, edited — the whole of it in, the whole of it back.
   ///
   /// What each style means and what it is forbidden from doing lives in
@@ -2369,10 +2372,16 @@ class CloudAIAdapter implements AIAdapter {
   }) => NexDisclosureLog.about(() async {
     final source = text.trim();
     if (!canAnswerText || source.isEmpty) return null;
+    if (source.length > maxRewriteCharacters) {
+      throw const AiUnavailableException(
+        'The note is too long for a single complete rewrite.',
+        AiFailureKind.tooLarge,
+      );
+    }
     final reply = await _complete(
       style.prompt,
       source,
-      maxTokens: math.min(4000, 300 + source.length),
+      maxTokens: math.min(8192, 512 + source.length),
       requireComplete: true,
       preserveMarkup: RegExp(
         r'<(?:think|thinking|analysis)>',
@@ -2383,7 +2392,14 @@ class CloudAIAdapter implements AIAdapter {
     );
     final edited = reply?.trim();
     if (edited == null || edited.isEmpty) return null;
-    return _notGarbled(edited);
+    // Short-answer checks reject valid amounts (10000) and markdown rules.
+    // Here, reject only newly introduced decoder stalls and lost values.
+    final stuck = RegExp(
+      r'(\p{L})\1{15,}',
+      unicode: true,
+    ).allMatches(edited).any((m) => !source.contains(m[0]!));
+    if (stuck || !NexRewriteStyle.preservesNumbers(source, edited)) return null;
+    return edited;
   }, purpose: DisclosurePurpose.rewrite);
 
   /// A real multi-turn exchange, normalised across all three wire shapes.
