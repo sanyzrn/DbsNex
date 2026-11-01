@@ -89,6 +89,37 @@ void main() {
     },
   );
 
+  for (final style in NexBriefStyle.values.where((style) => style.usesModel)) {
+    test(
+      '${style.name}: notes remain primary when habit context is present',
+      () async {
+        late http.Request sent;
+        final ai = adapter(
+          '📝 Finish the Nex search roadmap.',
+          onSend: (r) => sent = r,
+        );
+        await ai.digest(
+          'today | text #nex | Finish the search roadmap.\n'
+          'today | HABIT | {"name":"Drink water","todayAmount":4,"dailyGoal":8}',
+          style: style,
+          lines: 8,
+          words: 28,
+          includesHabits: true,
+          written: style.statesFacts ? '📝 Finish the Nex search roadmap.' : '',
+        );
+        final system =
+            ((jsonDecode(sent.body) as Map)['messages'] as List)
+                    .first['content']
+                as String;
+        expect(system, contains('notes are the primary subject'));
+        expect(system, contains('even without a DUE'));
+        expect(system, contains('most of the brief to notes'));
+        expect(system, contains('Do not reduce a rich set of notes'));
+        expect(system, isNot(contains('if only one thing is waiting')));
+      },
+    );
+  }
+
   for (final style in [NexBriefStyle.assistant, NexBriefStyle.custom]) {
     test(
       '${style.name}: Full keeps the pre-2.5 eight-line word budget',

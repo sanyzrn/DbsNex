@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.5.2
+
+- **Notes stay at the heart of your brief.** Preset summaries keep useful note content alongside optional habit progress. Full has room for more topics, and Plain report also includes recent notes without reminders.
+
 ## v2.5.1
 
 - **Habits in your brief, by choice.** Opt in to include relevant habit goals, progress and short statistics in the home summary and daily notification. Switching it off hides previous habit content while keeping the notes summary and independent reminders.

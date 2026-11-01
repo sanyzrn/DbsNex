@@ -124,7 +124,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     return TimelineScreenState.recapFingerprint(
       nexBriefSignature(
         source:
-            '$stableSource\n$facts\n'
+            'brief-2.5.2|$stableSource\n$facts\n'
             '${config.provider.wireName}|${config.resolvedBaseUrl}|${config.resolvedModel}|'
             '${prefs.aiSummaryUnlimited}|${prefs.briefStyle.statesFacts ? Localizations.localeOf(context) : ''}',
         style: prefs.briefStyle,
@@ -191,8 +191,9 @@ extension _TimelineAiHeader on TimelineScreenState {
         () => _aiSummaryText = prefs.aiDaySummaryText ?? _notesOnlyBrief(),
       );
     }
+    final notesSource = _aiRecapSource();
     final source = [
-      _aiRecapSource(),
+      notesSource,
       if (includesHabits) _habitBriefSource,
     ].where((s) => s.isNotEmpty).join('\n');
     if (source.isEmpty) return;
@@ -208,32 +209,53 @@ extension _TimelineAiHeader on TimelineScreenState {
       '\n'.allMatches(source).length + 1,
       ceiling: length.lines,
     );
-    final localHabitLines = includesHabits && !style.usesModel
-        ? (budget ~/ 2).clamp(1, 4)
-        : 0;
-    final written = style.statesFacts
+    final writtenBudget = style.usesModel
+        ? (budget - 1).clamp(1, budget)
+        : budget;
+    final habitLines = habitText.isEmpty ? <String>[] : habitText.split('\n');
+    final noteCount = notesSource.isEmpty
+        ? 0
+        : '\n'.allMatches(notesSource).length + 1;
+    // Notes keep the larger share; habits use spare room and never replace
+    // every ordinary note just because those notes have no reminder.
+    final habitBudget = !includesHabits
+        ? 0
+        : notesSource.isEmpty
+        ? writtenBudget
+        : (writtenBudget - noteCount).clamp(
+            1,
+            (writtenBudget ~/ 3).clamp(1, writtenBudget),
+          );
+    final noteBudget = (writtenBudget - habitBudget.clamp(0, habitLines.length))
+        .clamp(1, writtenBudget);
+    final noteReport = style.statesFacts
         ? nexBriefReport(
             nexBriefFacts(
               _model.all ?? _model.notes,
               commitments: _model.commitments,
             ),
             AppLocalizations.of(context),
-            maxLines: style.usesModel
-                ? (budget - 1).clamp(1, budget)
-                : (budget - localHabitLines).clamp(1, budget),
+            maxLines: noteBudget,
+            maxWords: length.words,
+            notes: _model.all ?? _model.notes,
             clock: (local) => nexDueClock(context, local),
           )
+        : null;
+    final noteLines = noteReport?.split('\n') ?? const <String>[];
+    final written = style.statesFacts
+        ? [
+            ...noteLines,
+            ...habitLines.take(
+              (writtenBudget - noteLines.length).clamp(0, writtenBudget),
+            ),
+          ].join('\n')
         : null;
     if (!style.usesModel) {
       if (mounted) {
         _rebuild(() {
           _aiSummaryLoading = false;
           _aiSummaryHasHabits = includesHabits;
-          _aiSummaryText = [
-            written ?? '',
-            if (localHabitLines > 0)
-              habitText.split('\n').take(localHabitLines).join('\n'),
-          ].where((s) => s.isNotEmpty).join('\n');
+          _aiSummaryText = written ?? '';
         });
       }
       _refreshDailyNudge();
@@ -576,6 +598,8 @@ extension _TimelineAiHeader on TimelineScreenState {
         ),
         AppLocalizations.of(context),
         maxLines: widget.preferences.briefLength.lines,
+        maxWords: widget.preferences.briefLength.words,
+        notes: _model.all ?? _model.notes,
         clock: (local) => nexDueClock(context, local),
       ) ??
       '';

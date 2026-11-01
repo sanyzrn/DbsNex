@@ -300,4 +300,6 @@ Assistant: a question is saved when sent. In cloud conversations, Stop stays ava
 
 ### Habits in the daily brief
 
+The selected length applies to the whole brief, including note lines and optional habit progress. Notes keep priority when both are present. **Plain report** includes concise excerpts of recent notes as well as due and unfinished items, without AI. **Facts plus one observation** and **Planner** keep those factual lines and add one model observation or next step. **Full** allows up to eight useful lines; a quieter library can stay shorter.
+
 In the smart-summary settings, **Use habits in the smart summary** is off by default. Turning it on includes relevant goals, progress and short statistics in the home brief and daily-summary notification. Habit notes and raw check-in history are not sent to AI. Turning it off also hides earlier habit content, while keeping the notes summary. Individual habit reminders are independent: their notifications name the habit, offer **Done** for ticks or **Log progress** for amounts, and **Remind later** (one hour). Module notification taps open the related item or section after unlocking Nex.
