@@ -10,8 +10,14 @@ class FoldedNote extends StatefulWidget {
     this.onTapLink,
     this.onHoldLink,
     this.onCopyCode,
+    this.markdown,
+    this.contentBuilder,
   });
   final String text;
+
+  /// Null detects markup; text files keep their declared format.
+  final bool? markdown;
+  final Widget Function(BuildContext, String)? contentBuilder;
   final void Function(String)? onTapLink;
   final NexLinkHold? onHoldLink;
   final void Function(String)? onCopyCode;
@@ -32,29 +38,33 @@ class _FoldedNoteState extends State<FoldedNote> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        NexSelectionArea(
-          child: nexLooksLikeMarkdown(text)
-              ? NexMarkdown(
-                  text,
-                  selectable: false,
-                  preserveLineBreaks: true,
-                  onTapLink: widget.onTapLink,
-                  onHoldLink: widget.onHoldLink,
-                  onCopyCode: widget.onCopyCode,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                )
-              : NexLinkText(
-                  text,
-                  selectable: false,
-                  onTapLink: widget.onTapLink,
-                  onHoldLink: widget.onHoldLink,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                ),
-        ),
+        if (widget.contentBuilder != null)
+          widget.contentBuilder!(context, text)
+        else
+          NexSelectionArea(
+            levelHighlight: true,
+            child: (widget.markdown ?? nexLooksLikeMarkdown(text))
+                ? NexMarkdown(
+                    text,
+                    selectable: false,
+                    preserveLineBreaks: true,
+                    onTapLink: widget.onTapLink,
+                    onHoldLink: widget.onHoldLink,
+                    onCopyCode: widget.onCopyCode,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                  )
+                : NexLinkText(
+                    text,
+                    selectable: false,
+                    onTapLink: widget.onTapLink,
+                    onHoldLink: widget.onHoldLink,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                  ),
+          ),
         if (long)
           Align(
             alignment: AlignmentDirectional.centerStart,

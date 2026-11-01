@@ -121,8 +121,8 @@ extension NexNoteReminders on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: NexReminders._idFor(note.id),
-        title: title,
-        body: text,
+        title: nexNotificationText(title),
+        body: nexNotificationText(text),
         scheduledDate: NexReminders.scheduledDateFor(at),
         notificationDetails: NexReminderActions.noteDetails(
           body: text,

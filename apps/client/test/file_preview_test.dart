@@ -54,7 +54,10 @@ void main() {
           // A loading skeleton shimmers on a repeating controller, which
           // requests a frame forever — `pumpAndSettle` never returns while one
           // is on screen. Reduce-motion stops it, which is what this is.
-          data: const MediaQueryData(disableAnimations: true),
+          data: const MediaQueryData(
+            size: Size(800, 600),
+            disableAnimations: true,
+          ),
           child: Scaffold(
             body: NoteDetailSheet(
               services: services,
@@ -122,6 +125,30 @@ void main() {
       expect(find.byType(NexMarkdown), findsNothing);
       expect(find.textContaining('# milk'), findsOneWidget);
     });
+
+    for (final extension in ['md', 'txt', 'dart']) {
+      testWidgets('long .$extension preview expands and folds', (tester) async {
+        final source = '${'متن فارسی English. ' * 65}\nEND OF FILE';
+        await openFile(tester, 'long.$extension', text: source);
+        expect(find.textContaining('END OF FILE'), findsNothing);
+        await Scrollable.ensureVisible(
+          tester.element(find.text('More').first),
+          alignment: 0.5,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('More').first);
+        await tester.pumpAndSettle();
+        expect(find.textContaining('END OF FILE'), findsWidgets);
+        await Scrollable.ensureVisible(
+          tester.element(find.text('Less').first),
+          alignment: 0.5,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Less').first);
+        await tester.pumpAndSettle();
+        expect(find.textContaining('END OF FILE'), findsNothing);
+      });
+    }
 
     testWidgets('source is shown in a monospace block', (tester) async {
       await openFile(tester, 'main.dart', text: 'void main() {\n  run();\n}\n');
@@ -258,6 +285,28 @@ void main() {
       // Rendered as the heading it was styled as, without its hash.
       expect(find.textContaining('Chapter one'), findsWidgets);
       expect(find.textContaining('# Chapter one'), findsNothing);
+    });
+
+    testWidgets('long DOCX uses the same expandable preview', (tester) async {
+      nexDocxReader = (bytes) async => NexDocx.read(bytes);
+      await openFile(
+        tester,
+        'long.docx',
+        bytes: docxBytes(
+          '${'Document paragraph. ' * 65}END OF DOCUMENT',
+          'Normal',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('END OF DOCUMENT'), findsNothing);
+      await Scrollable.ensureVisible(
+        tester.element(find.text('More').first),
+        alignment: 0.5,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More').first);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('END OF DOCUMENT'), findsWidgets);
     });
 
     testWidgets('a PDF with no extension is recognized by its MIME type', (

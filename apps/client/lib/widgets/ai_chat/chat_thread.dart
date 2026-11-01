@@ -188,8 +188,7 @@ class _Thread extends StatelessWidget {
                 //
                 // Scrolling is unaffected. Selection here begins on a long
                 // press, so a finger dragged up the thread is still a scroll.
-                child: SelectionArea(
-                  contextMenuBuilder: nexSelectionMenu,
+                child: NexSelectionArea(
                   child: Builder(
                     builder: (context) {
                       // The on-colour that belongs to the container behind it.
@@ -212,6 +211,15 @@ class _Thread extends StatelessWidget {
                         return NexMarkdown(
                           content,
                           style: style,
+                          onCopyCode: (code) async {
+                            await Clipboard.setData(ClipboardData(text: code));
+                            if (context.mounted) {
+                              nexShowBanner(
+                                context,
+                                message: AppLocalizations.of(context).copied,
+                              );
+                            }
+                          },
                           // Selection belongs to the area around the bubble, not
                           // to the text inside it — which is what lets a link in a
                           // reply still answer a tap.

@@ -282,6 +282,8 @@ class TimelineScreenState extends State<TimelineScreen>
   /// chevron takes that over: an explicit open should not be undone by the
   /// scroll that follows it.
   bool _aiSummaryToggledByUser = false;
+  int _aiSummaryExpansion = 0;
+  bool _aiSummaryBeamPending = false;
 
   /// The four controls the first-run tour points at. Held here rather than
   /// created inline: a `GlobalKey` rebuilt every frame attaches to a new
@@ -792,4 +794,3 @@ class TimelineScreenState extends State<TimelineScreen>
 
   bool _pinchApplied = false;
 }
-

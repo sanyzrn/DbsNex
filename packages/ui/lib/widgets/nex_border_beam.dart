@@ -40,7 +40,13 @@ class NexBorderBeam extends StatefulWidget {
     this.token,
     this.period = const Duration(milliseconds: 3600),
     this.restsUnlit = false,
+    this.playOnMount = true,
+    this.onFinished,
   });
+
+  /// A remounted surface can retain its consumed run in its screen state.
+  final bool playOnMount;
+  final VoidCallback? onFinished;
 
   final Widget child;
   final BorderRadius borderRadius;
@@ -95,12 +101,15 @@ class _NexBorderBeamState extends State<NexBorderBeam>
     with SingleTickerProviderStateMixin {
   late final AnimationController _lap = AnimationController(
     vsync: this,
-    duration: widget.period,
+    duration: widget.period * widget.laps,
   )..addStatusListener(_onStatus);
+
+  late bool _hasPlayed = !widget.playOnMount;
 
   /// A light that goes out at rest has to be told the laps have ended: the
   /// last tick of the run is painted while the controller is still running.
   void _onStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) widget.onFinished?.call();
     if (widget.restsUnlit && mounted) setState(() {});
   }
 
@@ -114,7 +123,10 @@ class _NexBorderBeamState extends State<NexBorderBeam>
       if (_lap.isAnimating) _lap.stop();
       return;
     }
-    if (!_lap.isAnimating) _lap.repeat(count: widget.laps);
+    if (!_hasPlayed) {
+      _hasPlayed = true;
+      _lap.forward();
+    }
   }
 
   /// Back to the start and round again, for a [NexBorderBeam.token] that has
@@ -122,6 +134,7 @@ class _NexBorderBeamState extends State<NexBorderBeam>
   void _replay(BuildContext context) {
     _lap.stop();
     _lap.value = 0;
+    _hasPlayed = false;
     _play(context);
   }
 
@@ -134,7 +147,9 @@ class _NexBorderBeamState extends State<NexBorderBeam>
   @override
   void didUpdateWidget(NexBorderBeam old) {
     super.didUpdateWidget(old);
-    if (widget.period != old.period) _lap.duration = widget.period;
+    if (widget.period != old.period || widget.laps != old.laps) {
+      _lap.duration = widget.period * widget.laps;
+    }
     if (widget.token != old.token || (widget.active && !old.active)) {
       _replay(context);
     } else {
@@ -173,7 +188,16 @@ class _NexBorderBeamState extends State<NexBorderBeam>
                     ? const SizedBox.shrink()
                     : CustomPaint(
                         painter: _BeamPainter(
-                          turn: _lap.value,
+                          turn: _lap.value * widget.laps,
+                          opacity: widget.restsUnlit
+                              ? Curves.easeInOut.transform(
+                                  ((1 - _lap.value) *
+                                          (widget.period * widget.laps)
+                                              .inMilliseconds /
+                                          NexMotion.slow.inMilliseconds)
+                                      .clamp(0.0, 1.0),
+                                )
+                              : 1,
                           borderRadius: widget.borderRadius,
                           colors: widget.colors,
                           thickness: widget.thickness,
@@ -192,6 +216,7 @@ class _NexBorderBeamState extends State<NexBorderBeam>
 class _BeamPainter extends CustomPainter {
   const _BeamPainter({
     required this.turn,
+    required this.opacity,
     required this.borderRadius,
     required this.colors,
     required this.thickness,
@@ -199,6 +224,7 @@ class _BeamPainter extends CustomPainter {
   });
 
   final double turn;
+  final double opacity;
   final BorderRadius borderRadius;
   final List<Color> colors;
   final double thickness;
@@ -213,7 +239,9 @@ class _BeamPainter extends CustomPainter {
     final shape = borderRadius.toRRect(area).deflate(thickness / 2);
 
     Shader sweep(double alpha) => SweepGradient(
-      colors: [for (final c in colors) c.withValues(alpha: c.a * alpha)],
+      colors: [
+        for (final c in colors) c.withValues(alpha: c.a * alpha * opacity),
+      ],
       transform: GradientRotation(turn * 2 * math.pi),
     ).createShader(area);
 
@@ -240,6 +268,7 @@ class _BeamPainter extends CustomPainter {
   @override
   bool shouldRepaint(_BeamPainter old) =>
       old.turn != turn ||
+      old.opacity != opacity ||
       old.strength != strength ||
       old.thickness != thickness ||
       old.borderRadius != borderRadius ||

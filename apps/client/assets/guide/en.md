@@ -53,6 +53,8 @@ Tags group related notes and can carry any colour. **Library → Tags** shows ea
 
 ## Read, edit and share
 
+Long notes and text files (including Markdown, DOCX and source files) show a short preview. Tap **More** to read the rest and **Less** to fold it again. In assistant replies, tap an inline code snippet to copy only that snippet; the copy button below the reply still copies the whole message.
+
 Repeating reminder labels show **Daily · time** or the weekday and time beside a repeat icon; hold one for its full schedule. Tap outside selected text to clear the selection and its menu.
 
 Open an item for its exact date and time, tags, description and every action. The common actions are always visible; **More** holds the rest. **More → Details** says what the sheet does not: how long ago it was made and last changed, how long it is or how much of a list is ticked, and how much room it takes on the phone with its attachments. Select text to copy or format it. When you edit a note, the **Full screen** button gives the whole page to the text: the AI edits are behind one button at the bottom, next to Save. Open a photo to zoom with two fingers, drag to look around, and drag down to close it.

@@ -70,9 +70,7 @@ abstract final class NexReminderActions {
         channelDescription: words.remindersAbout,
         importance: Importance.high,
         priority: Priority.high,
-        styleInformation: body == null || body.isEmpty
-            ? null
-            : BigTextStyleInformation(body),
+        styleInformation: nexNotificationStyle(body),
         visibility: secret ? NotificationVisibility.secret : null,
         actions: androidActions(words, snoozable: !repeating),
       ),
@@ -87,6 +85,7 @@ abstract final class NexReminderActions {
         android: AndroidNotificationDetails(
           NexReminders._channelId,
           NexReminders._text.reminders,
+          styleInformation: nexNotificationStyle(null),
           channelDescription: NexReminders._text.remindersAbout,
           importance: Importance.high,
           priority: Priority.high,
@@ -216,8 +215,8 @@ abstract final class NexReminderActions {
     );
     Future<void> arm(AndroidScheduleMode mode) => plugin.zonedSchedule(
       id: NexReminders.snoozeIdFor(noteId),
-      title: title,
-      body: body,
+      title: nexNotificationText(title),
+      body: nexNotificationText(body),
       scheduledDate: at,
       notificationDetails: NexReminderActions.noteDetails(
         body: body,

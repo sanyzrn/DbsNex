@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'notification_text.dart';
+
 part 'reminders/scheduled_reminders.dart';
 part 'reminders/notice_reminders.dart';
 part 'reminders/note_reminders.dart';

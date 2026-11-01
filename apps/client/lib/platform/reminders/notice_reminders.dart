@@ -13,6 +13,7 @@ extension NexNoticeReminders on NexReminders {
       android: AndroidNotificationDetails(
         NexReminders._channelId,
         NexReminders._text.reminders,
+        styleInformation: nexNotificationStyle(null),
         channelDescription: NexReminders._text.remindersAbout,
         importance: Importance.high,
         priority: Priority.high,
@@ -22,15 +23,15 @@ extension NexNoticeReminders on NexReminders {
     try {
       await _plugin.show(
         id: NexReminders._testId,
-        title: title,
-        body: body,
+        title: nexNotificationText(title),
+        body: nexNotificationText(body),
         notificationDetails: details,
       );
       final when = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
       await _plugin.zonedSchedule(
         id: NexReminders._testId + 1,
-        title: title,
-        body: body,
+        title: nexNotificationText(title),
+        body: nexNotificationText(body),
         scheduledDate: when,
         notificationDetails: details,
         androidScheduleMode: _scheduleMode,
@@ -62,12 +63,13 @@ extension NexNoticeReminders on NexReminders {
     try {
       await _plugin.show(
         id: NexReminders._updateId,
-        title: title,
-        body: body ?? '$percent%',
+        title: nexNotificationText(title),
+        body: nexNotificationText(body ?? '$percent%'),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             NexReminders._updateChannelId,
             NexReminders._text.updates,
+            styleInformation: nexNotificationStyle(null),
             channelDescription: NexReminders._text.updatesAbout,
             importance: Importance.low,
             priority: Priority.low,
@@ -100,12 +102,13 @@ extension NexNoticeReminders on NexReminders {
     try {
       await _plugin.show(
         id: NexReminders._updateId,
-        title: title,
-        body: body,
+        title: nexNotificationText(title),
+        body: nexNotificationText(body),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             NexReminders._updateChannelId,
             NexReminders._text.updates,
+            styleInformation: nexNotificationStyle(null),
             channelDescription: NexReminders._text.updatesAbout,
             importance: Importance.high,
             priority: Priority.high,

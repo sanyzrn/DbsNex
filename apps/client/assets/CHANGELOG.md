@@ -36,6 +36,11 @@ Working convention:
 
 ## v2.5.0
 
+- Long text-file previews, including Markdown, DOCX and source files, use the same More/Less control as long notes.
+- Tap inline code in an assistant reply to copy just that snippet, with a confirmation.
+- The smart-summary border moves once when you expand the card, fades out smoothly, and stays quiet when you return from an item.
+- Notification titles and bodies align to their own text language, including Persian in an English phone interface.
+- Multiline note selections have an even highlight across mixed font runs while keeping selection and copying intact.
 - Calendar days remain separate TalkBack controls, including at the start of a month.
 - Nex AI summaries keep important decisions, figures, dates and next actions, with a length that follows the content. Short notes no longer show an unnecessary Summarize tool.
 - Translation detects source languages and offers 36 searchable target languages. Your last choice is remembered, with a different language suggested for a same-language source.

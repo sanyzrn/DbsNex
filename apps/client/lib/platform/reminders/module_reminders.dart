@@ -21,13 +21,14 @@ extension NexModuleAlarms on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: moduleId(module, key),
-        title: title,
-        body: body,
+        title: nexNotificationText(title),
+        body: nexNotificationText(body),
         scheduledDate: NexReminders.scheduledDateFor(at.toUtc()),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             NexReminders._channelId,
             NexReminders._text.reminders,
+            styleInformation: nexNotificationStyle(null),
             channelDescription: NexReminders._text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,

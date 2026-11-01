@@ -43,8 +43,8 @@ extension NexScheduledReminders on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: NexReminders._dailyId,
-        title: title,
-        body: body.isEmpty ? null : body,
+        title: nexNotificationText(title),
+        body: nexNotificationText(body.isEmpty ? null : body),
         scheduledDate: when,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
@@ -58,9 +58,7 @@ extension NexScheduledReminders on NexReminders {
             // set, Android shows one line of it and offers no way to reach
             // the rest, so the mornings with the most in them would be the
             // ones the notification said least about.
-            styleInformation: body.isEmpty
-                ? null
-                : BigTextStyleInformation(body),
+            styleInformation: nexNotificationStyle(body),
           ),
           iOS: const DarwinNotificationDetails(),
         ),
@@ -140,7 +138,7 @@ extension NexScheduledReminders on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: id,
-        title: NexReminders._clamp(commitment.title, 60),
+        title: nexNotificationText(NexReminders._clamp(commitment.title, 60)),
         scheduledDate: NexReminders.scheduledDateFor(at.toUtc()),
         notificationDetails: NexReminderActions.commitmentDetails(
           secret: hideOnLockScreen?.call() ?? false,
@@ -197,13 +195,14 @@ extension NexScheduledReminders on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: NexReminders.cycleIdFor(key),
-        title: title,
-        body: body.isEmpty ? null : body,
+        title: nexNotificationText(title),
+        body: nexNotificationText(body.isEmpty ? null : body),
         scheduledDate: when,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             NexReminders._channelId,
             NexReminders._text.reminders,
+            styleInformation: nexNotificationStyle(null),
             channelDescription: NexReminders._text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
@@ -260,10 +259,14 @@ extension NexScheduledReminders on NexReminders {
     try {
       await _plugin.zonedSchedule(
         id: NexReminders.arrivalIdFor(note.id),
-        title: body.isEmpty
-            ? 'Nex'
-            : NexReminders._clamp(body.split('\n').first, 60),
-        body: body.isEmpty ? null : NexReminders._clamp(body, 1200),
+        title: nexNotificationText(
+          body.isEmpty
+              ? 'Nex'
+              : NexReminders._clamp(body.split('\n').first, 60),
+        ),
+        body: nexNotificationText(
+          body.isEmpty ? null : NexReminders._clamp(body, 1200),
+        ),
         scheduledDate: NexReminders.scheduledDateFor(note.releaseAt),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
@@ -272,9 +275,9 @@ extension NexScheduledReminders on NexReminders {
             channelDescription: NexReminders._text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
-            styleInformation: body.isEmpty
-                ? null
-                : BigTextStyleInformation(NexReminders._clamp(body, 1200)),
+            styleInformation: nexNotificationStyle(
+              NexReminders._clamp(body, 1200),
+            ),
             visibility: hideOnLockScreen?.call() ?? false
                 ? NotificationVisibility.secret
                 : null,
