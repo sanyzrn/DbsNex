@@ -39,6 +39,8 @@ class NexModulePlan {
         'parking' => l10n.planParkingTitle,
         'telegram' => l10n.planTelegramTitle,
         'prompt-studio' => l10n.planPromptStudioTitle,
+        'cheque-manager' => l10n.planChequeManagerTitle,
+        'language-learning' => l10n.planLanguageLearningTitle,
         'words' => l10n.planWordsTitle,
         'medicine' => l10n.planMedicineTitle,
         'warranty' => l10n.planWarrantyTitle,
@@ -57,6 +59,8 @@ class NexModulePlan {
         'parking' => l10n.planParkingAbout,
         'telegram' => l10n.planTelegramAbout,
         'prompt-studio' => l10n.planPromptStudioAbout,
+        'cheque-manager' => l10n.planChequeManagerAbout,
+        'language-learning' => l10n.planLanguageLearningAbout,
         'words' => l10n.planWordsAbout,
         'medicine' => l10n.planMedicineAbout,
         'warranty' => l10n.planWarrantyAbout,
@@ -67,6 +71,18 @@ class NexModulePlan {
 
 /// What is coming, nearest first.
 const List<NexModulePlan> nexModulePlans = [
+  NexModulePlan(
+    'cheque-manager',
+    Icons.receipt_long_outlined,
+    NexHue.sky,
+    NexModuleStage.soon,
+  ),
+  NexModulePlan(
+    'language-learning',
+    Icons.translate_outlined,
+    NexHue.violet,
+    NexModuleStage.soon,
+  ),
   // A plain request in, a well-made prompt out, through the person's own AI
   // provider. Planned for after the assistant's tools settle.
   NexModulePlan(

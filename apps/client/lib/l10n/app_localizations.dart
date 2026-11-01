@@ -7424,6 +7424,30 @@ abstract class AppLocalizations {
   /// **'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.'**
   String get planTelegramAbout;
 
+  /// Coming-soon module: Iranian cheque management
+  ///
+  /// In en, this message translates to:
+  /// **'Cheque manager'**
+  String get planChequeManagerTitle;
+
+  /// Coming-soon module: Iranian cheque management
+  ///
+  /// In en, this message translates to:
+  /// **'Track incoming and outgoing cheques, due dates and collection status, with Persian-calendar dates and reminders tailored to the Iranian market.'**
+  String get planChequeManagerAbout;
+
+  /// Coming-soon module: advanced language learning
+  ///
+  /// In en, this message translates to:
+  /// **'Language learning'**
+  String get planLanguageLearningTitle;
+
+  /// Coming-soon module: advanced language learning
+  ///
+  /// In en, this message translates to:
+  /// **'Learn and review a language through short lessons and exercises, learning cards on the home screen and interactive notification reminders.'**
+  String get planLanguageLearningAbout;
+
   /// Planned module title: turns a plain request into a well-made AI prompt
   ///
   /// In en, this message translates to:

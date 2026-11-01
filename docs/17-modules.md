@@ -136,7 +136,7 @@ alerts and per-prayer settings. It is a catalogue preview only, not an enabled
 module: it has no install/open action, location request or scheduled alert yet.
 
 
-## Habit briefs and notification destinations (2.5.2)
+## Habit briefs and notification destinations (2.5.1)
 
 Habits enter the home smart brief and daily-summary notification only when
 `brief.useHabits` is explicitly enabled (off by default) and the module is on.

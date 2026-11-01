@@ -179,3 +179,17 @@ completed.
   module is integrated.
 - Some original READMEs refer to a `review/VALIDATION.md` that was not included in
   the supplied archive. Use the checked-in tests and current integration checks.
+
+
+## Coming-soon requests (unreleased 2.5.1)
+
+These are catalogue entries only: no module implementation, permissions,
+background work or notifications are enabled by adding them.
+
+- **Iranian cheque manager** (`cheque-manager`): incoming/outgoing cheques,
+  Jalali due dates, collection status and configurable reminders for Iran.
+  Banking or Sayad integration requires a separate feasibility review.
+- **Advanced language learning** (`language-learning`): short lessons, practice
+  and review, an optional learning card on the home screen, and interactive
+  notification exercises. Review reuse or extension of Word by Word before
+  choosing an implementation; this listing does not change the existing module.

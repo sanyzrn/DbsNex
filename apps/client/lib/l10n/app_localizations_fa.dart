@@ -4646,6 +4646,20 @@ class AppLocalizationsFa extends AppLocalizations {
       'پیامی را به ربات تلگرام خودتان بفرستید تا به‌صورت یادداشت در Nex بنشیند. ربات و توکن مال خودتان است و مستقیم از همین گوشی خوانده می‌شود، بدون هیچ سروری از ما در میان.';
 
   @override
+  String get planChequeManagerTitle => 'مدیریت چک';
+
+  @override
+  String get planChequeManagerAbout =>
+      'ثبت و پیگیری چک‌های دریافتی و پرداختی، سررسیدها و وضعیت وصول، با تاریخ شمسی و یادآوری؛ متناسب با نیاز بازار ایران.';
+
+  @override
+  String get planLanguageLearningTitle => 'آموزش زبان';
+
+  @override
+  String get planLanguageLearningAbout =>
+      'یادگیری و مرور زبان با درس‌ها و تمرین‌های کوتاه، کارت آموزشی در صفحهٔ اصلی و یادآوری‌های تعاملی در اعلان‌ها.';
+
+  @override
   String get planPromptStudioTitle => 'کارگاه پرامپت';
 
   @override

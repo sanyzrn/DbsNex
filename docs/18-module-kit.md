@@ -196,7 +196,7 @@ writes before cleanup. Unknown or malformed journals are copied to
 are preserved there byte-for-byte. Never replay a partly validated journal.
 
 
-## Habit briefs and notification destinations (2.5.2)
+## Habit briefs and notification destinations (2.5.1)
 
 Habits enter the home smart brief and daily-summary notification only when
 `brief.useHabits` is explicitly enabled (off by default) and the module is on.

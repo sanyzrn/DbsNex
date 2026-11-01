@@ -7,6 +7,7 @@ import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/app.dart';
 import 'package:nex_client/platform/app_lock.dart';
 import 'package:nex_client/modules/habits/habit_detail_screen.dart';
+import 'package:nex_client/modules/occasions/occasion_detail.dart';
 import 'package:nex_client/modules/habits/habit_model.dart';
 import 'package:nex_client/modules/nex_module_store.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
@@ -281,6 +282,34 @@ void main() {
       isEmpty,
       reason: 'opening progress must not save it',
     );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a birthday notification opens that exact occasion', (
+    tester,
+  ) async {
+    await h.preferences.setModuleOn('occasions', true);
+    final occasions = NexModuleStore(h.services, 'occasions');
+    await occasions.put('occasion', 'birthday', {
+      'title': 'Birthday notification destination',
+      'kind': 'birthday',
+      'calendar': 'gregorian',
+      'month': 11,
+      'day': 1,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+    h.services.reminders.debugLaunchModule(
+      const NexModuleTarget(
+        'occasions',
+        kind: 'occasion',
+        id: 'birthday',
+        key: 'birthday:day',
+      ),
+    );
+    await tester.pumpWidget(h.app());
+    await tester.pumpAndSettle();
+    expect(find.byType(OccasionDetailScreen), findsOneWidget);
+    expect(find.text('Birthday notification destination'), findsWidgets);
     await tester.pumpWidget(const SizedBox());
   });
 
