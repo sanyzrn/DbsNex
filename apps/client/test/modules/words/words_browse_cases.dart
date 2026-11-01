@@ -10,6 +10,10 @@ void _registerBrowseCases(
   testWidgets('search and the status filters find what is there', (
     tester,
   ) async {
+    final now = DateTime.now();
+    String day(int offset) => DateTime(
+      now.year, now.month, now.day + offset,
+    ).toIso8601String().substring(0, 10);
     final store = NexModuleStore(getHarness().services, 'words');
     Future<void> add(String id, String word, String meaning, String due) =>
         store.put('card', id, {
@@ -26,16 +30,16 @@ void _registerBrowseCases(
                   {'at': '2026-10-01T09:00:00', 'g': 'good'},
                 ],
         });
-    await add('a', 'zephyr', 'a soft west wind', '2026-12-01');
+    await add('a', 'zephyr', 'a soft west wind', day(30));
     await add('b', 'harbor', 'a safe port', ''); // new
-    await add('c', 'lantern', 'a light to carry', '2026-10-01'); // overdue
-    await add('d', 'pausable', 'can be paused', '2026-11-01');
+    await add('c', 'lantern', 'a light to carry', day(-1)); // overdue
+    await add('d', 'pausable', 'can be paused', day(10));
     await store.put('card', 'd2', {
       'schema': 1,
       'headword': 'rest',
       'language': 'English',
       'createdAt': '2026-10-01T10:00:00',
-      'due': '2026-11-01',
+      'due': day(10),
       'paused': true,
       'lastReview': '2026-10-01T09:00:00',
       'log': [
