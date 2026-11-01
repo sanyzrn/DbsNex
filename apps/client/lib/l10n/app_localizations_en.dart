@@ -6397,4 +6397,76 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get desktopNotes => 'Notes';
+
+  @override
+  String get translationAutoDetect => 'Auto-detect';
+
+  @override
+  String get translationDetecting => 'Detecting source languages…';
+
+  @override
+  String get translationChooseLanguage => 'Translation language';
+
+  @override
+  String get translationMoreLanguages => 'More languages';
+
+  @override
+  String get translationContinue => 'Continue translation';
+
+  @override
+  String get translationLongWarning =>
+      'This is a very long text! Translating all of it may take a while, and Nex may not be the best place for this much text. We can still continue if you like.';
+
+  @override
+  String get translationTooLarge =>
+      'This text exceeds Nex’s current limit of 100,000 characters. Split it into smaller notes to translate it completely.';
+
+  @override
+  String translationProgress(String done, String total) {
+    return 'Translated $done of $total parts. Completed parts stay available in this session.';
+  }
+
+  @override
+  String get aiFailureNetwork =>
+      'The connection to the AI service failed. Check the connection and try again.';
+
+  @override
+  String get aiFailureTimeout =>
+      'The AI service did not finish in time. Please try again; completed translation parts are kept.';
+
+  @override
+  String get aiFailureRateLimit =>
+      'The AI service’s usage limit was reached. Please try later or check your provider quota.';
+
+  @override
+  String get aiFailureCredentials =>
+      'The AI service refused access. Check your key and access to the selected model.';
+
+  @override
+  String get aiFailureUnsupported =>
+      'The AI service does not accept this media format. Try a supported format.';
+
+  @override
+  String get aiFailureTooLarge =>
+      'This file exceeds Nex’s safe upload limit or the service’s request-size limit. Use a smaller file or split the recording.';
+
+  @override
+  String get aiFailureMissingFile =>
+      'The media file is missing or empty. Please check the original file.';
+
+  @override
+  String get aiFailureUnknown =>
+      'The AI service could not complete this request. The exact cause is not available. You can try again.';
+
+  @override
+  String get aiImageUnreadable =>
+      'The image was processed, but no recognizable content could be described. Try a clearer image.';
+
+  @override
+  String get aiAudioNoSpeech =>
+      'The recording was processed, but no intelligible speech was returned. Try a clearer recording.';
+
+  @override
+  String get translationSuggestedLanguage =>
+      'A different target language was suggested because the source already uses your default language.';
 }

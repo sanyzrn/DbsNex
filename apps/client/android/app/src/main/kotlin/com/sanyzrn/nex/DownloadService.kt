@@ -10,6 +10,10 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.text.Layout
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.AlignmentSpan
 
 /**
  * Keeps the app's process running while an installer is being downloaded.
@@ -114,6 +118,17 @@ class DownloadService : Service() {
         private fun manager(context: Context): NotificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        // Override the system template's viewStart with paragraph alignment.
+        // Android then resolves Persian/English from each paragraph itself.
+        private fun alignedText(text: String): CharSequence = SpannableString(text).apply {
+            if (isNotEmpty()) {
+                setSpan(
+                    AlignmentSpan.Standard(Layout.Alignment.ALIGN_NORMAL),
+                    0, length, Spanned.SPAN_PARAGRAPH,
+                )
+            }
+        }
+
         @Suppress("DEPRECATION")
         private fun build(
             context: Context,
@@ -149,8 +164,8 @@ class DownloadService : Service() {
             )
             return builder
                 .setSmallIcon(R.drawable.ic_stat_nex)
-                .setContentTitle(title)
-                .setContentText(body ?: "$percent%")
+                .setContentTitle(alignedText(title))
+                .setContentText(alignedText(body ?: "$percent%"))
                 .setProgress(100, percent.coerceIn(0, 100), false)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)

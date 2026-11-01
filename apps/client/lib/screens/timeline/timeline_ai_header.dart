@@ -373,6 +373,8 @@ extension _TimelineAiHeader on TimelineScreenState {
     _rebuild(() {
       _aiSummaryToggledByUser = true;
       _aiSummaryCollapsed = !_aiSummaryCollapsed;
+      _aiSummaryBeamPending = !_aiSummaryCollapsed;
+      if (!_aiSummaryCollapsed) _aiSummaryExpansion++;
     });
     unawaited(widget.preferences.setDaySummaryFolded(_aiSummaryCollapsed));
   }
@@ -502,9 +504,10 @@ extension _TimelineAiHeader on TimelineScreenState {
         laps: 1,
         strength: 0.4,
         active: !_aiSummaryCollapsed,
-        token: _aiSummaryText,
-        // One lap when a brief lands, then the same hairline as the search
-        // field and the tags above it.
+        token: _aiSummaryExpansion,
+        playOnMount: _aiSummaryBeamPending,
+        onFinished: () => _aiSummaryBeamPending = false,
+        // Only an explicit expansion earns a run; refreshed words do not.
         restsUnlit: true,
         child: NexGlassSurface(
           blur: false,

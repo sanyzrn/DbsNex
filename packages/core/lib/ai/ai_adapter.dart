@@ -102,10 +102,28 @@ class NullAIAdapter implements AIAdapter {
 /// burns the slot forever — a rate-limited note became permanently
 /// unsearchable that way, silently, on exactly the day the user most wanted
 /// it. Throwing is what lets the caller leave the slot untouched.
+enum AiFailureKind {
+  unavailable,
+  network,
+  timeout,
+  rateLimit,
+  credentials,
+  unsupported,
+  tooLarge,
+  incomplete,
+  unreadableImage,
+  noSpeech,
+  missingFile,
+}
+
 class AiUnavailableException implements Exception {
-  const AiUnavailableException([this.message = 'AI provider unavailable']);
+  const AiUnavailableException([
+    this.message = 'AI provider unavailable',
+    this.kind = AiFailureKind.unavailable,
+  ]);
 
   final String message;
+  final AiFailureKind kind;
 
   @override
   String toString() => message;

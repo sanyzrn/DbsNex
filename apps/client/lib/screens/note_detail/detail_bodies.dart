@@ -457,27 +457,13 @@ class _FileTextBodyState extends State<_FileTextBody> {
       child: Padding(
         padding: const EdgeInsets.only(top: NexSpacing.sm),
         child: switch (widget.kind) {
-          NexFileKind.markdown => SelectionArea(
-            contextMenuBuilder: nexSelectionMenu,
-            child: NexMarkdown(
-              text,
-              selectable: false,
-              onTapLink: _openHref,
-              onHoldLink: (href, at) =>
-                  unawaited(_showLinkMenu(context, href, at)),
-              onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
-            ),
-          ),
-          // The same leading as a text note's body in this same sheet: a plain
-          // file someone shared and a note someone typed are both prose, and
-          // there is no reason to read them at two different densities.
-          NexFileKind.plainText => NexTextSurface(
-            text,
-            style: theme.textTheme.bodyLarge?.copyWith(height: 1.62),
-            // As selectable as the markdown branch beside it. A shared file is
-            // read here and nowhere else, so this is the only place its words
-            // can be taken from.
-            selectable: true,
+          NexFileKind.markdown || NexFileKind.plainText => FoldedNote(
+            text: text,
+            markdown: widget.kind == NexFileKind.markdown,
+            onTapLink: _openHref,
+            onHoldLink: (href, at) =>
+                unawaited(_showLinkMenu(context, href, at)),
+            onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
           ),
           NexFileKind.table when _rows.isNotEmpty => _DelimitedTable(
             rows: _rows,

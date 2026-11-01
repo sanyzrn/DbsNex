@@ -6,7 +6,7 @@ import 'package:nex_data/nex_data.dart';
 import 'package:test/test.dart';
 
 class _Reader implements AIAdapter {
-  int images = 0, audio = 0;
+  int images = 0, audio = 0, summaries = 0;
   bool fail = false;
   Completer<OCRText>? pending;
   Completer<Summary>? summaryPending;
@@ -37,7 +37,10 @@ class _Reader implements AIAdapter {
   @override
   Future<List<TagSuggestion>>? suggestTags(Note note) => null;
   @override
-  Future<Summary>? summarize(Note note) => summaryPending?.future;
+  Future<Summary>? summarize(Note note) {
+    summaries++;
+    return summaryPending?.future;
+  }
 }
 
 void main() {
@@ -90,6 +93,22 @@ void main() {
       ),
     );
   }
+
+  test('concurrent explicit summaries share one request', () async {
+    final photo = insert(NoteType.photo);
+    repo.setOcrText(
+      photo.id,
+      'Useful source with final decisions and future actions.',
+    );
+    reader.summaryPending = Completer<Summary>();
+    final first = ai.summarizeOnDemand(photo.id);
+    final second = ai.summarizeOnDemand(photo.id);
+    expect(reader.summaries, 1);
+    reader.summaryPending!.complete(const Summary(text: 'Final decisions.'));
+    expect((await first)?.text, 'Final decisions.');
+    expect((await second)?.text, 'Final decisions.');
+    expect(repo.getById(photo.id)!.summaryText, 'Final decisions.');
+  });
 
   test('capture and startup enrichment never read media', () async {
     final photo = insert(NoteType.photo);
@@ -173,7 +192,10 @@ void main() {
       final photo = insert(NoteType.photo);
       repo.setOcrText(photo.id, 'Earlier result');
       reader.fail = true;
-      expect(await ai.readMediaOnDemand(photo.id), isNull);
+      await expectLater(
+        ai.readMediaOnDemand(photo.id),
+        throwsA(isA<AiUnavailableException>()),
+      );
       expect(repo.getById(photo.id)!.ocrText, 'Earlier result');
       ai.updateCapabilities(AiCapabilities.allOff);
       expect(await ai.readMediaOnDemand(photo.id), isNull);

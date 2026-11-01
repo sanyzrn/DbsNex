@@ -21,6 +21,8 @@
 library;
 
 import 'package:flutter/material.dart';
+
+import 'nex_selection_highlight.dart';
 import 'package:flutter/rendering.dart' show SelectedContent;
 
 /// [items] without the entries other apps put there.
@@ -57,9 +59,11 @@ class NexSelectionArea extends StatefulWidget {
     super.key,
     required this.child,
     this.onSelectionChanged,
+    this.levelHighlight = false,
   });
 
   final Widget child;
+  final bool levelHighlight;
   final ValueChanged<SelectedContent?>? onSelectionChanged;
 
   @override
@@ -92,7 +96,9 @@ class _NexSelectionAreaState extends State<NexSelectionArea> {
       focusNode: _focus,
       contextMenuBuilder: nexSelectionMenu,
       onSelectionChanged: widget.onSelectionChanged,
-      child: widget.child,
+      child: widget.levelHighlight
+          ? NexSelectionHighlight(child: widget.child)
+          : widget.child,
     ),
   );
 }

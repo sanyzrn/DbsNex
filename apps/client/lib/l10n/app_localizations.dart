@@ -10033,6 +10033,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notes'**
   String get desktopNotes;
+
+  /// No description provided for @translationAutoDetect.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-detect'**
+  String get translationAutoDetect;
+
+  /// No description provided for @translationDetecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Detecting source languages…'**
+  String get translationDetecting;
+
+  /// No description provided for @translationChooseLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation language'**
+  String get translationChooseLanguage;
+
+  /// No description provided for @translationMoreLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'More languages'**
+  String get translationMoreLanguages;
+
+  /// No description provided for @translationContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue translation'**
+  String get translationContinue;
+
+  /// No description provided for @translationLongWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a very long text! Translating all of it may take a while, and Nex may not be the best place for this much text. We can still continue if you like.'**
+  String get translationLongWarning;
+
+  /// No description provided for @translationTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This text exceeds Nex’s current limit of 100,000 characters. Split it into smaller notes to translate it completely.'**
+  String get translationTooLarge;
+
+  /// No description provided for @translationProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Translated {done} of {total} parts. Completed parts stay available in this session.'**
+  String translationProgress(String done, String total);
+
+  /// No description provided for @aiFailureNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection to the AI service failed. Check the connection and try again.'**
+  String get aiFailureNetwork;
+
+  /// No description provided for @aiFailureTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI service did not finish in time. Please try again; completed translation parts are kept.'**
+  String get aiFailureTimeout;
+
+  /// No description provided for @aiFailureRateLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI service’s usage limit was reached. Please try later or check your provider quota.'**
+  String get aiFailureRateLimit;
+
+  /// No description provided for @aiFailureCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI service refused access. Check your key and access to the selected model.'**
+  String get aiFailureCredentials;
+
+  /// No description provided for @aiFailureUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI service does not accept this media format. Try a supported format.'**
+  String get aiFailureUnsupported;
+
+  /// No description provided for @aiFailureTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This file exceeds Nex’s safe upload limit or the service’s request-size limit. Use a smaller file or split the recording.'**
+  String get aiFailureTooLarge;
+
+  /// No description provided for @aiFailureMissingFile.
+  ///
+  /// In en, this message translates to:
+  /// **'The media file is missing or empty. Please check the original file.'**
+  String get aiFailureMissingFile;
+
+  /// No description provided for @aiFailureUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI service could not complete this request. The exact cause is not available. You can try again.'**
+  String get aiFailureUnknown;
+
+  /// No description provided for @aiImageUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The image was processed, but no recognizable content could be described. Try a clearer image.'**
+  String get aiImageUnreadable;
+
+  /// No description provided for @aiAudioNoSpeech.
+  ///
+  /// In en, this message translates to:
+  /// **'The recording was processed, but no intelligible speech was returned. Try a clearer recording.'**
+  String get aiAudioNoSpeech;
+
+  /// No description provided for @translationSuggestedLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'A different target language was suggested because the source already uses your default language.'**
+  String get translationSuggestedLanguage;
 }
 
 class _AppLocalizationsDelegate

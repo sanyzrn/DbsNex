@@ -6306,4 +6306,76 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get desktopNotes => 'یادداشت‌ها';
+
+  @override
+  String get translationAutoDetect => 'تشخیص خودکار';
+
+  @override
+  String get translationDetecting => 'در حال تشخیص زبان‌های متن…';
+
+  @override
+  String get translationChooseLanguage => 'زبان ترجمه';
+
+  @override
+  String get translationMoreLanguages => 'زبان‌های بیشتر';
+
+  @override
+  String get translationContinue => 'ادامه ترجمه';
+
+  @override
+  String get translationLongWarning =>
+      'این متن خیلی طولانیه! ترجمه کاملش ممکنه زمان‌بر باشه و نکس بهترین گزینه برای چنین حجم بزرگی نباشه. بااین‌حال، اگر مایل باشی می‌تونیم ادامه بدیم.';
+
+  @override
+  String get translationTooLarge =>
+      'این متن از محدودیت فعلی نکس، یعنی ۱۰۰٬۰۰۰ کاراکتر، بزرگ‌تر است. برای ترجمه کامل، آن را به چند یادداشت کوچک‌تر تقسیم کنید.';
+
+  @override
+  String translationProgress(String done, String total) {
+    return '$done بخش از $total بخش ترجمه شده است. بخش‌های تکمیل‌شده در همین نشست حفظ می‌شوند.';
+  }
+
+  @override
+  String get aiFailureNetwork =>
+      'ارتباط با سرویس هوش مصنوعی برقرار نشد. اتصال را بررسی و دوباره تلاش کنید.';
+
+  @override
+  String get aiFailureTimeout =>
+      'پردازش سرویس هوش مصنوعی در زمان مجاز تمام نشد. دوباره تلاش کنید؛ بخش‌های ترجمه‌شده حفظ شده‌اند.';
+
+  @override
+  String get aiFailureRateLimit =>
+      'محدودیت استفاده سرویس هوش مصنوعی رسیده است. کمی بعد تلاش کنید یا سهمیه سرویس را بررسی کنید.';
+
+  @override
+  String get aiFailureCredentials =>
+      'سرویس هوش مصنوعی دسترسی را نپذیرفت. کلید و دسترسی به مدل انتخابی را بررسی کنید.';
+
+  @override
+  String get aiFailureUnsupported =>
+      'سرویس هوش مصنوعی این فرمت فایل را نمی‌پذیرد. از فرمت پشتیبانی‌شده استفاده کنید.';
+
+  @override
+  String get aiFailureTooLarge =>
+      'این فایل از سقف امن ارسال نکس یا محدودیت حجم درخواست سرویس بزرگ‌تر است. فایل کوچک‌تری انتخاب کنید یا صوت را تقسیم کنید.';
+
+  @override
+  String get aiFailureMissingFile =>
+      'فایل اصلی پیدا نشد یا خالی است. فایل را بررسی کنید.';
+
+  @override
+  String get aiFailureUnknown =>
+      'سرویس هوش مصنوعی نتوانست این درخواست را کامل کند. علت دقیق مشخص نیست؛ می‌توانید دوباره تلاش کنید.';
+
+  @override
+  String get aiImageUnreadable =>
+      'تصویر پردازش شد، اما محتوای قابل‌تشخیصی برای توصیف به دست نیامد. تصویر واضح‌تری امتحان کنید.';
+
+  @override
+  String get aiAudioNoSpeech =>
+      'صوت پردازش شد، اما گفتار قابل‌تشخیصی برنگشت. ضبط واضح‌تری امتحان کنید.';
+
+  @override
+  String get translationSuggestedLanguage =>
+      'چون متن به زبان مقصد پیش‌فرض بود، زبان متفاوتی پیشنهاد شد.';
 }

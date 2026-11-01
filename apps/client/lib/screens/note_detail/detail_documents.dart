@@ -147,16 +147,13 @@ class _DocumentBodyState extends State<_DocumentBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SelectionArea(
-            contextMenuBuilder: nexSelectionMenu,
-            child: NexMarkdown(
-              document.markdown,
-              selectable: false,
-              onTapLink: _openHref,
-              onHoldLink: (href, at) =>
-                  unawaited(_showLinkMenu(context, href, at)),
-              onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
-            ),
+          FoldedNote(
+            text: document.markdown,
+            markdown: true,
+            onTapLink: _openHref,
+            onHoldLink: (href, at) =>
+                unawaited(_showLinkMenu(context, href, at)),
+            onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
           ),
           // A document that stops early with nothing said about it reads as a
           // document that is that short.
@@ -176,7 +173,10 @@ class _CodeBlock extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      FoldedNote(text: text, contentBuilder: _source);
+
+  Widget _source(BuildContext context, String text) {
     final theme = Theme.of(context);
     final base = theme.textTheme.bodyLarge ?? const TextStyle();
     return Container(

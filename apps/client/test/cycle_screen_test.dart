@@ -127,10 +127,17 @@ void main() {
     await harness.services.cycleEndPeriod(p.id, today());
     await reopen(tester);
 
-    final days = find.bySemanticsLabel(RegExp(r', today, Period$'));
+    // Off-screen semantics nodes are culled. Locate the widget first, then
+    // scroll it into view before checking the exposed TalkBack node.
+    final label = RegExp(r', today, Period$');
+    final days = find.byWidgetPredicate(
+      (widget) =>
+          widget is Semantics && label.hasMatch(widget.properties.label ?? ''),
+    );
     await scrollTo(tester, find.byType(CycleCalendar));
     await scrollTo(tester, days.first);
     final node = tester.getSemantics(days.first);
+    expect(node.getSemanticsData().label, matches(label));
     expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
     semantics.dispose();
   });

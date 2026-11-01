@@ -17,7 +17,7 @@ void main() {
     h = await NexTestHarness.create(name: 'parking_dates_');
     store = NexModuleStore(h.services, 'parking');
   });
-  tearDown(() => h.dispose);
+  tearDown(() => h.dispose());
 
   // 2024-02-29 08:30 UTC is 1402/12/10 in the Persian calendar. The test
   // zone is UTC, so the stored instant reads back as that same civil day.
@@ -113,11 +113,12 @@ void main() {
 
   testWidgets('a parking from today says today, in both words', (tester) async {
     final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
     await store.put('session', 's1', {
       'v': 1,
       'vehicle': 'Car',
       'place': 'Library',
-      'startedAt': now.subtract(const Duration(minutes: 90)).toIso8601String(),
+      'startedAt': startOfToday.toIso8601String(),
       'foundAt': now.toIso8601String(),
     });
     await pump(tester, ParkingScreen(store: store), const Locale('fa'));

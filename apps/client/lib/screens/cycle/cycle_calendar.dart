@@ -261,6 +261,7 @@ class _CycleCalendarState extends State<CycleCalendar> {
       if (hasNote) l10n.cycleDayLogged,
     ];
     return Semantics(
+      container: true,
       button: !future,
       label: state.join(
         Localizations.localeOf(context).languageCode == 'fa' ? '، ' : ', ',
