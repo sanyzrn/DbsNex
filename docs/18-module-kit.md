@@ -102,7 +102,9 @@ Values are what JSON holds. A date is stored as `toIso8601String()`.
 Records are:
 
 - carried in every backup;
-- never searched, embedded, shown on the timeline or read by the assistant;
+- never included in general search, embeddings, the note timeline or assistant tools;
+- a first-party, explicit opt-in may expose a bounded projection to the smart
+  brief; this exception never grants access to raw module records or history;
 - deleted together when someone removes the module and chooses to delete.
 
 ### What the API gives
@@ -192,3 +194,31 @@ typing for 250 ms and flush on close; final save/discard waits for in-flight
 writes before cleanup. Unknown or malformed journals are copied to
 `__recovery` before leaving the active queue; raw undecodable database bodies
 are preserved there byte-for-byte. Never replay a partly validated journal.
+
+
+## Habit briefs and notification destinations (2.5.2)
+
+Habits enter the home smart brief and daily-summary notification only when
+`brief.useHabits` is explicitly enabled (off by default) and the module is on.
+`HabitsBrief` projects at most 12 relevant active habits into names, schedules,
+goals, current progress and aggregate weekly consistency. Notes, descriptions
+and raw check history stay local. The same AI request receives that projection;
+no extra AI request is made. Report mode uses local progress within its existing
+line budget.
+
+Mixed AI caches are marked and a separate notes-only fallback is preserved.
+Disabling consent hides mixed caches immediately, rejects mixed requests already
+in flight and replaces the scheduled daily-summary body. It never disables the
+brief itself or an individual habit reminder.
+
+Module reminder payloads carry module, record kind/id, reminder key and day.
+A shared destination resolver handles cold and warm launches; the app lock holds
+the destination until unlock. Disabled modules stay disabled, and removed or
+archived items fall back to their module with an explanation.
+
+Binary habit notifications queue an idempotent completion per habit/day before
+being dismissed. The existing service graph applies the queue and rearms the
+habit reminder. Amount-based habits open the existing progress form without
+saving automatically. Snooze reuses the same destination and notification text,
+tries exact then inexact scheduling, and preserves the original notification if
+both fail. Reminder text metadata is pruned daily after 14 days.

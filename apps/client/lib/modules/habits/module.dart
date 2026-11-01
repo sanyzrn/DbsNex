@@ -268,6 +268,8 @@ const habitsStrings = NexModuleStrings(
     'reminderAt': 'At {time}',
     'reminderTitle': 'Habit',
     'reminderBody': 'A habit is waiting for today.',
+    'reminderNamed': 'Time for {name}.',
+    'reminderNamedProgress': '{name}: {done} of {goal} {unit}.',
     'reminderFailed':
         'The reminder was not set. Check notification permission.',
     'noArchived':
@@ -494,6 +496,8 @@ const habitsStrings = NexModuleStrings(
     'reminderAt': 'ساعت {time}',
     'reminderTitle': 'عادت',
     'reminderBody': 'یک عادت منتظر امروز شماست.',
+    'reminderNamed': 'وقتِ {name} است.',
+    'reminderNamedProgress': '{name}: {done} از {goal} {unit}.',
     'reminderFailed': 'یادآوری تنظیم نشد. مجوز اعلان را بررسی کنید.',
     'noArchived':
         'هنوز چیزی بایگانی نشده است. هر وقت خواستید، عادتی را از '

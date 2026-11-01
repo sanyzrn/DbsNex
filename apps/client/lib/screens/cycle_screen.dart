@@ -36,6 +36,8 @@ class CycleScreen extends StatefulWidget {
     required this.services,
     required this.preferences,
     this.today,
+    this.reminderKey,
+    this.reminderDay,
   });
 
   final NexServices services;
@@ -43,6 +45,8 @@ class CycleScreen extends StatefulWidget {
 
   /// For tests; the real today otherwise.
   final DateTime? today;
+  final String? reminderKey;
+  final DateTime? reminderDay;
 
   @override
   State<CycleScreen> createState() => _CycleScreenState();
@@ -50,6 +54,7 @@ class CycleScreen extends StatefulWidget {
 
 class _CycleScreenState extends State<CycleScreen> {
   bool _loading = true;
+  bool _reminderOpened = false;
   List<CyclePeriod> _periods = const [];
   CyclePrediction? _prediction;
   Set<CycleDate> _logged = const {};
@@ -107,6 +112,18 @@ class _CycleScreenState extends State<CycleScreen> {
       }
       _loading = false;
     });
+    if (!_reminderOpened && widget.reminderKey != null) {
+      _reminderOpened = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (widget.reminderKey!.startsWith('log')) {
+          final day = widget.reminderDay ?? _today;
+          if (!day.isAfter(_today)) unawaited(_openDay(day));
+        } else if (widget.reminderKey == 'pill') {
+          unawaited(_settings());
+        }
+      });
+    }
   }
 
   Future<void> _changed() async {

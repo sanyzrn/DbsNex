@@ -20,6 +20,13 @@ import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
 import 'brief_refresh.dart';
+import '../modules/habits/habit_brief.dart';
+import '../modules/nex_module_store.dart';
+import '../modules/habits/habit_model.dart';
+import '../modules/habits/habit_math.dart';
+import '../modules/habits/habit_reminder.dart';
+import '../l10n/app_localizations.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'install_source.dart';
 import 'full_backup.dart';
 import 'vault_store.dart';
@@ -52,6 +59,7 @@ part 'services/scheduled_services.dart';
 part 'services/cycle_services.dart';
 part 'services/note_services.dart';
 part 'services/ringing_services.dart';
+part 'services/habit_notification_services.dart';
 
 /// Thrown when sync is invoked before the device has been paired with a server.
 class SyncNotConfigured implements Exception {
@@ -114,6 +122,28 @@ class NexServices {
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;
   late final briefRefresh = NexBriefRefresh(_preferences);
+  Future<HabitsBrief>? _habitBrief;
+  Future<int>? _habitActionsPending;
+  String? _habitBriefDay;
+
+  Future<HabitsBrief> habitsForBrief() async {
+    await applyHabitActions();
+    if (!_preferences.briefHabitsAllowed) {
+      return HabitsBrief.empty;
+    }
+    final day = NexPreferences.daySummaryDateKey(DateTime.now());
+    if (_habitBriefDay != day) _habitBrief = null;
+    _habitBriefDay = day;
+    return _habitBrief ??=
+        HabitsBrief.read(
+          NexModuleStore(this, 'habits'),
+          DateTime.now(),
+        ).catchError((Object error) {
+          _habitBrief = null;
+          return HabitsBrief.empty;
+        });
+  }
+
   EditorDrafts? get editorDrafts => _preferences.editorDrafts;
   bool get solarCalendar => _preferences.solarCalendar;
 
@@ -161,6 +191,9 @@ class NexServices {
     String? kind,
   }) async {
     final result = await write;
+    if (module == 'habits' && kind != '__reminder' && kind != 'draft') {
+      _habitBrief = null;
+    }
     if (kind == 'draft') {
       if (!_moduleDraftController.isClosed) _moduleDraftController.add(module);
     } else if (kind != 'operation' && kind != '__recovery') {

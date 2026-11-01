@@ -44,11 +44,13 @@ class _NexModuleBriefState extends State<NexModuleBrief>
   void _attach() {
     _changes = widget.services.moduleChanges.listen((_) => unawaited(_load()));
     widget.preferences.addListener(_preferencesChanged);
-    _enabled = nexModulesOn(widget.preferences).map((m) => m.id).join(',');
+    _enabled =
+        '${nexModulesOn(widget.preferences).map((m) => m.id).join(',')}|${widget.preferences.briefHabitsAllowed}';
   }
 
   void _preferencesChanged() {
-    final enabled = nexModulesOn(widget.preferences).map((m) => m.id).join(',');
+    final enabled =
+        '${nexModulesOn(widget.preferences).map((m) => m.id).join(',')}|${widget.preferences.briefHabitsAllowed}';
     if (enabled == _enabled) return;
     _enabled = enabled;
     unawaited(_load());
@@ -86,6 +88,9 @@ class _NexModuleBriefState extends State<NexModuleBrief>
     ).whereType<NexStoredModule>().toList();
     final lines = <String>[];
     for (final module in modules) {
+      if (module.id == 'habits' && !widget.preferences.briefHabitsAllowed) {
+        continue;
+      }
       try {
         final line = await module.briefLine(
           NexModuleStore(services, module.id),

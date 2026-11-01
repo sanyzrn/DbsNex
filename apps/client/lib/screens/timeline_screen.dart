@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show ValueListenable, compute;
 import '../documents/text_import.dart';
 import '../platform/cycle_reminders.dart';
 import '../platform/reminders.dart';
+import '../platform/module_notification_route.dart';
 import '../platform/note_copy.dart';
 import '../platform/file_opener.dart';
 import '../platform/hold_menu.dart';
@@ -44,7 +45,7 @@ import '../platform/os_capture_bridge.dart';
 import '../platform/sharing.dart';
 import '../platform/update_service.dart';
 import '../widgets/ai_chat_sheet.dart';
-import '../widgets/module_brief.dart';
+
 import '../widgets/capture_sheet.dart';
 import '../widgets/capture_flick.dart';
 import '../widgets/card_strings.dart';
@@ -249,6 +250,10 @@ class TimelineScreenState extends State<TimelineScreen>
 
   /// The AI-generated recap under the headline — see [_loadAiSummary].
   String? _aiSummaryText;
+  String _habitBriefSource = '';
+  bool _habitBriefDirty = false;
+  bool _aiSummaryHasHabits = false;
+  StreamSubscription<String>? _habitBriefChanges;
   bool _aiSummaryLoading = false;
 
   /// The brief being asked for right now, so a pull that arrives while one
@@ -264,6 +269,7 @@ class TimelineScreenState extends State<TimelineScreen>
   String? _briefSettingsKey;
   int _setAsideTotal = 0; // read only while the home screen is empty
   String? _arrivalHeld; // a note a tap named while the lock was up
+  NexModuleTarget? _moduleArrivalHeld;
   Locale? _briefLocale;
   late final Future<void> _briefCommitmentsReady;
 
@@ -338,6 +344,14 @@ class TimelineScreenState extends State<TimelineScreen>
     _model.addListener(_onModelChanged);
     _wireRinging();
     widget.preferences.addListener(_onBriefPreferencesChanged);
+    _habitBriefChanges = widget.services.moduleChanges.listen((module) {
+      if (module == 'habits' &&
+          widget.preferences.briefHabitsAllowed &&
+          mounted) {
+        _habitBriefDirty = true;
+        unawaited(_loadAiSummary());
+      }
+    });
     // Fire and forget, and deliberately not awaited anywhere: the card that
     // is already cached draws on this frame, and a fetch that never comes
     // back changes nothing on screen.
@@ -385,6 +399,13 @@ class TimelineScreenState extends State<TimelineScreen>
           ),
         );
       });
+    }
+    widget.services.reminders.onOpenModule = _openModuleFromNotification;
+    final launchedModule = widget.services.reminders.takeLaunchModule();
+    if (launchedModule != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _openModuleFromNotification(launchedModule),
+      );
     }
     widget.services.reminders.onOpenNote = _openArrived;
     final launched = widget.services.reminders.takeLaunchNoteId();
@@ -758,6 +779,7 @@ class TimelineScreenState extends State<TimelineScreen>
     _sponsorReturn?.cancel();
     _aiSummaryWake?.cancel();
     widget.preferences.removeListener(_onBriefPreferencesChanged);
+    unawaited(_habitBriefChanges?.cancel());
     _model.removeListener(_onModelChanged);
     _unwireRinging();
     _refreshPulse.dispose();

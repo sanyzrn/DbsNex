@@ -31,6 +31,11 @@ abstract final class DailyNudge {
       await reminders.cancelDaily();
       return null;
     }
+    // A cached mixed response is never reused after permission is removed.
+    final habitsAllowed = preferences.briefHabitsAllowed;
+    if (!habitsAllowed && preferences.aiDaySummaryIncludesHabits) {
+      recap = preferences.lastRecap;
+    }
     final minutes = preferences.dailyNudgeMinutes;
     final l10n = AppLocalizations.of(context);
     await reminders.scheduleDaily(
@@ -39,6 +44,14 @@ abstract final class DailyNudge {
       title: _greeting(preferences, minutes),
       body: (recap ?? '').trim().isEmpty ? l10n.nudgeNothing : recap!.trim(),
     );
+    if (habitsAllowed && !preferences.briefHabitsAllowed && context.mounted) {
+      return apply(
+        context: context,
+        preferences: preferences,
+        reminders: reminders,
+        recap: preferences.lastRecap,
+      );
+    }
     // Handed back rather than left in the service for nobody to read. This
     // ran on every launch and every recap, and if the OS refused the alarm it
     // said so into a field with no callers — which is precisely how a

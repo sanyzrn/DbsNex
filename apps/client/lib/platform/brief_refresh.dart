@@ -124,6 +124,8 @@ class NexBriefRefresh {
     required String dateKey,
     required Future<String?> Function() request,
     bool force = false,
+    bool includesHabits = false,
+    String? notesOnlyFallback,
   }) {
     final pending = _pending;
     if (pending != null) return pending;
@@ -142,6 +144,9 @@ class NexBriefRefresh {
       } catch (_) {
         text = null;
       }
+      if (includesHabits && !preferences.briefHabitsAllowed) {
+        return NexBriefRefreshResult(preferences.aiDaySummaryText);
+      }
       if (text == null || text.isEmpty) {
         await preferences.setAiDaySummaryFailure(_clock());
         return NexBriefRefreshResult(
@@ -154,6 +159,8 @@ class NexBriefRefresh {
         dateKey: dateKey,
         at: _clock(),
         source: fingerprint,
+        includesHabits: includesHabits,
+        notesOnlyFallback: notesOnlyFallback,
       );
       return NexBriefRefreshResult(text, updated: true);
     }).then(completer.complete, onError: completer.completeError);

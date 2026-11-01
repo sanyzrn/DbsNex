@@ -1,5 +1,6 @@
 import 'modules/module_dates.dart';
 import 'platform/module_keep_up.dart';
+import 'platform/daily_nudge.dart';
 import 'platform/ui_text_scaler.dart';
 export 'widgets/app_lock_gate.dart' show appLockBarrierKey;
 
@@ -317,7 +318,25 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  bool? _lastBriefHabitsAllowed;
   void _refresh() {
+    final allowed = widget.preferences.briefHabitsAllowed;
+    if (_lastBriefHabitsAllowed != allowed) {
+      _lastBriefHabitsAllowed = allowed;
+      unawaited(widget.widgets?.refresh());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final context = _desktopNav.navigatorKey.currentContext;
+        if (!mounted || context == null) return;
+        unawaited(
+          DailyNudge.apply(
+            context: context,
+            preferences: widget.preferences,
+            reminders: widget.services.reminders,
+            recap: widget.preferences.lastRecap,
+          ),
+        );
+      });
+    }
     if (!widget.preferences.appLockEnabled) {
       _locked = false;
       unawaited(widget.preferences.setAppLockClosed(false));

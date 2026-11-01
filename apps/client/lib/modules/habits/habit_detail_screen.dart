@@ -24,10 +24,12 @@ class HabitDetailScreen extends StatefulWidget {
     super.key,
     required this.store,
     required this.habitId,
+    this.startLogAmount = false,
   });
 
   final NexModuleStore store;
   final String habitId;
+  final bool startLogAmount;
 
   @override
   State<HabitDetailScreen> createState() => _HabitDetailScreenState();
@@ -41,6 +43,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
   int _loadToken = 0;
   int _firstDay = DateTime.saturday;
   bool _writing = false;
+  bool _initialProgressShown = false;
 
   @override
   void initState() {
@@ -88,6 +91,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
               .toList()
             ..sort(newestCheckFirst);
     });
+    if (widget.startLogAmount &&
+        !_initialProgressShown &&
+        _habit!.counted &&
+        !_habit!.archived) {
+      _initialProgressShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_toggleToday());
+      });
+    }
   }
 
   /// Today's check-in, from this page exactly as from Today — including the

@@ -100,7 +100,7 @@ void main() {
     ratchet(
       'a Card(',
       count(RegExp(r'\bCard\(')),
-      4,
+      3,
       'Use NexPanel or the shelf widgets (tokens for corners, surface, padding).',
     );
   });

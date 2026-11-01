@@ -134,3 +134,31 @@ of the page opens the feedback sheet, for ideas.
 occasions and date conversion, prayer times for a chosen city, optional adhan
 alerts and per-prayer settings. It is a catalogue preview only, not an enabled
 module: it has no install/open action, location request or scheduled alert yet.
+
+
+## Habit briefs and notification destinations (2.5.2)
+
+Habits enter the home smart brief and daily-summary notification only when
+`brief.useHabits` is explicitly enabled (off by default) and the module is on.
+`HabitsBrief` projects at most 12 relevant active habits into names, schedules,
+goals, current progress and aggregate weekly consistency. Notes, descriptions
+and raw check history stay local. The same AI request receives that projection;
+no extra AI request is made. Report mode uses local progress within its existing
+line budget.
+
+Mixed AI caches are marked and a separate notes-only fallback is preserved.
+Disabling consent hides mixed caches immediately, rejects mixed requests already
+in flight and replaces the scheduled daily-summary body. It never disables the
+brief itself or an individual habit reminder.
+
+Module reminder payloads carry module, record kind/id, reminder key and day.
+A shared destination resolver handles cold and warm launches; the app lock holds
+the destination until unlock. Disabled modules stay disabled, and removed or
+archived items fall back to their module with an explanation.
+
+Binary habit notifications queue an idempotent completion per habit/day before
+being dismissed. The existing service graph applies the queue and rearms the
+habit reminder. Amount-based habits open the existing progress form without
+saving automatically. Snooze reuses the same destination and notification text,
+tries exact then inexact scheduling, and preserves the original notification if
+both fail. Reminder text metadata is pruned daily after 14 days.

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show DartPluginRegistrant;
 
@@ -11,12 +12,15 @@ import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'notification_text.dart';
+import 'module_notification.dart';
+export 'module_notification.dart';
 
 part 'reminders/scheduled_reminders.dart';
 part 'reminders/notice_reminders.dart';
 part 'reminders/note_reminders.dart';
 part 'reminders/module_reminders.dart';
 part 'reminders/reminder_actions.dart';
+part 'reminders/habit_notification_actions.dart';
 
 /// Brings a note back up at the time its owner asked for.
 ///
@@ -123,6 +127,16 @@ class NexReminders {
 
   /// Called when a recurring item's reminder is tapped while the app runs.
   void Function()? onOpenRecurring;
+  void Function(NexModuleTarget target)? onOpenModule;
+  NexModuleTarget? _launchModule;
+  NexModuleTarget? takeLaunchModule() {
+    final target = _launchModule;
+    _launchModule = null;
+    return target;
+  }
+
+  @visibleForTesting
+  void debugLaunchModule(NexModuleTarget target) => _launchModule = target;
 
   /// Called when the update notification is tapped.
   ///
@@ -363,6 +377,12 @@ class NexReminders {
       ),
       onDidReceiveBackgroundNotificationResponse: nexReminderActionInBackground,
       onDidReceiveNotificationResponse: (response) {
+        final module = NexModuleTarget.parse(response.payload);
+        if (module != null &&
+            response.actionId == NexHabitNotificationActions.progress) {
+          onOpenModule?.call(module.forProgress());
+          return;
+        }
         if (response.notificationResponseType ==
             NotificationResponseType.selectedNotificationAction) {
           unawaited(
@@ -375,6 +395,10 @@ class NexReminders {
           return;
         }
         final payload = response.payload;
+        if (module != null) {
+          onOpenModule?.call(module);
+          return;
+        }
         if (payload == _updatePayload) {
           onOpenUpdate?.call();
           return;
@@ -417,10 +441,17 @@ class NexReminders {
       final launch = await _plugin.getNotificationAppLaunchDetails();
       if (launch?.didNotificationLaunchApp ?? false) {
         final payload = launch?.notificationResponse?.payload;
+        final module = NexModuleTarget.parse(payload);
         // A cold tap on "ready to install" is the case that matters most for
         // the update notification, the same way it is for a reminder: the
         // phone was in a pocket and the app was not running.
-        if (payload == _updatePayload) {
+        if (module != null) {
+          _launchModule =
+              launch?.notificationResponse?.actionId ==
+                  NexHabitNotificationActions.progress
+              ? module.forProgress()
+              : module;
+        } else if (payload == _updatePayload) {
           _launchedFromUpdate = true;
         } else if (payload != null &&
             payload.startsWith(NexReminderActions.commitmentPrefix)) {
@@ -438,6 +469,11 @@ class NexReminders {
       lastError = 'launch details: $error';
     }
     _ready = true;
+    // Initialisation can finish after the timeline has attached its listener.
+    if (_launchModule != null && onOpenModule != null) {
+      final target = takeLaunchModule()!;
+      onOpenModule!(target);
+    }
   }
 
   /// Whether the last schedule attempt failed, and what it said.

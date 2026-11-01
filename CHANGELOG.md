@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.5.2
+
+- **Habits in your brief, by choice.** Opt in to include relevant habit goals, progress and short statistics in the home summary and daily notification. Switching it off hides previous habit content while keeping the notes summary and independent reminders.
+- **Useful habit reminders.** See which habit is due, mark a tick done, open an amount's progress form, or ask for a reminder later.
+- **Notifications open the right place.** Module notifications lead to their item or relevant section, including when Nex was closed, while respecting the app lock.
+
 ## v2.5.1
 
 - **Consistent home AI.** Greetings follow the app language even after a failed request. Changing the brief's length or style applies on return from settings, without waiting for the hourly refresh.
@@ -634,3 +640,4 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## v0.9.1
 
 - **Personalise and capture.** Adjust size and colour, edit photos, search by meaning and send feedback.
+

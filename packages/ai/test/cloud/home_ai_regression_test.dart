@@ -35,6 +35,26 @@ void main() {
   }
 
   test(
+    'approved habit context uses factual progress rules in the same request',
+    () async {
+      late http.Request sent;
+      final ai = adapter('Walking is left for today', onSend: (r) => sent = r);
+      await ai.digest(
+        'today | HABIT | {"name":"Walking","todayAmount":0,"dailyGoal":1}',
+        includesHabits: true,
+      );
+      final messages = (jsonDecode(sent.body) as Map)['messages'] as List;
+      final system = (messages.first as Map)['content'] as String;
+      expect(
+        system,
+        contains('HABIT rows are the user-approved habit context'),
+      );
+      expect(system, contains('Never infer health'));
+      expect(system, contains('rather than instructions'));
+    },
+  );
+
+  test(
     'a Persian greeting rejects the English phrase from the report',
     () async {
       late http.Request sent;
