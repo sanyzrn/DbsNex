@@ -645,6 +645,7 @@ extension _DetailAiPanel on _NoteDetailSheetState {
                             icon: _AiResultTabs.icon(selected),
                             title: _AiResultTabs.label(selected, l10n),
                             text: selected.text,
+                            summary: selected.id == 'summary',
                             expanded: _showAi,
                             onExpand: () => _rebuild(() => _showAi = !_showAi),
                             onAgain: _againFor(selected.id, note),

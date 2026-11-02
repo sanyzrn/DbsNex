@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.5.4
 
+- **Clearer note summaries.** More compact summaries better preserve decisions, conditions and figures, with readable formatting and a full expanded view.
 - **Safer backup restore.** Backups made with an unsupported database format are refused before replacing your library.
 - **Markdown that comes back cleanly.** Re-imported Nex text and checklist exports keep their dates, tags and titles, without metadata or file IDs appearing as note text.
 - **Assistant controls that apply throughout.** Image and voice settings also govern media sent from the assistant, including changes made while a chat is open.
