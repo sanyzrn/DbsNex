@@ -764,6 +764,9 @@ CREATE TABLE notes_rebuilt (
 
     try {
       _assertSqliteIntegrity(restoringPath);
+    } on NewerLibraryException {
+      if (restoring.existsSync()) restoring.deleteSync();
+      rethrow;
     } catch (e) {
       if (restoring.existsSync()) restoring.deleteSync();
       throw StateError(
@@ -803,8 +806,10 @@ CREATE TABLE notes_rebuilt (
     if (file.lengthSync() == 0) throw StateError('Empty database: $dbPath');
     try {
       _assertSqliteIntegrity(dbPath);
+    } on NewerLibraryException {
+      rethrow;
     } catch (e) {
-      // One failure type for every way a backup can be unusable. Opening a
+      // One corruption failure type; a valid newer library stays typed. Opening a
       // file that is not a database at all throws SqliteException from deep
       // inside the driver, and a caller deciding whether to abort a restore
       // should not have to know that.
@@ -812,7 +817,7 @@ CREATE TABLE notes_rebuilt (
     }
   }
 
-  /// Opens [dbPath] read-only and requires `PRAGMA integrity_check` → `ok`.
+  /// Requires integrity and a supported schema on a read-only probe.
   static void _assertSqliteIntegrity(String dbPath) {
     Database? probe;
     try {
@@ -824,6 +829,11 @@ CREATE TABLE notes_rebuilt (
       final result = rows.first.values.first?.toString() ?? '';
       if (result != 'ok') {
         throw StateError('integrity_check: $result');
+      }
+      final version =
+          probe.select('PRAGMA user_version').first.values.first as int;
+      if (version > schemaVersion) {
+        throw NewerLibraryException(version, schemaVersion);
       }
     } finally {
       probe?.dispose();

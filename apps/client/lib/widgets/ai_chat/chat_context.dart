@@ -296,7 +296,8 @@ extension _ChatContext on _AiChatSheetState {
   /// answers well; the note somebody opened the assistant *on* is the one
   /// they are asking about.
   List<NexChatAttachment> _imagesFor(Note note) {
-    if (!widget.preferences.aiProvider.supportsImages) {
+    if (!widget.preferences.effectiveAiCapabilities.ocr ||
+        !widget.preferences.aiProvider.supportsImages) {
       return const [];
     }
     final path = note.mediaUri;
@@ -342,7 +343,9 @@ extension _ChatContext on _AiChatSheetState {
     userIntroduction: widget.preferences.aiUserIntroduction,
     gentle: _gentle,
     notesContext: _context,
-    attachments: _attachments,
+    attachments: widget.preferences.effectiveAiCapabilities.ocr
+        ? _attachments
+        : const [],
     // Acting needs ids to act on. With no notes in context every id the model
     // could produce would be invented, which is the one thing the prompt
     // tells it not to do.

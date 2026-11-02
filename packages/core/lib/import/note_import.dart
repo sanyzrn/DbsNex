@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../models/checklist.dart';
 import '../models/note.dart';
+import 'nex_markdown.dart';
 
 /// One note read out of somebody else's export, before it becomes a [Note].
 ///
@@ -126,6 +127,11 @@ abstract final class NoteImport {
     var trashed = 0;
     var attachments = 0;
     var unreadable = 0;
+    final hasNexMarkdown = entries.any(
+      (entry) =>
+          entry.$1.replaceAll('\\', '/').contains('markdown/') &&
+          entry.$1.toLowerCase().endsWith('.md'),
+    );
 
     for (final (name, bytes) in entries) {
       if (!looksImportable(name)) continue;
@@ -137,6 +143,20 @@ abstract final class NoteImport {
         continue;
       }
       if (name.toLowerCase().endsWith('.json')) {
+        if (hasNexMarkdown && name.split('/').last == 'notes.json') {
+          try {
+            final manifest = jsonDecode(text);
+            if (manifest is Map &&
+                manifest['version'] is int &&
+                manifest['notes'] is List &&
+                manifest['tags'] is List &&
+                manifest['exported_at'] is String) {
+              continue;
+            }
+          } on FormatException {
+            // Report an unreadable file through the ordinary parser below.
+          }
+        }
         final result = _readKeepJson(text);
         switch (result.outcome) {
           case _Outcome.note:
@@ -319,29 +339,37 @@ abstract final class NoteImport {
   }
 
   static ImportedNote? _readMarkdown(String filename, String source) {
-    final body = source.trim();
+    final exported = NexMarkdown.read(source.trim());
+    final body = exported?.body ?? source.trim();
     if (body.isEmpty) return null;
+    final title = exported != null ? exported.title : _titleFrom(filename);
 
     // A markdown file whose every non-empty line is a task line is a
     // checklist, not a text note that happens to contain brackets. Nex's own
     // export writes them exactly this way, so its archives round-trip.
     final lines = body.split('\n').where((l) => l.trim().isNotEmpty).toList();
     final taskLine = RegExp(r'^\s*[-*]\s*\[[ xX]\]');
-    if (lines.length > 1 && lines.every(taskLine.hasMatch)) {
+    if ((exported?.type == 'checklist' ||
+            exported == null && lines.length > 1) &&
+        lines.every(taskLine.hasMatch)) {
       final items = parseChecklist(body);
       if (items.isNotEmpty) {
         return ImportedNote(
           type: NoteType.checklist,
           text: formatChecklist(items),
           items: items,
-          title: _titleFrom(filename),
+          title: title,
+          tags: exported?.tags ?? const [],
+          createdAt: exported?.createdAt,
         );
       }
     }
     return ImportedNote(
       type: NoteType.text,
       text: body,
-      title: _titleFrom(filename),
+      title: title,
+      tags: exported?.tags ?? const [],
+      createdAt: exported?.createdAt,
     );
   }
 
@@ -354,6 +382,11 @@ abstract final class NoteImport {
     var base = filename.split('/').last;
     final dot = base.lastIndexOf('.');
     if (dot > 0) base = base.substring(0, dot);
+    if (RegExp(
+      r'^[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$',
+    ).hasMatch(base)) {
+      return null;
+    }
     base = base.replaceAll(RegExp(r'[_-]+'), ' ').trim();
     if (base.isEmpty) return null;
     if (RegExp(r'^[\d\s]+$').hasMatch(base)) return null;

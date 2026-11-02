@@ -94,6 +94,21 @@ class NoteSearchController extends ChangeNotifier {
   String? _failure;
 
   Timer? _debounce;
+  Timer? _semanticTimer;
+  Completer<bool>? _semanticGate;
+  bool _semanticActive = false;
+
+  void _cancelSemantic() {
+    _semanticTimer?.cancel();
+    _semanticTimer = null;
+    final gate = _semanticGate;
+    _semanticGate = null;
+    if (gate != null && !gate.isCompleted) gate.complete(false);
+    if (_semanticActive) {
+      _semanticActive = false;
+      unawaited(services.cancelSemanticSearch());
+    }
+  }
 
   /// Guards against an older query resolving after a newer one and overwriting
   /// it — the classic search race.
@@ -177,11 +192,17 @@ class NoteSearchController extends ChangeNotifier {
 
   /// Coalesces keystrokes. Without it every character is a database round trip.
   void schedule() {
+    ++_request;
+    _cancelSemantic();
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 150), run);
+    _debounce = Timer(const Duration(milliseconds: 150), () {
+      unawaited(run(semanticDelay: const Duration(milliseconds: 300)));
+    });
   }
 
-  Future<void> run() async {
+  Future<void> run({Duration semanticDelay = Duration.zero}) async {
+    _debounce?.cancel();
+    _cancelSemantic();
     final current = ++_request;
     _pageFilters = null;
     hasMore = false;
@@ -213,7 +234,7 @@ class NoteSearchController extends ChangeNotifier {
       // Shown now unless there is nothing to show yet: "nothing matches"
       // flashing up before the meaning search answers would be wrong half
       // the time.
-      if (found.isNotEmpty || trimmed.isEmpty) {
+      {
         results = trimmed.isEmpty ? found.take(_pageSize).toList() : found;
         if (trimmed.isEmpty) {
           _pageFilters = filters;
@@ -223,7 +244,7 @@ class NoteSearchController extends ChangeNotifier {
         meaningOnly = const {};
         nearest = null;
         _failure = null;
-        _hasRun = true;
+        _hasRun = found.isNotEmpty || trimmed.runes.length < 3;
         notifyListeners();
       }
 
@@ -232,10 +253,27 @@ class NoteSearchController extends ChangeNotifier {
       // thing (W2.2). Without a provider this is the keyword ranking again,
       // and nothing on screen moves.
       List<Note> fused;
-      try {
-        fused = await services.fusedSearch(filters);
-      } catch (_) {
+      if (trimmed.runes.length < 3) {
         fused = found;
+      } else {
+        if (semanticDelay > Duration.zero) {
+          final gate = Completer<bool>();
+          _semanticGate = gate;
+          _semanticTimer = Timer(semanticDelay, () {
+            if (!gate.isCompleted) gate.complete(true);
+          });
+          if (!await gate.future || current != _request) return;
+          _semanticGate = null;
+          _semanticTimer = null;
+        }
+        _semanticActive = true;
+        try {
+          fused = await services.fusedSearch(filters);
+        } catch (_) {
+          fused = found;
+        } finally {
+          if (current == _request) _semanticActive = false;
+        }
       }
       if (current != _request) return;
       final byWord = {for (final note in found) note.id};
@@ -308,6 +346,7 @@ class NoteSearchController extends ChangeNotifier {
   /// Back to a blank search, without disposing anything.
   void clear() {
     ++_request;
+    _cancelSemantic();
     _pageFilters = null;
     hasMore = false;
     loadingMore = false;
@@ -328,6 +367,7 @@ class NoteSearchController extends ChangeNotifier {
   @override
   void dispose() {
     ++_request;
+    _cancelSemantic();
     _debounce?.cancel();
     query.dispose();
     super.dispose();

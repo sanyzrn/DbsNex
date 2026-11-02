@@ -423,6 +423,9 @@ class _Worker {
         arg('query')! as String,
         limit: arg('limit')! as int,
       ),
+      _DbCommand.cancelSemanticSearch => NexDbWorker._voided(
+        enrichment.cancelSemanticSearch,
+      ),
       _DbCommand.fusedSearch => await NexDbWorker._fusedSearch(
         repo,
         enrichment,

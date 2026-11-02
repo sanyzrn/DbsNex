@@ -364,6 +364,8 @@ abstract interface class NexDb {
   /// the query's embedding; without one it is the keyword ranking alone.
   Future<List<Note>> fusedSearch(SearchFilters filters);
 
+  Future<void> cancelSemanticSearch();
+
   Future<void> setAiCapabilities(AiCapabilities capabilities);
 
   /// Points the enrichment service at a provider.

@@ -142,6 +142,7 @@ enum _DbCommand {
   relatedNotes,
   semanticSearch,
   fusedSearch,
+  cancelSemanticSearch,
   setAiCapabilities,
   setAiProvider,
   setLocalEmbedder,
@@ -652,6 +653,7 @@ class NexDbWorker
     _DbCommand.relatedNotes,
     _DbCommand.semanticSearch,
     _DbCommand.fusedSearch,
+    _DbCommand.cancelSemanticSearch,
   };
 
   /// How long a close waits for background work before disposing the handle.

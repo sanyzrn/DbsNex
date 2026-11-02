@@ -22,8 +22,10 @@ extension _ChatSending on _AiChatSheetState {
   /// four providers cannot hear audio. A mic button that always failed would
   /// be worse than no mic button.
   bool get _canSpeak =>
+      widget.preferences.effectiveAiCapabilities.transcription &&
       !kIsWeb &&
-      (Platform.isAndroid || Platform.isIOS) &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS) &&
       widget.preferences.aiProvider.isUsable &&
       widget.preferences.aiProvider.supportsTranscription;
 
@@ -38,7 +40,7 @@ extension _ChatSending on _AiChatSheetState {
   /// not a note, and it has no business in the media directory that backups
   /// and the library read from.
   Future<void> _speak() async {
-    if (_sending || _transcribing || _voice != null) return;
+    if (!_canSpeak || _sending || _transcribing || _voice != null) return;
     final recorder = AudioRecorder();
     // The same silence as voice capture had, in the same words — see
     // `captureVoice`. Dictation is the only way to ask the assistant without
@@ -127,7 +129,7 @@ extension _ChatSending on _AiChatSheetState {
     await recorder.dispose();
     String text = '';
     try {
-      if (recorded != null) {
+      if (recorded != null && _canSpeak) {
         final transcript = await _adapter.transcribe(
           AudioRef(
             mediaUri: recorded,

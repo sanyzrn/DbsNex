@@ -91,9 +91,16 @@ class _KindChip extends StatelessWidget {
       button: true,
       child: Tooltip(
         message: label,
-        child: InkWell(
-          onTap: enabled ? onTap : null,
-          customBorder: const StadiumBorder(),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          // The empty margin remains tappable, with the same tap feedback.
+          // Only the visible capsule below owns ink and keyboard activation.
+          onTap: enabled
+              ? () {
+                  unawaited(Feedback.forTap(context));
+                  onTap();
+                }
+              : null,
           child: ConstrainedBox(
             constraints: const BoxConstraints(
               minWidth: nexMinTapTarget,
@@ -110,37 +117,48 @@ class _KindChip extends StatelessWidget {
                     tint,
                     t,
                   )!.withValues(alpha: enabled ? 1 : 0.38);
-                  return Container(
-                    padding: const EdgeInsetsDirectional.symmetric(
-                      horizontal: NexSpacing.sm + NexSpacing.xs,
-                      vertical: NexSpacing.sm,
-                    ),
-                    decoration: ShapeDecoration(
-                      shape: const StadiumBorder(),
-                      color: tint.withValues(alpha: 0.16 * t),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(_kindIcon(kind), size: 20, color: glyph),
-                        const SizedBox(width: NexSpacing.xs),
-                        ExcludeSemantics(
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: scheme.onSurface.withValues(
-                                alpha: enabled ? 1 : 0.38,
-                              ),
-                              // One weight for every chip: a bolder selected
-                              // label was wider, so the row jumped sideways the
-                              // instant a kind was tapped while its colour was
-                              // still fading in.
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                  return Material(
+                    type: MaterialType.transparency,
+                    shape: const StadiumBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: enabled ? onTap : null,
+                      customBorder: const StadiumBorder(),
+                      // The outer target owns the full accessible tap area.
+                      excludeFromSemantics: true,
+                      child: Ink(
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          horizontal: NexSpacing.sm + NexSpacing.xs,
+                          vertical: NexSpacing.sm,
                         ),
-                      ],
+                        decoration: ShapeDecoration(
+                          shape: const StadiumBorder(),
+                          color: tint.withValues(alpha: 0.16 * t),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_kindIcon(kind), size: 20, color: glyph),
+                            const SizedBox(width: NexSpacing.xs),
+                            ExcludeSemantics(
+                              child: Text(
+                                label,
+                                maxLines: 1,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: scheme.onSurface.withValues(
+                                    alpha: enabled ? 1 : 0.38,
+                                  ),
+                                  // One weight for every chip: a bolder selected
+                                  // label was wider, so the row jumped sideways the
+                                  // instant a kind was tapped while its colour was
+                                  // still fading in.
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   );
                 },

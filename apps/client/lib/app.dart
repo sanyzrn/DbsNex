@@ -1,5 +1,6 @@
 import 'modules/module_dates.dart';
 import 'platform/module_keep_up.dart';
+import 'platform/app_configuration.dart';
 import 'platform/daily_nudge.dart';
 import 'platform/ui_text_scaler.dart';
 export 'widgets/app_lock_gate.dart' show appLockBarrierKey;
@@ -145,6 +146,8 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // the gate leaves behind.
     if (_locked) unawaited(widget.preferences.setAppLockClosed(true));
     _applyWindowSecrecy();
+    _lastRootConfiguration = nexAppConfiguration(widget.preferences);
+    nexHapticsEnabled = widget.preferences.haptics;
     widget.preferences.addListener(_refresh);
     _updates.addListener(_announceDownload);
     // Quietly, on launch and whenever the app comes back — at most once a day.
@@ -317,7 +320,12 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   }
 
   bool? _lastBriefHabitsAllowed;
+  // Only preferences this root renders. Screens keep their own subscriptions;
+  // writing an AI cache, draft or haptics setting must not rebuild both themes.
+  Object? _lastRootConfiguration;
   void _refresh() {
+    nexHapticsEnabled = widget.preferences.haptics;
+    final wasLocked = _locked;
     final allowed = widget.preferences.briefHabitsAllowed;
     if (_lastBriefHabitsAllowed != allowed) {
       _lastBriefHabitsAllowed = allowed;
@@ -340,7 +348,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       unawaited(widget.preferences.setAppLockClosed(false));
     }
     _applyWindowSecrecy();
-    setState(() {});
+    final configuration = nexAppConfiguration(widget.preferences);
+    if (configuration != _lastRootConfiguration || wasLocked != _locked) {
+      _lastRootConfiguration = configuration;
+      setState(() {});
+    }
   }
 
   /// Withholds the window from the OS while there is something to withhold.
@@ -523,9 +535,6 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     );
   }
 
-  /// What the device would pick when the user has not chosen a language.
-  ///
-  /// `Localizations.localeOf` is not available above the [MaterialApp], so the
   /// What the status and navigation bar icons were last told to be.
   ///
   /// The same shape as [_secureWindow], and for the same reason: this is a
@@ -568,30 +577,16 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     );
   }
 
-  /// platform's own preference is resolved against the locales this app
-  /// actually ships.
-  Locale? _systemLocale(BuildContext context) {
-    for (final locale in View.of(context).platformDispatcher.locales) {
-      for (final supported in AppLocalizations.supportedLocales) {
-        if (supported.languageCode == locale.languageCode) return supported;
-      }
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Kept in step here rather than read at each call site: every widget that
-    // buzzes would otherwise need preferences in scope to answer a question
-    // the whole app answers the same way. This rebuilds on every preference
-    // change, which is exactly when the answer can move.
+    // Also refreshed directly when haptics changes, without rebuilding themes.
     nexHapticsEnabled = widget.preferences.haptics;
     final prefs = widget.preferences;
     // Persian is set in Vazirmatn, everything else in Inter. Following the
     // chosen locale rather than the note's own script is deliberate: this is
     // the interface's face, and a Persian note inside an English UI keeps its
     // direction (see NexTextSurface) without dragging the whole chrome with it.
-    final font = nexFontFor(prefs.locale ?? _systemLocale(context));
+    final font = nexFontFor(prefs.locale ?? nexSystemLocale(context));
     final accentSeed =
         nexParseTagColor(prefs.accentSeed) ??
         nexThemePresetSeed(prefs.themePreset);

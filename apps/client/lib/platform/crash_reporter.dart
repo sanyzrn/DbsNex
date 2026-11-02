@@ -20,6 +20,10 @@ class NexCrashLog {
 
   final File file;
   static Future<void> _handledTail = Future<void>.value();
+  static final _writes = <String, Future<void>>{};
+
+  /// Wait for this file's queued diagnostics before reading/exporting it.
+  Future<void> flush() => _writes[file.absolute.path] ?? Future<void>.value();
 
   /// Only a stable code location and exception type: never SQL, note content,
   /// credentials or provider response bodies. Existing bounds/dedup apply.
@@ -32,7 +36,7 @@ class NexCrashLog {
         : error.runtimeType.toString();
     final next = _handledTail.then((_) async {
       try {
-        (await open()).note(
+        await (await open()).note(
           'Handled $where: $type${detail == null ? '' : ' ($detail)'}',
         );
       } catch (_) {
@@ -71,7 +75,7 @@ class NexCrashLog {
   static Future<void> failed(String where, String detail) {
     final next = _handledTail.then((_) async {
       try {
-        (await open()).note('Failed $where ($detail)');
+        await (await open()).note('Failed $where ($detail)');
       } catch (_) {
         // Diagnostics must never break the original recovery path.
       }
@@ -124,13 +128,8 @@ class NexCrashLog {
   /// that only matters when something has already gone wrong belongs where
   /// someone will actually find it. Best-effort and capped like everything
   /// else here.
-  void note(String message) {
-    try {
+  Future<void> note(String message) =>
       _append('${DateTime.now().toUtc().toIso8601String()}\n$message');
-    } catch (_) {
-      // A log that cannot be written is not worth an exception.
-    }
-  }
 
   void _record(Object error, StackTrace stack, {String? context}) {
     // A logging failure must never become the crash it was trying to record.
@@ -145,18 +144,39 @@ class NexCrashLog {
         );
       if (!kReleaseMode && context != null) entry.writeln('while: $context');
       entry.write(stack);
-      _append(entry.toString());
+      unawaited(_append(entry.toString()));
     } catch (_) {
       // Nothing to do: the log is best-effort, not the point of the app.
     }
   }
 
-  void _append(String entry) {
-    final entries = _entries()..add(entry);
-    _dedupeNote(entries);
-    final kept = _bounded(entries);
-    file.parent.createSync(recursive: true);
-    file.writeAsStringSync(kept.map(redact).join(_separator));
+  Future<void> _append(String entry) {
+    final path = file.absolute.path;
+    final previous = _writes[path] ?? Future<void>.value();
+    final next = previous.then((_) async {
+      try {
+        final existing = await file.exists() ? await file.readAsString() : '';
+        final entries =
+            existing
+                .split(_separator)
+                .where((value) => value.trim().isNotEmpty)
+                .toList()
+              ..add(entry);
+        _dedupeNote(entries);
+        final kept = _bounded(entries);
+        await file.parent.create(recursive: true);
+        await file.writeAsString(kept.map(redact).join(_separator));
+      } catch (_) {
+        // A failed diagnostics write cannot poison the queue or recovery.
+      }
+    });
+    _writes[path] = next;
+    unawaited(
+      next.then((_) {
+        if (identical(_writes[path], next)) _writes.remove(path);
+      }),
+    );
+    return next;
   }
 
   List<String> _entries() {

@@ -171,6 +171,7 @@ class AboutScreen extends StatelessWidget {
                 subtitle: Text(l10n.shareDiagnosticsBody),
                 onTap: () async {
                   final log = await NexCrashLog.open();
+                  await log.flush();
                   if (!log.file.existsSync()) {
                     if (!context.mounted) return;
                     nexShowBanner(context, message: l10n.noDiagnosticsYet);

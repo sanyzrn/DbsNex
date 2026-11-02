@@ -12,15 +12,13 @@
   later change was still being written under that number; it moved to 2.1.15.)
 - Continue work on the shared `codex/2.0-polish` branch. Do not create a new
   branch for each change or module unless the owner explicitly requests it.
-- All 11 supplied add-ons are integrated under `apps/client/lib/modules/`,
-  and Birthdays & occasions (`occasions`) was built on the module kit. Since
-  2.2.0 only **Cycle** is available: Habits, Price Lens, Lent & Borrowed, Quit
-  Habits (`smoke_free`), Birthdays & occasions, Expenses, Gold, Words, Parking,
-  Medicine, Warranty and Maintenance are **Soon** again until each is finished
-  (real-device testing found they need more work). Their code is kept whole.
-  Preserve all source, installation choices and data; re-enabling one is adding
-  its id to `nexAvailableModuleIds` in `module_rollout.dart` after review.
-  `addons/README.md` tracks scope and limitations.
+- Available modules are **Cycle, Breathing break (Pause), Birthdays & occasions,
+  Word by Word and Habits** (`cycle`, `pause`, `occasions`, `words`, `habits`).
+  The authoritative rollout list is `apps/client/lib/modules/module_rollout.dart`;
+  installed and active modules are resolved through `nexModulesOn`.
+  Other modules remain **Soon** pending completion and device review. Preserve
+  their code, installation choices and data; never enable them just because
+  their source or translations exist. `addons/README.md` tracks scope.
 - **Every new or changed screen follows [`docs/16-design-language.md`](docs/16-design-language.md).**
   Sheets open with `nexShowSheet` (never `showModalBottomSheet`), pages are
   pushed with `NexPageRoute`, spacing and corners come from `NexSpacing` and

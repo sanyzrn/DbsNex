@@ -416,6 +416,10 @@ extension NexLibraryServices on NexServices {
   Future<List<Note>> fusedSearch(SearchFilters filters) =>
       worker.fusedSearch(filters);
 
+  Future<void> cancelSemanticSearch() async {
+    if (!_closed) await worker.cancelSemanticSearch();
+  }
+
   Future<void> refreshTimeline() async {
     if (_closed || _timelineController.isClosed) return;
     _timelineReads++;

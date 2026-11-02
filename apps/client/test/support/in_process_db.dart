@@ -671,6 +671,10 @@ class InProcessDb implements NexDb {
   }
 
   @override
+  Future<void> cancelSemanticSearch() async =>
+      _enrichment.cancelSemanticSearch();
+
+  @override
   Future<void> setAiCapabilities(AiCapabilities capabilities) async =>
       _enrichment.updateCapabilities(capabilities);
 

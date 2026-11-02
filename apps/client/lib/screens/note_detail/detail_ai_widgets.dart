@@ -205,6 +205,7 @@ class _AiResultCard extends StatelessWidget {
     this.onCaption,
     this.captionBusy = false,
     this.captionKey,
+    this.summary = false,
   });
 
   final IconData icon;
@@ -217,6 +218,7 @@ class _AiResultCard extends StatelessWidget {
   final VoidCallback? onCaption;
   final bool captionBusy;
   final Key? captionKey;
+  final bool summary;
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +232,10 @@ class _AiResultCard extends StatelessWidget {
         // three lines has nothing to open, and an arrow there does nothing.
         final measure =
             TextPainter(
-              text: TextSpan(text: text, style: style),
+              text: TextSpan(
+                text: summary ? NexMarkdownText.preview(text) : text,
+                style: style,
+              ),
               maxLines: _previewLines,
               textDirection: nexDirectionOf(text) ?? Directionality.of(context),
               textScaler: MediaQuery.textScalerOf(context),
@@ -296,7 +301,9 @@ class _AiResultCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: NexSpacing.xs),
-          if (expanded && long)
+          if (summary && (expanded || !long))
+            NexMarkdown(text, selectable: false, style: style)
+          else if (expanded && long)
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 320),
               child: SingleChildScrollView(
@@ -308,7 +315,7 @@ class _AiResultCard extends StatelessWidget {
             GestureDetector(
               onTap: long ? onExpand : null,
               child: NexTextSurface(
-                text,
+                summary ? NexMarkdownText.preview(text) : text,
                 maxLines: long ? _previewLines : null,
                 selectable: !long,
                 style: style,

@@ -33,6 +33,7 @@ class EnrichmentService {
   AiCapabilities _capabilities;
 
   void updateAdapter(AIAdapter adapter) {
+    cancelSemanticSearch();
     _adapter = adapter;
     // A different provider is a different vector space.
     _queryGeneration++;
@@ -45,6 +46,7 @@ class EnrichmentService {
   NoteEmbedder? _embedder;
 
   void updateEmbedder(NoteEmbedder? embedder) {
+    cancelSemanticSearch();
     _embedder = embedder;
     // Its own space, so the cached query vectors are from another one.
     _queryGeneration++;
@@ -66,7 +68,10 @@ class EnrichmentService {
     if (_embedder case final embedder?) {
       vector = await embedder.embedQuery(query);
     } else {
-      final call = _adapter.embed(query);
+      final adapter = _adapter;
+      final call = adapter is QueryEmbeddingAdapter
+          ? (adapter as QueryEmbeddingAdapter).embedQuery(query)
+          : adapter.embed(query);
       if (call == null) return null;
       vector = (await call).values;
     }
@@ -86,6 +91,14 @@ class EnrichmentService {
       _capabilities = capabilities;
 
   AiCapabilities get capabilities => _capabilities;
+
+  void cancelSemanticSearch() {
+    _queryGeneration++;
+    final adapter = _adapter;
+    if (adapter is QueryEmbeddingAdapter) {
+      (adapter as QueryEmbeddingAdapter).cancelQueryEmbedding();
+    }
+  }
 
   /// Run enabled enrichment for a single note. Safe to call fire-and-forget.
   Future<void> enrichNote(String noteId) async {
