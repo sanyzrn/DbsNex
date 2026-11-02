@@ -6,6 +6,11 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.5.3
 
+- **A visible summary timestamp.** The home summary shows how long ago its last successful AI update was, with minutes and hours and an exact time in its tooltip.
+- **Relevant habit settings.** The habit-sharing option appears only while Habits is active.
+- **Portrait rewrites stay visible.** Keep reading the current portrait while its replacement is written; the new text and traits appear on the same page.
+- **Useful pinned modules.** Compact home cards show local progress, review counts, upcoming occasions, the selected breathing session or cycle information in place of large module names.
+
 - **Still, a quieter theme.** Warm neutral surfaces and a soft sage accent, in light and dark. Cards, panels and menus have no decorative borders or shadows; focus and error states remain clear.
 - **Clearer Markdown conversion.** “Convert to Markdown” distinguishes converting a note inside Nex from saving a file to your device.
 - **Open PDF and DOCX with Nex.** Choose Nex from Android’s Open with menu to keep and read these documents, just like Markdown files.

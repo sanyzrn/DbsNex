@@ -45,6 +45,7 @@ import '../platform/os_capture_bridge.dart';
 import '../platform/sharing.dart';
 import '../platform/update_service.dart';
 import '../widgets/ai_chat_sheet.dart';
+import '../widgets/summary_updated_time.dart';
 
 import '../widgets/capture_sheet.dart';
 import '../widgets/capture_flick.dart';

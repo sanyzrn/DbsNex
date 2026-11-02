@@ -665,6 +665,13 @@ extension _TimelineAiHeader on TimelineScreenState {
             title: l10n.aiDaySummaryTitle,
             badge: l10n.aiDaySummaryBadge,
             byModel: widget.preferences.briefStyle.usesModel,
+            updatedAt:
+                widget.preferences.briefStyle.usesModel &&
+                    (!widget.preferences.aiDaySummaryIncludesHabits ||
+                        widget.preferences.briefHabitsAllowed)
+                ? widget.preferences.aiDaySummaryAt
+                : null,
+            solarCalendar: widget.services.solarCalendar,
           ),
         ),
       ),

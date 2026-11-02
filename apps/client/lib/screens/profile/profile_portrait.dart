@@ -48,10 +48,6 @@ class _ProfilePortraitState extends State<ProfilePortrait> {
   NexWritingStats? _stats;
   bool _writing = false;
 
-  /// Bumped when a new portrait has been written: the sections below are
-  /// rebuilt from scratch, so each plays its arrival again as it is seen.
-  int _generation = 0;
-
   @override
   void initState() {
     super.initState();
@@ -73,10 +69,7 @@ class _ProfilePortraitState extends State<ProfilePortrait> {
     final portrait = await widget.services.writePortrait();
     if (!mounted) return;
     setState(() => _writing = false);
-    if (portrait != null) {
-      // The new one assembles itself the way the first did.
-      setState(() => _generation++);
-    } else {
+    if (portrait == null) {
       nexShowBanner(
         context,
         message: AppLocalizations.of(context).portraitFailed,
@@ -125,7 +118,9 @@ class _ProfilePortraitState extends State<ProfilePortrait> {
       child: Padding(
         padding: const EdgeInsets.all(NexSpacing.lg),
         child: KeyedSubtree(
-          key: ValueKey(_generation),
+          // Keep staged sections mounted during a rewrite. Recreating them
+          // at the old scroll offset can leave new content at zero opacity.
+          key: const ValueKey('portrait-content'),
           child: NexAnimatedSize(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -143,12 +138,11 @@ class _ProfilePortraitState extends State<ProfilePortrait> {
                     Divider(color: scheme.primary.withValues(alpha: 0.15)),
                     const SizedBox(height: NexSpacing.md),
                   ],
-                  if (_writing)
-                    _Writing(label: l10n.portraitWriting)
-                  else if (portrait != null)
+                  if (portrait != null)
                     _Written(
                       portrait: portrait,
                       preferences: widget.preferences,
+                      writing: _writing,
                       // Always offered once there is enough to write from: a
                       // button that is only there with a model set up reads as
                       // missing, not as "set one up". Without a model it says so.
@@ -160,20 +154,21 @@ class _ProfilePortraitState extends State<ProfilePortrait> {
                             )
                           : null,
                     )
-                  else if (widget.services.portraitWritable)
+                  else if (!_writing && widget.services.portraitWritable)
                     _Ask(
                       onWrite: () => unawaited(_write()),
                       privacy: l10n.portraitPrivacy(
                         nexDigits('$_sample', persian: l10n.localeName == 'fa'),
                       ),
                     )
-                  else
+                  else if (!_writing)
                     Text(
                       l10n.portraitNeedsAi,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
+                  if (_writing) _Writing(label: l10n.portraitWriting),
                   const SizedBox(height: NexSpacing.md),
                   Text(
                     l10n.portraitDisclaimer,

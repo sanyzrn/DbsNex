@@ -181,6 +181,8 @@ class _AiDaySummaryPanel extends StatelessWidget {
     required this.title,
     required this.badge,
     required this.byModel,
+    this.updatedAt,
+    this.solarCalendar = false,
   });
 
   /// The card's name, over the brief.
@@ -190,6 +192,8 @@ class _AiDaySummaryPanel extends StatelessWidget {
   /// Nex's own arithmetic and does not wear it.
   final String badge;
   final bool byModel;
+  final DateTime? updatedAt;
+  final bool solarCalendar;
 
   final bool loading;
   final String? text;
@@ -236,6 +240,8 @@ class _AiDaySummaryPanel extends StatelessWidget {
                   byModel: byModel,
                   // A new brief makes the mark twinkle once.
                   token: text,
+                  updatedAt: text?.trim().isNotEmpty == true ? updatedAt : null,
+                  solarCalendar: solarCalendar,
                 ),
                 const SizedBox(height: NexSpacing.xs),
                 AnimatedSwitcher(
@@ -367,12 +373,16 @@ class _BriefHeader extends StatelessWidget {
     required this.badge,
     required this.byModel,
     required this.token,
+    this.updatedAt,
+    this.solarCalendar = false,
   });
 
   final String title;
   final String badge;
   final bool byModel;
   final Object? token;
+  final DateTime? updatedAt;
+  final bool solarCalendar;
 
   @override
   Widget build(BuildContext context) {
@@ -403,7 +413,7 @@ class _BriefHeader extends StatelessWidget {
         ),
       ),
     );
-    return ExcludeSemantics(
+    final heading = ExcludeSemantics(
       child: Row(
         children: [
           if (byModel)
@@ -421,37 +431,58 @@ class _BriefHeader extends StatelessWidget {
           else
             mark,
           const SizedBox(width: NexSpacing.sm),
-          Flexible(
-            child: Text(
-              title,
-              style: label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          Expanded(
+            child: Wrap(
+              spacing: NexSpacing.sm,
+              runSpacing: NexSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (byModel)
+                  DecoratedBox(
+                    key: const ValueKey('brief-ai-badge'),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(NexRadius.pill),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: NexSpacing.sm,
+                        vertical: 2,
+                      ),
+                      child: Text(
+                        badge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          if (byModel) ...[
-            const SizedBox(width: NexSpacing.sm),
-            DecoratedBox(
-              key: const ValueKey('brief-ai-badge'),
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(NexRadius.pill),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: NexSpacing.sm,
-                  vertical: 2,
-                ),
-                child: Text(
-                  badge,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        ],
+      ),
+    );
+    final at = updatedAt;
+    if (at == null) return heading;
+    return LayoutBuilder(
+      builder: (context, constraints) => Row(
+        children: [
+          Expanded(child: heading),
+          const SizedBox(width: NexSpacing.sm),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.45),
+            child: SummaryUpdatedTime(at: at, solarCalendar: solarCalendar),
+          ),
         ],
       ),
     );

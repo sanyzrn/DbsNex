@@ -162,3 +162,13 @@ habit reminder. Amount-based habits open the existing progress form without
 saving automatically. Snooze reuses the same destination and notification text,
 tries exact then inexact scheduling, and preserves the original notification if
 both fail. Reminder text metadata is pruned daily after 14 days.
+
+## Pinned home summaries (2.5.3)
+
+`PinnedTools` loads local facts only for installed, available and pinned modules.
+`pinned_module_summary.dart` uses existing habit, word, occasion and cycle arithmetic
+and breathing settings; it does not write module records or send AI requests.
+Updates follow module/cycle change streams, relevant preferences, resume and civil
+midnight. Generations discard stale loads after removal or locale changes.
+The compact shelf tile keeps its icon and uses two short lines in the title slot;
+module names remain in semantics. Private tools never query vault contents here.
