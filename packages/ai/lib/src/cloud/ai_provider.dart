@@ -856,7 +856,7 @@ bool aiTextAvailableWith(AiProviderConfig config) =>
 /// and this one only reads and writes text. They stay cloud-only and stay
 /// honestly unavailable, rather than being wired to something that would
 /// confidently invent a transcript.
-class CloudAIAdapter implements AIAdapter {
+class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   CloudAIAdapter({
     required this.config,
     AiOutputLanguage outputLanguage = AiOutputLanguage.auto,
@@ -1003,6 +1003,7 @@ class CloudAIAdapter implements AIAdapter {
 
   void close() {
     cancelChat();
+    cancelQueryEmbedding();
     if (_ownsClient) _client.close();
   }
 
@@ -3265,36 +3266,78 @@ class CloudAIAdapter implements AIAdapter {
     );
   }
 
-  Future<Vector> _embed(String text) async {
+  Completer<void>? _queryAbort;
+
+  @override
+  void cancelQueryEmbedding() {
+    final abort = _queryAbort;
+    _queryAbort = null;
+    if (abort != null && !abort.isCompleted) abort.complete();
+  }
+
+  @override
+  Future<Vector>? embedQuery(String text) {
+    cancelQueryEmbedding();
+    if (!config.isUsable || !config.supportsEmbeddings) return null;
+    final abort = Completer<void>();
+    _queryAbort = abort;
+    return NexDisclosureLog.about(
+      () => _embed(text, abortTrigger: abort.future),
+      purpose: DisclosurePurpose.searchIndex,
+    ).whenComplete(() {
+      if (identical(_queryAbort, abort)) cancelQueryEmbedding();
+    });
+  }
+
+  Future<http.Response> _postEmbedding(
+    Uri uri, {
+    required Map<String, String> headers,
+    required String body,
+    Future<void>? abortTrigger,
+  }) async {
+    if (abortTrigger == null) {
+      return _client
+          .post(uri, headers: headers, body: body)
+          .timeout(_textTimeout);
+    }
+    final request =
+        http.AbortableRequest('POST', uri, abortTrigger: abortTrigger)
+          ..headers.addAll(headers)
+          ..body = body;
+    return http.Response.fromStream(
+      await _client.send(request),
+    ).timeout(_textTimeout);
+  }
+
+  Future<Vector> _embed(String text, {Future<void>? abortTrigger}) async {
     _lastFailure = null;
     if (config.provider.format == AiWireFormat.gemini) {
-      final response = await _client
-          .post(
-            // The key rides in the `x-goog-api-key` header (see [_headers]),
-            // like every other provider's credential in its header. It used
-            // to be a `?key=` query parameter — the quickstart form — but a
-            // key in a URL is a key that shows up in proxy logs, server logs
-            // and any diagnostics that print the request line.
-            Uri.parse(
-              '${config.resolvedBaseUrl}'
-              '/v1beta/models/${config.embeddingModel}:embedContent',
-            ),
-            headers: _headers,
-            body: jsonEncode({
-              'model': 'models/${config.embeddingModel}',
-              'content': {
-                'parts': [
-                  {'text': text},
-                ],
-              },
-              // The size the retired text-embedding-004 had. The model's own
-              // 3072 would quadruple what every stored note costs on disk and
-              // in memory; the codec normalises what it stores, which a
-              // shortened vector needs.
-              'outputDimensionality': 768,
-            }),
-          )
-          .timeout(_textTimeout);
+      final response = await _postEmbedding(
+        // The key rides in the `x-goog-api-key` header (see [_headers]),
+        // like every other provider's credential in its header. It used
+        // to be a `?key=` query parameter — the quickstart form — but a
+        // key in a URL is a key that shows up in proxy logs, server logs
+        // and any diagnostics that print the request line.
+        Uri.parse(
+          '${config.resolvedBaseUrl}'
+          '/v1beta/models/${config.embeddingModel}:embedContent',
+        ),
+        headers: _headers,
+        abortTrigger: abortTrigger,
+        body: jsonEncode({
+          'model': 'models/${config.embeddingModel}',
+          'content': {
+            'parts': [
+              {'text': text},
+            ],
+          },
+          // The size the retired text-embedding-004 had. The model's own
+          // 3072 would quadruple what every stored note costs on disk and
+          // in memory; the codec normalises what it stores, which a
+          // shortened vector needs.
+          'outputDimensionality': 768,
+        }),
+      ).timeout(_textTimeout);
       if (response.statusCode != 200) {
         // Kept, as every other path keeps it, so the capability check can
         // tell a model that does not embed from a minute of rate limiting.
@@ -3316,13 +3359,12 @@ class CloudAIAdapter implements AIAdapter {
     }
     final embeddings = config.embeddingEndpoint;
     if (embeddings == null) throw const AiUnavailableException();
-    final response = await _client
-        .post(
-          Uri.parse(embeddings),
-          headers: _headers,
-          body: jsonEncode({'model': config.embeddingModel, 'input': text}),
-        )
-        .timeout(_textTimeout);
+    final response = await _postEmbedding(
+      Uri.parse(embeddings),
+      headers: _headers,
+      abortTrigger: abortTrigger,
+      body: jsonEncode({'model': config.embeddingModel, 'input': text}),
+    ).timeout(_textTimeout);
     if (response.statusCode != 200) {
       _lastFailure = (
         status: response.statusCode,

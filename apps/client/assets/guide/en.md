@@ -316,3 +316,8 @@ In the smart-summary settings, **Use habits in the smart summary** is off by def
 
 Wide tables in Markdown and DOCX previews scroll horizontally within the table. Entering Nex does not dismiss module notifications already in the notification centre. In-app confirmations, errors and Undo actions appear in Nex’s top capsule; closing a capsule does not clear a device notification.
 
+### Safer imports and quieter searches (2.5.4)
+
+A backup from an unsupported newer database format is refused before your current library changes. Importing Nex’s text and checklist Markdown exports preserves titles, tags and original dates; ordinary Markdown frontmatter is kept as text unless it is recognised as a Nex export. Use **Restore or import from a file** with a full Nex archive to keep media, reminders and other library relationships.
+
+The assistant follows the image and transcription switches in Intelligence, including changes made while a conversation is open. Local search shows keyword matches promptly; queries shorter than three characters stay local, and meaning searches wait for a typing pause. Continuing to type cancels the superseded cloud query.

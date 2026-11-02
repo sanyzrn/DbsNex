@@ -68,7 +68,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Test release source validation
-        run: python3 tools/release_notes_test.py
+        run: |
+          python3 tools/release_notes_test.py
+          python3 tools/check_ci_results_test.py
       - id: filter
         env:
           BASE: ${{ github.base_ref }}
@@ -131,7 +133,7 @@ jobs:
           fi
 
           DART=false; BACKEND=false; DESKTOP=false; ANDROID=false
-          match '^(apps/client|packages|spec)/|^\.fvmrc$|^CHANGELOG\.md$' && DART=true
+          match '^(apps/client|packages|spec|contracts|tools)/|^\.fvmrc$|^CHANGELOG(\.fa)?\.md$' && DART=true
           # The feedback worker rides the backend flag rather than carrying
           # its own: it is nine fast tests, and nothing matched
           # `apps/feedback-worker/` at all before this, so a change to it ran
@@ -152,6 +154,7 @@ jobs:
           match '^apps/client/(lib/modules/|test/modules/|lib/widgets/|lib/platform/|lib/l10n/|test/support/|pubspec\.(yaml|lock)|dart_test\.yaml)|^packages/|^\.fvmrc$' && MODULES=true
           match '^apps/client/android/' && ANDROID=true
           match '(^|/)pubspec\.(yaml|lock)$|^\.fvmrc$' && ANDROID=true
+          match '^tools/' && ANDROID=true
           {
             echo "dart=$DART"
             echo "backend=$BACKEND"
@@ -922,13 +925,8 @@ jobs:
       - sync-integration
       - ai-deletion-proof
     steps:
+      - uses: actions/checkout@v7
       - name: Fail unless every job succeeded
-        run: |
-          echo "results: ${{ join(needs.*.result, ', ') }}"
-          # client-ios only runs on push, so "skipped" is legitimate there.
-          for result in ${{ join(needs.*.result, ' ') }}; do
-            case "$result" in
-              success|skipped) ;;
-              *) echo "::error::a required job reported: $result"; exit 1 ;;
-            esac
-          done
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 tools/check_ci_results.py

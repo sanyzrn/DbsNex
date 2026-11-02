@@ -14,6 +14,13 @@ abstract class AIAdapter {
   Future<OCRText>? ocr(ImageRef image);
 }
 
+/// Optional query-only cancellation. Indexing a saved note is independent of
+/// the transient query a person is still typing.
+abstract interface class QueryEmbeddingAdapter {
+  Future<Vector>? embedQuery(String text);
+  void cancelQueryEmbedding();
+}
+
 /// Local audio reference for transcription (never logged as content).
 class AudioRef {
   const AudioRef({required this.mediaUri, this.mediaHash, this.bytes});

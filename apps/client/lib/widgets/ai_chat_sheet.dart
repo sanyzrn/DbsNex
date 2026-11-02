@@ -220,6 +220,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// look at it. Loaded once with the context and re-sent with every
   /// question — see [NexChatAttachment].
   List<NexChatAttachment> _attachments = const [];
+  bool _imageAccess = false;
 
   /// Every note this conversation has shown the assistant or that an answer
   /// cited, by id — what turns a cited id back into a chip with a name.
@@ -253,6 +254,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     _threadId =
         resumed?.id ?? DateTime.now().microsecondsSinceEpoch.toRadixString(36);
     if (resumed != null) _turns.addAll(resumed.messages);
+    _imageAccess = widget.preferences.effectiveAiCapabilities.ocr;
     _adapter = CloudAIAdapter(
       config: widget.preferences.aiProvider,
       outputLanguageProvider: () => widget.preferences.aiOutputLanguage,
@@ -266,6 +268,21 @@ class _AiChatSheetState extends State<AiChatSheet> {
         '';
     _input.addListener(_saveComposerDraft);
     _composerFocus.addListener(_growWhenTyping);
+    widget.preferences.addListener(_preferencesChanged);
+  }
+
+  void _preferencesChanged() {
+    if (!mounted) return;
+    final allowed = widget.preferences.effectiveAiCapabilities.ocr;
+    _rebuild(() {
+      if (allowed != _imageAccess) {
+        _imageAccess = allowed;
+        final focused = widget.focus;
+        _attachments = allowed && focused != null
+            ? _imagesFor(focused)
+            : const [];
+      }
+    });
   }
 
   String get _composerDraftKey =>
@@ -321,6 +338,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
       unawaited(_ChatSending._dropVoice(recorder, _voiceFile));
     }
     _composerFocus.removeListener(_growWhenTyping);
+    widget.preferences.removeListener(_preferencesChanged);
     _composerFocus.dispose();
     _sheet.dispose();
     _input.removeListener(_saveComposerDraft);

@@ -83,9 +83,13 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
     String? report;
     try {
       final load = widget.loadDiagnostics;
-      report = load != null
-          ? await load()
-          : (await NexCrashLog.open()).shareable();
+      if (load != null) {
+        report = await load();
+      } else {
+        final log = await NexCrashLog.open();
+        await log.flush();
+        report = log.shareable();
+      }
     } catch (_) {
       report = null;
     }

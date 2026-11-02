@@ -369,7 +369,7 @@ class NexServices {
   /// "could not open your local library" screen offering Restore backup.
   static Future<void> noteDiagnostic(String message) async {
     try {
-      (await NexCrashLog.open()).note(message);
+      await (await NexCrashLog.open()).note(message);
     } catch (_) {
       // Best-effort, like everything else that writes to this file.
     }

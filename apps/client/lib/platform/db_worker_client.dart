@@ -538,6 +538,10 @@ mixin _DbClient implements NexDb {
       _send<List<Note>>(_DbCommand.fusedSearch, {'filters': filters});
 
   @override
+  Future<void> cancelSemanticSearch() =>
+      _send<void>(_DbCommand.cancelSemanticSearch);
+
+  @override
   Future<List<SemanticHit>> semanticSearch(String query, {int limit = 20}) =>
       _send<List<SemanticHit>>(_DbCommand.semanticSearch, {
         'query': query,

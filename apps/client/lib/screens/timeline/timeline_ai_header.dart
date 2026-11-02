@@ -21,6 +21,9 @@ extension _TimelineAiHeader on TimelineScreenState {
   void _onBriefPreferencesChanged() {
     if (!mounted || _briefPreferencesQueued) return;
     _briefPreferencesQueued = true;
+    // The timeline owns its preference-driven content (including the local
+    // greeting and home layout); it no longer relies on rebuilding MaterialApp.
+    _rebuild(() {});
     // Let the app apply locale/settings dependencies before capturing input.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _briefPreferencesQueued = false;

@@ -2447,14 +2447,16 @@ WHERE id = ?
   String _markdownFor(Note note) {
     final buffer = StringBuffer()
       ..writeln('---')
+      ..writeln('nex_export: 1')
       ..writeln('id: ${note.id}')
       ..writeln('type: ${note.type.wireName}')
+      ..writeln('title: ${jsonEncode(note.title)}')
       ..writeln('created_at: ${note.createdAt.toUtc().toIso8601String()}')
-      ..writeln('tags: [${note.tags.map((t) => t.name).join(', ')}]')
+      ..writeln('tags: ${jsonEncode(note.tags.map((t) => t.name).toList())}')
       ..writeln('---')
       ..writeln();
-    // As a heading rather than another frontmatter key: a title is the one
-    // piece of this the reader of an exported file is meant to see.
+    // Also render the title for a Markdown reader. Its explicit metadata
+    // distinguishes it from a heading that belongs to the body on re-import.
     if (note.title != null) {
       buffer
         ..writeln('# ${note.title}')
