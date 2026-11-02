@@ -67,6 +67,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Test release source validation
+        run: python3 tools/release_notes_test.py
       - id: filter
         env:
           BASE: ${{ github.base_ref }}
