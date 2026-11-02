@@ -74,7 +74,7 @@ jobs:
   # trigger glob but strips to `.0.2.0`, which used to surface as a confusing
   # "does not match pubspec" error three steps later.
   version:
-    name: Resolve version from tag
+    name: Validate release source and version
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -129,11 +129,20 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "version=$VERSION base=$BASE tag=v$VERSION versionCode=$CODE"
 
+      - uses: actions/checkout@v7
+      - name: Validate release notes before verification or builds
+        env:
+          TAG: ${{ steps.parse.outputs.tag }}
+        run: python3 tools/release_notes.py --tag "$TAG"
+
   # A tag used to ship straight to a public Release without ever running
   # analyze, tests, or the backend suite: ci.yml triggers on branches, and tags
   # do not match branches.
   verify:
     name: Full verification suite
+    # Reject an old checkout or missing notes before paying for the full suite
+    # and signed builds. Previously only the final publish job checked them.
+    needs: version
     uses: ./.github/workflows/ci.yml
 
   build-android:
@@ -550,54 +559,10 @@ jobs:
       # on their phone) with the handful of lines a person actually wrote for
       # this release.
       - name: Extract this release's changelog section
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
-          # Take the section named after the tag being released, rather than
-          # whichever section happens to sit at the top of the file.
-          #
-          # Position is the wrong key on both ends. CHANGELOG.md opens with a
-          # "How this file is used" section written for contributors, which is
-          # itself a '## ' heading — so reading "the first '## ' heading"
-          # published that preamble as the release body, and sailed past the
-          # Unreleased guard, because the heading it compared was never a
-          # release heading. And the file's own convention keeps a fresh
-          # "## Unreleased" on top for the next cycle, so "first release-shaped
-          # heading" would then match that empty section on every subsequent
-          # release and refuse to publish anything.
-          #
-          # The tag is unambiguous and already resolved, so ask for it by name.
-          # This also turns "shipped a version nobody wrote release notes for"
-          # into a failure rather than something you notice after publishing.
-          want="## ${{ needs.version.outputs.tag }}"
-          if ! grep -qxF "$want" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no '$want' section. Add it before tagging (see that file's own 'How this file is used')."
-            exit 1
-          fi
-          awk -v want="$want" '
-            $0 == want { found = 1; next }
-            found && /^## / { exit }
-            found { print }
-          ' CHANGELOG.md > RELEASE_NOTES.md
-          if [ ! -s RELEASE_NOTES.md ]; then
-            echo "::error::CHANGELOG.md's '$want' section is empty — nothing to publish."
-            exit 1
-          fi
-          # The same section in Persian, under a marker the app splits on
-          # (LOC-05): a phone set to Persian shows only the Persian notes, any
-          # other only the English. GitHub hides the marker itself. Optional:
-          # a release with no Persian section still ships, in English.
-          if [ -f CHANGELOG.fa.md ] && grep -qxF "$want" CHANGELOG.fa.md; then
-            awk -v want="$want" '
-              $0 == want { found = 1; next }
-              found && /^## / { exit }
-              found { print }
-            ' CHANGELOG.fa.md > RELEASE_NOTES.fa.md
-            if [ -s RELEASE_NOTES.fa.md ]; then
-              printf '\n<!-- nex:fa -->\n' >> RELEASE_NOTES.md
-              cat RELEASE_NOTES.fa.md >> RELEASE_NOTES.md
-            fi
-          else
-            echo "::warning::CHANGELOG.fa.md has no '$want' section; the update screen shows English to Persian users."
-          fi
+          python3 tools/release_notes.py --tag "$TAG" --output RELEASE_NOTES.md
           cat RELEASE_NOTES.md
 
       - uses: actions/download-artifact@v8

@@ -26,7 +26,10 @@ class NexSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final shape = RoundedRectangleBorder(
       borderRadius: borderRadius,
-      side: border,
+      side:
+          context.nexVisualStyle.minimal && !MediaQuery.highContrastOf(context)
+          ? BorderSide.none
+          : border,
     );
     final body = padding == null
         ? child

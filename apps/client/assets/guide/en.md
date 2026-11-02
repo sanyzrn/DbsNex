@@ -77,6 +77,8 @@ Web addresses in a note or caption become links automatically. Tap a link to ope
 
 ## Long notes, Markdown and files
 
+Android’s **Open with → Nex** also accepts PDF and DOCX. Opening imports a copy into Nex through the same path as Markdown; the source file is kept. **Convert to Markdown** in a text note’s More actions converts it inside Nex; **Save to device** exports a file.
+
 Long notes open folded; tap **More** to read the rest and **Less** to fold them again.
 
 A text note can become a Markdown file with **Save as Markdown**: the same item, with its tags, pin and reminder, now a `.md` file named after its first line, which you can share. That is the only direction a note is ever converted — Markdown is what a note already is.
@@ -101,6 +103,8 @@ A reminder brings one note back at the time you choose, once or repeating. Use t
 
 ## Recurring
 
+Each active card shows the time remaining and its exact next date and time, including hourly repeats that also show today's progress. Amounts and snooze status appear when set. Countdowns refresh once a minute while Nex is in the foreground; paused items have no running countdown.
+
 **Recurring**, on the bottom bar, is for the things that come back round: rent, insurance, a tablet every eight hours, a glass of water every two. They are not notes and never crowd the timeline. It opens as a page of its own: at the top, how many are **Overdue**, due **Today** and due in the **Next 7 days** — tap one to see just those, tap it again for everything — and what the ones with an amount add up to over the next 30 days.
 
 Tap **Add a recurring item** to add one; it opens a full page: a title, how often, and when it is next due; optionally how far ahead to be told, a daily window for hourly items, several weekdays, a day of the month or its last day, and an amount with its currency. Persian monthly and yearly repeats follow the Persian calendar. **Save** is at the top and at the end of the page; **✕** or Back closes it, and asks first if you have typed something.
@@ -110,6 +114,8 @@ The **List** shows what has slipped first, then what is coming up, then what is 
 ![The Recurring page](recurring.webp)
 
 ## The assistant and AI
+
+The home smart summary shows the age of its last successful AI update opposite its title: now, minutes, or hours and minutes. Its tooltip gives the exact saved time. The label updates locally and never asks AI for a new summary. The habit-sharing switch is shown only while Habits is installed and active.
 
 AI is optional and off until you turn it on. In **Settings → Intelligence**, choose a provider (or a downloaded offline model) — for **Custom**, enter the full chat address, which is used exactly as written; for a **Google Gemini** key bought from a reseller, choose Google Gemini and put the reseller's address (with or without `/v1beta`) in **Service address** instead, so the model can still watch YouTube videos — test it, and pick which features to use — each is a tile switched with one tap, greyed with the reason when your provider or model cannot do it — "Anthropic has no speech-to-text service", for instance: transcription, text in photos, summaries, tag suggestions and the daily smart summary. If the offline model will not start, open its page and tap **Try loading it again** — there is no need to download it again. A model on the phone never reaches the quality of a cloud model: it is good for simple requests, and on an older phone it answers slowly. With a cloud provider, how good the results are depends entirely on the model you choose.
 
@@ -136,6 +142,8 @@ With Gemini or OpenAI as your provider, the **microphone** in the message bar (i
 **Use AI output as a caption.** Beside each result's Copy button, **Add to caption** fills an empty caption. If it already has words, choose **Cancel**, **Append text** or **Replace caption**. Append adds the result below the existing text; replacement stops if the caption changed during confirmation. The original note body and media stay intact. Hold a copied or recognized link for a menu styled like the card's own menu.
 
 ## Tools and private vault
+
+Pinned module cards keep their compact footprint and replace the large name with two local facts: habits done/left today, due/new words, the nearest occasion, the selected breathing duration/mode or today’s Cycle state. They update after relevant edits, on returning to Nex and at a new day, without AI calls. Module names remain available to screen readers. Private tool pins continue to show only their names and locks. A portrait being rewritten stays visible until its replacement arrives; a failed rewrite keeps the previous result.
 
 **Pause** is a breathing break, added from **Tools → Add modules**. Swipe between **Calm** (5.5 seconds in, 5.5 out), **Focus** (box breathing: 4 in, 4 held, 4 out, 4 held) and **Relax** (4-7-8), then tap **Start** or the card in the middle. After a three-second count, the drawing opens as you breathe in and closes as you breathe out, the words say when to hold, and the number in the corner counts the breaths left. A soft chord and chimes follow the breath, and the phone taps faster as you breathe in and slower as you breathe out, so it can be followed with your eyes closed; turn either off on the Pause page or with the buttons under the card. Tap the card to pause and again to carry on; leaving the app pauses it too. The screen stays on during a session, which ends with a singing bowl. The sound is made on the phone; nothing is downloaded or sent.
 
@@ -195,6 +203,8 @@ After a couple of cycles with symptoms logged, **Patterns** shows the ones that 
 Cycle stays on this phone and in your backups. It never appears in your notes, search or the notes widgets — only in the two Cycle widgets, and only if you add one. It is sent to an AI service only if you turn on **Let the assistant read Cycle**, and then only as a short summary when you ask the assistant about it — never your day notes. **Gentle companion**, also in Cycle's settings and off by default, makes the assistant softer and more patient on the days that are often harder: just before and at the start of a period, or when you log feeling low, sensitive or in pain. It never mentions your cycle, and only a line about tone is sent, never your cycle data. To remove Cycle entirely, tap **Remove** on its card in **Tools → Modules**; you choose whether to keep or delete its data. It is not a method of contraception and does not replace a doctor.
 
 ## Appearance, language and calendar
+
+**Still** is a separate theme in the gallery, with warm neutral surfaces and a muted sage accent in both light and dark. It uses spacing and tonal groups instead of decorative borders, shadows, textures or glass. Focus, errors and high-contrast reading cues remain available. Your glass preference is retained for other themes.
 
 In Settings → Appearance, **Liquid glass** is a separate optional effect, off by default. It adds frosted depth to page headers, dialogs, menus, sheets, Settings groups and Tools/Library panels while keeping note cards opaque. High contrast uses solid surfaces, and reduced motion keeps swipe icons still.
 
@@ -305,3 +315,4 @@ The selected length applies to the whole brief, including note lines and optiona
 In the smart-summary settings, **Use habits in the smart summary** is off by default. Turning it on includes relevant goals, progress and short statistics in the home brief and daily-summary notification. Habit notes and raw check-in history are not sent to AI. Turning it off also hides earlier habit content, while keeping the notes summary. Individual habit reminders are independent: their notifications name the habit, offer **Done** for ticks or **Log progress** for amounts, and **Remind later** (one hour). Module notification taps open the related item or section after unlocking Nex.
 
 Wide tables in Markdown and DOCX previews scroll horizontally within the table. Entering Nex does not dismiss module notifications already in the notification centre. In-app confirmations, errors and Undo actions appear in Nex’s top capsule; closing a capsule does not clear a device notification.
+

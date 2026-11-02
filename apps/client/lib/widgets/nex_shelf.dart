@@ -123,6 +123,7 @@ class NexShelfTile extends StatelessWidget {
     this.badge,
     this.pinned = false,
     this.compact = false,
+    this.compactContent,
   });
   final String title, subtitle;
   final IconData icon;
@@ -143,6 +144,9 @@ class NexShelfTile extends StatelessWidget {
 
   /// One line, icon and title: the tool as a card among the notes.
   final bool compact;
+
+  /// A pinned module's small local facts, in the title's existing space.
+  final Widget? compactContent;
 
   @override
   Widget build(BuildContext context) {
@@ -170,6 +174,7 @@ class NexShelfTile extends StatelessWidget {
     );
     return Semantics(
       onLongPressHint: longPressLabel,
+      label: compactContent == null ? null : title,
       child: NexSurface(
         color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(compact ? NexRadius.lg : 22),
@@ -182,14 +187,16 @@ class NexShelfTile extends StatelessWidget {
             // A wash of the tool's colour from its corner, fading out
             // before it reaches the words.
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: AlignmentDirectional.topStart,
-                end: AlignmentDirectional.bottomEnd,
-                colors: [
-                  color.withValues(alpha: 0.16),
-                  color.withValues(alpha: 0.02),
-                ],
-              ),
+              gradient: context.nexVisualStyle.minimal
+                  ? null
+                  : LinearGradient(
+                      begin: AlignmentDirectional.topStart,
+                      end: AlignmentDirectional.bottomEnd,
+                      colors: [
+                        color.withValues(alpha: 0.16),
+                        color.withValues(alpha: 0.02),
+                      ],
+                    ),
             ),
             padding: EdgeInsets.all(compact ? 10 : 14),
             child: compact
@@ -198,12 +205,14 @@ class NexShelfTile extends StatelessWidget {
                       mark,
                       const SizedBox(width: NexSpacing.sm + 2),
                       Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall,
-                        ),
+                        child:
+                            compactContent ??
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall,
+                            ),
                       ),
                       for (final m in marks) ...[
                         const SizedBox(width: NexSpacing.xs),

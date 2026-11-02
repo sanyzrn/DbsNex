@@ -3030,6 +3030,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get commitmentDueNow => 'Due now';
+
+  @override
+  String get commitmentSnoozed => 'Snoozed';
+
+  @override
   String commitmentOverdue(String span) {
     return '$span overdue';
   }
@@ -4900,7 +4906,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pauseAudio => 'Pause audio';
 
   @override
-  String get convertToMarkdown => 'Save as Markdown';
+  String get convertToMarkdown => 'Convert to Markdown';
 
   @override
   String get convertToNote => 'Convert to note';
@@ -6495,4 +6501,130 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiEditTooLong =>
       'This note is too long to edit in one AI request. Try a shorter text. Your original text is unchanged.';
+
+  @override
+  String briefUpdatedMinutes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString min ago';
+  }
+
+  @override
+  String briefUpdatedHours(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '${countString}h ago';
+  }
+
+  @override
+  String briefUpdatedHoursMinutes(int hours, int minutes) {
+    final intl.NumberFormat hoursNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String hoursString = hoursNumberFormat.format(hours);
+    final intl.NumberFormat minutesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String minutesString = minutesNumberFormat.format(minutes);
+
+    return '${hoursString}h ${minutesString}m ago';
+  }
+
+  @override
+  String briefUpdatedDaysHours(int days, int hours) {
+    final intl.NumberFormat daysNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String daysString = daysNumberFormat.format(days);
+    final intl.NumberFormat hoursNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String hoursString = hoursNumberFormat.format(hours);
+
+    return '${daysString}d ${hoursString}h ago';
+  }
+
+  @override
+  String briefLastUpdated(String when) {
+    return 'Last updated: $when';
+  }
+
+  @override
+  String get pinModuleLoading => 'Loading…';
+
+  @override
+  String get pinModuleUnavailable => 'Open to view';
+
+  @override
+  String pinHabitsProgress(int done, int total) {
+    final intl.NumberFormat doneNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String doneString = doneNumberFormat.format(done);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String totalString = totalNumberFormat.format(total);
+
+    return '$doneString/$totalString done';
+  }
+
+  @override
+  String pinHabitsLeft(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString left today';
+  }
+
+  @override
+  String get pinHabitsRest => 'No habits due today';
+
+  @override
+  String get pinHabitsEmpty => 'Add your first habit';
+
+  @override
+  String pinWordsDue(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString to review';
+  }
+
+  @override
+  String pinWordsNew(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString new today';
+  }
+
+  @override
+  String get pinWordsEmpty => 'Add your first word';
+
+  @override
+  String get pinOccasionsEmpty => 'Add a date to remember';
+
+  @override
+  String pinOccasionInDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'In $countString days';
+  }
+
+  @override
+  String pinPauseDuration(String time) {
+    return '$time session';
+  }
+
+  @override
+  String get pinCycleSetup => 'Set up your cycle';
+
+  @override
+  String get pinCycleLog => 'Log how you feel';
 }

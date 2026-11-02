@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../widgets/feature_label.dart';
+import 'minimal_theme.dart';
 
 typedef NexThemePreset = ({
   String id,
@@ -16,7 +17,7 @@ typedef NexThemePreset = ({
 });
 
 /// The faint motif a theme draws up from the bottom of the screen. Every
-/// palette has one but the plain Nex look, which stays plain on purpose.
+/// palette but Nex and Still has one; those two stay plain on purpose.
 NexThemeTexture nexThemeTexture(String presetId) => switch (presetId) {
   'paper' => NexThemeTexture.fibre,
   'autumn' => NexThemeTexture.leaves,
@@ -45,6 +46,17 @@ const nexThemePresets = <NexThemePreset>[
     icon: Icons.auto_awesome,
     light: null,
     dark: null,
+  ),
+  (
+    id: 'still',
+    en: 'Still',
+    fa: 'سکون',
+    enDescription: 'Warm neutrals, soft sage, no decorative edges',
+    faDescription: 'خنثیِ گرم و سبز ملایم، بدون حاشیه و سایه',
+    seed: Color(0xFF486553),
+    icon: Icons.spa_outlined,
+    light: Color(0xFFF4F3EF),
+    dark: Color(0xFF181C19),
   ),
   (
     id: 'paper',
@@ -261,8 +273,9 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
       onPrimaryContainer: tint.onPrimaryContainer,
     );
   }
+  if (id == 'still') colors = nexStillColors(colors, customAccent: picked);
   final visual = base.extension<NexVisualStyle>();
-  return base.copyWith(
+  final themed = base.copyWith(
     colorScheme: colors,
     // Transparent stays transparent. The base theme clears the scaffold
     // whenever the app's backdrop has something to show — glass, a pattern,
@@ -380,4 +393,5 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
     // saved-messages send and the voice note's play button drew a grey icon
     // on a coloured button — about 1:1 in dark.
   );
+  return id == 'still' ? nexStillTheme(themed) : themed;
 }

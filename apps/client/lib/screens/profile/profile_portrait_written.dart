@@ -7,11 +7,13 @@ class _Written extends StatelessWidget {
     required this.portrait,
     required this.preferences,
     required this.onRewrite,
+    this.writing = false,
   });
 
   final NexPortrait portrait;
   final NexPreferences preferences;
   final VoidCallback? onRewrite;
+  final bool writing;
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +195,7 @@ class _Written extends StatelessWidget {
             if (onRewrite != null)
               TextButton.icon(
                 key: const ValueKey('profile-portrait-rewrite'),
-                onPressed: onRewrite,
+                onPressed: writing ? null : onRewrite,
                 icon: const Icon(Icons.refresh, size: 18),
                 label: Text(l10n.portraitRewrite),
               ),

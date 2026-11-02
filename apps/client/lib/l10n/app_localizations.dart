@@ -4922,6 +4922,18 @@ abstract class AppLocalizations {
   /// **'due in {span}'**
   String commitmentDueIn(String span);
 
+  /// No description provided for @commitmentDueNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Due now'**
+  String get commitmentDueNow;
+
+  /// No description provided for @commitmentSnoozed.
+  ///
+  /// In en, this message translates to:
+  /// **'Snoozed'**
+  String get commitmentSnoozed;
+
   /// Time past due
   ///
   /// In en, this message translates to:
@@ -7685,7 +7697,7 @@ abstract class AppLocalizations {
   /// No description provided for @convertToMarkdown.
   ///
   /// In en, this message translates to:
-  /// **'Save as Markdown'**
+  /// **'Convert to Markdown'**
   String get convertToMarkdown;
 
   /// No description provided for @convertToNote.
@@ -10189,6 +10201,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This note is too long to edit in one AI request. Try a shorter text. Your original text is unchanged.'**
   String get aiEditTooLong;
+
+  /// No description provided for @briefUpdatedMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min ago'**
+  String briefUpdatedMinutes(int count);
+
+  /// No description provided for @briefUpdatedHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h ago'**
+  String briefUpdatedHours(int count);
+
+  /// No description provided for @briefUpdatedHoursMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h {minutes}m ago'**
+  String briefUpdatedHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @briefUpdatedDaysHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d {hours}h ago'**
+  String briefUpdatedDaysHours(int days, int hours);
+
+  /// No description provided for @briefLastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated: {when}'**
+  String briefLastUpdated(String when);
+
+  /// No description provided for @pinModuleLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get pinModuleLoading;
+
+  /// No description provided for @pinModuleUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Open to view'**
+  String get pinModuleUnavailable;
+
+  /// No description provided for @pinHabitsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done}/{total} done'**
+  String pinHabitsProgress(int done, int total);
+
+  /// No description provided for @pinHabitsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} left today'**
+  String pinHabitsLeft(int count);
+
+  /// No description provided for @pinHabitsRest.
+  ///
+  /// In en, this message translates to:
+  /// **'No habits due today'**
+  String get pinHabitsRest;
+
+  /// No description provided for @pinHabitsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first habit'**
+  String get pinHabitsEmpty;
+
+  /// No description provided for @pinWordsDue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} to review'**
+  String pinWordsDue(int count);
+
+  /// No description provided for @pinWordsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new today'**
+  String pinWordsNew(int count);
+
+  /// No description provided for @pinWordsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first word'**
+  String get pinWordsEmpty;
+
+  /// No description provided for @pinOccasionsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a date to remember'**
+  String get pinOccasionsEmpty;
+
+  /// No description provided for @pinOccasionInDays.
+  ///
+  /// In en, this message translates to:
+  /// **'In {count} days'**
+  String pinOccasionInDays(int count);
+
+  /// No description provided for @pinPauseDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} session'**
+  String pinPauseDuration(String time);
+
+  /// No description provided for @pinCycleSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up your cycle'**
+  String get pinCycleSetup;
+
+  /// No description provided for @pinCycleLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Log how you feel'**
+  String get pinCycleLog;
 }
 
 class _AppLocalizationsDelegate

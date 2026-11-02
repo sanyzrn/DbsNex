@@ -143,7 +143,9 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
           glass ? Colors.transparent : scheme.surfaceContainerHigh,
         ),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-        elevation: WidgetStatePropertyAll(glass ? 0 : 3),
+        elevation: WidgetStatePropertyAll(
+          glass || context.nexVisualStyle.minimal ? 0 : 3,
+        ),
         padding: WidgetStatePropertyAll(
           glass
               ? EdgeInsets.zero

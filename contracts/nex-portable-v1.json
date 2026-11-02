@@ -35,6 +35,13 @@
       "texture": "none"
     },
     {
+      "id": "still",
+      "seed": "#486553",
+      "light": "#F4F3EF",
+      "dark": "#181C19",
+      "texture": "none"
+    },
+    {
       "id": "paper",
       "seed": "#8A6A36",
       "light": "#F5EEDC",

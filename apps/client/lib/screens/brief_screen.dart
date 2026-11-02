@@ -12,6 +12,7 @@ import '../widgets/settings_group.dart';
 import '../widgets/nex_shelf.dart';
 import '../widgets/nex_text_field.dart';
 import '../widgets/nex_dialog.dart';
+import '../modules/module_registry.dart';
 
 /// What the card at the top of the timeline is for — asked rather than
 /// assumed.
@@ -243,28 +244,29 @@ class _BriefScreenState extends State<BriefScreen> {
                   ],
                 ),
               ),
-              NexSwitchTile(
-                key: const ValueKey('brief-use-habits'),
-                secondary: const Icon(Icons.event_repeat_outlined),
-                title: Text(
-                  nexLabel(
-                    context,
-                    'Use habits in the smart summary',
-                    'استفاده از عادت‌ها در خلاصه هوشمند',
+              if (nexModulesOn(prefs).any((module) => module.id == 'habits'))
+                NexSwitchTile(
+                  key: const ValueKey('brief-use-habits'),
+                  secondary: const Icon(Icons.event_repeat_outlined),
+                  title: Text(
+                    nexLabel(
+                      context,
+                      'Use habits in the smart summary',
+                      'استفاده از عادت‌ها در خلاصه هوشمند',
+                    ),
                   ),
-                ),
-                subtitle: Text(
-                  nexLabel(
-                    context,
-                    'Include relevant goals, progress and short statistics. '
-                        'Habit reminders stay separate. No notes or raw history are sent.',
-                    'هدف، پیشرفت و آمار کوتاه عادت‌های مرتبط استفاده می‌شود؛ '
-                        'توضیحات شخصی و تاریخچه کامل ارسال نمی‌شود. یادآور هر عادت مستقل است.',
+                  subtitle: Text(
+                    nexLabel(
+                      context,
+                      'Include relevant goals, progress and short statistics. '
+                          'Habit reminders stay separate. No notes or raw history are sent.',
+                      'هدف، پیشرفت و آمار کوتاه عادت‌های مرتبط استفاده می‌شود؛ '
+                          'توضیحات شخصی و تاریخچه کامل ارسال نمی‌شود. یادآور هر عادت مستقل است.',
+                    ),
                   ),
+                  value: prefs.briefUseHabits,
+                  onChanged: (on) => unawaited(prefs.setBriefUseHabits(on)),
                 ),
-                value: prefs.briefUseHabits,
-                onChanged: (on) => unawaited(prefs.setBriefUseHabits(on)),
-              ),
               // Only where a model writes something: the plain report asks
               // for no tokens at all.
               if (style.usesModel)

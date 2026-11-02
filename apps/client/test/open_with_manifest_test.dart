@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xml/xml.dart';
 
 /// Whether Nex appears in the list of apps offering to open a markdown file.
 ///
@@ -49,4 +50,23 @@ void main() {
     expect(manifest, contains('android:scheme="content"'));
     expect(manifest, contains('android:scheme="file"'));
   });
+
+  test('PDF and DOCX are offered only for local files and the right types', () {
+    final android = 'http://schemas.android.com/apk/res/android';
+    String? attr(XmlElement element, String name) => element.getAttribute(name, namespace: android);
+    final main = XmlDocument.parse(manifest).findAllElements('activity').singleWhere(
+      (e) => attr(e, 'name') == '.MainActivity',
+    );
+    final filters = main.findElements('intent-filter').where((f) =>
+      f.findElements('action').any((a) => attr(a, 'name') == 'android.intent.action.VIEW'),
+    ).toList();
+    final typed = filters.singleWhere((f) => f.findElements('data').any((d) => attr(d, 'mimeType') == 'application/pdf'));
+    final data = typed.findElements('data');
+    expect(data.map((e) => attr(e, 'mimeType')), contains('application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+    expect(data.map((e) => attr(e, 'scheme')).whereType<String>().toSet(), {'content', 'file'});
+    expect(data.map((e) => attr(e, 'mimeType')), isNot(contains('*/*')));
+    final fallback = filters.singleWhere((f) => f.findElements('data').any((d) => attr(d, 'mimeType') == 'application/octet-stream'));
+    expect(fallback.findElements('data').map((e) => attr(e, 'pathPattern')), containsAll([r'.*\\.pdf', r'.*\\.docx']));
+  });
 }
+

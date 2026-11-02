@@ -180,6 +180,14 @@ on every action line, the words in `bodyMedium`, and red for what destroys.
 
 ## 10. Optional glass material (2.0)
 
+**Still (2.5.3)** is the flat exception to decorative treatments, selected as
+an ordinary palette. `NexVisualStyle.minimal` removes decorative borders,
+shadows, motifs and glass from the shared surfaces and home controls. Keep
+selection fills, user tag colours, focus/error indicators and high-contrast
+outlines meaningful. The stored glass preference is not changed; other
+palettes retain their existing material. Its warm neutral/sage light and dark
+foreground pairs are held at 4.5:1 or above by `still_theme_test.dart`.
+
 Liquid glass is an independent opt-in in Appearance, off by default. Keep note cards and reading surfaces opaque; use `NexSurface` for shared Settings/Tools panels, `NexAppBar` for page headers, `NexAlertDialog` for confirmation dialogs and `NexPopupMenuButton` for popup menus. `NexGlassSurface` handles bounded floating chrome and sheets; `NexGlassBar` handles header bands. Use the active palette's wash, a bounded backdrop blur and a fine inner optical rim. High contrast falls back to a solid surface. Do not add perpetual sheen animations or a blur to each row of a scrolling list.
 
 Swipe actions keep standard Material icons. A short, one-shot scale/lift pulse

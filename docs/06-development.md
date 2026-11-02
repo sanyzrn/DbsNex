@@ -197,9 +197,9 @@ Either way works:
   git tag v0.2.1 origin/main
   git push origin v0.2.1
   ```
-- **From GitHub**, with no git at all: Actions → Release → Run workflow → type `0.2.1`. A manual run publishes a **draft** release, so it is also how you rehearse one.
+- **From GitHub**, with no git at all: merge the release PR first, then Actions → Release → Run workflow → select the updated `main` under **Use workflow from** → type `0.2.1`. A manual run publishes a **draft** release, so it is also how you rehearse one. For a draft rehearsal before merging, explicitly select the release's source branch instead of `main`; the version input does not select a branch or pull request.
 
-The workflow creates the public release tag and assets in `sanyzrn/DbsNex-releases`; do not tag that repository by hand. A source-repository tag triggers the workflow, while the public releases repository is the version record the app reads.
+The workflow creates the public release tag and assets in `sanyzrn/DbsNex-releases`; do not tag that repository by hand. A source-repository tag triggers the workflow, while the public releases repository is the version record the app reads. **Start a new run after merging or changing the source.** GitHub's Re-run jobs keeps the original run's commit, so it cannot pick up a later merge.
 
 The tag must be `vMAJOR.MINOR.PATCH`, optionally with a pre-release suffix (`v0.2.1-beta`). A leading `v` is added if you leave it off, but anything else — `v.0.2.1`, `v0.2.`, a stray space — is rejected in the first job with an explicit message, rather than surfacing later as a confusing mismatch.
 
@@ -214,7 +214,9 @@ Two rules the numbers have to obey:
 
 **Add the matching changelog section before you tag.** The release workflow selects `## vX.Y.Z` in [`CHANGELOG.md`](../CHANGELOG.md) by name and publishes its contents as both the GitHub Release body and the in-app update sheet's content. Keep a fresh `## Unreleased` above it for later changes, and mirror the new section in `apps/client/assets/CHANGELOG.md`. The workflow refuses to publish if the matching section is absent or empty. The same section in Persian goes in [`CHANGELOG.fa.md`](../CHANGELOG.fa.md): the workflow appends it under a `<!-- nex:fa -->` marker, and the update screen shows it instead of the English when the app is in Persian (LOC-05). A missing Persian section is a warning, not a failure — that release is shown in English.
 
-`version:` in `apps/client/pubspec.yaml` stays as the local development default, kept in step with `lib/app_version.dart` by `version_test.dart`. Releases overwrite both from the tag, so a stale value there can no longer block or mislabel a release.
+The first release job runs `python3 tools/release_notes.py --tag vX.Y.Z` against the checked-out commit. It requires a nonempty, unique section for that tag, matching root and bundled changelogs, and source version files matching the tag's base version. Only then can the full verification suite and signed builds start. Publishing uses the same extractor. A missing Persian section still warns and falls back to English; an explicitly empty section fails.
+
+`version:` in `apps/client/pubspec.yaml` stays as the local development default, kept in step with `lib/app_version.dart` by `version_test.dart`. Releases stamp both from the exact tag after validating the base version, so pre-release suffixes still work without relabelling an older source tree as a new release.
 The workflow builds a signed Android App Bundle plus split APKs and attaches them to the GitHub Release. Every build waits on the full CI suite first — tags do not match branches, so without that gate a tag would ship straight to a public release without ever running analyze or the tests.
 
 **Android only, for now.** The Windows installer and the iOS compile check are paused — Windows runners bill at 2x and macOS at 10x, and between them they were most of a monthly Actions allowance that ran out twice. Each paused job carries an `if: false` and a comment saying what its absence costs and exactly how to bring it back; the Windows one also lists the three edits `publish-release` needs, because none of them fail loudly on their own. While this holds, existing Windows users are not offered updates: the updater finds no `.exe` asset and reports no update available, so they stay on the version they have.

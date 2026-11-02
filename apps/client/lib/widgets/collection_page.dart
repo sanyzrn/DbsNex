@@ -55,21 +55,26 @@ class NexCollectionHero extends StatelessWidget {
       padding: const EdgeInsets.all(NexSpacing.lg),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(NexRadius.xl),
-        gradient: LinearGradient(
-          begin: AlignmentDirectional.topStart,
-          end: AlignmentDirectional.bottomEnd,
-          colors: [
-            Color.alphaBlend(
-              color.withValues(alpha: 0.16),
-              scheme.surfaceContainerLow,
-            ),
-            Color.alphaBlend(
-              color.withValues(alpha: 0.04),
-              scheme.surfaceContainerLow,
-            ),
-          ],
-        ),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
+        color: scheme.surfaceContainerLow,
+        gradient: context.nexVisualStyle.minimal
+            ? null
+            : LinearGradient(
+                begin: AlignmentDirectional.topStart,
+                end: AlignmentDirectional.bottomEnd,
+                colors: [
+                  Color.alphaBlend(
+                    color.withValues(alpha: 0.16),
+                    scheme.surfaceContainerLow,
+                  ),
+                  Color.alphaBlend(
+                    color.withValues(alpha: 0.04),
+                    scheme.surfaceContainerLow,
+                  ),
+                ],
+              ),
+        border: context.nexVisualStyle.minimal
+            ? null
+            : Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,7 +251,9 @@ class NexCollectionTile extends StatelessWidget {
       color: scheme.surfaceContainerLowest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
-        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.8)),
+        side: context.nexVisualStyle.minimal
+            ? BorderSide.none
+            : BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.8)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

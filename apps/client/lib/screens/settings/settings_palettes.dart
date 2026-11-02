@@ -94,10 +94,14 @@ class _PaletteTile extends StatelessWidget {
         curve: NexMotion.curve,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(NexRadius.lg),
-          border: Border.all(
-            color: selected ? scheme.primary : theme.colorScheme.outlineVariant,
-            width: selected ? 2.5 : 1,
-          ),
+          border: context.nexVisualStyle.minimal
+              ? null
+              : Border.all(
+                  color: selected
+                      ? scheme.primary
+                      : theme.colorScheme.outlineVariant,
+                  width: selected ? 2.5 : 1,
+                ),
         ),
         child: Material(
           color: scheme.surface,
@@ -165,7 +169,10 @@ class _PaletteTile extends StatelessWidget {
                         ),
                         const SizedBox(height: NexSpacing.sm),
                         // A note as this palette draws one.
-                        _MiniCard(scheme: scheme),
+                        _MiniCard(
+                          scheme: scheme,
+                          minimal: preset.id == 'still',
+                        ),
                         const Spacer(),
                         Text(
                           name,
@@ -201,9 +208,10 @@ class _PaletteTile extends StatelessWidget {
 /// A note card in miniature: two lines of "text" and a tag in the
 /// palette's accent.
 class _MiniCard extends StatelessWidget {
-  const _MiniCard({required this.scheme});
+  const _MiniCard({required this.scheme, this.minimal = false});
 
   final ColorScheme scheme;
+  final bool minimal;
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +231,9 @@ class _MiniCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(NexRadius.md),
-        border: Border.all(color: scheme.outlineVariant, width: 0.5),
+        border: minimal
+            ? null
+            : Border.all(color: scheme.outlineVariant, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -16,6 +16,8 @@ void main() {
                 ? nexDarkTheme(accentSeed: seed, liquidGlass: glass)
                 : nexLightTheme(accentSeed: seed, liquidGlass: glass);
             final theme = nexApplyThemePreset(base, preset.id, seed);
+            final visual = theme.extension<NexVisualStyle>()!;
+            final effectiveGlass = visual.liquidGlass;
             late ModalRoute<void> route;
             await tester.pumpWidget(
               MaterialApp(
@@ -50,11 +52,13 @@ void main() {
             await tester.pumpAndSettle();
             expect(
               route.barrierColor,
-              glass ? Colors.black.withValues(alpha: 0.24) : Colors.black54,
+              effectiveGlass
+                  ? Colors.black.withValues(alpha: 0.24)
+                  : Colors.black54,
             );
             expect(
               find.byType(BackdropFilter),
-              glass ? findsOneWidget : findsNothing,
+              effectiveGlass ? findsOneWidget : findsNothing,
             );
             final material = tester.widget<Material>(
               find.descendant(
@@ -66,8 +70,13 @@ void main() {
               ),
             );
             final border = material.shape! as RoundedRectangleBorder;
-            if (glass) {
+            if (effectiveGlass || visual.minimal) {
               expect(border.side, BorderSide.none);
+              if (visual.minimal) {
+                // Still separates the opaque dialog with its scrim and tone.
+                expect(material.color!.a, 1);
+                expect(theme.dialogTheme.elevation, 0);
+              }
             } else {
               expect(border.side.style, BorderStyle.solid);
               expect(

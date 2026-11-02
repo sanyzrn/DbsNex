@@ -19,6 +19,8 @@ import 'nex_text_field.dart';
 import 'nex_banner.dart';
 import 'draft_guard.dart';
 import 'nex_time_picker.dart';
+import 'due_label.dart';
+import 'recurring_timing.dart';
 
 part 'commitments/commitment_editor.dart';
 part 'commitments/commitment_rows.dart';
@@ -54,15 +56,44 @@ class RecurringScreen extends StatefulWidget {
   State<RecurringScreen> createState() => _RecurringScreenState();
 }
 
-class _RecurringScreenState extends State<RecurringScreen> {
+class _RecurringScreenState extends State<RecurringScreen>
+    with WidgetsBindingObserver {
   List<NexCommitment>? _all;
   String _view = 'all';
   bool _working = false;
+  Timer? _clock;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startClock();
     unawaited(_load());
+  }
+
+  // One clock for the visible page, never one per card or a database poll.
+  void _startClock() {
+    _clock?.cancel();
+    _clock = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startClock();
+      if (mounted) setState(() {});
+    } else {
+      _clock?.cancel();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _clock?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -607,6 +638,8 @@ class _RecurringScreenState extends State<RecurringScreen> {
 
     Widget row(NexCommitment c) => _CommitmentRow(
       commitment: c,
+      now: now,
+      solarCalendar: widget.services.solarCalendar,
       onMet: () => unawaited(_markMet(c)),
       onEdit: () => unawaited(_edit(c)),
       onActions: () => unawaited(_actions(c)),

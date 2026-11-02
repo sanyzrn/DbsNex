@@ -191,7 +191,7 @@ class _Pill extends StatelessWidget {
         child: Material(
           color: selected ? bg : Colors.transparent,
           shape: StadiumBorder(
-            side: selected
+            side: selected && !context.nexVisualStyle.minimal
                 ? BorderSide(color: scheme.primary)
                 : BorderSide.none,
           ),

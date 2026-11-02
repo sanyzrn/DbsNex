@@ -182,7 +182,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(NexRadius.pill),
         boxShadow: [
-          if (focus > 0)
+          if (focus > 0 && !context.nexVisualStyle.minimal)
             BoxShadow(
               color: scheme.primary.withValues(alpha: 0.22 * focus),
               blurRadius: 8 * focus,

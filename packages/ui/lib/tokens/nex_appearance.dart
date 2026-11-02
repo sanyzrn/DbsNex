@@ -115,6 +115,7 @@ class NexGlassWash {
 class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
   const NexVisualStyle({
     required this.liquidGlass,
+    this.minimal = false,
     required this.baseColor,
     required this.glassWash,
     NexGlassWash? floatingGlassWash,
@@ -128,6 +129,10 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
   }) : floatingGlassWash = floatingGlassWash ?? glassWash;
 
   final bool liquidGlass;
+
+  /// Flat, quiet surfaces: no decorative edges, shadows or optical effects.
+  /// Functional focus and high-contrast outlines remain available.
+  final bool minimal;
   final Color baseColor;
 
   /// What the blurred backdrop is turned into — see [NexGlassWash].
@@ -180,6 +185,7 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
   @override
   NexVisualStyle copyWith({
     bool? liquidGlass,
+    bool? minimal,
     Color? baseColor,
     NexGlassWash? glassWash,
     NexGlassWash? floatingGlassWash,
@@ -192,6 +198,7 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     double? blurSigma,
   }) => NexVisualStyle(
     liquidGlass: liquidGlass ?? this.liquidGlass,
+    minimal: minimal ?? this.minimal,
     baseColor: baseColor ?? this.baseColor,
     glassWash: glassWash ?? this.glassWash,
     floatingGlassWash: floatingGlassWash ?? this.floatingGlassWash,
@@ -209,6 +216,7 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     if (other == null) return this;
     return NexVisualStyle(
       liquidGlass: t < 0.5 ? liquidGlass : other.liquidGlass,
+      minimal: t < 0.5 ? minimal : other.minimal,
       baseColor: Color.lerp(baseColor, other.baseColor, t)!,
       glassWash: glassWash.lerp(other.glassWash, t),
       floatingGlassWash: floatingGlassWash.lerp(other.floatingGlassWash, t),
@@ -359,11 +367,13 @@ class NexGlassSurface extends StatelessWidget {
         decoration: BoxDecoration(
           color: ground,
           borderRadius: borderRadius,
-          border: Border.all(
-            color: MediaQuery.highContrastOf(context)
-                ? Theme.of(context).colorScheme.outline
-                : visual.glassBorder,
-          ),
+          border: visual.minimal && !MediaQuery.highContrastOf(context)
+              ? null
+              : Border.all(
+                  color: MediaQuery.highContrastOf(context)
+                      ? Theme.of(context).colorScheme.outline
+                      : visual.glassBorder,
+                ),
         ),
         child: body,
       );

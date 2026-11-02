@@ -3015,6 +3015,12 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get commitmentDueNow => 'وقت انجامش رسیده';
+
+  @override
+  String get commitmentSnoozed => 'یادآوری به تعویق افتاده';
+
+  @override
   String commitmentOverdue(String span) {
     return '$span عقب افتاده';
   }
@@ -4844,7 +4850,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get pauseAudio => 'توقف صدا';
 
   @override
-  String get convertToMarkdown => 'ذخیره به صورت Markdown';
+  String get convertToMarkdown => 'تبدیل به Markdown';
 
   @override
   String get convertToNote => 'تبدیل به یادداشت';
@@ -6404,4 +6410,130 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get aiEditTooLong =>
       'این متن برای ویرایش کامل در یک درخواست طولانی است. متن کوتاه‌تری را امتحان کنید؛ متن اصلی شما حفظ شده است.';
+
+  @override
+  String briefUpdatedMinutes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString دقیقه قبل';
+  }
+
+  @override
+  String briefUpdatedHours(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString ساعت قبل';
+  }
+
+  @override
+  String briefUpdatedHoursMinutes(int hours, int minutes) {
+    final intl.NumberFormat hoursNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String hoursString = hoursNumberFormat.format(hours);
+    final intl.NumberFormat minutesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String minutesString = minutesNumberFormat.format(minutes);
+
+    return '$hoursString ساعت و $minutesString دقیقه قبل';
+  }
+
+  @override
+  String briefUpdatedDaysHours(int days, int hours) {
+    final intl.NumberFormat daysNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String daysString = daysNumberFormat.format(days);
+    final intl.NumberFormat hoursNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String hoursString = hoursNumberFormat.format(hours);
+
+    return '$daysString روز و $hoursString ساعت قبل';
+  }
+
+  @override
+  String briefLastUpdated(String when) {
+    return 'آخرین به‌روزرسانی: $when';
+  }
+
+  @override
+  String get pinModuleLoading => 'در حال خواندن…';
+
+  @override
+  String get pinModuleUnavailable => 'برای مشاهده باز کنید';
+
+  @override
+  String pinHabitsProgress(int done, int total) {
+    final intl.NumberFormat doneNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String doneString = doneNumberFormat.format(done);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String totalString = totalNumberFormat.format(total);
+
+    return '$doneString از $totalString انجام شد';
+  }
+
+  @override
+  String pinHabitsLeft(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString عادت مانده';
+  }
+
+  @override
+  String get pinHabitsRest => 'امروز عادتی نمانده';
+
+  @override
+  String get pinHabitsEmpty => 'اولین عادت را اضافه کنید';
+
+  @override
+  String pinWordsDue(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString واژه برای مرور';
+  }
+
+  @override
+  String pinWordsNew(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString واژهٔ جدید امروز';
+  }
+
+  @override
+  String get pinWordsEmpty => 'اولین واژه را اضافه کنید';
+
+  @override
+  String get pinOccasionsEmpty => 'یک مناسبت اضافه کنید';
+
+  @override
+  String pinOccasionInDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString روز دیگر';
+  }
+
+  @override
+  String pinPauseDuration(String time) {
+    return '$time تنفس';
+  }
+
+  @override
+  String get pinCycleSetup => 'چرخه را تنظیم کنید';
+
+  @override
+  String get pinCycleLog => 'حال امروزتان را ثبت کنید';
 }
