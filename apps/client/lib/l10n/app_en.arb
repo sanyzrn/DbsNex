@@ -2305,6 +2305,8 @@
   "commitmentTally": "{done} of {total} today",
   "@commitmentTally": {"description": "How many times an hourly item has been done today", "placeholders": {"done": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "commitmentDueIn": "due in {span}",
+  "commitmentDueNow": "Due now",
+  "commitmentSnoozed": "Snoozed",
   "@commitmentDueIn": {"description": "Time until due", "placeholders": {"span": {"type": "String"}}},
   "commitmentOverdue": "{span} overdue",
   "@commitmentOverdue": {"description": "Time past due", "placeholders": {"span": {"type": "String"}}},
@@ -3151,7 +3153,7 @@
   "playAudio": "Play audio",
   "pauseAudio": "Pause audio",
   "@annotateColor": {"placeholders": {"color": {"type": "String"}}},
-  "convertToMarkdown": "Save as Markdown",
+  "convertToMarkdown": "Convert to Markdown",
   "convertToNote": "Convert to note",
   "markdownConvertFailed": "Could not convert this file. The original is still safe. Markdown files must be UTF-8 and at most 16 MB.",
   "fullBackupTitle": "Complete device backup",
@@ -3687,3 +3689,4 @@
   "translationSuggestedLanguage": "A different target language was suggested because the source already uses your default language.",
   "aiEditTooLong": "This note is too long to edit in one AI request. Try a shorter text. Your original text is unchanged."
 }
+

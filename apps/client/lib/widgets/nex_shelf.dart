@@ -182,14 +182,16 @@ class NexShelfTile extends StatelessWidget {
             // A wash of the tool's colour from its corner, fading out
             // before it reaches the words.
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: AlignmentDirectional.topStart,
-                end: AlignmentDirectional.bottomEnd,
-                colors: [
-                  color.withValues(alpha: 0.16),
-                  color.withValues(alpha: 0.02),
-                ],
-              ),
+              gradient: context.nexVisualStyle.minimal
+                  ? null
+                  : LinearGradient(
+                      begin: AlignmentDirectional.topStart,
+                      end: AlignmentDirectional.bottomEnd,
+                      colors: [
+                        color.withValues(alpha: 0.16),
+                        color.withValues(alpha: 0.02),
+                      ],
+                    ),
             ),
             padding: EdgeInsets.all(compact ? 10 : 14),
             child: compact

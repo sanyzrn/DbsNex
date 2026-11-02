@@ -3030,6 +3030,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get commitmentDueNow => 'Due now';
+
+  @override
+  String get commitmentSnoozed => 'Snoozed';
+
+  @override
   String commitmentOverdue(String span) {
     return '$span overdue';
   }
@@ -4900,7 +4906,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pauseAudio => 'Pause audio';
 
   @override
-  String get convertToMarkdown => 'Save as Markdown';
+  String get convertToMarkdown => 'Convert to Markdown';
 
   @override
   String get convertToNote => 'Convert to note';

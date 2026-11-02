@@ -3015,6 +3015,12 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get commitmentDueNow => 'وقت انجامش رسیده';
+
+  @override
+  String get commitmentSnoozed => 'یادآوری به تعویق افتاده';
+
+  @override
   String commitmentOverdue(String span) {
     return '$span عقب افتاده';
   }
@@ -4844,7 +4850,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get pauseAudio => 'توقف صدا';
 
   @override
-  String get convertToMarkdown => 'ذخیره به صورت Markdown';
+  String get convertToMarkdown => 'تبدیل به Markdown';
 
   @override
   String get convertToNote => 'تبدیل به یادداشت';

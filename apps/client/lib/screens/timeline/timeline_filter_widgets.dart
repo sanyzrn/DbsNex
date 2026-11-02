@@ -159,7 +159,9 @@ class _FilterButton extends StatelessWidget {
             ? scheme.primary.withValues(alpha: 0.12)
             : Colors.transparent,
         shape: CircleBorder(
-          side: active ? BorderSide(color: scheme.primary) : BorderSide.none,
+          side: active && !context.nexVisualStyle.minimal
+              ? BorderSide(color: scheme.primary)
+              : BorderSide.none,
         ),
         child: SizedBox.square(
           dimension: nexMinTapTarget,

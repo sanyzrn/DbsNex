@@ -77,6 +77,8 @@ Web addresses in a note or caption become links automatically. Tap a link to ope
 
 ## Long notes, Markdown and files
 
+Android’s **Open with → Nex** also accepts PDF and DOCX. Opening imports a copy into Nex through the same path as Markdown; the source file is kept. **Convert to Markdown** in a text note’s More actions converts it inside Nex; **Save to device** exports a file.
+
 Long notes open folded; tap **More** to read the rest and **Less** to fold them again.
 
 A text note can become a Markdown file with **Save as Markdown**: the same item, with its tags, pin and reminder, now a `.md` file named after its first line, which you can share. That is the only direction a note is ever converted — Markdown is what a note already is.
@@ -100,6 +102,8 @@ If Android closes Nex while you are editing, reopen the same editor to find its 
 A reminder brings one note back at the time you choose, once or repeating. Use the quick choices, the wheels or the calendar button, and confirm the time shown. Once it rings, its notification stays until you tap or dismiss it — opening Nex does not clear it — and its card shows a swinging bell in place of its icon until you open the note. The notification has **Done**, which clears it, and on a one-time reminder **In an hour**, which brings it back an hour later; a repeating one keeps to its own times, so it has **Done** alone. Neither opens Nex. A Recurring item's reminder has **Done** too: it ticks the item at that moment and moves it to its next turn, and tapping the notification opens the Recurring page. Tapping the notification opens Nex on that card, whether Nex was open or not. Android's notification permission is required. If Android refuses to schedule one — exact alarms off, notifications blocked, battery optimisation — Nex tells you in Android's own words, and **Settings → Reminders and notifications** has a test notification to tell "Nex never sent it" apart from "the phone swallowed it".
 
 ## Recurring
+
+Each active card shows the time remaining and its exact next date and time, including hourly repeats that also show today's progress. Amounts and snooze status appear when set. Countdowns refresh once a minute while Nex is in the foreground; paused items have no running countdown.
 
 **Recurring**, on the bottom bar, is for the things that come back round: rent, insurance, a tablet every eight hours, a glass of water every two. They are not notes and never crowd the timeline. It opens as a page of its own: at the top, how many are **Overdue**, due **Today** and due in the **Next 7 days** — tap one to see just those, tap it again for everything — and what the ones with an amount add up to over the next 30 days.
 
@@ -195,6 +199,8 @@ After a couple of cycles with symptoms logged, **Patterns** shows the ones that 
 Cycle stays on this phone and in your backups. It never appears in your notes, search or the notes widgets — only in the two Cycle widgets, and only if you add one. It is sent to an AI service only if you turn on **Let the assistant read Cycle**, and then only as a short summary when you ask the assistant about it — never your day notes. **Gentle companion**, also in Cycle's settings and off by default, makes the assistant softer and more patient on the days that are often harder: just before and at the start of a period, or when you log feeling low, sensitive or in pain. It never mentions your cycle, and only a line about tone is sent, never your cycle data. To remove Cycle entirely, tap **Remove** on its card in **Tools → Modules**; you choose whether to keep or delete its data. It is not a method of contraception and does not replace a doctor.
 
 ## Appearance, language and calendar
+
+**Still** is a separate theme in the gallery, with warm neutral surfaces and a muted sage accent in both light and dark. It uses spacing and tonal groups instead of decorative borders, shadows, textures or glass. Focus, errors and high-contrast reading cues remain available. Your glass preference is retained for other themes.
 
 In Settings → Appearance, **Liquid glass** is a separate optional effect, off by default. It adds frosted depth to page headers, dialogs, menus, sheets, Settings groups and Tools/Library panels while keeping note cards opaque. High contrast uses solid surfaces, and reduced motion keeps swipe icons still.
 
@@ -305,3 +311,4 @@ The selected length applies to the whole brief, including note lines and optiona
 In the smart-summary settings, **Use habits in the smart summary** is off by default. Turning it on includes relevant goals, progress and short statistics in the home brief and daily-summary notification. Habit notes and raw check-in history are not sent to AI. Turning it off also hides earlier habit content, while keeping the notes summary. Individual habit reminders are independent: their notifications name the habit, offer **Done** for ticks or **Log progress** for amounts, and **Remind later** (one hour). Module notification taps open the related item or section after unlocking Nex.
 
 Wide tables in Markdown and DOCX previews scroll horizontally within the table. Entering Nex does not dismiss module notifications already in the notification centre. In-app confirmations, errors and Undo actions appear in Nex’s top capsule; closing a capsule does not clear a device notification.
+

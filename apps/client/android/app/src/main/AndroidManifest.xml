@@ -126,7 +126,8 @@
               as plain text, and a filter without it would miss the common
               case while looking like it covered everything. The cost is that
               Nex offers to open .txt as well, which for a notes app is not
-              really a cost.
+              really a cost. PDF and DOCX use this same import and reading
+              path; advertise their exact types without claiming all files.
             -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -136,6 +137,8 @@
                 <data android:mimeType="text/markdown" />
                 <data android:mimeType="text/x-markdown" />
                 <data android:mimeType="text/plain" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
             </intent-filter>
             <!--
               And the providers that hand over a file with no useful type at
@@ -155,6 +158,8 @@
                 <data android:pathPattern=".*\\.md" />
                 <data android:pathPattern=".*\\.markdown" />
                 <data android:pathPattern=".*\\.txt" />
+                <data android:pathPattern=".*\\.pdf" />
+                <data android:pathPattern=".*\\.docx" />
             </intent-filter>
         </activity>
 
@@ -473,3 +478,4 @@
         </receiver>
     </application>
 </manifest>
+

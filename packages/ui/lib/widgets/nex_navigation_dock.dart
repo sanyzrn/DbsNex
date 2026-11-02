@@ -72,7 +72,7 @@ class NexNavigationDock extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: radius,
-                boxShadow: visual.liquidGlass
+                boxShadow: visual.liquidGlass || visual.minimal
                     ? null
                     : [
                         BoxShadow(

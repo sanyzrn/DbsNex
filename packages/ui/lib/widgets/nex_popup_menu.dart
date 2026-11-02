@@ -122,7 +122,7 @@ Future<T?> nexShowContextMenu<T>({
         ? Colors.transparent
         : Theme.of(context).colorScheme.surfaceContainerHigh,
     surfaceTintColor: Colors.transparent,
-    elevation: glass ? 0 : 3,
+    elevation: glass || context.nexVisualStyle.minimal ? 0 : 3,
     menuPadding: glass
         ? EdgeInsets.zero
         : const EdgeInsets.symmetric(vertical: NexSpacing.sm),
@@ -197,7 +197,7 @@ class NexPopupMenuButton<T> extends StatelessWidget {
           ? Colors.transparent
           : (color ?? scheme.surfaceContainerHigh),
       surfaceTintColor: Colors.transparent,
-      elevation: glass ? 0 : (elevation ?? 3),
+      elevation: glass || context.nexVisualStyle.minimal ? 0 : (elevation ?? 3),
       shape:
           shape ??
           RoundedRectangleBorder(

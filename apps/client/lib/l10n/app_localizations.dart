@@ -4922,6 +4922,18 @@ abstract class AppLocalizations {
   /// **'due in {span}'**
   String commitmentDueIn(String span);
 
+  /// No description provided for @commitmentDueNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Due now'**
+  String get commitmentDueNow;
+
+  /// No description provided for @commitmentSnoozed.
+  ///
+  /// In en, this message translates to:
+  /// **'Snoozed'**
+  String get commitmentSnoozed;
+
   /// Time past due
   ///
   /// In en, this message translates to:
@@ -7685,7 +7697,7 @@ abstract class AppLocalizations {
   /// No description provided for @convertToMarkdown.
   ///
   /// In en, this message translates to:
-  /// **'Save as Markdown'**
+  /// **'Convert to Markdown'**
   String get convertToMarkdown;
 
   /// No description provided for @convertToNote.

@@ -5,6 +5,7 @@ import 'package:nex_core/nex_core.dart';
 import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
+import '../tokens/nex_appearance.dart';
 
 part 'note_card_bell.dart';
 part 'note_card_footnote.dart';
@@ -330,7 +331,11 @@ class _CardBody extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
-        side: picked
+        side:
+            context.nexVisualStyle.minimal &&
+                !MediaQuery.highContrastOf(context)
+            ? BorderSide.none
+            : picked
             ? BorderSide(color: theme.colorScheme.primary, width: 2)
             : MediaQuery.highContrastOf(context)
             ? BorderSide(color: theme.colorScheme.outline, width: 1.5)

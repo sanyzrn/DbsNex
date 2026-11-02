@@ -5,11 +5,11 @@ import 'package:nex_ui/nex_ui.dart';
 /// A theme with a motif must leave the scaffold see-through, or the motif
 /// is painted under an opaque page and never seen (1.92.0).
 void main() {
-  test('every palette but the plain Nex one has a motif', () {
+  test('Nex and Still are plain; the other palettes have a motif', () {
     for (final preset in nexThemePresets) {
       expect(
         nexThemeTexture(preset.id) == NexThemeTexture.none,
-        preset.id == 'classic',
+        const {'classic', 'still'}.contains(preset.id),
         reason: preset.id,
       );
     }
@@ -17,7 +17,7 @@ void main() {
 
   for (final id in [
     for (final preset in nexThemePresets)
-      if (preset.id != 'classic') preset.id,
+      if (nexThemeTexture(preset.id) != NexThemeTexture.none) preset.id,
   ]) {
     test('$id keeps the scaffold clear and the backdrop in its own colour', () {
       expect(nexThemeTexture(id), isNot(NexThemeTexture.none));

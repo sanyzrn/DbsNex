@@ -132,10 +132,12 @@ class _Stat extends StatelessWidget {
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(NexRadius.lg),
-          side: BorderSide(
-            color: selected ? color : Colors.transparent,
-            width: 1.5,
-          ),
+          side: context.nexVisualStyle.minimal
+              ? BorderSide.none
+              : BorderSide(
+                  color: selected ? color : Colors.transparent,
+                  width: 1.5,
+                ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -294,12 +296,16 @@ IconData _cadenceIcon(NexCadence cadence) => switch (cadence) {
 class _CommitmentRow extends StatelessWidget {
   const _CommitmentRow({
     required this.commitment,
+    required this.now,
+    required this.solarCalendar,
     required this.onMet,
     required this.onEdit,
     required this.onActions,
   });
 
   final NexCommitment commitment;
+  final DateTime now;
+  final bool solarCalendar;
   final VoidCallback onMet;
   final VoidCallback onEdit;
   final VoidCallback onActions;
@@ -309,7 +315,6 @@ class _CommitmentRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final now = DateTime.now();
     final overdue = commitment.isOverdue(now);
     final accent = overdue
         ? scheme.error
@@ -323,11 +328,13 @@ class _CommitmentRow extends StatelessWidget {
       color: scheme.surfaceContainerLowest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
-        side: BorderSide(
-          color: overdue
-              ? scheme.error.withValues(alpha: 0.6)
-              : scheme.outlineVariant,
-        ),
+        side: context.nexVisualStyle.minimal
+            ? BorderSide.none
+            : BorderSide(
+                color: overdue
+                    ? scheme.error.withValues(alpha: 0.6)
+                    : scheme.outlineVariant,
+              ),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -339,65 +346,131 @@ class _CommitmentRow extends StatelessWidget {
             NexSpacing.xs,
             NexSpacing.sm,
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(NexRadius.md),
-                ),
-                child: Icon(_cadenceIcon(commitment.cadence), color: accent),
-              ),
-              const SizedBox(width: NexSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(NexRadius.md),
+                    ),
+                    child: Icon(
+                      _cadenceIcon(commitment.cadence),
+                      color: accent,
+                    ),
+                  ),
+                  const SizedBox(width: NexSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Flexible(
-                          child: Text(
-                            commitment.title,
-                            style: theme.textTheme.titleMedium,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                commitment.title,
+                                style: theme.textTheme.titleMedium,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            // It carries a receipt, a note or a card.
+                            if (attached) ...[
+                              const SizedBox(width: NexSpacing.xs),
+                              Icon(
+                                Icons.attach_file,
+                                size: 16,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          commitment.paused || commitment.timesPerDay != null
+                              ? nexCommitmentSubtitle(l10n, commitment, now)
+                              : nexCadenceLabel(
+                                  l10n,
+                                  commitment.cadence,
+                                  commitment.every,
+                                ),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            // Overdue is the one state worth colouring.
+                            color: overdue
+                                ? scheme.error
+                                : scheme.onSurfaceVariant,
                           ),
                         ),
-                        // It carries a receipt, a note or a card.
-                        if (attached) ...[
-                          const SizedBox(width: NexSpacing.xs),
-                          Icon(
-                            Icons.attach_file,
-                            size: 16,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ],
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      nexCommitmentSubtitle(l10n, commitment, now),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        // Overdue is the one state worth colouring.
-                        color: overdue ? scheme.error : scheme.onSurfaceVariant,
+                  ),
+                  IconButton(
+                    tooltip: l10n.commitmentMarkMet,
+                    onPressed: onMet,
+                    color: accent,
+                    icon: const Icon(Icons.check_circle_outline),
+                  ),
+                  IconButton(
+                    tooltip: nexLabel(context, 'More actions', 'بیشتر'),
+                    onPressed: onActions,
+                    icon: const Icon(Icons.more_horiz),
+                  ),
+                ],
+              ),
+              if (!commitment.paused) ...[
+                const SizedBox(height: NexSpacing.sm),
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
+                  child: Wrap(
+                    spacing: NexSpacing.md,
+                    runSpacing: NexSpacing.xs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        nexRecurringCountdown(l10n, commitment.dueAt, now),
+                        key: ValueKey('recurring-countdown-${commitment.id}'),
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: accent,
+                        ),
                       ),
-                    ),
-                  ],
+                      Text(
+                        nexDueExact(
+                          context,
+                          commitment.dueAt,
+                          solarCalendar: solarCalendar,
+                        ),
+                        key: ValueKey('recurring-due-${commitment.id}'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (commitment.amountMinor case final amount?
+                          when amount > 0)
+                        Text(
+                          nexDigits(
+                            '${(amount / 100).toStringAsFixed(2)} ${commitment.currency}'
+                                .trim(),
+                            persian: l10n.localeName == 'fa',
+                          ),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      if (commitment.details['scheduledDue'] != null)
+                        Text(
+                          l10n.commitmentSnoozed,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              IconButton(
-                tooltip: l10n.commitmentMarkMet,
-                onPressed: onMet,
-                color: accent,
-                icon: const Icon(Icons.check_circle_outline),
-              ),
-              IconButton(
-                tooltip: nexLabel(context, 'More actions', 'بیشتر'),
-                onPressed: onActions,
-                icon: const Icon(Icons.more_horiz),
-              ),
+              ],
             ],
           ),
         ),

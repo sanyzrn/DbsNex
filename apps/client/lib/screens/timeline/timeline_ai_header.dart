@@ -632,10 +632,10 @@ extension _TimelineAiHeader on TimelineScreenState {
         ],
         thickness: 0.6,
         laps: 1,
-        strength: 0.4,
-        active: !_aiSummaryCollapsed,
+        strength: context.nexVisualStyle.minimal ? 0 : 0.4,
+        active: !_aiSummaryCollapsed && !context.nexVisualStyle.minimal,
         token: _aiSummaryExpansion,
-        playOnMount: _aiSummaryBeamPending,
+        playOnMount: _aiSummaryBeamPending && !context.nexVisualStyle.minimal,
         onFinished: () => _aiSummaryBeamPending = false,
         // Only an explicit expansion earns a run; refreshed words do not.
         restsUnlit: true,
