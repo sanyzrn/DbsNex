@@ -204,14 +204,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get assistantAboutYouNote =>
-      'همراه پیام‌های شما برای سرویسی که انتخاب کرده‌اید فرستاده می‌شود.';
+      'این نام همراه درخواست‌های دستیار ارسال می‌شود تا شما را با آن صدا کند. نام جداگانهٔ پروفایل روی همین دستگاه می‌ماند. معرفی کوتاه را می‌توانید جداگانه در هوش مصنوعی ← حافظه فعال کنید.';
 
   @override
   String get assistantAboutYouGroup => 'دربارهٔ شما';
 
   @override
   String get assistantProfileIntro =>
-      'کمی از خودتان به دستیار بگویید و بعد لحنی را انتخاب کنید که برایتان مناسب است. این اطلاعات فقط همراه سؤال‌های دستیار فرستاده می‌شوند.';
+      'نامی که دستیار شما را با آن صدا می‌کند و شیوهٔ پاسخ‌دادنش را انتخاب کنید. معرفی کوتاه به بخش حافظه منتقل شده است.';
 
   @override
   String get assistantCallMe => 'شما را چه صدا کند؟';
@@ -2171,6 +2171,10 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get annotateClear => 'پاک کردن همه';
+
+  @override
+  String get annotateClearConfirm =>
+      'همهٔ خط‌ها و نوشته‌ها از روی این عکس پاک شوند؟ این کار قابل برگشت نیست.';
 
   @override
   String get annotateDone => 'تمام';
@@ -5540,6 +5544,14 @@ class AppLocalizationsFa extends AppLocalizations {
       'یادداشت‌هایتان را برای این جست‌وجو کنم؟';
 
   @override
+  String get assistantConfirmDeleted =>
+      'برای این پاسخ، حداکثر ۳۰ یادداشتِ اخیراً حذف‌شده را بخوانم؟';
+
+  @override
+  String get assistantConfirmCommitments =>
+      'برای این پاسخ، موارد تکرارشونده‌تان را بخوانم؟';
+
+  @override
   String get settingsLanguageAndCalendar => 'زبان و تقویم';
 
   @override
@@ -6551,4 +6563,21 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get commitmentMarkOccurrence => 'ثبت انجام این نوبت';
+
+  @override
+  String get memoryTitle => 'حافظه';
+
+  @override
+  String get memorySubtitle => 'معرفی کوتاه برای دستیار.';
+
+  @override
+  String get memorySwitchSubtitle =>
+      'استفاده از معرفی شما در درخواست‌های دستیار؛ با خاموش‌کردن، متن محفوظ می‌ماند.';
+
+  @override
+  String get memoryConsentBody =>
+      'با روشن‌بودن حافظه، معرفی شما همراه درخواست‌های دستیار به سرویس هوش مصنوعی انتخابی ارسال می‌شود. با مدل آفلاین، متن روی همین دستگاه می‌ماند. هیچ یادگیری خودکاری انجام نمی‌شود و خاموش‌کردن حافظه متن را حذف نمی‌کند.';
+
+  @override
+  String get memoryEnable => 'فعال‌کردن حافظه';
 }

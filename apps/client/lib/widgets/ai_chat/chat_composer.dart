@@ -362,14 +362,13 @@ class _ActionCard extends StatelessWidget {
         AssistantActionKind.commitmentDelete =>
           l10n.assistantConfirmCommitmentDelete,
         AssistantActionKind.thread => l10n.assistantConfirmThread,
-        // Shown only for a search the person's words did not ask for; the
-        // rest run on arrival.
+        // Unrequested searches and category-wide reads wait on this card.
         AssistantActionKind.search => l10n.assistantConfirmSearch,
+        AssistantActionKind.deleted => l10n.assistantConfirmDeleted,
+        AssistantActionKind.commitments => l10n.assistantConfirmCommitments,
         AssistantActionKind.threads ||
         AssistantActionKind.cycle ||
-        AssistantActionKind.tags ||
-        AssistantActionKind.commitments ||
-        AssistantActionKind.deleted => '',
+        AssistantActionKind.tags => '',
       };
 
   /// What the action would actually do, in the user's own words where there

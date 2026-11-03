@@ -576,7 +576,13 @@ extension _ChatSending on _AiChatSheetState {
   /// thread by name is held to the same rule (AI-08): it sends every note in
   /// it, so a note could otherwise point the model at a tag the person never
   /// mentioned. The thread list names no note and still runs on its own.
+  /// Deleted notes and recurring items expose a whole category, not a word
+  /// search. They always wait for the existing read-confirmation card.
   bool _asked(AssistantAction lookup) {
+    if (lookup.kind == AssistantActionKind.deleted ||
+        lookup.kind == AssistantActionKind.commitments) {
+      return false;
+    }
     if (lookup.kind != AssistantActionKind.search) return true;
     final said = nexSearchFold(
       _turns

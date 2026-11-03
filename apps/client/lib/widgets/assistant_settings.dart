@@ -60,9 +60,6 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
   late final TextEditingController _name = TextEditingController(
     text: widget.preferences.aiUserName,
   );
-  late final TextEditingController _introduction = TextEditingController(
-    text: widget.preferences.aiUserIntroduction,
-  );
   late final TextEditingController _instruction = TextEditingController(
     text: widget.preferences.aiInstruction,
   );
@@ -70,7 +67,6 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
   @override
   void dispose() {
     _name.dispose();
-    _introduction.dispose();
     _instruction.dispose();
     super.dispose();
   }
@@ -86,9 +82,6 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
 
   void _saveName(String value) =>
       unawaited(widget.preferences.setAiUserName(value));
-
-  void _saveIntroduction(String value) =>
-      unawaited(widget.preferences.setAiUserIntroduction(value));
 
   @override
   Widget build(BuildContext context) {
@@ -125,28 +118,8 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                   ),
                 ),
               ),
-              NexSettingsField(
-                icon: Icons.person_search_outlined,
-                label: l10n.assistantAboutMe,
-                child: NexTextField(
-                  controller: _introduction,
-                  onChanged: _saveIntroduction,
-                  maxLength: NexPreferences.aiUserIntroductionMaxLength,
-                  maxLines: 4,
-                  minLines: 2,
-                  textInputAction: TextInputAction.newline,
-                  decoration: _inputDecoration(
-                    theme,
-                    l10n.assistantAboutMeHint,
-                  ),
-                ),
-              ),
-              // Both fields above go to the provider in every chat system
-              // prompt, which is what makes them work and is not obvious from
-              // looking at them. The name under Settings > profile genuinely
-              // never leaves the device (FR-9.2), and the docs say so in
-              // words broad enough to be read as covering these two as well —
-              // so the difference gets said here, where the typing happens.
+              // The assistant's chosen name still goes in its requests.
+              // The introduction has moved to the separately opted-in Memory.
               Padding(
                 padding: const EdgeInsetsDirectional.only(
                   start: NexSpacing.md,

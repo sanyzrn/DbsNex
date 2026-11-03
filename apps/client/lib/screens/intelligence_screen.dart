@@ -12,7 +12,6 @@ import '../platform/nex_services.dart';
 import '../widgets/ai_capability_status.dart';
 import '../widgets/nex_banner.dart';
 import 'ai_provider_screen.dart';
-import 'disclosures_screen.dart';
 import 'local_model_screen.dart';
 import '../widgets/nex_dialog.dart';
 
@@ -334,9 +333,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
           ],
           if (enabled) ...[
             const SizedBox(height: NexSpacing.md),
-            // Who reads, and what has been read: the provider, and the log
-            // of every request that left — side by side, because they are
-            // the two halves of one question.
+            // Provider configuration. The disclosure log stays under Security.
             _Panel(
               child: Column(
                 children: [
@@ -358,19 +355,6 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
                         ? l10n.intelligenceUnchecked
                         : null,
                     onTap: () => unawaited(_openProvider()),
-                  ),
-                  const Divider(height: 1, indent: 64),
-                  _LinkRow(
-                    icon: Icons.cloud_upload_outlined,
-                    title: l10n.disclosuresTitle,
-                    value: l10n.disclosuresRow,
-                    onTap: () => Navigator.push(
-                      context,
-                      NexPageRoute<void>(
-                        builder: (_) =>
-                            DisclosuresScreen(services: widget.services),
-                      ),
-                    ),
                   ),
                   // Only in the build that can run a model on the phone.
                   if (LocalAi.flavorSupportsLocalModels) ...[

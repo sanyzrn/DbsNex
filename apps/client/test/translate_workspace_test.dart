@@ -94,6 +94,56 @@ void main() {
   }
 
   for (final locale in ['en', 'fa']) {
+    testWidgets('$locale: the entire language bar opens one existing picker', (
+      tester,
+    ) async {
+      final h = await NexTestHarness.create();
+      addTearDown(h.dispose);
+      final provider = _Provider();
+      final l10n = await open(
+        tester,
+        h,
+        provider,
+        'Bonjour le monde',
+        locale: locale,
+      );
+      final bar = find.byKey(const ValueKey('translation-language-bar'));
+      final before = tester.getRect(
+        find.byKey(const ValueKey('translation-direction')),
+      );
+      final points = [
+        tester.getCenter(find.byKey(const ValueKey('translation-source'))),
+        tester.getCenter(find.byKey(const ValueKey('translation-target'))),
+        Offset(before.center.dx, before.bottom - 3),
+        tester.getCenter(
+          find.byKey(const ValueKey('translation-choose-language')),
+        ),
+      ];
+      for (final point in points) {
+        await tester.tapAt(point);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('translation-language-search')),
+          findsOneWidget,
+        );
+        expect(find.text(l10n.translationChooseLanguage), findsOneWidget);
+        Navigator.of(
+          tester.element(
+            find.byKey(const ValueKey('translation-language-search')),
+          ),
+        ).pop();
+        await tester.pumpAndSettle();
+      }
+      expect(tester.widget<InkWell>(bar).onTap, isNotNull);
+      expect(
+        tester.getRect(find.byKey(const ValueKey('translation-direction'))),
+        before,
+      );
+      expect(provider.detections, 1);
+      expect(provider.sources, ['Bonjour le monde']);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
       '$locale detects a third language and defaults to UI language',
       (tester) async {

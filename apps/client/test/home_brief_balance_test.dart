@@ -93,8 +93,20 @@ void main() {
           )
           .toList();
       expect(content, hasLength(length.lines));
-      expect(content.any((text) => _notes.any(text.contains)), isTrue);
-      expect(content.any((text) => text.contains('4/8 glasses')), isTrue);
+      // Notes spend the budget first; habits fill only the remaining rows.
+      // Short and medium reports must not displace a note to reserve progress.
+      final noteCount = length.lines.clamp(0, _notes.length);
+      expect(
+        content.where((text) => _notes.any(text.contains)),
+        hasLength(noteCount),
+      );
+      for (final text in content.take(noteCount)) {
+        expect(_notes.any(text.contains), isTrue);
+      }
+      expect(
+        content.any((text) => text.contains('4/8 glasses')),
+        length.lines > _notes.length,
+      );
     }
     await tester.pumpWidget(const SizedBox());
   });

@@ -58,23 +58,48 @@ class HabitsBrief {
       })
       .join('\n');
 
-  String localText(AppLocalizations l10n) {
+  String localText(
+    AppLocalizations l10n, {
+    bool includeCompleted = false,
+    int maxWords = 28,
+  }) {
     final persian = l10n.localeName.startsWith('fa');
-    return rows
-        .take(4)
-        .map((row) {
-          final h = row.habit;
-          final s = row.standing;
-          final name = h.name.isEmpty ? (persian ? 'عادت' : 'Habit') : h.name;
-          final status = h.counted
-              ? '${s.todayAmount}/${h.goal} ${h.unit}'
-              : h.weekly
-              ? '${s.weekCount}/${h.target} ${persian ? 'این هفته' : 'this week'}'
-              : s.todayDone
-              ? (persian ? 'انجام شد' : 'done')
-              : (persian ? 'برای امروز مانده' : 'left for today');
-          return nexDigits('$name: $status', persian: persian);
-        })
-        .join('\n');
+    String describe(({Habit habit, HabitStanding standing}) row) {
+      final h = row.habit;
+      final s = row.standing;
+      final name = h.name.isEmpty ? (persian ? 'عادت' : 'Habit') : h.name;
+      final status = h.counted
+          ? '${s.todayAmount}/${h.goal} ${h.unit}'
+          : h.weekly
+          ? '${s.weekCount}/${h.target} ${persian ? 'این هفته' : 'this week'}'
+          : s.todayDone
+          ? (persian ? 'انجام شد' : 'done')
+          : (persian ? 'برای امروز مانده' : 'left for today');
+      return nexDigits('$name: $status', persian: persian);
+    }
+
+    if (includeCompleted) return rows.take(4).map(describe).join('\n');
+
+    // Action-oriented briefs do not spend rows on routine daily completions.
+    final pending = rows.where(
+      (row) =>
+          !row.standing.todayDone &&
+          !(row.habit.weekly && row.standing.weekCount >= row.habit.target),
+    );
+    final lines = pending.take(4).map(describe).toList();
+    final milestones = rows.where(
+      (row) => row.habit.weekly && row.standing.weekCount >= row.habit.target,
+    );
+    if (lines.length < 4 && milestones.isNotEmpty) {
+      // One combined, bounded acknowledgement, after pending actions.
+      final phrase = milestones.take(2).map(describe).join(' · ');
+      final words = phrase.split(RegExp(r'\s+'));
+      lines.add(
+        words.length <= maxWords
+            ? phrase
+            : '${words.take(maxWords).join(' ')}…',
+      );
+    }
+    return lines.join('\n');
   }
 }

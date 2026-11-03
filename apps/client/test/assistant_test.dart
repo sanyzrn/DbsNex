@@ -1666,6 +1666,75 @@ Sure, here you go:
       expect(find.text('Search your notes for this?'), findsOneWidget);
     });
 
+    for (final kind in ['deleted', 'commitments']) {
+      for (final explicit in [false, true]) {
+        testWidgets('$kind lookup waits for consent, explicit=$explicit', (
+          tester,
+        ) async {
+          const secret = 'PRIVATE_LOOKUP_SENTINEL';
+          if (kind == 'deleted') {
+            final note = (await services.captureText(secret))!;
+            await services.deleteNote(note.id);
+          } else {
+            final now = DateTime.now().toUtc();
+            await services.worker.saveCommitment(
+              NexCommitment(
+                id: 'private-recurring',
+                title: secret,
+                cadence: NexCadence.days,
+                every: 1,
+                dueAt: now.add(const Duration(days: 1)),
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+          }
+          await tester.pumpAndSettle();
+          final requests = <String>[];
+          final client = MockClient((request) async {
+            requests.add(request.body);
+            return http.Response.bytes(
+              utf8.encode(
+                jsonEncode({
+                  'choices': [
+                    {
+                      'message': {
+                        'content': requests.length == 1
+                            ? '```nex\n{"action":"$kind"}\n```'
+                            : 'Finished the approved lookup.',
+                      },
+                    },
+                  ],
+                }),
+              ),
+              200,
+              headers: const {'content-type': 'application/json'},
+            );
+          });
+          addTearDown(client.close);
+          await openSheet(tester, client: client);
+          await ask(
+            tester,
+            explicit ? 'Show my $kind' : 'What did I write about the cooler?',
+          );
+          expect(requests, hasLength(1));
+          expect(requests.single, isNot(contains(secret)));
+          expect(
+            find.text(
+              kind == 'deleted'
+                  ? 'Read up to 30 recently deleted notes for this answer?'
+                  : 'Read your recurring items for this answer?',
+            ),
+            findsOneWidget,
+          );
+          await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
+          await tester.pumpAndSettle();
+          expect(requests, hasLength(2));
+          expect(requests.last, contains(secret));
+        });
+      }
+    }
+
     testWidgets('a note and its reminder, in one request', (tester) async {
       final when = DateTime.now().add(const Duration(days: 2));
       final at =

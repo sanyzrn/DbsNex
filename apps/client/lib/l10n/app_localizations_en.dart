@@ -207,14 +207,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantAboutYouNote =>
-      'Included with your messages to the provider you choose.';
+      'This name is sent with assistant requests so it can address you. Your separate profile name stays on this device. A short introduction can be enabled separately in Intelligence → Memory.';
 
   @override
   String get assistantAboutYouGroup => 'About you';
 
   @override
   String get assistantProfileIntro =>
-      'Give the assistant a little context about you, then choose the voice that feels right. These details are sent only with assistant questions.';
+      'Choose how the assistant addresses you and how it responds. A short introduction is available separately in Memory.';
 
   @override
   String get assistantCallMe => 'What should it call you?';
@@ -2185,6 +2185,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get annotateClear => 'Clear all';
+
+  @override
+  String get annotateClearConfirm =>
+      'Clear all drawings and text from this photo? This cannot be undone.';
 
   @override
   String get annotateDone => 'Done';
@@ -5630,6 +5634,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConfirmSearch => 'Search your notes for this?';
 
   @override
+  String get assistantConfirmDeleted =>
+      'Read up to 30 recently deleted notes for this answer?';
+
+  @override
+  String get assistantConfirmCommitments =>
+      'Read your recurring items for this answer?';
+
+  @override
   String get settingsLanguageAndCalendar => 'Language and calendar';
 
   @override
@@ -6642,4 +6654,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commitmentMarkOccurrence => 'Mark this occurrence done';
+
+  @override
+  String get memoryTitle => 'Memory';
+
+  @override
+  String get memorySubtitle => 'A short introduction for the assistant.';
+
+  @override
+  String get memorySwitchSubtitle =>
+      'Use your introduction in assistant requests. Your text stays saved when this is off.';
+
+  @override
+  String get memoryConsentBody =>
+      'When Memory is on, your introduction is included in assistant requests and sent to your selected AI service. With an offline model it stays on this device. Nothing is learned automatically. Turning Memory off keeps your text.';
+
+  @override
+  String get memoryEnable => 'Enable Memory';
 }

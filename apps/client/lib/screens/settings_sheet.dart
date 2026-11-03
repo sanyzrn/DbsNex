@@ -43,6 +43,7 @@ import 'backup_screen.dart';
 import 'guide_screen.dart';
 import 'assistant_screen.dart';
 import 'brief_screen.dart';
+import 'memory_screen.dart';
 import 'disclosures_screen.dart';
 import 'metrics_screen.dart';
 import 'modules_screen.dart';
@@ -555,6 +556,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.chat_bubble_outline,
           title: l10n.assistant,
+          enabled: preferences.aiEnabled,
           keywords: 'chat tone answer length stay in my notes دستیار گفتگو لحن',
           value: l10n.assistantSubtitle,
           onTap: () => Navigator.push(
@@ -568,6 +570,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.article_outlined,
           title: l10n.briefTitle,
+          enabled: preferences.aiEnabled,
           keywords: 'smart summary brief tokens greeting خلاصه هوشمند توکن',
           value: !preferences.showDaySummary
               ? l10n.intelligenceOff
@@ -582,6 +585,20 @@ class SettingsSheet extends StatelessWidget {
             context,
             NexPageRoute<void>(
               builder: (_) => BriefScreen(preferences: preferences),
+            ),
+          ),
+        ),
+        _Row(
+          key: const ValueKey('intelligence-memory-row'),
+          icon: Icons.psychology_outlined,
+          title: l10n.memoryTitle,
+          keywords: 'memory introduction about me حافظه معرفی کوتاه',
+          value: l10n.memorySubtitle,
+          enabled: preferences.aiEnabled,
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => MemoryScreen(preferences: preferences),
             ),
           ),
         ),

@@ -359,7 +359,7 @@ abstract class AppLocalizations {
   /// Says that the assistant's name and introduction reach the AI provider
   ///
   /// In en, this message translates to:
-  /// **'Included with your messages to the provider you choose.'**
+  /// **'This name is sent with assistant requests so it can address you. Your separate profile name stays on this device. A short introduction can be enabled separately in Intelligence → Memory.'**
   String get assistantAboutYouNote;
 
   /// No description provided for @assistantAboutYouGroup.
@@ -371,7 +371,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantProfileIntro.
   ///
   /// In en, this message translates to:
-  /// **'Give the assistant a little context about you, then choose the voice that feels right. These details are sent only with assistant questions.'**
+  /// **'Choose how the assistant addresses you and how it responds. A short introduction is available separately in Memory.'**
   String get assistantProfileIntro;
 
   /// No description provided for @assistantCallMe.
@@ -3487,6 +3487,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear all'**
   String get annotateClear;
+
+  /// No description provided for @annotateClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all drawings and text from this photo? This cannot be undone.'**
+  String get annotateClearConfirm;
 
   /// Annotate screen: bakes the annotations into the photo and returns
   ///
@@ -8792,6 +8798,18 @@ abstract class AppLocalizations {
   /// **'Search your notes for this?'**
   String get assistantConfirmSearch;
 
+  /// No description provided for @assistantConfirmDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Read up to 30 recently deleted notes for this answer?'**
+  String get assistantConfirmDeleted;
+
+  /// No description provided for @assistantConfirmCommitments.
+  ///
+  /// In en, this message translates to:
+  /// **'Read your recurring items for this answer?'**
+  String get assistantConfirmCommitments;
+
   /// No description provided for @settingsLanguageAndCalendar.
   ///
   /// In en, this message translates to:
@@ -10345,6 +10363,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mark this occurrence done'**
   String get commitmentMarkOccurrence;
+
+  /// No description provided for @memoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory'**
+  String get memoryTitle;
+
+  /// No description provided for @memorySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A short introduction for the assistant.'**
+  String get memorySubtitle;
+
+  /// No description provided for @memorySwitchSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your introduction in assistant requests. Your text stays saved when this is off.'**
+  String get memorySwitchSubtitle;
+
+  /// No description provided for @memoryConsentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When Memory is on, your introduction is included in assistant requests and sent to your selected AI service. With an offline model it stays on this device. Nothing is learned automatically. Turning Memory off keeps your text.'**
+  String get memoryConsentBody;
+
+  /// No description provided for @memoryEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Memory'**
+  String get memoryEnable;
 }
 
 class _AppLocalizationsDelegate

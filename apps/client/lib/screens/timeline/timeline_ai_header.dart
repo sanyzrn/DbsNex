@@ -187,7 +187,11 @@ extension _TimelineAiHeader on TimelineScreenState {
     _habitBriefSource = prefs.briefHabitsAllowed ? habits.source : '';
     final includesHabits = _habitBriefSource.isNotEmpty;
     final habitText = includesHabits
-        ? habits.localText(AppLocalizations.of(context))
+        ? habits.localText(
+            AppLocalizations.of(context),
+            includeCompleted: prefs.briefStyle == NexBriefStyle.report,
+            maxWords: prefs.briefLength.words,
+          )
         : '';
     if (!prefs.briefHabitsAllowed && prefs.aiDaySummaryIncludesHabits) {
       _rebuild(
@@ -216,21 +220,8 @@ extension _TimelineAiHeader on TimelineScreenState {
         ? (budget - 1).clamp(1, budget)
         : budget;
     final habitLines = habitText.isEmpty ? <String>[] : habitText.split('\n');
-    final noteCount = notesSource.isEmpty
-        ? 0
-        : '\n'.allMatches(notesSource).length + 1;
-    // Notes keep the larger share; habits use spare room and never replace
-    // every ordinary note just because those notes have no reminder.
-    final habitBudget = !includesHabits
-        ? 0
-        : notesSource.isEmpty
-        ? writtenBudget
-        : (writtenBudget - noteCount).clamp(
-            1,
-            (writtenBudget ~/ 3).clamp(1, writtenBudget),
-          );
-    final noteBudget = (writtenBudget - habitBudget.clamp(0, habitLines.length))
-        .clamp(1, writtenBudget);
+    // Spend the factual budget on notes in priority order first. Habit
+    // progress may use spare room; it never reserves a row ahead of a note.
     final noteReport = style.statesFacts
         ? nexBriefReport(
             nexBriefFacts(
@@ -238,7 +229,7 @@ extension _TimelineAiHeader on TimelineScreenState {
               commitments: _model.commitments,
             ),
             AppLocalizations.of(context),
-            maxLines: noteBudget,
+            maxLines: writtenBudget,
             maxWords: length.words,
             notes: _model.all ?? _model.notes,
             clock: (local) => nexDueClock(context, local),

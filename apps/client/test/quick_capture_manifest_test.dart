@@ -10,6 +10,31 @@ void main() {
     'android/app/src/main/AndroidManifest.xml',
   ).readAsStringSync();
 
+  test('quick capture and widget PendingIntent identities do not collide', () {
+    String source(String name) => File(
+      'android/app/src/main/kotlin/com/sanyzrn/nex/$name.kt',
+    ).readAsStringSync();
+    final notification = source('NexQuickCapture');
+    final widget = source('NexWidgetActions');
+    final notificationIds = RegExp(r'const val RC_\w+ = (0x[\dA-Fa-f]+)')
+        .allMatches(notification)
+        .map((match) => int.parse(match.group(1)!.substring(2), radix: 16))
+        .toList();
+    final widgetIds = RegExp(r'0x[\dA-Fa-f]+')
+        .allMatches(widget)
+        .map((match) => int.parse(match[0]!.substring(2), radix: 16))
+        .toSet();
+    expect(notificationIds, hasLength(4));
+    expect(notificationIds.toSet(), hasLength(4));
+    expect(widgetIds, isNotEmpty);
+    expect(
+      notificationIds.toSet().intersection(widgetIds),
+      isEmpty,
+      reason:
+          'Android excludes capture_mode extras from PendingIntent identity',
+    );
+  });
+
   test('the tile is declared the way Android requires', () {
     final service = RegExp(
       r'<service\s+android:name="\.NexCaptureTileService"[\s\S]*?</service>',
