@@ -333,3 +333,5 @@ Wide tables in Markdown and DOCX previews scroll horizontally within the table. 
 A backup from an unsupported newer database format is refused before your current library changes. Importing Nex’s text and checklist Markdown exports preserves titles, tags and original dates; ordinary Markdown frontmatter is kept as text unless it is recognised as a Nex export. Use **Restore or import from a file** with a full Nex archive to keep media, reminders and other library relationships.
 
 The assistant follows the image and transcription switches in Intelligence, including changes made while a conversation is open. Local search shows keyword matches promptly; queries shorter than three characters stay local, and meaning searches wait for a typing pause. Continuing to type cancels the superseded cloud query.
+
+**Assistant history.** The history button groups saved conversations by time and shows a short reply preview; the open conversation is highlighted. Tap a row to resume it, use its **More actions → Delete** to remove it, or **New conversation** to start again. The header’s delete-all button still asks for confirmation.

@@ -16,6 +16,11 @@ import '../widgets/nex_banner.dart';
 import '../widgets/photo_editor_theme.dart';
 import 'photo_annotate_screen.dart';
 
+// The crop package fixes its corner slots at 32dp. Scale only its bounded
+// viewport so each slot reaches 48dp; image fit and image-based crop areas
+// stay the same. Compensate the dot/stroke below to keep their visible size.
+const _cropControlScale = 1.5;
+
 /// Crop step shown right after a photo is taken or picked, before it is ever
 /// written to disk.
 ///
@@ -419,37 +424,52 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                           context,
                         ).copyWith(size: constraints.biggest),
                         child: ClipRect(
-                          child: Crop(
-                            key: ValueKey(_current),
-                            image: _current,
-                            aspectRatio: _aspectRatio,
-                            controller: _controller,
-                            initialRectBuilder: _restoredArea == null
-                                ? null
-                                : InitialRectBuilder.withArea(_restoredArea!),
-                            onMoved: (_, area) {
-                              _area = area;
-                              _snapshot();
-                            },
-                            onCropped: (result) =>
-                                unawaited(_onCropped(result)),
-                            // `_crop()` reports `.ready` again right after
-                            // `.cropped`, in the same call — including once
-                            // this screen has already popped itself in
-                            // response to that same result, which made this a
-                            // `setState` after dispose.
-                            onStatusChanged: (status) {
-                              if (!mounted) return;
-                              setState(
-                                () => _ready = status == CropStatus.ready,
-                              );
-                            },
-                            baseColor: Colors.black,
-                            maskColor: Colors.black.withValues(alpha: 0.6),
-                            cornerDotBuilder: (size, edge) =>
-                                _CropCorner(size: size),
-                            interactive: true,
-                            radius: 4,
+                          child: SizedBox.fromSize(
+                            size: constraints.biggest,
+                            child: FittedBox(
+                              fit: BoxFit.fill,
+                              child: SizedBox(
+                                width: constraints.maxWidth / _cropControlScale,
+                                height:
+                                    constraints.maxHeight / _cropControlScale,
+                                child: Crop(
+                                  key: ValueKey(_current),
+                                  image: _current,
+                                  aspectRatio: _aspectRatio,
+                                  controller: _controller,
+                                  initialRectBuilder: _restoredArea == null
+                                      ? null
+                                      : InitialRectBuilder.withArea(
+                                          _restoredArea!,
+                                        ),
+                                  onMoved: (_, area) {
+                                    _area = area;
+                                    _snapshot();
+                                  },
+                                  onCropped: (result) =>
+                                      unawaited(_onCropped(result)),
+                                  // `_crop()` reports `.ready` again right after
+                                  // `.cropped`, in the same call — including once
+                                  // this screen has already popped itself in
+                                  // response to that same result, which made this a
+                                  // `setState` after dispose.
+                                  onStatusChanged: (status) {
+                                    if (!mounted) return;
+                                    setState(
+                                      () => _ready = status == CropStatus.ready,
+                                    );
+                                  },
+                                  baseColor: Colors.black,
+                                  maskColor: Colors.black.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                  cornerDotBuilder: (size, edge) =>
+                                      _CropCorner(size: size, edge: edge),
+                                  interactive: true,
+                                  radius: 4 / _cropControlScale,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -465,24 +485,30 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
 /// The handle at each corner of the crop: a white dot ringed in the accent,
 /// big enough to find with a thumb.
 class _CropCorner extends StatelessWidget {
-  const _CropCorner({required this.size});
+  const _CropCorner({required this.size, required this.edge});
 
-  /// The touch area the cropper gives each corner.
   final double size;
+  final EdgeAlignment edge;
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
     dimension: size,
-    child: Center(
-      child: Container(
-        width: 14,
-        height: 14,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(
-            color: Theme.of(context).colorScheme.primary,
-            width: 2,
+    child: ColoredBox(
+      // A transparent, hit-testable surface, not just empty layout space.
+      color: Colors.transparent,
+      key: ValueKey('crop-target-${edge.name}'),
+      child: Center(
+        child: Container(
+          key: ValueKey('crop-dot-${edge.name}'),
+          width: 14 / _cropControlScale,
+          height: 14 / _cropControlScale,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            border: Border.all(
+              color: Theme.of(context).colorScheme.primary,
+              width: 2 / _cropControlScale,
+            ),
           ),
         ),
       ),

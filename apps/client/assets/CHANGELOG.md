@@ -6,6 +6,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.6.0
 
+- **Easier photo cropping.** Larger touch areas make all four crop handles easier to drag while keeping the visible crop controls in place.
+- **A clearer assistant history.** Conversations are grouped by time with reply previews and a current-chat indicator. Individual deletion is in each conversation’s menu.
 - **A steadier pull to refresh.** Reversing your drag closes the refresh strip before the notes scroll. A quiet Nex accent marks success, with separate handling for cancelled and failed refreshes.
 - **Find notes without tags.** Untagged stays at the end of the tag row and works with note-type and reminder filters.
 - **More room to write.** The capture clipboard fades away once you start writing and gives its space back to the editor; clearing the text brings it back.
