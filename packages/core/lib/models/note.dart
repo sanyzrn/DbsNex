@@ -72,6 +72,7 @@ class Note {
     required this.syncState,
     this.tags = const [],
     this.pinnedAt,
+    this.isUrgent = false,
     this.setAsideAt,
     this.setAsideUntil,
     this.dueAt,
@@ -129,6 +130,9 @@ class Note {
   /// are how *this device* likes its own timeline arranged, not something
   /// that means anything to another device or survives a JSON export.
   final DateTime? pinnedAt;
+
+  /// A local importance mark. It never changes timeline ordering or Pin.
+  final bool isUrgent;
 
   /// When this note was put to one side, or null.
   ///
@@ -217,7 +221,7 @@ class Note {
     if (isImageMedia) return _joinSearchable([ocrText]);
     if (isAudioMedia) return _joinSearchable([transcriptText]);
     return switch (type) {
-      NoteType.text => _joinSearchable([content]),
+      NoteType.text => _joinSearchable([content, caption]),
       NoteType.checklist => _joinSearchable([
         for (final item in checklistItems) item.text,
       ]),
@@ -351,6 +355,7 @@ class Note {
     SyncState? syncState,
     List<Tag>? tags,
     DateTime? pinnedAt,
+    bool? isUrgent,
     bool clearPinnedAt = false,
     DateTime? setAsideAt,
     DateTime? setAsideUntil,
@@ -400,6 +405,7 @@ class Note {
       // reminder disappeared", days later, with no error and no diff to
       // point at.
       pinnedAt: clearPinnedAt ? null : (pinnedAt ?? this.pinnedAt),
+      isUrgent: isUrgent ?? this.isUrgent,
       setAsideAt: clearSetAside ? null : (setAsideAt ?? this.setAsideAt),
       setAsideUntil: clearSetAside
           ? null
@@ -462,6 +468,7 @@ class Note {
       rev: row['rev']! as int,
       syncState: SyncState.fromWire(row['sync_state']! as String),
       tags: tags,
+      isUrgent: row['is_urgent'] == 1 || row['is_urgent'] == true,
       dueAt: (row['due_at'] as String?) != null
           ? DateTime.parse(row['due_at']! as String).toUtc()
           : null,

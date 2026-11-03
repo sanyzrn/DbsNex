@@ -12,6 +12,7 @@ import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'notification_text.dart';
+import 'daily_nudge_native.dart';
 import 'module_notification.dart';
 export 'module_notification.dart';
 
@@ -567,7 +568,6 @@ class NexReminders {
   /// reminder someone still wanted retired itself silently on the next
   /// launch. The short bounded walk that remains only cleans up sub-period
   /// rounding (a DST-shifted wall clock, a `now` that lands between steps).
-  @visibleForTesting
   static DateTime computeNextOccurrence(
     DateTime start,
     NoteRepeat repeat,

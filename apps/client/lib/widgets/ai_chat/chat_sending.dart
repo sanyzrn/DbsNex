@@ -689,9 +689,11 @@ extension _ChatSending on _AiChatSheetState {
   /// is two conversations both claiming to be the one on screen, and the one
   /// underneath would keep saving itself over the one above.
   Future<void> _openHistory() async {
+    _composerFocus.unfocus();
     final chosen = await ChatHistorySheet.show(
       context,
       history: widget.history,
+      activeThreadId: _threadId,
     );
     if (chosen == null || !mounted) return;
     Navigator.pop(context);

@@ -3717,5 +3717,10 @@
   "pinPauseDuration": "{time} session",
   "@pinPauseDuration": {"placeholders": {"time": {"type": "String"}}},
   "pinCycleSetup": "Set up your cycle",
-  "pinCycleLog": "Log how you feel"
+  "pinCycleLog": "Log how you feel",
+  "filterUntagged": "Untagged",
+  "markUrgent": "Mark as urgent",
+  "removeUrgent": "Remove urgent mark",
+  "urgent": "Urgent",
+  "commitmentMarkOccurrence": "Mark this occurrence done"
 }

@@ -686,23 +686,15 @@ class _CaptureSheetState extends State<CaptureSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(child: _field(context, l10n)),
-                            IconButton(
-                              key: const ValueKey('capture-paste'),
-                              tooltip: MaterialLocalizations.of(
+                            _CapturePasteSlot(
+                              visible: controller.text.isEmpty,
+                              label: MaterialLocalizations.of(
                                 context,
                               ).pasteButtonLabel,
                               onPressed: _closing ? null : _paste,
-                              constraints: const BoxConstraints.tightFor(
-                                width: nexMinTapTarget,
-                                height: nexMinTapTarget,
-                              ),
                               color: nexNoteTypeTint(
                                 _wire(shown),
                                 Theme.of(context).colorScheme,
-                              ),
-                              icon: const Icon(
-                                Icons.content_paste_outlined,
-                                size: 18,
                               ),
                             ),
                           ],

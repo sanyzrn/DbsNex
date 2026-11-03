@@ -846,13 +846,13 @@ Sure, here you go:
           home: Scaffold(body: ChatHistorySheet(history: history)),
         ),
       );
-      await tester.tap(find.text('Delete all conversations'));
+      await tester.tap(find.byTooltip('Delete all conversations'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       expect(history.threads, hasLength(1));
 
-      await tester.tap(find.text('Delete all conversations'));
+      await tester.tap(find.byTooltip('Delete all conversations'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
       await tester.pumpAndSettle();

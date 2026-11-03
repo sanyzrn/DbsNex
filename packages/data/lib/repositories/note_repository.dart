@@ -111,6 +111,74 @@ class SqliteNoteRepository implements NoteRepository {
 
   Database get db => _db.db;
 
+  /// Each category gets its own small budget; an old quiet library is not
+  /// mistaken for an empty one. No media, private-vault content or AI calls.
+  NexNudgeSnapshot nudgeSnapshot(List<NexCommitment> commitments) {
+    final candidates = <String, Note>{};
+    final now = DateTime.now().toUtc();
+    final categories = [
+      (where: 'is_urgent = 1', order: 'updated_at DESC', args: <Object?>[]),
+      // A repeat's stored start can be years old. Keep a separate budget so
+      // old one-off reminders cannot hide either repeats or the nearest due.
+      (
+        where: "due_at IS NOT NULL AND due_repeat != 'once'",
+        order: 'updated_at DESC',
+        args: <Object?>[],
+      ),
+      (
+        where:
+            "due_at BETWEEN ? AND ? AND (due_repeat IS NULL OR due_repeat = 'once')",
+        order: 'ABS(julianday(due_at) - julianday(?))',
+        args: <Object?>[
+          now.subtract(const Duration(days: 7)).toIso8601String(),
+          now.add(const Duration(days: 33)).toIso8601String(),
+          now.toIso8601String(),
+        ],
+      ),
+      (
+        where: "type = 'checklist'",
+        order: 'updated_at DESC',
+        args: <Object?>[],
+      ),
+    ];
+    for (final category in categories) {
+      for (final row in db.select(
+        'SELECT * FROM notes WHERE deleted_at IS NULL '
+        'AND (set_aside_at IS NULL OR set_aside_until IS NOT NULL) '
+        'AND (${category.where}) ORDER BY ${category.order} LIMIT 60',
+        category.args,
+      )) {
+        final note = Note.fromRow(row);
+        candidates[note.id] = note;
+      }
+    }
+    final hasData =
+        commitments.isNotEmpty ||
+        db
+                .select(
+                  'SELECT EXISTS(SELECT 1 FROM notes) '
+                  'OR EXISTS(SELECT 1 FROM scheduled_notes) '
+                  'OR EXISTS(SELECT 1 FROM module_records) AS present',
+                )
+                .first['present'] ==
+            1;
+    final revision = db
+        .select(
+          'SELECT COUNT(*) AS count, COALESCE(SUM(rev), 0) AS revision, '
+          'MAX(updated_at) AS latest, (SELECT MAX(updated_at) FROM module_records) AS modules '
+          'FROM notes WHERE deleted_at IS NULL',
+        )
+        .first
+        .values
+        .join('|');
+    return NexNudgeSnapshot(
+      notes: candidates.values.toList(),
+      commitments: commitments,
+      hasData: hasData,
+      revision: revision,
+    );
+  }
+
   /// Commits the note and its delivery receipt together. Re-delivery after an
   /// engine restart or a lost platform acknowledgement cannot create a copy.
   Note? captureShared(Map<String, String> payload) {
@@ -210,8 +278,8 @@ class SqliteNoteRepository implements NoteRepository {
 INSERT INTO notes (
   id, type, content, media_uri, media_hash, duration_ms,
   created_at, updated_at, deleted_at, device_id, rev, sync_state,
-  caption, title, link_excerpt, mime_type
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  caption, title, link_excerpt, mime_type, is_urgent
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ''',
         [
           note.id,
@@ -230,6 +298,7 @@ INSERT INTO notes (
           note.title,
           note.linkExcerpt,
           note.mimeType,
+          note.isUrgent ? 1 : 0,
         ],
       );
       final searchable = note.searchableDerivedText;
@@ -381,6 +450,12 @@ WHERE id = ? AND deleted_at IS NULL
 
   void unpinNote(String noteId) =>
       db.execute('UPDATE notes SET pinned_at = NULL WHERE id = ?', [noteId]);
+
+  /// Local metadata only: keep timestamps, ordering, content and Pin intact.
+  void setUrgent(String noteId, bool urgent) => db.execute(
+    'UPDATE notes SET is_urgent = ? WHERE id = ? AND deleted_at IS NULL',
+    [urgent ? 1 : 0, noteId],
+  );
 
   int pinnedNoteCount() =>
       db

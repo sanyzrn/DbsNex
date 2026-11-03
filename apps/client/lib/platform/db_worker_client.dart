@@ -186,6 +186,14 @@ mixin _DbClient implements NexDb {
       _send<bool>(_DbCommand.pinNote, {'id': id});
 
   @override
+  Future<void> setUrgent(String id, bool urgent) =>
+      _send<void>(_DbCommand.setUrgent, {'id': id, 'urgent': urgent});
+
+  @override
+  Future<NexNudgeSnapshot> nudgeSnapshot() =>
+      _send<NexNudgeSnapshot>(_DbCommand.nudgeSnapshot);
+
+  @override
   Future<void> unpinNote(String id) =>
       _send<void>(_DbCommand.unpinNote, {'id': id});
 

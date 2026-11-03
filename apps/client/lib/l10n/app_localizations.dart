@@ -10315,6 +10315,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Log how you feel'**
   String get pinCycleLog;
+
+  /// No description provided for @filterUntagged.
+  ///
+  /// In en, this message translates to:
+  /// **'Untagged'**
+  String get filterUntagged;
+
+  /// No description provided for @markUrgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as urgent'**
+  String get markUrgent;
+
+  /// No description provided for @removeUrgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove urgent mark'**
+  String get removeUrgent;
+
+  /// No description provided for @urgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Urgent'**
+  String get urgent;
+
+  /// No description provided for @commitmentMarkOccurrence.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark this occurrence done'**
+  String get commitmentMarkOccurrence;
 }
 
 class _AppLocalizationsDelegate

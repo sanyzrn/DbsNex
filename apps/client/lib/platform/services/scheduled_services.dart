@@ -58,7 +58,7 @@ extension NexScheduledServices on NexServices {
   /// Throws a waiting note away. It never reached the library, so there is
   /// no trash and no undo.
   Future<void> discardScheduled(String id) async {
-    await worker.discardScheduled(id);
+    await _afterNudgeWrite(worker.discardScheduled(id));
     await reminders.cancelArrival(id);
     await _armScheduledTimer();
   }
@@ -110,9 +110,10 @@ extension NexScheduledServices on NexServices {
   }
 
   Future<void> setCaption(String id, String caption) =>
-      worker.setCaption(id, caption);
+      _afterNudgeWrite(worker.setCaption(id, caption));
 
-  Future<void> setTitle(String id, String? title) => worker.setTitle(id, title);
+  Future<void> setTitle(String id, String? title) =>
+      _afterNudgeWrite(worker.setTitle(id, title));
 
   Future<void> summarizeInto(String id, String summary) =>
       worker.setSummaryText(id, summary);
@@ -121,10 +122,15 @@ extension NexScheduledServices on NexServices {
       worker.setLinkMetadata(id, title: title, excerpt: excerpt);
 
   Future<void> toggleChecklistItem(String id, int index) =>
-      worker.toggleChecklistItem(id, index);
+      _afterNudgeWrite(worker.toggleChecklistItem(id, index));
 
   /// Pins [id] when fewer than five notes are already pinned.
   Future<bool> pinNote(String id) => worker.pinNote(id);
+
+  Future<void> setUrgent(String id, bool urgent) async {
+    await worker.setUrgent(id, urgent);
+    await refreshTimeline();
+  }
 
   Future<void> unpinNote(String id) => worker.unpinNote(id);
 
@@ -135,9 +141,9 @@ extension NexScheduledServices on NexServices {
   /// brought back. The timeline is refreshed by the caller's own reload, like
   /// pinning — see `refreshTimeline`.
   Future<bool> setAside(String id, {DateTime? until}) =>
-      worker.setAside(id, until: until);
+      _afterNudgeWrite(worker.setAside(id, until: until));
 
-  Future<void> bringBack(String id) => worker.bringBack(id);
+  Future<void> bringBack(String id) => _afterNudgeWrite(worker.bringBack(id));
 
   Future<List<Note>> listSetAside() => worker.listSetAside();
 

@@ -204,12 +204,7 @@ class SettingsSheet extends StatelessWidget {
     }
     await preferences.setDailyNudge(value);
     if (!context.mounted) return;
-    final failure = await DailyNudge.apply(
-      context: context,
-      preferences: preferences,
-      reminders: services.reminders,
-      recap: preferences.lastRecap,
-    );
+    final failure = await DailyNudge.apply(services: services);
     if (!context.mounted || failure == null || !value) return;
     nexShowBanner(
       context,
@@ -227,12 +222,7 @@ class SettingsSheet extends StatelessWidget {
     if (picked == null) return;
     await preferences.setDailyNudgeMinutes(picked.hour * 60 + picked.minute);
     if (!context.mounted) return;
-    await DailyNudge.apply(
-      context: context,
-      preferences: preferences,
-      reminders: services.reminders,
-      recap: preferences.lastRecap,
-    );
+    await DailyNudge.apply(services: services);
   }
 
   List<Widget> _groups(BuildContext context, AppLocalizations l10n) => [

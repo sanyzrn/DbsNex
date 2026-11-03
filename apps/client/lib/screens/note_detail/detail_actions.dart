@@ -3,6 +3,13 @@ part of '../note_detail_sheet.dart';
 /// What can be done to the note from its sheet: copy, share, open, edit,
 /// remind, tag, pin.
 extension _DetailActions on _NoteDetailSheetState {
+  Future<void> _toggleUrgent() async {
+    final note = _note;
+    if (note == null) return;
+    await widget.services.setUrgent(note.id, !note.isUrgent);
+    await _reload();
+  }
+
   Future<void> _pickThreads(String noteId) async {
     await showThreadPicker(context, services: widget.services, noteId: noteId);
     await _reload();
@@ -414,7 +421,7 @@ extension _DetailActions on _NoteDetailSheetState {
 
   Future<void> _editCaption() async {
     final note = _note;
-    if (note == null || note.type == NoteType.text || note.isSetAside()) {
+    if (note == null || note.isSetAside()) {
       return;
     }
     final preferences = widget.preferences;

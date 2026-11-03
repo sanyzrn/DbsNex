@@ -20,6 +20,9 @@ import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
 import 'brief_refresh.dart';
+import 'daily_nudge.dart';
+import 'daily_nudge_content.dart';
+import 'daily_nudge_native.dart';
 import '../modules/habits/habit_brief.dart';
 import '../modules/nex_module_store.dart';
 import '../modules/habits/habit_model.dart';
@@ -55,6 +58,7 @@ part 'module_services.dart';
 part 'services/attachment_services.dart';
 part 'services/backup_services.dart';
 part 'services/library_services.dart';
+part 'services/daily_nudge_services.dart';
 part 'services/scheduled_services.dart';
 part 'services/cycle_services.dart';
 part 'services/note_services.dart';
@@ -100,7 +104,9 @@ class NexServices {
     required BackupPolicy backupPolicy,
     required NexPreferences preferences,
   }) : _backupPolicy = backupPolicy,
-       _preferences = preferences;
+       _preferences = preferences {
+    _startDailyNudge();
+  }
 
   final NexDb worker;
   final MediaPicker mediaPicker;
@@ -121,6 +127,12 @@ class NexServices {
 
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;
+  Timer? _nudgeTimer;
+  VoidCallback? _nudgePreferenceListener;
+  String? _nudgePreferences;
+  String? _nudgePlanKey;
+  int _nudgeEpoch = 0;
+  Future<void>? _nudgeFlight;
   late final briefRefresh = NexBriefRefresh(_preferences);
   Future<HabitsBrief>? _habitBrief;
   Future<int>? _habitActionsPending;
@@ -198,6 +210,7 @@ class NexServices {
       if (!_moduleDraftController.isClosed) _moduleDraftController.add(module);
     } else if (kind != 'operation' && kind != '__recovery') {
       if (!_moduleController.isClosed) _moduleController.add(module);
+      _queueDailyNudge();
       if (moduleRemindersEnabled(module) && kind != '__reminder') {
         try {
           await restoreModuleReminders();
@@ -652,6 +665,13 @@ class NexServices {
   }
 
   Future<void> dispose() async {
+    _nudgeEpoch++;
+    _nudgeTimer?.cancel();
+    if (_nudgePreferenceListener case final listener?) {
+      _preferences.removeListener(listener);
+      _nudgePreferenceListener = null;
+    }
+    if (_nudgeFlight case final flight?) await flight;
     _scheduledTimer?.cancel();
     await _timelineController.close();
     await _cycleController.close();

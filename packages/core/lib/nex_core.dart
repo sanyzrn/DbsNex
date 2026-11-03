@@ -24,6 +24,7 @@ export 'models/commitment.dart';
 export 'models/link_url.dart';
 export 'models/memory_record.dart';
 export 'models/note.dart';
+export 'models/nudge_snapshot.dart';
 export 'models/note_attachment.dart';
 export 'models/note_embedding.dart';
 export 'models/note_thread.dart';

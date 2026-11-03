@@ -432,42 +432,40 @@ class _AiChatSheetState extends State<AiChatSheet> {
                         Icons.auto_awesome,
                         color: theme.colorScheme.primary,
                       ),
-                      // Which note this is about, when it is about one. The
-                      // sheet already answers only from that note and can act
-                      // on it, and none of that was visible: the same blank
-                      // chat opened whether it had been reached from the
-                      // capture button or from one note's own action row.
-                      if (widget.scopeLabel case final group?) ...[
-                        const SizedBox(width: NexSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            l10n.chatAboutGroup(
-                              group,
-                              widget.scope?.length ?? 0,
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              l10n.assistant,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            textDirection: nexDirectionOf(group),
-                          ),
+                            if (widget.scopeLabel case final group?)
+                              NexTextSurface(
+                                l10n.chatAboutGroup(
+                                  group,
+                                  widget.scope?.length ?? 0,
+                                ),
+                                maxLines: 1,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              )
+                            else if (widget.focus case final note?)
+                              NexTextSurface(
+                                l10n.chatAboutNote(_focusLabel(note)),
+                                maxLines: 1,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
                         ),
-                      ] else if (widget.focus case final note?) ...[
-                        const SizedBox(width: NexSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            l10n.chatAboutNote(_focusLabel(note)),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            textDirection: nexDirectionOf(_focusLabel(note)),
-                          ),
-                        ),
-                      ] else
-                        const Spacer(),
+                      ),
                       IconButton(
                         tooltip: l10n.chatHistory,
                         onPressed: _openHistory,

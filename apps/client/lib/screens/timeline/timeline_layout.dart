@@ -174,7 +174,9 @@ extension _TimelineLayout on TimelineScreenState {
                           cacheExtent: 900,
                           // Always scrollable, so a short list still bounces rather
                           // than feeling locked.
-                          physics: const AlwaysScrollableScrollPhysics(),
+                          physics: _pullRefresh.physics(
+                            parent: const AlwaysScrollableScrollPhysics(),
+                          ),
                           slivers: [
                             // The headline and the recap card, above the search
                             // field. Both collapse to nothing rather than leaving
@@ -318,6 +320,16 @@ extension _TimelineLayout on TimelineScreenState {
                                           unawaited(_clearFilters()),
                                       selectedTagIds: _model.selectedTagIds,
                                       allLabel: l10n.all,
+                                      untaggedLabel: l10n.filterUntagged,
+                                      untaggedSelected: _model.onlyUntagged,
+                                      onUntagged: () {
+                                        _tick();
+                                        unawaited(
+                                          _model.selectUntagged(
+                                            !_model.onlyUntagged,
+                                          ),
+                                        );
+                                      },
                                       tagLabel: (tag) => nexTagLabel(tag, l10n),
                                       leading: filterBesideSearch
                                           ? null
@@ -347,7 +359,7 @@ extension _TimelineLayout on TimelineScreenState {
                             // day, not an advertisement.
                             if (showSummary)
                               SliverToBoxAdapter(
-                                child: NexRefreshSheen(
+                                child: NexRefreshCompletion(
                                   pulse: _refreshPulse,
                                   child: _briefCard(l10n),
                                 ),

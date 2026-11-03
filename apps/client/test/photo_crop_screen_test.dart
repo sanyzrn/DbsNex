@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
@@ -110,6 +111,49 @@ Future<void> _waitAndSettle(WidgetTester tester) async {
 }
 
 void main() {
+  for (final edge in EdgeAlignment.values) {
+    testWidgets('${edge.name} crop handle has a real enlarged drag target', (
+      tester,
+    ) async {
+      await _pushCropScreen(tester);
+      await _waitAndSettle(tester);
+      final dot = find.byKey(ValueKey('crop-dot-${edge.name}'));
+      final target = find.byKey(ValueKey('crop-target-${edge.name}'));
+      final before = tester.getCenter(dot);
+      final box = tester.getRect(target);
+      expect(box.size, const Size(48, 48));
+      expect(
+        before,
+        box.topLeft + const Offset(24, 24),
+        reason: 'the visible handle keeps its original anchor',
+      );
+      final opposite = EdgeAlignment.values[3 - edge.index];
+      final other = find.byKey(ValueKey('crop-dot-${opposite.name}'));
+      final fixed = tester.getCenter(other);
+      // Inside the viewport, beyond the visible dot and original 32dp slot.
+      final left =
+          edge == EdgeAlignment.topLeft || edge == EdgeAlignment.bottomLeft;
+      final start = before + Offset(left ? 22 : -22, 0);
+      final dx =
+          edge == EdgeAlignment.topLeft || edge == EdgeAlignment.bottomLeft
+          ? 50.0
+          : -50.0;
+      final dy = edge == EdgeAlignment.topLeft || edge == EdgeAlignment.topRight
+          ? 40.0
+          : -40.0;
+      await tester.dragFrom(start, Offset(dx, dy));
+      await tester.pumpAndSettle();
+      expect((tester.getCenter(dot) - before).distance, greaterThan(20));
+      expect(
+        tester.getCenter(other),
+        fixed,
+        reason: 'resize the chosen corner, without panning the photo',
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
   testWidgets('discarding the photo pops null, not the original bytes', (
     tester,
   ) async {

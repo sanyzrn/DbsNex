@@ -16,6 +16,7 @@ import 'tag_label.dart';
 NexCardStrings nexCardStrings(BuildContext context) {
   final l10n = AppLocalizations.of(context);
   return NexCardStrings(
+    urgentLabel: l10n.urgent,
     tagName: (tag) => nexTagLabel(tag, l10n),
     durationLabel: (milliseconds) {
       final seconds = milliseconds ~/ 1000;

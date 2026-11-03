@@ -51,6 +51,7 @@ extension NexLibraryServices on NexServices {
   Future<NexCommitment> saveCommitment(NexCommitment commitment) async {
     final saved = await worker.saveCommitment(commitment);
     await reminders.scheduleCommitment(saved);
+    _queueDailyNudge();
     return saved;
   }
 
@@ -62,12 +63,14 @@ extension NexLibraryServices on NexServices {
   Future<NexCommitment?> markCommitmentMet(String id, {DateTime? at}) async {
     final next = await worker.markCommitmentMet(id, at: at);
     if (next != null) await reminders.scheduleCommitment(next);
+    _queueDailyNudge();
     return next;
   }
 
   Future<void> deleteCommitment(String id) async {
     await worker.deleteCommitment(id);
     await reminders.cancelCommitment(id);
+    _queueDailyNudge();
   }
 
   Future<void> setTagColor({required String tagId, String? color}) =>
@@ -429,6 +432,7 @@ extension NexLibraryServices on NexServices {
     if (_closed || _timelineController.isClosed) return;
     _lastTimeline = notes;
     _timelineController.add(notes);
+    _queueDailyNudge();
   }
 
   /// How many notes the timeline stream currently carries.

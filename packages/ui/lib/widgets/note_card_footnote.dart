@@ -7,7 +7,11 @@ extension on _CardBody {
   Widget _withFootnote(BuildContext context) {
     final due = showDue ? note.dueAt : null;
     final attached = note.attachmentCount > 0;
-    final marked = due != null || attached;
+    final marked = due != null || attached || note.isUrgent;
+    final caption =
+        note.type == NoteType.text && note.caption?.trim().isNotEmpty == true
+        ? NexMarkdownText.preview(note.caption!.trim())
+        : null;
     final preview =
         previewOverride ??
         _Preview(
@@ -16,11 +20,22 @@ extension on _CardBody {
           strings: strings,
           lines: NexCardDensity.of(context).lines,
         );
-    if (!marked) return preview;
+    if (!marked && caption == null) return preview;
     final marks = LayoutBuilder(
       builder: (context, constraints) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (note.isUrgent) ...[
+            ExcludeSemantics(
+              child: Icon(
+                Icons.local_fire_department_outlined,
+                key: const ValueKey('note-urgent-mark'),
+                size: 15,
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            if (due != null || attached) const SizedBox(width: NexSpacing.sm),
+          ],
           if (due != null)
             Flexible(
               child: _DueChip(
@@ -63,14 +78,30 @@ extension on _CardBody {
               child: preview,
             ),
           ),
-        const SizedBox(height: NexSpacing.xs),
-        SizedBox(
-          height: nexCardFootnoteHeightFor(context) - NexSpacing.xs,
-          child: Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: marks,
+        if (caption != null)
+          SizedBox(
+            height: nexCardFootnoteHeightFor(context),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: NexTextSurface(
+                caption,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
           ),
-        ),
+        if (marked) ...[
+          const SizedBox(height: NexSpacing.xs),
+          SizedBox(
+            height: nexCardFootnoteHeightFor(context) - NexSpacing.xs,
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: marks,
+            ),
+          ),
+        ],
       ],
     );
   }

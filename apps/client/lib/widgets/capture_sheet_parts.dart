@@ -1,5 +1,62 @@
 part of 'capture_sheet.dart';
 
+/// Fade the action before reclaiming its column. The editor remains the same
+/// keyed child with the same controller/focus node throughout the transition.
+class _CapturePasteSlot extends StatelessWidget {
+  const _CapturePasteSlot({
+    required this.visible,
+    required this.label,
+    required this.color,
+    required this.onPressed,
+  });
+  final bool visible;
+  final String label;
+  final Color color;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(end: visible ? 1 : 0),
+    duration: NexMotion.of(context, NexMotion.standard),
+    curve: NexMotion.curve,
+    child: IgnorePointer(
+      ignoring: !visible,
+      child: ExcludeSemantics(
+        excluding: !visible,
+        child: IconButton(
+          key: const ValueKey('capture-paste'),
+          tooltip: label,
+          onPressed: onPressed,
+          constraints: const BoxConstraints.tightFor(
+            width: nexMinTapTarget,
+            height: nexMinTapTarget,
+          ),
+          color: color,
+          icon: const Icon(Icons.content_paste_outlined, size: 18),
+        ),
+      ),
+    ),
+    builder: (context, value, child) => SizedBox(
+      key: const ValueKey('capture-paste-slot'),
+      width: nexMinTapTarget * const Interval(0, 0.65).transform(value),
+      height: nexMinTapTarget,
+      child: ClipRect(
+        child: OverflowBox(
+          alignment: AlignmentDirectional.topEnd,
+          minWidth: nexMinTapTarget,
+          maxWidth: nexMinTapTarget,
+          minHeight: nexMinTapTarget,
+          maxHeight: nexMinTapTarget,
+          child: Opacity(
+            opacity: const Interval(0.35, 1).transform(value),
+            child: child,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// The note type each kind is written as, for its colour and its glyph.
 String _wire(CaptureKind kind) => switch (kind) {
   CaptureKind.note => 'text',

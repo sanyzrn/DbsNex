@@ -323,6 +323,7 @@ extension _TimelineAiHeader on TimelineScreenState {
           }
         },
       );
+      _lastBriefRefreshFailed = result.failed;
       if (result.updated) unawaited(widget.widgets?.refresh());
       if (!mounted || settings != _briefSettingsSignature()) return;
       _rebuild(() {
@@ -336,7 +337,10 @@ extension _TimelineAiHeader on TimelineScreenState {
           kind: NexBannerKind.failed,
         );
       }
-      _refreshDailyNudge();
+      _refreshDailyNudge(
+        freshlyGeneratedSummary:
+            result.updated && prefs.aiDaySummarySource == _briefFingerprint(),
+      );
     } finally {
       if (mounted) _rebuild(() => _aiSummaryLoading = false);
     }
@@ -499,23 +503,14 @@ extension _TimelineAiHeader on TimelineScreenState {
   String _aiSummaryDateKey() =>
       NexPreferences.daySummaryDateKey(DateTime.now());
 
-  /// Re-arms the once-a-day notification with whatever Nex knows right now.
-  ///
-  /// Every open, not once at setup. The notification repeats daily on its own
-  /// — that part the system handles — but its text is fixed at the moment it
-  /// was scheduled, and the recap it carries is a day old by the next
-  /// morning. So the schedule is rewritten each time the app is in a position
-  /// to know something newer, which is here.
-  void _refreshDailyNudge() {
+  /// Rebuilds the local daily plan and certifies only a newly written,
+  /// source-matched summary for optional reuse. This never requests AI.
+  void _refreshDailyNudge({bool freshlyGeneratedSummary = false}) {
     if (!mounted || !widget.preferences.dailyNudge) return;
     unawaited(
       DailyNudge.apply(
-        context: context,
-        preferences: widget.preferences,
-        reminders: widget.services.reminders,
-        recap: !widget.preferences.briefHabitsAllowed && _aiSummaryHasHabits
-            ? widget.preferences.lastRecap
-            : _aiSummaryText ?? widget.preferences.lastRecap,
+        services: widget.services,
+        freshlyGeneratedSummary: freshlyGeneratedSummary,
       ),
     );
   }

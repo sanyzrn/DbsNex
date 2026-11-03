@@ -246,6 +246,15 @@ extension _TimelineBody on TimelineScreenState {
     );
     if (!enabled) return child;
     return NexPullRefresh(
+      controller: _pullRefresh,
+      completion: () =>
+          _pullCancelled ||
+              !_aiHeaderAvailable ||
+              !widget.preferences.showDaySummary
+          ? NexRefreshOutcome.cancelled
+          : _lastBriefRefreshFailed
+          ? NexRefreshOutcome.failed
+          : NexRefreshOutcome.success,
       semanticsLabel: AppLocalizations.of(context).recapRefreshing,
       // Not while two fingers are on the list (2.1.7). A pinch at the top
       // of the timeline moves one finger down, which the list reads as a
@@ -256,21 +265,24 @@ extension _TimelineBody on TimelineScreenState {
       notificationPredicate: (notification) =>
           notification.depth == 0 &&
           (!_multiTouch || notification is ScrollEndNotification),
-      // What was refreshed shows it: a sweep of light over the brief, and a
-      // fainter one over the page.
+      // A quiet Nex accent settles at the top after a successful refresh.
       onSettled: () => _refreshPulse.value++,
       // Not `force: true` for the sponsor: the gesture must not bypass its
       // daily success interval or failed-refresh cool-off.
       onRefresh: () async {
+        _lastBriefRefreshFailed = false;
+        _pullCancelled = false;
+        final settings = _briefSettingsSignature();
         // Not dropped while a brief is already being written: the pull
         // waits for that one (see [_loadAiSummary]).
         await Future.wait<void>([
           _sponsor.refresh(manual: true),
           _loadAiSummary(force: true),
         ]);
+        _pullCancelled = settings != _briefSettingsSignature();
         if (mounted) _rebuild(() {});
       },
-      child: NexRefreshSheen(
+      child: NexRefreshCompletion(
         pulse: _refreshPulse,
         strength: 0.14,
         child: child,

@@ -58,6 +58,8 @@ enum _DbCommand {
   setLinkMetadata,
   toggleChecklistItem,
   pinNote,
+  setUrgent,
+  nudgeSnapshot,
   unpinNote,
   pinnedNoteCount,
   setAside,

@@ -94,6 +94,10 @@ abstract final class NexHabitNotificationActions {
     await prefs.reload();
     if (response.actionId == done) {
       if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(target.day)) return null;
+      await prefs.setInt(
+        'dailyNudge.invalidatedAt',
+        DateTime.now().millisecondsSinceEpoch,
+      );
       final saved = await prefs.setString(
         '$_prefix${Uri.encodeComponent(target.id)}.${target.day}',
         jsonEncode({

@@ -185,6 +185,9 @@ class _Worker {
         ),
       ),
       _DbCommand.pinNote => repo.pinNote(arg('id')! as String),
+      _DbCommand.setUrgent => NexDbWorker._voided(
+        () => repo.setUrgent(arg('id')! as String, arg('urgent')! as bool),
+      ),
       _DbCommand.unpinNote => NexDbWorker._voided(
         () => repo.unpinNote(arg('id')! as String),
       ),
@@ -219,6 +222,7 @@ class _Worker {
       ),
       _DbCommand.listTags => tags.listTags(),
       _DbCommand.listCommitments => commitments.list(),
+      _DbCommand.nudgeSnapshot => repo.nudgeSnapshot(commitments.list()),
       _DbCommand.saveCommitment => commitments.save(
         arg('commitment')! as NexCommitment,
       ),

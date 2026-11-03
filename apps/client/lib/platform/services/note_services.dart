@@ -3,13 +3,16 @@ part of '../nex_services.dart';
 /// Writing notes: capture, edits, deletion, reminders on notes. Split out of
 /// NexServices (REL-10).
 extension NexNoteServices on NexServices {
-  Future<Note?> captureText(String content) => worker.captureText(content);
+  Future<Note?> captureText(String content) =>
+      _afterNudgeWrite(worker.captureText(content));
 
-  Future<Note?> captureDraft(String id, String text) => worker.captureShared({
-    'requestId': 'draft-$id',
-    'type': 'shared_text',
-    'text': text,
-  });
+  Future<Note?> captureDraft(String id, String text) => _afterNudgeWrite(
+    worker.captureShared({
+      'requestId': 'draft-$id',
+      'type': 'shared_text',
+      'text': text,
+    }),
+  );
 
   Future<void> recoverCaptureDrafts() async {
     for (final draft in captureJournal.pending().toList()) {
@@ -34,9 +37,10 @@ extension NexNoteServices on NexServices {
   }
 
   Future<Note?> captureChecklist(List<ChecklistItem> items) =>
-      worker.captureChecklist(items);
+      _afterNudgeWrite(worker.captureChecklist(items));
 
-  Future<Note?> captureLink(String url) => worker.captureLink(url);
+  Future<Note?> captureLink(String url) =>
+      _afterNudgeWrite(worker.captureLink(url));
 
   /// What was written in the capture sheet's link box, as a link note: the
   /// address, with a line around it as its caption — read by `writtenLink`. Null when [text] is not one link.
@@ -46,18 +50,20 @@ extension NexNoteServices on NexServices {
   Future<Note?> captureWrittenLink(String draftId, String text) async {
     final link = writtenLink(text);
     if (link == null) return null;
-    return worker.captureShared({
-      'requestId': 'link-$draftId',
-      'type': 'shared_text',
-      // A bare address goes as the address it was read as, scheme and all,
-      // so the share's own reading finds it.
-      'text': link.words == null ? link.url : text,
-    });
+    return _afterNudgeWrite(
+      worker.captureShared({
+        'requestId': 'link-$draftId',
+        'type': 'shared_text',
+        // A bare address goes as the address it was read as, scheme and all,
+        // so the share's own reading finds it.
+        'text': link.words == null ? link.url : text,
+      }),
+    );
   }
 
   /// Imports another app's export, and answers how many notes landed.
   Future<int> importNotes(String path) =>
-      worker.importNotes(path, mediaDir: mediaDir);
+      _afterNudgeWrite(worker.importNotes(path, mediaDir: mediaDir));
 
   /// Keeps the recordings the app died in the middle of (DATA-04).
   ///
@@ -108,27 +114,33 @@ extension NexNoteServices on NexServices {
     required String mediaUri,
     required String mediaHash,
     required int durationMs,
-  }) => worker.captureVoice(
-    mediaUri: mediaUri,
-    mediaHash: mediaHash,
-    durationMs: durationMs,
+  }) => _afterNudgeWrite(
+    worker.captureVoice(
+      mediaUri: mediaUri,
+      mediaHash: mediaHash,
+      durationMs: durationMs,
+    ),
   );
 
   Future<Note> capturePhoto({
     required String mediaUri,
     required String mediaHash,
-  }) => worker.capturePhoto(mediaUri: mediaUri, mediaHash: mediaHash);
+  }) => _afterNudgeWrite(
+    worker.capturePhoto(mediaUri: mediaUri, mediaHash: mediaHash),
+  );
 
   Future<Note> captureFile({
     required String mediaUri,
     required String mediaHash,
     String? originalFilename,
     String? mimeType,
-  }) => worker.captureFile(
-    mediaUri: mediaUri,
-    mediaHash: mediaHash,
-    originalFilename: originalFilename,
-    mimeType: mimeType,
+  }) => _afterNudgeWrite(
+    worker.captureFile(
+      mediaUri: mediaUri,
+      mediaHash: mediaHash,
+      originalFilename: originalFilename,
+      mimeType: mimeType,
+    ),
   );
 
   Future<void> updateNote(String id, String content) async {
@@ -261,7 +273,7 @@ extension NexNoteServices on NexServices {
   /// old path went through [setDueAt], whose cancel also took the
   /// notification away — on every trip out of the app.
   Future<void> retireDue(String id) async {
-    await worker.setDueAt(id, null);
+    await _afterNudgeWrite(worker.setDueAt(id, null));
     await reminders.withdraw(id);
   }
 }

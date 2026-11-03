@@ -3,60 +3,26 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'nex_preferences.dart';
-import 'reminders.dart';
+import 'nex_services.dart';
 
 /// Schedules the once-a-day notification, or takes it away.
 ///
-/// Kept apart from [NexReminders] because it is the only part of this that
-/// needs the app's own words and the user's own name, and [NexReminders]
-/// deliberately knows neither — it schedules what it is handed.
+/// Keeps the local scheduling entry point and the private greeting together.
 ///
-/// Called from two places, and both are necessary. Settings calls it because
-/// the switch and the time are what it is about. The timeline calls it when
-/// the daily recap resolves, because that recap *is* the body: a notification
-/// fires while the app is not running, so nothing can generate a sentence at
-/// the moment it appears. What arrives tomorrow morning is what Nex last knew,
-/// which is why this runs again every time the app is open.
+/// The service rebuilds a local dated plan when library data or preferences
+/// change. A fresh, source-matched summary is optional; no AI request is made.
+/// Native Android delivery selects today's text and retains the once-per-day
+/// receipt even when the app is closed or the selected time changes.
 abstract final class DailyNudge {
   /// Returns null when the alarm is scheduled, and the OS's own words when
   /// it is not.
   static Future<String?> apply({
-    required BuildContext context,
-    required NexPreferences preferences,
-    required NexReminders reminders,
-    String? recap,
+    required NexServices services,
+    bool freshlyGeneratedSummary = false,
   }) async {
-    if (!NexReminders.supported) return null;
-    if (!preferences.dailyNudge) {
-      await reminders.cancelDaily();
-      return null;
-    }
-    // A cached mixed response is never reused after permission is removed.
-    final habitsAllowed = preferences.briefHabitsAllowed;
-    if (!habitsAllowed && preferences.aiDaySummaryIncludesHabits) {
-      recap = preferences.lastRecap;
-    }
-    final minutes = preferences.dailyNudgeMinutes;
-    final l10n = AppLocalizations.of(context);
-    await reminders.scheduleDaily(
-      hour: minutes ~/ 60,
-      minute: minutes % 60,
-      title: _greeting(preferences, minutes),
-      body: (recap ?? '').trim().isEmpty ? l10n.nudgeNothing : recap!.trim(),
+    return services.updateDailyNudge(
+      freshlyGeneratedSummary: freshlyGeneratedSummary,
     );
-    if (habitsAllowed && !preferences.briefHabitsAllowed && context.mounted) {
-      return apply(
-        context: context,
-        preferences: preferences,
-        reminders: reminders,
-        recap: preferences.lastRecap,
-      );
-    }
-    // Handed back rather than left in the service for nobody to read. This
-    // ran on every launch and every recap, and if the OS refused the alarm it
-    // said so into a field with no callers — which is precisely how a
-    // notification that never arrives becomes a feature nobody can debug.
-    return reminders.lastError;
   }
 
   /// The line the notification opens with.
@@ -69,7 +35,7 @@ abstract final class DailyNudge {
   /// Greeted in the language the name is written in rather than the interface
   /// language, because "صبح بخیر, Saeed" and "Good morning, سعید" are both
   /// sentences nobody writes.
-  static String _greeting(NexPreferences preferences, int minutes) {
+  static String greeting(NexPreferences preferences, int minutes) {
     final name = preferences.shortDisplayName;
     final l10n = nexDirectionOf(name ?? '') == TextDirection.rtl
         ? lookupAppLocalizations(const Locale('fa'))

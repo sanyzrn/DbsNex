@@ -11,6 +11,10 @@ import 'package:nex_ui/nex_ui.dart';
 
 import 'nex_brand.dart';
 
+part 'nex_pull_physics.dart';
+
+enum NexRefreshOutcome { success, failed, cancelled }
+
 /// Pull to refresh, in Nex's own shape (rebuilt in 2.3.3).
 ///
 /// As the list is pulled down it moves with the finger and opens a strip of
@@ -34,6 +38,8 @@ class NexPullRefresh extends StatefulWidget {
     this.notificationPredicate = defaultScrollNotificationPredicate,
     this.onSettled,
     this.semanticsLabel,
+    this.controller,
+    this.completion,
   });
 
   final Future<void> Function() onRefresh;
@@ -43,6 +49,8 @@ class NexPullRefresh extends StatefulWidget {
   /// Called once a refresh has finished, as the list settles.
   final VoidCallback? onSettled;
   final String? semanticsLabel;
+  final NexPullRefreshController? controller;
+  final NexRefreshOutcome Function()? completion;
 
   @override
   State<NexPullRefresh> createState() => _NexPullRefreshState();
@@ -60,6 +68,24 @@ class _NexPullRefreshState extends State<NexPullRefresh>
   static const _max = 168.0;
 
   _Mode _mode = _Mode.idle;
+  NexRefreshOutcome? _outcome;
+  final _pointers = <int>{};
+  bool _cancelledGesture = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?._owner = this;
+  }
+
+  @override
+  void didUpdateWidget(NexPullRefresh oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?._owner = null;
+      widget.controller?._owner = this;
+    }
+  }
 
   /// The finger's travel, before resistance.
   double _drag = 0;
@@ -105,6 +131,7 @@ class _NexPullRefreshState extends State<NexPullRefresh>
 
   @override
   void dispose() {
+    widget.controller?._owner = null;
     _offset.dispose();
     _loop.dispose();
     _pop.dispose();
@@ -120,11 +147,13 @@ class _NexPullRefreshState extends State<NexPullRefresh>
 
   bool _onNotification(ScrollNotification n) {
     if (!widget.notificationPredicate(n)) return false;
+    if (_cancelledGesture) return false;
     if (_mode == _Mode.refreshing || _mode == _Mode.done) return false;
     if (n is ScrollStartNotification &&
         n.dragDetails != null &&
         n.metrics.extentBefore == 0) {
       _mode = _Mode.dragging;
+      _outcome = null;
       _drag = 0;
       _offset.stop();
       _startDrift();
@@ -137,7 +166,9 @@ class _NexPullRefreshState extends State<NexPullRefresh>
       if (n.metrics.pixels < 0) {
         // Bouncing physics: the list itself went past the top.
         _move(-n.metrics.pixels * 1.6);
-      } else if ((n.scrollDelta ?? 0) > 0 && _drag > 0) {
+      } else if (widget.controller == null &&
+          (n.scrollDelta ?? 0) > 0 &&
+          _drag > 0) {
         // Pushed back up before letting go.
         _move(math.max(0, _drag - n.scrollDelta!));
       }
@@ -167,17 +198,30 @@ class _NexPullRefreshState extends State<NexPullRefresh>
       setState(() => _mode = _Mode.refreshing);
       unawaited(_offset.animateTo(_hold, duration: NexMotion.enter));
       if (!_still) unawaited(_loop.repeat());
+      var outcome = NexRefreshOutcome.success;
       try {
         await widget.onRefresh();
-      } catch (_) {}
+        outcome = widget.completion?.call() ?? NexRefreshOutcome.success;
+      } catch (_) {
+        outcome = NexRefreshOutcome.failed;
+      }
       if (!mounted) return;
       _loop.stop();
       _loop.value = 0;
-      setState(() => _mode = _Mode.done);
-      nexBump();
-      widget.onSettled?.call();
+      setState(() {
+        _mode = _Mode.done;
+        _outcome = outcome;
+      });
+      if (outcome == NexRefreshOutcome.success) {
+        nexBump();
+        widget.onSettled?.call();
+      }
       // The last hop, then the sky closes.
-      if (!_still) await _pop.forward(from: 0);
+      if (!_still && outcome == NexRefreshOutcome.success) {
+        await _pop.forward(from: 0);
+      } else if (!_still && outcome == NexRefreshOutcome.failed) {
+        await Future<void>.delayed(NexMotion.standard);
+      }
       if (!mounted) return;
     } else if (_mode != _Mode.dragging) {
       return;
@@ -198,54 +242,81 @@ class _NexPullRefreshState extends State<NexPullRefresh>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return NotificationListener<ScrollNotification>(
-      onNotification: _onNotification,
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_offset, _loop, _pop, _drift]),
-        child: widget.child,
-        builder: (context, child) {
-          final offset = math.max(0.0, _offset.value);
-          final working = _mode == _Mode.refreshing || _mode == _Mode.done;
-          return Stack(
-            children: [
-              if (offset > 0.5)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: offset,
-                  child: IgnorePointer(
-                    key: working ? const ValueKey('nex-pull-refreshing') : null,
-                    child: Semantics(
-                      label: _mode == _Mode.refreshing
-                          ? widget.semanticsLabel
+    return Listener(
+      onPointerDown: (event) {
+        if (_pointers.isEmpty) _cancelledGesture = false;
+        _pointers.add(event.pointer);
+        if (_pointers.length > 1 &&
+            (_mode == _Mode.dragging || _mode == _Mode.armed)) {
+          _cancelledGesture = true;
+          _mode = _Mode.dragging;
+          unawaited(_release());
+        }
+      },
+      onPointerUp: (event) => _pointers.remove(event.pointer),
+      onPointerCancel: (event) {
+        _pointers.remove(event.pointer);
+        if (_mode == _Mode.dragging || _mode == _Mode.armed) {
+          _cancelledGesture = true;
+          _mode = _Mode.dragging;
+          unawaited(_release());
+        }
+      },
+      child: NotificationListener<ScrollNotification>(
+        onNotification: _onNotification,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_offset, _loop, _pop, _drift]),
+          child: widget.child,
+          builder: (context, child) {
+            final offset = math.max(0.0, _offset.value);
+            final working = _mode == _Mode.refreshing || _mode == _Mode.done;
+            return Stack(
+              children: [
+                if (offset > 0.5)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: offset,
+                    child: IgnorePointer(
+                      key: working
+                          ? const ValueKey('nex-pull-refreshing')
                           : null,
-                      liveRegion: _mode == _Mode.refreshing,
-                      child: CustomPaint(
-                        painter: _SkyPainter(
-                          height: offset,
-                          reach: (offset / _threshold).clamp(0.0, 1.0),
-                          armed: _mode != _Mode.dragging,
-                          pop: _pop.value,
-                          loop: _mode == _Mode.refreshing ? _loop.value : 0,
-                          finishing: _mode == _Mode.done,
-                          drift: _drift.value,
-                          sky: Color.alphaBlend(
-                            scheme.onSurface.withValues(alpha: 0.035),
-                            scheme.surfaceContainerLowest,
+                      child: Semantics(
+                        label: _mode == _Mode.refreshing
+                            ? widget.semanticsLabel
+                            : null,
+                        liveRegion: _mode == _Mode.refreshing,
+                        child: CustomPaint(
+                          painter: _SkyPainter(
+                            height: offset,
+                            reach: (offset / _threshold).clamp(0.0, 1.0),
+                            armed: _mode != _Mode.dragging,
+                            pop: _pop.value,
+                            loop: _mode == _Mode.refreshing ? _loop.value : 0,
+                            finishing:
+                                _mode == _Mode.done &&
+                                _outcome == NexRefreshOutcome.success,
+                            drift: _drift.value,
+                            sky: Color.alphaBlend(
+                              scheme.onSurface.withValues(alpha: 0.035),
+                              scheme.surfaceContainerLowest,
+                            ),
+                            cloud: scheme.onSurface,
+                            ink: NexBrand.ink(theme.brightness),
+                            accent: _outcome == NexRefreshOutcome.failed
+                                ? scheme.error
+                                : scheme.primary,
                           ),
-                          cloud: scheme.onSurface,
-                          ink: NexBrand.ink(theme.brightness),
-                          accent: scheme.primary,
                         ),
                       ),
                     ),
                   ),
-                ),
-              Transform.translate(offset: Offset(0, offset), child: child),
-            ],
-          );
-        },
+                Transform.translate(offset: Offset(0, offset), child: child),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -446,29 +517,26 @@ class _DottedCloud {
 
 /// A one-shot band of light across [child], played whenever [pulse] changes:
 /// what a refresh leaves on the thing it refreshed.
-class NexRefreshSheen extends StatefulWidget {
-  const NexRefreshSheen({
+class NexRefreshCompletion extends StatefulWidget {
+  const NexRefreshCompletion({
     super.key,
     required this.pulse,
     required this.child,
     this.strength = 0.3,
   });
-
   final ValueListenable<int> pulse;
   final Widget child;
-
-  /// How bright the band is at its peak.
   final double strength;
 
   @override
-  State<NexRefreshSheen> createState() => _NexRefreshSheenState();
+  State<NexRefreshCompletion> createState() => _NexRefreshCompletionState();
 }
 
-class _NexRefreshSheenState extends State<NexRefreshSheen>
+class _NexRefreshCompletionState extends State<NexRefreshCompletion>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _sweep = AnimationController(
+  late final AnimationController _receipt = AnimationController(
     vsync: this,
-    duration: NexMotion.receipt * 1.5,
+    duration: NexMotion.receipt,
   );
 
   @override
@@ -478,72 +546,92 @@ class _NexRefreshSheenState extends State<NexRefreshSheen>
   }
 
   @override
-  void didUpdateWidget(NexRefreshSheen old) {
-    super.didUpdateWidget(old);
-    if (old.pulse != widget.pulse) {
-      old.pulse.removeListener(_play);
+  void didUpdateWidget(NexRefreshCompletion oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pulse != widget.pulse) {
+      oldWidget.pulse.removeListener(_play);
       widget.pulse.addListener(_play);
     }
   }
 
   void _play() {
     if (MediaQuery.disableAnimationsOf(context)) return;
-    unawaited(_sweep.forward(from: 0));
+    unawaited(_receipt.forward(from: 0));
   }
 
   @override
   void dispose() {
     widget.pulse.removeListener(_play);
-    _sweep.dispose();
+    _receipt.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    // A lit band of the accent, lightened so it reads as light on a dark
-    // page as well as a light one (2.3.4: the plain accent at a few percent
-    // was not seen at all).
-    final scheme = Theme.of(context).colorScheme;
-    final glint = Color.lerp(
-      scheme.primary,
-      Theme.of(context).brightness == Brightness.dark
-          ? Colors.white
-          : scheme.primaryContainer,
-      0.35,
-    )!;
-    return AnimatedBuilder(
-      animation: _sweep,
-      child: widget.child,
-      builder: (context, child) {
-        final t = _sweep.value;
-        if (t <= 0 || t >= 1) return child!;
-        final eased = NexMotion.moveCurve.transform(t);
-        return Stack(
-          children: [
-            child!,
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment(-1.6 + eased * 3.2, -1),
-                      end: Alignment(-0.6 + eased * 3.2, 1),
-                      colors: [
-                        glint.withValues(alpha: 0),
-                        glint.withValues(
-                          alpha: widget.strength * math.sin(math.pi * t),
-                        ),
-                        glint.withValues(alpha: 0),
-                      ],
-                      stops: const [0.3, 0.5, 0.7],
-                    ),
-                  ),
+  Widget build(BuildContext context) => Stack(
+    children: [
+      widget.child,
+      Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        height: NexSpacing.lg,
+        child: IgnorePointer(
+          child: ExcludeSemantics(
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _CompletionMark(
+                  _receipt,
+                  Theme.of(context).colorScheme.primary,
+                  widget.strength,
                 ),
               ),
             ),
-          ],
-        );
-      },
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+/// Two fine accents gather into Nex's dot, then quietly disappear. Only this
+/// small top strip repaints; the child's layout/state never changes on a pulse.
+class _CompletionMark extends CustomPainter {
+  _CompletionMark(this.progress, this.color, this.strength)
+    : super(repaint: progress);
+  final Animation<double> progress;
+  final Color color;
+  final double strength;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = progress.value;
+    if (t <= 0 || t >= 1) return;
+    final gather = NexMotion.curve.transform((t / 0.7).clamp(0, 1));
+    final fade = math.sin(math.pi * t);
+    final center = Offset(size.width / 2, NexSpacing.sm);
+    final span = math.min(40.0, size.width / 8);
+    final gap = 4 + span * (1 - gather);
+    final length = 14 * (1 - gather);
+    final ink = Paint()
+      ..color = color.withValues(alpha: (strength * 2 * fade).clamp(0, 1))
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      center - Offset(gap + length, 0),
+      center - Offset(gap, 0),
+      ink,
     );
+    canvas.drawLine(
+      center + Offset(gap, 0),
+      center + Offset(gap + length, 0),
+      ink,
+    );
+    canvas.drawCircle(center, 1.5 + 1.3 * gather, ink);
   }
+
+  @override
+  bool shouldRepaint(_CompletionMark oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.strength != strength ||
+      oldDelegate.progress != progress;
 }

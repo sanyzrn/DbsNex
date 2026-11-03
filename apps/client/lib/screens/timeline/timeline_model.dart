@@ -63,6 +63,8 @@ class TimelineModel extends ChangeNotifier {
   /// almost always empty.
   Set<String> get selectedTagIds => _selectedTagIds;
   Set<String> _selectedTagIds = const {};
+  bool get onlyUntagged => _onlyUntagged;
+  bool _onlyUntagged = false;
 
   NoteType? get selectedType => _selectedType;
   NoteType? _selectedType;
@@ -82,7 +84,10 @@ class TimelineModel extends ChangeNotifier {
   bool _onlyReminders = false;
 
   bool get filtering =>
-      _selectedTagIds.isNotEmpty || _selectedType != null || _onlyReminders;
+      _selectedTagIds.isNotEmpty ||
+      _onlyUntagged ||
+      _selectedType != null ||
+      _onlyReminders;
 
   /// Date groups the user has folded away, by their stable key.
   ///
@@ -180,6 +185,7 @@ class TimelineModel extends ChangeNotifier {
   }
 
   Future<void> selectTags(Set<String> tagIds) {
+    _onlyUntagged = false;
     _selectedTagIds = tagIds;
     notifyListeners();
     return _applyFilters();
@@ -198,9 +204,17 @@ class TimelineModel extends ChangeNotifier {
   }
 
   Future<void> clearFilters() {
+    _onlyUntagged = false;
     _selectedTagIds = const {};
     _selectedType = null;
     _onlyReminders = false;
+    notifyListeners();
+    return _applyFilters();
+  }
+
+  Future<void> selectUntagged(bool selected) {
+    _onlyUntagged = selected;
+    if (selected) _selectedTagIds = const {};
     notifyListeners();
     return _applyFilters();
   }
@@ -318,6 +332,7 @@ class TimelineModel extends ChangeNotifier {
     return source.where((note) {
       if (_onlyReminders && note.dueAt == null) return false;
       if (type != null && note.type != type) return false;
+      if (_onlyUntagged && note.tags.isNotEmpty) return false;
       if (tagIds.isNotEmpty && !note.tags.any((t) => tagIds.contains(t.id))) {
         return false;
       }

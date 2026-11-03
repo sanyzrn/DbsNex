@@ -6536,4 +6536,19 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get pinCycleLog => 'حال امروزتان را ثبت کنید';
+
+  @override
+  String get filterUntagged => 'بدون تگ';
+
+  @override
+  String get markUrgent => 'علامت‌گذاری فوری';
+
+  @override
+  String get removeUrgent => 'حذف علامت فوری';
+
+  @override
+  String get urgent => 'فوری';
+
+  @override
+  String get commitmentMarkOccurrence => 'ثبت انجام این نوبت';
 }

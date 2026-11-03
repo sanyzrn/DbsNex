@@ -333,14 +333,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final context = _desktopNav.navigatorKey.currentContext;
         if (!mounted || context == null) return;
-        unawaited(
-          DailyNudge.apply(
-            context: context,
-            preferences: widget.preferences,
-            reminders: widget.services.reminders,
-            recap: widget.preferences.lastRecap,
-          ),
-        );
+        unawaited(DailyNudge.apply(services: widget.services));
       });
     }
     if (!widget.preferences.appLockEnabled) {

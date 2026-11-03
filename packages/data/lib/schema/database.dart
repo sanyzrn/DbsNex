@@ -52,7 +52,7 @@ class NexDatabase {
   /// instead of writing to it with an older idea of its tables — Cafe Bazaar
   /// and Myket both let someone install an older APK over a newer one.
   /// Libraries from before the stamp read as 0 and are simply upgraded.
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
 
   void _migrate() {
     final stamped = db.select('PRAGMA user_version').first.values.first as int;
@@ -205,6 +205,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS $name USING fts5(
     // position set by dragging in Rearrange mode. Neither is synced or
     // exported (see Note.pinnedAt / Note.sortOrder).
     _addColumnIfMissing('notes', 'pinned_at', 'TEXT');
+    _addColumnIfMissing('notes', 'is_urgent', 'INTEGER NOT NULL DEFAULT 0');
     _addColumnIfMissing('notes', 'sort_order', 'INTEGER');
     // Put to one side, off the home timeline: when, and until when (null =
     // until brought back). Local only, like pinned_at.
@@ -630,6 +631,7 @@ CREATE TABLE notes_rebuilt (
   due_at TEXT,
   due_repeat TEXT,
   pinned_at TEXT,
+  is_urgent INTEGER NOT NULL DEFAULT 0,
   set_aside_at TEXT,
   set_aside_until TEXT,
   sort_order INTEGER,

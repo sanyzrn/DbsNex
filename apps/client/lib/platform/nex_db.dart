@@ -13,6 +13,7 @@ import 'package:nex_data/nex_data.dart';
 /// synchronously — the contract is the isolate boundary, not any one backend.
 abstract interface class NexDb {
   Future<List<Note>> timeline({int limit, int offset, String? tagId});
+  Future<NexNudgeSnapshot> nudgeSnapshot();
 
   Future<List<Note>> loadMore({required int offset, int limit});
 
@@ -105,6 +106,7 @@ abstract interface class NexDb {
   Future<void> toggleChecklistItem(String id, int index);
 
   Future<bool> pinNote(String id);
+  Future<void> setUrgent(String id, bool urgent);
 
   Future<void> unpinNote(String id);
 

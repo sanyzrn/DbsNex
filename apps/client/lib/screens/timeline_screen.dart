@@ -263,8 +263,11 @@ class TimelineScreenState extends State<TimelineScreen>
   Timer? _aiSummaryWake;
   Timer? _ringingSync;
 
-  /// Bumped when a pull-to-refresh finishes: what it refreshed plays a sweep.
+  /// Bumped when a pull-to-refresh finishes: the completion accent plays once.
   final _refreshPulse = ValueNotifier<int>(0);
+  final _pullRefresh = NexPullRefreshController();
+  bool _lastBriefRefreshFailed = false;
+  bool _pullCancelled = false;
   bool _aiSummaryManualRequested = false;
   bool _briefPreferencesQueued = false;
   String? _briefSettingsKey;
