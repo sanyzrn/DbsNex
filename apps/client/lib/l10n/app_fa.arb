@@ -2288,5 +2288,10 @@
   "pinPauseDuration": "{time} تنفس",
   "@pinPauseDuration": {"placeholders": {"time": {"type": "String"}}},
   "pinCycleSetup": "چرخه را تنظیم کنید",
-  "pinCycleLog": "حال امروزتان را ثبت کنید"
+  "pinCycleLog": "حال امروزتان را ثبت کنید",
+  "filterUntagged": "بدون تگ",
+  "markUrgent": "علامت‌گذاری فوری",
+  "removeUrgent": "حذف علامت فوری",
+  "urgent": "فوری",
+  "commitmentMarkOccurrence": "ثبت انجام این نوبت"
 }

@@ -148,6 +148,19 @@ open class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
+        MethodChannel(engine.dartExecutor.binaryMessenger, "nex/daily_nudge")
+            .setMethodCallHandler { call, result ->
+                try {
+                    when (call.method) {
+                        "configure" -> NexDailyNudgeReceiver.configure(applicationContext, call.arguments as String)
+                        "cancel" -> NexDailyNudgeReceiver.cancel(applicationContext)
+                        else -> { result.notImplemented(); return@setMethodCallHandler }
+                    }
+                    result.success(null)
+                } catch (error: Exception) {
+                    result.error("DAILY_NUDGE", error.message, null)
+                }
+            }
         engine.platformViewsController.registry.registerViewFactory(
             NexEditTextFactory.VIEW_TYPE,
             NexEditTextFactory(engine.dartExecutor.binaryMessenger),

@@ -25,6 +25,9 @@ class TagFilterRow extends StatelessWidget {
     this.allLabel = 'All',
     this.leading,
     this.trailing,
+    this.untaggedLabel,
+    this.untaggedSelected = false,
+    this.onUntagged,
     this.padding = const EdgeInsets.fromLTRB(
       NexSpacing.md,
       NexSpacing.md,
@@ -63,6 +66,9 @@ class TagFilterRow extends StatelessWidget {
   final Widget? leading;
 
   final Widget? trailing;
+  final String? untaggedLabel;
+  final bool untaggedSelected;
+  final VoidCallback? onUntagged;
   final EdgeInsetsGeometry padding;
 
   @override
@@ -83,7 +89,10 @@ class TagFilterRow extends StatelessWidget {
               padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
               child: _Pill(
                 label: allLabel,
-                selected: selectedTagIds.isEmpty && !hasOtherFilters,
+                selected:
+                    selectedTagIds.isEmpty &&
+                    !hasOtherFilters &&
+                    !untaggedSelected,
                 // Clears rather than toggles. "All" is the absence of a
                 // filter, and tapping the absence of a filter cannot put one
                 // back.
@@ -117,6 +126,16 @@ class TagFilterRow extends StatelessWidget {
               ),
             ),
           if (trailing != null) trailing!,
+          if (untaggedLabel case final label?)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
+              child: _Pill(
+                label: label,
+                selected: untaggedSelected,
+                onTap: onUntagged ?? () {},
+                theme: theme,
+              ),
+            ),
         ],
       ),
     );

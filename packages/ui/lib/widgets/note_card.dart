@@ -30,6 +30,7 @@ class NexCardStrings {
     this.durationLabel,
     this.attachedShort = _defaultAttachedShort,
     this.attachedLabel = _defaultAttachedLabel,
+    this.urgentLabel = 'Urgent',
   });
 
   /// English default, for tests and for anything that has not been localised
@@ -92,6 +93,7 @@ class NexCardStrings {
   /// hand. A bell with no time beside it says a reminder exists and nothing
   /// else, which was the report this parameter exists to answer.
   final String Function(DateTime due, NoteRepeat repeat)? dueLabel;
+  final String urgentLabel;
 
   /// Full schedule for the tooltip and screen reader.
   final String Function(DateTime due, NoteRepeat repeat)? dueDescription;
@@ -239,10 +241,17 @@ class NoteCard extends StatelessWidget {
   }
 
   Widget _card(BuildContext context, EdgeInsets insets) {
-    final height = nexCardHeightFor(
-      context,
-      withFootnote: (showDue && note.dueAt != null) || note.attachmentCount > 0,
-    );
+    final height =
+        nexCardHeightFor(
+          context,
+          withFootnote:
+              (showDue && note.dueAt != null) ||
+              note.attachmentCount > 0 ||
+              note.isUrgent,
+        ) +
+        (note.type == NoteType.text && note.caption?.trim().isNotEmpty == true
+            ? nexCardFootnoteHeightFor(context)
+            : 0);
     return Padding(
       padding: insets,
       child: ConstrainedBox(
@@ -287,6 +296,9 @@ class NoteCard extends StatelessWidget {
     // version of the card showing its own source.
     NexMarkdownText.preview(note.displayText ?? ''),
     if (note.attachmentCount > 0) strings.attachedLabel(note.attachmentCount),
+    if (note.isUrgent) strings.urgentLabel,
+    if (note.type == NoteType.text && note.caption?.trim().isNotEmpty == true)
+      NexMarkdownText.preview(note.caption!),
     strings.relativeTime(nexRelativeTimeOf(note.createdAt)),
   ].where((value) => value.isNotEmpty).join('. ');
 }

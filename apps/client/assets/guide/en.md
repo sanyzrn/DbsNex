@@ -13,7 +13,7 @@ The first time you open Nex, four short pages show what it does, and a last one 
 
 Tap **+** at the centre of the bottom bar to write. The kinds sit at the top of the box — **Note**, **Checklist** and **Link** — and switch in place: what you typed stays, so a note becomes a list line by line, and a pasted address (with a line about it if you like) becomes a link. **Voice** turns the box into a recorder: the square keeps the recording, the bin throws it away. Below the box, **Voice**, **Camera**, **Gallery** and **File** each have their own button. Nothing has a Save button: what you write is kept from the first letter and is turned into the kind you chose when you close the box; words that are not a link stay a note.
 
-The small clipboard icon in the editor’s corner pastes into **Note**, **Checklist** or **Link**, at your caret or in place of selected text.
+The small clipboard icon in the editor’s corner pastes into an empty **Note**, **Checklist** or **Link**. It fades away once there is text, giving the editor its full width, and returns when you clear the field. The keyboard’s normal paste controls remain available while editing.
 
 Flick **+** left or right to start a shortcut without opening the box — by default left records a voice note and right opens the camera. Choose them in **Settings → Gestures**. As you swipe, a border traces the screen in the shortcut’s colour from Settings; releasing after it completes opens the shortcut, while returning or releasing early cancels it. A tap still writes a note. Hold still to open the assistant: its glow starts after a short pause so swiping does not flash it. Reduced motion skips the border and glow.
 
@@ -40,6 +40,12 @@ Hold a note for a quick menu: **Pin**, **Archive**, **Copy**, **Edit**, **Remind
 To work on several notes at once, hold one and choose **Select** — it is always first in the menu. Now each tap on a card picks it or takes it back out, and the bottom bar shows how many are picked with **Tag**, **Threads**, **Pin**, **Archive**, **Share**, **Copy** and **Delete** for all of them together; one **Undo** brings back everything a delete took. **✕**, Back, or taking out the last one ends it. Swiping cards does nothing while picking.
 
 ![The home timeline](home.webp)
+
+**Urgent.** Choose **Mark as urgent** from a card’s hold menu or its details’ **More actions**. A small flame appears alongside reminder and attachment indicators. **Remove urgent mark** takes it away. Urgency is saved on this device, is independent of Pin and never changes card order.
+
+**Text-note captions.** Open a note and choose **Add caption**, or **Edit caption** later. The optional caption is stored separately, appears quietly beneath the main text on the timeline, and is included in search and AI context. The main note remains the card’s primary content.
+
+**Untagged.** The final pill after your tags shows only notes with no tags. It clears selected tags and selecting a real tag clears Untagged. Note-type and reminder filters can still be combined; **All** clears every filter.
 
 ## Find and organize
 
@@ -101,6 +107,8 @@ If Android closes Nex while you are editing, reopen the same editor to find its 
 
 A reminder brings one note back at the time you choose, once or repeating. Use the quick choices, the wheels or the calendar button, and confirm the time shown. Once it rings, its notification stays until you tap or dismiss it — opening Nex does not clear it — and its card shows a swinging bell in place of its icon until you open the note. The notification has **Done**, which clears it, and on a one-time reminder **In an hour**, which brings it back an hour later; a repeating one keeps to its own times, so it has **Done** alone. Neither opens Nex. A Recurring item's reminder has **Done** too: it ticks the item at that moment and moves it to its next turn, and tapping the notification opens the Recurring page. Tapping the notification opens Nex on that card, whether Nex was open or not. Android's notification permission is required. If Android refuses to schedule one — exact alarms off, notifications blocked, battery optimisation — Nex tells you in Android's own words, and **Settings → Reminders and notifications** has a test notification to tell "Nex never sent it" apart from "the phone swallowed it".
 
+**Daily nudge.** Enable it and choose a time in **Settings → Reminders and notifications**. It works without AI, using local urgent notes, nearby or recently overdue reminders, recent unfinished checklists and active recurring items. Completed and stale work is excluded. If AI and the home smart summary are both on, Nex may use a source-matched summary from the last hour; otherwise it uses local text and makes no AI request for the notification. A quiet library gets different messages from an empty one. Nex sends at most one nudge per local day, even if you change its time. Turning it off cancels the daily alarm without changing other reminders. Android notification permissions still apply. If Nex has not been opened for a long time, neutral rotating messages replace dated details until the library is refreshed.
+
 ## Recurring
 
 Each active card shows the time remaining and its exact next date and time, including hourly repeats that also show today's progress. Amounts and snooze status appear when set. Countdowns refresh once a minute while Nex is in the foreground; paused items have no running countdown.
@@ -110,6 +118,8 @@ Each active card shows the time remaining and its exact next date and time, incl
 Tap **Add a recurring item** to add one; it opens a full page: a title, how often, and when it is next due; optionally how far ahead to be told, a daily window for hourly items, several weekdays, a day of the month or its last day, and an amount with its currency. Persian monthly and yearly repeats follow the Persian calendar. **Save** is at the top and at the end of the page; **✕** or Back closes it, and asks first if you have typed something.
 
 The **List** shows what has slipped first, then what is coming up, then what is paused; the chips above it narrow it the same way the numbers do. **Calendar** shows a month or a week, each day shaded by how much falls on it, and what is due on the day you tap. The next occurrence can be moved from there without moving the schedule. In an item's editor, **Attachments** holds receipt photos — taken with Nex's camera or chosen from the gallery, and kept with the item rather than among your notes — links to any note and, optionally, one bank card from the vault, which only opens after the vault is unlocked and is never shown to the assistant. Mark an item done (the tick on its card) to move it to its next turn; its **⋯** menu can snooze one occurrence, skip it, open its history or delete it. In its history, each entry can carry a short note. Undo restores an accidental change, and snoozing never moves the underlying schedule. Upcoming 30-day totals are shown per currency.
+
+The card groups the remaining time with the exact next date and time. The check button means **Mark this occurrence done**: it records the current turn and advances the schedule; it does not permanently complete or disable the recurring item.
 
 ![The Recurring page](recurring.webp)
 

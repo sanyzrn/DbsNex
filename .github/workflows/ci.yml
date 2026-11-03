@@ -399,6 +399,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - run: flutter pub get
       - run: flutter analyze --fatal-infos
+      - name: Daily Nudge JVM policy
+        run: python3 ../../tools/daily_nudge_native_test.py
       # Everything, unless this is a pull request that cannot reach the
       # modules' suite (see the `modules` output): then that directory is left
       # out. A release calls this workflow and always runs it all.

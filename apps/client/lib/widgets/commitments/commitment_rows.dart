@@ -325,6 +325,7 @@ class _CommitmentRow extends StatelessWidget {
         RecurringAttachments.noteIdsOf(commitment.details).isNotEmpty ||
         RecurringAttachments.vaultCardOf(commitment.details) != null;
     return Material(
+      key: ValueKey('recurring-card-${commitment.id}'),
       color: scheme.surfaceContainerLowest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
@@ -340,11 +341,9 @@ class _CommitmentRow extends StatelessWidget {
       child: InkWell(
         onTap: onEdit,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            NexSpacing.md,
-            NexSpacing.sm,
-            NexSpacing.xs,
-            NexSpacing.sm,
+          padding: const EdgeInsets.symmetric(
+            horizontal: NexSpacing.md,
+            vertical: NexSpacing.sm,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,72 +404,82 @@ class _CommitmentRow extends StatelessWidget {
                                 : scheme.onSurfaceVariant,
                           ),
                         ),
+                        if (!commitment.paused) ...[
+                          const SizedBox(height: NexSpacing.sm),
+                          Padding(
+                            padding: EdgeInsets.zero,
+                            child: Wrap(
+                              spacing: NexSpacing.md,
+                              runSpacing: NexSpacing.xs,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  nexRecurringCountdown(
+                                    l10n,
+                                    commitment.dueAt,
+                                    now,
+                                  ),
+                                  key: ValueKey(
+                                    'recurring-countdown-${commitment.id}',
+                                  ),
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: accent,
+                                  ),
+                                ),
+                                Text(
+                                  nexDueExact(
+                                    context,
+                                    commitment.dueAt,
+                                    solarCalendar: solarCalendar,
+                                  ),
+                                  key: ValueKey(
+                                    'recurring-due-${commitment.id}',
+                                  ),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                if (commitment.amountMinor case final amount?
+                                    when amount > 0)
+                                  Text(
+                                    nexDigits(
+                                      '${(amount / 100).toStringAsFixed(2)} ${commitment.currency}'
+                                          .trim(),
+                                      persian: l10n.localeName == 'fa',
+                                    ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                if (commitment.details['scheduledDue'] != null)
+                                  Text(
+                                    l10n.commitmentSnoozed,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                   IconButton(
-                    tooltip: l10n.commitmentMarkMet,
+                    key: ValueKey('recurring-complete-${commitment.id}'),
+                    tooltip: l10n.commitmentMarkOccurrence,
                     onPressed: onMet,
                     color: accent,
                     icon: const Icon(Icons.check_circle_outline),
                   ),
                   IconButton(
+                    key: ValueKey('recurring-more-${commitment.id}'),
                     tooltip: nexLabel(context, 'More actions', 'بیشتر'),
                     onPressed: onActions,
                     icon: const Icon(Icons.more_horiz),
                   ),
                 ],
               ),
-              if (!commitment.paused) ...[
-                const SizedBox(height: NexSpacing.sm),
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
-                  child: Wrap(
-                    spacing: NexSpacing.md,
-                    runSpacing: NexSpacing.xs,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        nexRecurringCountdown(l10n, commitment.dueAt, now),
-                        key: ValueKey('recurring-countdown-${commitment.id}'),
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: accent,
-                        ),
-                      ),
-                      Text(
-                        nexDueExact(
-                          context,
-                          commitment.dueAt,
-                          solarCalendar: solarCalendar,
-                        ),
-                        key: ValueKey('recurring-due-${commitment.id}'),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      if (commitment.amountMinor case final amount?
-                          when amount > 0)
-                        Text(
-                          nexDigits(
-                            '${(amount / 100).toStringAsFixed(2)} ${commitment.currency}'
-                                .trim(),
-                            persian: l10n.localeName == 'fa',
-                          ),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      if (commitment.details['scheduledDue'] != null)
-                        Text(
-                          l10n.commitmentSnoozed,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
         ),

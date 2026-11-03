@@ -94,6 +94,9 @@ extension NexScheduledReminders on NexReminders {
 
   Future<void> cancelDaily() async {
     if (!NexReminders.supported) return;
+    try {
+      await NexDailyNudgeNative.cancel();
+    } catch (_) {}
     await initialise();
     try {
       await _plugin.cancel(id: NexReminders._dailyId);

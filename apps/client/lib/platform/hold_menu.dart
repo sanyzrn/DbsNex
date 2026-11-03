@@ -19,6 +19,7 @@ import '../widgets/feature_label.dart';
 enum NexHoldAction {
   select,
   pin,
+  urgent,
   copy,
   edit,
   remind,
@@ -46,8 +47,8 @@ enum NexHoldAction {
       .where((action) => action.name == value && action.choosable)
       .firstOrNull;
 
-  /// Whether Settings lists it; everything but [select].
-  bool get choosable => this != select;
+  /// Select and Urgent are always available; Settings chooses the rest.
+  bool get choosable => this != select && this != urgent;
 
   static Iterable<NexHoldAction> get choices =>
       values.where((action) => action.choosable);
@@ -55,6 +56,7 @@ enum NexHoldAction {
   IconData get icon => switch (this) {
     select => Icons.check_circle_outline,
     pin => Icons.push_pin_outlined,
+    urgent => Icons.local_fire_department_outlined,
     copy => Icons.copy_outlined,
     edit => Icons.edit_outlined,
     remind => Icons.notifications_outlined,
@@ -82,6 +84,7 @@ enum NexHoldAction {
     return switch (this) {
       select => l10n.selectNotes,
       pin => l10n.pin,
+      urgent => l10n.markUrgent,
       copy => l10n.copy,
       edit => l10n.edit,
       remind => l10n.remind,

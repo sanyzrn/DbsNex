@@ -178,7 +178,10 @@ List<(String, String?)> _recapLines(
   }
 
   String? line(Note note) {
-    final text = _oneLine(note.displayText, maxTextLength);
+    final text = _oneLine(
+      note.type == NoteType.text ? note.aiSourceText : note.displayText,
+      maxTextLength,
+    );
     if (text.isEmpty) return null;
     // The day a reminder falls on is part of the fingerprint, so a brief that
     // says "tomorrow at 9" is written again once the calendar turns and that

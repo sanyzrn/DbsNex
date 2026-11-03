@@ -4,6 +4,16 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.0
+
+- **A steadier pull to refresh.** Reversing your drag closes the refresh strip before the notes scroll. A quiet Nex accent marks success, with separate handling for cancelled and failed refreshes.
+- **Find notes without tags.** Untagged stays at the end of the tag row and works with note-type and reminder filters.
+- **More room to write.** The capture clipboard fades away once you start writing and gives its space back to the editor; clearing the text brings it back.
+- **Clearer recurring cards.** Countdown and exact time sit together, with balanced spacing and centred actions. The check button explicitly marks one occurrence done.
+- **Captions for text notes.** Add a separate optional caption without replacing the note on its timeline card. Captions are included in search and AI context.
+- **Mark what is urgent.** Use More Actions or the hold menu to add a small flame. Urgency is independent of Pin and keeps notes in their existing order.
+- **Daily nudges without AI.** Get brief local reminders based on urgent notes, nearby or recently overdue reminders, unfinished checklists and recurring items. A fresh smart summary is optional; otherwise Nex uses local text, with varied prompts for quiet and empty libraries and at most one daily notification.
+
 ## v2.5.4
 
 - **Clearer note summaries.** More compact summaries better preserve decisions, conditions and figures, with readable formatting and a full expanded view.

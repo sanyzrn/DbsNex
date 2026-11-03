@@ -86,6 +86,30 @@ void main() {
           );
           expect(find.textContaining(l.commitmentTally(0, 12)), findsWidgets);
           expect(find.text(l.commitmentSnoozed), findsOneWidget);
+          final card = tester.getRect(
+            find.byKey(const ValueKey('recurring-card-hourly')),
+          );
+          for (final key in [
+            'recurring-complete-hourly',
+            'recurring-more-hourly',
+          ]) {
+            final action = tester.getRect(find.byKey(ValueKey(key)));
+            expect(action.center.dy, closeTo(card.center.dy, 0.1));
+            expect(action.width, greaterThanOrEqualTo(48));
+            expect(action.height, greaterThanOrEqualTo(48));
+          }
+          final countdown = tester.getRect(
+            find.byKey(const ValueKey('recurring-countdown-hourly')),
+          );
+          expect(
+            countdown.left - card.left,
+            greaterThanOrEqualTo(NexSpacing.md),
+          );
+          expect(
+            card.right - countdown.right,
+            greaterThanOrEqualTo(NexSpacing.md),
+          );
+          expect(find.byTooltip(l.commitmentMarkOccurrence), findsWidgets);
           expect(
             find.text(locale == 'fa' ? '۱۲۳.۴۵ USD' : '123.45 USD'),
             findsOneWidget,

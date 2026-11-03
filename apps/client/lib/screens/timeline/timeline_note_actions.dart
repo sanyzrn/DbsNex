@@ -187,6 +187,11 @@ extension _TimelineNoteActions on TimelineScreenState {
         label: note.pinnedAt != null ? l10n.unpin : null,
         icon: note.pinnedAt != null ? Icons.push_pin : null,
       ),
+      NexHoldAction.urgent => NoteMenuEntry(
+        action,
+        () => unawaited(widget.services.setUrgent(note.id, !note.isUrgent)),
+        label: note.isUrgent ? l10n.removeUrgent : l10n.markUrgent,
+      ),
       NexHoldAction.copy =>
         words.isEmpty
             ? null
@@ -320,6 +325,7 @@ extension _TimelineNoteActions on TimelineScreenState {
     };
     return [
       entry(NexHoldAction.select)!,
+      entry(NexHoldAction.urgent)!,
       for (final action in prefs.holdMenuActions)
         if (entry(action) case final value?) value,
     ];

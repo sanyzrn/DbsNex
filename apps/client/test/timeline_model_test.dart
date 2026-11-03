@@ -24,6 +24,45 @@ void main() {
   });
 
   test(
+    'untagged is exclusive with tags and layers with type and reminders',
+    () async {
+      final bare = (await harness.services.captureText('bare'))!;
+      final tagged = (await harness.services.captureText('tagged'))!;
+      final tag = await harness.services.addTag(
+        noteId: tagged.id,
+        name: 'work',
+      );
+      await harness.services.setDueAt(
+        bare.id,
+        DateTime.now().add(const Duration(days: 1)),
+      );
+      await model.load();
+      await model.selectTags({tag.id});
+      await model.selectUntagged(true);
+      expect(model.selectedTagIds, isEmpty);
+      expect(model.notes.map((n) => n.id), [bare.id]);
+      await model.selectType(NoteType.text);
+      await model.selectOnlyReminders(true);
+      expect(model.notes.map((n) => n.id), [bare.id]);
+      await model.selectType(NoteType.checklist);
+      expect(model.notes, isEmpty);
+      await model.selectTags({tag.id});
+      expect(model.onlyUntagged, isFalse);
+      await model.selectUntagged(true);
+      await model.clearFilters();
+      expect(model.filtering, isFalse);
+      expect(model.onlyUntagged, isFalse);
+      expect(model.notes, hasLength(2));
+      expect(
+        (await harness.services.listTags()).any(
+          (t) => t.name == 'Untagged' || t.name == 'بدون تگ',
+        ),
+        isFalse,
+      );
+    },
+  );
+
+  test(
     'nothing is known before the first read, which is not "empty"',
     () async {
       expect(model.all, isNull);

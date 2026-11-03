@@ -269,6 +269,14 @@ class InProcessDb implements NexDb {
   Future<bool> pinNote(String id) async => _repo.pinNote(id);
 
   @override
+  Future<NexNudgeSnapshot> nudgeSnapshot() async =>
+      _repo.nudgeSnapshot(_commitments.list());
+
+  @override
+  Future<void> setUrgent(String id, bool urgent) async =>
+      _repo.setUrgent(id, urgent);
+
+  @override
   Future<void> unpinNote(String id) async => _repo.unpinNote(id);
 
   @override

@@ -6627,4 +6627,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pinCycleLog => 'Log how you feel';
+
+  @override
+  String get filterUntagged => 'Untagged';
+
+  @override
+  String get markUrgent => 'Mark as urgent';
+
+  @override
+  String get removeUrgent => 'Remove urgent mark';
+
+  @override
+  String get urgent => 'Urgent';
+
+  @override
+  String get commitmentMarkOccurrence => 'Mark this occurrence done';
 }

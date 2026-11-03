@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/modules/nex_module_store.dart';
 import 'package:nex_client/modules/habits/habit_reminder.dart';
 import 'package:nex_client/platform/daily_nudge.dart';
+import 'package:nex_client/platform/daily_nudge_native.dart';
 import 'package:nex_client/platform/reminders.dart';
 
 import 'support/nex_harness.dart';
@@ -45,6 +47,7 @@ class _RecordingNotifications implements FlutterLocalNotificationsPlugin {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late NexTestHarness h;
   setUp(() async {
     h = await NexTestHarness.create();
@@ -114,56 +117,86 @@ void main() {
     );
   }
 
-  testWidgets(
-    'daily notification replaces mixed cached text immediately on opt-out',
-    (tester) async {
+  test(
+    'daily plan drops mixed cached text immediately on habit opt-out',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      NexReminders.debugSupported = true;
+      AndroidFlutterLocalNotificationsPlugin.registerWith();
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final plans = <Map<String, dynamic>>[];
+      const pluginChannel = MethodChannel(
+        'dexterous.com/flutter/local_notifications',
+      );
+      messenger.setMockMethodCallHandler(
+        pluginChannel,
+        (call) async => switch (call.method) {
+          'initialize' => true,
+          'pendingNotificationRequests' => <Object>[],
+          'getNotificationAppLaunchDetails' => {
+            'notificationLaunchedApp': false,
+          },
+          _ => null,
+        },
+      );
+      messenger.setMockMethodCallHandler(NexDailyNudgeNative.channel, (
+        call,
+      ) async {
+        if (call.method == 'configure') {
+          plans.add(
+            jsonDecode(call.arguments as String) as Map<String, dynamic>,
+          );
+        }
+        return null;
+      });
+      addTearDown(() {
+        debugDefaultTargetPlatformOverride = null;
+        messenger.setMockMethodCallHandler(pluginChannel, null);
+        messenger.setMockMethodCallHandler(NexDailyNudgeNative.channel, null);
+      });
+      final now = DateTime.now();
+      final next = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        now.hour,
+        now.minute + 2,
+      );
+      await h.preferences.setDailyNudgeMinutes(next.hour * 60 + next.minute);
       await h.preferences.setDailyNudge(true);
+      await h.preferences.setAiEnabled(true);
       await h.preferences.setAiDaySummary(text: 'Notes only', dateKey: 'today');
       await h.preferences.setBriefUseHabits(true);
       await h.preferences.setAiDaySummary(
         text: 'SECRET HABIT',
         dateKey: 'today',
         includesHabits: true,
+        at: next.subtract(const Duration(seconds: 1)),
       );
-      late BuildContext localized;
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: const [AppLocalizations.delegate],
-          supportedLocales: const [Locale('en'), Locale('fa')],
-          home: Builder(
-            builder: (context) {
-              localized = context;
-              return const SizedBox();
-            },
-          ),
-        ),
+      await DailyNudge.apply(
+        services: h.services,
+        freshlyGeneratedSummary: true,
       );
-      await tester.pumpAndSettle();
-      final plugin = _RecordingNotifications();
-      final reminders = NexReminders(plugin: plugin);
-      NexReminders.debugSupported = true;
-      if (!localized.mounted) return;
-      await tester.runAsync(
-        () => DailyNudge.apply(
-          context: localized,
-          preferences: h.preferences,
-          reminders: reminders,
-          recap: h.preferences.lastRecap,
-        ),
-      );
-      expect(plugin.last![#body], contains('SECRET HABIT'));
+      Map<String, dynamic> forNextDay() =>
+          (plans.last['days'] as Map<String, dynamic>).values.first
+              as Map<String, dynamic>;
+      expect(forNextDay()['ai'], isTrue);
+      expect((forNextDay()['bodies'] as List).join(), contains('SECRET HABIT'));
       await h.preferences.setBriefUseHabits(false);
-      if (!localized.mounted) return;
-      await tester.runAsync(
-        () => DailyNudge.apply(
-          context: localized,
-          preferences: h.preferences,
-          reminders: reminders,
-          recap: 'SECRET HABIT',
-        ),
+      await DailyNudge.apply(services: h.services);
+      expect(plans, hasLength(2));
+      expect(forNextDay()['ai'], isFalse);
+      expect(
+        (forNextDay()['bodies'] as List).join(),
+        isNot(contains('SECRET HABIT')),
       );
-      expect(plugin.last![#body], 'Notes only');
-      await tester.pumpWidget(const SizedBox());
+      expect(
+        (forNextDay()['bodies'] as List).join(),
+        isNot(contains('Notes only')),
+        reason:
+            'opt-out uses the local engine, not an unrelated cached summary',
+      );
     },
   );
 }

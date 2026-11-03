@@ -617,6 +617,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // An archived note is off the home screen: pinning it
                       // to the top of that screen, or opening its card up
                       // there, means nothing until it is back (2.3.0).
+                      _DetailAction(
+                        icon: Icons.local_fire_department_outlined,
+                        label: note.isUrgent
+                            ? l10n.removeUrgent
+                            : l10n.markUrgent,
+                        onPressed: _toggleUrgent,
+                      ),
                       if (!note.isSetAside())
                         _DetailAction(
                           icon: note.pinnedAt != null

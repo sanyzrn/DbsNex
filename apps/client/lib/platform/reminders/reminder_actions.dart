@@ -185,6 +185,10 @@ abstract final class NexReminderActions {
     await prefs.reload();
     if (commitment) {
       if (response.actionId != done) return null;
+      await prefs.setInt(
+        'dailyNudge.invalidatedAt',
+        DateTime.now().millisecondsSinceEpoch,
+      );
       final met = prefs.getStringList(_metKey) ?? const [];
       final at = DateTime.now().toUtc().millisecondsSinceEpoch;
       await prefs.setStringList(_metKey, [
@@ -194,6 +198,10 @@ abstract final class NexReminderActions {
       return noteId;
     }
     if (response.actionId == done) {
+      await prefs.setInt(
+        'dailyNudge.invalidatedAt',
+        DateTime.now().millisecondsSinceEpoch,
+      );
       final acked = prefs.getStringList(_ackedKey) ?? const [];
       if (!acked.contains(noteId)) {
         await prefs.setStringList(_ackedKey, [...acked, noteId]);
