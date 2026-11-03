@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
-/// Every density keeps its full preview budget. Status marks have their
-/// own compact row, consistently placed and never overlapping the words.
+/// Ordinary collapsed previews share their height with inline status marks.
+/// Structured previews keep a separate row; neither may overlap the words.
 void main() {
   Note note(
     NoteType type,
@@ -34,7 +35,7 @@ void main() {
     note(NoteType.checklist, '- [ ] milk\n- [ ] bread\n- [x] eggs\n- [ ] tea'),
     note(NoteType.link, 'https://example.com/a/page'),
     note(NoteType.voice, 'what was said', durationMs: 42000),
-    // A reminder and attachments: the footnote under the words still fits.
+    // Ordinary marked notes share the unmarked height; structures keep a row.
     note(
       NoteType.text,
       'A thought long enough to need both lines of the card and then some '
@@ -76,14 +77,22 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       final plain = <double>{};
-      final marked = <double>{};
+      final inline = <double>{};
+      final structured = <double>{};
       for (final card in tester.widgetList<NoteCard>(find.byType(NoteCard))) {
         final height = tester.getSize(find.byWidget(card)).height;
-        (card.note.attachmentCount > 0 ? marked : plain).add(height);
+        if (card.note.attachmentCount == 0) {
+          plain.add(height);
+        } else if (card.note.type == NoteType.text) {
+          inline.add(height);
+        } else {
+          structured.add(height);
+        }
       }
       expect(plain, hasLength(1));
-      expect(marked, hasLength(1));
-      expect(marked.single, greaterThan(plain.single));
+      expect(inline, {plain.single});
+      expect(structured, hasLength(1));
+      expect(structured.single, greaterThan(plain.single));
       final expected =
           density.inset * 2 +
           [
@@ -126,10 +135,9 @@ void main() {
   });
 
   for (final direction in TextDirection.values) {
-    testWidgets('status row stays put across note languages in $direction', (
+    testWidgets('inline marks respect note and app directions in $direction', (
       tester,
     ) async {
-      Offset? previous;
       for (final text in ['Call the plumber', 'قبض برق', '۹ am: جلسه']) {
         final carrying = Note(
           id: 'n',
@@ -159,13 +167,27 @@ void main() {
           find.byIcon(Icons.notifications_active_outlined),
         );
         final clip = tester.getRect(find.byIcon(Icons.attach_file));
-        final words = tester.getRect(find.text(text));
-        expect(bell.top, greaterThanOrEqualTo(words.bottom));
+        final words = tester
+            .renderObjectList<RenderParagraph>(find.byType(RichText))
+            .singleWhere(
+              (p) => p.text
+                  .toPlainText(includeSemanticsLabels: false)
+                  .contains('\uFFFC'),
+            );
+        expect(
+          words.text.toPlainText(includeSemanticsLabels: false),
+          '$text\uFFFC',
+        );
+        expect(words.textDirection, nexDirectionOf(text) ?? direction);
         expect(clip.center.dy, closeTo(bell.center.dy, 1));
-        expect(bell.overlaps(words), isFalse);
-        expect(clip.overlaps(words), isFalse);
-        if (previous != null) expect(bell.center, previous);
-        previous = bell.center;
+        final origin = words.localToGlobal(Offset.zero);
+        for (final box in words.getBoxesForSelection(
+          TextSelection(baseOffset: 0, extentOffset: text.length),
+        )) {
+          final rect = box.toRect().shift(origin);
+          expect(bell.overlaps(rect), isFalse);
+          expect(clip.overlaps(rect), isFalse);
+        }
         expect(
           direction == TextDirection.ltr
               ? bell.left < clip.left
@@ -176,7 +198,7 @@ void main() {
     });
   }
 
-  testWidgets('a long note keeps both full-width lines above the marks', (
+  testWidgets('a long note reserves only the last-line tail for marks', (
     tester,
   ) async {
     const long =
@@ -211,17 +233,37 @@ void main() {
       ),
     );
     expect(tester.takeException(), isNull);
-    final heights = [
-      for (final element in find.text(long).evaluate())
-        tester.getSize(find.byWidget(element.widget)).height,
-    ];
-    expect(heights, hasLength(2));
-    expect(heights.last, heights.first);
+    final paragraphs = tester
+        .renderObjectList<RenderParagraph>(find.byType(RichText))
+        .where(
+          (p) => p.text
+              .toPlainText(includeSemanticsLabels: false)
+              .startsWith('A thought'),
+        )
+        .toList();
+    expect(paragraphs, hasLength(2));
+    expect(paragraphs.last.size.height, paragraphs.first.size.height);
+    final rows = paragraphs.map((p) {
+      final text = p.text.toPlainText(includeSemanticsLabels: false);
+      final end = text.contains('\uFFFC')
+          ? text.indexOf('\uFFFC')
+          : text.length;
+      return p.getBoxesForSelection(
+        TextSelection(baseOffset: 0, extentOffset: end),
+      );
+    }).toList();
+    expect(rows.first.map((b) => b.top).toSet(), hasLength(2));
+    expect(rows.last.map((b) => b.top).toSet(), hasLength(2));
+    expect(rows.last.first.toRect().width, rows.first.first.toRect().width);
+    expect(
+      rows.last.last.toRect().width,
+      lessThan(rows.first.last.toRect().width),
+    );
   });
   for (final density in NexCardDensity.values) {
     for (final scale in [1.0, 1.9]) {
       testWidgets(
-        '${density.name}: separate status row at scale $scale on a narrow card',
+        '${density.name}: safe marks at scale $scale on a narrow card',
         (tester) async {
           for (final direction in TextDirection.values) {
             for (final dark in [false, true]) {
@@ -286,6 +328,35 @@ void main() {
                 expect(bell.center.dy, closeTo(clip.center.dy, 1));
                 expect(bounds.contains(bell.topLeft), isTrue);
                 expect(bounds.contains(clip.bottomRight), isTrue);
+                final noteCard = element.widget as NoteCard;
+                if (noteCard.note.type == NoteType.text) {
+                  final words = tester
+                      .renderObjectList<RenderParagraph>(
+                        find.descendant(
+                          of: card,
+                          matching: find.byType(RichText),
+                        ),
+                      )
+                      .singleWhere(
+                        (p) => p.text
+                            .toPlainText(includeSemanticsLabels: false)
+                            .contains('\uFFFC'),
+                      );
+                  final text = words.text.toPlainText(
+                    includeSemanticsLabels: false,
+                  );
+                  final origin = words.localToGlobal(Offset.zero);
+                  for (final box in words.getBoxesForSelection(
+                    TextSelection(
+                      baseOffset: 0,
+                      extentOffset: text.indexOf('\uFFFC'),
+                    ),
+                  )) {
+                    final rect = box.toRect().shift(origin);
+                    expect(bell.overlaps(rect), isFalse);
+                    expect(clip.overlaps(rect), isFalse);
+                  }
+                }
                 for (final text
                     in find
                         .descendant(
