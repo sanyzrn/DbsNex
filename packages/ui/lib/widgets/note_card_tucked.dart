@@ -119,11 +119,12 @@ double _noteMarksWidth(
   var cap = width * 0.55;
   var fixed = note.isUrgent ? 15.0 : 0.0;
   if (note.isUrgent && (due != null || attached)) fixed += NexSpacing.sm;
-  if (attached)
+  if (attached) {
     fixed +=
         13 +
         NexSpacing.xs +
         measure(strings.attachedShort(note.attachmentCount));
+  }
   if (due != null && attached) fixed += NexSpacing.sm;
   // Keep the fixed marks/count readable before spending width on reminder text.
   cap = math.max(cap, math.min(width * 0.8, fixed + (due != null ? 17 : 0)));
