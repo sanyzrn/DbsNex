@@ -38,6 +38,6 @@ dev_dependencies:
   # that claim, and on-device inference could not honour it.
   flutter_test:
     sdk: flutter
-  lints: ^5.0.0
+  lints: ^6.1.0
   nex_data:
     path: ../data
