@@ -317,7 +317,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
     final l10n = AppLocalizations.of(context);
     final confirmed = await nexShowDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => NexAlertDialog(
         title: Text(l10n.annotateClear),
         content: NexDialogBody(child: Text(l10n.annotateClearConfirm)),
         actions: [

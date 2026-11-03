@@ -89,7 +89,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
-    final dialog = find.byType(AlertDialog);
+    final dialog = find.byType(NexAlertDialog);
     expect(dialog, findsOneWidget);
     expect(Directionality.of(tester.element(dialog)), TextDirection.rtl);
     final l10n = AppLocalizations.of(tester.element(dialog));

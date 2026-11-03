@@ -156,7 +156,12 @@ void main() {
     await tester.tap(find.widgetWithText(ListTile, 'Has a reminder'));
     await tester.pumpAndSettle();
 
-    expect(find.text('call the dentist'), findsOneWidget);
+    // The inline reminder placeholder is part of the RichText span tree.
+    // Match the visible words without requiring the span to contain only text.
+    expect(
+      find.textContaining('call the dentist', findRichText: true),
+      findsOneWidget,
+    );
     expect(find.text('a passing thought'), findsNothing);
 
     // And off again from the same row, which is the whole of its state.
@@ -1031,6 +1036,9 @@ void main() {
   testWidgets('the AI output language is its own setting, not the app locale', (
     tester,
   ) async {
+    // Intelligence settings are intentionally disabled while its master
+    // switch is off. Enable it before opening the summary's language picker.
+    await preferences.setAiEnabled(true);
     // Settings is a long list on a short test surface, and a scroll view
     // only mounts what is within reach.
     tester.view.physicalSize = const Size(800, 2000);
