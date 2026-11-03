@@ -270,6 +270,7 @@ class _Row extends StatelessWidget {
     this.badge = false,
     this.onTap,
     this.keywords = '',
+    this.enabled = true,
   });
 
   final IconData icon;
@@ -287,23 +288,28 @@ class _Row extends StatelessWidget {
   final Widget? trailing;
   final bool badge;
   final VoidCallback? onTap;
+  final bool enabled;
 
   @override
-  Widget build(BuildContext context) => ListTile(
-    contentPadding: _rowPadding,
-    leading: _IconTile(icon, badge: badge),
-    title: Text(title),
-    subtitle: value == null ? null : Text(value!),
-    trailing: trailing ?? const Icon(Icons.chevron_right),
-    // Here rather than at each call site: every row in this screen goes
-    // through this widget, and Settings was the one surface the Haptics
-    // switch could not be felt on — including on the switch itself.
-    onTap: onTap == null
-        ? null
-        : () {
-            nexTick();
-            onTap!();
-          },
+  Widget build(BuildContext context) => Opacity(
+    opacity: enabled ? 1 : 0.5,
+    child: ListTile(
+      enabled: enabled,
+      contentPadding: _rowPadding,
+      leading: _IconTile(icon, badge: badge),
+      title: Text(title),
+      subtitle: value == null ? null : Text(value!),
+      trailing: trailing ?? const Icon(Icons.chevron_right),
+      // Here rather than at each call site: every row in this screen goes
+      // through this widget, and Settings was the one surface the Haptics
+      // switch could not be felt on — including on the switch itself.
+      onTap: !enabled || onTap == null
+          ? null
+          : () {
+              nexTick();
+              onTap!();
+            },
+    ),
   );
 }
 

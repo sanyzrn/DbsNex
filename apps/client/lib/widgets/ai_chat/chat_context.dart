@@ -340,7 +340,7 @@ extension _ChatContext on _AiChatSheetState {
         : '',
     responseStyle: widget.preferences.aiResponseStyle,
     userName: widget.preferences.aiUserName,
-    userIntroduction: widget.preferences.aiUserIntroduction,
+    userIntroduction: widget.preferences.effectiveAiMemory,
     gentle: _gentle,
     notesContext: _context,
     attachments: widget.preferences.effectiveAiCapabilities.ocr

@@ -9,6 +9,7 @@ import '../tokens/nex_appearance.dart';
 
 part 'note_card_bell.dart';
 part 'note_card_footnote.dart';
+part 'note_card_tucked.dart';
 
 /// The words a screen reader needs, in the language the user chose.
 ///
@@ -245,9 +246,10 @@ class NoteCard extends StatelessWidget {
         nexCardHeightFor(
           context,
           withFootnote:
-              (showDue && note.dueAt != null) ||
-              note.attachmentCount > 0 ||
-              note.isUrgent,
+              !_tucksNoteMarks(note, expanded, previewOverride) &&
+              ((showDue && note.dueAt != null) ||
+                  note.attachmentCount > 0 ||
+                  note.isUrgent),
         ) +
         (note.type == NoteType.text && note.caption?.trim().isNotEmpty == true
             ? nexCardFootnoteHeightFor(context)
@@ -255,8 +257,8 @@ class NoteCard extends StatelessWidget {
     return Padding(
       padding: insets,
       child: ConstrainedBox(
-        // Keep the full preview budget. Only cards with status marks add a
-        // compact footer; expanded cards can grow further to fit their note.
+        // Ordinary collapsed text keeps one height with or without marks.
+        // Captions, structured previews and expanded content keep their room.
         constraints: expanded
             ? BoxConstraints(minHeight: height)
             : BoxConstraints.tightFor(height: height),

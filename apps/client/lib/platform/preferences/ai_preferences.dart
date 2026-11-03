@@ -307,6 +307,20 @@ mixin _AiPreferences on _PreferencesStore {
   String get aiUserIntroduction =>
       _prefs.getString('ai.userIntroduction') ?? '';
 
+  /// Manual memory only. The existing introduction stays in its original key
+  /// even while either switch is off; reading a missing choice never writes it.
+  bool get aiMemoryEnabled => _prefs.getBool('ai.memory.enabled') ?? false;
+  Future<void> setAiMemoryEnabled(bool value) =>
+      _setBool('ai.memory.enabled', value);
+
+  bool get aiMemoryConsentSeen =>
+      _prefs.getBool('ai.memory.consentSeen') ?? false;
+  Future<void> setAiMemoryConsentSeen() =>
+      _setBool('ai.memory.consentSeen', true);
+
+  String get effectiveAiMemory =>
+      aiEnabled && aiMemoryEnabled ? aiUserIntroduction : '';
+
   Future<void> setAiUserIntroduction(String value) async {
     await _setBoundedText(
       'ai.userIntroduction',

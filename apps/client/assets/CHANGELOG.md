@@ -6,6 +6,11 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.6.1
 
+- **A more useful smart summary.** Pending work, reminders and important notes take priority; routine completed habits no longer crowd them out.
+- **Calmer capture and easier translation.** Paste fades smoothly as its space closes, and the whole translation language bar opens the picker.
+- **Steadier timeline cards.** Reminder, attachment and urgent marks share the preview space on ordinary collapsed cards, while captions and expanded notes keep their room.
+- **Optional assistant Memory.** Keep a short introduction behind a separate opt-in, with your existing text preserved. Assistant, smart-summary and Memory settings dim when AI is off.
+- **One place for AI request history.** What left this device stays under Security and privacy.
 - **More selective note summaries.** Long explanations are condensed instead of merely reformatted, while short or information-dense notes keep the room their facts need.
 - **Reliable quick capture.** Notification shortcuts open the right capture tool even when the timeline widget is active.
 - **Safer photo editing.** Clearing all drawings and text now asks for confirmation before removing your work.

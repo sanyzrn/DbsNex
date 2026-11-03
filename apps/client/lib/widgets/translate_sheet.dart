@@ -214,67 +214,89 @@ class _TranslateSheetState extends State<TranslateSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // The way it goes, as one line rather than a choice.
-        Container(
+        Material(
           key: const ValueKey('translation-direction'),
-          padding: const EdgeInsetsDirectional.only(
-            start: NexSpacing.md,
-            end: NexSpacing.xs,
-          ),
-          constraints: const BoxConstraints(minHeight: 44),
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(NexRadius.pill),
-          ),
-          child: Row(
-            children: [
-              // The direction takes the line, so the buttons sit at its far
-              // end rather than wherever a shared flex left them (2.3.4).
-              Expanded(
-                child: Row(
-                  children: [
-                    Icon(Icons.translate, size: 18, color: scheme.primary),
-                    const SizedBox(width: NexSpacing.sm),
-                    Flexible(
-                      child: Text(
-                        source,
-                        key: const ValueKey('translation-source'),
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: scheme.onSurfaceVariant,
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(NexRadius.pill),
+          child: Tooltip(
+            message: l10n.translationChooseLanguage,
+            child: InkWell(
+              key: const ValueKey('translation-language-bar'),
+              borderRadius: BorderRadius.circular(NexRadius.pill),
+              onTap: _loading ? null : () => unawaited(_chooseLanguage()),
+              child: Semantics(
+                button: true,
+                enabled: !_loading,
+                label: l10n.translationChooseLanguage,
+                child: Container(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: NexSpacing.md,
+                    end: NexSpacing.xs,
+                  ),
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: Row(
+                    children: [
+                      // The direction takes the line, so the buttons sit at its far
+                      // end rather than wherever a shared flex left them (2.3.4).
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.translate,
+                              size: 18,
+                              color: scheme.primary,
+                            ),
+                            const SizedBox(width: NexSpacing.sm),
+                            Flexible(
+                              child: Text(
+                                source,
+                                key: const ValueKey('translation-source'),
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: NexSpacing.xs,
+                              ),
+                              child: Icon(
+                                Icons.arrow_forward,
+                                size: 16,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                            Flexible(
+                              child: Text(
+                                _name(_target.code, l10n),
+                                key: const ValueKey('translation-target'),
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: scheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: NexSpacing.xs,
-                      ),
-                      child: Icon(
-                        Icons.arrow_forward,
-                        size: 16,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        _name(_target.code, l10n),
-                        key: const ValueKey('translation-target'),
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: scheme.primary,
-                          fontWeight: FontWeight.w700,
+                      ExcludeSemantics(
+                        child: IgnorePointer(
+                          child: IconButton(
+                            key: const ValueKey('translation-choose-language'),
+                            onPressed: _loading
+                                ? null
+                                : () => unawaited(_chooseLanguage()),
+                            icon: const Icon(Icons.expand_more, size: 20),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              IconButton(
-                key: const ValueKey('translation-choose-language'),
-                tooltip: l10n.translationChooseLanguage,
-                onPressed: _loading ? null : () => unawaited(_chooseLanguage()),
-                icon: const Icon(Icons.expand_more, size: 20),
-              ),
-            ],
+            ),
           ),
         ),
         const SizedBox(height: NexSpacing.md),

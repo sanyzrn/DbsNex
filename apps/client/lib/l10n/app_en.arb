@@ -51,12 +51,12 @@
   "@groupDeleted": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "assistantVoiceGroup": "How it talks",
   "assistantReachGroup": "What it can see",
-  "assistantAboutYouNote": "Included with your messages to the provider you choose.",
+  "assistantAboutYouNote": "This name is sent with assistant requests so it can address you. Your separate profile name stays on this device. A short introduction can be enabled separately in Intelligence → Memory.",
   "@assistantAboutYouNote": {
     "description": "Says that the assistant's name and introduction reach the AI provider"
   },
   "assistantAboutYouGroup": "About you",
-  "assistantProfileIntro": "Give the assistant a little context about you, then choose the voice that feels right. These details are sent only with assistant questions.",
+  "assistantProfileIntro": "Choose how the assistant addresses you and how it responds. A short introduction is available separately in Memory.",
   "assistantCallMe": "What should it call you?",
   "assistantCallMeHint": "Your preferred name",
   "assistantAboutMe": "A short introduction",
@@ -3725,5 +3725,11 @@
   "markUrgent": "Mark as urgent",
   "removeUrgent": "Remove urgent mark",
   "urgent": "Urgent",
-  "commitmentMarkOccurrence": "Mark this occurrence done"
+  "commitmentMarkOccurrence": "Mark this occurrence done",
+  "memoryTitle": "Memory",
+  "memorySubtitle": "A short introduction for the assistant.",
+  "memorySwitchSubtitle": "Use your introduction in assistant requests. Your text stays saved when this is off.",
+  "memoryConsentBody": "When Memory is on, your introduction is included in assistant requests and sent to your selected AI service. With an offline model it stays on this device. Nothing is learned automatically. Turning Memory off keeps your text.",
+  "memoryEnable": "Enable Memory"
 }
+

@@ -1,9 +1,8 @@
 part of 'note_card.dart';
 
 extension on _CardBody {
-  /// The preview and a compact status row below it. The row follows the
-  /// interface direction, never the note's language, and owns its space:
-  /// nothing is painted over or faded out of the note's last line.
+  /// Ordinary collapsed text reserves an inline space for its marks. Captions,
+  /// structured previews and expanded cards keep the existing footer.
   Widget _withFootnote(BuildContext context) {
     final due = showDue ? note.dueAt : null;
     final attached = note.attachmentCount > 0;
@@ -64,6 +63,32 @@ extension on _CardBody {
       ),
     );
     final density = NexCardDensity.of(context);
+    if (marked && _tucksNoteMarks(note, expanded, previewOverride)) {
+      return LayoutBuilder(
+        builder: (context, constraints) => _TuckedPreview(
+          text: NexMarkdownText.preview(
+            note.displayText ?? strings.noteOfType(note.type.name),
+          ),
+          marks: _tuckedNoteMarks(
+            context,
+            constraints.maxWidth,
+            note,
+            strings,
+            due,
+          ),
+          marksWidth: _noteMarksWidth(
+            context,
+            constraints.maxWidth,
+            note,
+            strings,
+            due,
+          ),
+          width: constraints.maxWidth,
+          lines: density.lines,
+          style: density.previewStyle(Theme.of(context)),
+        ),
+      );
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -161,6 +186,7 @@ class _DueChip extends StatelessWidget {
     required this.compactLabel,
     required this.label,
     required this.upcoming,
+    this.labelWidth,
   });
 
   final DateTime due;
@@ -169,6 +195,7 @@ class _DueChip extends StatelessWidget {
   final String? compactLabel;
   final String? label;
   final bool upcoming;
+  final double? labelWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -181,6 +208,29 @@ class _DueChip extends StatelessWidget {
         ? Icons.notifications_active_outlined
         : Icons.repeat_rounded;
     if (text == null) return Icon(icon, size: 14, color: color);
+    Widget labelFor(double maxWidth) {
+      final style = theme.textTheme.labelSmall?.copyWith(
+        color: color,
+        fontWeight: FontWeight.w600,
+      );
+      final measure = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textScaler: MediaQuery.textScalerOf(context),
+        textDirection: Directionality.of(context),
+        maxLines: 1,
+      )..layout();
+      final shown = measure.width > maxWidth && compactLabel != null
+          ? compactLabel!
+          : text;
+      measure.dispose();
+      return Text(
+        shown,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: style,
+      );
+    }
+
     // No box of its own: a line of the card's footnote, not a chip on it.
     final row = Row(
       mainAxisSize: MainAxisSize.min,
@@ -188,31 +238,12 @@ class _DueChip extends StatelessWidget {
         Icon(icon, size: 13, color: color),
         const SizedBox(width: NexSpacing.xs),
         Flexible(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final style = theme.textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
-              );
-              final measure = TextPainter(
-                text: TextSpan(text: text, style: style),
-                textScaler: MediaQuery.textScalerOf(context),
-                textDirection: Directionality.of(context),
-                maxLines: 1,
-              )..layout();
-              final shown =
-                  measure.width > constraints.maxWidth && compactLabel != null
-                  ? compactLabel!
-                  : text;
-              measure.dispose();
-              return Text(
-                shown,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: style,
-              );
-            },
-          ),
+          child: labelWidth == null
+              ? LayoutBuilder(
+                  builder: (context, constraints) =>
+                      labelFor(constraints.maxWidth),
+                )
+              : labelFor(labelWidth!),
         ),
       ],
     );

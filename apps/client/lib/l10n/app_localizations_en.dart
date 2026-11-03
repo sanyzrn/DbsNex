@@ -207,14 +207,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantAboutYouNote =>
-      'Included with your messages to the provider you choose.';
+      'This name is sent with assistant requests so it can address you. Your separate profile name stays on this device. A short introduction can be enabled separately in Intelligence → Memory.';
 
   @override
   String get assistantAboutYouGroup => 'About you';
 
   @override
   String get assistantProfileIntro =>
-      'Give the assistant a little context about you, then choose the voice that feels right. These details are sent only with assistant questions.';
+      'Choose how the assistant addresses you and how it responds. A short introduction is available separately in Memory.';
 
   @override
   String get assistantCallMe => 'What should it call you?';
@@ -6654,4 +6654,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commitmentMarkOccurrence => 'Mark this occurrence done';
+
+  @override
+  String get memoryTitle => 'Memory';
+
+  @override
+  String get memorySubtitle => 'A short introduction for the assistant.';
+
+  @override
+  String get memorySwitchSubtitle =>
+      'Use your introduction in assistant requests. Your text stays saved when this is off.';
+
+  @override
+  String get memoryConsentBody =>
+      'When Memory is on, your introduction is included in assistant requests and sent to your selected AI service. With an offline model it stays on this device. Nothing is learned automatically. Turning Memory off keeps your text.';
+
+  @override
+  String get memoryEnable => 'Enable Memory';
 }
