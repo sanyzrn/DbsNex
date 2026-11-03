@@ -3488,6 +3488,12 @@ abstract class AppLocalizations {
   /// **'Clear all'**
   String get annotateClear;
 
+  /// No description provided for @annotateClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all drawings and text from this photo? This cannot be undone.'**
+  String get annotateClearConfirm;
+
   /// Annotate screen: bakes the annotations into the photo and returns
   ///
   /// In en, this message translates to:
@@ -8791,6 +8797,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search your notes for this?'**
   String get assistantConfirmSearch;
+
+  /// No description provided for @assistantConfirmDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Read up to 30 recently deleted notes for this answer?'**
+  String get assistantConfirmDeleted;
+
+  /// No description provided for @assistantConfirmCommitments.
+  ///
+  /// In en, this message translates to:
+  /// **'Read your recurring items for this answer?'**
+  String get assistantConfirmCommitments;
 
   /// No description provided for @settingsLanguageAndCalendar.
   ///

@@ -16,6 +16,56 @@ void main() {
 
   final tags = [tag('a', 'Work'), tag('b', 'Home'), tag('c', 'Idea')];
 
+  for (final dark in [false, true]) {
+    for (final comfort in [false, true]) {
+      for (final seed in [null, const Color(0xFFFFD24A)]) {
+        testWidgets('selected filter is readable: dark=$dark comfort=$comfort '
+            'custom=${seed != null}', (tester) async {
+          final theme = dark
+              ? nexDarkTheme(comfortMode: comfort, accentSeed: seed)
+              : nexLightTheme(comfortMode: comfort, accentSeed: seed);
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: theme,
+              home: Directionality(
+                textDirection: comfort ? TextDirection.rtl : TextDirection.ltr,
+                child: Scaffold(
+                  body: TagFilterRow(
+                    tags: tags,
+                    selectedTagIds: const {'a'},
+                    onSelected: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          );
+          final label = find.text('Work');
+          final pill = find.ancestor(
+            of: label,
+            matching: find.byType(NexTappable),
+          );
+          final material = tester.widget<Material>(
+            find.descendant(of: pill, matching: find.byType(Material)),
+          );
+          final foreground = tester.widget<Text>(label).style!.color!;
+          final background = Color.alphaBlend(
+            material.color!,
+            theme.scaffoldBackgroundColor,
+          );
+          expect(
+            nexContrast(foreground, background),
+            greaterThanOrEqualTo(4.5),
+          );
+          expect(
+            material.color,
+            theme.colorScheme.primary.withValues(alpha: .12),
+          );
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+  }
+
   /// Pumps the row and hands back the last selection it reported.
   Future<Set<String>? Function()> pump(
     WidgetTester tester,

@@ -38,10 +38,11 @@ object NexQuickCapture {
     private const val PREFS = "nex_quick_capture"
     private const val KEY_ENABLED = "enabled"
 
-    private const val RC_SHEET = 0x4E650011
-    private const val RC_TEXT = 0x4E650012
-    private const val RC_VOICE = 0x4E650013
-    private const val RC_PHOTO = 0x4E650014
+    // Separate from NexWidgetActions: extras do not distinguish PendingIntents.
+    private const val RC_SHEET = 0x4E650101
+    private const val RC_TEXT = 0x4E650102
+    private const val RC_VOICE = 0x4E650103
+    private const val RC_PHOTO = 0x4E650104
 
     fun setEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

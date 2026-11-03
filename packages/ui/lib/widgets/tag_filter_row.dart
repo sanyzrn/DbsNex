@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 
 import '../tokens/nex_appearance.dart';
+import '../tokens/nex_contrast.dart';
 import '../tokens/nex_tokens.dart';
 import 'nex_tappable.dart';
 
@@ -196,7 +197,9 @@ class _Pill extends StatelessWidget {
         : scheme.surfaceContainerLowest;
     // At rest the label is the search field's hint colour, so the row under
     // the field reads as part of it rather than as a line of black words.
-    final fg = selected ? scheme.primary : scheme.onSurfaceVariant;
+    final fg = selected
+        ? nexReadableOn(scheme.primary, Color.alphaBlend(bg, scheme.surface))
+        : scheme.onSurfaceVariant;
     // A tag with no colour used to get a grey dot, which reads as a broken
     // swatch rather than as an absence.
     final dot = accent == null ? null : nexParseTagColor(accent);

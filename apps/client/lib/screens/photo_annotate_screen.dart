@@ -312,8 +312,30 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
     _snapshot();
   }
 
-  void _clear() {
+  Future<void> _clear() async {
     if (_marks.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await nexShowDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.annotateClear),
+        content: NexDialogBody(child: Text(l10n.annotateClearConfirm)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: Text(l10n.annotateClear),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
     setState(() {
       _undone.clear();
       _marks.clear();

@@ -4,6 +4,13 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.1
+
+- **Reliable quick capture.** Notification shortcuts open the right capture tool even when the timeline widget is active.
+- **Safer photo editing.** Clearing all drawings and text now asks for confirmation before removing your work.
+- **Control over assistant reads.** Reading Recently Deleted or recurring items for an answer waits for your approval.
+- **Clearer selected filters.** Selected tag labels remain readable in light, dark and Comfort themes, including custom accents.
+
 ## v2.6.0
 
 - **Easier photo cropping.** Larger touch areas make all four crop handles easier to drag while keeping the visible crop controls in place.

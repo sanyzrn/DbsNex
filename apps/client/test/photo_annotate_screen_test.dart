@@ -7,6 +7,7 @@ import 'package:image/image.dart' as img;
 
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/screens/photo_annotate_screen.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 /// Same fixture as photo_crop_screen_test.dart: a real, decodable 100x100
 /// PNG, since `img.decodeImage` (used to read the native size) rejects
@@ -20,11 +21,17 @@ final _testPng = Uint8List.fromList(
   ),
 );
 
-Future<Uint8List? Function()> _pushAnnotateScreen(WidgetTester tester) async {
+Future<Uint8List? Function()> _pushAnnotateScreen(
+  WidgetTester tester, {
+  Locale locale = const Locale('en'),
+  ThemeData? theme,
+}) async {
   Uint8List? result;
   var resultSet = false;
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
+      theme: theme,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Builder(
@@ -70,6 +77,33 @@ Future<void> _placeText(WidgetTester tester, Offset at, String text) async {
 }
 
 void main() {
+  testWidgets('clear confirmation works in Persian and the dark theme', (
+    tester,
+  ) async {
+    await _pushAnnotateScreen(
+      tester,
+      locale: const Locale('fa'),
+      theme: nexDarkTheme(),
+    );
+    await _tapOnPhoto(tester, Offset.zero);
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    final dialog = find.byType(AlertDialog);
+    expect(dialog, findsOneWidget);
+    expect(Directionality.of(tester.element(dialog)), TextDirection.rtl);
+    final l10n = AppLocalizations.of(tester.element(dialog));
+    expect(find.text(l10n.annotateClearConfirm), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, l10n.cancel));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.undo))
+          .onPressed,
+      isNotNull,
+    );
+  });
+
   testWidgets('Done without marks confirms the original image', (tester) async {
     final getResult = await _pushAnnotateScreen(tester);
 
@@ -128,7 +162,7 @@ void main() {
     expect(after.dx, greaterThan(before.dx));
   });
 
-  testWidgets('undo removes the last mark, clear removes all of them', (
+  testWidgets('clear waits for confirmation and cancel preserves undo/redo', (
     tester,
   ) async {
     await _pushAnnotateScreen(tester);
@@ -148,7 +182,31 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
+    expect(find.text('first'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.redo));
+    await tester.pumpAndSettle();
+    expect(find.text('second'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Clear all'));
+    await tester.pumpAndSettle();
     expect(find.text('first'), findsNothing);
+    expect(find.text('second'), findsNothing);
+    expect(
+      tester
+          .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.undo))
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.redo))
+          .onPressed,
+      isNull,
+    );
   });
 
   testWidgets('a held label can be changed or taken off', (tester) async {

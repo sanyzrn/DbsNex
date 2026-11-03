@@ -1499,6 +1499,7 @@
     "description": "Annotate screen: removes the last stroke or text label"
   },
   "annotateClear": "Clear all",
+  "annotateClearConfirm": "Clear all drawings and text from this photo? This cannot be undone.",
   "@annotateClear": {
     "description": "Annotate screen: removes every stroke and text label"
   },
@@ -3381,6 +3382,8 @@
     }
   },
   "assistantConfirmSearch": "Search your notes for this?",
+  "assistantConfirmDeleted": "Read up to 30 recently deleted notes for this answer?",
+  "assistantConfirmCommitments": "Read your recurring items for this answer?",
   "@assistantConfirmSearch": {
     "description": "Confirmation for a search the assistant wants to run that the user did not ask for in words."
   },

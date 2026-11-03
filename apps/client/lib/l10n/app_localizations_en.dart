@@ -2187,6 +2187,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get annotateClear => 'Clear all';
 
   @override
+  String get annotateClearConfirm =>
+      'Clear all drawings and text from this photo? This cannot be undone.';
+
+  @override
   String get annotateDone => 'Done';
 
   @override
@@ -5628,6 +5632,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantConfirmSearch => 'Search your notes for this?';
+
+  @override
+  String get assistantConfirmDeleted =>
+      'Read up to 30 recently deleted notes for this answer?';
+
+  @override
+  String get assistantConfirmCommitments =>
+      'Read your recurring items for this answer?';
 
   @override
   String get settingsLanguageAndCalendar => 'Language and calendar';

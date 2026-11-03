@@ -2173,6 +2173,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get annotateClear => 'پاک کردن همه';
 
   @override
+  String get annotateClearConfirm =>
+      'همهٔ خط‌ها و نوشته‌ها از روی این عکس پاک شوند؟ این کار قابل برگشت نیست.';
+
+  @override
   String get annotateDone => 'تمام';
 
   @override
@@ -5538,6 +5542,14 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get assistantConfirmSearch =>
       'یادداشت‌هایتان را برای این جست‌وجو کنم؟';
+
+  @override
+  String get assistantConfirmDeleted =>
+      'برای این پاسخ، حداکثر ۳۰ یادداشتِ اخیراً حذف‌شده را بخوانم؟';
+
+  @override
+  String get assistantConfirmCommitments =>
+      'برای این پاسخ، موارد تکرارشونده‌تان را بخوانم؟';
 
   @override
   String get settingsLanguageAndCalendar => 'زبان و تقویم';
