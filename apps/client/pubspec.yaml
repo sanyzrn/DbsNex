@@ -28,25 +28,25 @@ dependencies:
   # Verifies a downloaded installer against the release's SHA256SUMS asset.
   # Already resolved transitively (http depends on it); declared directly
   # because app_update.dart now imports it.
-  crypto: ^3.0.6
-  image_picker: ^1.1.2
+  crypto: ^3.0.8
+  image_picker: ^1.2.4
   local_auth: ^2.3.0
   # Crop UI right after a capture. Pure Dart — no native platform code — so
   # it works uniformly on every target this app builds for, unlike
   # image_cropper, which has no Windows implementation at all.
-  crop_your_image: ^2.0.0
+  crop_your_image: ^2.0.1
   # Rotates a photo's raw bytes before crop_your_image ever sees them — it has
   # no rotation API of its own. Already resolved transitively (crop_your_image
   # depends on it); declared directly because photo_crop_screen.dart now
   # imports it too.
-  image: ^4.3.0
+  image: ^4.12.0
   # Pinned to the version flutter_localizations resolves against on 3.35.x.
   # "any" delegated the constraint entirely to whatever Flutter stable was
   # installed at build time.
   intl: ^0.20.2
   meta: ^1.16.0
   # Official player uses platform decoders; no bundled FFmpeg/codec pack.
-  video_player: ^2.10.0
+  video_player: ^2.14.1
   just_audio: ^0.10.0
   # Endorses the Windows implementation. Without it every playback call throws
   # MissingPluginException on a first-class v1 target.
@@ -75,28 +75,28 @@ dependencies:
   # The desktop half of "open this file with whatever handles it". Its Windows
   # implementation is ShellExecute, which is also the right way to launch the
   # update installer: it is what raises the UAC prompt.
-  url_launcher: ^6.3.0
-  path_provider: ^2.1.5
+  url_launcher: ^6.3.3
+  path_provider: ^2.1.6
   record: ^6.1.1
   # The platform share sheet for file, photo and voice notes.
   share_plus: ^12.0.2
-  shared_preferences: ^2.3.3
+  shared_preferences: ^2.5.6
   # API credentials and the separate private vault use platform secure storage.
   # Android Keystore (EncryptedSharedPreferences) / Windows DPAPI, so a paid
   # third-party credential is not sitting in a plaintext XML or JSON file
   # anyone with ADB or filesystem access to the device can read.
   flutter_secure_storage: ^10.3.1
   sqlite3: ^2.7.5
-  sqlite3_flutter_libs: ^0.5.28
+  sqlite3_flutter_libs: ^0.6.0+eol
   uuid: ^4.5.1
-  flutter_local_notifications: ^20.1.0
-  timezone: ^0.10.1
+  flutter_local_notifications: ^22.3.3
+  timezone: ^0.11.2
   # Answers what `tz.local` should be. Without it the timezone database is
   # loaded and never pointed at a zone, so `tz.local` stays UTC — which makes
   # every wall-clock schedule (the daily nudge, and any repeat matched on the
   # time of day) fire at the wrong hour by the device's offset.
-  flutter_timezone: ^5.1.0
-  camera: ^0.12.0+1
+  flutter_timezone: ^5.1.1
+  camera: ^0.12.2
 
 dev_dependencies:
   flutter_test:
@@ -106,10 +106,10 @@ dev_dependencies:
   # flutter_secure_storage ships for exactly this: no plugin is registered
   # under flutter_test, so every test touching NexPreferences would otherwise
   # hit a real platform channel that does not exist there.
-  flutter_secure_storage_platform_interface: ^2.0.1
+  flutter_secure_storage_platform_interface: ^2.1.1
   # Only for about_screen_test.dart's fake, for the same reason: no plugin is
   # registered under flutter_test for getApplicationSupportDirectory either.
-  path_provider_platform_interface: ^2.1.2
+  path_provider_platform_interface: ^2.1.3
   plugin_platform_interface: ^2.1.8
   video_player_platform_interface: ^6.3.0
 

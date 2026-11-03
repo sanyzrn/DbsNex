@@ -15,7 +15,7 @@ dependencies:
   # The cloud provider layer (lib/cloud.dart, ADR-035): talking to the
   # providers, and the on-device record of every request (ADR-033).
   http: ^1.2.2
-  meta: ^1.16.0
+  meta: ^1.19.0
   nex_core:
     path: ../core
   path: ^1.9.1

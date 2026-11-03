@@ -11,7 +11,7 @@ environment:
 
 dependencies:
   archive: ^4.0.2
-  crypto: ^3.0.6
+  crypto: ^3.0.8
   http: ^1.2.2
   # The arrow is inverted: data now depends on core, not the reverse. Core owns
   # the models and the port interfaces; this package implements them.
@@ -27,4 +27,4 @@ dev_dependencies:
   # ^1.31.2, which needs Dart SDK ^3.11.0 — newer than the ^3.9.0 this
   # package (and the repo's pinned Flutter/.fvmrc) targets, so `pub get`
   # could not resolve it at all.
-  test: ^1.25.0
+  test: ^1.33.0
