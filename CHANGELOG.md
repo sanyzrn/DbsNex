@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.6.1
 
+- **More selective note summaries.** Long explanations are condensed instead of merely reformatted, while short or information-dense notes keep the room their facts need.
 - **Reliable quick capture.** Notification shortcuts open the right capture tool even when the timeline widget is active.
 - **Safer photo editing.** Clearing all drawings and text now asks for confirmation before removing your work.
 - **Control over assistant reads.** Reading Recently Deleted or recurring items for an answer waits for your approval.
@@ -682,5 +683,3 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## v0.9.1
 
 - **Personalise and capture.** Adjust size and colour, edit photos, search by meaning and send feedback.
-
-

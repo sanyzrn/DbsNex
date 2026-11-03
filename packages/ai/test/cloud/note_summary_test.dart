@@ -72,7 +72,9 @@ void main() {
       expect(system, contains('privacy restrictions'));
       expect(system, contains('not approved does not mean rejected'));
       expect(system, contains('what happens if a condition is unmet'));
-      expect(system, contains('about half'));
+      expect(system, contains('30-40%'));
+      expect(system, contains('not a quota'));
+      expect(system, contains('short notes may need little reduction'));
       expect(system, contains('do not calculate new values'));
     },
   );
