@@ -55,6 +55,7 @@ void main() {
     bool expanded = false,
     bool showDue = true,
     Widget? override,
+    NexCardStrings? cardStrings,
   }) => tester.pumpWidget(
     MaterialApp(
       theme: dark ? nexDarkTheme() : nexLightTheme(),
@@ -70,7 +71,7 @@ void main() {
                   width: width,
                   child: NoteCard(
                     note: value,
-                    strings: strings,
+                    strings: cardStrings ?? strings,
                     expanded: expanded,
                     showDue: showDue,
                     previewOverride: override,
@@ -210,6 +211,66 @@ void main() {
             );
           }
         }
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final rtl in [false, true]) {
+    testWidgets(
+      '$rtl compact reminder clock fits beside other marks at large text',
+      (tester) async {
+        final clock = rtl ? '۰۹:۰۵' : '09:05';
+        final schedule = rtl ? 'هر روز · $clock' : 'Daily · $clock';
+        final cardStrings = NexCardStrings(
+          noteOfType: (s) => s,
+          tagList: (s) => s,
+          accentColor: 'Accent',
+          dueLabel: (_, _) => schedule,
+          dueCompactLabel: (_, _) => clock,
+          dueDescription: (_, _) => schedule,
+        );
+        await pump(
+          tester,
+          note(NoteType.text, 0),
+          width: 320,
+          rtl: rtl,
+          scaler: const TextScaler.linear(1.9),
+        );
+        final height = tester.getSize(find.byType(NoteCard)).height;
+        await pump(
+          tester,
+          note(NoteType.text, 7),
+          width: 320,
+          rtl: rtl,
+          scaler: const TextScaler.linear(1.9),
+          cardStrings: cardStrings,
+        );
+        expect(tester.getSize(find.byType(NoteCard)).height, height);
+        expect(find.text(clock), findsOneWidget);
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.descendant(
+            of: find.text(clock),
+            matching: find.byType(RichText),
+          ),
+        );
+        expect(paragraph.didExceedMaxLines, isFalse);
+        final attachment = tester.renderObject<RenderParagraph>(
+          find.descendant(of: find.text('+3'), matching: find.byType(RichText)),
+        );
+        expect(attachment.didExceedMaxLines, isFalse);
+        final clockBounds = tester.getRect(find.text(clock));
+        final urgentBounds = tester.getRect(
+          find.byIcon(Icons.local_fire_department_outlined),
+        );
+        final attachmentBounds = tester.getRect(find.text('+3'));
+        expect(clockBounds.overlaps(urgentBounds), isFalse);
+        expect(clockBounds.overlaps(attachmentBounds), isFalse);
+        expect(urgentBounds.overlaps(attachmentBounds), isFalse);
+        final preview = tester.getRect(
+          find.byKey(const ValueKey('note-card-preview')),
+        );
+        expect(preview.overlaps(clockBounds), isFalse);
         expect(tester.takeException(), isNull);
       },
     );

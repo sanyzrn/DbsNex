@@ -1,11 +1,16 @@
 part of 'note_card.dart';
 
-// The same rail width at a given card width, independent of text direction,
-// caption, reminder wording or which marks happen to be present.
-double _collapsedStatusWidth(double available) => math.min(
-  available * 0.6,
-  math.min(120.0, math.max(36.0, available * 0.48)),
-);
+// One rail width for a given card width and text scale. Reserve a short clock
+// before allocating preview width; reminder wording and mark presence do not
+// move its anchor. Very narrow cards still retain space for the preview.
+double _collapsedStatusWidth(BuildContext context, double available) =>
+    math.min(
+      available * 0.7,
+      math.max(
+        math.min(224.0, math.max(36.0, available * 0.48)),
+        13 + NexSpacing.xs + _statusTextWidth(context, '00:00'),
+      ),
+    );
 
 class _CollapsedCardContent extends StatelessWidget {
   const _CollapsedCardContent({
@@ -68,7 +73,7 @@ class _CollapsedCardContent extends StatelessWidget {
               const SizedBox(width: NexSpacing.xs),
               SizedBox(
                 key: const ValueKey('note-status-rail'),
-                width: _collapsedStatusWidth(constraints.maxWidth),
+                width: _collapsedStatusWidth(context, constraints.maxWidth),
                 child: _CardStatusMarks(note: note, strings: strings, due: due),
               ),
             ],
@@ -122,17 +127,9 @@ class _CardStatusMarks extends StatelessWidget {
               13 + NexSpacing.xs + _statusTextWidth(context, attachedText),
             )
           : 0.0;
-      final count =
-          (due != null ? 1 : 0) + (note.isUrgent ? 1 : 0) + (attached ? 1 : 0);
-      final dueLabelWidth = math.max(
-        0.0,
-        width -
-            attachmentWidth -
-            (note.isUrgent ? 15 : 0) -
-            math.max(0, count - 1) * NexSpacing.xs -
-            13 -
-            NexSpacing.xs,
-      );
+      // A reminder can use the whole rail. Other marks wrap rather than
+      // subtracting the space its compact clock needs.
+      final dueLabelWidth = math.max(0.0, width - 13 - NexSpacing.xs);
       final full = due == null
           ? null
           : strings.dueLabel?.call(due!, note.dueRepeat);

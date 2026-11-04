@@ -126,7 +126,7 @@ bool nexNoteCanExpand(
       NexSpacing.contentGap;
   if ((note.dueAt != null || note.isUrgent || note.attachmentCount > 0) &&
       width > 0) {
-    width -= _collapsedStatusWidth(width) + NexSpacing.xs;
+    width -= _collapsedStatusWidth(context, width) + NexSpacing.xs;
   }
   if (width <= 0) return true;
   final budget = note.type == NoteType.voice && (note.durationMs ?? 0) > 0
@@ -658,50 +658,52 @@ class _ChecklistLine extends StatelessWidget {
       // squeezed into a box built for the default size.
       height: nexCardPreviewLineHeightFor(context),
       child: LayoutBuilder(
-        builder: (context, constraints) => Row(
-          children: [
-            Icon(
-              item.done
-                  ? Icons.check_box_outlined
-                  : Icons.check_box_outline_blank,
-              size: 16,
-              color: item.done ? scheme.primary : scheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: NexSpacing.sm),
-            Expanded(
-              child: NexTextSurface.line(
-                item.text,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  // Struck through and dimmed rather than hidden: what you have
-                  // already done is part of what the list says.
-                  decoration: item.done ? TextDecoration.lineThrough : null,
-                  color: item.done ? scheme.onSurfaceVariant : null,
-                ),
+        builder: (context, constraints) {
+          final gap = math.min(
+            NexSpacing.sm,
+            math.max(0.0, (constraints.maxWidth - 16) / 4),
+          );
+          return Row(
+            children: [
+              Icon(
+                item.done
+                    ? Icons.check_box_outlined
+                    : Icons.check_box_outline_blank,
+                size: 16,
+                color: item.done ? scheme.primary : scheme.onSurfaceVariant,
               ),
-            ),
-            if (trailing != null) ...[
-              const SizedBox(width: NexSpacing.sm),
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth:
-                      math.max(
-                        0,
-                        constraints.maxWidth - 16 - NexSpacing.sm * 2,
-                      ) *
-                      0.35,
-                ),
-                child: Text(
-                  trailing!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
+              SizedBox(width: gap),
+              Expanded(
+                child: NexTextSurface.line(
+                  item.text,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    // Struck through and dimmed rather than hidden: what you have
+                    // already done is part of what the list says.
+                    decoration: item.done ? TextDecoration.lineThrough : null,
+                    color: item.done ? scheme.onSurfaceVariant : null,
                   ),
                 ),
               ),
+              if (trailing != null) ...[
+                SizedBox(width: gap),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth:
+                        math.max(0, constraints.maxWidth - 16 - gap * 2) * 0.35,
+                  ),
+                  child: Text(
+                    trailing!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
-        ),
+          );
+        },
       ),
     );
   }
