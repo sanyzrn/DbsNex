@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.2
+
+- **Uniform timeline cards.** Collapsed notes keep one height across text, photos, links, checklists and voice. Captions use a quieter preview line; reminder, urgent and attachment marks stay together in a separate area without empty slots.
+
 ## v2.6.1
 
 - **A more useful smart summary.** Pending work, reminders and important notes take priority; routine completed habits no longer crowd them out.

@@ -9,7 +9,7 @@ import '../tokens/nex_appearance.dart';
 
 part 'note_card_bell.dart';
 part 'note_card_footnote.dart';
-part 'note_card_tucked.dart';
+part 'note_card_collapsed.dart';
 
 /// The words a screen reader needs, in the language the user chose.
 ///
@@ -118,16 +118,24 @@ bool nexNoteCanExpand(
   if (note.type == NoteType.link) return false;
   final text = NexMarkdownText.preview(note.displayText ?? '');
   if (text.trim().isEmpty) return false;
-  final width =
+  var width =
       cardWidth -
       nexCardInsetsFor(context).horizontal -
       density.inset * 2 -
       density.leading -
       NexSpacing.contentGap;
+  if ((note.dueAt != null || note.isUrgent || note.attachmentCount > 0) &&
+      width > 0) {
+    width -= _collapsedStatusWidth(context, width) + NexSpacing.xs;
+  }
   if (width <= 0) return true;
   final budget = note.type == NoteType.voice && (note.durationMs ?? 0) > 0
       ? 1
-      : density.lines;
+      : density.lines -
+            (note.type == NoteType.text &&
+                    note.caption?.trim().isNotEmpty == true
+                ? 1
+                : 0);
   final lines = text
       .split('\n')
       .where((line) => line.trim().isNotEmpty)
@@ -242,23 +250,14 @@ class NoteCard extends StatelessWidget {
   }
 
   Widget _card(BuildContext context, EdgeInsets insets) {
-    final height =
-        nexCardHeightFor(
-          context,
-          withFootnote:
-              !_tucksNoteMarks(note, expanded, previewOverride) &&
-              ((showDue && note.dueAt != null) ||
-                  note.attachmentCount > 0 ||
-                  note.isUrgent),
-        ) +
-        (note.type == NoteType.text && note.caption?.trim().isNotEmpty == true
-            ? nexCardFootnoteHeightFor(context)
-            : 0);
+    // A collapsed card's envelope depends only on density and text scaling.
+    // Captions and status marks spend space inside it, for every note kind.
+    final height = nexCardHeightFor(context);
     return Padding(
       padding: insets,
       child: ConstrainedBox(
-        // Ordinary collapsed text keeps one height with or without marks.
-        // Captions, structured previews and expanded content keep their room.
+        // All collapsed previews share the envelope; only an explicitly
+        // expanded card can grow with its contents.
         constraints: expanded
             ? BoxConstraints(minHeight: height)
             : BoxConstraints.tightFor(height: height),
@@ -567,6 +566,8 @@ class _Preview extends StatelessWidget {
           Text(
             duration,
             textDirection: TextDirection.ltr,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall,
           ),
         ],
@@ -656,37 +657,53 @@ class _ChecklistLine extends StatelessWidget {
       // card gets taller (see [nexCardHeightFor]) around a line still being
       // squeezed into a box built for the default size.
       height: nexCardPreviewLineHeightFor(context),
-      child: Row(
-        children: [
-          Icon(
-            item.done
-                ? Icons.check_box_outlined
-                : Icons.check_box_outline_blank,
-            size: 16,
-            color: item.done ? scheme.primary : scheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: NexSpacing.sm),
-          Expanded(
-            child: NexTextSurface.line(
-              item.text,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                // Struck through and dimmed rather than hidden: what you have
-                // already done is part of what the list says.
-                decoration: item.done ? TextDecoration.lineThrough : null,
-                color: item.done ? scheme.onSurfaceVariant : null,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final gap = math.min(
+            NexSpacing.sm,
+            math.max(0.0, (constraints.maxWidth - 16) / 4),
+          );
+          return Row(
+            children: [
+              Icon(
+                item.done
+                    ? Icons.check_box_outlined
+                    : Icons.check_box_outline_blank,
+                size: 16,
+                color: item.done ? scheme.primary : scheme.onSurfaceVariant,
               ),
-            ),
-          ),
-          if (trailing != null) ...[
-            const SizedBox(width: NexSpacing.sm),
-            Text(
-              trailing!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
+              SizedBox(width: gap),
+              Expanded(
+                child: NexTextSurface.line(
+                  item.text,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    // Struck through and dimmed rather than hidden: what you have
+                    // already done is part of what the list says.
+                    decoration: item.done ? TextDecoration.lineThrough : null,
+                    color: item.done ? scheme.onSurfaceVariant : null,
+                  ),
+                ),
               ),
-            ),
-          ],
-        ],
+              if (trailing != null) ...[
+                SizedBox(width: gap),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth:
+                        math.max(0, constraints.maxWidth - 16 - gap * 2) * 0.35,
+                  ),
+                  child: Text(
+                    trailing!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }

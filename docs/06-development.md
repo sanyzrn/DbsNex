@@ -269,12 +269,14 @@ who somehow has a GitHub build is still never offered a GitHub update.
 ### README status badges
 
 CI runs on pull requests and is reused by the release workflow; it no longer
-creates standalone CI runs on `main`. GitHub's native CI workflow badge can
-therefore keep reporting an old failed run on its default branch even after
-newer PR and release checks pass. The README CI badge reads the Checks API for
-the current `main` commit through Shields' branch checks badge. It reports the
-actual commit's checks, including release verification, without re-running the
-suite or hardcoding a green result. Nightly tracks `main` separately.
+creates standalone CI runs on `main`. The README uses GitHub's native CI badge,
+filtered to `pull_request` runs on the shared `codex/2.0-polish` branch, with its
+link showing the same filters. This avoids both the default branch's old CI
+result and an external Shields Checks API lookup that cannot read this private
+repository (`ref or repo not found`). It reports the latest matching PR run,
+not proof that a newly pushed commit has finished CI. Release verification and
+Nightly keep their separate badges. No credentials, extra workflow runs or
+fixed passing status are introduced.
 
 ## Version policy from 2.0.0
 

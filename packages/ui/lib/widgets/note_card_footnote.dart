@@ -1,138 +1,61 @@
 part of 'note_card.dart';
 
 extension on _CardBody {
-  /// Ordinary collapsed text reserves an inline space for its marks. Captions,
-  /// structured previews and expanded cards keep the existing footer.
   Widget _withFootnote(BuildContext context) {
     final due = showDue ? note.dueAt : null;
-    final attached = note.attachmentCount > 0;
-    final marked = due != null || attached || note.isUrgent;
+    final marked = due != null || note.attachmentCount > 0 || note.isUrgent;
     final caption =
         note.type == NoteType.text && note.caption?.trim().isNotEmpty == true
         ? NexMarkdownText.preview(note.caption!.trim())
         : null;
-    final preview =
-        previewOverride ??
-        _Preview(
-          note: note,
-          expanded: expanded,
-          strings: strings,
-          lines: NexCardDensity.of(context).lines,
-        );
-    if (!marked && caption == null) return preview;
-    final marks = LayoutBuilder(
-      builder: (context, constraints) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (note.isUrgent) ...[
-            ExcludeSemantics(
-              child: Icon(
-                Icons.local_fire_department_outlined,
-                key: const ValueKey('note-urgent-mark'),
-                size: 15,
-                color: Theme.of(context).colorScheme.error,
-              ),
-            ),
-            if (due != null || attached) const SizedBox(width: NexSpacing.sm),
-          ],
-          if (due != null)
-            Flexible(
-              child: _DueChip(
-                due: due,
-                repeat: note.dueRepeat,
-                description: strings.dueDescription?.call(due, note.dueRepeat),
-                compactLabel: strings.dueCompactLabel?.call(
-                  due,
-                  note.dueRepeat,
-                ),
-                label: strings.dueLabel?.call(due, note.dueRepeat),
-                upcoming:
-                    note.dueRepeat != NoteRepeat.once ||
-                    due.isAfter(DateTime.now().toUtc()),
-              ),
-            ),
-          if (due != null && attached) const SizedBox(width: NexSpacing.sm),
-          if (attached)
-            ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.3),
-              child: _AttachedMark(
-                label: strings.attachedShort(note.attachmentCount),
-              ),
-            ),
-        ],
-      ),
-    );
-    final density = NexCardDensity.of(context);
-    if (marked && _tucksNoteMarks(note, expanded, previewOverride)) {
-      return LayoutBuilder(
-        builder: (context, constraints) => _TuckedPreview(
-          text: NexMarkdownText.preview(
-            note.displayText ?? strings.noteOfType(note.type.name),
-          ),
-          marks: _tuckedNoteMarks(
-            context,
-            constraints.maxWidth,
-            note,
-            strings,
-            due,
-          ),
-          marksWidth: _noteMarksWidth(
-            context,
-            constraints.maxWidth,
-            note,
-            strings,
-            due,
-          ),
-          width: constraints.maxWidth,
-          lines: density.lines,
-          style: density.previewStyle(Theme.of(context)),
-        ),
+    if (!expanded) {
+      return _CollapsedCardContent(
+        note: note,
+        strings: strings,
+        due: due,
+        caption: caption,
+        previewOverride: previewOverride,
       );
     }
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (expanded)
-          preview
-        else
-          SizedBox(
-            height: nexCardPreviewLineHeightFor(context) * density.lines,
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: preview,
+        previewOverride ??
+            _Preview(
+              note: note,
+              expanded: true,
+              strings: strings,
+              lines: NexCardDensity.of(context).lines,
             ),
-          ),
-        if (caption != null)
-          SizedBox(
-            height: nexCardFootnoteHeightFor(context),
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: NexTextSurface(
-                caption,
-                maxLines: 1,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
+        if (caption != null) _CardCaption(text: caption),
         if (marked) ...[
           const SizedBox(height: NexSpacing.xs),
-          SizedBox(
-            height: nexCardFootnoteHeightFor(context) - NexSpacing.xs,
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: marks,
-            ),
-          ),
+          _CardStatusMarks(note: note, strings: strings, due: due),
         ],
       ],
     );
   }
 }
 
-/// The files a note carries after its own, in the card's footnote: a
+class _CardCaption extends StatelessWidget {
+  const _CardCaption({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => NexTextSurface(
+    text,
+    key: const ValueKey('note-card-caption'),
+    maxLines: 1,
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w400,
+    ),
+  );
+}
+
+/// The files a note carries after its own, in the card's status area: a
 /// paperclip and "+3". Not on the leading square, whose corners already hold
 /// the tag dots and the pin. Announced with the card (see `attachedLabel`),
 /// so the mark itself is silent.
@@ -207,14 +130,13 @@ class _DueChip extends StatelessWidget {
     final icon = repeat == NoteRepeat.once
         ? Icons.notifications_active_outlined
         : Icons.repeat_rounded;
-    if (text == null) return Icon(icon, size: 14, color: color);
     Widget labelFor(double maxWidth) {
       final style = theme.textTheme.labelSmall?.copyWith(
         color: color,
         fontWeight: FontWeight.w600,
       );
       final measure = TextPainter(
-        text: TextSpan(text: text, style: style),
+        text: TextSpan(text: text!, style: style),
         textScaler: MediaQuery.textScalerOf(context),
         textDirection: Directionality.of(context),
         maxLines: 1,
@@ -231,22 +153,24 @@ class _DueChip extends StatelessWidget {
       );
     }
 
-    // No box of its own: a line of the card's footnote, not a chip on it.
-    final row = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 13, color: color),
-        const SizedBox(width: NexSpacing.xs),
-        Flexible(
-          child: labelWidth == null
-              ? LayoutBuilder(
-                  builder: (context, constraints) =>
-                      labelFor(constraints.maxWidth),
-                )
-              : labelFor(labelWidth!),
-        ),
-      ],
-    );
+    // No decorated box of its own: a small status mark in the card's rail.
+    final row = text == null
+        ? Icon(icon, size: 14, color: color)
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 13, color: color),
+              const SizedBox(width: NexSpacing.xs),
+              Flexible(
+                child: labelWidth == null
+                    ? LayoutBuilder(
+                        builder: (context, constraints) =>
+                            labelFor(constraints.maxWidth),
+                      )
+                    : labelFor(labelWidth!),
+              ),
+            ],
+          );
     final full = description;
     if (full == null) return row;
     return Semantics(

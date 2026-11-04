@@ -424,9 +424,9 @@ double nexCardFootnoteHeightFor(BuildContext context) {
 
 /// How much a timeline card holds, chosen in Settings → Appearance (W7.2).
 ///
-/// Each density has one preview budget, with a status row added only when
-/// needed. Compact keeps two lines — a link's title and site, a voice note's
-/// words and length, are two rows whatever the density — in smaller type.
+/// Each density has one shared preview budget. Collapsed cards reserve status
+/// width beside it, and a text-note caption uses its last row without adding
+/// height. Compact keeps two lines in smaller type.
 enum NexCardDensity {
   compact(inset: 10, leading: 40, lines: 2, lineHeight: 20),
   standard(
