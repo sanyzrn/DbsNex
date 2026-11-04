@@ -216,7 +216,13 @@ extension _TimelineNoteActions on TimelineScreenState {
         () => unawaited(_addTagTo(note)),
       ),
       NexHoldAction.expand =>
-        !expanded && !nexNoteCanExpand(menuContext, note, cardWidth: width)
+        !expanded &&
+                !nexNoteCanExpand(
+                  menuContext,
+                  note,
+                  cardWidth: width,
+                  strings: nexCardStrings(menuContext),
+                )
             ? null
             : NoteMenuEntry(
                 action,
