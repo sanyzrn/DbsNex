@@ -1,7 +1,7 @@
 part of 'note_card.dart';
 
 extension on _CardBody {
-  Widget _withFootnote(BuildContext context) {
+  Widget _withFootnote(BuildContext context, Color surfaceColor) {
     final due = showDue ? note.dueAt : null;
     final marked = due != null || note.attachmentCount > 0 || note.isUrgent;
     final caption =
@@ -10,6 +10,7 @@ extension on _CardBody {
         : null;
     if (!expanded) {
       return _CollapsedCardContent(
+        surfaceColor: surfaceColor,
         note: note,
         strings: strings,
         due: due,
@@ -153,7 +154,7 @@ class _DueChip extends StatelessWidget {
       );
     }
 
-    // No decorated box of its own: a small status mark in the card's rail.
+    // No decorated box of its own: a small status mark in the card's status group.
     final row = text == null
         ? Icon(icon, size: 14, color: color)
         : Row(

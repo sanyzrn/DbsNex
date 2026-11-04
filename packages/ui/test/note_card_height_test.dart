@@ -172,41 +172,44 @@ void main() {
     expect(rect.height, closeTo(48, 1));
   });
 
-  testWidgets('the preview follows the glyph without a timestamp', (
-    tester,
-  ) async {
-    // The exact time is shown in details, leaving more width for the note.
-    final now = DateTime.now();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SizedBox(
-            width: 400,
-            child: NoteCard(
-              note: Note(
-                id: 'fresh',
-                type: NoteType.text,
-                content: 'one line',
-                createdAt: now,
-                updatedAt: now,
-                deviceId: 'test',
-                rev: 1,
-                syncState: SyncState.pending,
+  testWidgets(
+    'the preview starts at the top beside the glyph without a timestamp',
+    (tester) async {
+      // The exact time is shown in details, leaving more width for the note.
+      final now = DateTime.now();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              child: NoteCard(
+                note: Note(
+                  id: 'fresh',
+                  type: NoteType.text,
+                  content: 'one line',
+                  createdAt: now,
+                  updatedAt: now,
+                  deviceId: 'test',
+                  rev: 1,
+                  syncState: SyncState.pending,
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    final card = tester.getRect(find.byType(NoteCard));
-    final glyph = tester.getRect(find.byIcon(nexNoteTypeIcon('text')).first);
-    final preview = tester.getRect(find.text('one line'));
+      final glyph = tester.getRect(find.byIcon(nexNoteTypeIcon('text')).first);
+      final preview = tester.getRect(find.text('one line'));
 
-    expect(find.text('now'), findsNothing);
-    expect(preview.left, greaterThan(glyph.right));
-    expect(preview.center.dy, closeTo(card.center.dy, 1));
-  });
+      expect(find.text('now'), findsNothing);
+      expect(preview.left, greaterThan(glyph.right));
+      final content = tester.getRect(
+        find.byKey(const ValueKey('note-card-preview')),
+      );
+      expect(preview.top, closeTo(content.top, 1));
+    },
+  );
 
   testWidgets('two lines of preview cost the card no extra height', (
     tester,

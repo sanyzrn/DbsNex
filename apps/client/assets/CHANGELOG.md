@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.3
+
+- **More room for your notes.** Timeline previews keep their full width in every card size, including three lines in Large. Reminder, urgent and attachment marks sit over the lower edge with a soft fade, while short notes stay fully visible and captions remain grey.
+
 ## v2.6.2
 
 - **Uniform timeline cards.** Collapsed notes keep one height across text, photos, links, checklists and voice. Captions use a quieter preview line; reminder, urgent and attachment marks stay together in a separate area without empty slots.

@@ -109,26 +109,45 @@ bool nexNoteCanExpand(
   BuildContext context,
   Note note, {
   required double cardWidth,
+  NexCardStrings strings = NexCardStrings.fallback,
 }) {
   final density = NexCardDensity.of(context);
-  if (note.type == NoteType.checklist && note.checklistItems.isNotEmpty) {
-    return note.checklistItems.length > density.lines;
-  }
-  // Both layouts already show title + site at every current density.
-  if (note.type == NoteType.link) return false;
-  final text = NexMarkdownText.preview(note.displayText ?? '');
-  if (text.trim().isEmpty) return false;
-  var width =
+  final marked =
+      note.dueAt != null || note.isUrgent || note.attachmentCount > 0;
+  final captioned =
+      note.type == NoteType.text && note.caption?.trim().isNotEmpty == true;
+  final width =
       cardWidth -
       nexCardInsetsFor(context).horizontal -
       density.inset * 2 -
       density.leading -
       NexSpacing.contentGap;
-  if ((note.dueAt != null || note.isUrgent || note.attachmentCount > 0) &&
-      width > 0) {
-    width -= _collapsedStatusWidth(context, width) + NexSpacing.xs;
-  }
   if (width <= 0) return true;
+  if (marked &&
+      _StatusLayout(
+        context,
+        note,
+        strings,
+        note.dueAt,
+        math.max(0.0, width - 16 - NexSpacing.xs),
+        packed: true,
+      ).wraps) {
+    return true;
+  }
+  if (note.type == NoteType.checklist && note.checklistItems.isNotEmpty) {
+    return note.checklistItems.length > density.lines ||
+        (marked && note.checklistItems.length == density.lines);
+  }
+  // Expansion moves the overlay below the site, caption or duration, exposing
+  // any secondary text it may mask even when the main body fits.
+  if (note.type == NoteType.link) return marked;
+  if (marked &&
+      (captioned ||
+          (note.type == NoteType.voice && (note.durationMs ?? 0) > 0))) {
+    return true;
+  }
+  final text = NexMarkdownText.preview(note.displayText ?? '');
+  if (text.trim().isEmpty) return false;
   final budget = note.type == NoteType.voice && (note.durationMs ?? 0) > 0
       ? 1
       : density.lines -
@@ -163,8 +182,10 @@ bool nexNoteCanExpand(
     painter.dispose();
     if (overflow) return true;
   }
-  // Expanded previews preserve blank lines, unlike compact previews.
-  return text.split('\n').length > lines.length && text.trim().contains('\n\n');
+  // A filled last row can be masked by the overlay. Expansion reveals it
+  // without making the collapsed paragraph narrower or changing its wrapping.
+  return (marked && left == 0) ||
+      (text.split('\n').length > lines.length && text.trim().contains('\n\n'));
 }
 
 class NoteCard extends StatelessWidget {
@@ -329,16 +350,17 @@ class _CardBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final picked = selected ?? false;
+    final surfaceColor = picked
+        ? Color.alphaBlend(
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+            theme.colorScheme.surfaceContainerLowest,
+          )
+        : theme.colorScheme.surfaceContainerLowest;
     return Material(
       // The card's own fill, not the page's. They used to be the same
       // colour, which left a 1.2:1 hairline as the only thing marking the
       // boundary of the app's main tap target.
-      color: picked
-          ? Color.alphaBlend(
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
-              theme.colorScheme.surfaceContainerLowest,
-            )
-          : theme.colorScheme.surfaceContainerLowest,
+      color: surfaceColor,
       // A quiet hairline separates the target from low-contrast backgrounds.
       // High-contrast mode uses the full outline and a thicker edge.
       elevation: 0,
@@ -373,7 +395,7 @@ class _CardBody extends StatelessWidget {
               else
                 _LeadingWithPin(note: note, strings: strings, ringing: ringing),
               const SizedBox(width: NexSpacing.contentGap),
-              Expanded(child: _withFootnote(context)),
+              Expanded(child: _withFootnote(context, surfaceColor)),
             ],
           ),
         ),
