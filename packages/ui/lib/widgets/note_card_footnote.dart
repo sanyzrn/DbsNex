@@ -1,7 +1,7 @@
 part of 'note_card.dart';
 
 extension on _CardBody {
-  Widget _withFootnote(BuildContext context, Color surfaceColor) {
+  Widget _withFootnote(BuildContext context) {
     final due = showDue ? note.dueAt : null;
     final marked = due != null || note.attachmentCount > 0 || note.isUrgent;
     final caption =
@@ -10,7 +10,6 @@ extension on _CardBody {
         : null;
     if (!expanded) {
       return _CollapsedCardContent(
-        surfaceColor: surfaceColor,
         note: note,
         strings: strings,
         due: due,
@@ -69,6 +68,15 @@ class _AttachedMark extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    if (!_showCardStatusLabels) {
+      return ExcludeSemantics(
+        child: Icon(
+          Icons.attach_file,
+          size: 13,
+          color: scheme.onSurfaceVariant,
+        ),
+      );
+    }
     return ExcludeSemantics(
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -110,7 +118,6 @@ class _DueChip extends StatelessWidget {
     required this.compactLabel,
     required this.label,
     required this.upcoming,
-    this.labelWidth,
   });
 
   final DateTime due;
@@ -119,7 +126,6 @@ class _DueChip extends StatelessWidget {
   final String? compactLabel;
   final String? label;
   final bool upcoming;
-  final double? labelWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -163,12 +169,10 @@ class _DueChip extends StatelessWidget {
               Icon(icon, size: 13, color: color),
               const SizedBox(width: NexSpacing.xs),
               Flexible(
-                child: labelWidth == null
-                    ? LayoutBuilder(
-                        builder: (context, constraints) =>
-                            labelFor(constraints.maxWidth),
-                      )
-                    : labelFor(labelWidth!),
+                child: LayoutBuilder(
+                  builder: (context, constraints) =>
+                      labelFor(constraints.maxWidth),
+                ),
               ),
             ],
           );

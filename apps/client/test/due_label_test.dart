@@ -115,7 +115,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('shows when the reminder is, not just that there is one', (
+    testWidgets('keeps a reminder icon with its label temporarily hidden', (
       tester,
     ) async {
       await pumpCard(
@@ -123,7 +123,7 @@ void main() {
         _noteDue(DateTime.now().add(const Duration(hours: 3))),
       );
       expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
-      expect(find.textContaining('3'), findsWidgets);
+      expect(find.textContaining('3'), findsNothing);
     });
 
     testWidgets('a note with no reminder carries no bell at all', (
@@ -135,64 +135,65 @@ void main() {
   });
   for (final lang in ['en', 'fa']) {
     for (final repeat in [NoteRepeat.daily, NoteRepeat.weekly]) {
-      testWidgets('$lang $repeat shows a local clock and full schedule', (
-        tester,
-      ) async {
-        final due = DateTime(2026, 10, 14, 9, 5);
-        late String label;
-        late String description;
-        final semantics = tester.ensureSemantics();
-        await tester.pumpWidget(
-          MaterialApp(
-            locale: Locale(lang),
-            theme: nexLightTheme(fontFamily: nexFontFor(Locale(lang))),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: MediaQuery(
-              data: const MediaQueryData(alwaysUse24HourFormat: true),
-              child: Scaffold(
-                body: Builder(
-                  builder: (context) {
-                    label = nexDueCardLabel(context, due.toUtc(), repeat);
-                    description = nexDueCardDescription(
-                      context,
-                      due.toUtc(),
-                      repeat,
-                    );
-                    final base = _noteDue(due);
-                    return NoteCard(
-                      note: base.copyWith(dueRepeat: repeat),
-                      strings: nexCardStrings(context),
-                    );
-                  },
+      testWidgets(
+        '$lang $repeat keeps full schedule accessible with an icon-only mark',
+        (tester) async {
+          final due = DateTime(2026, 10, 14, 9, 5);
+          late String label;
+          late String description;
+          final semantics = tester.ensureSemantics();
+          await tester.pumpWidget(
+            MaterialApp(
+              locale: Locale(lang),
+              theme: nexLightTheme(fontFamily: nexFontFor(Locale(lang))),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: MediaQuery(
+                data: const MediaQueryData(alwaysUse24HourFormat: true),
+                child: Scaffold(
+                  body: Builder(
+                    builder: (context) {
+                      label = nexDueCardLabel(context, due.toUtc(), repeat);
+                      description = nexDueCardDescription(
+                        context,
+                        due.toUtc(),
+                        repeat,
+                      );
+                      final base = _noteDue(due);
+                      return NoteCard(
+                        note: base.copyWith(dueRepeat: repeat),
+                        strings: nexCardStrings(context),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        expect(label, contains(lang == 'fa' ? '۹:۰۵' : '09:05'));
-        expect(find.text(label), findsOneWidget);
-        expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
-        expect(
-          description,
-          contains(
-            lang == 'fa'
-                ? (repeat == NoteRepeat.daily ? 'هر روز' : 'هر هفته')
-                : (repeat == NoteRepeat.daily ? 'Every day' : 'Every week'),
-          ),
-        );
-        expect(find.bySemanticsLabel(description), findsOneWidget);
-        await tester.longPress(find.text(label));
-        await tester.pumpAndSettle();
-        expect(find.text(description), findsOneWidget);
-        expect(tester.takeException(), isNull);
-        semantics.dispose();
-      });
+          );
+          await tester.pumpAndSettle();
+          expect(label, contains(lang == 'fa' ? '۹:۰۵' : '09:05'));
+          expect(find.text(label), findsNothing);
+          expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
+          expect(
+            description,
+            contains(
+              lang == 'fa'
+                  ? (repeat == NoteRepeat.daily ? 'هر روز' : 'هر هفته')
+                  : (repeat == NoteRepeat.daily ? 'Every day' : 'Every week'),
+            ),
+          );
+          expect(find.bySemanticsLabel(description), findsOneWidget);
+          await tester.longPress(find.byIcon(Icons.repeat_rounded));
+          await tester.pumpAndSettle();
+          expect(find.text(description), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          semantics.dispose();
+        },
+      );
     }
   }
   testWidgets(
-    'the reminder clock survives a narrow card with large text and attachments',
+    'icon-only reminder and attachment marks fit a narrow large-text card',
     (tester) async {
       final due = DateTime(2026, 10, 14, 9, 5);
       await tester.pumpWidget(
@@ -225,10 +226,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.text('09:05'),
-        findsOneWidget,
-        reason: 'hide the daily abbreviation before hiding the clock',
+        findsNothing,
+        reason: 'status labels are temporarily hidden',
       );
-      expect(find.text('+2'), findsOneWidget);
+      expect(find.text('+2'), findsNothing);
+      expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.attach_file), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

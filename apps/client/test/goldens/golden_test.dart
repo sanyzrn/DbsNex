@@ -67,6 +67,67 @@ void main() {
       final variant = '${rtl ? 'rtl' : 'ltr'}_${dark ? 'dark' : 'light'}';
       final locale = Locale(rtl ? 'fa' : 'en');
 
+      testWidgets('centred content and tiny status halos $variant', (
+        tester,
+      ) async {
+        await _frame(tester, const Size(420, 600));
+        await tester.pumpWidget(
+          _app(
+            locale: locale,
+            dark: dark,
+            child: Column(
+              children: [
+                for (final density in NexCardDensity.values)
+                  NexCardDensityScope(
+                    density: density,
+                    child: NoteCard(
+                      note:
+                          note(
+                            'marked-${density.name}',
+                            NoteType.text,
+                            rtl ? persian : english,
+                          ).copyWith(
+                            dueAt: DateTime.utc(2099),
+                            attachmentCount: 3,
+                            isUrgent: true,
+                          ),
+                      onTap: () {},
+                    ),
+                  ),
+                NoteCard(
+                  note: note('file', NoteType.file, 'Project-Roadmap.md'),
+                  onTap: () {},
+                ),
+                NexCardDensityScope(
+                  density: NexCardDensity.readable,
+                  child: NoteCard(
+                    note: note(
+                      'two',
+                      NoteType.text,
+                      rtl ? 'خط اول\nخط دوم' : 'First line\nSecond line',
+                    ),
+                    onTap: () {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        // Hold one card while the other halos and centred previews stay idle.
+        final finger = await tester.startGesture(
+          tester.getCenter(find.byType(NoteCard).first),
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 220));
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('status_halos_$variant.png'),
+        );
+        await finger.up();
+        await tester.pumpAndSettle();
+      });
+
       testWidgets('timeline cards $variant', (tester) async {
         await _frame(tester, const Size(420, 330));
         await tester.pumpWidget(

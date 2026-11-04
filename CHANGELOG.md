@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.4
+
+- **Balanced timeline cards.** File names and one-line or multiline previews are vertically centred again. Reminder, attachment and urgent icons appear in that order with tiny separate halos that follow the card's press highlight. Reminder times and attachment counts are temporarily hidden on cards; their data and accessible descriptions remain available.
+
 ## v2.6.3
 
 - **More room for your notes.** Timeline previews keep their full width in every card size, including three lines in Large. Reminder, urgent and attachment marks sit over the lower edge with a soft fade, while short notes stay fully visible and captions remain grey.

@@ -477,46 +477,49 @@ void main() {
     expect(find.byKey(const ValueKey('attachment-add')), findsNothing);
   });
 
-  testWidgets('the card says how many more files, in the reader\'s digits', (
-    tester,
-  ) async {
-    final now = DateTime.now().toUtc();
-    final note = Note(
-      id: 'n',
-      type: NoteType.text,
-      content: 'receipt',
-      createdAt: now,
-      updatedAt: now,
-      deviceId: 'd',
-      rev: 1,
-      syncState: SyncState.pending,
-      attachmentCount: 3,
-    );
-    for (final (locale, mark, spoken) in [
-      ('en', '+3', '3 more files'),
-      ('fa', '+۳', '۳ فایل دیگر'),
-    ]) {
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: Locale(locale),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Builder(
-              builder: (context) =>
-                  NoteCard(note: note, strings: nexCardStrings(context)),
+  testWidgets(
+    'the card hides attachment counts visually but keeps localized accessibility',
+    (tester) async {
+      final now = DateTime.now().toUtc();
+      final note = Note(
+        id: 'n',
+        type: NoteType.text,
+        content: 'receipt',
+        createdAt: now,
+        updatedAt: now,
+        deviceId: 'd',
+        rev: 1,
+        syncState: SyncState.pending,
+        attachmentCount: 3,
+      );
+      for (final (locale, mark, spoken) in [
+        ('en', '+3', '3 more files'),
+        ('fa', '+۳', '۳ فایل دیگر'),
+      ]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: Locale(locale),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Builder(
+                builder: (context) =>
+                    NoteCard(note: note, strings: nexCardStrings(context)),
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text(mark), findsOneWidget);
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is Semantics && (w.properties.label ?? '').contains(spoken),
-        ),
-        findsOneWidget,
-      );
-    }
-  });
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(mark), findsNothing);
+        expect(find.byIcon(Icons.attach_file), findsOneWidget);
+        expect(
+          find.byWidgetPredicate(
+            (w) =>
+                w is Semantics && (w.properties.label ?? '').contains(spoken),
+          ),
+          findsOneWidget,
+        );
+      }
+    },
+  );
 }
