@@ -1047,10 +1047,11 @@ WHERE id = ? AND deleted_at IS NULL
     required String name,
     String? color,
     required DateTime createdAt,
+    bool preservePending = true,
   }) {
     final existing = db.select('SELECT * FROM tags WHERE id = ?', [id]);
     if (existing.isNotEmpty) {
-      if (existing.first['sync_state'] == 'pending') {
+      if (preservePending && existing.first['sync_state'] == 'pending') {
         return Tag.fromRow(existing.first);
       }
       db.execute(
@@ -1102,13 +1103,13 @@ VALUES (?, ?, ?, ?, 'synced')
           [
             id,
             name,
-            byName.first['sync_state'] == 'pending'
+            preservePending && byName.first['sync_state'] == 'pending'
                 ? byName.first['color']
                 : color ?? byName.first['color'],
             createdAt.toUtc().toIso8601String(),
           ],
         );
-        if (byName.first['sync_state'] == 'pending') {
+        if (preservePending && byName.first['sync_state'] == 'pending') {
           db.execute("UPDATE tags SET sync_state = 'pending' WHERE id = ?", [
             id,
           ]);
@@ -2304,6 +2305,9 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
             name: tag['name']! as String,
             color: tag['color'] as String?,
             createdAt: DateTime.parse(tag['created_at']! as String),
+            // An explicit import restores the archived metadata. Only live
+            // sync must protect edits made while its HTTP request was away.
+            preservePending: false,
           );
         }
         for (final raw in (payload['notes'] as List? ?? const [])) {

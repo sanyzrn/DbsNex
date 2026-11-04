@@ -57,9 +57,9 @@ void main() {
             expect(find.text(caption), findsOneWidget);
             final flame = find.byKey(const ValueKey('note-urgent-mark'));
             expect(flame, findsOneWidget);
-            final marks = find
-                .ancestor(of: flame, matching: find.byType(Row))
-                .first;
+            final marks = find.byKey(const ValueKey('note-status-marks'));
+            expect(marks, findsOneWidget);
+            expect(find.descendant(of: marks, matching: flame), findsOneWidget);
             expect(
               find.descendant(
                 of: marks,
