@@ -29,7 +29,7 @@ Without opening Nex first: add the **Nex capture** tile to your Quick Settings (
 
 ## The home timeline
 
-Reminders and attachment counts share a small row below the card’s text. Their position follows the interface language, even when individual notes use another language.
+Reminder, urgent and attachment indicators occupy a separate area beside the preview. The group follows the interface language, independently of the note’s text direction. Only present indicators appear, packed in that order without empty slots; on narrow screens or with large text, the group can wrap within the same card.
 
 Everything lives in one reverse-chronological stream, grouped under date headings. At the top, today's date in your calendar sits over the greeting, and the filter button is beside the search field; the row of tag chips under it appears once you have tags. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again — a pinch never pulls to refresh, even at the top of the list. Once you scroll down, the day of the notes you are passing stays named under the filters. Each card's square takes its note type's colour, a family drawn from your theme's accent: text in the accent itself, and checklists, links, voice notes and photos in neighbouring shades of it, with files in a quiet grey. A new accent brings a new family. The notes of one day are joined by a thin thread down their squares. Tap a card and it opens into the note — pull its handle down to close it, from any point in a long note; **Settings → Appearance → Card size** makes cards compact, standard or easier to read.
 
@@ -43,7 +43,7 @@ To work on several notes at once, hold one and choose **Select** — it is alway
 
 **Urgent.** Choose **Mark as urgent** from a card’s hold menu or its details’ **More actions**. A small flame appears alongside reminder and attachment indicators. **Remove urgent mark** takes it away. Urgency is saved on this device, is independent of Pin and never changes card order.
 
-Ordinary collapsed cards keep the same height with reminder, attachment and urgent indicators. Only the end of the last visible text line gives those marks room; reminder text shortens first. Captions, structured previews and Show in full retain the space they need.
+All collapsed cards share the selected density’s height at the current text size, including photos, links, checklists, voice and text-note captions. A caption uses the last preview line in secondary grey instead of adding height. The separate status area leaves less width for the preview; reminder wording shortens before its icon is shown alone. Open a note for the complete content, or use Show in full to expand supported previews.
 
 **Text-note captions.** Open a note and choose **Add caption**, or **Edit caption** later. The optional caption is stored separately, appears quietly beneath the main text on the timeline, and is included in search and AI context. The main note remains the card’s primary content.
 
