@@ -672,10 +672,12 @@ WHERE id = ?
     // on Windows and passed on rerun: Windows' clock ticks coarsely enough that
     // two captures a line apart often share a timestamp.
     final nowIso = DateTime.now().toUtc().toIso8601String();
+    // Dart omits zero microseconds: .123Z sorts above the later .123024Z
+    // as plain text. Pad UTC fractions for ordering, including existing pins.
     const order = '''
 ORDER BY
   (pinned_at IS NOT NULL) DESC,
-  pinned_at DESC,
+  substr(replace(pinned_at, 'Z', '000000'), 1, 26) DESC,
   updated_at DESC,
   n.rowid DESC
 ''';

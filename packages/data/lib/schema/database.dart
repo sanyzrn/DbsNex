@@ -236,10 +236,24 @@ CREATE VIRTUAL TABLE IF NOT EXISTS $name USING fts5(
     // `deleted_at` leads so the `IS NULL` filter is the index's own prefix;
     // read backwards, the rest is exactly the ORDER BY, rowid tie-break
     // included, and the LIMIT stops after one page.
-    db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_notes_timeline ON notes('
-      'deleted_at, (pinned_at IS NOT NULL), pinned_at, updated_at);',
+    const timelineIndex =
+        'CREATE INDEX IF NOT EXISTS idx_notes_timeline ON notes('
+        "deleted_at, (pinned_at IS NOT NULL), "
+        "substr(replace(pinned_at, 'Z', '000000'), 1, 26), updated_at);";
+    final previousTimelineIndex = db.select(
+      "SELECT sql FROM sqlite_master WHERE name = 'idx_notes_timeline'",
     );
+    if (previousTimelineIndex.isNotEmpty &&
+        !(previousTimelineIndex.first['sql']! as String).contains('substr')) {
+      // Match the padded-fraction pin order without adding a sort to each
+      // timeline page. Rebuild the old index once, atomically.
+      db.together(() {
+        db.execute('DROP INDEX idx_notes_timeline');
+        db.execute(timelineIndex);
+      });
+    } else {
+      db.execute(timelineIndex);
+    }
 
     // Tags get the outbox notes have always had.
     //
