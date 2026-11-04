@@ -106,7 +106,7 @@ extension NexNoticeReminders on NexReminders {
         body: nexNotificationText(body),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
-            NexReminders._updateChannelId,
+            NexReminders._updateReadyChannelId,
             NexReminders._text.updates,
             styleInformation: nexNotificationStyle(null),
             channelDescription: NexReminders._text.updatesAbout,

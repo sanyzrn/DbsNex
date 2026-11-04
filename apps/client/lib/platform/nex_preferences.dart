@@ -183,6 +183,9 @@ class NexPreferences extends _PreferencesStore
   static bool _portablePreference(String key) =>
       key != _kDeviceId &&
       key != 'profile.photo' &&
+      key != 'update.available' &&
+      key != 'update.approvedVersion' &&
+      key != 'update.lastCheck' &&
       key != 'sponsor.image_path' &&
       key != 'sponsor.attempted_at' &&
       key != _kSyncBearerToken &&
@@ -219,6 +222,14 @@ class NexPreferences extends _PreferencesStore
     }
     if (value.containsKey('scope')) {
       throw const FormatException('Unsupported settings scope');
+    }
+    if (value.containsKey('vaultFilesKey')) {
+      final key = value['vaultFilesKey'];
+      if (key is! String ||
+          base64Url.decode(key).length != 32 ||
+          !value.containsKey('vault')) {
+        throw const FormatException('Invalid vault attachment key');
+      }
     }
     if (value.containsKey('vault')) {
       VaultSnapshot.fromJson(Map<String, dynamic>.from(value['vault'] as Map));

@@ -1460,7 +1460,11 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
     }
   }
 
-  Future<http.Response> _postChat(Map<String, Object?> body) async {
+  Future<http.Response> _postChat(
+    Map<String, Object?> body, {
+    required bool hasMedia,
+  }) async {
+    final timeout = hasMedia ? _mediaBudget : _textTimeout;
     final abort = Completer<void>();
     _chatAbort = abort;
     final request =
@@ -1474,10 +1478,10 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
           (_) => throw http.RequestAbortedException(_chatUri),
         ),
       ]).timeout(
-        _textTimeout,
+        timeout,
         onTimeout: () {
           if (!abort.isCompleted) abort.complete();
-          throw TimeoutException('AI chat response timed out', _textTimeout);
+          throw TimeoutException('AI chat response timed out', timeout);
         },
       );
     } finally {
@@ -2908,7 +2912,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       },
     };
 
-    final response = await _postChat(body);
+    final response = await _postChat(body, hasMedia: media.isNotEmpty);
     if (response.statusCode != 200) {
       _lastFailure = (
         status: response.statusCode,

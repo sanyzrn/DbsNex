@@ -112,6 +112,7 @@ class VaultStore {
             ),
           );
   static const storageKey = 'nex.private_vault.v1';
+  static const draftKey = 'nex.private_vault.draft.v1';
   final FlutterSecureStorage _storage;
   static Future<void>? _writes;
 
@@ -123,27 +124,44 @@ class VaultStore {
 
   Future<VaultSnapshot> _read() async {
     final raw = await _storage.read(key: storageKey);
-    if (raw == null) return const VaultSnapshot([], null);
-    if (raw.length > 8 * 1024 * 1024) {
+    if (raw != null && raw.length > 8 * 1024 * 1024) {
       throw const FormatException('Vault too large');
     }
-    return VaultSnapshot.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    final main = raw == null ? null : jsonDecode(raw) as Map<String, dynamic>;
+    final snapshot = main == null
+        ? const VaultSnapshot([], null)
+        : VaultSnapshot.fromJson(main);
+    final draft = await _readDraft();
+    if (draft == null || draft['revision'] == main?['draftRevision']) {
+      return snapshot;
+    }
+    final value = draft['draft'];
+    return VaultSnapshot(
+      snapshot.entries,
+      value == null
+          ? null
+          : VaultEntry.fromJson(Map<String, dynamic>.from(value as Map)),
+    );
   }
 
-  Future<void> _change(VaultSnapshot Function(VaultSnapshot) apply) {
-    final result = (_writes ?? Future<void>.value()).then((_) async {
-      final next = apply(await _read());
-      final encoded = jsonEncode(next.toJson());
-      if (encoded.length > 8 * 1024 * 1024) {
-        throw const FormatException('Vault too large');
-      }
-      // Validate before writing, including the entry-count bound.
-      VaultSnapshot.fromJson(next.toJson());
-      await _storage.write(key: storageKey, value: encoded);
-      if (await _storage.read(key: storageKey) != encoded) {
-        throw StateError('Vault write could not be verified');
-      }
-    });
+  Future<Map<String, dynamic>?> _readDraft() async {
+    final raw = await _storage.read(key: draftKey);
+    if (raw == null) return null;
+    if (raw.length > 1024 * 1024) {
+      throw const FormatException('Draft too large');
+    }
+    final value = jsonDecode(raw) as Map<String, dynamic>;
+    if (value['version'] != 1 || value['revision'] is! String) {
+      throw const FormatException('Invalid vault draft');
+    }
+    if (value['draft'] != null) {
+      VaultEntry.fromJson(Map<String, dynamic>.from(value['draft'] as Map));
+    }
+    return value;
+  }
+
+  Future<void> _queue(Future<void> Function() write) {
+    final result = (_writes ?? Future<void>.value()).then((_) => write());
     final tail = result.catchError((Object _) {});
     _writes = tail;
     unawaited(
@@ -153,6 +171,25 @@ class VaultStore {
     );
     return result;
   }
+
+  Future<void> _change(VaultSnapshot Function(VaultSnapshot) apply) =>
+      _queue(() async {
+        final next = apply(await _read());
+        // One verified write commits both entries and the consumed draft
+        // revision. A crash cannot resurrect an older draft after saving.
+        final encoded = jsonEncode({
+          ...next.toJson(),
+          'draftRevision': (await _readDraft())?['revision'],
+        });
+        if (encoded.length > 8 * 1024 * 1024) {
+          throw const FormatException('Vault too large');
+        }
+        VaultSnapshot.fromJson(next.toJson());
+        await _storage.write(key: storageKey, value: encoded);
+        if (await _storage.read(key: storageKey) != encoded) {
+          throw StateError('Vault write could not be verified');
+        }
+      });
 
   Future<void> save(VaultEntry entry) => _change(
     (old) => VaultSnapshot([
@@ -213,8 +250,21 @@ class VaultStore {
       old.draft?.id == id ? null : old.draft,
     ),
   );
-  Future<void> saveDraft(VaultEntry? draft) =>
-      _change((old) => VaultSnapshot(old.entries, draft));
+  Future<void> saveDraft(VaultEntry? draft) => _queue(() async {
+    if (draft != null) VaultEntry.fromJson(draft.toJson());
+    final encoded = jsonEncode({
+      'version': 1,
+      'revision': const Uuid().v4(),
+      'draft': draft?.toJson(),
+    });
+    if (encoded.length > 1024 * 1024) {
+      throw const FormatException('Draft too large');
+    }
+    await _storage.write(key: draftKey, value: encoded);
+    if (await _storage.read(key: draftKey) != encoded) {
+      throw StateError('Vault draft write could not be verified');
+    }
+  });
   Future<Map<String, dynamic>> backup() async => (await read()).toJson();
   Future<void> restore(Map<String, dynamic> value) {
     final next = VaultSnapshot.fromJson(value);

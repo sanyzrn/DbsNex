@@ -26,7 +26,7 @@ class RecapWidgetService : RemoteViewsService() {
 
     private class Factory(private val context: Context) : RemoteViewsFactory {
 
-        private var lines: List<String> = emptyList()
+        @Volatile private var lines: List<String> = emptyList()
 
         override fun onCreate() {}
 
@@ -46,8 +46,9 @@ class RecapWidgetService : RemoteViewsService() {
         override fun getCount(): Int = lines.size
 
         override fun getViewAt(position: Int): RemoteViews {
+            val line = lines.getOrNull(position).orEmpty()
             val views = RemoteViews(context.packageName, R.layout.widget_recap_row)
-            views.setTextViewText(R.id.nex_recap_row, lines[position])
+            views.setTextViewText(R.id.nex_recap_row, line)
             // A tap on a line opens the app, as a tap anywhere else on the
             // widget does; the template is set by the provider.
             views.setOnClickFillInIntent(R.id.nex_recap_row, Intent())

@@ -873,10 +873,9 @@ SELECT * FROM notes
 WHERE sync_state = 'pending'
 ORDER BY updated_at ASC
 ''');
-    return rows
-        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
-        .where((n) => includeDeleted || !n.isDeleted)
-        .toList();
+    return _withTags(
+      rows,
+    ).where((n) => includeDeleted || !n.isDeleted).toList();
   }
 
   /// Clears a note from the outbox, adopting the server's revision.
@@ -885,17 +884,25 @@ ORDER BY updated_at ASC
   /// a client that keeps its own number after an accepted write will push a
   /// stale revision next time and have it rejected. Only ever called for ids
   /// the server actually acknowledged — see [SyncClient].
-  void markSynced(String noteId, {int? serverRev}) {
+  void markSynced(String noteId, {int? serverRev, Note? expected}) {
     if (serverRev == null) {
       db.execute("UPDATE notes SET sync_state = 'synced' WHERE id = ?", [
         noteId,
       ]);
       return;
     }
-    db.execute("UPDATE notes SET sync_state = 'synced', rev = ? WHERE id = ?", [
-      serverRev,
-      noteId,
-    ]);
+    db.execute(
+      "UPDATE notes SET sync_state = 'synced', rev = ? WHERE id = ?"
+      "${expected == null ? '' : ' AND rev = ? AND updated_at = ?'}",
+      [
+        serverRev,
+        noteId,
+        if (expected != null) ...[
+          expected.rev,
+          expected.updatedAt.toUtc().toIso8601String(),
+        ],
+      ],
+    );
   }
 
   /// Outbox: tags still pending sync.
@@ -1129,8 +1136,72 @@ VALUES (?, ?, ?, ?, 'synced')
     required String deviceId,
     required int rev,
     required List<String> tagIds,
-  }) {
-    final existing = db.select('SELECT id FROM notes WHERE id = ?', [id]);
+  }) => db.together(() {
+    final existing = db.select('SELECT * FROM notes WHERE id = ?', [id]);
+    final pending =
+        existing.isNotEmpty && existing.first['sync_state'] == 'pending';
+    final localTags = pending ? tagsForNote(id) : const <Tag>[];
+    if (pending) {
+      final row = existing.first;
+      if (row['deleted_at'] != null && deletedAt == null) {
+        // A pending local deletion must not be resurrected by the pull.
+        // Adopt the server baseline so its tombstone can be retried.
+        db.execute('UPDATE notes SET rev = ? WHERE id = ?', [rev, id]);
+        return;
+      }
+      if (row['deleted_at'] == null &&
+          (row['content'] != content ||
+              row['type'] != type.wireName ||
+              row['media_uri'] != mediaUri ||
+              row['media_hash'] != mediaHash ||
+              row['duration_ms'] != durationMs ||
+              deletedAt != null)) {
+        // Preserve the entire unsent local version before accepting server
+        // truth. The enclosing transaction also protects its tags/files.
+        final copyId = newUuidV7();
+        final columns = row.keys.toList();
+        final values = [
+          for (final column in columns)
+            switch (column) {
+              'id' => copyId,
+              'rev' => 1,
+              'sync_state' => 'pending',
+              'pinned_at' || 'sort_order' || 'due_at' || 'due_repeat' => null,
+              _ => row[column],
+            },
+        ];
+        db.execute(
+          'INSERT INTO notes (${columns.join(',')}) VALUES '
+          '(${List.filled(columns.length, '?').join(',')})',
+          values,
+        );
+        for (final tag in localTags) {
+          db.execute('INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)', [
+            copyId,
+            tag.id,
+          ]);
+        }
+        for (final attachment in db.select(
+          'SELECT * FROM note_attachments WHERE note_id = ?',
+          [id],
+        )) {
+          final names = attachment.keys.toList();
+          db.execute(
+            'INSERT INTO note_attachments (${names.join(',')}) VALUES '
+            '(${List.filled(names.length, '?').join(',')})',
+            [
+              for (final name in names)
+                switch (name) {
+                  'id' => newUuidV7(),
+                  'note_id' => copyId,
+                  _ => attachment[name],
+                },
+            ],
+          );
+        }
+        _reindex(copyId);
+      }
+    }
     if (existing.isEmpty) {
       db.execute(
         '''
@@ -1192,17 +1263,35 @@ WHERE id = ?
     // throw out of this method and abort the whole applying loop (a sync
     // page, an import) at that note, permanently, every retry. A tag link
     // that cannot resolve is skipped; the note itself still arrives.
-    final knownTags = {
-      for (final row in db.select('SELECT id FROM tags')) row['id']! as String,
-    };
-    for (final tagId in tagIds) {
+    final incomingTags = {
+      ...tagIds,
+      if (pending && deletedAt == null) ...localTags.map((t) => t.id),
+    }.toList();
+    final knownTags = <String>{};
+    for (var offset = 0; offset < incomingTags.length; offset += 500) {
+      final batch = incomingTags.skip(offset).take(500).toList();
+      knownTags.addAll(
+        db
+            .select(
+              'SELECT id FROM tags WHERE id IN (${List.filled(batch.length, '?').join(',')})',
+              batch,
+            )
+            .map((row) => row['id'] as String),
+      );
+    }
+    for (final tagId in incomingTags) {
       if (!knownTags.contains(tagId)) continue;
       db.execute(
         'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
         [id, tagId],
       );
     }
-  }
+    if (pending &&
+        deletedAt == null &&
+        localTags.any((t) => !tagIds.contains(t.id))) {
+      db.execute("UPDATE notes SET sync_state = 'pending' WHERE id = ?", [id]);
+    }
+  });
 
   @override
   void setTagColor({required String tagId, String? color}) {

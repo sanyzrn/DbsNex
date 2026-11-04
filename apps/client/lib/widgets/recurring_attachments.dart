@@ -26,8 +26,8 @@ import 'photo_viewer.dart';
 /// notes once, so every receipt also landed on the timeline, and deleting it
 /// there took it off the item too. Now each is a file of the item's own in
 /// `recurring/` under the media folder — inside what a full backup copies,
-/// and out of the reach of the media sweep, which only ever looks at the
-/// folder's top level — kept on the item by its path relative to that
+/// and swept after the grace period only when no live item references it.
+/// Each is kept on the item by its path relative to that
 /// folder, so a backup restored on another phone still finds it. Linked
 /// notes stay references to notes, as before. Only those paths, note ids and
 /// a vault id are kept on the item. A linked card is shown only

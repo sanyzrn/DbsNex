@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -32,15 +33,19 @@ class LibraryMaintenance {
   /// without files.
   final String? mediaRoot;
 
-  List<Note> deletedNotes({int limit = 200}) => repo.db
-      .select(
-        'SELECT * FROM notes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ?',
-        [limit],
-      )
-      .map(
-        (row) => Note.fromRow(row, tags: repo.tagsForNote(row['id'] as String)),
-      )
-      .toList();
+  List<Note> deletedNotes({int limit = 200}) {
+    final rows = repo.db.select(
+      'SELECT * FROM notes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ?',
+      [limit],
+    );
+    final tags = repo.tagsForNotes([
+      for (final row in rows) row['id'] as String,
+    ]);
+    return [
+      for (final row in rows)
+        Note.fromRow(row, tags: tags[row['id']] ?? const []),
+    ];
+  }
 
   void purgeDeletedBefore(DateTime cutoff) {
     final uris = _mediaUris(
@@ -161,7 +166,8 @@ class LibraryMaintenance {
   /// so a capture mid-flight (file written first, row inserted second) can
   /// never be swept out from under its own note.
   ///
-  /// The root only, never a subdirectory of it, and that is the whole of the
+  /// The root and the explicitly owned recurring/ receipt folder only. All
+  /// other subdirectories remain protected. This is the whole of the
   /// safety here rather than a detail of it. Every note's media is written
   /// flat into this directory — `photo-…`, `voice-…`, `media-…`, `keep-…` —
   /// so a file in a subdirectory was put there by something that is not a
@@ -195,7 +201,44 @@ class LibraryMaintenance {
 
     final cutoff = DateTime.now().subtract(minAge);
     var removed = 0;
-    final entities = dir.listSync(followLinks: false);
+    // Only the app-owned receipts folder is added; profile/ and every
+    // other subdirectory retain the existing protection.
+    final receipts = Directory(p.join(root, 'recurring'));
+    final receiptReferences = <String>{};
+    if (FileSystemEntity.typeSync(receipts.path, followLinks: false) ==
+        FileSystemEntityType.directory) {
+      for (final row in repo.db.select(
+        'SELECT details_json FROM commitments WHERE deleted_at IS NULL',
+      )) {
+        try {
+          final details =
+              jsonDecode(row['details_json'] as String? ?? '{}') as Map;
+          final paths = details['receipts'];
+          if (paths != null &&
+              (paths is! List || paths.any((path) => path is! String))) {
+            throw const FormatException('Invalid receipt references');
+          }
+          if (paths is List) {
+            for (final path in paths.whereType<String>()) {
+              final absolute = p.normalize(p.join(root, path));
+              if (p.isWithin(receipts.path, absolute)) {
+                receiptReferences.add(absolute);
+              }
+            }
+          }
+        } catch (_) {
+          // Unreadable references are ambiguous: never delete their files.
+          return 0;
+        }
+      }
+    }
+    referenced.addAll(receiptReferences);
+    final entities = [
+      ...dir.listSync(followLinks: false),
+      if (FileSystemEntity.typeSync(receipts.path, followLinks: false) ==
+          FileSystemEntityType.directory)
+        ...receipts.listSync(followLinks: false),
+    ];
     for (final entity in entities) {
       if (entity is! File) continue;
       final normalized = p.normalize(entity.path);

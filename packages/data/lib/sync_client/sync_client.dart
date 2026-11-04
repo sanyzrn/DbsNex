@@ -134,7 +134,9 @@ class SyncClient implements SyncPort {
     for (final note in pendingNotes) {
       final rev = accepted[note.id];
       if (rev == null) continue; // rejected — stays pending, retried next cycle
-      repo.markSynced(note.id, serverRev: rev);
+      // Compare the pushed snapshot in SQL: a newer edit made during the
+      // request stays pending, without an extra note/tag read per ack.
+      repo.markSynced(note.id, serverRev: rev, expected: note);
     }
 
     // Fold this device's tag ids into the server's canonical ones before the

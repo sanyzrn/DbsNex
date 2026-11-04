@@ -166,6 +166,24 @@ mixin _ServicePreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  String? get cachedUpdate => _prefs.getString('update.available');
+  String? get approvedUpdateVersion =>
+      _prefs.getString('update.approvedVersion');
+
+  Future<void> setCachedUpdate(String? value) async {
+    final ok = value == null
+        ? await _prefs.remove('update.available')
+        : await _prefs.setString('update.available', value);
+    if (!ok) throw StateError('Cannot persist update');
+  }
+
+  Future<void> setApprovedUpdateVersion(String? value) async {
+    final ok = value == null
+        ? await _prefs.remove('update.approvedVersion')
+        : await _prefs.setString('update.approvedVersion', value);
+    if (!ok) throw StateError('Cannot persist download approval');
+  }
+
   DateTime? get lastUpdateCheck {
     final millis = _prefs.getInt('update.lastCheck');
     return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);

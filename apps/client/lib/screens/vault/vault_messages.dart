@@ -14,37 +14,23 @@ extension _VaultMessages on _VaultScreenState {
     final persian = Localizations.localeOf(context).languageCode == 'fa';
     // Newest at the bottom, the way a conversation reads; the list is built
     // reversed so it opens there and stays there as messages arrive.
-    final rows = <Widget>[];
+    final rows = <Object>[];
     DateTime? day;
     for (final message in messages) {
       final local = message.updatedAt.toLocal();
       final today = DateTime(local.year, local.month, local.day);
       if (day != today) {
         day = today;
-        rows.add(_DayChip(label: _dayLabel(l, today, persian)));
+        rows.add(today);
       }
-      rows.add(
-        _MessageBubble(
-          key: ValueKey(message.id),
-          entry: message,
-          files: _vaultFiles,
-          time: nexDigits(
-            '${local.hour.toString().padLeft(2, '0')}:'
-            '${local.minute.toString().padLeft(2, '0')}',
-            persian: persian,
-          ),
-          copied: copiedField == message.id,
-          onActions: busy ? null : () => unawaited(_messageActions(message)),
-          onShare: () => unawaited(_shareAttachment(message)),
-        ),
-      );
+      rows.add(message);
     }
     return Column(
       children: [
         Expanded(
           child: messages.isEmpty
               ? _emptyMessages(l, theme)
-              : ListView(
+              : ListView.builder(
                   reverse: true,
                   padding: const EdgeInsets.fromLTRB(
                     NexSpacing.md,
@@ -52,7 +38,30 @@ extension _VaultMessages on _VaultScreenState {
                     NexSpacing.md,
                     NexSpacing.sm,
                   ),
-                  children: rows.reversed.toList(),
+                  itemCount: rows.length,
+                  itemBuilder: (context, index) {
+                    final row = rows[rows.length - 1 - index];
+                    if (row is DateTime) {
+                      return _DayChip(label: _dayLabel(l, row, persian));
+                    }
+                    final message = row as VaultEntry;
+                    final local = message.updatedAt.toLocal();
+                    return _MessageBubble(
+                      key: ValueKey(message.id),
+                      entry: message,
+                      files: _vaultFiles,
+                      time: nexDigits(
+                        '${local.hour.toString().padLeft(2, '0')}:'
+                        '${local.minute.toString().padLeft(2, '0')}',
+                        persian: persian,
+                      ),
+                      copied: copiedField == message.id,
+                      onActions: busy
+                          ? null
+                          : () => unawaited(_messageActions(message)),
+                      onShare: () => unawaited(_shareAttachment(message)),
+                    );
+                  },
                 ),
         ),
         _composer(l, theme),

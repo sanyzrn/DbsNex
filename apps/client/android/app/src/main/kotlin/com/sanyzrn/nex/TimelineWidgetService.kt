@@ -34,7 +34,7 @@ class TimelineWidgetService : RemoteViewsService() {
 
     private class Factory(private val context: Context) : RemoteViewsFactory {
 
-        private var notes: List<NexWidgetSnapshot.NexWidgetNote> = emptyList()
+        @Volatile private var notes: List<NexWidgetSnapshot.NexWidgetNote> = emptyList()
 
         override fun onCreate() {}
 
@@ -54,7 +54,7 @@ class TimelineWidgetService : RemoteViewsService() {
         override fun getCount(): Int = notes.size
 
         override fun getViewAt(position: Int): RemoteViews {
-            val note = notes[position]
+            val note = notes.getOrNull(position) ?: return getLoadingView()
             val views = RemoteViews(context.packageName, R.layout.widget_timeline_row)
             views.setImageViewResource(R.id.nex_widget_row_icon, iconFor(note.type))
             val preview = note.preview.trim()
@@ -81,7 +81,7 @@ class TimelineWidgetService : RemoteViewsService() {
         override fun getViewTypeCount(): Int = 1
 
         override fun getItemId(position: Int): Long =
-            notes[position].id.hashCode().toLong()
+            notes.getOrNull(position)?.id?.hashCode()?.toLong() ?: position.toLong()
 
         override fun hasStableIds(): Boolean = true
 
