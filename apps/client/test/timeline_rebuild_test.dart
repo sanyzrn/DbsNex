@@ -1598,10 +1598,17 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
 
-      // It is still going to ring tomorrow, so the chip stays — and it says
-      // how often rather than counting down to a moment that has gone.
+      // The repeat survives leaving the timeline. Card status labels are
+      // temporarily hidden; its full schedule remains in the tooltip.
       expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
-      expect(find.textContaining('Daily ·'), findsOneWidget);
+      expect(find.textContaining('Daily ·'), findsNothing);
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(TimelineScreen)),
+      );
+      expect(
+        find.byTooltip(RegExp('^${RegExp.escape(l10n.remindRepeatDaily)} · ')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a reminder still ahead keeps its chip', (tester) async {
