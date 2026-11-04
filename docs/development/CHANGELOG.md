@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v2.6.6
+
+Internal verification update: contract path selection, HTTP/PostgreSQL auth coverage,
+non-empty integration gates, dependency-based heavy jobs, APK identity/versionCode/ABI
+checks, immutable actions, changed-file formatting and deterministic clocks.
+See [2.6.6-ci-hardening.md](2.6.6-ci-hardening.md). No user-facing release-note entry.
+
 ## v2.5.0
 
 - Long text-file previews, including Markdown, DOCX and source files, use the same More/Less control as long notes.

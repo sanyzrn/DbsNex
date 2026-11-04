@@ -8,11 +8,13 @@ void main() {
   late Directory tmp;
   late NexDatabase db;
   late SqliteNoteRepository repo;
+  late DateTime now;
 
   setUp(() {
     tmp = Directory.systemTemp.createTempSync('nex_embed_');
     db = NexDatabase.open(p.join(tmp.path, 'nex.sqlite'));
-    repo = SqliteNoteRepository(db);
+    now = DateTime.utc(2026, 10, 14, 12);
+    repo = SqliteNoteRepository(db, now: () => now);
   });
 
   tearDown(() {
@@ -21,7 +23,6 @@ void main() {
   });
 
   Note note(String id, {String? content, String? ocr, NoteType? type}) {
-    final now = DateTime.now().toUtc();
     return Note(
       id: id,
       type: type ?? NoteType.text,
@@ -59,7 +60,7 @@ void main() {
     repo.insert(note('n1', content: 'the boiler warranty expires in March'));
     repo.setEmbedding('n1', [0.1, 0.2, 0.3]);
     expect(repo.listNeedingEmbedding(), isEmpty);
-    sleep(const Duration(milliseconds: 2));
+    now = now.add(const Duration(seconds: 1));
     repo.updateContent('n1', 'boiler replaced, warranty void');
     expect(repo.listNeedingEmbedding().single.id, 'n1');
     repo.setEmbedding('n1', [0.3, 0.2, 0.1]);

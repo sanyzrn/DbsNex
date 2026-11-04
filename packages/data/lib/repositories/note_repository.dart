@@ -102,7 +102,11 @@ class ImportResult {
 /// binding — so this class is only ever constructed **inside** the database
 /// isolate. `NexDbWorker` is what the UI isolate talks to.
 class SqliteNoteRepository implements NoteRepository {
-  SqliteNoteRepository(this._db, {this.localDeviceId});
+  SqliteNoteRepository(this._db, {this.localDeviceId, DateTime Function()? now})
+    : _now = now ?? DateTime.now;
+
+  /// Clock for content edits and embedding snapshots; injectable in tests.
+  final DateTime Function() _now;
 
   final NexDatabase _db;
 
@@ -311,7 +315,7 @@ INSERT INTO notes (
 
   void updateContent(String noteId, String content) {
     db.together(() {
-      final now = DateTime.now().toUtc().toIso8601String();
+      final now = _now().toUtc().toIso8601String();
       db.execute(
         '''
 UPDATE notes
@@ -1584,7 +1588,7 @@ DELETE FROM notes_fts WHERE note_id IN (
     // An empty or directionless vector is still written — as the marker that
     // says "asked, and there is nothing" — so the note is not retried.
     final encoded = VectorCodec.encode(values);
-    final now = DateTime.now().toUtc().toIso8601String();
+    final now = _now().toUtc().toIso8601String();
     db.execute(
       '''
 INSERT INTO note_embeddings (note_id, dims, values_json, updated_at, vec, q8, scale)

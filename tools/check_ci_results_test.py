@@ -7,12 +7,14 @@ from check_ci_results import failures
 
 class CiResultsTest(unittest.TestCase):
     def summary(self, dart=False, backend=False):
-        names = ("changes core-boundary widget-layouts dart-packages retrieval-budget "
+        names = ("changes core-boundary widget-layouts ai-boundary changed-format dart-packages retrieval-budget "
                  "timeline-budget flutter-ai-package flutter-ui-package client-android "
-                 "ai-deletion-proof backend feedback-worker merge-conformance "
+                 "ai-deletion-proof backend feedback-worker "
                  "sync-integration client-windows client-ios").split()
         needs = {name: {"result": "success"} for name in names}
-        needs["changes"]["outputs"] = {"dart": str(dart).lower(), "backend": str(backend).lower()}
+        needs["changes"]["outputs"] = {"dart": str(dart).lower(), "backend": str(backend).lower(),
+                                        "retrieval": str(dart).lower(), "sync": str(dart or backend).lower(),
+                                        "ai_delete": str(dart).lower()}
         for name in ("client-windows", "client-ios"):
             needs[name]["result"] = "skipped"
         if not backend:
@@ -21,10 +23,10 @@ class CiResultsTest(unittest.TestCase):
         if not dart:
             for name in ("dart-packages", "retrieval-budget", "timeline-budget",
                          "flutter-ai-package", "flutter-ui-package", "client-android",
-                         "ai-deletion-proof"):
+                         "ai-deletion-proof", "changed-format"):
                 needs[name]["result"] = "skipped"
         if not dart and not backend:
-            for name in ("merge-conformance", "sync-integration"):
+            for name in ("sync-integration",):
                 needs[name]["result"] = "skipped"
         return needs
 
@@ -32,6 +34,15 @@ class CiResultsTest(unittest.TestCase):
         for dart, backend in ((False, False), (True, False), (False, True), (True, True)):
             with self.subTest(dart=dart, backend=backend):
                 self.assertEqual(failures(self.summary(dart, backend)), [])
+
+    def test_narrow_heavy_jobs_may_skip_but_selected_ones_must_run(self):
+        needs = self.summary(True, False)
+        for flag, job in (('retrieval', 'retrieval-budget'), ('sync', 'sync-integration'), ('ai_delete', 'ai-deletion-proof')):
+            needs['changes']['outputs'][flag] = 'false'
+            needs[job]['result'] = 'skipped'
+        self.assertEqual(failures(needs), [])
+        needs['changes']['outputs']['sync'] = 'true'
+        self.assertTrue(failures(needs))
 
     def test_skipping_a_selected_job_fails(self):
         needs = self.summary(True, True)
