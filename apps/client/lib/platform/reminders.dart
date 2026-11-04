@@ -650,7 +650,8 @@ class NexReminders {
   /// all four by [idFor].
 
   static const _updateId = 3;
-  static const _updateChannelId = 'nex.updates';
+  static const _updateChannelId = 'nex.updates.progress';
+  static const _updateReadyChannelId = 'nex.updates.ready';
   static const _updatePayload = 'nex:update';
 
   /// The two ids [sendTestNotification] uses, kept away from note hashes and

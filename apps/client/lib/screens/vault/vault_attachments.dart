@@ -245,6 +245,9 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
   bool _failed = false;
   Duration _position = Duration.zero;
   StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<PlayerState>? _stateSub;
+  bool _opening = false;
+  bool _startingAudio = false;
 
   String get _id => widget.entry.value('file');
   String get _kind => widget.entry.value('fileKind');
@@ -258,11 +261,14 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
   @override
   void dispose() {
     unawaited(_positionSub?.cancel());
+    unawaited(_stateSub?.cancel());
     unawaited(_player?.dispose());
     super.dispose();
   }
 
   Future<void> _togglePlay() async {
+    if (_startingAudio) return;
+    _startingAudio = true;
     try {
       final player = _player ??= AudioPlayer();
       if (_playing) {
@@ -272,11 +278,13 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
       }
       if (player.audioSource == null) {
         final copy = await widget.files.openCopy(_id, 'voice.m4a');
+        if (!mounted) return;
         await player.setFilePath(copy.path);
+        if (!mounted) return;
         _positionSub = player.positionStream.listen((at) {
           if (mounted) setState(() => _position = at);
         });
-        player.playerStateStream.listen((state) {
+        _stateSub = player.playerStateStream.listen((state) {
           if (state.processingState == ProcessingState.completed && mounted) {
             setState(() {
               _playing = false;
@@ -287,15 +295,20 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
           }
         });
       }
-      if (mounted) setState(() => _playing = true);
+      if (!mounted) return;
+      setState(() => _playing = true);
       unawaited(player.play());
     } catch (cause) {
       unawaited(NexCrashLog.handled('vault.play', cause));
       if (mounted) setState(() => _failed = true);
+    } finally {
+      _startingAudio = false;
     }
   }
 
   Future<void> _open() async {
+    if (_opening) return;
+    _opening = true;
     try {
       final copy = await widget.files.openCopy(
         _id,
@@ -308,10 +321,12 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
             : widget.entry.value('fileMime'),
       );
       // Nothing on the phone opens it: offer it to an app that might.
-      if (outcome == FileOpenOutcome.failed) widget.onShare();
+      if (outcome == FileOpenOutcome.failed && mounted) widget.onShare();
     } catch (cause) {
       unawaited(NexCrashLog.handled('vault.open.file', cause));
       if (mounted) setState(() => _failed = true);
+    } finally {
+      _opening = false;
     }
   }
 
@@ -360,7 +375,14 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
                   borderRadius: BorderRadius.circular(NexRadius.md),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 280),
-                    child: Image.memory(bytes, fit: BoxFit.cover),
+                    child: Image.memory(
+                      bytes,
+                      fit: BoxFit.cover,
+                      cacheWidth:
+                          (MediaQuery.sizeOf(context).width *
+                                  MediaQuery.devicePixelRatioOf(context))
+                              .ceil(),
+                    ),
                   ),
                 ),
               ),

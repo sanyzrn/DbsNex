@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -30,7 +31,54 @@ class UpdateService extends ChangeNotifier {
   }) : _checker = checker ?? UpdateChecker(currentVersion: nexAppVersion),
        _downloader = downloader ?? UpdateDownloader(),
        _directory = directory ?? getTemporaryDirectory,
-       _now = now ?? DateTime.now;
+       _now = now ?? DateTime.now {
+    _restoreAvailable();
+  }
+
+  void _restoreAvailable() {
+    if (NexInstallSource.updatesFromStore) return;
+    try {
+      final raw = preferences.cachedUpdate;
+      if (raw == null) return;
+      final value = jsonDecode(raw) as Map;
+      final version = NexVersion.tryParse(value['version'] as String);
+      final url = Uri.tryParse(value['url'] as String);
+      final digest = value['sha256'] as String;
+      if (version == null ||
+          !(version > NexVersion.tryParse(nexAppVersion)!) ||
+          url == null ||
+          url.scheme != 'https' ||
+          url.host.isEmpty ||
+          !RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(digest)) {
+        return;
+      }
+      _found = UpdateCheck.available(
+        version: version,
+        downloadUrl: url.toString(),
+        checksumSha256: digest,
+        assetName: value['asset'] as String?,
+        sizeBytes: value['size'] as int?,
+        notes: value['notes'] as String?,
+      );
+    } catch (_) {
+      // Invalid/stale cached metadata never authorizes a network request.
+    }
+  }
+
+  Future<void> _cacheAvailable(UpdateCheck value) async {
+    await preferences.setCachedUpdate(
+      value.status == UpdateStatus.available
+          ? jsonEncode({
+              'version': value.version.toString(),
+              'url': value.downloadUrl,
+              'sha256': value.checksumSha256,
+              'asset': value.assetName,
+              'size': value.sizeBytes,
+              'notes': value.notes,
+            })
+          : null,
+    );
+  }
 
   /// How stale a check may get before the app looks again.
   ///
@@ -128,10 +176,9 @@ class UpdateService extends ChangeNotifier {
   /// This is the whole of the fix for a download that died on a back gesture:
   /// the transfer belongs to the service, which lives as long as the app, and
   /// not to a screen, which does not. The screen only watches.
-  bool _downloadApproved = false;
 
   Future<void> ensureDownloaded() {
-    _downloadApproved = true;
+    if (NexInstallSource.updatesFromStore) return Future<void>.value();
     final running = _prefetching;
     if (running != null) return running;
     if (_downloaded != null) return Future<void>.value();
@@ -141,7 +188,13 @@ class UpdateService extends ChangeNotifier {
     // downloader picks up the partial file by byte range rather than
     // starting the transfer over.
     _downloadError = null;
-    final started = _prefetch(update);
+    final started =
+        () async {
+          await preferences.setApprovedUpdateVersion(update.version.toString());
+          await _prefetch(update);
+        }().whenComplete(() {
+          _prefetching = null;
+        });
     _prefetching = started;
     return started;
   }
@@ -164,7 +217,10 @@ class UpdateService extends ChangeNotifier {
   /// interrupted" means, and its absence is what keeps this from starting a
   /// download on a resume where none was ever running.
   Future<void> resumeInterruptedDownload() async {
-    if (!_downloadApproved || _prefetching != null || _downloaded != null) {
+    if (NexInstallSource.updatesFromStore ||
+        preferences.approvedUpdateVersion != available?.version.toString() ||
+        _prefetching != null ||
+        _downloaded != null) {
       return;
     }
     final version = available?.version;
@@ -174,7 +230,10 @@ class UpdateService extends ChangeNotifier {
       '${dir.path}${Platform.pathSeparator}'
       '${nexInstallerFilename(version)}.part',
     );
-    if (!partial.existsSync()) return;
+    final complete = File(
+      '${dir.path}${Platform.pathSeparator}${nexInstallerFilename(version)}',
+    );
+    if (!partial.existsSync() && !complete.existsSync()) return;
     await ensureDownloaded();
   }
 
@@ -187,7 +246,10 @@ class UpdateService extends ChangeNotifier {
 
   /// The update waiting to be installed, if any.
   UpdateCheck? get available =>
-      _found?.status == UpdateStatus.available ? _found : null;
+      !NexInstallSource.updatesFromStore &&
+          _found?.status == UpdateStatus.available
+      ? _found
+      : null;
 
   /// The installer already on disk, ready to hand to the system.
   File? get downloaded => _downloaded;
@@ -214,11 +276,20 @@ class UpdateService extends ChangeNotifier {
   }
 
   Future<UpdateCheck> check() async {
+    if (NexInstallSource.updatesFromStore) return const UpdateCheck.upToDate();
     _busy = true;
     _notify();
     try {
       final result = await _checker.check();
+      if (_found?.version != result.version &&
+          result.status != UpdateStatus.unavailable) {
+        _downloaded = null;
+        await preferences.setApprovedUpdateVersion(null);
+      }
       _found = result;
+      if (result.status != UpdateStatus.unavailable) {
+        await _cacheAvailable(result);
+      }
       // Only a completed check counts as "checked": recording the time after a
       // failure would suppress the next 24 hours of attempts over one flaky
       // moment on a train.
@@ -237,6 +308,7 @@ class UpdateService extends ChangeNotifier {
   /// A download that does not finish is not worth interrupting anyone over:
   /// the sheet will simply offer it again when they next look.
   Future<void> _prefetch(UpdateCheck update) async {
+    if (NexInstallSource.updatesFromStore) return;
     final url = update.downloadUrl;
     final version = update.version;
     // No digest, no download (SEC-01): [UpdateChecker.check] offers no
@@ -310,6 +382,8 @@ class UpdateService extends ChangeNotifier {
   /// Called by the update sheet once the user has installed, so the dot clears.
   void acknowledge() {
     _found = null;
+    unawaited(preferences.setApprovedUpdateVersion(null));
+    unawaited(preferences.setCachedUpdate(null));
     _notify();
   }
 

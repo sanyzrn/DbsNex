@@ -71,6 +71,14 @@ void main() {
   });
 
   test('the timeline page is read from its index, with no sort', () {
+    // Exercise an existing library's index upgrade as well as fresh creation.
+    db.db.execute('DROP INDEX idx_notes_timeline');
+    db.db.execute(
+      'CREATE INDEX idx_notes_timeline ON notes('
+      'deleted_at, (pinned_at IS NOT NULL), pinned_at, updated_at)',
+    );
+    db.close();
+    db = NexDatabase.open(p.join(tmp.path, 'nex.sqlite'));
     final plan = db.db
         .select('''
 EXPLAIN QUERY PLAN
@@ -78,7 +86,7 @@ SELECT n.* FROM notes n
 WHERE deleted_at IS NULL
 ORDER BY
   (pinned_at IS NOT NULL) DESC,
-  pinned_at DESC,
+  substr(replace(pinned_at, 'Z', '000000'), 1, 26) DESC,
   updated_at DESC,
   n.rowid DESC
 LIMIT 50 OFFSET 0

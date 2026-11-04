@@ -134,18 +134,31 @@ class SyncClient implements SyncPort {
     for (final note in pendingNotes) {
       final rev = accepted[note.id];
       if (rev == null) continue; // rejected — stays pending, retried next cycle
-      repo.markSynced(note.id, serverRev: rev);
+      // Compare the pushed snapshot in SQL: a newer edit made during the
+      // request stays pending, without an extra note/tag read per ack.
+      repo.markSynced(note.id, serverRev: rev, expected: note);
     }
 
     // Fold this device's tag ids into the server's canonical ones before the
     // pull, so the note↔tag joins arriving below resolve against rows that
     // exist locally.
-    if (tagRemap.isNotEmpty) repo.applyTagRemap(tagRemap);
+    final pushedTags = {for (final tag in pendingTags) tag.id: tag};
+    final dirtyTags = {
+      for (final tag in repo.listPendingTags())
+        if (pushedTags[tag.id] case final old?)
+          if (old.name != tag.name || old.color != tag.color) tag.id,
+    };
+    if (tagRemap.isNotEmpty) {
+      repo.applyTagRemap([
+        for (final pair in tagRemap)
+          if (!dirtyTags.contains(pair.clientId)) pair,
+      ]);
+    }
     final remapped = {for (final entry in tagRemap) entry.clientId};
     repo.markTagsSynced([
       for (final tag in pendingTags)
         if (!remapped.contains(tag.id)) tag.id,
-    ]);
+    ], expected: pushedTags);
 
     var pulled = 0;
     var pages = 0;

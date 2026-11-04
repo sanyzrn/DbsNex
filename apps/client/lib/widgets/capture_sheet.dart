@@ -469,7 +469,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
     // is on the note as it now reads. `updateContent` never touches `due_at`
     // and `setDueAt` never touches the content, so the order of these two
     // writes does not matter.
-    flush();
+    await flush();
     final id = noteId;
     if (id == null) return;
     final note = await widget.services.getById(id);

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:nex_ai/cloud.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -10,6 +11,7 @@ import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/full_backup.dart';
 import 'package:nex_client/platform/vault_store.dart';
+import 'package:nex_client/platform/vault_files.dart';
 import 'support/in_process_db.dart';
 
 class _Paths extends PathProviderPlatform {
@@ -69,6 +71,18 @@ void main() {
       );
       final vault = VaultStore();
       await vault.save(secret('original-vault-secret'));
+      final files = VaultFiles();
+      final attachment = Uint8List.fromList('private receipt'.codeUnits);
+      final attachmentId = await files.put(attachment);
+      await vault.save(
+        VaultEntry(
+          id: 'private-message',
+          kind: VaultKind.message,
+          fields: {'text': 'receipt', 'file': attachmentId, 'fileKind': 'file'},
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+
       final ordinary = await services.exportFullBackup(
         key,
         includeModel: false,
@@ -107,7 +121,9 @@ void main() {
       );
       expect(preferences.displayName, 'Changed profile');
       expect(
-        (await vault.read()).entries.single.value('password'),
+        (await vault.read()).entries
+            .singleWhere((e) => e.kind == VaultKind.password)
+            .value('password'),
         'changed-vault-secret',
       );
       final result = await services.restoreFullBackup(
@@ -116,10 +132,23 @@ void main() {
         allowVaultRestore: true,
       );
       expect(
-        (await vault.read()).entries.single.value('password'),
+        (await vault.read()).entries
+            .singleWhere((e) => e.kind == VaultKind.password)
+            .value('password'),
         'original-vault-secret',
       );
       expect(result.error, isNull);
+      final restoredId = (await vault.read()).entries
+          .singleWhere((e) => e.kind == VaultKind.message)
+          .value('file');
+      expect(restoredId, isNot(attachmentId));
+      expect(await files.get(restoredId), attachment);
+      expect(
+        await files.get(attachmentId),
+        attachment,
+        reason: 'undo journal can still restore the original references',
+      );
+
       final reloaded = await NexPreferences.load();
       addTearDown(reloaded.dispose);
       expect(reloaded.aiProvider.apiKey, 'backup-secret');

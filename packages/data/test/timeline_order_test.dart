@@ -38,11 +38,10 @@ void main() {
     repo.insert(note('a-written-second', 'second'));
 
     for (var read = 0; read < 3; read++) {
-      expect(
-        repo.listTimeline().map((n) => n.content),
-        ['second', 'first'],
-        reason: 'read $read',
-      );
+      expect(repo.listTimeline().map((n) => n.content), [
+        'second',
+        'first',
+      ], reason: 'read $read');
     }
   });
 
@@ -55,4 +54,33 @@ void main() {
       ['second match', 'first match'],
     );
   });
+
+  test(
+    'pins with millisecond and microsecond timestamps stay chronological',
+    () {
+      final first = repo.insert(note('first', 'pinned first'));
+      final second = repo.insert(note('second', 'pinned second'));
+      final firstPin = DateTime.utc(2026, 11, 4, 21, 51, 27, 448);
+      final secondPin = firstPin.add(const Duration(microseconds: 24));
+      for (final (id, time) in [(first.id, firstPin), (second.id, secondPin)]) {
+        db.db.execute('UPDATE notes SET pinned_at = ? WHERE id = ?', [
+          time.toIso8601String(),
+          id,
+        ]);
+      }
+      final tag = repo.upsertTag(name: 'Both');
+      repo.attachTag(noteId: first.id, tagId: tag.id);
+      repo.attachTag(noteId: second.id, tagId: tag.id);
+
+      for (final tagId in [null, tag.id]) {
+        expect(repo.listTimeline(tagId: tagId).map((n) => n.id), [
+          second.id,
+          first.id,
+        ]);
+      }
+      // Reading repairs the order without rewriting stored timestamps.
+      expect(repo.getById(first.id)!.pinnedAt, firstPin);
+      expect(repo.getById(second.id)!.pinnedAt, secondPin);
+    },
+  );
 }

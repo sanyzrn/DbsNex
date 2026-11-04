@@ -91,10 +91,10 @@ class DownloadService : Service() {
         private const val ID = 4
 
         /**
-         * The same channel `NexReminders` uses for the update notifications,
-         * so this is one line in the app's notification settings and not two.
+         * Shared with Dart's silent progress notification. Completion uses
+         * nex.updates.ready separately, since channel importance is immutable.
          */
-        private const val CHANNEL = "nex.updates"
+        private const val CHANNEL = "nex.updates.progress"
 
         /**
          * The channel's name and description, in the app's language (LOC-15):

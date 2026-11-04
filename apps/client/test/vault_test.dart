@@ -206,6 +206,39 @@ void main() {
     }
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('large private message histories only mount the visible rows', (
+    tester,
+  ) async {
+    await VaultStore().restore(
+      VaultSnapshot([
+        for (var i = 0; i < 1000; i++)
+          VaultEntry(
+            id: 'message-$i',
+            kind: VaultKind.message,
+            fields: {'text': 'Private message $i'},
+            updatedAt: DateTime.utc(2026).add(Duration(minutes: i)),
+          ),
+      ], null).toJson(),
+    );
+    await tester.pumpWidget(app(kind: VaultKind.message));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unlock vault'));
+    await tester.pumpAndSettle();
+    expect(find.text('Private message 999'), findsOneWidget);
+    expect(find.text('Private message 0'), findsNothing);
+    expect(
+      find
+          .byWidgetPredicate(
+            (w) =>
+                w is Text && (w.data?.startsWith('Private message ') ?? false),
+          )
+          .evaluate()
+          .length,
+      lessThan(30),
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
   test(
     'concurrent saves, draft recovery and delete retain other records',
     () async {

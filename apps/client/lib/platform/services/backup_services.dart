@@ -68,7 +68,8 @@ extension NexBackupServices on NexServices {
     bool reuseFresh = false,
   }) async {
     final settings = _preferences.backupSettings();
-    if (includeVault) settings['vault'] = await VaultStore().backup();
+    final vault = includeVault ? await VaultStore().backup() : null;
+    if (vault != null) settings['vault'] = vault;
     // The folder's copy reuses a restore point made moments ago rather than
     // adding one: with five kept, a second point a day pushed history out.
     final fresh = NexServices._newestBackups(backupDir).firstOrNull;
@@ -93,16 +94,33 @@ extension NexBackupServices on NexServices {
     final model = includeModel && store.isInstalled(chosen)
         ? store.fileFor(chosen).path
         : null;
-    await Isolate.run(
-      () => FullBackup.create(
-        library: library,
-        output: output,
-        settings: settings,
-        key: key,
-        model: model,
-        modelHash: model == null ? null : chosen.sha256,
-      ),
-    );
+    final vaultStaging = await cache.createTemp('nex-vault-backup-');
+    try {
+      final files = vault == null
+          ? null
+          : await VaultFiles().exportBackup(
+              VaultSnapshot.fromJson(vault),
+              p.join(vaultStaging.path, 'vault-files.zip'),
+            );
+      if (files != null) {
+        settings['vaultFilesKey'] = files.key;
+        settings['vaultFilesSha256'] = files.sha256;
+      }
+      final vaultPath = files?.path;
+      await Isolate.run(
+        () => FullBackup.create(
+          library: library,
+          output: output,
+          settings: settings,
+          key: key,
+          model: model,
+          modelHash: model == null ? null : chosen.sha256,
+          vaultFiles: vaultPath,
+        ),
+      );
+    } finally {
+      await vaultStaging.delete(recursive: true);
+    }
     return output;
   }
 
@@ -138,6 +156,16 @@ extension NexBackupServices on NexServices {
           !allowVaultRestore &&
           !(await authorizeVaultRestore?.call() ?? false)) {
         throw VaultAuthenticationRequired();
+      }
+      if (settings['vaultFilesKey'] case final String vaultKey) {
+        final restored = await VaultFiles().restoreBackup(
+          VaultSnapshot.fromJson(
+            Map<String, dynamic>.from(settings['vault'] as Map),
+          ),
+          p.join(path, 'vault-files.zip'),
+          vaultKey,
+        );
+        settings['vault'] = restored.toJson();
       }
       // A secure undo journal survives force-close between library, preference
       // and model installation. Bootstrap rolls the whole restore back if the
@@ -198,6 +226,32 @@ extension NexBackupServices on NexServices {
       } catch (_) {
         /* Export-cache cleanup retries stale staging directories. */
       }
+    }
+  }
+
+  Future<List<String>> backupMissingMedia(String source) =>
+      Isolate.run(() => NexBackupArchive.missingMedia(source));
+
+  Future<({String path, List<String> missing})> exportRescueBackup() async {
+    final cache = await getTemporaryDirectory();
+    final staging = await cache.createTemp('nex-rescue-');
+    try {
+      await worker.backup(
+        staging.path,
+        mediaDir: mediaDir,
+        allowMissingMedia: true,
+      );
+      final source = staging.listSync().whereType<File>().singleWhere(
+        (file) => file.path.endsWith('.nexbak'),
+      );
+      final path = p.join(
+        cache.path,
+        'Nex-rescue-${DateTime.now().microsecondsSinceEpoch}.nexbak',
+      );
+      await source.copy(path);
+      return (path: path, missing: await backupMissingMedia(path));
+    } finally {
+      await staging.delete(recursive: true);
     }
   }
 
@@ -342,6 +396,7 @@ extension NexBackupServices on NexServices {
       await worker.backup(
         p.join(backupDir, 'before-restore'),
         mediaDir: this.mediaDir,
+        allowMissingMedia: (await backupMissingMedia(backup.path)).isNotEmpty,
       );
       await _closeOnce();
       final dbPath = this.dbPath;

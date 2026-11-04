@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -32,6 +34,59 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
+  test(
+    'capture remains available while sync waits for its HTTP response',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final entered = Completer<void>();
+      final release = Completer<void>();
+      final worker = await NexDbWorker.spawn(
+        dbPath: p.join(tmp.path, 'sync.sqlite'),
+        deviceId: 'local',
+        mediaDir: tmp.path,
+      );
+      final serving = server.listen((request) async {
+        await request.drain<void>();
+        if (request.uri.path.endsWith('/push')) {
+          if (!entered.isCompleted) entered.complete();
+          await release.future;
+          request.response.write(
+            jsonEncode({
+              'merged': <Object?>[],
+              'tag_remap': <Object?>[],
+              'media_deduped': <String>[],
+            }),
+          );
+        } else {
+          request.response.write(
+            jsonEncode({
+              'cursor': '0',
+              'notes': <Object?>[],
+              'tags': <Object?>[],
+              'has_more': false,
+            }),
+          );
+        }
+        await request.response.close();
+      });
+      try {
+        final sync = worker.sync(baseUrl: 'http://127.0.0.1:${server.port}');
+        await entered.future.timeout(const Duration(seconds: 5));
+        final note = await worker
+            .captureText('saved during sync')
+            .timeout(const Duration(seconds: 2));
+        expect(note!.content, 'saved during sync');
+        release.complete();
+        await sync;
+        expect((await worker.timeline()).single.id, note.id);
+      } finally {
+        if (!release.isCompleted) release.complete();
+        await worker.close();
+        await server.close(force: true);
+        await serving.cancel();
+      }
+    },
+  );
   test(
     'newer-library error retains its category across the real isolate',
     () async {

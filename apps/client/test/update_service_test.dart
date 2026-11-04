@@ -88,6 +88,63 @@ void main() {
       });
 
   test(
+    'approved partial download and badge recover across a new service instance',
+    () async {
+      var downloads = 0;
+      final release = newerRelease();
+      var failDownload = true;
+      final client = MockClient((request) async {
+        if (request.url.host == 'api.github.com') {
+          return http.Response(release, 200);
+        }
+        downloads++;
+        if (failDownload) throw const SocketException('offline');
+        return http.Response.bytes([1, 2, 3, 4], 200);
+      });
+      final first = build(client: client);
+      await first.check();
+      await first.ensureDownloaded();
+      final version = first.available!.version!;
+      await File(
+        p.join(tmp.path, '${nexInstallerFilename(version)}.part'),
+      ).writeAsBytes([1]);
+      final restored = build(client: client);
+      expect(restored.hasUpdate, isTrue);
+      final before = downloads;
+      await restored.maybeCheck();
+      expect(downloads, before);
+      failDownload = false;
+      await restored.resumeInterruptedDownload();
+      expect(restored.downloaded, isNotNull);
+      expect(downloads, greaterThan(before));
+      first.dispose();
+      restored.dispose();
+    },
+  );
+  test(
+    'unapproved or different-version cached downloads never auto-start',
+    () async {
+      final first = build(client: serving(newerRelease()));
+      await first.check();
+      final version = first.available!.version!;
+      await File(
+        p.join(tmp.path, '${nexInstallerFilename(version)}.part'),
+      ).writeAsBytes([1]);
+      await preferences.setApprovedUpdateVersion('0.0.1');
+      var requests = 0;
+      final restored = build(
+        client: MockClient((_) async {
+          requests++;
+          return http.Response('', 500);
+        }),
+      );
+      await restored.resumeInterruptedDownload();
+      expect(requests, 0);
+      first.dispose();
+      restored.dispose();
+    },
+  );
+  test(
     'checking an update never downloads its installer without a tap',
     () async {
       var downloads = 0;

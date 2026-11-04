@@ -30,7 +30,7 @@ extension NexScheduledServices on NexServices {
     } catch (_) {
       return const [];
     }
-    if (arrived.isNotEmpty) await refreshTimeline();
+    await _scheduledArrived(arrived);
     await _armScheduledTimer();
     return arrived;
   }
@@ -39,9 +39,18 @@ extension NexScheduledServices on NexServices {
   Future<Note?> releaseScheduledNow(String id) async {
     final note = await worker.releaseScheduledNow(id, DateTime.now());
     await reminders.cancelArrival(id);
-    if (note != null) await refreshTimeline();
+    if (note != null) await _scheduledArrived([note]);
     await _armScheduledTimer();
     return note;
+  }
+
+  Future<void> _scheduledArrived(List<Note> notes) async {
+    if (notes.isEmpty) return;
+    for (final note in notes) {
+      await reminders.cancelArrival(note.id);
+      scheduleEnrichment(note.id);
+    }
+    await _afterNudgeWrite(refreshTimeline());
   }
 
   Future<bool> rescheduleNote(String id, DateTime releaseAt) async {

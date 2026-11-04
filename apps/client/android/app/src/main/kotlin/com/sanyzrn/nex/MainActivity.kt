@@ -599,7 +599,10 @@ open class MainActivity : FlutterFragmentActivity() {
             }
             replyAsync(result, ioExecutor) {
                 runCatching {
-                    contentResolver.openOutputStream(target, "wt")!!.use { out ->
+                    val stream = runCatching {
+                        contentResolver.openOutputStream(target, "wt")
+                    }.getOrNull() ?: contentResolver.openOutputStream(target, "w")
+                    requireNotNull(stream).use { out ->
                         source.inputStream().use { it.copyTo(out) }
                     }
                     "saved"

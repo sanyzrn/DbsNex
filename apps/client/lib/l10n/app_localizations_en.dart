@@ -6671,4 +6671,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memoryEnable => 'Enable Memory';
+
+  @override
+  String get rescueBackupTitle => 'Rescue library backup';
+
+  @override
+  String get rescueBackupHint =>
+      'Save recoverable library data when attachment files are missing.';
+
+  @override
+  String get rescueBackupWarning =>
+      'This copy may be incomplete. Missing attachments are listed and remain unavailable after restore. Settings and the private vault are not included.';
+
+  @override
+  String rescueBackupMissing(int count) {
+    return 'Missing files: $count';
+  }
 }

@@ -85,7 +85,9 @@ class VectorCodec {
 /// library only ever holds one space at a time (see `setEmbeddingSpace`), and
 /// anything else could not be compared anyway.
 class VectorIndex {
-  VectorIndex(this.dims);
+  VectorIndex(this.dims) : _sum = Float64List(dims);
+
+  final Float64List _sum;
 
   final int dims;
   final _ids = <String>[];
@@ -132,10 +134,16 @@ class VectorIndex {
     final bits = _signs(codes);
     final at = _slot[id];
     if (at != null) {
+      for (var i = 0; i < dims; i++) {
+        _sum[i] += codes[i] * scale - _codes[at][i] * _scales[at];
+      }
       _codes[at] = codes;
       _scales[at] = scale;
       _bits[at] = bits;
       return;
+    }
+    for (var i = 0; i < dims; i++) {
+      _sum[i] += codes[i] * scale;
     }
     _slot[id] = _ids.length;
     _ids.add(id);
@@ -148,6 +156,9 @@ class VectorIndex {
     final at = _slot.remove(id);
     if (at == null) return;
     _centre = null;
+    for (var i = 0; i < dims; i++) {
+      _sum[i] -= _codes[at][i] * _scales[at];
+    }
     final last = _ids.length - 1;
     if (at != last) {
       _ids[at] = _ids[last];
@@ -208,21 +219,29 @@ class VectorIndex {
   /// The direction every vector in the library shares, unit length, and how
   /// far each row leans along it. Worked out on first use after a change.
   Float32List? _centre;
-  Float32List _lean = Float32List(0);
+  final _lean = <int, double>{};
+  final _roundedLean = Float32List(1);
 
   void _settleCentre() {
     if (_centre != null) return;
-    final sum = Float64List(dims);
-    for (var r = 0; r < _ids.length; r++) {
-      final codes = _codes[r];
-      final scale = _scales[r];
-      for (var i = 0; i < dims; i++) {
-        sum[i] += codes[i] * scale;
-      }
-    }
+    final sum = _sum;
     var norm = 0.0;
     for (final v in sum) {
       norm += v * v;
+    }
+    // Rare near-cancellation: rebuild in row order to avoid amplifying
+    // subtraction roundoff into an arbitrary direction.
+    if (norm < 1e-18) {
+      sum.fillRange(0, dims, 0);
+      for (var row = 0; row < _ids.length; row++) {
+        for (var i = 0; i < dims; i++) {
+          sum[i] += _codes[row][i] * _scales[row];
+        }
+      }
+      norm = 0;
+      for (final value in sum) {
+        norm += value * value;
+      }
     }
     norm = math.sqrt(norm);
     final centre = Float32List(dims);
@@ -231,13 +250,15 @@ class VectorIndex {
         centre[i] = sum[i] / norm;
       }
     }
-    final lean = Float32List(_ids.length);
-    for (var r = 0; r < _ids.length; r++) {
-      lean[r] = _dot(r, centre);
-    }
     _centre = centre;
-    _lean = lean;
+    _lean.clear();
   }
+
+  double _projection(int row, Float32List centre) => _lean.putIfAbsent(row, () {
+    // Preserve the original float32 projection rounding and ranking.
+    _roundedLean[0] = _dot(row, centre);
+    return _roundedLean[0];
+  });
 
   double _dot(int row, Float32List query) {
     final codes = _codes[row];
@@ -291,7 +312,8 @@ class VectorIndex {
       along += query[i] * centre[i];
     }
     final rest = math.sqrt(math.max(1e-9, 1 - along * along));
-    double scoreOf(int row) => (_dot(row, query) - _lean[row] * along) / rest;
+    double scoreOf(int row) =>
+        (_dot(row, query) - _projection(row, centre) * along) / rest;
 
     final step = math.max(1, _ids.length ~/ _backgroundSample);
     var count = 0;

@@ -56,6 +56,7 @@ class NexBackupArchive {
     required String mediaDir,
     required String backupDir,
     int retention = NexDatabase.backupRetention,
+    bool allowMissingMedia = false,
   }) {
     final snapshot = snapshotDatabase(database: database, backupDir: backupDir);
     try {
@@ -64,6 +65,7 @@ class NexBackupArchive {
         mediaDir: mediaDir,
         backupDir: backupDir,
         retention: retention,
+        allowMissingMedia: allowMissingMedia,
       );
     } finally {
       if (snapshot.existsSync()) snapshot.deleteSync();
@@ -94,6 +96,7 @@ class NexBackupArchive {
     required String backupDir,
     int retention = NexDatabase.backupRetention,
     bool compact = false,
+    bool allowMissingMedia = false,
   }) {
     final dir = Directory(backupDir)..createSync(recursive: true);
     final cutoff = DateTime.now().subtract(const Duration(days: 7));
@@ -118,20 +121,32 @@ class NexBackupArchive {
         : <File>[];
     final snapshot = sqlite3.open(snapshotPath, mode: OpenMode.readOnly);
     final expected = <String, String>{};
+    final missing = <Map<String, String>>[];
     try {
       // Attachments' files are packed with the notes' own (docs/14), and
       // a removed attachment's tombstone keeps nothing.
       for (final row in snapshot.select(
-        'SELECT media_uri, media_hash FROM notes WHERE media_uri IS NOT NULL '
-        'UNION ALL SELECT media_uri, media_hash FROM note_attachments '
+        "SELECT 'notes' AS source_table, id, media_uri, media_hash FROM notes WHERE media_uri IS NOT NULL "
+        "UNION ALL SELECT 'note_attachments' AS source_table, id, media_uri, media_hash FROM note_attachments "
         'WHERE deleted_at IS NULL',
       )) {
         final uri = row['media_uri'] as String;
-        if (!File(uri).existsSync()) {
-          throw StateError('Referenced media is missing');
-        }
         if (!p.isWithin(media.absolute.path, File(uri).absolute.path)) {
           throw StateError('Referenced media is outside the library');
+        }
+        if (!File(uri).existsSync()) {
+          if (!allowMissingMedia) {
+            throw StateError('Referenced media is missing');
+          }
+          missing.add({
+            'table': row['source_table'] as String,
+            'id': row['id'] as String,
+            'uri': uri,
+            'relative': p
+                .relative(File(uri).absolute.path, from: media.absolute.path)
+                .replaceAll(r'\', '/'),
+          });
+          continue;
         }
         expected[p.normalize(File(uri).absolute.path)] =
             row['media_hash'] as String? ?? '';
@@ -174,6 +189,7 @@ class NexBackupArchive {
         'format': compact ? 2 : 1,
         'createdAt': DateTime.now().toUtc().toIso8601String(),
         'mediaFiles': files.length,
+        if (allowMissingMedia) ...{'recovery': true, 'missingMedia': missing},
         if (compact) 'media': manifest,
       });
       final metaBytes = utf8.encode(meta);
@@ -367,7 +383,7 @@ class NexBackupArchive {
         // every photo and recording pointing at a path that no longer
         // exists. Inside the transaction, because it writes to the restored
         // database and a failure here is a failed restore like any other.
-        _remapMediaUris(liveDbPath, mediaDir);
+        _remapMediaUris(liveDbPath, mediaDir, _recoveryMedia(archive));
         transaction.commit();
       } catch (_) {
         // A rollback that itself fails must not replace the error that
@@ -412,8 +428,15 @@ class NexBackupArchive {
   /// "basename" fallback were the same string, and the fallback could never
   /// find anything the first had not. Nothing noticed because this app writes
   /// media flat and a same-device restore returns at the early exit above.
-  static void _remapMediaUris(String liveDbPath, String mediaDir) {
+  static void _remapMediaUris(
+    String liveDbPath,
+    String mediaDir,
+    List<Map<String, String>> missing,
+  ) {
     if (!File(liveDbPath).existsSync()) return;
+    final missingById = {
+      for (final entry in missing) '${entry['table']}:${entry['id']}': entry,
+    };
     final db = sqlite3.open(liveDbPath);
     try {
       // A backup from before attachments has no such table; its notes are
@@ -438,6 +461,14 @@ class NexBackupArchive {
       ];
       for (final (:table, :row) in rows) {
         final stored = row['media_uri']! as String;
+        final recorded = missingById['$table:${row['id']}'];
+        if (recorded != null && recorded['uri'] == stored) {
+          db.execute('UPDATE $table SET media_uri = ? WHERE id = ?', [
+            p.join(mediaDir, recorded['relative']!),
+            row['id'],
+          ]);
+          continue;
+        }
         if (p.isWithin(mediaDir, stored) && File(stored).existsSync()) continue;
 
         final segments = p.url.split(stored.replaceAll(r'\', '/'));
@@ -465,6 +496,50 @@ class NexBackupArchive {
       }
     } finally {
       db.dispose();
+    }
+  }
+
+  /// An explicit inventory; ordinary backups never relax missing-file checks.
+  static List<Map<String, String>> _recoveryMedia(Archive archive) {
+    final meta = archive.findFile(_metaEntry);
+    if (meta == null) return const [];
+    if (meta.size > 8 * 1024 * 1024) {
+      throw const FormatException('Backup metadata too large');
+    }
+    final value = jsonDecode(utf8.decode(meta.content)) as Map;
+    final raw = value['missingMedia'];
+    if (raw == null) return const [];
+    if (value['recovery'] != true || raw is! List || raw.length > maxEntries) {
+      throw const FormatException('Invalid rescue backup');
+    }
+    final seen = <String>{};
+    return [
+      for (final entry in raw)
+        (() {
+          if (entry is! Map ||
+              !['notes', 'note_attachments'].contains(entry['table']) ||
+              entry['id'] is! String ||
+              entry['uri'] is! String ||
+              entry['relative'] is! String ||
+              !seen.add('${entry['table']}:${entry['id']}')) {
+            throw const FormatException('Invalid missing-file inventory');
+          }
+          _safeMediaName('media/${entry['relative']}');
+          return Map<String, String>.from(entry);
+        })(),
+    ];
+  }
+
+  static List<String> missingMedia(String source) {
+    if (!_isZip(File(source))) return const [];
+    final input = InputFileStream(source);
+    try {
+      final archive = ZipDecoder().decodeStream(input);
+      return _recoveryMedia(
+        archive,
+      ).map((entry) => entry['relative']!).toSet().toList();
+    } finally {
+      input.closeSync();
     }
   }
 

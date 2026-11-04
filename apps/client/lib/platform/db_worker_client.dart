@@ -408,16 +408,24 @@ mixin _DbClient implements NexDb {
       _send<List<Note>>(_DbCommand.upcomingReminders, {'limit': limit});
 
   @override
-  Future<void> backup(String backupDir, {required String mediaDir}) {
+  Future<void> backup(
+    String backupDir, {
+    required String mediaDir,
+    bool allowMissingMedia = false,
+  }) {
     final previous = _backupTask ?? Future<void>.value();
     return _backupTask = previous
         .catchError((Object _) {})
-        .then((_) => _createBackup(backupDir, mediaDir));
+        .then((_) => _createBackup(backupDir, mediaDir, allowMissingMedia));
   }
 
   Future<void>? _backupTask;
 
-  Future<void> _createBackup(String backupDir, String mediaDir) async {
+  Future<void> _createBackup(
+    String backupDir,
+    String mediaDir,
+    bool allowMissingMedia,
+  ) async {
     final snapshotPath = await _send<String>(_DbCommand.backup, {
       'dir': backupDir,
     });
@@ -427,7 +435,8 @@ mixin _DbClient implements NexDb {
           snapshotPath: snapshotPath,
           mediaDir: mediaDir,
           backupDir: backupDir,
-          compact: true,
+          compact: !allowMissingMedia,
+          allowMissingMedia: allowMissingMedia,
         ),
       );
     } finally {

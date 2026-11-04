@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:nex_data/nex_data.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
@@ -11,6 +12,14 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/backup_screen.dart';
 
 import 'support/nex_harness.dart';
+
+class _RescuePaths extends PathProviderPlatform {
+  _RescuePaths(this.root);
+  final String root;
+
+  @override
+  Future<String?> getTemporaryPath() async => root;
+}
 
 /// A local backup with nothing offered but Restore used to be a one-way
 /// accumulation: nothing on this screen could ever remove one.
@@ -33,6 +42,52 @@ void main() {
 
   tearDown(() => harness.dispose());
 
+  test(
+    'rescue export and restore preserve a library with missing media and its safety point',
+    () async {
+      final previousPaths = PathProviderPlatform.instance;
+      final cache = Directory(p.join(tmp.path, 'cache'))..createSync();
+      PathProviderPlatform.instance = _RescuePaths(cache.path);
+      addTearDown(() => PathProviderPlatform.instance = previousPaths);
+      final note = (await services.captureText('recoverable text'))!;
+      final database = NexDatabase.open(services.dbPath);
+      try {
+        SqliteNoteRepository(database).insert(
+          Note(
+            id: 'lost-photo',
+            type: NoteType.photo,
+            mediaUri: p.join(services.mediaDir, 'lost.jpg'),
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+            deviceId: 'test',
+            rev: 1,
+            syncState: SyncState.pending,
+          ),
+        );
+      } finally {
+        database.close();
+      }
+      await expectLater(services.backupNow(), throwsStateError);
+      final rescued = await services.exportRescueBackup();
+      expect(rescued.missing, ['lost.jpg']);
+      final result = await services.restoreBackup(File(rescued.path));
+      expect(result.error, isNull);
+      final restored = NexDatabase.open(services.dbPath);
+      try {
+        expect(
+          SqliteNoteRepository(restored).getById(note.id)!.content,
+          'recoverable text',
+        );
+      } finally {
+        restored.close();
+      }
+      final safety = Directory(p.join(services.backupDir, 'before-restore'))
+          .listSync()
+          .whereType<File>()
+          .singleWhere((file) => file.path.endsWith('.nexbak'));
+      expect(NexBackupArchive.missingMedia(safety.path), ['lost.jpg']);
+    },
+  );
   test(
     'failed restore requests a restart and retains the original library plus a safety copy',
     () async {

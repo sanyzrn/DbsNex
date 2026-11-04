@@ -28,135 +28,150 @@ extension _VaultItems on _VaultScreenState {
                 : b.updatedAt.compareTo(a.updatedAt);
           });
     final password = widget.kind == VaultKind.password;
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.fromLTRB(
         NexSpacing.md,
         12,
         NexSpacing.md,
         NexSpacing.xl,
       ),
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: NexAutoDirection(
-                controller: search,
-                builder: (context, direction) => TextField(
-                  controller: search,
-                  textDirection: direction,
-                  textAlign: TextAlign.start,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  enableIMEPersonalizedLearning: false,
-                  onChanged: (_) {
-                    _touch();
-                    _rebuild(() {});
-                  },
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: l.vaultSearch,
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(NexRadius.lg),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: NexSpacing.sm),
-            IconButton.filledTonal(
-              tooltip: l.vaultFavorites,
-              isSelected: favorites,
-              onPressed: () => _rebuild(() => favorites = !favorites),
-              icon: const Icon(Icons.star_outline_rounded),
-              selectedIcon: const Icon(Icons.star_rounded),
-            ),
-            const SizedBox(width: NexSpacing.xs),
-            IconButton.filled(
-              tooltip: password ? l.vaultAddPassword : l.vaultAddCard,
-              onPressed: busy || draft != null
-                  ? null
-                  : () => _edit(VaultStore.empty(widget.kind)),
-              icon: Icon(
-                password ? Icons.add_moderator_outlined : Icons.add_card,
-              ),
-            ),
-          ],
-        ),
-        if (draft != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Card(
-              margin: EdgeInsets.zero,
-              child: ListTile(
-                leading: const Icon(Icons.edit_note),
-                title: Text(l.vaultResume),
-                subtitle: Text(
-                  draft!.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _edit(draft!),
-              ),
-            ),
-          ),
-        const SizedBox(height: 14),
-        if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40),
-            child: Column(
-              children: [
-                Icon(
-                  password ? Icons.key_outlined : Icons.credit_card,
-                  size: 44,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(height: NexSpacing.md),
-                Text(
-                  query.isNotEmpty || favorites
-                      ? l.vaultNoResults
-                      : l.vaultEmpty,
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                Text(l.vaultEmptyHint, textAlign: TextAlign.center),
-                const SizedBox(height: NexSpacing.md),
-                FilledButton.icon(
-                  onPressed: busy || draft != null
-                      ? null
-                      : () => _edit(VaultStore.empty(widget.kind)),
-                  icon: Icon(
-                    password ? Icons.add_moderator_outlined : Icons.add_card,
-                  ),
-                  label: Text(password ? l.vaultAddPassword : l.vaultAddCard),
-                ),
-              ],
-            ),
-          ),
-        for (final entry in items)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: widget.picking
-                ? Card(
-                    key: ValueKey('vault-pick-${entry.id}'),
-                    margin: EdgeInsets.zero,
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () => Navigator.pop(context, entry.id),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: _bankCard(theme, entry),
+      itemCount: items.length + 2,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: NexAutoDirection(
+                      controller: search,
+                      builder: (context, direction) => TextField(
+                        controller: search,
+                        textDirection: direction,
+                        textAlign: TextAlign.start,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        enableIMEPersonalizedLearning: false,
+                        onChanged: (_) {
+                          _touch();
+                          _rebuild(() {});
+                        },
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: l.vaultSearch,
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(NexRadius.lg),
+                          ),
+                        ),
                       ),
                     ),
-                  )
-                : entry.kind == VaultKind.card
-                ? _cardItem(l, theme, entry)
-                : _passwordItem(l, theme, entry),
-          ),
-        const SizedBox(height: 12),
-        Text(l.vaultBackupHint, style: theme.textTheme.bodySmall),
-      ],
+                  ),
+                  const SizedBox(width: NexSpacing.sm),
+                  IconButton.filledTonal(
+                    tooltip: l.vaultFavorites,
+                    isSelected: favorites,
+                    onPressed: () => _rebuild(() => favorites = !favorites),
+                    icon: const Icon(Icons.star_outline_rounded),
+                    selectedIcon: const Icon(Icons.star_rounded),
+                  ),
+                  const SizedBox(width: NexSpacing.xs),
+                  IconButton.filled(
+                    tooltip: password ? l.vaultAddPassword : l.vaultAddCard,
+                    onPressed: busy || draft != null
+                        ? null
+                        : () => _edit(VaultStore.empty(widget.kind)),
+                    icon: Icon(
+                      password ? Icons.add_moderator_outlined : Icons.add_card,
+                    ),
+                  ),
+                ],
+              ),
+              if (draft != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    child: ListTile(
+                      leading: const Icon(Icons.edit_note),
+                      title: Text(l.vaultResume),
+                      subtitle: Text(
+                        draft!.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _edit(draft!),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 14),
+              if (items.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Column(
+                    children: [
+                      Icon(
+                        password ? Icons.key_outlined : Icons.credit_card,
+                        size: 44,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                      Text(
+                        query.isNotEmpty || favorites
+                            ? l.vaultNoResults
+                            : l.vaultEmpty,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: NexSpacing.sm),
+                      Text(l.vaultEmptyHint, textAlign: TextAlign.center),
+                      const SizedBox(height: NexSpacing.md),
+                      FilledButton.icon(
+                        onPressed: busy || draft != null
+                            ? null
+                            : () => _edit(VaultStore.empty(widget.kind)),
+                        icon: Icon(
+                          password
+                              ? Icons.add_moderator_outlined
+                              : Icons.add_card,
+                        ),
+                        label: Text(
+                          password ? l.vaultAddPassword : l.vaultAddCard,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          );
+        }
+        if (index == items.length + 1) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(l.vaultBackupHint, style: theme.textTheme.bodySmall),
+          );
+        }
+        final entry = items[index - 1];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: widget.picking
+              ? Card(
+                  key: ValueKey('vault-pick-${entry.id}'),
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context, entry.id),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: _bankCard(theme, entry),
+                    ),
+                  ),
+                )
+              : entry.kind == VaultKind.card
+              ? _cardItem(l, theme, entry)
+              : _passwordItem(l, theme, entry),
+        );
+      },
     );
   }
 

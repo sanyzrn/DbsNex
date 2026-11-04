@@ -120,7 +120,12 @@ object NexEmbedder {
                 cacheDir = cacheDir,
             ),
         )
-        created.initialize()
+        try {
+            created.initialize()
+        } catch (failure: Throwable) {
+            runCatching { created.close() }
+            throw failure
+        }
         engine = created
         enginePath = path
         return created
