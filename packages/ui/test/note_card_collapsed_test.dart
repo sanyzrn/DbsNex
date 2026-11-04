@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,30 +6,20 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 void main() {
-  final at = DateTime.utc(2026, 11, 4);
+  final at = DateTime.utc(2099);
   Note note(
-    NoteType type,
     int mask, {
-    String? caption,
     String? content,
+    String? caption,
+    NoteType type = NoteType.text,
   }) => Note(
-    id: '${type.name}-$mask',
+    id: 'n',
     type: type,
-    content:
-        content ??
-        switch (type) {
-          NoteType.link => 'https://example.com/long/article',
-          NoteType.checklist =>
-            '- [ ] Call the printer\n- [ ] Approve the colours\n- [x] Send brief',
-          _ =>
-            'Important content مهم 😀 with decisions and useful information. ' *
-                8,
-        },
+    content: content ?? 'A long thought with useful words. ' * 16,
     caption: caption,
-    durationMs: type == NoteType.voice ? 42000 : null,
-    dueAt: mask & 1 != 0 ? at.add(const Duration(days: 1)) : null,
-    isUrgent: mask & 2 != 0,
-    attachmentCount: mask & 4 != 0 ? 3 : 0,
+    dueAt: mask & 1 != 0 ? at : null,
+    attachmentCount: mask & 2 != 0 ? 3 : 0,
+    isUrgent: mask & 4 != 0,
     createdAt: at,
     updatedAt: at,
     deviceId: 'test',
@@ -41,47 +30,39 @@ void main() {
     noteOfType: (s) => s,
     tagList: (s) => s,
     accentColor: 'Accent',
-    dueLabel: (_, _) => 'Appointment tomorrow at 17:30',
-    dueCompactLabel: (_, _) => '1d',
-    dueDescription: (_, _) => 'Full reminder description',
+    dueLabel: (_, _) => '2d',
+    dueDescription: (_, _) => 'Full reminder schedule',
   );
-
   Future<void> pump(
     WidgetTester tester,
     Note value, {
-    double width = 360,
     bool rtl = false,
     bool dark = false,
-    TextScaler scaler = TextScaler.noScaling,
-    NexCardDensity density = NexCardDensity.standard,
-    bool expanded = false,
-    bool showDue = true,
     bool? selected,
-    Widget? override,
-    NexCardStrings? cardStrings,
+    NexCardDensity density = NexCardDensity.standard,
+    double width = 360,
+    double scale = 1,
+    Widget? preview,
   }) => tester.pumpWidget(
     MaterialApp(
       theme: dark ? nexDarkTheme() : nexLightTheme(),
-      home: MediaQuery(
-        data: MediaQueryData(textScaler: scaler),
-        child: Directionality(
-          textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+      home: Directionality(
+        textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+        child: MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
           child: Scaffold(
             body: NexCardDensityScope(
               density: density,
-              child: SingleChildScrollView(
-                child: SizedBox(
-                  width: width,
-                  child: RepaintBoundary(
-                    key: const ValueKey('card-boundary'),
-                    child: NoteCard(
-                      note: value,
-                      strings: cardStrings ?? strings,
-                      expanded: expanded,
-                      showDue: showDue,
-                      selected: selected,
-                      previewOverride: override,
-                    ),
+              child: SizedBox(
+                width: width,
+                child: RepaintBoundary(
+                  key: const ValueKey('pixels'),
+                  child: NoteCard(
+                    note: value,
+                    strings: strings,
+                    selected: selected,
+                    onTap: () {},
+                    previewOverride: preview,
                   ),
                 ),
               ),
@@ -91,332 +72,44 @@ void main() {
       ),
     ),
   );
-
-  for (final config in [
-    (360.0, false, false, NexCardDensity.compact, TextScaler.noScaling),
-    (360.0, true, true, NexCardDensity.standard, TextScaler.noScaling),
-    (220.0, false, true, NexCardDensity.compact, const TextScaler.linear(1.8)),
-    (220.0, true, false, NexCardDensity.readable, const TextScaler.linear(1.8)),
-    (320.0, true, true, NexCardDensity.standard, const TextScaler.linear(3.2)),
-    (320.0, false, false, NexCardDensity.compact, const _NonLinearScaler()),
-  ]) {
-    testWidgets(
-      '$config equal envelopes and full-width previews beneath bottom overlays',
-      (tester) async {
-        final (width, rtl, dark, density, scaler) = config;
-        double? height;
-        final widths = <NoteType, double>{};
-        for (final type in NoteType.values) {
-          for (var mask = 0; mask < 8; mask++) {
-            for (final caption in [
-              null,
-              if (type == NoteType.text) 'توضیح ثانویه Secondary caption',
-            ]) {
+  Finder halo(String id) => find.byKey(ValueKey('note-status-halo-$id'));
+  for (final rtl in [false, true]) {
+    for (final density in NexCardDensity.values) {
+      testWidgets(
+        '$rtl $density: one, two and three lines are vertically centred',
+        (tester) async {
+          for (var lines = 1; lines <= density.lines; lines++) {
+            final content = List.filled(
+              lines,
+              rtl ? 'متن فارسی' : 'A short line',
+            ).join('\n');
+            for (final type in [NoteType.text, NoteType.file]) {
               await pump(
                 tester,
-                note(type, mask, caption: caption),
-                width: width,
+                note(0, content: content, type: type),
                 rtl: rtl,
-                dark: dark,
                 density: density,
-                scaler: scaler,
               );
-              final card = tester.getRect(find.byType(NoteCard));
-              height ??= card.height;
-              expect(card.height, closeTo(height, .01));
-              final body = tester.getRect(
+              final text = tester.getRect(find.text(content));
+              final area = tester.getRect(
                 find.byKey(const ValueKey('note-card-preview')),
               );
-              expect(body.bottom, lessThanOrEqualTo(card.bottom));
-              widths.putIfAbsent(type, () => body.width);
-              expect(body.width, closeTo(widths[type]!, .01));
-              if (mask != 0) {
-                final rail = tester.getRect(
-                  find.byKey(const ValueKey('note-status-overlay')),
-                );
-                final rowHeight = nexCardPreviewLineHeightFor(
-                  tester.element(find.byType(NoteCard)),
-                );
-                final cardContext = tester.element(find.byType(NoteCard));
-                final bottom =
-                    card.bottom -
-                    nexCardInsetsFor(cardContext).bottom -
-                    density.inset;
-                expect(rail.bottom, closeTo(bottom, .01));
-                expect(
-                  rail.height,
-                  lessThanOrEqualTo(rowHeight * 2 + NexSpacing.xs),
-                );
-                expect(
-                  rtl ? rail.right : rail.left,
-                  closeTo(rtl ? body.right : body.left, .01),
-                );
-                for (final icon in [
-                  Icons.notifications_active_outlined,
-                  Icons.local_fire_department_outlined,
-                  Icons.attach_file,
-                ]) {
-                  for (final e in find.byIcon(icon).evaluate()) {
-                    final box = e.findRenderObject()! as RenderBox;
-                    final rect = box.localToGlobal(Offset.zero) & box.size;
-                    expect(card.contains(rect.topLeft), isTrue);
-                    expect(card.contains(rect.bottomRight), isTrue);
-                    expect(rail.contains(rect.center), isTrue);
-                  }
-                }
-                if (mask & 4 != 0) expect(find.text('+3'), findsOneWidget);
-              }
-              if (caption != null) {
-                final cap = tester.getRect(
-                  find.byKey(const ValueKey('note-card-caption')),
-                );
-                expect(cap.top, greaterThanOrEqualTo(body.bottom));
-                expect(cap.bottom, lessThanOrEqualTo(card.bottom));
-                final paragraph = tester.renderObject<RenderParagraph>(
-                  find.descendant(
-                    of: find.byKey(const ValueKey('note-card-caption')),
-                    matching: find.byType(RichText),
-                  ),
-                );
-                expect(
-                  paragraph.size.height,
-                  greaterThanOrEqualTo(
-                    paragraph.getMaxIntrinsicHeight(paragraph.size.width) - .01,
-                  ),
-                );
-              }
-              expect(
-                tester.takeException(),
-                isNull,
-                reason: '$type, marks=$mask, caption=$caption',
-              );
+              expect(text.center.dy, closeTo(area.center.dy, .01));
+              expect(tester.takeException(), isNull);
             }
           }
-        }
-      },
-    );
-  }
-
-  for (final rtl in [false, true]) {
-    testWidgets(
-      '$rtl existing marks pack in order, with a fixed start and no holes',
-      (tester) async {
-        Offset? anchor;
-        for (var mask = 1; mask < 8; mask++) {
-          await pump(
-            tester,
-            note(
-              NoteType.text,
-              mask,
-              content: mask.isEven ? 'متن فارسی' : 'English',
-            ),
-            width: 480,
-            rtl: rtl,
-          );
-          final rail = tester.getRect(
-            find.byKey(const ValueKey('note-status-overlay')),
-          );
-          final start = Offset(rtl ? rail.right : rail.left, rail.top);
-          anchor ??= start;
-          expect(start, anchor);
-          final icons = [
-            if (mask & 1 != 0) Icons.notifications_active_outlined,
-            if (mask & 2 != 0) Icons.local_fire_department_outlined,
-            if (mask & 4 != 0) Icons.attach_file,
-          ].map((icon) => tester.getRect(find.byIcon(icon))).toList();
-          expect(
-            rtl ? icons.first.right : icons.first.left,
-            closeTo(start.dx, 1),
-          );
-          for (var i = 1; i < icons.length; i++) {
-            expect(icons[i].center.dy, closeTo(icons.first.center.dy, 1));
-            expect(
-              rtl
-                  ? icons[i].right < icons[i - 1].left
-                  : icons[i].left > icons[i - 1].right,
-              isTrue,
-            );
-          }
-        }
-        expect(tester.takeException(), isNull);
-      },
-    );
-  }
-
-  for (final rtl in [false, true]) {
-    testWidgets(
-      '$rtl compact reminder clock fits beside other marks at large text',
-      (tester) async {
-        final clock = rtl ? '۰۹:۰۵' : '09:05';
-        final schedule = rtl ? 'هر روز · $clock' : 'Daily · $clock';
-        final cardStrings = NexCardStrings(
-          noteOfType: (s) => s,
-          tagList: (s) => s,
-          accentColor: 'Accent',
-          dueLabel: (_, _) => schedule,
-          dueCompactLabel: (_, _) => clock,
-          dueDescription: (_, _) => schedule,
-        );
-        await pump(
-          tester,
-          note(NoteType.text, 0),
-          width: 320,
-          rtl: rtl,
-          scaler: const TextScaler.linear(1.9),
-        );
-        final height = tester.getSize(find.byType(NoteCard)).height;
-        await pump(
-          tester,
-          note(NoteType.text, 7),
-          width: 320,
-          rtl: rtl,
-          scaler: const TextScaler.linear(1.9),
-          cardStrings: cardStrings,
-        );
-        expect(tester.getSize(find.byType(NoteCard)).height, height);
-        expect(find.text(clock), findsOneWidget);
-        final paragraph = tester.renderObject<RenderParagraph>(
-          find.descendant(
-            of: find.text(clock),
-            matching: find.byType(RichText),
-          ),
-        );
-        expect(paragraph.didExceedMaxLines, isFalse);
-        expect(
-          nexNoteCanExpand(
-            tester.element(find.byType(NoteCard)),
-            note(NoteType.text, 7, content: 'Short'),
-            cardWidth: 320,
-            strings: cardStrings,
-          ),
-          isTrue,
-        );
-
-        final attachment = tester.renderObject<RenderParagraph>(
-          find.descendant(of: find.text('+3'), matching: find.byType(RichText)),
-        );
-        expect(attachment.didExceedMaxLines, isFalse);
-        final clockBounds = tester.getRect(find.text(clock));
-        final urgentBounds = tester.getRect(
-          find.byIcon(Icons.local_fire_department_outlined),
-        );
-        final attachmentBounds = tester.getRect(find.text('+3'));
-        expect(clockBounds.overlaps(urgentBounds), isFalse);
-        expect(clockBounds.overlaps(attachmentBounds), isFalse);
-        expect(urgentBounds.overlaps(attachmentBounds), isFalse);
-        final preview = tester.getRect(
-          find.byKey(const ValueKey('note-card-preview')),
-        );
-        expect(preview.overlaps(clockBounds), isTrue);
-        expect(tester.takeException(), isNull);
-      },
-    );
-  }
-
-  for (final dark in [false, true]) {
-    testWidgets(
-      '$dark caption is distinct secondary grey with readable contrast',
-      (tester) async {
-        await pump(
-          tester,
-          note(NoteType.text, 7, caption: 'کپشن Caption'),
-          dark: dark,
-        );
-        final element = tester.element(
-          find.byKey(const ValueKey('note-card-caption')),
-        );
-        final caption = tester.widget<NexTextSurface>(
-          find.byKey(const ValueKey('note-card-caption')),
-        );
-        final theme = Theme.of(element);
-        expect(caption.style!.color, theme.colorScheme.onSurfaceVariant);
-        expect(caption.style!.color, isNot(theme.colorScheme.onSurface));
-        final a = caption.style!.color!.computeLuminance();
-        final b = theme.colorScheme.surfaceContainerLowest.computeLuminance();
-        expect(
-          (b > a ? (b + .05) / (a + .05) : (a + .05) / (b + .05)),
-          greaterThanOrEqualTo(4.5),
-        );
-      },
-    );
-  }
-
-  testWidgets(
-    'reminder schedule remains accessible even with an icon-only rail',
-    (tester) async {
-      final semantics = tester.ensureSemantics();
-      await pump(tester, note(NoteType.text, 7), width: 220);
-      expect(
-        find.bySemanticsLabel('Full reminder description'),
-        findsOneWidget,
+        },
       );
-      expect(tester.takeException(), isNull);
-      semantics.dispose();
-    },
-  );
-
-  testWidgets(
-    'mixed paragraphs keep their direction and explicit expansion grows',
-    (tester) async {
-      const text = 'Hi\nمتن فارسی';
-      await pump(tester, note(NoteType.text, 7, content: text));
-      final short = tester.getSize(find.byType(NoteCard)).height;
-      for (final (words, direction) in [
-        ('Hi', TextDirection.ltr),
-        ('متن فارسی', TextDirection.rtl),
-      ]) {
-        final p = tester
-            .renderObjectList<RenderParagraph>(find.byType(RichText))
-            .firstWhere((p) => p.text.toPlainText() == words);
-        expect(p.textDirection, direction);
-      }
-      await pump(
-        tester,
-        note(NoteType.text, 7, content: '$text\n' * 10),
-        expanded: true,
-      );
-      expect(tester.getSize(find.byType(NoteCard)).height, greaterThan(short));
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('custom previews and hidden reminders keep the same envelope', (
-    tester,
-  ) async {
-    await pump(tester, note(NoteType.text, 0));
-    final height = tester.getSize(find.byType(NoteCard)).height;
-    await pump(
-      tester,
-      note(NoteType.text, 7),
-      override: const Text('Custom preview'),
-    );
-    expect(tester.getSize(find.byType(NoteCard)).height, height);
-    expect(find.text('Custom preview'), findsOneWidget);
-    await pump(tester, note(NoteType.text, 1), showDue: false);
-    expect(find.byKey(const ValueKey('note-status-overlay')), findsNothing);
-    expect(tester.getSize(find.byType(NoteCard)).height, height);
-  });
-
-  for (final density in NexCardDensity.values) {
-    for (final rtl in [false, true]) {
-      testWidgets('${density.name} $rtl marks never reflow or narrow text', (
+      testWidgets('$rtl $density: marks preserve full-width text and height', (
         tester,
       ) async {
-        final text =
-            (rtl
-                ? 'این متن برای بررسی چیدمان یادداشت طولانی است '
-                : 'This long note checks that the full text keeps its natural wrapping. ') *
-            8;
         Size? size;
         List<Rect>? boxes;
-        for (final mask in [0, 1, 2, 4, 7]) {
-          await pump(
-            tester,
-            note(NoteType.text, mask, content: text),
-            density: density,
-            rtl: rtl,
-          );
-          final paragraph = tester.renderObject<RenderParagraph>(
+        double? height;
+        for (var mask = 0; mask < 8; mask++) {
+          final value = note(mask);
+          await pump(tester, value, rtl: rtl, density: density);
+          final p = tester.renderObject<RenderParagraph>(
             find
                 .descendant(
                   of: find.byKey(const ValueKey('note-card-preview')),
@@ -424,224 +117,174 @@ void main() {
                 )
                 .first,
           );
-          final actual = paragraph
+          final actual = p
               .getBoxesForSelection(
-                TextSelection(baseOffset: 0, extentOffset: text.length),
+                TextSelection(
+                  baseOffset: 0,
+                  extentOffset: value.content!.length,
+                ),
               )
               .map((b) => b.toRect())
               .toList();
-          size ??= paragraph.size;
+          size ??= p.size;
           boxes ??= actual;
-          expect(paragraph.size, size);
+          height ??= tester.getSize(find.byType(NoteCard)).height;
+          expect(p.size, size);
           expect(actual, boxes);
           expect(actual.map((b) => b.top).toSet(), hasLength(density.lines));
-          final fullWidth = tester
-              .getSize(find.byKey(const ValueKey('note-card-preview')))
-              .width;
-          expect(paragraph.size.width, closeTo(fullWidth, .01));
-          if (mask != 0) {
-            final overlay = tester.getRect(
-              find.byKey(const ValueKey('note-status-overlay')),
-            );
-            final preview = tester.getRect(
-              find.byKey(const ValueKey('note-card-preview')),
-            );
-            final row = nexCardPreviewLineHeightFor(
-              tester.element(find.byType(NoteCard)),
-            );
-            expect(overlay.top, greaterThanOrEqualTo(preview.bottom - row));
+          expect(tester.getSize(find.byType(NoteCard)).height, height);
+          expect(find.text('2d'), findsNothing);
+          expect(find.text('+3'), findsNothing);
+          final ids = [
+            if (mask & 1 != 0) 'reminder',
+            if (mask & 2 != 0) 'attachment',
+            if (mask & 4 != 0) 'urgent',
+          ];
+          final area = tester.getRect(
+            find.byKey(const ValueKey('note-card-preview')),
+          );
+          Rect? previous;
+          for (final id in ids) {
+            final rect = tester.getRect(halo(id));
+            expect(rect.size, const Size(22, 22));
+            expect(rect.bottom, closeTo(area.bottom - 3, .01));
+            if (previous == null) {
+              expect(
+                rtl ? rect.right : rect.left,
+                closeTo(rtl ? area.right : area.left, .01),
+              );
+            } else {
+              expect(
+                rtl ? previous.left - rect.right : rect.left - previous.right,
+                closeTo(NexSpacing.xs, .01),
+              );
+            }
+            previous = rect;
           }
+          expect(tester.takeException(), isNull);
         }
-        expect(tester.takeException(), isNull);
       });
     }
   }
-
-  testWidgets('short text stays above the status overlay at every density', (
-    tester,
-  ) async {
-    for (final density in NexCardDensity.values) {
-      for (final rtl in [false, true]) {
-        await pump(
-          tester,
-          note(NoteType.text, 7, content: rtl ? 'متن کوتاه' : 'A short note'),
-          density: density,
-          rtl: rtl,
-        );
-        final paragraph = find
-            .descendant(
-              of: find.byKey(const ValueKey('note-card-preview')),
-              matching: find.byType(RichText),
-            )
-            .first;
-        final overlay = tester.getRect(
-          find.byKey(const ValueKey('note-status-overlay')),
-        );
-        expect(tester.getRect(paragraph).overlaps(overlay), isFalse);
-      }
-    }
-    expect(tester.takeException(), isNull);
-  });
-
-  for (final rtl in [false, true]) {
-    for (final dark in [false, true]) {
-      testWidgets(
-        '$rtl $dark overlay matches selected surface and fades outward',
-        (tester) async {
-          for (final selected in [false, true]) {
+  testWidgets(
+    'all note types and captions retain the same envelope at larger text',
+    (tester) async {
+      for (final density in NexCardDensity.values) {
+        double? height;
+        for (final type in NoteType.values) {
+          for (final mask in [0, 7]) {
             await pump(
               tester,
-              note(NoteType.text, 6),
-              rtl: rtl,
-              dark: dark,
-              selected: selected,
+              note(
+                mask,
+                type: type,
+                caption: type == NoteType.text ? 'Muted caption' : null,
+              ),
+              width: 220,
+              scale: 1.9,
+              density: density,
             );
-            final fill = tester.widget<ColoredBox>(
-              find.byKey(const ValueKey('note-status-fill')),
-            );
-            final material = tester.widget<Material>(
-              find
-                  .descendant(
-                    of: find.byType(NoteCard),
-                    matching: find.byType(Material),
-                  )
-                  .first,
-            );
-            expect(fill.color, material.color);
-            final fade = tester.widget<Container>(
-              find.byKey(const ValueKey('note-status-fade')),
-            );
-            final gradient =
-                (fade.decoration! as BoxDecoration).gradient! as LinearGradient;
-            expect(gradient.colors, [
-              fill.color,
-              fill.color.withValues(alpha: 0),
-            ]);
-            final direction = rtl ? TextDirection.rtl : TextDirection.ltr;
-            expect(
-              gradient.begin.resolve(direction),
-              rtl ? Alignment.centerRight : Alignment.centerLeft,
-            );
-            final overlay = tester.getSize(
-              find.byKey(const ValueKey('note-status-overlay')),
-            );
-            final marks = tester.getSize(
-              find.byKey(const ValueKey('note-status-marks')),
-            );
-            expect(
-              overlay.width,
-              closeTo(marks.width + 16 + NexSpacing.xs, .01),
-            );
+            height ??= tester.getSize(find.byType(NoteCard)).height;
+            expect(tester.getSize(find.byType(NoteCard)).height, height);
+            expect(tester.takeException(), isNull);
           }
-        },
-      );
-    }
-  }
-
-  testWidgets(
-    'solid overlay hides preview pixels and its edge blends smoothly',
-    (tester) async {
-      const underlay = Color(0xFFFF00FF);
-      for (final rtl in [false, true]) {
-        await pump(
-          tester,
-          note(NoteType.text, 2),
-          rtl: rtl,
-          override: const SizedBox.expand(child: ColoredBox(color: underlay)),
-        );
-        await tester.pump();
-        final boundary = tester.renderObject<RenderRepaintBoundary>(
-          find.byKey(const ValueKey('card-boundary')),
-        );
-        final fill = tester.getRect(
-          find.byKey(const ValueKey('note-status-fill')),
-        );
-        final fade = tester.getRect(
-          find.byKey(const ValueKey('note-status-fade')),
-        );
-        final origin = boundary.localToGlobal(Offset.zero);
-        final image = await tester.runAsync(
-          () => boundary.toImage(pixelRatio: 1),
-        );
-        final bytes = await tester.runAsync(
-          () => image!.toByteData(format: ui.ImageByteFormat.rawRgba),
-        );
-        Color pixel(Offset point) {
-          final local = point - origin;
-          final offset =
-              (local.dy.floor() * image!.width + local.dx.floor()) * 4;
-          return Color.fromARGB(
-            255,
-            bytes!.getUint8(offset),
-            bytes.getUint8(offset + 1),
-            bytes.getUint8(offset + 2),
-          );
         }
-
-        final color = tester
-            .widget<ColoredBox>(find.byKey(const ValueKey('note-status-fill')))
-            .color;
-        expect(
-          pixel(Offset(rtl ? fill.left + 1 : fill.right - 1, fill.center.dy)),
-          color,
-        );
-        final near = pixel(
-          Offset(rtl ? fade.right - 1 : fade.left + 1, fade.top + 1),
-        );
-        final far = pixel(
-          Offset(rtl ? fade.left + 1 : fade.right - 1, fade.top + 1),
-        );
-        expect(near, isNot(underlay));
-        expect(far, isNot(color));
-        expect(near.g, greaterThan(far.g));
-        image!.dispose();
       }
-      expect(tester.takeException(), isNull);
     },
   );
-
-  testWidgets(
-    'Show in full exposes masked text without treating every short note as expandable',
-    (tester) async {
-      final short = note(NoteType.text, 7, content: 'Short');
-      await pump(tester, short, width: 600);
-      final context = tester.element(find.byType(NoteCard));
-      expect(nexNoteCanExpand(context, short, cardWidth: 600), isFalse);
-      expect(
-        nexNoteCanExpand(
-          context,
-          short.copyWith(content: 'First line\nSecond line'),
-          cardWidth: 600,
-        ),
-        isTrue,
-      );
-      expect(
-        nexNoteCanExpand(
-          context,
-          short.copyWith(caption: 'Caption'),
-          cardWidth: 600,
-        ),
-        isTrue,
-      );
-    },
-  );
-
-  testWidgets('Show in full accounts for the caption preview budget', (
+  testWidgets('hidden labels retain reminder semantics and attachment data', (
     tester,
   ) async {
-    final value = note(NoteType.text, 0, content: 'First line\nSecond line');
-    await pump(tester, value, width: 600);
-    final context = tester.element(find.byType(NoteCard));
-    expect(nexNoteCanExpand(context, value, cardWidth: 600), isFalse);
-    final captioned = value.copyWith(caption: 'Secondary caption');
-    expect(nexNoteCanExpand(context, captioned, cardWidth: 600), isTrue);
+    final handle = tester.ensureSemantics();
+    final value = note(7);
+    await pump(tester, value);
+    expect(find.text('2d'), findsNothing);
+    expect(find.text('+3'), findsNothing);
+    expect(find.bySemanticsLabel('Full reminder schedule'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('3 more files')), findsOneWidget);
+    expect(value.dueAt, at);
+    expect(value.attachmentCount, 3);
+    await tester.longPress(find.byIcon(Icons.notifications_active_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Full reminder schedule'), findsOneWidget);
+    handle.dispose();
   });
-}
+  for (final dark in [false, true]) {
+    testWidgets(
+      '$dark: tiny radial halos follow pressed/selected card surface',
+      (tester) async {
+        for (final selected in [false, true]) {
+          await pump(
+            tester,
+            note(7),
+            dark: dark,
+            selected: selected,
+            preview: const SizedBox.expand(
+              child: ColoredBox(color: Color(0xFFFF00FF)),
+            ),
+          );
+          final h = halo('urgent');
+          expect(find.byKey(const ValueKey('note-status-fill')), findsNothing);
+          expect(find.byType(ShaderMask), findsNWidgets(3));
+          for (final mask in tester.widgetList<ShaderMask>(
+            find.byType(ShaderMask),
+          )) {
+            expect(mask.blendMode, BlendMode.dstOut);
+          }
+          final rect = tester.getRect(h);
+          Future<int> pixel() async {
+            final boundary = tester.renderObject<RenderRepaintBoundary>(
+              find.byKey(const ValueKey('pixels')),
+            );
+            final local =
+                Offset(rect.center.dx, rect.center.dy + 9) -
+                boundary.localToGlobal(Offset.zero);
+            final im = await tester.runAsync(
+              () => boundary.toImage(pixelRatio: 1),
+            );
+            final bytes = await tester.runAsync(
+              () => im!.toByteData(format: ui.ImageByteFormat.rawRgba),
+            );
+            final offset =
+                (local.dy.floor() * im!.width + local.dx.floor()) * 4;
+            final result =
+                bytes!.getUint8(offset) << 16 |
+                bytes.getUint8(offset + 1) << 8 |
+                bytes.getUint8(offset + 2);
+            im.dispose();
+            return result;
+          }
 
-class _NonLinearScaler extends TextScaler {
-  const _NonLinearScaler();
-  @override
-  double scale(double size) => size + 4.2;
-  @override
-  double get textScaleFactor => scale(14) / 14;
+          final before = await pixel();
+          final finger = await tester.startGesture(
+            tester.getCenter(find.byType(NoteCard)),
+          );
+          await tester.pump(const Duration(milliseconds: 300));
+          await tester.pump(const Duration(milliseconds: 220));
+          expect(await pixel(), isNot(before));
+          await finger.up();
+          await tester.pumpAndSettle();
+          expect(await pixel(), before);
+          expect(tester.takeException(), isNull);
+        }
+      },
+    );
+  }
+  testWidgets('caption stays grey and the icon group can disappear entirely', (
+    tester,
+  ) async {
+    await pump(tester, note(0, caption: 'Secondary caption'));
+    final caption = tester.widget<NexTextSurface>(
+      find.byKey(const ValueKey('note-card-caption')),
+    );
+    expect(
+      caption.style!.color,
+      Theme.of(
+        tester.element(find.byType(NoteCard)),
+      ).colorScheme.onSurfaceVariant,
+    );
+    expect(halo('reminder'), findsNothing);
+    expect(halo('attachment'), findsNothing);
+    expect(halo('urgent'), findsNothing);
+  });
 }

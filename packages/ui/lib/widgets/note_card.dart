@@ -123,17 +123,6 @@ bool nexNoteCanExpand(
       density.leading -
       NexSpacing.contentGap;
   if (width <= 0) return true;
-  if (marked &&
-      _StatusLayout(
-        context,
-        note,
-        strings,
-        note.dueAt,
-        math.max(0.0, width - 16 - NexSpacing.xs),
-        packed: true,
-      ).wraps) {
-    return true;
-  }
   if (note.type == NoteType.checklist && note.checklistItems.isNotEmpty) {
     return note.checklistItems.length > density.lines ||
         (marked && note.checklistItems.length == density.lines);
@@ -395,7 +384,7 @@ class _CardBody extends StatelessWidget {
               else
                 _LeadingWithPin(note: note, strings: strings, ringing: ringing),
               const SizedBox(width: NexSpacing.contentGap),
-              Expanded(child: _withFootnote(context, surfaceColor)),
+              Expanded(child: _withFootnote(context)),
             ],
           ),
         ),
