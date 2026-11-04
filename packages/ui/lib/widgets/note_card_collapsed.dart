@@ -4,6 +4,8 @@ part of 'note_card.dart';
 // and accessibility strings so showing them again needs no migration.
 const _showCardStatusLabels = false;
 const _statusHaloSize = 22.0;
+const _statusMarkWidth = 18.0;
+const _statusBottomGap = 4.0;
 
 class _CollapsedCardContent extends StatelessWidget {
   const _CollapsedCardContent({
@@ -64,26 +66,20 @@ class _CollapsedCardContent extends StatelessWidget {
               (note.isUrgent ? 1 : 0);
           final columns = math.max(
             1,
-            math.min(
-              count,
-              ((bounds.maxWidth + NexSpacing.xs) /
-                      (_statusHaloSize + NexSpacing.xs))
-                  .floor(),
-            ),
+            math.min(count, (bounds.maxWidth / _statusMarkWidth).floor()),
           );
           final rows = (count / columns).ceil();
           final groupHeight =
               rows * _statusHaloSize + math.max(0, rows - 1) * NexSpacing.xs;
           for (var i = 0; i < count; i++) {
-            final x =
-                _statusHaloSize / 2 +
-                (i % columns) * (_statusHaloSize + NexSpacing.xs);
+            final x = _statusMarkWidth / 2 + (i % columns) * _statusMarkWidth;
             final centre = Offset(
               Directionality.of(context) == TextDirection.rtl
                   ? bounds.maxWidth - x
                   : x,
-              bounds.maxHeight -
-                  3 -
+              bounds.maxHeight +
+                  density.inset -
+                  _statusBottomGap -
                   groupHeight +
                   _statusHaloSize / 2 +
                   (i ~/ columns) * (_statusHaloSize + NexSpacing.xs),
@@ -108,25 +104,9 @@ class _CollapsedCardContent extends StatelessWidget {
             );
           }
           return Stack(
+            clipBehavior: Clip.none,
             fit: StackFit.expand,
-            children: [
-              preview,
-              if (count > 0)
-                PositionedDirectional(
-                  start: 0,
-                  end: 0,
-                  bottom: 3,
-                  child: Align(
-                    alignment: AlignmentDirectional.bottomStart,
-                    child: _CardStatusMarks(
-                      note: note,
-                      strings: strings,
-                      due: due,
-                      halos: true,
-                    ),
-                  ),
-                ),
-            ],
+            children: [preview],
           );
         },
       ),
@@ -155,7 +135,7 @@ class _CardStatusMarks extends StatelessWidget {
         ? icon
         : SizedBox(
             key: ValueKey('note-status-halo-$id'),
-            width: _statusHaloSize,
+            width: _statusMarkWidth,
             height: _statusHaloSize,
             child: Center(child: icon),
           );
@@ -164,7 +144,7 @@ class _CardStatusMarks extends StatelessWidget {
         : strings.dueLabel?.call(due!, note.dueRepeat);
     return Wrap(
       key: const ValueKey('note-status-marks'),
-      spacing: NexSpacing.xs,
+      spacing: halos ? 0 : NexSpacing.xs,
       runSpacing: NexSpacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [

@@ -146,8 +146,16 @@ void main() {
           Rect? previous;
           for (final id in ids) {
             final rect = tester.getRect(halo(id));
-            expect(rect.size, const Size(22, 22));
-            expect(rect.bottom, closeTo(area.bottom - 3, .01));
+            expect(rect.size, const Size(18, 22));
+            final surface = tester.getRect(
+              find
+                  .descendant(
+                    of: find.byType(NoteCard),
+                    matching: find.byType(Material),
+                  )
+                  .first,
+            );
+            expect(rect.bottom, closeTo(surface.bottom - 4, .01));
             if (previous == null) {
               expect(
                 rtl ? rect.right : rect.left,
@@ -156,7 +164,7 @@ void main() {
             } else {
               expect(
                 rtl ? previous.left - rect.right : rect.left - previous.right,
-                closeTo(NexSpacing.xs, .01),
+                closeTo(0, .01),
               );
             }
             previous = rect;

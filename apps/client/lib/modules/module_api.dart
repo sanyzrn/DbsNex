@@ -32,3 +32,7 @@ export 'module_dates.dart';
 export 'module_form.dart';
 export 'module_hero.dart';
 export 'module_reminder_control.dart';
+export 'module_draft.dart';
+export 'module_checked_draft.dart';
+export 'module_segments.dart';
+export 'module_record_bundle.dart';

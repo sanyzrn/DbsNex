@@ -484,6 +484,66 @@ void main() {
     },
   );
 
+  test(
+    'explicit rescue keeps healthy files and records missing note/attachment media',
+    () {
+      final healthy = photoNote('healthy', 'healthy.jpg');
+      repo.insert(healthy);
+      File(healthy.mediaUri!).writeAsBytesSync([4, 5, 6]);
+      repo.insert(photoNote('missing', 'missing.jpg'));
+      final attachments = SqliteAttachmentRepository(repo, localDeviceId: 'd');
+      attachments.add(
+        'healthy',
+        kind: AttachmentKind.file,
+        mediaUri: p.join(mediaDir, 'lost.pdf'),
+        mediaHash: '',
+      );
+      expect(
+        () => repo.backup(backupDir, mediaDir: mediaDir),
+        throwsStateError,
+      );
+      final rescued = repo.backup(
+        backupDir,
+        mediaDir: mediaDir,
+        allowMissingMedia: true,
+      );
+      expect(
+        NexBackupArchive.missingMedia(rescued.path),
+        containsAll(['missing.jpg', 'lost.pdf']),
+      );
+      final restored = p.join(tmp.path, 'rescued.sqlite');
+      final restoredMedia = p.join(tmp.path, 'rescued-media');
+      NexBackupArchive.restore(
+        liveDbPath: restored,
+        mediaDir: restoredMedia,
+        backupFile: rescued.path,
+      );
+      final target = NexDatabase.open(restored);
+      try {
+        final notes = SqliteNoteRepository(target);
+        expect(notes.listTimeline(), hasLength(2));
+        expect(File(notes.getById('healthy')!.mediaUri!).readAsBytesSync(), [
+          4,
+          5,
+          6,
+        ]);
+        expect(
+          notes.getById('missing')!.mediaUri,
+          p.join(restoredMedia, 'missing.jpg'),
+        );
+        expect(File(notes.getById('missing')!.mediaUri!).existsSync(), isFalse);
+        expect(
+          SqliteAttachmentRepository(
+            notes,
+            localDeviceId: 'd',
+          ).forNote('healthy').single.mediaUri,
+          p.join(restoredMedia, 'lost.pdf'),
+        );
+      } finally {
+        target.close();
+      }
+    },
+  );
   test('missing referenced media refuses to publish a new backup', () {
     repo.insert(photoNote('missing', 'missing.jpg'));
     expect(() => repo.backup(backupDir, mediaDir: mediaDir), throwsStateError);

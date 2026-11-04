@@ -6580,4 +6580,20 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get memoryEnable => 'فعال‌کردن حافظه';
+
+  @override
+  String get rescueBackupTitle => 'بکاپ نجات کتابخانه';
+
+  @override
+  String get rescueBackupHint =>
+      'ذخیرهٔ اطلاعات قابل بازیابی، حتی با وجود فایل‌های مفقود.';
+
+  @override
+  String get rescueBackupWarning =>
+      'این نسخه ممکن است کامل نباشد. فایل‌های مفقود مشخص می‌شوند و پس از بازیابی هم در دسترس نخواهند بود. تنظیمات و خزانهٔ خصوصی در این نسخه نیستند.';
+
+  @override
+  String rescueBackupMissing(int count) {
+    return 'فایل‌های مفقود: $count';
+  }
 }

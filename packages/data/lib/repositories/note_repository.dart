@@ -913,9 +913,17 @@ ORDER BY updated_at ASC
     return rows.map(Tag.fromRow).toList();
   }
 
-  void markTagsSynced(Iterable<String> tagIds) {
+  void markTagsSynced(Iterable<String> tagIds, {Map<String, Tag>? expected}) {
     for (final id in tagIds) {
-      db.execute("UPDATE tags SET sync_state = 'synced' WHERE id = ?", [id]);
+      final tag = expected?[id];
+      db.execute(
+        "UPDATE tags SET sync_state = 'synced' WHERE id = ?"
+        "${tag == null ? '' : ' AND name = ? AND color IS ?'}",
+        [
+          id,
+          if (tag != null) ...[tag.name, tag.color],
+        ],
+      );
     }
   }
 
@@ -1042,6 +1050,9 @@ WHERE id = ? AND deleted_at IS NULL
   }) {
     final existing = db.select('SELECT * FROM tags WHERE id = ?', [id]);
     if (existing.isNotEmpty) {
+      if (existing.first['sync_state'] == 'pending') {
+        return Tag.fromRow(existing.first);
+      }
       db.execute(
         "UPDATE tags SET name = ?, color = COALESCE(?, color), "
         "sync_state = 'synced' WHERE id = ?",
@@ -1091,10 +1102,17 @@ VALUES (?, ?, ?, ?, 'synced')
           [
             id,
             name,
-            color ?? byName.first['color'],
+            byName.first['sync_state'] == 'pending'
+                ? byName.first['color']
+                : color ?? byName.first['color'],
             createdAt.toUtc().toIso8601String(),
           ],
         );
+        if (byName.first['sync_state'] == 'pending') {
+          db.execute("UPDATE tags SET sync_state = 'pending' WHERE id = ?", [
+            id,
+          ]);
+        }
         for (final noteId in noteIds) {
           // OR IGNORE: a note already carrying the incoming tag would
           // otherwise violate the composite primary key.
@@ -2536,12 +2554,16 @@ WHERE id = ?
   File backupSnapshot(String backupDir) =>
       NexBackupArchive.snapshotDatabase(database: _db, backupDir: backupDir);
 
-  File backup(String backupDir, {required String mediaDir}) =>
-      NexBackupArchive.create(
-        database: _db,
-        mediaDir: mediaDir,
-        backupDir: backupDir,
-      );
+  File backup(
+    String backupDir, {
+    required String mediaDir,
+    bool allowMissingMedia = false,
+  }) => NexBackupArchive.create(
+    database: _db,
+    mediaDir: mediaDir,
+    backupDir: backupDir,
+    allowMissingMedia: allowMissingMedia,
+  );
 
   /// Marks a note changed, and says whether the change was an *edit*.
   ///

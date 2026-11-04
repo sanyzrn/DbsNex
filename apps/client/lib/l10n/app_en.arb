@@ -3730,6 +3730,16 @@
   "memorySubtitle": "A short introduction for the assistant.",
   "memorySwitchSubtitle": "Use your introduction in assistant requests. Your text stays saved when this is off.",
   "memoryConsentBody": "When Memory is on, your introduction is included in assistant requests and sent to your selected AI service. With an offline model it stays on this device. Nothing is learned automatically. Turning Memory off keeps your text.",
-  "memoryEnable": "Enable Memory"
+  "memoryEnable": "Enable Memory",
+  "rescueBackupTitle": "Rescue library backup",
+  "rescueBackupHint": "Save recoverable library data when attachment files are missing.",
+  "rescueBackupWarning": "This copy may be incomplete. Missing attachments are listed and remain unavailable after restore. Settings and the private vault are not included.",
+  "rescueBackupMissing": "Missing files: {count}",
+  "@rescueBackupMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
-

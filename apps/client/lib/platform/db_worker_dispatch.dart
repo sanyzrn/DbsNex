@@ -53,6 +53,7 @@ class _Worker {
   AiProviderConfig? provider;
   CloudAIAdapter? _cloudAdapter;
   var localSearch = false;
+  Future<void> _syncTail = Future<void>.value();
 
   // What decides the library's vector space between them: the provider
   // last configured, and whether the on-device search model is in use.
@@ -478,23 +479,35 @@ class _Worker {
         localSearch = path != null;
         settleEmbeddingSpace();
       }),
-      _DbCommand.sync => await () async {
-        final client = SyncClient(
-          baseUrl: arg('baseUrl')! as String,
-          deviceId: boot.deviceId,
-          repo: repo,
-          bearerToken: arg('bearerToken') as String?,
-        );
-        try {
-          return await client.sync();
-        } finally {
-          client.close();
-        }
-      }(),
+      _DbCommand.sync => _sync(
+        arg('baseUrl')! as String,
+        arg('bearerToken') as String?,
+      ),
       _DbCommand.close => NexDbWorker._voided(() {
         _cloudAdapter?.close();
         _cloudAdapter = null;
       }),
     };
+  }
+
+  Future<SyncResult> _sync(String url, String? token) {
+    final result = _syncTail.then((_) async {
+      final client = SyncClient(
+        baseUrl: url,
+        deviceId: boot.deviceId,
+        repo: repo,
+        bearerToken: token,
+      );
+      try {
+        return await client.sync();
+      } finally {
+        client.close();
+      }
+    });
+    _syncTail = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return result;
   }
 }

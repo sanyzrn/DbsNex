@@ -229,6 +229,32 @@ extension NexBackupServices on NexServices {
     }
   }
 
+  Future<List<String>> backupMissingMedia(String source) =>
+      Isolate.run(() => NexBackupArchive.missingMedia(source));
+
+  Future<({String path, List<String> missing})> exportRescueBackup() async {
+    final cache = await getTemporaryDirectory();
+    final staging = await cache.createTemp('nex-rescue-');
+    try {
+      await worker.backup(
+        staging.path,
+        mediaDir: mediaDir,
+        allowMissingMedia: true,
+      );
+      final source = staging.listSync().whereType<File>().singleWhere(
+        (file) => file.path.endsWith('.nexbak'),
+      );
+      final path = p.join(
+        cache.path,
+        'Nex-rescue-${DateTime.now().microsecondsSinceEpoch}.nexbak',
+      );
+      await source.copy(path);
+      return (path: path, missing: await backupMissingMedia(path));
+    } finally {
+      await staging.delete(recursive: true);
+    }
+  }
+
   Future<String> portableBackup(File backup) async {
     if (backup.path.endsWith('.sqlite')) return backup.path;
     final cache = await getTemporaryDirectory();
@@ -370,6 +396,7 @@ extension NexBackupServices on NexServices {
       await worker.backup(
         p.join(backupDir, 'before-restore'),
         mediaDir: this.mediaDir,
+        allowMissingMedia: (await backupMissingMedia(backup.path)).isNotEmpty,
       );
       await _closeOnce();
       final dbPath = this.dbPath;

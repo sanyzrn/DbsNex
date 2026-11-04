@@ -23,6 +23,7 @@ import '../widgets/recovery_code.dart';
 import '../widgets/settings_group.dart';
 
 part 'backup/backup_sections.dart';
+part 'backup/backup_rescue.dart';
 
 /// Everything about getting the library out of this device, and back in.
 ///
@@ -436,12 +437,17 @@ class _BackupScreenState extends State<BackupScreen> {
 
   Future<void> _confirmRestore(File backup) async {
     final l10n = AppLocalizations.of(context);
+    final missing = await _rescueInventory(backup.path);
+    if (!mounted) return;
     final ok = await nexShowDialog<bool>(
       context: context,
       builder: (ctx) => NexAlertDialog(
         title: Text(l10n.restoreBackup),
         content: NexDialogBody(
-          child: Text('${l10n.restoreBody}\n\n${p.basename(backup.path)}'),
+          child: Text(
+            '${l10n.restoreBody}\n\n${p.basename(backup.path)}'
+            '${missing.isEmpty ? '' : '\n\n${l10n.rescueBackupWarning}\n${l10n.rescueBackupMissing(missing.length)}\n${missing.take(10).join('\n')}'}',
+          ),
         ),
         actions: [
           TextButton(
@@ -654,6 +660,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     subtitle: Text(l10n.fullBackupSub),
                     onTap: _busy ? null : () => unawaited(_exportFull()),
                   ),
+                  _rescueRow(l10n),
                   ListTile(
                     leading: const Icon(Icons.ios_share_outlined),
                     title: Text(l10n.exportNotes),

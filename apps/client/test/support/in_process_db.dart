@@ -545,8 +545,15 @@ class InProcessDb implements NexDb {
       _repo.listUpcomingReminders(limit: limit);
 
   @override
-  Future<void> backup(String backupDir, {required String mediaDir}) async =>
-      _repo.backup(backupDir, mediaDir: mediaDir);
+  Future<void> backup(
+    String backupDir, {
+    required String mediaDir,
+    bool allowMissingMedia = false,
+  }) async => _repo.backup(
+    backupDir,
+    mediaDir: mediaDir,
+    allowMissingMedia: allowMissingMedia,
+  );
 
   @override
   Future<String> exportArchive({

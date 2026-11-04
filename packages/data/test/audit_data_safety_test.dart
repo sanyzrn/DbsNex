@@ -193,4 +193,75 @@ void main() {
     expect(repo.getById(pushed.id)!.syncState, SyncState.pending);
     expect(repo.getById(pushed.id)!.content, 'edited while sending');
   });
+  test(
+    'edits during sync survive an acknowledged push and a canonical tag remap',
+    () async {
+      final note = local();
+      final tag = repo.upsertTag(name: 'Work');
+      repo.attachTag(noteId: note.id, tagId: tag.id);
+      final client = SyncClient(
+        baseUrl: 'https://sync.invalid',
+        deviceId: 'local',
+        repo: repo,
+        httpClient: MockClient((request) async {
+          if (request.method == 'POST') {
+            repo.setTagColor(tagId: tag.id, color: '#FF0000');
+            repo.updateContentAt(
+              note.id,
+              'edited while syncing',
+              DateTime.utc(2026, 4),
+            );
+            return http.Response(
+              jsonEncode({
+                'merged': [
+                  {'id': note.id, 'rev': 8},
+                ],
+                'tag_remap': [
+                  {'client_id': tag.id, 'canonical_id': 'canonical'},
+                ],
+                'media_deduped': <String>[],
+              }),
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'cursor': '8',
+              'has_more': false,
+              'tags': [
+                {
+                  'id': 'canonical',
+                  'name': 'Work',
+                  'color': '#0000FF',
+                  'created_at': DateTime.utc(2026).toIso8601String(),
+                },
+              ],
+              'notes': [
+                {
+                  'id': note.id,
+                  'type': 'text',
+                  'content': 'remote text',
+                  'device_id': 'remote',
+                  'rev': 8,
+                  'created_at': note.createdAt.toIso8601String(),
+                  'updated_at': DateTime.utc(2026, 3).toIso8601String(),
+                  'tag_ids': ['canonical'],
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+      addTearDown(client.close);
+      await client.sync();
+      expect(
+        repo.listTimeline().map((n) => n.content),
+        contains('edited while syncing'),
+      );
+      final pending = repo.listPendingTags().single;
+      expect(pending.id, 'canonical');
+      expect(pending.color, '#FF0000');
+    },
+  );
 }

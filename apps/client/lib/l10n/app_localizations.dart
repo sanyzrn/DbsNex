@@ -10393,6 +10393,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enable Memory'**
   String get memoryEnable;
+
+  /// No description provided for @rescueBackupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rescue library backup'**
+  String get rescueBackupTitle;
+
+  /// No description provided for @rescueBackupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save recoverable library data when attachment files are missing.'**
+  String get rescueBackupHint;
+
+  /// No description provided for @rescueBackupWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy may be incomplete. Missing attachments are listed and remain unavailable after restore. Settings and the private vault are not included.'**
+  String get rescueBackupWarning;
+
+  /// No description provided for @rescueBackupMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing files: {count}'**
+  String rescueBackupMissing(int count);
 }
 
 class _AppLocalizationsDelegate

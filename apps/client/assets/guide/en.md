@@ -256,6 +256,8 @@ With Cycle on, two more are in the launcher's list. **Cycle** shows the ring, wh
 - **Restore points on this phone.** Tap one to restore it, share it, or delete it. One saved just before a restore says so.
 - **Keep a copy or move to a new phone.** A **complete backup** is one file with settings and service keys too, the private vault if you choose it, and optionally the offline model (about 2.6 GB); its settings, keys and vault are encrypted with a recovery code shown once — keep it somewhere else. **Export notes** gives a ZIP of Markdown and JSON readable without Nex. **Restore or import from a file** takes any of these: a complete backup or a backup replaces the library, a Nex export adds to it. Notes from Google Keep or a folder of Markdown files come in through **Import notes**, next to it in Data & backup.
 
+**Rescue library backup** saves the recoverable library if attachment files are missing. It shows how many are missing before sharing and before restoring; the backup carries the full list. Missing files remain unavailable. Settings and the private vault are excluded. Normal backups still require all referenced files.
+
 Restoring replaces the library and restarts Nex. If a restore is interrupted, the next launch puts everything back as it was.
 
 ![Data and backup](backup.webp)

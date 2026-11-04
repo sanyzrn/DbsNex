@@ -371,23 +371,78 @@ class _CardBody extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.all(NexCardDensity.of(context).inset),
-          child: Row(
-            // Keep the icon aligned with the top of an expanded preview.
-            crossAxisAlignment: expanded
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.center,
-            children: [
-              if (selected case final picked?)
-                _PickMark(picked: picked, note: note, strings: strings)
-              else
-                _LeadingWithPin(note: note, strings: strings, ringing: ringing),
-              const SizedBox(width: NexSpacing.contentGap),
-              Expanded(child: _withFootnote(context)),
-            ],
-          ),
-        ),
+        child: expanded
+            ? Padding(
+                padding: EdgeInsets.all(NexCardDensity.of(context).inset),
+                child: Row(
+                  // Keep the icon aligned with the top of an expanded preview.
+                  crossAxisAlignment: expanded
+                      ? CrossAxisAlignment.start
+                      : CrossAxisAlignment.center,
+                  children: [
+                    if (selected case final picked?)
+                      _PickMark(picked: picked, note: note, strings: strings)
+                    else
+                      _LeadingWithPin(
+                        note: note,
+                        strings: strings,
+                        ringing: ringing,
+                      ),
+                    const SizedBox(width: NexSpacing.contentGap),
+                    Expanded(child: _withFootnote(context)),
+                  ],
+                ),
+              )
+            : Stack(
+                fit: StackFit.expand,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(NexCardDensity.of(context).inset),
+                    child: Row(
+                      // Keep the icon aligned with the top of an expanded preview.
+                      crossAxisAlignment: expanded
+                          ? CrossAxisAlignment.start
+                          : CrossAxisAlignment.center,
+                      children: [
+                        if (selected case final picked?)
+                          _PickMark(
+                            picked: picked,
+                            note: note,
+                            strings: strings,
+                          )
+                        else
+                          _LeadingWithPin(
+                            note: note,
+                            strings: strings,
+                            ringing: ringing,
+                          ),
+                        const SizedBox(width: NexSpacing.contentGap),
+                        Expanded(child: _withFootnote(context)),
+                      ],
+                    ),
+                  ),
+                  if ((showDue && note.dueAt != null) ||
+                      note.attachmentCount > 0 ||
+                      note.isUrgent)
+                    PositionedDirectional(
+                      start:
+                          NexCardDensity.of(context).inset +
+                          NexCardDensity.of(context).leading +
+                          NexSpacing.contentGap,
+                      end: NexCardDensity.of(context).inset,
+                      bottom: _statusBottomGap,
+                      child: Align(
+                        alignment: AlignmentDirectional.bottomStart,
+                        child: _CardStatusMarks(
+                          note: note,
+                          strings: strings,
+                          due: showDue ? note.dueAt : null,
+                          halos: true,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
       ),
     );
   }

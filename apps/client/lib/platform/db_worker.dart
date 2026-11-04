@@ -636,11 +636,11 @@ class NexDbWorker
   /// transaction. Each writes at most one row of one note when it returns,
   /// and SQLite's own atomicity covers that.
   ///
-  /// Deliberately not on this list: `sync`, `importNotes` and `importArchive`.
-  /// All three write in bulk across many rows, which is exactly the
-  /// multi-step sequence the chain exists to keep whole — and sync already
-  /// caps itself at 30 seconds for this same reason.
+  /// Sync holds no transaction across HTTP awaits; each pulled page is one
+  /// synchronous transaction. It has its own serial chain, allowing captures
+  /// during network waits. Imports remain serialized as bulk local writes.
   static const _background = {
+    _DbCommand.sync,
     _DbCommand.enrichNote,
     _DbCommand.readMediaOnDemand,
     _DbCommand.backfillEnrichment,

@@ -297,7 +297,11 @@ abstract interface class NexDb {
 
   Future<List<Note>> upcomingReminders({int limit});
 
-  Future<void> backup(String backupDir, {required String mediaDir});
+  Future<void> backup(
+    String backupDir, {
+    required String mediaDir,
+    bool allowMissingMedia = false,
+  });
 
   Future<String> exportArchive({
     required String outputPath,
