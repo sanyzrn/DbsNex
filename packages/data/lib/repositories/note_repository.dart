@@ -1918,7 +1918,12 @@ WHERE n.deleted_at IS NULL
   -- No vector yet, or one older than the note's last change (DATA-01): an
   -- edit, a caption, a transcript or a title written since it was embedded
   -- left the vector describing what the note used to say.
-  AND (e.note_id IS NULL OR e.updated_at < n.updated_at)
+  -- Dart writes either three or six fractional digits. Pad both UTC
+  -- timestamps so .123001Z is newer than .123Z, retaining microseconds
+  -- and treating equivalent timestamps from existing libraries as equal.
+  AND (e.note_id IS NULL OR
+    substr(replace(e.updated_at, 'Z', '000000'), 1, 26) <
+    substr(replace(n.updated_at, 'Z', '000000'), 1, 26))
   AND (
     COALESCE(TRIM(n.content), '') <> ''
     OR COALESCE(TRIM(n.transcript_text), '') <> ''

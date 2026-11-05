@@ -53,6 +53,39 @@ void main() {
     expect(repo.listNeedingEmbedding(), isEmpty);
   });
 
+  test('a newer vector stays current across timestamp precision', () {
+    now = DateTime.utc(2026, 10, 14, 12, 0, 0, 123);
+    repo.insert(note('n1', content: 'something'));
+    now = now.add(const Duration(microseconds: 1));
+    repo.setEmbedding('n1', [0.1, 0.2, 0.3]);
+
+    expect(repo.listNeedingEmbedding(), isEmpty);
+  });
+
+  test('a one-microsecond edit queues an older vector', () {
+    now = DateTime.utc(2026, 10, 14, 12, 0, 0, 123);
+    repo.insert(note('n1', content: 'before'));
+    repo.setEmbedding('n1', [0.1, 0.2, 0.3]);
+    now = now.add(const Duration(microseconds: 1));
+    repo.updateContent('n1', 'after');
+
+    expect(repo.listNeedingEmbedding().single.id, 'n1');
+    repo.setEmbedding('n1', [0.3, 0.2, 0.1]);
+    expect(repo.listNeedingEmbedding(), isEmpty);
+  });
+
+  test('equal legacy timestamps do not queue an unchanged note', () {
+    now = DateTime.utc(2026, 10, 14, 12, 0, 0, 123);
+    repo.insert(note('n1', content: 'something'));
+    repo.setEmbedding('n1', [0.1, 0.2, 0.3]);
+    db.db.execute(
+      'UPDATE note_embeddings SET updated_at = ? WHERE note_id = ?',
+      ['2026-10-14T12:00:00.123000Z', 'n1'],
+    );
+
+    expect(repo.listNeedingEmbedding(), isEmpty);
+  });
+
   test('an edit after the vector puts the note back in the backlog '
       '(DATA-01)', () {
     // The vector was a snapshot of the note's first moments: an edited note
