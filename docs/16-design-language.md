@@ -217,13 +217,17 @@ theme reveal. All additions respect reduced motion and settle without idle loops
 
 ### Appearance modes (2.6.6)
 
-The app exposes Light, Dark, Night and System. Light and the old dark renderer
-(Night) retain their existing colors. New Dark uses `nexSoftDarkTheme`, with
-`#141821` page, `#1C212C` cards, `#252B38` nested surfaces, `#E4E8F1` main text
-and `#98A1B5` muted text. Quiet tonal fills replace decorative edges/shadows;
-functional selection, focus, errors and high contrast remain explicit. Optional
-Liquid Glass and the custom accent still work. Blue text and blue fills use
-separate contrast-appropriate roles. System uses the new Dark for a dark OS.
+The app exposes Light, Dark, Night and System. All three app appearances are
+flat, with tonal cards instead of decorative borders or shadows. Light uses
+`nexSoftLightTheme` (`#FFFFFF` page, `#F4F5F8` cards, `#14171C` text).
+Dark keeps `nexSoftDarkTheme` (`#141821` page, `#1C212C` cards, `#E4E8F1`
+text). OLED Night uses `nexOledNightTheme` (`#000000` page, `#0E0F12`
+cards, `#D9DDE6` soft text). Functional selection, focus, error and
+high-contrast outlines remain explicit; Liquid Glass and the custom accent
+are independent. Blue text and blue fills keep contrast-appropriate roles.
+System follows the OS and uses Soft Dark for a dark OS. Legacy library APIs
+`nexLightTheme` and `nexNightTheme` remain unchanged for older consumers and
+golden baselines.
 
 The gallery is paused behind `nexThemePresetsAvailable`. Keep its registry and
 stored selection; render `effectiveThemePreset` (Nex) instead. Stored `dark`
