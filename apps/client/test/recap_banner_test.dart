@@ -145,9 +145,8 @@ void main() {
       await tester.pumpAndSettle();
       TextStyle styleOf(String text) {
         final element = tester.element(find.text(text));
-        return DefaultTextStyle.of(
-          element,
-        ).style.merge((element.widget as Text).style);
+        return DefaultTextStyle.of(element).style
+            .merge((element.widget as Text).style);
       }
 
       final first = styleOf('First line');
