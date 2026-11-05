@@ -85,7 +85,7 @@ dependencies:
   # Android Keystore (EncryptedSharedPreferences) / Windows DPAPI, so a paid
   # third-party credential is not sitting in a plaintext XML or JSON file
   # anyone with ADB or filesystem access to the device can read.
-  flutter_secure_storage: ^10.3.4
+  flutter_secure_storage: ^11.2.0
   sqlite3: ^3.8.0
   sqlite3_flutter_libs: ^0.6.0+eol
   uuid: ^4.5.1
