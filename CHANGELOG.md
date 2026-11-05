@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.6
+
+- **Correct note order in threads.** Notes stay in chronological order even when their saved timestamps have different precision.
+
 ## v2.6.5
 
 - **Rescue library backups.** Keep recoverable notes and files even when some attachments are missing, with a clear missing-file list. Normal backups keep their complete-file checks.

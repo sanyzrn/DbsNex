@@ -17,8 +17,7 @@ import 'package:nex_client/app_version.dart';
 /// debug build and looked at About.
 ///
 /// So the numbers are now pinned to something that does move: the newest
-/// documented release, including internal-only entries in the technical history.
-/// The stamp in the workflow stays, as the
+/// released section of the changelog. The stamp in the workflow stays, as the
 /// belt to this file's braces.
 void main() {
   /// The repository root, from the package directory tests run in.
@@ -37,7 +36,7 @@ void main() {
     expect(nexAppVersion, pubspecVersion());
   });
 
-  test('the version is the newest documented release', () {
+  test('the version is the newest release the changelog names', () {
     // By name, not by position — the same rule `release.yml` reads the file
     // by, and for the same reason: the file opens with a prose section that
     // is itself a `## ` heading, and carries a fresh `## Unreleased` above
@@ -46,29 +45,17 @@ void main() {
     // Git for Windows' default before `.gitattributes` pinned LF — left a
     // `\r` on every line, the `$` below matched nothing, and this failed
     // with "No element" on a changelog that was perfectly correct.
-    final versions = [
-      for (final name in ['CHANGELOG.md', 'docs/development/CHANGELOG.md'])
-        ...const LineSplitter()
-            .convert(rootFile(name))
-            .map((line) => RegExp(r'^## v(\d+\.\d+\.\d+)$').firstMatch(line))
-            .nonNulls
-            .map((match) => match.group(1)!),
-    ];
-    versions.sort((a, b) {
-      final left = a.split('.').map(int.parse).toList();
-      final right = b.split('.').map(int.parse).toList();
-      for (var i = 0; i < 3; i++) {
-        final order = left[i].compareTo(right[i]);
-        if (order != 0) return order;
-      }
-      return 0;
-    });
-    final newest = versions.last;
+    final newest = const LineSplitter()
+        .convert(rootFile('CHANGELOG.md'))
+        .map((line) => RegExp(r'^## v(\d+\.\d+\.\d+)$').firstMatch(line))
+        .nonNulls
+        .first
+        .group(1);
     expect(
       pubspecVersion(),
       newest,
       reason:
-          'Document "## vX.Y.Z" in the user or technical changelog and bump pubspec.yaml '
+          'Add "## vX.Y.Z" below "## Unreleased" and bump pubspec.yaml '
           'and lib/app_version.dart in the same commit.',
     );
   });

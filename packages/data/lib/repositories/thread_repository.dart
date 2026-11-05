@@ -57,12 +57,15 @@ ORDER BY COALESCE(last_activity, t.updated_at) DESC, t.rowid DESC
 
   /// The live notes in [threadId], oldest first: a thread reads as a story.
   List<Note> notes(String threadId) {
+    // Dart emits either 3 or 6 fractional digits. Comparing raw ISO text
+    // puts .010100Z before the earlier .010Z. Pad the UTC sort key to six
+    // digits without rounding away microseconds; equal instants keep rowid order.
     final rows = db.select(
       '''
 SELECT n.* FROM notes n
 JOIN note_threads nt ON nt.note_id = n.id
 WHERE nt.thread_id = ? AND n.deleted_at IS NULL
-ORDER BY n.created_at ASC, n.rowid ASC
+ORDER BY substr(replace(n.created_at, 'Z', '000'), 1, 26) ASC, n.rowid ASC
 ''',
       [threadId],
     );
