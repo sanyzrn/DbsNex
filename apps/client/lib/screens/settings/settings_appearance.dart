@@ -35,7 +35,8 @@ class _AccentColorRow extends StatelessWidget {
 
   /// The accent the chosen palette brings, or the shipped one for Classic.
   static Color _themeAccent(NexPreferences preferences) =>
-      nexThemePresetSeed(preferences.themePreset) ?? NexColors.accentLight;
+      nexThemePresetSeed(preferences.effectiveThemePreset) ??
+      NexColors.accentLight;
 
   static String _hex(Color color) =>
       '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
@@ -159,7 +160,7 @@ class _ThemeScreen extends StatelessWidget {
             NexSpacing.lg + nexBottomInset(context),
           ),
           children: [
-            // The three choices here used to be rows that each opened a
+            // The mode choices here used to be rows that each opened a
             // sheet to pick from — a tap to see the choices, a tap to make
             // one, and the result only visible once the sheet was gone. They
             // are the choices themselves now, in place, the way Language and
@@ -167,14 +168,15 @@ class _ThemeScreen extends StatelessWidget {
             NexPanel(
               title: l10n.theme,
               icon: Icons.contrast,
-              child: NexChoiceCards<ThemeMode>(
-                selected: preferences.themeMode,
-                onSelected: preferences.setThemeMode,
+              child: NexChoiceCards<NexAppearanceMode>(
+                selected: preferences.appearanceMode,
+                onSelected: preferences.setAppearanceMode,
                 choices: [
                   for (final (mode, label) in [
-                    (ThemeMode.light, l10n.themeLight),
-                    (ThemeMode.dark, l10n.themeDark),
-                    (ThemeMode.system, l10n.themeSystem),
+                    (NexAppearanceMode.light, l10n.themeLight),
+                    (NexAppearanceMode.dark, l10n.themeDark),
+                    (NexAppearanceMode.night, l10n.themeNight),
+                    (NexAppearanceMode.system, l10n.themeSystem),
                   ])
                     NexChoice(
                       value: mode,
@@ -252,9 +254,15 @@ class _ThemeScreen extends StatelessWidget {
               children: [
                 _Row(
                   key: const ValueKey('appearance-themes'),
+                  enabled: nexThemePresetsAvailable,
                   icon: Icons.palette_outlined,
                   title: l10n.theme,
-                  value: nexThemePresetLabel(context, preferences.themePreset),
+                  value: nexThemePresetsAvailable
+                      ? nexThemePresetLabel(
+                          context,
+                          preferences.effectiveThemePreset,
+                        )
+                      : l10n.themePresetsPaused,
                   onTap: () => Navigator.push(
                     context,
                     NexPageRoute<void>(

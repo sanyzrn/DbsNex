@@ -15,7 +15,7 @@ Locale? nexSystemLocale(BuildContext context) {
 /// by their consumers without rebuilding MaterialApp and both themes.
 Object nexAppConfiguration(NexPreferences prefs) => (
   prefs.locale,
-  prefs.themeMode,
+  prefs.appearanceMode,
   prefs.themePreset,
   prefs.accentSeed,
   prefs.comfortMode,

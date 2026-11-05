@@ -979,7 +979,7 @@ void main() {
     expect(find.text('Liquid Glass'), findsNothing);
     expect(find.text('Background'), findsNothing);
     expect(find.text('Text & UI size'), findsNothing);
-    expect(find.byType(NexChoiceCards<ThemeMode>), findsNothing);
+    expect(find.byType(NexChoiceCards<NexAppearanceMode>), findsNothing);
     expect(find.byType(NexChoiceCards<double>), findsNothing);
 
     // The current value sits under each name — the whole reason a collapsed
@@ -988,50 +988,46 @@ void main() {
     expect(find.text('Nex'), findsWidgets);
   });
 
-  testWidgets('Appearance owns mode and opens the theme gallery', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 2000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
-    // Appearance holds one screen, so it opens that screen directly.
-    await openSettingsCategory(tester, 'appearance');
-    final themes = find.byKey(const ValueKey('appearance-themes'));
-    await tester.ensureVisible(themes);
-    await tester.pumpAndSettle();
-    await tester.tap(themes);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Paper notebook'));
-    await tester.pumpAndSettle();
-    expect(preferences.themePreset, 'paper');
-    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    // Paper has a motif, so its colour is the backdrop's and the scaffold
-    // is clear over it.
-    expect(app.theme!.colorScheme.surface, const Color(0xFFF5EEDC));
-    expect(
-      app.theme!.extension<NexVisualStyle>()!.baseColor,
-      const Color(0xFFF5EEDC),
-    );
-    expect(app.theme!.scaffoldBackgroundColor.a, 0);
-    // Mode remains on Appearance, outside the palette gallery.
-    await tester.tap(find.byType(BackButton).first);
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Dark'),
-      -200,
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(find.byType(NexChoiceCards<ThemeMode>), findsOneWidget);
-    await tester.tap(find.text('Dark'));
-    await tester.pumpAndSettle();
-    expect(preferences.themeMode, ThemeMode.dark);
-    expect((await NexPreferences.load()).themePreset, 'paper');
-  });
+  testWidgets(
+    'Appearance owns four modes while the palette gallery is paused',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 2000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await preferences.setThemePreset('paper');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.pumpAndSettle();
+      await openSettingsCategory(tester, 'appearance');
+      final themes = find.byKey(const ValueKey('appearance-themes'));
+      await tester.ensureVisible(themes);
+      await tester.pumpAndSettle();
+      final row = tester.widget<ListTile>(
+        find.descendant(of: themes, matching: find.byType(ListTile)),
+      );
+      expect(row.enabled, isFalse);
+      expect(row.onTap, isNull);
+      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(
+        app.theme!.colorScheme,
+        nexLightTheme(fontFamily: nexLatinFont).colorScheme,
+      );
+      expect(preferences.themePreset, 'paper');
+      await tester.scrollUntilVisible(
+        find.text('Dark'),
+        -200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.byType(NexChoiceCards<NexAppearanceMode>), findsOneWidget);
+      expect(find.text('Night'), findsOneWidget);
+      await tester.tap(find.text('Dark'));
+      await tester.pumpAndSettle();
+      expect(preferences.appearanceMode, NexAppearanceMode.dark);
+      expect((await NexPreferences.load()).themePreset, 'paper');
+    },
+  );
 
   testWidgets('the AI output language is its own setting, not the app locale', (
     tester,

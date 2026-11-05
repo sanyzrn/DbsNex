@@ -13,11 +13,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:nex_ai/cloud.dart';
+import 'appearance_mode.dart';
 import 'chat_history.dart';
 import 'editor_drafts.dart';
 import 'hold_menu.dart';
 import 'vault_store.dart';
 import 'package:uuid/uuid.dart';
+
+export 'appearance_mode.dart';
 
 part 'preferences/ai_preferences.dart';
 part 'preferences/appearance_preferences.dart';

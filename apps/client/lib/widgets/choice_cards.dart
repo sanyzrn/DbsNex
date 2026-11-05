@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
+import '../platform/appearance_mode.dart';
 
 /// One option in a [NexChoiceCards] row.
 class NexChoice<T> {
@@ -98,6 +99,8 @@ class _Card<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
+    final flat =
+        context.nexVisualStyle.minimal && !MediaQuery.highContrastOf(context);
     return Semantics(
       button: true,
       selected: isSelected,
@@ -114,13 +117,19 @@ class _Card<T> extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(NexRadius.lg),
-            color: isSelected
-                ? accent.withValues(alpha: 0.06)
-                : theme.colorScheme.surface,
-            border: Border.all(
-              color: isSelected ? accent : theme.colorScheme.outline,
-              width: isSelected ? 1.6 : 1,
-            ),
+            color: flat
+                ? (isSelected
+                      ? theme.colorScheme.primaryContainer
+                      : theme.colorScheme.surfaceContainerLowest)
+                : (isSelected
+                      ? accent.withValues(alpha: 0.06)
+                      : theme.colorScheme.surface),
+            border: flat
+                ? null
+                : Border.all(
+                    color: isSelected ? accent : theme.colorScheme.outline,
+                    width: isSelected ? 1.6 : 1,
+                  ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -135,7 +144,9 @@ class _Card<T> extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: isSelected ? accent : theme.colorScheme.secondary,
+                  color: isSelected
+                      ? (flat ? theme.colorScheme.onPrimaryContainer : accent)
+                      : theme.colorScheme.secondary,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
@@ -154,20 +165,22 @@ class _Card<T> extends StatelessWidget {
 class NexThemeSwatch extends StatelessWidget {
   const NexThemeSwatch({super.key, required this.mode, required this.comfort});
 
-  final ThemeMode mode;
+  final NexAppearanceMode mode;
   final bool comfort;
 
   @override
   Widget build(BuildContext context) {
     final system = MediaQuery.platformBrightnessOf(context);
-    final dark = switch (mode) {
+    final dark = switch (mode.materialMode) {
       ThemeMode.dark => true,
       ThemeMode.light => false,
       ThemeMode.system => system == Brightness.dark,
     };
     final scheme =
         (dark
-                ? nexDarkTheme(comfortMode: comfort)
+                ? (mode == NexAppearanceMode.night
+                      ? nexNightTheme
+                      : nexSoftDarkTheme)(comfortMode: comfort)
                 : nexLightTheme(comfortMode: comfort))
             .colorScheme;
     Widget bar(double width, double opacity) => Container(
@@ -185,7 +198,12 @@ class NexThemeSwatch extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(NexRadius.sm),
-        border: Border.all(color: scheme.outline),
+        border:
+            dark &&
+                mode != NexAppearanceMode.night &&
+                !MediaQuery.highContrastOf(context)
+            ? null
+            : Border.all(color: scheme.outline),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -197,7 +215,7 @@ class NexThemeSwatch extends StatelessWidget {
         ],
       ),
     );
-    if (mode != ThemeMode.system) return preview;
+    if (mode != NexAppearanceMode.system) return preview;
     // "System" is neither one nor the other, so it shows both: the light half
     // is drawn over the dark one and clipped down the diagonal.
     return SizedBox(
@@ -216,7 +234,7 @@ class NexThemeSwatch extends StatelessWidget {
                 color:
                     (dark
                             ? nexLightTheme(comfortMode: comfort)
-                            : nexDarkTheme(comfortMode: comfort))
+                            : nexSoftDarkTheme(comfortMode: comfort))
                         .colorScheme
                         .surface,
                 borderRadius: BorderRadius.circular(NexRadius.sm),

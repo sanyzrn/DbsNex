@@ -214,3 +214,19 @@ only after a real change, with no ticker allocated on initial paint. Brief text
 changes cross-fade with a small settle and one border sweep rather than four.
 Glass toggles participate in the existing
 theme reveal. All additions respect reduced motion and settle without idle loops.
+
+### Appearance modes (2.6.6)
+
+The app exposes Light, Dark, Night and System. Light and the old dark renderer
+(Night) retain their existing colors. New Dark uses `nexSoftDarkTheme`, with
+`#141821` page, `#1C212C` cards, `#252B38` nested surfaces, `#E4E8F1` main text
+and `#98A1B5` muted text. Quiet tonal fills replace decorative edges/shadows;
+functional selection, focus, errors and high contrast remain explicit. Optional
+Liquid Glass and the custom accent still work. Blue text and blue fills use
+separate contrast-appropriate roles. System uses the new Dark for a dark OS.
+
+The gallery is paused behind `nexThemePresetsAvailable`. Keep its registry and
+stored selection; render `effectiveThemePreset` (Nex) instead. Stored `dark`
+resolves to Night without rewriting old backups. New Dark stores `soft_dark`;
+Night stores `night`. Observe appearanceMode separately from Flutter ThemeMode,
+so switching between the two dark modes updates the whole app.

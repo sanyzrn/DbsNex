@@ -42,6 +42,10 @@ checks, immutable actions, changed-file formatting and deterministic clocks.
 Fixed chronological thread ordering across mixed UTC timestamp precision; added bilingual public notes for that visible fix.
 See [2.6.6-ci-hardening.md](2.6.6-ci-hardening.md).
 
+Added Soft Dark/Night/System routing, non-destructive legacy mode reading, paused
+preset rendering, accessible flat material and bilingual appearance coverage.
+See [2.6.6-appearance-modes.md](2.6.6-appearance-modes.md).
+
 ## v2.5.0
 
 - Long text-file previews, including Markdown, DOCX and source files, use the same More/Less control as long notes.

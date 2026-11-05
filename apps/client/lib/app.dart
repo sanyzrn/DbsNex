@@ -582,8 +582,8 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     final font = nexFontFor(prefs.locale ?? nexSystemLocale(context));
     final accentSeed =
         nexParseTagColor(prefs.accentSeed) ??
-        nexThemePresetSeed(prefs.themePreset);
-    final texture = nexThemeTexture(prefs.themePreset);
+        nexThemePresetSeed(prefs.effectiveThemePreset);
+    final texture = nexThemeTexture(prefs.effectiveThemePreset);
     // Scaffolds see through to the app's background whenever it shows
     // anything: glass, a pattern, or a theme's motif along the bottom.
     final transparentScaffold =
@@ -611,18 +611,20 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
           fontFamily: font,
           accentSeed: accentSeed,
         ),
-        prefs.themePreset,
+        prefs.effectiveThemePreset,
         accentSeed,
       ),
       darkTheme: nexApplyThemePreset(
-        nexDarkTheme(
+        (prefs.appearanceMode == NexAppearanceMode.night
+            ? nexNightTheme
+            : nexSoftDarkTheme)(
           comfortMode: prefs.comfortMode,
           liquidGlass: prefs.liquidGlass,
           transparentScaffold: transparentScaffold,
           fontFamily: font,
           accentSeed: accentSeed,
         ),
-        prefs.themePreset,
+        prefs.effectiveThemePreset,
         accentSeed,
       ),
       localizationsDelegates: const [
@@ -655,7 +657,8 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
         return NexThemeReveal(
           signature: (
             brightness,
-            prefs.themePreset,
+            prefs.appearanceMode,
+            prefs.effectiveThemePreset,
             prefs.accentSeed,
             prefs.backgroundPattern,
             prefs.liquidGlass,

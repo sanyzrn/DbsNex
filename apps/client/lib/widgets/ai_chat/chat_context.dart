@@ -362,7 +362,7 @@ extension _ChatContext on _AiChatSheetState {
     String two(int value) => value.toString().padLeft(2, '0');
     final scale = p.uiScale;
     return [
-      'theme ${p.themeMode.name}',
+      'theme ${p.appearanceMode.name}',
       'language ${p.locale?.languageCode ?? 'system'}',
       'ai_language ${p.aiOutputLanguage.wireName}',
       'text_size ${scale < 0.95
@@ -372,7 +372,9 @@ extension _ChatContext on _AiChatSheetState {
           : scale < 1.25
           ? 'large'
           : 'larger'}',
-      'palette ${p.themePreset}',
+      nexThemePresetsAvailable
+          ? 'palette ${p.effectiveThemePreset}'
+          : 'palette classic (temporarily unavailable; do not change)',
       'accent ${p.accentSeed ?? 'default'}',
       'haptics ${onOff(p.haptics)}',
       'show_greeting ${onOff(p.showGreeting)}',

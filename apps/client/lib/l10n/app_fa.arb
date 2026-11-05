@@ -248,6 +248,8 @@
   },
   "themeLight": "روشن",
   "themeDark": "تیره",
+  "themeNight": "شب",
+  "themePresetsPaused": "تم‌های آماده موقتاً غیرفعال‌اند؛ انتخاب قبلی شما حفظ شده است.",
   "themeSystem": "مثل سیستم",
   "comfortMode": "حالت آسایش",
   "liquidGlass": "لیکویید گلس",

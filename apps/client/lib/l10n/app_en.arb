@@ -426,6 +426,8 @@
   },
   "themeLight": "Light",
   "themeDark": "Dark",
+  "themeNight": "Night",
+  "themePresetsPaused": "Temporarily unavailable. Your saved themes are kept.",
   "themeSystem": "System",
   "comfortMode": "Comfort Mode",
   "liquidGlass": "Liquid glass",

@@ -86,14 +86,15 @@ class _SetupPage extends StatelessWidget {
             NexPanel(
               title: l10n.theme,
               icon: Icons.contrast,
-              child: NexChoiceCards<ThemeMode>(
-                selected: preferences.themeMode,
-                onSelected: preferences.setThemeMode,
+              child: NexChoiceCards<NexAppearanceMode>(
+                selected: preferences.appearanceMode,
+                onSelected: preferences.setAppearanceMode,
                 choices: [
                   for (final (mode, label) in [
-                    (ThemeMode.light, l10n.themeLight),
-                    (ThemeMode.dark, l10n.themeDark),
-                    (ThemeMode.system, l10n.themeSystem),
+                    (NexAppearanceMode.light, l10n.themeLight),
+                    (NexAppearanceMode.dark, l10n.themeDark),
+                    (NexAppearanceMode.night, l10n.themeNight),
+                    (NexAppearanceMode.system, l10n.themeSystem),
                   ])
                     NexChoice(
                       value: mode,

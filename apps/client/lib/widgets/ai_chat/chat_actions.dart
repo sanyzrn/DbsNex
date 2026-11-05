@@ -423,12 +423,13 @@ extension _ChatActions on _AiChatSheetState {
     switch (action.settingKey) {
       case 'theme':
         final mode = switch (value) {
-          'light' => ThemeMode.light,
-          'dark' => ThemeMode.dark,
-          'system' => ThemeMode.system,
+          'light' => NexAppearanceMode.light,
+          'dark' => NexAppearanceMode.dark,
+          'night' => NexAppearanceMode.night,
+          'system' => NexAppearanceMode.system,
           _ => null,
         };
-        if (mode != null) await widget.preferences.setThemeMode(mode);
+        if (mode != null) await widget.preferences.setAppearanceMode(mode);
       case 'language':
         if (value == 'en' || value == 'fa' || value == 'system') {
           // 'system' verbatim, never an empty string: the getter reads
@@ -462,7 +463,8 @@ extension _ChatActions on _AiChatSheetState {
         if (scale != null) await widget.preferences.setUiScale(scale);
       // The whole-app palettes on the Theme page, by the same ids it stores.
       case 'palette':
-        if (nexThemePresets.any((preset) => preset.id == value)) {
+        if (nexThemePresetsAvailable &&
+            nexThemePresets.any((preset) => preset.id == value)) {
           await widget.preferences.setThemePreset(value!);
         }
       // Already normalised to `#RRGGBB` by the parser, or `default` for the

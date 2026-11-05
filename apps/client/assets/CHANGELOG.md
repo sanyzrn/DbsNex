@@ -6,6 +6,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.6.6
 
+- **Soft Dark and a familiar Night.** Dark uses calm blue-grey surfaces and softer text, with fewer decorative borders and shadows. Night keeps the former dark look; System follows your device using the new Dark. Existing dark selections become Night. Custom accents and Liquid Glass remain available.
+- **A steady Nex appearance.** Preset themes are temporarily unavailable while the main Nex look is refined; their saved choices are kept.
 - **Correct note order in threads.** Notes stay in chronological order even when their saved timestamps have different precision.
 
 ## v2.6.5

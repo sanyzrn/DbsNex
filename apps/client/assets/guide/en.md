@@ -222,11 +222,11 @@ Cycle stays on this phone and in your backups. It never appears in your notes, s
 
 ## Appearance, language and calendar
 
-**Still** is a separate theme in the gallery, with warm neutral surfaces and a muted sage accent in both light and dark. It uses spacing and tonal groups instead of decorative borders, shadows, textures or glass. Focus, errors and high-contrast reading cues remain available. Your glass preference is retained for other themes.
+The preset palette gallery, including **Still**, is temporarily paused. Its code and your saved palette selection are kept for when the gallery returns.
 
 In Settings → Appearance, **Liquid glass** is a separate optional effect, off by default. It adds frosted depth to page headers, dialogs, menus, sheets, Settings groups and Tools/Library panels while keeping note cards opaque. High contrast uses solid surfaces, and reduced motion keeps swipe icons still.
 
-**Settings → Appearance** keeps light, dark or system mode, text size, card size, accent colour and optional glass on the main page. Below accent and glass, **Theme** opens the palette gallery and **App icon** opens its own picker. Existing themes keep their saved IDs. Four new themes — **Bauhaus**, **Kintsugi**, **Circuit** and **Afterimage** — add geometric forms, gold seams, electronic routes and an optical dot rhythm. Their static motifs fade behind the lower part of the page; note reading surfaces stay opaque. Choosing a theme brings its own accent, which you can change afterwards.
+Appearance offers **Light**, **Dark**, **Night** and **System**. Dark uses the new soft blue-grey palette with flat, quiet surfaces; Night keeps the former dark look. A previously selected Dark opens as Night. System follows your device and uses the new Dark at night. Custom accents and Liquid Glass still work in all modes. **Theme** is temporarily dimmed and unavailable: Nex uses its main palette, while all preset theme code and your saved palette choice are retained. App icons, text size and card density remain available.
 
 In **Appearance → App icon**, the picker changes the icon on your home screen to one of six — on dark, the Nex logotype (the default), the octopus and the swirl, and below them the same three on light; a home-screen shortcut may need adding again afterwards.
 
