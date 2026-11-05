@@ -235,21 +235,18 @@ void main() {
 
     test('built-in audio capabilities are unchanged', () {
       expect(
-        const AiProviderConfig(
-          provider: AiProvider.openai,
-        ).supportsTranscription,
+        const AiProviderConfig(provider: AiProvider.openai)
+            .supportsTranscription,
         isTrue,
       );
       expect(
-        const AiProviderConfig(
-          provider: AiProvider.gemini,
-        ).supportsTranscription,
+        const AiProviderConfig(provider: AiProvider.gemini)
+            .supportsTranscription,
         isTrue,
       );
       expect(
-        const AiProviderConfig(
-          provider: AiProvider.anthropic,
-        ).supportsTranscription,
+        const AiProviderConfig(provider: AiProvider.anthropic)
+            .supportsTranscription,
         isFalse,
       );
     });
@@ -386,9 +383,8 @@ void main() {
       // being broken.
       test('a reply in three scripts with a repeat is refused', () {
         expect(
-          adapterReplying(
-            'veritableهایWhitehall veritableഇഇഇ toutes toutes to',
-          ).headline('a note'),
+          adapterReplying('veritableهایWhitehall veritableഇഇഇ toutes toutes to')
+              .headline('a note'),
           completion(isNull),
         );
       });
@@ -425,9 +421,8 @@ void main() {
           completion('صبح آرام دفتر Whitehall'),
         );
         expect(
-          adapterReplying(
-            'You planned a trip and fixed the cooler.',
-          ).digest('x'),
+          adapterReplying('You planned a trip and fixed the cooler.')
+              .digest('x'),
           completion('You planned a trip and fixed the cooler.'),
         );
       });
@@ -469,41 +464,38 @@ void main() {
       expect(adapter.embed('x'), isNull);
     });
 
-    test(
-      'a capability a provider lacks is unavailable, not guessed at',
-      () async {
-        // Only Gemini and OpenAI can hear audio. Claiming otherwise would send a
-        // recording somewhere that cannot read it and store whatever came back.
-        for (final provider in AiProvider.values) {
-          final adapter = CloudAIAdapter(
-            config: AiProviderConfig(provider: provider, apiKey: 'k'),
-            client: MockClient((_) async => http.Response('{}', 200)),
-          );
-          final call = adapter.transcribe(
-            const AudioRef(mediaUri: '/tmp/does-not-exist.m4a'),
-          );
-          if (provider.hearsAudio) {
-            await expectLater(
-              call,
-              throwsA(
-                isA<AiUnavailableException>().having(
-                  (e) => e.kind,
-                  'kind',
-                  AiFailureKind.missingFile,
-                ),
+    test('a capability a provider lacks is unavailable, not guessed at', () async {
+      // Only Gemini and OpenAI can hear audio. Claiming otherwise would send a
+      // recording somewhere that cannot read it and store whatever came back.
+      for (final provider in AiProvider.values) {
+        final adapter = CloudAIAdapter(
+          config: AiProviderConfig(provider: provider, apiKey: 'k'),
+          client: MockClient((_) async => http.Response('{}', 200)),
+        );
+        final call = adapter.transcribe(
+          const AudioRef(mediaUri: '/tmp/does-not-exist.m4a'),
+        );
+        if (provider.hearsAudio) {
+          await expectLater(
+            call,
+            throwsA(
+              isA<AiUnavailableException>().having(
+                (e) => e.kind,
+                'kind',
+                AiFailureKind.missingFile,
               ),
-            );
-          } else {
-            expect(call, isNull, reason: provider.wireName);
-          }
+            ),
+          );
+        } else {
+          expect(call, isNull, reason: provider.wireName);
         }
-        expect(AiProvider.gemini.hearsAudio, isTrue);
-        expect(AiProvider.openai.hearsAudio, isTrue);
-        expect(AiProvider.anthropic.hearsAudio, isFalse);
-        expect(AiProvider.openrouter.hearsAudio, isFalse);
-        expect(AiProvider.none.hearsAudio, isFalse);
-      },
-    );
+      }
+      expect(AiProvider.gemini.hearsAudio, isTrue);
+      expect(AiProvider.openai.hearsAudio, isTrue);
+      expect(AiProvider.anthropic.hearsAudio, isFalse);
+      expect(AiProvider.openrouter.hearsAudio, isFalse);
+      expect(AiProvider.none.hearsAudio, isFalse);
+    });
 
     test('a provider only claims embeddings it can actually serve', () {
       // Same rule as `hearsAudio` directly above, which was already applied
@@ -1213,7 +1205,11 @@ void _recapGroup() {
         // stopped being: somebody opening the app is checking whether anything
         // is waiting on them, not reading an essay about their week.
         expect(prompt, contains('One thing per line'));
-        expect(prompt, contains('Overdue first'));
+        expect(prompt, contains('Urgent notes first, then reminders'));
+        expect(
+          prompt,
+          contains('Within reminders, prefer overdue and upcoming'),
+        );
         // The shape of the source is described rather than left to be
         // inferred: those lines are abbreviated to save tokens, and an
         // abbreviation a model has to guess at is one it will guess wrong.
@@ -1500,9 +1496,8 @@ void _translateGroup() {
 
     test('token soup is still refused', () async {
       expect(
-        await adapter(
-          'aaaaaa bbbb',
-        ).translate('x', target: AiOutputLanguage.english),
+        await adapter('aaaaaa bbbb')
+            .translate('x', target: AiOutputLanguage.english),
         isNull,
       );
     });

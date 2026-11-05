@@ -150,7 +150,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get layoutGreeting => 'Greeting';
 
   @override
-  String get layoutDaySummary => 'Smart daily summary';
+  String get layoutDaySummary => 'Recap';
 
   @override
   String get layoutSearchField => 'Search box';
@@ -1158,10 +1158,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recapRefreshFailed =>
-      'The smart summary could not be refreshed. The one below is the last one Nex made.';
+      'The recap could not be refreshed. The one below is the last one Nex made.';
 
   @override
-  String get recapRefreshing => 'Refreshing the smart summary…';
+  String get recapRefreshing => 'Refreshing the recap…';
 
   @override
   String get whatsNewAbout => 'Every change, release by release';
@@ -2346,7 +2346,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intelligenceOpen => 'Transcription, summaries, tags';
 
   @override
-  String get aiDaySummaryTitle => 'Smart summary';
+  String get aiDaySummaryTitle => 'Recap';
 
   @override
   String get aiDaySummaryBadge => 'AI';
@@ -3196,7 +3196,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConfirmSetting => 'Change this setting?';
 
   @override
-  String get briefEnabled => 'Show the smart summary';
+  String get briefEnabled => 'Show the recap';
 
   @override
   String get briefEnabledOn => 'Written for you each day on the timeline.';
@@ -3206,7 +3206,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Off: no summary is written and nothing is sent to a provider for it.';
 
   @override
-  String get briefTitle => 'Smart summary';
+  String get briefTitle => 'Recap';
 
   @override
   String get briefSubtitle =>
@@ -5320,7 +5320,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get disclosureSummary => 'Note summary';
 
   @override
-  String get disclosureDailySummary => 'Smart summary';
+  String get disclosureDailySummary => 'Recap';
 
   @override
   String get disclosureGreeting => 'Greeting';

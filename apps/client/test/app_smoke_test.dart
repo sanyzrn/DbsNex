@@ -1053,7 +1053,7 @@ void main() {
     // back in is the most visible thing about a brief. It is still one
     // setting for the whole app, which the sheet says in a line under it, and
     // which the rest of this test is about.
-    await tester.tap(find.text('Smart summary'));
+    await tester.tap(find.text('Recap'));
     await tester.pumpAndSettle();
     // Scrolled to rather than merely found. The brief is a pushed screen with
     // a `ListView` now, like the assistant's settings beside it, and a
