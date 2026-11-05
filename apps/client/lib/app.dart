@@ -606,7 +606,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       themeAnimationDuration: NexMotion.slow,
       themeAnimationCurve: NexMotion.curve,
       theme: nexApplyThemePreset(
-        nexLightTheme(
+        nexSoftLightTheme(
           comfortMode: prefs.comfortMode,
           liquidGlass: prefs.liquidGlass,
           transparentScaffold: transparentScaffold,
@@ -618,7 +618,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       ),
       darkTheme: nexApplyThemePreset(
         (prefs.appearanceMode == NexAppearanceMode.night
-            ? nexNightTheme
+            ? nexOledNightTheme
             : nexSoftDarkTheme)(
           comfortMode: prefs.comfortMode,
           liquidGlass: prefs.liquidGlass,
