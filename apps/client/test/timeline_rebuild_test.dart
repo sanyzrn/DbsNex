@@ -1155,7 +1155,7 @@ void main() {
         .color;
 
     final light = headerColor();
-    expect(light, nexLightTheme().colorScheme.surface);
+    expect(light, nexSoftLightTheme().colorScheme.surface);
 
     await preferences.setThemeMode(ThemeMode.dark);
     await tester.pumpAndSettle();
@@ -1169,7 +1169,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       headerColor(),
-      nexNightTheme().colorScheme.surface,
+      nexOledNightTheme().colorScheme.surface,
       reason: 'Night repaints the cached header even at equal brightness',
     );
   });
