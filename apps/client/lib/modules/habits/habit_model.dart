@@ -27,14 +27,14 @@ class Habit {
     required this.target,
     required this.archived,
     required this.createdAt,
-    HabitPlan? plan,
+    this._plan,
     this.days = const {},
     this.every = 2,
     this.goal = 1,
     this.unit = '',
     this.icon = '',
     this.hue = 0,
-  }) : _plan = plan;
+  });
 
   /// From the store; every field is read defensively.
   factory Habit.fromRecord(ModuleRecord record) =>

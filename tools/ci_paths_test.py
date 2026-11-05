@@ -43,6 +43,11 @@ class PathsTest(unittest.TestCase):
         self.assertTrue(select(['apps/client/pubspec.lock'])['ai_delete'])
         self.assertFalse(select(['README.md'])['dart'])
 
+    def test_native_asset_guard_runs_real_android_builds(self):
+        value = select(['tools/check_sqlite_assets.py'], active=ACTIVE)
+        self.assertTrue(value['android'])
+        self.assertTrue(value['dart'])
+
 
 if __name__ == '__main__':
     unittest.main()

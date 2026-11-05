@@ -13,11 +13,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:nex_ai/cloud.dart';
+
 import 'appearance_mode.dart';
 import 'chat_history.dart';
 import 'editor_drafts.dart';
 import 'hold_menu.dart';
 import 'vault_store.dart';
+
 import 'package:uuid/uuid.dart';
 
 export 'appearance_mode.dart';
@@ -211,8 +213,7 @@ class NexPreferences extends _PreferencesStore
         for (final key in _prefs.getKeys())
           if (_portablePreference(key)) key: _prefs.get(key),
         // Kept in a file of their own now (PERF-07), still in the backup.
-        if (chatHistory.exportForBackup() case final threads?)
-          ChatHistory.backupKey: threads,
+        ChatHistory.backupKey: ?chatHistory.exportForBackup(),
       },
       'credentials': Map<String, String>.from(_secureApiKeys),
     };

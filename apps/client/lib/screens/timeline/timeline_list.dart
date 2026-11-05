@@ -155,7 +155,7 @@ class _TimelineListState extends State<_TimelineList> {
     );
     return SizeTransition(
       sizeFactor: eased,
-      axisAlignment: -1,
+      alignment: Alignment.topCenter,
       child: FadeTransition(
         opacity: eased,
         child: SlideTransition(

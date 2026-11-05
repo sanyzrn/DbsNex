@@ -282,10 +282,7 @@ class HabitMath {
     final index = <DateTime, int>{
       for (final (i, day) in occurrences.indexed) day: i,
     };
-    final kept = [
-      for (final day in done)
-        if (index[day] case final i?) i,
-    ]..sort();
+    final kept = [for (final day in done) ?index[day]]..sort();
     if (kept.isEmpty || occurrences.isEmpty) {
       return (streak: 0, graceNow: false, graceInside: false);
     }
@@ -307,10 +304,7 @@ class HabitMath {
     final index = <DateTime, int>{
       for (final (i, day) in occurrences.indexed) day: i,
     };
-    final kept = [
-      for (final day in done)
-        if (index[day] case final i?) i,
-    ]..sort();
+    final kept = [for (final day in done) ?index[day]]..sort();
     return _bestRun(kept);
   }
 

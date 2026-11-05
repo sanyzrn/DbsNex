@@ -167,7 +167,7 @@ List<Widget> searchResultSlivers({
     return [
       SliverList.builder(
         itemCount: 3,
-        itemBuilder: (_, __) => const NexCardSkeleton(),
+        itemBuilder: (_, _) => const NexCardSkeleton(),
       ),
     ];
   }
@@ -212,7 +212,7 @@ List<Widget> searchResultSlivers({
   }
 
   return [
-    if (saveAction() case final action?) action,
+    ?saveAction(),
     if (search.narrowed)
       SliverToBoxAdapter(
         child: Padding(

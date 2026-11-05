@@ -99,7 +99,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         with:
-          sdk: "3.9.0"
+          sdk: "3.13.7"
       # sqlite3 Dart FFI needs the system library (packages/data uses package:sqlite3).
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -136,7 +136,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         with:
-          sdk: "3.9.0"
+          sdk: "3.13.7"
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -352,6 +352,9 @@ jobs:
         run: bash ../../tools/install_android_ndk.sh
       - run: flutter build apk --debug --flavor standard
         if: needs.changes.outputs.android == 'true'
+      - name: Bundled SQLite covers every APK ABI
+        if: needs.changes.outputs.android == 'true'
+        run: python3 ../../tools/check_sqlite_assets.py build/app/outputs/flutter-apk/app-standard-debug.apk
       # The artifact that actually ships — the ai flavor, release mode, as an
       # App Bundle — used to be assembled for the first time inside a release,
       # minutes into it (REL-10). A plugin whose AAR or native library breaks
@@ -363,7 +366,9 @@ jobs:
         if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
         env:
           NEX_CI_VERIFY_RELEASE_BUILD: "true"
-        run: flutter build appbundle --release --flavor ai --target lib/main_ai.dart
+        run: |
+          flutter build appbundle --release --flavor ai --target lib/main_ai.dart
+          python3 ../../tools/check_sqlite_assets.py build/app/outputs/bundle/aiRelease/app-ai-release.aab
       # Android 15 devices may run with 16 KB memory pages, where a native
       # library aligned to 4 KB does not load (REL-05). A warning, not a gate.
       - name: Native libraries are 16 KB aligned (report)
@@ -384,6 +389,7 @@ jobs:
             --dart-define=NEX_STORE_BUILD=true
           bash ../../tools/check_store_permissions.sh \
             build/app/outputs/flutter-apk/app-standard-debug.apk
+          python3 ../../tools/check_sqlite_assets.py build/app/outputs/flutter-apk/app-standard-debug.apk
 
   client-windows:
     name: apps/client (Windows desktop build + platform tests)
@@ -402,15 +408,9 @@ jobs:
     # `if:` below — "CI green" already accepts a skipped job:
     #   if: needs.changes.outputs.desktop == 'true'
     #
-    # Not windows-latest. That label moved to Visual Studio 2026 in June 2026,
-    # and Flutter 3.35.5 — which .fvmrc pins — predates it: its Visual Studio
-    # detection does not recognise VS 2026, so it falls back to its oldest known
-    # generator and the build dies with
-    #
-    #   Generator "Visual Studio 16 2019" could not find any instance of Visual Studio
-    #
-    # windows-2022 is the label GitHub documents for staying on VS 2022, which
-    # this Flutter does recognise. Revisit when the Flutter pin moves forward.
+    # Keep the reviewed Windows image pinned while desktop remains paused.
+    # The Android dependency refresh moves Flutter forward, but does not verify
+    # Windows plugins or opt back into the VS 2026 image automatically.
     runs-on: windows-2022
     timeout-minutes: 40
     if: false
@@ -613,7 +613,7 @@ jobs:
           cache-dependency-path: apps/backend/package-lock.json
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         with:
-          sdk: "3.9.0"
+          sdk: "3.13.7"
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
 
       - name: Install backend deps
@@ -808,7 +808,7 @@ jobs:
           fetch-depth: 0
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         with:
-          sdk: "3.9.0"
+          sdk: "3.13.7"
       - name: Check changed maintained sources
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

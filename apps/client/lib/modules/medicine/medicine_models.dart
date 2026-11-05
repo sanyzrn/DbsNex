@@ -85,10 +85,10 @@ class MedicineModels {
     'times': times,
     'days': days.trim(),
     'purpose': purpose,
-    if (quantity != null) 'quantity': quantity,
-    if (doseUnits != null) 'doseUnits': doseUnits,
+    'quantity': ?quantity,
+    'doseUnits': ?doseUnits,
     if (expiresAt != null) 'expiresAt': expiresAt.toIso8601String(),
-    if (refillThreshold != null) 'refillThreshold': refillThreshold,
+    'refillThreshold': ?refillThreshold,
     'archived': archived,
   };
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../tokens/nex_tokens.dart';
 
 /// Size and fade transition without rebuilding a stable child on each tick.
@@ -67,7 +68,7 @@ class _NexRevealState extends State<NexReveal>
       excluding: !widget.visible,
       child: SizeTransition(
         sizeFactor: _curve,
-        axisAlignment: -1,
+        alignment: Alignment.topCenter,
         child: FadeTransition(
           opacity: _curve,
           child: TickerMode(

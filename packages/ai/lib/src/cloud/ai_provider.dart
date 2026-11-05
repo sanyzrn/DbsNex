@@ -137,9 +137,9 @@ extension AiProviderWire on AiProvider {
 /// The models from Claude Opus 4.7 and Sonnet 5 on reject any sampling
 /// setting with a 400, so the creativity setting is sent only to the models
 /// that take it. Read from the name, because the name is all a request has.
-bool anthropicTakesTemperature(String model) => !RegExp(
-  r'^claude-(?:opus|sonnet|fable|mythos)-(?:[5-9]|4-[7-9])\b',
-).hasMatch(model.trim());
+bool anthropicTakesTemperature(String model) =>
+    !RegExp(r'^claude-(?:opus|sonnet|fable|mythos)-(?:[5-9]|4-[7-9])\b')
+        .hasMatch(model.trim());
 
 /// Whether a provider is taken to offer one capability.
 ///
@@ -860,8 +860,8 @@ bool aiTextAvailableWith(AiProviderConfig config) =>
 class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   CloudAIAdapter({
     required this.config,
-    AiOutputLanguage outputLanguage = AiOutputLanguage.auto,
-    AiOutputLanguage Function()? outputLanguageProvider,
+    this._outputLanguage = AiOutputLanguage.auto,
+    this._outputLanguageProvider,
     @visibleForTesting Duration? mediaTimeout,
     @visibleForTesting Duration? localTimeout,
     this.unlimitedSummary = false,
@@ -871,8 +871,6 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
          client ?? _defaultClient(),
          provider: config.provider.label,
        ),
-       _outputLanguage = outputLanguage,
-       _outputLanguageProvider = outputLanguageProvider,
        _mediaBudget = mediaTimeout ?? _mediaTimeout,
        _localBudget = localTimeout ?? const Duration(minutes: 5),
        _ownsClient = client == null,
@@ -1056,9 +1054,8 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   bool get _openAiNative => config.provider == AiProvider.openai;
   bool get _openAiReasoning =>
       _openAiNative &&
-      RegExp(
-        r'^(?:o[1-9]|gpt-(?:[5-9]|\d{2,}))(?:[-.]|$)',
-      ).hasMatch(config.resolvedModel);
+      RegExp(r'^(?:o[1-9]|gpt-(?:[5-9]|\d{2,}))(?:[-.]|$)')
+          .hasMatch(config.resolvedModel);
 
   Uri get _chatUri => switch (config.provider.format) {
     AiWireFormat.anthropic => Uri.parse(
@@ -3290,9 +3287,8 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
         http.AbortableRequest('POST', uri, abortTrigger: abortTrigger)
           ..headers.addAll(headers)
           ..body = body;
-    return http.Response.fromStream(
-      await _client.send(request),
-    ).timeout(_textTimeout);
+    return http.Response.fromStream(await _client.send(request))
+        .timeout(_textTimeout);
   }
 
   Future<Vector> _embed(String text, {Future<void>? abortTrigger}) async {

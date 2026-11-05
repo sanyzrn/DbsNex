@@ -181,9 +181,8 @@ void main() {
               format: ui.ImageByteFormat.png,
             );
             final dir = Directory(output)..createSync(recursive: true);
-            await File(
-              '${dir.path}/${mode.name}_${lang}_$name.png',
-            ).writeAsBytes(bytes!.buffer.asUint8List());
+            await File('${dir.path}/${mode.name}_${lang}_$name.png')
+                .writeAsBytes(bytes!.buffer.asUint8List());
             image.dispose();
           });
         }

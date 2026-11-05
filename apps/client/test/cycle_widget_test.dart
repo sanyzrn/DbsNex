@@ -198,7 +198,7 @@ void main() {
 
 /// Holds the next write of the Cycle widget's temporary file until told to
 /// go on: the await the lock can close during.
-class _PausingCycleWrites extends IOOverrides {
+final class _PausingCycleWrites extends IOOverrides {
   bool pause = false;
   final entered = Completer<void>();
   final resume = Completer<void>();

@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:nex_client/modules/module_api.dart';
+
 import 'models.dart';
 import 'money.dart';
 import 'local_writes.dart';
@@ -56,15 +58,15 @@ class ExpensesController extends ChangeNotifier {
       ];
       customCategories = [
         for (final row in results[1] as List<ModuleRecord>)
-          if (ExpenseCategory.fromBody(row.id, row.body) case final item?) item,
+          ?ExpenseCategory.fromBody(row.id, row.body),
       ];
       budgets = [
         for (final row in results[2] as List<ModuleRecord>)
-          if (ExpenseBudget.fromBody(row.id, row.body) case final item?) item,
+          ?ExpenseBudget.fromBody(row.id, row.body),
       ];
       templates = [
         for (final row in results[3] as List<ModuleRecord>)
-          if (ExpenseTemplate.fromBody(row.id, row.body) case final item?) item,
+          ?ExpenseTemplate.fromBody(row.id, row.body),
       ];
       settings = results[4] as Map<String, Object?>? ?? {};
       readFailed = false;

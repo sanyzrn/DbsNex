@@ -12,15 +12,11 @@ import 'note_embedder.dart';
 /// Never called from the capture hot path. Failures leave the note unchanged.
 class EnrichmentService {
   EnrichmentService({
-    required NoteRepository repo,
-    AIAdapter adapter = const NullAIAdapter(),
-    AiCapabilities capabilities = AiCapabilities.allOff,
-    Future<void> Function(String noteId, Future<void> Function() send)?
-    disclose,
-  }) : _repo = repo,
-       _adapter = adapter,
-       _capabilities = capabilities,
-       _disclose = disclose;
+    required this._repo,
+    this._adapter = const NullAIAdapter(),
+    this._capabilities = AiCapabilities.allOff,
+    this._disclose,
+  });
 
   final NoteRepository _repo;
 

@@ -401,10 +401,10 @@ class _AttachmentStripState extends State<_AttachmentStrip> {
         buildDefaultDragHandles: false,
         itemCount: attachments.length,
         onReorderStart: (index) => _pickedFrom = index,
-        onReorder: (from, to) {
+        onReorderItem: (from, to) {
           final next = [...attachments];
           final moving = next.removeAt(from);
-          next.insert(to > from ? to - 1 : to, moving);
+          next.insert(to, moving);
           setState(() => _moved = next);
           widget.onReorder(next);
         },

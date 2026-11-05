@@ -129,7 +129,7 @@ void main() {
       created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT,
       device_id TEXT NOT NULL, rev INTEGER NOT NULL, sync_state TEXT NOT NULL
     )''');
-    raw.dispose();
+    raw.close();
     final legacy = NexDatabase.open(path);
     try {
       final migrated = SqliteNoteRepository(legacy, localDeviceId: 'test');

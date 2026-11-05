@@ -16,12 +16,10 @@ import 'tool_definition.dart';
 /// chat (free) never reaches this registry, per the Free vs. Paid Boundary.
 class NexToolRegistry {
   NexToolRegistry({
-    required CaptureService captureService,
-    required TagService tagService,
-    required SearchService searchService,
-  }) : _captureService = captureService,
-       _tagService = tagService,
-       _searchService = searchService {
+    required this._captureService,
+    required this._tagService,
+    required this._searchService,
+  }) {
     _register(_createNoteTool, _handleCreateNote);
     _register(_searchNotesTool, _handleSearchNotes);
     _register(_addTagTool, _handleAddTag);

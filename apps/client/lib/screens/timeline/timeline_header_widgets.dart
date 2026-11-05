@@ -254,7 +254,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
                     children: [
                       for (final child in previous)
                         ExcludeSemantics(child: IgnorePointer(child: child)),
-                      if (current != null) current,
+                      ?current,
                     ],
                   ),
                   transitionBuilder: (child, animation) => FadeTransition(

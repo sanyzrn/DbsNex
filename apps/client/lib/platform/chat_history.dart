@@ -1,4 +1,5 @@
 import 'crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -177,8 +178,7 @@ class ChatHistory extends ChangeNotifier {
     }
     if (decoded is! List) return _cache = const [];
     final threads = <ChatThread>[
-      for (final entry in decoded)
-        if (ChatThread.fromJson(entry) case final thread?) thread,
+      for (final entry in decoded) ?ChatThread.fromJson(entry),
     ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return _cache = List.unmodifiable(threads);
   }

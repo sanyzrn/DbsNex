@@ -140,9 +140,8 @@ class _NexSidebarState extends State<NexSidebar> {
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(0, 34),
                         visualDensity: VisualDensity.compact,
-                        textStyle: Theme.of(
-                          context,
-                        ).textTheme.labelLarge?.copyWith(fontSize: 13),
+                        textStyle: Theme.of(context).textTheme.labelLarge
+                            ?.copyWith(fontSize: 13),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(NexRadius.sm),
                         ),
@@ -350,7 +349,7 @@ class _RailItem extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (badge case final badge?) badge,
+                  ?badge,
                   if (count != null)
                     Text(
                       '$count',

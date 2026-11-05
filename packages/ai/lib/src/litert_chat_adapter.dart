@@ -25,12 +25,11 @@ class LiteRtChatAdapter implements ChatAdapter {
     this.preferGpu = true,
     this.requestTimeout = const Duration(minutes: 5),
     this.beforeLoad,
-    @visibleForTesting bool? availableForTest,
+    @visibleForTesting this._availableForTest,
     @visibleForTesting LiteLmEngine? engine,
     @visibleForTesting
     Future<LiteLmEngine> Function(LiteLmEngineConfig config)? loadEngine,
-  }) : _availableForTest = availableForTest,
-       _path = (() => modelPath),
+  }) : _path = (() => modelPath),
        _engine = engine,
        _enginePath = engine == null ? null : modelPath,
        _loadEngine = loadEngine ?? LiteLmEngine.create;
@@ -237,7 +236,7 @@ class LiteRtChatAdapter implements ChatAdapter {
     // A failed/disposed session must not poison the next queued request.
     _messageTail = work.then<void>(
       (_) {},
-      onError: (Object _, StackTrace __) {},
+      onError: (Object _, StackTrace _) {},
     );
     return result.future.whenComplete(timer.cancel);
   }

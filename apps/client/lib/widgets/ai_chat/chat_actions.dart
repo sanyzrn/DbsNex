@@ -208,7 +208,7 @@ extension _ChatActions on _AiChatSheetState {
     final targets = <String>{
       for (final action in actions)
         if (action.kind != AssistantActionKind.restore) ...[
-          if (action.noteId case final id?) id,
+          ?action.noteId,
           ...action.noteIds,
         ],
     };
@@ -217,8 +217,7 @@ extension _ChatActions on _AiChatSheetState {
     }
     final restoring = <String>{
       for (final action in actions)
-        if (action.kind == AssistantActionKind.restore)
-          if (action.noteId case final id?) id,
+        if (action.kind == AssistantActionKind.restore) ?action.noteId,
     };
     // Tags are named rather than identified, so "there is a tag called
     // this" is the same question `getById` answers for a note — and a tag

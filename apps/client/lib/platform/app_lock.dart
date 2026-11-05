@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'crash_reporter.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
+
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
 
+import 'crash_reporter.dart';
 import 'nex_preferences.dart';
 
 /// Whether a cold start opens onto the lock.
@@ -70,9 +70,8 @@ class AppLockService {
 
   Future<void> openDeviceSecurity() async {
     try {
-      await const MethodChannel(
-        'nex/os_capture',
-      ).invokeMethod<void>('openSecuritySettings');
+      await const MethodChannel('nex/os_capture')
+          .invokeMethod<void>('openSecuritySettings');
     } on MissingPluginException {
       /* Desktop has its own sign-in settings. */
     } on PlatformException {
@@ -105,11 +104,12 @@ class AppLockService {
     try {
       return await _authentication.authenticate(
         localizedReason: reason,
-        options: AuthenticationOptions(
-          biometricOnly: biometricOnly,
-          stickyAuth: true,
-        ),
+        biometricOnly: biometricOnly,
+        persistAcrossBackgrounding: true,
       );
+    } on LocalAuthException catch (error) {
+      lastFailure = failureOf(error.code);
+      return false;
     } on PlatformException catch (error) {
       lastFailure = failureOf(error.code);
       return false;
@@ -121,12 +121,18 @@ class AppLockService {
 
   /// The failure a `local_auth` error code stands for, or null for one that
   /// only means "not this time".
-  static NexAuthFailure? failureOf(String code) => switch (code) {
-    auth_error.lockedOut => NexAuthFailure.lockedOut,
-    auth_error.permanentlyLockedOut => NexAuthFailure.lockedOutHard,
-    auth_error.notAvailable ||
-    auth_error.notEnrolled ||
-    auth_error.passcodeNotSet => NexAuthFailure.unavailable,
+  static NexAuthFailure? failureOf(Object code) => switch (code) {
+    LocalAuthExceptionCode.temporaryLockout ||
+    'LockedOut' => NexAuthFailure.lockedOut,
+    LocalAuthExceptionCode.biometricLockout ||
+    'PermanentlyLockedOut' => NexAuthFailure.lockedOutHard,
+    LocalAuthExceptionCode.noBiometricHardware ||
+    LocalAuthExceptionCode.biometricHardwareTemporarilyUnavailable ||
+    LocalAuthExceptionCode.noBiometricsEnrolled ||
+    LocalAuthExceptionCode.noCredentialsSet ||
+    'NotAvailable' ||
+    'NotEnrolled' ||
+    'PasscodeNotSet' => NexAuthFailure.unavailable,
     _ => null,
   };
 }

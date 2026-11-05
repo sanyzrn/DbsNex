@@ -18,7 +18,7 @@ String keep({
   'isArchived': false,
   'title': title ?? '',
   'userEditedTimestampUsec': micros ?? 1700000000000000,
-  if (text != null) 'textContent': text,
+  'textContent': ?text,
   if (list != null)
     'listContent': [
       for (final (item, checked) in list) {'text': item, 'isChecked': checked},

@@ -236,10 +236,7 @@ mixin _HomePreferences on _PreferencesStore {
   List<NexHoldAction> get holdMenuActions {
     final stored = _prefs.getStringList('hold_menu.actions');
     if (stored == null) return NexHoldAction.defaults;
-    final chosen = {
-      for (final name in stored)
-        if (NexHoldAction.fromWire(name) case final action?) action,
-    };
+    final chosen = {for (final name in stored) ?NexHoldAction.fromWire(name)};
     return [
       for (final action in NexHoldAction.choices)
         if (chosen.contains(action)) action,

@@ -81,8 +81,8 @@ class WarrantyModels {
     'note': note,
     'purchasedAt': purchasedAt.toIso8601String(),
     'coverageEnd': coverageEnd.toIso8601String(),
-    if (durationMonths != null) 'durationMonths': durationMonths,
-    if (amountRials != null) 'amountRials': amountRials,
+    'durationMonths': ?durationMonths,
+    'amountRials': ?amountRials,
     'archived': archived,
   };
 

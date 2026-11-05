@@ -332,8 +332,7 @@ extension _TimelineNoteActions on TimelineScreenState {
     return [
       entry(NexHoldAction.select)!,
       entry(NexHoldAction.urgent)!,
-      for (final action in prefs.holdMenuActions)
-        if (entry(action) case final value?) value,
+      for (final action in prefs.holdMenuActions) ?entry(action),
     ];
   }
 

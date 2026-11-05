@@ -57,7 +57,7 @@ class NexDatabase {
   void _migrate() {
     final stamped = db.select('PRAGMA user_version').first.values.first as int;
     if (stamped > schemaVersion) {
-      db.dispose();
+      db.close();
       throw NewerLibraryException(stamped, schemaVersion);
     }
     // The share window and the main app have separate SQLite connections.
@@ -712,10 +712,7 @@ CREATE TABLE notes_rebuilt (
     if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return const [];
     final inner = trimmed.substring(1, trimmed.length - 1).trim();
     if (inner.isEmpty) return const [];
-    return [
-      for (final part in inner.split(','))
-        if (double.tryParse(part.trim()) case final value?) value,
-    ];
+    return [for (final part in inner.split(',')) ?double.tryParse(part.trim())];
   }
 
   void _addColumnIfMissing(String table, String column, String type) {
@@ -726,7 +723,7 @@ CREATE TABLE notes_rebuilt (
     }
   }
 
-  void close() => db.dispose();
+  void close() => db.close();
 
   /// Copies this database file into [backupDir], keeping [backupRetention] newest.
   File createBackup(String backupDir) {
@@ -852,7 +849,7 @@ CREATE TABLE notes_rebuilt (
         throw NewerLibraryException(version, schemaVersion);
       }
     } finally {
-      probe?.dispose();
+      probe?.close();
     }
   }
 }

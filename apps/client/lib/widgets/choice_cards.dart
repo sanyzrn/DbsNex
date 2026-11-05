@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
+
 import '../platform/appearance_mode.dart';
 
 /// One option in a [NexChoiceCards] row.

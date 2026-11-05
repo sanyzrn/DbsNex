@@ -141,7 +141,7 @@ class _FoldingRowState extends State<_FoldingRow>
     final settle = curved.drive(CurveTween(curve: const Interval(0.3, 1)));
     return SizeTransition(
       sizeFactor: curved,
-      axisAlignment: -1,
+      alignment: Alignment.topCenter,
       child: AnimatedBuilder(
         animation: settle,
         builder: (context, child) => Opacity(

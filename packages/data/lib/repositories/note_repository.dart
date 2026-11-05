@@ -130,8 +130,7 @@ class SqliteNoteRepository implements NoteRepository {
         args: <Object?>[],
       ),
       (
-        where:
-            "due_at BETWEEN ? AND ? AND (due_repeat IS NULL OR due_repeat = 'once')",
+        where: "due_at BETWEEN ? AND ? AND (due_repeat IS NULL OR due_repeat = 'once')",
         order: 'ABS(julianday(due_at) - julianday(?))',
         args: <Object?>[
           now.subtract(const Duration(days: 7)).toIso8601String(),
@@ -879,9 +878,9 @@ SELECT * FROM notes
 WHERE sync_state = 'pending'
 ORDER BY updated_at ASC
 ''');
-    return _withTags(
-      rows,
-    ).where((n) => includeDeleted || !n.isDeleted).toList();
+    return _withTags(rows)
+        .where((n) => includeDeleted || !n.isDeleted)
+        .toList();
   }
 
   /// Clears a note from the outbox, adopting the server's revision.
@@ -2282,14 +2281,18 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
   }) async {
     final input = InputFileStream(archiveFile.path);
     try {
-      final archive = ZipDecoder().decodeStream(input);
+      final archive = ZipDecoder().decodeStream(
+        input,
+        verify: true,
+        throwOnError: true,
+      );
       final jsonFile = archive.findFile('notes.json');
       if (jsonFile == null) {
         throw const FormatException('not a Nex export: notes.json is missing');
       }
-      final payload =
-          jsonDecode(utf8.decode(jsonFile.content as List<int>))
-              as Map<String, dynamic>;
+      final payload = jsonDecode(
+        utf8.decode(jsonFile.content as List<int>),
+      ) as Map<String, dynamic>;
 
       var imported = 0;
       var skipped = 0;
@@ -2546,7 +2549,11 @@ WHERE id = ?
   /// Reads an export archive and returns the parsed notes/tags JSON payload.
   static Map<String, dynamic> readExportJson(File archiveFile) {
     final bytes = archiveFile.readAsBytesSync();
-    final archive = ZipDecoder().decodeBytes(bytes);
+    final archive = ZipDecoder().decodeBytes(
+      bytes,
+      verify: true,
+      throwOnError: true,
+    );
     final jsonFile = archive.findFile('notes.json');
     if (jsonFile == null) {
       throw StateError('export archive missing notes.json');
@@ -2625,9 +2632,10 @@ WHERE id = ?
   /// user finished typing and meant literally, while the trailing one is still
   /// mid-keystroke.
   String _ftsQuery(String raw) {
-    final cleaned = nexSearchFold(
-      raw,
-    ).replaceAll('"', ' ').replaceAll('*', ' ').trim();
+    final cleaned = nexSearchFold(raw)
+        .replaceAll('"', ' ')
+        .replaceAll('*', ' ')
+        .trim();
     if (cleaned.isEmpty) return '""';
     final tokens = cleaned
         .split(RegExp(r'\s+'))

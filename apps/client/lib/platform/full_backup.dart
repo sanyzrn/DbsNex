@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
+
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
 import 'package:nex_data/nex_data.dart' show NexBackupArchive;
 import 'package:nex_data/schema/zip_file_writer.dart';
 import 'package:path/path.dart' as p;
+
 import 'authenticated_zip.dart';
 
 /// Library/model entries are portable files. The private preferences entry uses
@@ -23,7 +25,11 @@ abstract final class FullBackup {
     InputFileStream? input;
     try {
       input = InputFileStream(source);
-      final archive = ZipDecoder().decodeStream(input);
+      final archive = ZipDecoder().decodeStream(
+        input,
+        verify: true,
+        throwOnError: true,
+      );
       return archive.length >= 3 &&
           archive.length <= 5 &&
           archive.findFile('format.json') != null &&
@@ -94,7 +100,9 @@ abstract final class FullBackup {
   static String? modelHashOf(String source) {
     final input = InputFileStream(source);
     try {
-      final meta = ZipDecoder().decodeStream(input).findFile('format.json');
+      final meta = ZipDecoder()
+          .decodeStream(input, verify: true, throwOnError: true)
+          .findFile('format.json');
       if (meta == null || meta.size > 4096) return null;
       final format = jsonDecode(utf8.decode(meta.content));
       return format is Map ? format['modelSha256'] as String? : null;
@@ -119,7 +127,11 @@ abstract final class FullBackup {
     }
     final input = InputFileStream(source);
     try {
-      final archive = ZipDecoder().decodeStream(input);
+      final archive = ZipDecoder().decodeStream(
+        input,
+        verify: true,
+        throwOnError: true,
+      );
       const names = {
         'format.json',
         'settings.aes.zip',
@@ -155,6 +167,8 @@ abstract final class FullBackup {
       final privateDecoder = ZipDecoder();
       final privateZip = privateDecoder.decodeBytes(
         secret.content,
+        verify: true,
+        throwOnError: true,
         password: key.trim(),
       );
       assertAuthenticatedZip(privateDecoder);
@@ -163,9 +177,9 @@ abstract final class FullBackup {
           privateZip.first.size > 32 * 1024 * 1024) {
         throw const FormatException('Invalid settings');
       }
-      final settings =
-          jsonDecode(utf8.decode(privateZip.first.content))
-              as Map<String, dynamic>;
+      final settings = jsonDecode(
+        utf8.decode(privateZip.first.content),
+      ) as Map<String, dynamic>;
       final vaultFiles = archive.findFile('vault-files.zip');
       if ((vaultFiles != null) != settings.containsKey('vaultFilesKey') ||
           (vaultFiles != null &&

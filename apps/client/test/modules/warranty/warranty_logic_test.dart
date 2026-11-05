@@ -195,7 +195,7 @@ void main() {
           module: 'warranty',
           kind: 'warranty',
           id: product,
-          body: {'product': product, if (end != null) 'coverageEnd': end},
+          body: {'product': product, 'coverageEnd': ?end},
           updatedAt: DateTime.now(),
         );
         // The list arrives newest first, so an equal end must not swap the

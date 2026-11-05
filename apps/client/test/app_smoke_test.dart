@@ -635,15 +635,13 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
-    final before = MediaQuery.of(
-      tester.element(find.byType(Scaffold).first),
-    ).textScaler;
+    final before = MediaQuery.of(tester.element(find.byType(Scaffold).first))
+        .textScaler;
 
     await preferences.setUiScale(1.3);
     await tester.pumpAndSettle();
-    final after = MediaQuery.of(
-      tester.element(find.byType(Scaffold).first),
-    ).textScaler;
+    final after = MediaQuery.of(tester.element(find.byType(Scaffold).first))
+        .textScaler;
 
     expect(after.scale(100), greaterThan(before.scale(100)));
   });

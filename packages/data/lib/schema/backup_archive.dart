@@ -152,7 +152,7 @@ class NexBackupArchive {
             row['media_hash'] as String? ?? '';
       }
     } finally {
-      snapshot.dispose();
+      snapshot.close();
     }
     final listed = files.map((f) => p.normalize(f.absolute.path)).toSet();
     if (!listed.containsAll(expected.keys)) {
@@ -246,7 +246,11 @@ class NexBackupArchive {
     // released once they are on disk.
     final input = InputFileStream(backup.path);
     try {
-      final archive = ZipDecoder().decodeStream(input);
+      final archive = ZipDecoder().decodeStream(
+        input,
+        verify: true,
+        throwOnError: true,
+      );
       assertReasonableSize(archive, backup.lengthSync());
       final dbEntry = archive.files.where(
         (file) => file.isFile && file.name == _dbEntry,
@@ -495,7 +499,7 @@ class NexBackupArchive {
         }
       }
     } finally {
-      db.dispose();
+      db.close();
     }
   }
 
@@ -534,10 +538,15 @@ class NexBackupArchive {
     if (!_isZip(File(source))) return const [];
     final input = InputFileStream(source);
     try {
-      final archive = ZipDecoder().decodeStream(input);
-      return _recoveryMedia(
-        archive,
-      ).map((entry) => entry['relative']!).toSet().toList();
+      final archive = ZipDecoder().decodeStream(
+        input,
+        verify: true,
+        throwOnError: true,
+      );
+      return _recoveryMedia(archive)
+          .map((entry) => entry['relative']!)
+          .toSet()
+          .toList();
     } finally {
       input.closeSync();
     }
@@ -596,7 +605,15 @@ class NexBackupArchive {
         }
         final input = InputFileStream(file.path);
         try {
-          referenced.addAll(_manifest(ZipDecoder().decodeStream(input)).values);
+          referenced.addAll(
+            _manifest(
+              ZipDecoder().decodeStream(
+                input,
+                verify: true,
+                throwOnError: true,
+              ),
+            ).values,
+          );
         } finally {
           input.closeSync();
         }
@@ -650,7 +667,11 @@ class NexBackupArchive {
     ZipFileEncoder? encoder;
     Directory? staging;
     try {
-      final archive = ZipDecoder().decodeStream(input);
+      final archive = ZipDecoder().decodeStream(
+        input,
+        verify: true,
+        throwOnError: true,
+      );
       final manifest = _manifest(archive);
       if (manifest.isEmpty) {
         File(source).copySync(output);

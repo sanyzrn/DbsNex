@@ -22,12 +22,10 @@ class _FixedUpdateService extends UpdateService {
   _FixedUpdateService(
     this._check, {
     required super.preferences,
-    bool downloading = false,
-    double? progress,
-    Object? error,
-  }) : _downloading = downloading,
-       _progress = progress,
-       _error = error;
+    this._downloading = false,
+    this._progress,
+    this._error,
+  });
 
   final UpdateCheck _check;
   final bool _downloading;

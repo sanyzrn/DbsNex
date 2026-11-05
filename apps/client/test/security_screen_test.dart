@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
+import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
@@ -97,17 +97,18 @@ void main() {
 
   test('the phone\'s error codes, read', () {
     expect(
-      AppLockService.failureOf(auth_error.lockedOut),
+      AppLockService.failureOf(LocalAuthExceptionCode.temporaryLockout),
       NexAuthFailure.lockedOut,
     );
     expect(
-      AppLockService.failureOf(auth_error.permanentlyLockedOut),
+      AppLockService.failureOf(LocalAuthExceptionCode.biometricLockout),
       NexAuthFailure.lockedOutHard,
     );
     for (final code in [
-      auth_error.notAvailable,
-      auth_error.notEnrolled,
-      auth_error.passcodeNotSet,
+      LocalAuthExceptionCode.noBiometricHardware,
+      LocalAuthExceptionCode.biometricHardwareTemporarilyUnavailable,
+      LocalAuthExceptionCode.noBiometricsEnrolled,
+      LocalAuthExceptionCode.noCredentialsSet,
     ]) {
       expect(AppLockService.failureOf(code), NexAuthFailure.unavailable);
     }

@@ -6,6 +6,7 @@ import 'platform/ui_text_scaler.dart';
 export 'widgets/app_lock_gate.dart' show appLockBarrierKey;
 
 import 'platform/theme_presets.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nex_core/nex_core.dart' show ChatAdapterBinding, nexDigits;
 import 'package:nex_ui/nex_ui.dart';
+
 import 'l10n/app_localizations.dart';
 import 'platform/route_observer.dart';
 import 'platform/app_lock.dart';

@@ -4,6 +4,7 @@ import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/theme_presets.dart';
 import 'package:nex_client/screens/settings_sheet.dart';
 import 'package:nex_ui/nex_ui.dart';
+
 import 'support/nex_harness.dart';
 
 void main() {

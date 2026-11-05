@@ -1,9 +1,13 @@
 import '../platform/crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/foundation.dart' show ValueListenable, compute;
+
 import '../documents/text_import.dart';
 import '../platform/cycle_reminders.dart';
 import '../platform/reminders.dart';
@@ -14,15 +18,19 @@ import '../platform/hold_menu.dart';
 import '../widgets/nex_pull_refresh.dart';
 import '../widgets/translate_sheet.dart';
 import '../platform/photo_encoding.dart';
+
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
+
 import '../platform/display_date.dart' show nexReadableDate;
 import '../l10n/app_localizations.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/download_notice.dart';

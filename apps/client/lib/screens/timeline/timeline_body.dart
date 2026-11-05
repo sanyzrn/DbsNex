@@ -376,7 +376,7 @@ extension _TimelineBody on TimelineScreenState {
       return [
         SliverList.builder(
           itemCount: 4,
-          itemBuilder: (_, __) => const NexCardSkeleton(),
+          itemBuilder: (_, _) => const NexCardSkeleton(),
         ),
       ];
     }

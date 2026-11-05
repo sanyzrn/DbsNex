@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:nex_client/modules/module_api.dart';
+
 import 'options.dart';
 import 'units.dart';
 import 'local_writes.dart';
@@ -42,12 +44,11 @@ class PriceLensController extends ChangeNotifier {
       ]);
       if (_disposed || token != _loadToken) return;
       memories = [
-        for (final row in result[0])
-          if (PriceMemory.fromBody(row.id, row.body) case final memory?) memory,
+        for (final row in result[0]) ?PriceMemory.fromBody(row.id, row.body),
       ];
       saved = [
         for (final row in result[1])
-          if (SavedComparison.fromBody(row.id, row.body) case final item?) item,
+          ?SavedComparison.fromBody(row.id, row.body),
       ];
       invalidMemories = [
         for (final row in result[0])

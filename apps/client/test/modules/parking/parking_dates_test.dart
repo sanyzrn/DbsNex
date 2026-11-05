@@ -19,9 +19,9 @@ void main() {
   });
   tearDown(() => h.dispose());
 
-  // 2024-02-29 08:30 UTC is 1402/12/10 in the Persian calendar. The test
-  // zone is UTC, so the stored instant reads back as that same civil day.
-  final started = DateTime.utc(2024, 2, 29, 8, 30);
+  // 2024-02-29 is 1402/12/10. Pin the local civil time and store its UTC
+  // instant, so both the date and 08:30 hold in any test-runner time zone.
+  final started = DateTime(2024, 2, 29, 8, 30).toUtc();
 
   Future<void> pump(WidgetTester tester, Widget home, Locale locale) async {
     await tester.pumpWidget(

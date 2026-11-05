@@ -147,8 +147,7 @@ class _Thread extends StatelessWidget {
                 ? turn.content.substring(9, turn.content.length - 9)
                 : turn.content);
         final sources = [
-          for (final id in cited?.noteIds ?? const <String>[])
-            if (notes[id] case final note?) note,
+          for (final id in cited?.noteIds ?? const <String>[]) ?notes[id],
         ];
         final bubble = Align(
           alignment: mine

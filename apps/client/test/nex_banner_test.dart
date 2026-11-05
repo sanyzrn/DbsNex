@@ -187,16 +187,16 @@ void main() {
     // without anyone moving focus to it — which is the whole situation.
     expect(
       tester.getSemantics(find.text('Note deleted')),
-      containsSemantics(label: 'Note deleted', isLiveRegion: true),
+      isSemantics(label: 'Note deleted', isLiveRegion: true),
     );
 
     // And the way out is still reachable as a control, not just as text.
-    // `containsSemantics` rather than `matchesSemantics`: the latter asserts
+    // `isSemantics` rather than `matchesSemantics`: the latter asserts
     // every flag is exactly as given, so a flag Flutter adds in a later
     // release fails a case that is not about it.
     expect(
       tester.getSemantics(find.text('Undo')),
-      containsSemantics(label: 'Undo', isButton: true, hasTapAction: true),
+      isSemantics(label: 'Undo', isButton: true, hasTapAction: true),
     );
 
     handle.dispose();

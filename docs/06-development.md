@@ -4,6 +4,11 @@
 
 **Status:** Authoritative · **Owner:** Engineering · **Last updated:** 2026
 
+The current toolchain is pinned in `.fvmrc`: Flutter 3.47.9 / Dart 3.13.7.
+Core/data CI uses the matching standalone Dart SDK. See
+[the dependency migration](development/2.6.6-dependency-refresh.md) for native
+SQLite packaging and TypeScript compiler/linter compatibility.
+
 ---
 
 ## Coding Principles
