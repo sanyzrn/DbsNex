@@ -100,7 +100,7 @@ void main() {
       () async {
         SharedPreferences.setMockInitialValues({
           'nex.device_id': 'existing',
-          if (locale != null) 'appearance.locale': locale,
+          'appearance.locale': ?locale,
         });
         final existing = await NexPreferences.load();
         addTearDown(existing.dispose);
