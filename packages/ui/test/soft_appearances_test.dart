@@ -47,51 +47,51 @@ void main() {
     );
   });
 
-  for (final make in <ThemeData Function({Color? accentSeed, bool liquidGlass})>[
-    ({Color? accentSeed, bool liquidGlass = false}) =>
-        nexSoftLightTheme(accentSeed: accentSeed, liquidGlass: liquidGlass),
-    ({Color? accentSeed, bool liquidGlass = false}) =>
-        nexOledNightTheme(accentSeed: accentSeed, liquidGlass: liquidGlass),
-  ]) {
+  for (final night in [false, true]) {
     for (final seed in <Color?>[
       null,
       const Color(0xFFB61615),
       const Color(0xFFFFD600),
     ]) {
       for (final glass in [false, true]) {
-        test('Soft appearances retain contrast, accent and glass: '
-            '${make.hashCode} / $seed / $glass', () {
-          final theme = make(accentSeed: seed, liquidGlass: glass);
-          final c = theme.colorScheme;
-          for (final ground in [
-            c.surface,
-            c.surfaceContainerLowest,
-            c.surfaceContainerHigh,
-          ]) {
-            expect(nexContrastRatio(c.onSurface, ground), greaterThanOrEqualTo(4.5));
+        test(
+          '${night ? 'OLED Night' : 'Soft Light'}: contrast, accent and glass '
+          '$seed / $glass',
+          () {
+            final theme = night
+                ? nexOledNightTheme(accentSeed: seed, liquidGlass: glass)
+                : nexSoftLightTheme(accentSeed: seed, liquidGlass: glass);
+            final c = theme.colorScheme;
+            for (final ground in [
+              c.surface,
+              c.surfaceContainerLowest,
+              c.surfaceContainerHigh,
+            ]) {
+              expect(
+                nexContrastRatio(c.onSurface, ground),
+                greaterThanOrEqualTo(4.5),
+              );
+              expect(
+                nexContrastRatio(c.onSurfaceVariant, ground),
+                greaterThanOrEqualTo(4.5),
+              );
+            }
             expect(
-              nexContrastRatio(c.onSurfaceVariant, ground),
+              nexContrastRatio(c.onPrimaryContainer, c.primaryContainer),
               greaterThanOrEqualTo(4.5),
             );
-          }
-          expect(
-            nexContrastRatio(c.onPrimaryContainer, c.primaryContainer),
-            greaterThanOrEqualTo(4.5),
-          );
-          final style = theme.filledButtonTheme.style!;
-          expect(
-            nexContrastRatio(
-              style.foregroundColor!.resolve({})!,
-              style.backgroundColor!.resolve({})!,
-            ),
-            greaterThanOrEqualTo(4.5),
-          );
-          expect(theme.extension<NexVisualStyle>()!.minimal, isTrue);
-          expect(
-            theme.extension<NexVisualStyle>()!.liquidGlass,
-            glass,
-          );
-        });
+            final style = theme.filledButtonTheme.style!;
+            expect(
+              nexContrastRatio(
+                style.foregroundColor!.resolve({})!,
+                style.backgroundColor!.resolve({})!,
+              ),
+              greaterThanOrEqualTo(4.5),
+            );
+            expect(theme.extension<NexVisualStyle>()!.minimal, isTrue);
+            expect(theme.extension<NexVisualStyle>()!.liquidGlass, glass);
+          },
+        );
       }
     }
   }
