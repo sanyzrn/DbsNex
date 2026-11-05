@@ -8,17 +8,18 @@ import sys
 
 def failures(needs: dict) -> list[str]:
     outputs = needs.get("changes", {}).get("outputs", {})
-    if any(outputs.get(key) not in ("true", "false") for key in ("dart", "backend")):
-        return ["changes must supply valid dart/backend flags"]
+    if any(outputs.get(key) not in ("true", "false") for key in ("dart", "backend", "retrieval", "sync", "ai_delete")):
+        return ["changes must supply valid selection flags"]
     dart = outputs["dart"] == "true"
     backend = outputs["backend"] == "true"
     required = {
         "changes": True, "core-boundary": True, "widget-layouts": True,
-        "dart-packages": dart, "retrieval-budget": dart, "timeline-budget": dart,
+        "ai-boundary": True, "changed-format": dart,
+        "dart-packages": dart, "retrieval-budget": outputs["retrieval"] == "true", "timeline-budget": dart,
         "flutter-ai-package": dart, "flutter-ui-package": dart,
-        "client-android": dart, "ai-deletion-proof": dart,
+        "client-android": dart, "ai-deletion-proof": outputs["ai_delete"] == "true",
         "backend": backend, "feedback-worker": backend,
-        "merge-conformance": dart or backend, "sync-integration": dart or backend,
+        "sync-integration": outputs["sync"] == "true",
         # Explicitly paused in ci.yml. Failures/cancellations still fail.
         "client-windows": False, "client-ios": False,
     }

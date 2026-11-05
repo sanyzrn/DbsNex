@@ -24,6 +24,9 @@ on:
   # Callable from release.yml so a tag cannot ship unverified code.
   workflow_call:
 
+permissions:
+  contents: read
+
 # Pushing three commits to a PR used to run three full matrices in parallel,
 # including a 2x-billed Windows runner.
 concurrency:
@@ -51,6 +54,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
+      retrieval: ${{ steps.filter.outputs.retrieval }}
+      sync: ${{ steps.filter.outputs.sync }}
+      ai_delete: ${{ steps.filter.outputs.ai_delete }}
+      module_dirs: ${{ steps.filter.outputs.module_dirs }}
       dart: ${{ steps.filter.outputs.dart }}
       backend: ${{ steps.filter.outputs.backend }}
       desktop: ${{ steps.filter.outputs.desktop }}
@@ -64,104 +71,16 @@ jobs:
       # a release always runs it, via workflow_call.
       modules: ${{ steps.filter.outputs.modules }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - name: Test release source validation
-        run: |
-          python3 tools/release_notes_test.py
-          python3 tools/check_ci_results_test.py
+      - name: Test CI selection and integration guards
+        run: python3 -m unittest discover -s tools -p '*_test.py'
       - id: filter
         env:
-          BASE: ${{ github.base_ref }}
-        run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "not a pull request: verifying everything"
-            {
-              echo "dart=true"
-              echo "backend=true"
-              echo "desktop=true"
-              echo "android=true"
-              echo "modules=true"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          # The PR's own recorded base commit, not origin/$BASE.
-          #
-          # origin/$BASE moves, and it moves most sharply at the one moment
-          # this matters: merging a pull request while its checks are still
-          # running puts its commits into main, so a diff taken against main a
-          # second later comes back empty. Every flag then went false, every
-          # job skipped, and the run reported success — a green tick on a pull
-          # request nothing had actually verified. The base SHA is fixed for
-          # the life of the pull request and cannot do that.
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          git fetch --no-tags origin "$BASE_SHA" 2>/dev/null || true
-          FILES=$(git diff --name-only "$BASE_SHA...HEAD" 2>/dev/null || true)
-          echo "$FILES"
-
-          # An empty list is "I could not work out what changed", not "nothing
-          # changed" — a pull request with no files in it does not exist. The
-          # safe reading of not knowing is to verify everything; the unsafe one
-          # is what shipped untested code above.
-          if [ -z "$FILES" ]; then
-            echo "no diff resolved against $BASE_SHA: verifying everything"
-            {
-              echo "dart=true"
-              echo "backend=true"
-              echo "desktop=true"
-              echo "android=true"
-              echo "modules=true"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          match() { printf '%s\n' "$FILES" | grep -Eq "$1"; }
-
-          # A workflow change re-verifies everything: the pipeline itself is
-          # what would otherwise be shipped untested.
-          if match '^\.github/'; then
-            echo "workflow changed: verifying everything"
-            {
-              echo "dart=true"
-              echo "backend=true"
-              echo "desktop=true"
-              echo "android=true"
-              echo "modules=true"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          DART=false; BACKEND=false; DESKTOP=false; ANDROID=false
-          match '^(apps/client|packages|spec|contracts|tools)/|^\.fvmrc$|^CHANGELOG(\.fa)?\.md$' && DART=true
-          # The feedback worker rides the backend flag rather than carrying
-          # its own: it is nine fast tests, and nothing matched
-          # `apps/feedback-worker/` at all before this, so a change to it ran
-          # no job whatsoever.
-          match '^apps/(backend|feedback-worker)/' && BACKEND=true
-          # The sync contract spans both sides, so either one re-runs it.
-          match '^(apps/client/windows|apps/client/ios|apps/client/macos)/' && DESKTOP=true
-          [ "$DART" = true ] && DESKTOP=true
-          # Only what the Gradle build actually reads. The android/ tree is
-          # obvious; every pubspec is here too because adding or bumping a
-          # dependency can pull in a native plugin, which is exactly the kind
-          # of break that compiles fine and fails at assemble time.
-          # The modules read the shared widgets, platform services, strings and
-          # the UI/data packages; a change anywhere else (a screen, the
-          # assistant, a reader) cannot reach them, and their suite is the
-          # longest part of the client's run.
-          MODULES=false
-          match '^apps/client/(lib/modules/|test/modules/|lib/widgets/|lib/platform/|lib/l10n/|test/support/|pubspec\.(yaml|lock)|dart_test\.yaml)|^packages/|^\.fvmrc$' && MODULES=true
-          match '^apps/client/android/' && ANDROID=true
-          match '(^|/)pubspec\.(yaml|lock)$|^\.fvmrc$' && ANDROID=true
-          match '^tools/' && ANDROID=true
-          {
-            echo "dart=$DART"
-            echo "backend=$BACKEND"
-            echo "desktop=$DESKTOP"
-            echo "android=$ANDROID"
-            echo "modules=$MODULES"
-          } >> "$GITHUB_OUTPUT"
+          CI_EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/ci_paths.py
 
   dart-packages:
     name: Pure Dart packages (analyze + test, no Flutter SDK)
@@ -177,13 +96,13 @@ jobs:
       run:
         working-directory: packages/${{ matrix.package }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dart-lang/setup-dart@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         with:
           sdk: "3.9.0"
       # sqlite3 Dart FFI needs the system library (packages/data uses package:sqlite3).
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
           key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml') }}
@@ -209,17 +128,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: changes
-    if: needs.changes.outputs.dart == 'true'
+    if: needs.changes.outputs.retrieval == 'true'
     defaults:
       run:
         working-directory: packages/data
     steps:
-      - uses: actions/checkout@v7
-      - uses: dart-lang/setup-dart@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         with:
           sdk: "3.9.0"
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.pub-cache
           key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml') }}
@@ -242,8 +161,8 @@ jobs:
       run:
         working-directory: apps/client
     steps:
-      - uses: actions/checkout@v7
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           channel: stable
@@ -256,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Every pattern below is anchored to a real declaration. The previous
       # version grepped for a bare substring, so it matched the doc comment in
       # nex_core.dart that *quotes* the removed export, and the comment in
@@ -290,7 +209,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # The Timeline widget shipped in v1.5.5 and never rendered once. Its
       # layout used <Space> to push the capture button to the far end, which
       # compiles, lints, links and installs — and which RemoteViews refuses
@@ -318,8 +237,8 @@ jobs:
       run:
         working-directory: packages/ai
     steps:
-      - uses: actions/checkout@v7
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           channel: stable
@@ -341,8 +260,8 @@ jobs:
       run:
         working-directory: packages/ui
     steps:
-      - uses: actions/checkout@v7
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           channel: stable
@@ -369,7 +288,7 @@ jobs:
       run:
         working-directory: apps/client
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # The job builds a debug APK and then the release App Bundle on one
       # runner, on top of ~2.5 GB of restored Gradle caches, and the bundle
       # step died with "No space left on device" (64 MB free) on a change
@@ -387,32 +306,32 @@ jobs:
       # there. This job builds debug, where lint does not run, so 17 worked
       # here while every release build died in lintVitalAnalyzeRelease; a CI
       # that does not match the release toolchain cannot catch that.
-      - uses: actions/setup-java@v6.1.0
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "21"
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - run: flutter pub get
       - run: flutter analyze --fatal-infos
       - name: Daily Nudge JVM policy
         run: python3 ../../tools/daily_nudge_native_test.py
-      # Everything, unless this is a pull request that cannot reach the
-      # modules' suite (see the `modules` output): then that directory is left
-      # out. A release calls this workflow and always runs it all.
-      - name: flutter test
+      - name: flutter test (active and affected modules)
         env:
-          RUN_MODULES: ${{ needs.changes.outputs.modules }}
+          MODULE_DIRS: ${{ needs.changes.outputs.module_dirs }}
         run: |
-          if [ "$RUN_MODULES" = "true" ]; then
+          if [ "$MODULE_DIRS" = all ]; then
             flutter test
           else
-            echo "modules untouched: skipping test/modules"
-            flutter test $(find test -name '*_test.dart' -not -path 'test/modules/*' | sort)
+            mapfile -t tests < <(find test -name '*_test.dart' -not -path 'test/modules/*' | sort)
+            for module in $MODULE_DIRS; do
+              test ! -d "test/modules/$module" || tests+=("test/modules/$module")
+            done
+            flutter test "${tests[@]}"
           fi
       # --flavor is required once flavorDimensions is defined (ADR-031);
       # "standard" is the AI-free default, matching what this job always
@@ -499,8 +418,8 @@ jobs:
       run:
         working-directory: apps/client
     steps:
-      - uses: actions/checkout@v7
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           channel: stable
@@ -542,8 +461,8 @@ jobs:
       run:
         working-directory: apps/client
     steps:
-      - uses: actions/checkout@v7
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           channel: stable
@@ -564,8 +483,8 @@ jobs:
       run:
         working-directory: apps/feedback-worker
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: "22"
           cache: npm
@@ -599,8 +518,8 @@ jobs:
           --health-cmd "pg_isready -U postgres"
           --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           # --experimental-strip-types requires 22.6+. The engines field and
           # this runner must agree with the start script.
@@ -632,7 +551,10 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex
           NEX_PG_TESTS: "1"
-        run: npx tsx --test src/services/sync-service.pg.test.ts
+          AUTH_RATE_LIMIT: "1000"
+        run: |
+          python3 ../../tools/require_tests.py --format tap -- npx tsx --test --test-reporter=tap src/services/sync-service.pg.test.ts
+          python3 ../../tools/require_tests.py --format tap -- npx tsx --test --test-reporter=tap src/routes/auth.pg.test.ts
 
       - name: Smoke test the built artifact
         env:
@@ -661,40 +583,13 @@ jobs:
           # in this log are signal rather than the expected noise they were.
           cat "$RUNNER_TEMP/smoke.log"
 
-  merge-conformance:
-    name: Merge conformance (TypeScript and Dart agree)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: changes
-    if: needs.changes.outputs.dart == 'true' || needs.changes.outputs.backend == 'true'
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: apps/backend/package-lock.json
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: "3.9.0"
-      - name: TypeScript implementation
-        working-directory: apps/backend
-        run: |
-          npm ci
-          npx tsx --test src/services/merge.conformance.test.ts
-      - name: Dart implementation
-        working-directory: packages/core
-        run: |
-          dart pub get
-          dart test test/merge_conformance_test.dart
-
   sync-integration:
     name: Phase 2 sync matrix (live SyncClient + PostgreSQL)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: changes
     # The sync contract has two sides; a change to either one can break it.
-    if: needs.changes.outputs.dart == 'true' || needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.sync == 'true'
     services:
       postgres:
         image: postgres:16
@@ -710,13 +605,13 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: apps/backend/package-lock.json
-      - uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         with:
           sdk: "3.9.0"
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
@@ -802,7 +697,7 @@ jobs:
           SYNC_TOKEN_DEVICE_B: ${{ env.SYNC_TOKEN_DEVICE_B }}
         run: |
           dart pub get
-          dart test test/sync_matrix_test.dart
+          python3 ../../tools/require_tests.py --format dart -- dart test --reporter=json test/sync_matrix_test.dart
 
       - name: Backend log
         if: always()
@@ -831,21 +726,12 @@ jobs:
   # on-device runtime (package:nex_ai/nex_ai.dart, LiteRT) is the removable
   # half, confined to the "ai" flavor's entry point. This job removes it and
   # proves everything else still builds.
-  ai-deletion-proof:
-    name: packages/ai on-device runtime deletion proof (the rest still builds)
+  ai-boundary:
+    name: AI import boundaries
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: changes
-    if: needs.changes.outputs.dart == 'true'
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          channel: stable
-          cache: true
-      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Assert core, data and ui never import nex_ai
         run: |
           if grep -Rn --include='*.dart' "package:nex_ai/" packages/core packages/data packages/ui | grep -q .; then
@@ -871,6 +757,21 @@ jobs:
             exit 1
           fi
 
+  ai-deletion-proof:
+    name: packages/ai on-device runtime deletion proof (the rest still builds)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: changes
+    if: needs.changes.outputs.ai_delete == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+
       - name: Remove the on-device runtime and the ai-flavor entry point
         run: |
           rm -f packages/ai/lib/nex_ai.dart \
@@ -894,6 +795,24 @@ jobs:
           cd packages/ui   && flutter pub get && flutter analyze --fatal-infos && cd -
           cd packages/ai   && flutter pub get && flutter analyze --fatal-infos && cd -
           cd apps/client   && flutter pub get && flutter analyze --fatal-infos
+
+  changed-format:
+    name: Changed Dart formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: changes
+    if: needs.changes.outputs.dart == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
+        with:
+          sdk: "3.9.0"
+      - name: Check changed maintained sources
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/check_changed_format.py
 
   # Single required check for branch protection.
   #
@@ -923,11 +842,12 @@ jobs:
       - client-ios
       - backend
       - feedback-worker
-      - merge-conformance
       - sync-integration
       - ai-deletion-proof
+      - ai-boundary
+      - changed-format
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Fail unless every job succeeded
         env:
           CI_NEEDS: ${{ toJSON(needs) }}

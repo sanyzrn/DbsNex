@@ -85,7 +85,7 @@ jobs:
     steps:
       - id: parse
         run: |
-          RAW="${{ env.RELEASE_TAG }}"
+          RAW="$RELEASE_TAG"
           # Accept both "0.2.1" and "v0.2.1"; normalise to one shape.
           VERSION="${RAW#v}"
           if ! printf '%s' "$VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'; then
@@ -129,7 +129,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "version=$VERSION base=$BASE tag=v$VERSION versionCode=$CODE"
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Validate release notes before verification or builds
         env:
           TAG: ${{ steps.parse.outputs.tag }}
@@ -154,7 +154,7 @@ jobs:
       run:
         working-directory: apps/client
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # The runner starts with little room: the bundle, three splits, the
       # universal APK and the store build, with Gradle's 2 GB of caches, ran
@@ -187,12 +187,12 @@ jobs:
       # with it the whole release build. That task runs on release builds
       # only, which is why CI stayed green on its debug build while every
       # release failed here.
-      - uses: actions/setup-java@v6.1.0
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           # Pinned in .fvmrc so a stable bump cannot silently change
           # the compiler, AGP defaults or the Android embedding mid-release.
@@ -200,7 +200,7 @@ jobs:
           channel: stable
           cache: true
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
 
       # Before Gradle needs it, with retries: see the same step in ci.yml.
       - name: Install the pinned Android NDK
@@ -412,7 +412,7 @@ jobs:
       # Keep the signed APKs available for inspection even when the identity
       # check below fails. A failed build job otherwise discards them before we
       # can determine which value differed.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: android
           path: apps/client/dist/*
@@ -437,33 +437,10 @@ jobs:
           previous_tag="$(gh api "repos/$RELEASES_REPO/releases/latest" --jq .tag_name)"
           mkdir -p previous
           gh release download "$previous_tag" \
-            --repo "$RELEASES_REPO" --pattern '*-universal.apk' --dir previous
-          previous_apk="$(find previous -maxdepth 1 -name '*-universal.apk' -print -quit)"
-          current_apk="dist/Nex-${{ needs.version.outputs.version }}-universal.apk"
-          test -s "$previous_apk"
-          test -s "$current_apk"
-
+            --repo "$RELEASES_REPO" --pattern '*.apk' --dir previous
           build_tools="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
-          package_id() {
-            "$build_tools/aapt" dump badging "$1" \
-              | sed -n -E "s/^package:[[:space:]]*name='([^']+)'.*/\1/p" | head -1
-          }
-          signer() {
-            "$build_tools/apksigner" verify --print-certs "$1" \
-              | sed -n -E 's/.*certificate SHA-256 digest:[[:space:]]*([[:xdigit:]]{64}).*/\1/p' \
-              | head -1 | tr '[:upper:]' '[:lower:]'
-          }
-          old_id="$(package_id "$previous_apk")"
-          new_id="$(package_id "$current_apk")"
-          old_signer="$(signer "$previous_apk")"
-          new_signer="$(signer "$current_apk")"
-          echo "Previous ($previous_tag): package=${old_id:-<missing>} signer=${old_signer:-<missing>}"
-          echo "Current (${{ needs.version.outputs.tag }}): package=${new_id:-<missing>} signer=${new_signer:-<missing>}"
-          if [ "$old_id" != com.sanyzrn.nex ] || [ "$new_id" != "$old_id" ] || \
-             [ -z "$old_signer" ] || [ -z "$new_signer" ] || [ "$new_signer" != "$old_signer" ]; then
-            echo "::error::APK identity differs from $previous_tag; refusing an update that may require removing the installed app."
-            exit 1
-          fi
+          python3 ../../tools/verify_apk_updates.py --previous previous --current dist \
+            --build-tools "$build_tools"
 
   build-windows:
     name: Windows Inno Setup installer
@@ -492,9 +469,9 @@ jobs:
       run:
         working-directory: apps/client
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           channel: stable
@@ -534,7 +511,7 @@ jobs:
           & $iscc "windows\installer\nex.iss" "/DAppVersion=$version"
           Get-ChildItem "windows\installer\Output\*.exe" | Format-Table Name, Length
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: windows-installer
           path: apps/client/windows/installer/Output/*.exe
@@ -551,7 +528,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # CHANGELOG.md's section for this tag — see that file for the convention —
       # replaces GitHub's auto-generated notes (a dump of every PR title and
@@ -565,7 +542,7 @@ jobs:
           python3 tools/release_notes.py --tag "$TAG" --output RELEASE_NOTES.md
           cat RELEASE_NOTES.md
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           # Somewhere known, rather than over the checked-out tree.
           path: artifacts

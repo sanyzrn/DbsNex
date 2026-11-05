@@ -53,6 +53,42 @@ void main() {
     );
   });
 
+  for (final sameInstant in [false, true]) {
+    test(
+      'thread order normalizes UTC precision (same instant: $sameInstant)',
+      () {
+        Note fixed(String id, String time) => Note(
+          id: id,
+          type: NoteType.text,
+          content: 'timestamp order',
+          createdAt: DateTime.parse(time),
+          updatedAt: DateTime.parse(time),
+          deviceId: 'd',
+          rev: 1,
+          syncState: SyncState.pending,
+        );
+        // Insert the later capture first, as a restore or sync can do. Millisecond
+        // rounding would also misorder these, so retain the full microseconds.
+        final later = notes.insert(
+          fixed(
+            'later',
+            sameInstant
+                ? '2026-11-05T01:24:55.010Z'
+                : '2026-11-05T01:24:55.010100Z',
+          ),
+        );
+        final earlier = notes.insert(
+          fixed('earlier', '2026-11-05T01:24:55.010Z'),
+        );
+        final thread = threads.create('Order', noteIds: [later.id, earlier.id]);
+        expect(
+          threads.notes(thread.id).map((note) => note.id),
+          sameInstant ? [later.id, earlier.id] : [earlier.id, later.id],
+        );
+      },
+    );
+  }
+
   test('a deleted note leaves the thread view and its count', () {
     final a = text('garden plan: plant tomatoes along the fence');
     final b = text('garden plan: buy compost for the tomatoes');

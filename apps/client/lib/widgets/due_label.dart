@@ -22,8 +22,8 @@ import '../l10n/app_localizations.dart';
 /// answers the same question in the same words the app used when the reminder
 /// was set. Compact on purpose: it shares one line with the note's own
 /// timestamp and its preview.
-String nexDueCountdown(AppLocalizations l10n, DateTime due) {
-  final left = due.toLocal().difference(DateTime.now());
+String nexDueCountdown(AppLocalizations l10n, DateTime due, {DateTime? now}) {
+  final left = due.toLocal().difference(now ?? DateTime.now());
   if (left.isNegative) return l10n.remindOverdue;
   // The short forms, not the sentences the confirmation uses. This shares one
   // line with the note's own words, and "13 hours" took enough of it to push
@@ -47,6 +47,7 @@ String nexDueExact(
   BuildContext context,
   DateTime due, {
   bool solarCalendar = false,
+  DateTime? now,
 }) {
   final l10n = AppLocalizations.of(context);
   final material = MaterialLocalizations.of(context);
@@ -58,12 +59,12 @@ String nexDueExact(
     ),
     persian: l10n.localeName == 'fa',
   );
-  final now = DateTime.now();
+  final today = now ?? DateTime.now();
   final days = DateTime.utc(
     local.year,
     local.month,
     local.day,
-  ).difference(DateTime.utc(now.year, now.month, now.day)).inDays;
+  ).difference(DateTime.utc(today.year, today.month, today.day)).inDays;
   if (days == 0) return l10n.remindWhenToday(time);
   if (days == 1) return l10n.remindWhenTomorrow(time);
   return l10n.remindWhenOn(
