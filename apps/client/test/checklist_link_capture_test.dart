@@ -418,11 +418,10 @@ void main() {
 
     final saved = (await services.getById(note.id))!.checklistItems;
     expect(saved.map((i) => i.text), ['milk', 'eggs']);
-    expect(
-      saved.map((i) => i.done),
-      [true, false],
-      reason: 'milk was ticked before the edit and was not retyped',
-    );
+    expect(saved.map((i) => i.done), [
+      true,
+      false,
+    ], reason: 'milk was ticked before the edit and was not retyped');
   });
 
   group('parseLinkPreview', () {
