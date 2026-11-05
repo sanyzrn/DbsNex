@@ -73,7 +73,7 @@ ThemeData nexSoftLightTheme({
     onPrimaryContainer: accent,
     filled: filled,
     filledInk: Colors.white,
-    fab: custom?.light ?? NexSoftLightColors.captureFill,
+    fab: custom?.strongLight ?? NexSoftLightColors.captureFill,
     fabInk: Colors.white,
   );
 }
@@ -124,7 +124,7 @@ ThemeData nexOledNightTheme({
   );
 }
 
-/// All three new app appearances share the existing minimal surface contract.
+/// Both new app appearances share the existing minimal surface contract.
 /// Do not remove focus, validation or high-contrast state outlines.
 ThemeData _flattenSoftAppearance(
   ThemeData theme, {
