@@ -4,7 +4,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
-- **Softer Light and true-black Night.** Light gets quiet grey cards; Night gets an OLED-black page, charcoal cards and softer text. Decorative borders and shadows are removed in both, while focus, accessibility, custom accents and optional Liquid Glass remain intact. Dark is unchanged.
+- **Softer Light and true-black Night.** Light gets quiet grey cards; Night gets an OLED-black page, charcoal cards and softer text. Decorative borders and shadows are removed in both, while focus, accessibility, custom accents and optional Liquid Glass remain intact. Dark retains its surfaces with softer main text.
 
 ## v2.6.6
 

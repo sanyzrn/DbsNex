@@ -6,7 +6,7 @@ abstract final class NexSoftDarkColors {
   static const background = Color(0xFF141821);
   static const card = Color(0xFF1C212C);
   static const elevated = Color(0xFF252B38);
-  static const text = Color(0xFFE4E8F1);
+  static const text = Color(0xFFD9DDE6);
   static const muted = Color(0xFF98A1B5);
   static const accent = Color(0xFF0084F7);
   static const accentText = Color(0xFF5AB0FF);

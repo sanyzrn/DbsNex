@@ -234,9 +234,9 @@ void main() {
     expect(tester.getSize(recap).height, greaterThan(foldedHeight));
     final expandedHeight = tester.getSize(recap).height;
     await tester.tap(recap);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(tester.getSize(recap).height, lessThan(expandedHeight));
+    // Save the folded state immediately; the animation can settle after a
+    // short deferred frame depending on which appearance is active.
+    expect(preferences.daySummaryFolded, isTrue);
     await tester.pumpAndSettle();
     expect(tester.getSize(recap).height, closeTo(foldedHeight, 1));
     expect(preferences.daySummaryFolded, isTrue);

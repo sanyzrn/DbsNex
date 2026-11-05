@@ -220,7 +220,7 @@ theme reveal. All additions respect reduced motion and settle without idle loops
 The app exposes Light, Dark, Night and System. All three app appearances are
 flat, with tonal cards instead of decorative borders or shadows. Light uses
 `nexSoftLightTheme` (`#FFFFFF` page, `#F4F5F8` cards, `#14171C` text).
-Dark keeps `nexSoftDarkTheme` (`#141821` page, `#1C212C` cards, `#E4E8F1`
+Dark keeps `nexSoftDarkTheme` (`#141821` page, `#1C212C` cards, `#D9DDE6`
 text). OLED Night uses `nexOledNightTheme` (`#000000` page, `#0E0F12`
 cards, `#D9DDE6` soft text). Functional selection, focus, error and
 high-contrast outlines remain explicit; Liquid Glass and the custom accent

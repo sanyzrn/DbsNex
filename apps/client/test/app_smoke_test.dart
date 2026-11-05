@@ -922,14 +922,14 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     var app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.theme!.scaffoldBackgroundColor, NexColors.bgPrimaryLight);
+    expect(app.theme!.scaffoldBackgroundColor, NexSoftLightColors.background);
 
     // Comfort Mode has no switch left in Settings, so a stored value no
     // longer tints the app; the warm palettes are the whole-app themes now.
     await preferences.setComfortMode(true);
     await tester.pump();
     app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.theme!.scaffoldBackgroundColor, NexColors.bgPrimaryLight);
+    expect(app.theme!.scaffoldBackgroundColor, NexSoftLightColors.background);
   });
 
   testWidgets('Settings lists one row per setting, values and all', (
@@ -1011,7 +1011,7 @@ void main() {
       final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
       expect(
         app.theme!.colorScheme,
-        nexLightTheme(fontFamily: nexLatinFont).colorScheme,
+        nexSoftLightTheme(fontFamily: nexLatinFont).colorScheme,
       );
       expect(preferences.themePreset, 'paper');
       await tester.scrollUntilVisible(
@@ -1110,7 +1110,7 @@ void main() {
     final theme = Theme.of(
       tester.element(find.byType(TimelineScreen, skipOffstage: false)),
     );
-    expect(theme.colorScheme.primary, nexAccentPaletteFrom(seed).light);
+    expect(theme.colorScheme.primary, nexSoftLightTheme(accentSeed: seed).colorScheme.primary);
     // Not the shipped default — a colour someone did not pick would defeat
     // the whole point.
     expect(theme.colorScheme.primary, isNot(NexColors.defaultAccent.light));
