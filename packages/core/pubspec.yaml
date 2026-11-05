@@ -11,11 +11,11 @@ environment:
   sdk: ^3.9.0
 
 dependencies:
-  crypto: ^3.0.6
+  crypto: ^3.0.8
   uuid: ^4.5.1
   # nex_data removed. Core used to depend on the storage layer AND re-export it
   # wholesale, which inverted the documented layering.
 
 dev_dependencies:
   lints: ^5.0.0
-  test: ^1.25.0
+  test: ^1.33.0
