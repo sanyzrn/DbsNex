@@ -180,9 +180,9 @@ class NexThemeSwatch extends StatelessWidget {
     final scheme =
         (dark
                 ? (mode == NexAppearanceMode.night
-                      ? nexNightTheme
+                      ? nexOledNightTheme
                       : nexSoftDarkTheme)(comfortMode: comfort)
-                : nexLightTheme(comfortMode: comfort))
+                : nexSoftLightTheme(comfortMode: comfort))
             .colorScheme;
     Widget bar(double width, double opacity) => Container(
       width: width,
@@ -199,12 +199,9 @@ class NexThemeSwatch extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(NexRadius.sm),
-        border:
-            dark &&
-                mode != NexAppearanceMode.night &&
-                !MediaQuery.highContrastOf(context)
-            ? null
-            : Border.all(color: scheme.outline),
+        border: MediaQuery.highContrastOf(context)
+            ? Border.all(color: scheme.outline)
+            : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -234,7 +231,7 @@ class NexThemeSwatch extends StatelessWidget {
               decoration: BoxDecoration(
                 color:
                     (dark
-                            ? nexLightTheme(comfortMode: comfort)
+                            ? nexSoftLightTheme(comfortMode: comfort)
                             : nexSoftDarkTheme(comfortMode: comfort))
                         .colorScheme
                         .surface,
