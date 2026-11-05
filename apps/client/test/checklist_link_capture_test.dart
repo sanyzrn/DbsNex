@@ -38,6 +38,7 @@ void main() {
     services = harness.services;
     preferences = harness.preferences;
     preferences = await NexPreferences.load();
+    await preferences.setLocale('en');
     await preferences.completeOnboarding();
     await preferences.completeTour();
   });
