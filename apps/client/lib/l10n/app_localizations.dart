@@ -1532,6 +1532,18 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get themeDark;
 
+  /// No description provided for @themeNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Night'**
+  String get themeNight;
+
+  /// No description provided for @themePresetsPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporarily unavailable. Your saved themes are kept.'**
+  String get themePresetsPaused;
+
   /// No description provided for @themeSystem.
   ///
   /// In en, this message translates to:

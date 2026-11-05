@@ -31,7 +31,13 @@ abstract final class PortablePreferences {
     for (final entry in preferences.entries) {
       final v = entry.value;
       final valid = switch (entry.key) {
-        'appearance.theme' => const {'system', 'light', 'dark'}.contains(v),
+        'appearance.theme' => const {
+          'system',
+          'light',
+          'dark',
+          'soft_dark',
+          'night',
+        }.contains(v),
         'appearance.theme_preset' =>
           v is String && RegExp(r'^[a-z][a-z0-9_-]{0,63}$').hasMatch(v),
         'appearance.accent_seed' => isColor(v),

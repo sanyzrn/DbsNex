@@ -90,9 +90,12 @@ void main() {
         addTearDown(h.dispose);
         await h.preferences.setThemePreset(preset.id);
         await h.preferences.setProfileBirthday(DateTime(2000, 3, 10));
+        final effective = h.preferences.effectiveThemePreset;
+        expect(h.preferences.themePreset, preset.id);
+        expect(effective, 'classic');
         final theme = nexApplyThemePreset(
           dark ? nexDarkTheme() : nexLightTheme(),
-          preset.id,
+          effective,
           null,
         );
         await tester.pumpWidget(
@@ -110,7 +113,7 @@ void main() {
         await tester.pumpAndSettle();
         final header = tester.widget<ProfileHeader>(find.byType(ProfileHeader));
         final countdown = tester.widget<Text>(find.text(header.birthdayLine!));
-        final ink = const {'classic', 'graphite'}.contains(preset.id)
+        final ink = const {'classic', 'graphite'}.contains(effective)
             ? theme.colorScheme.onSurface
             : theme.colorScheme.onPrimaryContainer;
         expect(countdown.style!.color, ink);

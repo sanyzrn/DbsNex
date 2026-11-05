@@ -130,8 +130,8 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
 
   final bool liquidGlass;
 
-  /// Flat, quiet surfaces: no decorative edges, shadows or optical effects.
-  /// Functional focus and high-contrast outlines remain available.
+  /// Flat, quiet default surfaces without decorative edges or shadows.
+  /// Glass may be opted into independently; focus/high-contrast stay available.
   final bool minimal;
   final Color baseColor;
 

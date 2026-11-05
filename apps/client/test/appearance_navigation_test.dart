@@ -10,7 +10,7 @@ void main() {
   for (final locale in ['en', 'fa']) {
     for (final reduced in [false, true]) {
       testWidgets(
-        '$locale reduced=$reduced: Appearance keeps themes on their own page',
+        '$locale reduced=$reduced: Appearance preserves and pauses its theme gallery',
         (tester) async {
           final h = await NexTestHarness.create();
           addTearDown(h.dispose);
@@ -55,33 +55,20 @@ void main() {
           );
           await tester.ensureVisible(themes);
           await tester.pumpAndSettle();
+          final row = tester.widget<ListTile>(
+            find.descendant(of: themes, matching: find.byType(ListTile)),
+          );
+          expect(row.enabled, isFalse);
+          expect(row.onTap, isNull);
+          expect(find.text(l10n.themePresetsPaused), findsOneWidget);
           await tester.tap(themes);
           await tester.pumpAndSettle();
-          expect(find.byKey(const ValueKey('palette-classic')), findsOneWidget);
-          for (final id in ['bauhaus', 'porcelain', 'circuit', 'afterimage']) {
-            final tile = find.byKey(ValueKey('palette-$id'));
-            await tester.scrollUntilVisible(
-              tile,
-              250,
-              scrollable: find.byType(Scrollable).last,
-            );
-            expect(tile, findsOneWidget);
-            await tester.tap(tile);
-            await tester.pumpAndSettle();
-            expect(h.preferences.themePreset, id);
-            expect(tester.takeException(), isNull);
-          }
+          expect(find.byKey(const ValueKey('palette-classic')), findsNothing);
+          expect(nexThemePresets.length, 15);
           expect(
             nexThemePresets.map((p) => p.id).toSet().length,
             nexThemePresets.length,
           );
-          await tester.tap(find.byType(BackButton).first);
-          await tester.pumpAndSettle();
-          expect(
-            find.byKey(const ValueKey('palette-afterimage')),
-            findsNothing,
-          );
-          expect(h.preferences.themePreset, 'afterimage');
           await tester.pumpWidget(const SizedBox());
         },
       );

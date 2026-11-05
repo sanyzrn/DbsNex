@@ -7,6 +7,8 @@ import 'nex_accent_palette.dart';
 import 'nex_appearance.dart';
 import 'nex_contrast.dart';
 
+part 'nex_soft_dark.dart';
+
 /// Every colour in Nex: one neutral ramp per theme, plus one accent.
 ///
 /// The ramp is chosen; the floors are not. Two rules hold whatever the greys
@@ -645,6 +647,7 @@ ThemeData _theme({
   required String fontFamily,
   required bool liquidGlass,
   required bool transparentScaffold,
+  bool minimal = false,
 }) {
   final dark = brightness == Brightness.dark;
   final errorColor = dark ? NexColors.errorDark : NexColors.error;
@@ -755,16 +758,17 @@ ThemeData _theme({
       // capsules beside it have — and a Material elevation-8 shadow painted
       // on top of that is the reason the capture button did not look like
       // them. Two shadows, and the loud one wins.
-      elevation: liquidGlass ? 0 : 3,
-      focusElevation: liquidGlass ? 0 : 3,
-      hoverElevation: liquidGlass ? 0 : 3,
-      highlightElevation: liquidGlass ? 0 : 6,
+      elevation: liquidGlass || minimal ? 0 : 3,
+      focusElevation: liquidGlass || minimal ? 0 : 3,
+      hoverElevation: liquidGlass || minimal ? 0 : 3,
+      highlightElevation: liquidGlass || minimal ? 0 : 6,
       sizeConstraints: const BoxConstraints.tightFor(
         width: nexCaptureFabSize,
         height: nexCaptureFabSize,
       ),
     ),
-    dividerColor: borderSoft,
+    shadowColor: minimal ? Colors.transparent : null,
+    dividerColor: minimal ? Colors.transparent : borderSoft,
     cardTheme: CardThemeData(
       elevation: 0,
       color: cardSurface,
@@ -782,7 +786,7 @@ ThemeData _theme({
     popupMenuTheme: PopupMenuThemeData(
       color: liquidGlass ? Colors.transparent : scheme.surfaceContainerHigh,
       surfaceTintColor: Colors.transparent,
-      elevation: liquidGlass ? 0 : 3,
+      elevation: liquidGlass || minimal ? 0 : 3,
       menuPadding: liquidGlass
           ? EdgeInsets.zero
           : const EdgeInsets.symmetric(vertical: NexSpacing.sm),
@@ -791,14 +795,16 @@ ThemeData _theme({
       ),
     ),
     dialogTheme: DialogThemeData(
-      elevation: liquidGlass ? 12 : 6,
+      elevation: minimal ? 0 : (liquidGlass ? 12 : 6),
       backgroundColor: cardSurface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.xl),
         // A dialog can open over a sheet with the same fill. Its boundary
         // must remain visible even when the two surfaces match.
-        side: liquidGlass ? BorderSide.none : BorderSide(color: border),
+        side: liquidGlass || minimal
+            ? BorderSide.none
+            : BorderSide(color: border),
       ),
     ),
     bottomSheetTheme: BottomSheetThemeData(
@@ -811,8 +817,8 @@ ThemeData _theme({
       backgroundColor: liquidGlass ? sheetSurface : card,
       modalBackgroundColor: liquidGlass ? sheetSurface : card,
       surfaceTintColor: Colors.transparent,
-      elevation: liquidGlass ? 0 : 8,
-      modalElevation: liquidGlass ? 0 : 8,
+      elevation: liquidGlass || minimal ? 0 : 8,
+      modalElevation: liquidGlass || minimal ? 0 : 8,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(NexRadius.xl)),
@@ -828,7 +834,7 @@ ThemeData _theme({
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(NexRadius.md),
-        borderSide: BorderSide(color: borderSoft),
+        borderSide: minimal ? BorderSide.none : BorderSide(color: borderSoft),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(NexRadius.md),
@@ -869,7 +875,7 @@ ThemeData _theme({
         minimumSize: const Size(nexMinTapTarget, nexMinTapTarget),
         padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
         shape: const StadiumBorder(),
-        side: BorderSide(color: border),
+        side: minimal ? BorderSide.none : BorderSide(color: border),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -935,6 +941,7 @@ ThemeData _theme({
     ),
     extensions: [
       NexVisualStyle(
+        minimal: minimal,
         liquidGlass: liquidGlass,
         baseColor: background,
         // Every layer uses source-over. The earlier additive and luminosity

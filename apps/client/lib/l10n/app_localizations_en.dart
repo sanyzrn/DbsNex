@@ -936,6 +936,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeDark => 'Dark';
 
   @override
+  String get themeNight => 'Night';
+
+  @override
+  String get themePresetsPaused =>
+      'Temporarily unavailable. Your saved themes are kept.';
+
+  @override
   String get themeSystem => 'System';
 
   @override

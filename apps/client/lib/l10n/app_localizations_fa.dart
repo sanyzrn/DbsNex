@@ -927,6 +927,13 @@ class AppLocalizationsFa extends AppLocalizations {
   String get themeDark => 'تیره';
 
   @override
+  String get themeNight => 'شب';
+
+  @override
+  String get themePresetsPaused =>
+      'تم‌های آماده موقتاً غیرفعال‌اند؛ انتخاب قبلی شما حفظ شده است.';
+
+  @override
   String get themeSystem => 'مثل سیستم';
 
   @override

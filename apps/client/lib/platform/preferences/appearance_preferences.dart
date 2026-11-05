@@ -19,6 +19,11 @@ mixin _AppearancePreferences on _PreferencesStore {
 
   String get themePreset =>
       _prefs.getString('appearance.theme_preset') ?? 'classic';
+
+  /// The gallery is paused without overwriting anyone's saved selection.
+  String get effectiveThemePreset =>
+      nexThemePresetsAvailable ? themePreset : 'classic';
+
   Future<void> setThemePreset(String value) async {
     await _prefs.setString('appearance.theme_preset', value);
     notifyListeners();
@@ -83,11 +88,17 @@ mixin _AppearancePreferences on _PreferencesStore {
     notifyListeners();
   }
 
-  ThemeMode get themeMode => switch (_prefs.getString('appearance.theme')) {
-    'light' => ThemeMode.light,
-    'dark' => ThemeMode.dark,
-    _ => ThemeMode.system,
-  };
+  NexAppearanceMode get appearanceMode =>
+      NexAppearanceMode.fromWire(_prefs.getString('appearance.theme'));
+
+  /// Flutter still consumes three brightness modes. Both Dark and Night are
+  /// dark, but the root observes [appearanceMode] to rebuild between them.
+  ThemeMode get themeMode => appearanceMode.materialMode;
+
+  Future<void> setAppearanceMode(NexAppearanceMode value) async {
+    await _prefs.setString('appearance.theme', value.wireName);
+    notifyListeners();
+  }
 
   Future<void> setComfortMode(bool value) =>
       _setBool('appearance.comfort', value);
@@ -143,8 +154,10 @@ mixin _AppearancePreferences on _PreferencesStore {
     notifyListeners();
   }
 
-  Future<void> setThemeMode(ThemeMode value) async {
-    await _prefs.setString('appearance.theme', value.name);
-    notifyListeners();
-  }
+  Future<void> setThemeMode(ThemeMode value) =>
+      setAppearanceMode(switch (value) {
+        ThemeMode.light => NexAppearanceMode.light,
+        ThemeMode.dark => NexAppearanceMode.dark,
+        ThemeMode.system => NexAppearanceMode.system,
+      });
 }

@@ -279,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const {
                     'classic',
                     'graphite',
-                  }.contains(widget.preferences.themePreset)
+                  }.contains(widget.preferences.effectiveThemePreset)
                   ? Theme.of(context).colorScheme.onSurface
                   : null,
               birthdayLine: birthday == null

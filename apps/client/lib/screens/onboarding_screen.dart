@@ -272,7 +272,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         // the accent: near-white on a pale blue in the dark
                         // theme.
                         style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.onPrimary,
+                          color:
+                              theme.filledButtonTheme.style?.foregroundColor
+                                  ?.resolve({}) ??
+                              theme.colorScheme.onPrimary,
                         ),
                       ),
                     ),

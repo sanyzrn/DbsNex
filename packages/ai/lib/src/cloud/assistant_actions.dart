@@ -355,7 +355,7 @@ the one that is already there rather than making a second. Use
 next turn by itself, so never send a new date for that.
 
 Settings you may change, and nothing else:
-`theme` (light/dark/system), `language` (en/fa/system),
+`theme` (light/dark/night/system; night is the former dark look), `language` (en/fa/system),
 `ai_language` (auto/en/fa),
 `text_size` (small/default/large/larger),
 `palette` (classic/paper/autumn/blossom/forest/turquoise/saffron/midnight/ocean/graphite),
@@ -453,7 +453,7 @@ is pinned; "in thread" names its thread; check's index is the item's #number.
 restore {id} · rename_tag {tag, name} · tag_color {tag, color "#RRGGBB"}
 commitment {name, every, unit hours|days|weeks|months|years, at}
 commitment_met {name} · commitment_delete {name} · thread {ids[], name}
-setting {key, value}: theme light|dark|system, language en|fa|system,
+setting {key, value}: theme light|dark|night|system, language en|fa|system,
 ai_language auto|en|fa, text_size small|default|large|larger, palette,
 accent "#RRGGBB"|default, haptics on|off, show_greeting|show_digest|
 show_search|show_tags on|off, daily_nudge on|off, daily_nudge_time "HH:MM".

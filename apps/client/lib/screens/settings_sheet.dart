@@ -237,14 +237,14 @@ class SettingsSheet extends StatelessWidget {
       id: 'appearance',
       icon: Icons.palette_outlined,
       title: l10n.appearance,
-      summary: nexThemePresetLabel(context, preferences.themePreset),
+      summary: nexThemePresetLabel(context, preferences.effectiveThemePreset),
       children: [
         _Row(
           icon: Icons.palette_outlined,
           title: l10n.theme,
           keywords:
               '${l10n.liquidGlass} ${l10n.liquidGlassSubtitle} dark light mode accent colour color palette text size font card size density compact app icon تم تیره روشن رنگ تأکیدی پالت اندازه متن اندازه کارت فشرده آیکون',
-          value: nexThemePresetLabel(context, preferences.themePreset),
+          value: nexThemePresetLabel(context, preferences.effectiveThemePreset),
           onTap: () => Navigator.push(
             context,
             NexPageRoute<void>(

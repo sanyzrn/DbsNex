@@ -1160,8 +1160,15 @@ void main() {
 
     expect(
       headerColor(),
-      nexDarkTheme().colorScheme.surface,
+      nexSoftDarkTheme().colorScheme.surface,
       reason: 'the header repainted in the theme the rest of the app is in',
+    );
+    await preferences.setAppearanceMode(NexAppearanceMode.night);
+    await tester.pumpAndSettle();
+    expect(
+      headerColor(),
+      nexNightTheme().colorScheme.surface,
+      reason: 'Night repaints the cached header even at equal brightness',
     );
   });
 
