@@ -115,6 +115,7 @@ class _Section extends StatelessWidget {
     required this.children,
     this.summary,
     this.badge = false,
+    this.header,
   });
 
   final String id;
@@ -123,9 +124,18 @@ class _Section extends StatelessWidget {
   final String? summary;
   final bool badge;
   final List<Widget> children;
+  final Widget? header;
 
   @override
-  Widget build(BuildContext context) => _SettingsCard(children: children);
+  Widget build(BuildContext context) => header == null
+      ? _SettingsCard(children: children)
+      : Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            header!,
+            _SettingsCard(children: children),
+          ],
+        );
 }
 
 /// Rows on a rounded card, with dividers between them.

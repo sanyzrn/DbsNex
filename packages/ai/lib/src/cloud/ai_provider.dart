@@ -1850,7 +1850,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   /// and a small model copied the labels — "DUE in 6h:" opened the reply —
   /// and then carried on in the language they were in.
   static const _briefLabelsRule =
-      'The labels in those lines — DUE, overdue, was, in, days, ago, today, '
+      'The labels in those lines — URGENT, DUE, overdue, was, in, days, ago, today, '
       'tomorrow, yesterday, next, text, checklist, left, done, every, '
       'reminder — are markers for you, not words to copy: never write them, '
       'and say what they mean in the language of your reply.';
@@ -1865,8 +1865,10 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   /// call" — when most reminders are simply the time somebody means to do a
   /// thing.
   static const _briefDueKey =
-      'A line starting DUE is a reminder the person has already set, and '
-      'those lines come first: "DUE today 18:30", "DUE tomorrow 09:00", '
+      'Prioritise notes marked URGENT, then notes with reminders, then ordinary '
+      'notes. URGENT is the user’s explicit priority, not a made-up deadline. '
+      'Within reminders, prefer overdue and upcoming ones. '
+      'A line starting DUE is a reminder the person has already set: "DUE today 18:30", "DUE tomorrow 09:00", '
       '"DUE Wednesday 09:00, in 5 days", "DUE overdue, was yesterday 09:00". '
       'The day and the time are when they chose to be reminded, which is '
       'usually when they mean to do the thing. It is not a deadline. Say it '
@@ -2032,8 +2034,8 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       'with a single emoji that fits it, then '
       '${words > 16 ? 'one or two sentences of up to about $words words: what '
                 'it is, and why it matters now or what the next step is' : 'a short sentence'}. '
-      'Overdue '
-      'first, then what is due soon, then what is unfinished, then anything '
+      'Urgent notes '
+      'first, then reminders, then what is unfinished and anything '
       'worth being reminded of. Say what to do where there is something to '
       'do: "Call the plumber — overdue by two days", not "you have an '
       'overdue reminder". Name the real things, not the categories they '

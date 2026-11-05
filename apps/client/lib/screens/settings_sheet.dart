@@ -525,14 +525,8 @@ class SettingsSheet extends StatelessWidget {
       summary: preferences.aiEnabled
           ? nexProviderName(l10n, preferences.aiProvider.provider)
           : l10n.intelligenceOff,
+      header: _IntelligenceGlance(preferences: preferences),
       children: [
-        _Searchable(
-          text: '${l10n.intelligence} AI هوش مصنوعی',
-          child: _IntelligenceGlance(
-            services: services,
-            preferences: preferences,
-          ),
-        ),
         _Row(
           icon: Icons.auto_awesome_outlined,
           title: l10n.intelligenceOpen,

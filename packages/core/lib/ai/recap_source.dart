@@ -105,9 +105,9 @@ List<(String, String?)> _recapLines(
   /// Absolute facts for cache identity; relative age alone is not new data.
   bool forFingerprint = false,
 
-  /// How far ahead a reminder still counts as "waiting". Past this it is
-  /// simply a note with a date on it: something due in three months is not
-  /// what anyone opening the app this morning needs told.
+  /// How far ahead a reminder is labelled as waiting. Later reminders keep
+  /// their date and their priority over ordinary notes, without being called
+  /// due soon.
   Duration horizon = const Duration(days: 7),
 
   /// Per note. A long note would otherwise take the budget the other
@@ -137,25 +137,33 @@ List<(String, String?)> _recapLines(
       note.type == NoteType.checklist &&
       note.checklistItems.any((item) => !item.done);
 
-  // Three passes rather than one sort with a composite key: the groups are
+  // Urgent notes first, then reminders, then ordinary notes. Within each
+  // group, keep the existing date order rather than adding numeric weights.
+  final urgent = [
+    for (final note in live)
+      if (note.isUrgent) note,
+  ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+  // Separate passes rather than one sort with a composite key: the groups are
   // ordered by different things — the due ones by when they are due, the rest
   // by when they were written — and a single comparator that tries to say
   // that is a comparator nobody can read.
   final due = [
     for (final note in live)
-      if (waiting(note)) note,
+      if (!note.isUrgent && note.dueAt != null) note,
   ]..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
   final open = [
     for (final note in live)
-      if (!waiting(note) && unfinished(note)) note,
+      if (!note.isUrgent && note.dueAt == null && unfinished(note)) note,
   ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   final rest = [
     for (final note in live)
-      if (!waiting(note) && !unfinished(note)) note,
+      if (!note.isUrgent && note.dueAt == null && !unfinished(note)) note,
   ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
   final pressing = <(String, String?)>[];
-  // Commitments first, unconditionally. Every one that reaches this point is
+  // Waiting commitments follow urgent notes and precede ordinary notes.
+  // Every one that reaches this point is
   // already past its lead time — that is what put it here — so it is by
   // construction more pressing than a note somebody wrote on Tuesday. They
   // are few (one line each, and only the waiting ones) so they cannot crowd
@@ -191,9 +199,13 @@ List<(String, String?)> _recapLines(
         ? '${note.id}|${note.dueAt?.toUtc().toIso8601String() ?? ''}|'
               '${waiting(note) ? '${note.dueAt!.toUtc().isBefore(at) ? 'overdue' : 'upcoming'}|${_dayGap(local, zoned(note.dueAt!))}' : ''}'
         : _when(note, local, zoned, due: waiting(note));
-    return '$when | ${_kind(note)}${_tags(note)} | $text';
+    return '$when | ${note.isUrgent ? 'URGENT ' : ''}${_kind(note)}${_tags(note)} | $text';
   }
 
+  pressing.insertAll(0, [
+    for (final note in urgent)
+      if (line(note) case final text?) (text, note.id),
+  ]);
   for (final note in [...due, ...open]) {
     if (line(note) case final text?) pressing.add((text, note.id));
   }

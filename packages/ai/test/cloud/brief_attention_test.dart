@@ -52,6 +52,14 @@ void main() {
         expect(messages.last['content'], source);
         final system = messages.first['content'] as String;
         expect(system, contains('Never call a completed goal unfinished'));
+        expect(
+          system,
+          contains(
+            'Prioritise notes marked URGENT, then notes with reminders, then ordinary',
+          ),
+        );
+        expect(system, contains('not a made-up deadline'));
+
         if (style == NexBriefStyle.custom) {
           expect(system, contains('Report all completed habits'));
           expect(system, contains('Follow the custom instruction'));

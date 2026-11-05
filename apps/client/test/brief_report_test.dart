@@ -30,6 +30,7 @@ void main() {
     required String text,
     DateTime? dueAt,
     NoteType type = NoteType.text,
+    bool urgent = false,
   }) => Note(
     id: id,
     type: type,
@@ -37,10 +38,43 @@ void main() {
     createdAt: now,
     updatedAt: now,
     dueAt: dueAt,
+    isUrgent: urgent,
     deviceId: 'test',
     rev: 1,
     syncState: SyncState.pending,
   );
+
+  test('the local report gives urgent notes priority without duplicates', () {
+    final notes = [
+      note(id: 'normal', text: 'a new thought'),
+      note(
+        id: 'reminder',
+        text: 'the appointment',
+        dueAt: now.add(const Duration(days: 1)),
+      ),
+      note(id: 'urgent', text: 'call the supplier', urgent: true),
+      note(
+        id: 'both',
+        text: 'pay the bill',
+        urgent: true,
+        dueAt: now.subtract(const Duration(days: 1)),
+      ),
+    ];
+    final report = nexBriefReport(
+      nexBriefFacts(notes, now: now),
+      en,
+      notes: notes,
+      now: now,
+      maxLines: 4,
+    )!;
+    final lines = report.split('\n');
+    expect(lines, hasLength(4));
+    expect(lines[0], contains('pay the bill'));
+    expect(lines[1], contains('call the supplier'));
+    expect(lines[2], contains('the appointment'));
+    expect(lines[3], contains('a new thought'));
+    expect('pay the bill'.allMatches(report), hasLength(1));
+  });
 
   test('a quiet day is not filled in', () {
     final report = nexBriefReport(

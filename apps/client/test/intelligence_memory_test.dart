@@ -29,42 +29,39 @@ Widget app(Widget body, {String locale = 'en', bool dark = false}) =>
     );
 
 void main() {
-  test(
-    'legacy text is retained; absent Memory stays off and choices survive reload',
-    () async {
-      final h = await NexTestHarness.create(
-        preferences: {
-          'ai.userIntroduction': 'Existing introduction',
-          'ai.transcription': false,
-          'brief.instruction': 'My brief',
-        },
-      );
-      addTearDown(h.dispose);
-      final prefs = h.preferences;
-      expect(prefs.aiMemoryEnabled, isFalse);
-      expect(prefs.aiMemoryConsentSeen, isFalse);
-      await prefs.setAiEnabled(true);
-      expect(prefs.aiUserIntroduction, 'Existing introduction');
-      expect(prefs.effectiveAiMemory, isEmpty);
-      await prefs.setAiMemoryEnabled(true);
-      expect(prefs.effectiveAiMemory, 'Existing introduction');
-      await prefs.setAiEnabled(false);
-      expect(prefs.aiMemoryEnabled, isTrue);
-      expect(prefs.effectiveAiMemory, isEmpty);
-      await prefs.setAiEnabled(true);
-      final loaded = await NexPreferences.load();
-      addTearDown(loaded.dispose);
-      expect(loaded.aiMemoryEnabled, isTrue);
-      expect(loaded.effectiveAiMemory, 'Existing introduction');
-      expect(loaded.aiCapabilities.transcription, isFalse);
-      expect(loaded.briefInstruction, 'My brief');
-      await loaded.setAiMemoryEnabled(false);
-      await loaded.setAiEnabled(false);
-      await loaded.setAiEnabled(true);
-      expect(loaded.aiMemoryEnabled, isFalse);
-      expect(loaded.aiUserIntroduction, 'Existing introduction');
-    },
-  );
+  test('legacy text is retained; absent Memory stays off and choices survive reload', () async {
+    final h = await NexTestHarness.create(
+      preferences: {
+        'ai.userIntroduction': 'Existing introduction',
+        'ai.transcription': false,
+        'brief.instruction': 'My brief',
+      },
+    );
+    addTearDown(h.dispose);
+    final prefs = h.preferences;
+    expect(prefs.aiMemoryEnabled, isFalse);
+    expect(prefs.aiMemoryConsentSeen, isFalse);
+    await prefs.setAiEnabled(true);
+    expect(prefs.aiUserIntroduction, 'Existing introduction');
+    expect(prefs.effectiveAiMemory, isEmpty);
+    await prefs.setAiMemoryEnabled(true);
+    expect(prefs.effectiveAiMemory, 'Existing introduction');
+    await prefs.setAiEnabled(false);
+    expect(prefs.aiMemoryEnabled, isTrue);
+    expect(prefs.effectiveAiMemory, isEmpty);
+    await prefs.setAiEnabled(true);
+    final loaded = await NexPreferences.load();
+    addTearDown(loaded.dispose);
+    expect(loaded.aiMemoryEnabled, isTrue);
+    expect(loaded.effectiveAiMemory, 'Existing introduction');
+    expect(loaded.aiCapabilities.transcription, isFalse);
+    expect(loaded.briefInstruction, 'My brief');
+    await loaded.setAiMemoryEnabled(false);
+    await loaded.setAiEnabled(false);
+    await loaded.setAiEnabled(true);
+    expect(loaded.aiMemoryEnabled, isFalse);
+    expect(loaded.aiUserIntroduction, 'Existing introduction');
+  });
 
   for (final locale in ['en', 'fa']) {
     testWidgets(
@@ -159,6 +156,14 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(category);
         await tester.pumpAndSettle();
+        final glance = find.byKey(const ValueKey('intelligence-glance'));
+        expect(
+          find.descendant(of: glance, matching: find.byType(InkWell)),
+          findsNothing,
+        );
+        await tester.tap(glance);
+        await tester.pumpAndSettle();
+        expect(find.byType(IntelligenceScreen), findsNothing);
         final memory = find.byKey(const ValueKey('intelligence-memory-row'));
         await tester.ensureVisible(memory);
         await tester.pumpAndSettle();
@@ -189,16 +194,11 @@ void main() {
           expect(row(title).enabled, isTrue);
           expect(row(title).onTap, isNotNull);
         }
-        await tester.pumpWidget(
-          app(
-            IntelligenceScreen(
-              services: h.services,
-              preferences: h.preferences,
-            ),
-            locale: locale,
-          ),
-        );
+        final openSettings = find.text(l10n.intelligenceOpen);
+        await tester.ensureVisible(openSettings);
+        await tester.tap(openSettings);
         await tester.pumpAndSettle();
+        expect(find.byType(IntelligenceScreen), findsOneWidget);
         expect(find.text(l10n.disclosuresTitle), findsNothing);
         await tester.pumpWidget(
           app(

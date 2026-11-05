@@ -392,6 +392,7 @@ class NexPreferences extends _PreferencesStore
 
   static Future<NexPreferences> load() async {
     final prefs = await SharedPreferences.getInstance();
+    final freshInstall = prefs.getKeys().isEmpty;
     await _migrateAiProviderStorage(prefs);
     await _migrateSponsorDismissals(prefs);
     await _migrateWidgetTag(prefs);
@@ -406,6 +407,12 @@ class NexPreferences extends _PreferencesStore
       // using these controls for months; pointing at them now would read as
       // the app having forgotten who they are.
       await prefs.setBool(_kTourComplete, true);
+    }
+    if (freshInstall) {
+      // Seed only a fresh install. Existing language/system choices survive
+      // updates, and a second load must still show the introduction.
+      await prefs.setBool(_kOnboardingComplete, false);
+      await prefs.setString('appearance.locale', 'fa');
     }
     final preferences = NexPreferences._(
       prefs,

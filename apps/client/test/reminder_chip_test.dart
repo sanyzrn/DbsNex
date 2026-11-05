@@ -53,6 +53,7 @@ void main() {
     tmp = Directory.systemTemp.createTempSync('nex_reminder_chip_');
     services = await build(tmp);
     preferences = await NexPreferences.load();
+    await preferences.setLocale('en');
     await preferences.completeOnboarding();
     await preferences.completeTour();
   });

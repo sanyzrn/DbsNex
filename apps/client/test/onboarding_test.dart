@@ -46,6 +46,7 @@ void main() {
     tmp = Directory.systemTemp.createTempSync('nex_onboarding_');
     services = await testServices(tmp);
     preferences = await NexPreferences.load();
+    await preferences.setLocale('en');
   });
 
   tearDown(() async {
@@ -65,6 +66,50 @@ void main() {
       await tester.pumpAndSettle();
     }
     fail('never reached the setup step');
+  }
+
+  testWidgets('a fresh install starts in Persian even on an English device', (
+    tester,
+  ) async {
+    tester.binding.platformDispatcher.localeTestValue = const Locale(
+      'en',
+      'US',
+    );
+    addTearDown(tester.binding.platformDispatcher.clearLocaleTestValue);
+    SharedPreferences.setMockInitialValues({});
+    preferences = await NexPreferences.load();
+    expect(preferences.locale, const Locale('fa'));
+    expect(preferences.onboardingComplete, isFalse);
+    final reloaded = await NexPreferences.load();
+    addTearDown(reloaded.dispose);
+    expect(reloaded.locale, const Locale('fa'));
+    expect(reloaded.onboardingComplete, isFalse);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    final context = tester.element(find.byType(OnboardingScreen));
+    expect(Localizations.localeOf(context).languageCode, 'fa');
+    expect(Directionality.of(context), TextDirection.rtl);
+  });
+
+  for (final locale in ['en', 'fa', 'system', null]) {
+    test(
+      'an existing install preserves its language choice: $locale',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'nex.device_id': 'existing',
+          if (locale != null) 'appearance.locale': locale,
+        });
+        final existing = await NexPreferences.load();
+        addTearDown(existing.dispose);
+        expect(
+          existing.locale,
+          locale == null || locale == 'system' ? null : Locale(locale),
+        );
+      },
+    );
   }
 
   testWidgets('the Next button can be read in all four modes', (tester) async {
