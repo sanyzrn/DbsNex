@@ -1110,7 +1110,10 @@ void main() {
     final theme = Theme.of(
       tester.element(find.byType(TimelineScreen, skipOffstage: false)),
     );
-    expect(theme.colorScheme.primary, nexSoftLightTheme(accentSeed: seed).colorScheme.primary);
+    expect(
+      theme.colorScheme.primary,
+      nexSoftLightTheme(accentSeed: seed).colorScheme.primary,
+    );
     // Not the shipped default — a colour someone did not pick would defeat
     // the whole point.
     expect(theme.colorScheme.primary, isNot(NexColors.defaultAccent.light));

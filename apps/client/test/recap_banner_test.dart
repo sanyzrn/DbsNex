@@ -232,7 +232,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(tester.getSize(recap).height, greaterThan(foldedHeight));
-    final expandedHeight = tester.getSize(recap).height;
     await tester.tap(recap);
     // Save the folded state immediately; the animation can settle after a
     // short deferred frame depending on which appearance is active.
