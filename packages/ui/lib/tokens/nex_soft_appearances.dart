@@ -41,8 +41,14 @@ ThemeData nexSoftLightTheme({
   Color? accentSeed,
 }) {
   final custom = accentSeed == null ? null : nexAccentPaletteFrom(accentSeed);
-  final accent = custom?.light ?? NexSoftLightColors.accentText;
+  final accent = custom?.strongLight ?? NexSoftLightColors.accentText;
   final filled = custom?.strongLight ?? NexSoftLightColors.accentFill;
+  final selected = custom == null
+      ? NexSoftLightColors.accentContainer
+      : Color.alphaBlend(
+          accent.withValues(alpha: 0.12),
+          NexSoftLightColors.card,
+        );
   final theme = _theme(
     brightness: Brightness.light,
     comfortMode: false,
@@ -64,13 +70,8 @@ ThemeData nexSoftLightTheme({
   );
   return _flattenSoftAppearance(
     theme,
-    primaryContainer: custom == null
-        ? NexSoftLightColors.accentContainer
-        : Color.alphaBlend(
-            accent.withValues(alpha: 0.12),
-            NexSoftLightColors.card,
-          ),
-    onPrimaryContainer: accent,
+    primaryContainer: selected,
+    onPrimaryContainer: nexReadableOn(accent, selected),
     filled: filled,
     filledInk: Colors.white,
     fab: custom?.strongLight ?? NexSoftLightColors.captureFill,
@@ -89,6 +90,12 @@ ThemeData nexOledNightTheme({
   final custom = accentSeed == null ? null : nexAccentPaletteFrom(accentSeed);
   final accent = custom?.dark ?? NexOledNightColors.accentText;
   final filled = custom?.strongDark ?? NexOledNightColors.accentFill;
+  final selected = custom == null
+      ? NexOledNightColors.accentContainer
+      : Color.alphaBlend(
+          accent.withValues(alpha: 0.16),
+          NexOledNightColors.card,
+        );
   final theme = _theme(
     brightness: Brightness.dark,
     comfortMode: false,
@@ -110,13 +117,8 @@ ThemeData nexOledNightTheme({
   );
   return _flattenSoftAppearance(
     theme,
-    primaryContainer: custom == null
-        ? NexOledNightColors.accentContainer
-        : Color.alphaBlend(
-            accent.withValues(alpha: 0.16),
-            NexOledNightColors.card,
-          ),
-    onPrimaryContainer: accent,
+    primaryContainer: selected,
+    onPrimaryContainer: nexReadableOn(accent, selected),
     filled: filled,
     filledInk: custom == null ? Colors.white : const Color(0xFF0B0A09),
     fab: custom?.strongDark ?? NexOledNightColors.captureFill,
