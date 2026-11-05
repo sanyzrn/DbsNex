@@ -10,7 +10,7 @@ import 'package:nex_core/nex_core.dart';
 String response(AiProvider provider, String? reason) =>
     jsonEncode(switch (provider) {
       AiProvider.anthropic => {
-        if (reason != null) 'stop_reason': reason,
+        'stop_reason': ?reason,
         'content': [
           {'type': 'text', 'text': 'Partial answer'},
         ],
@@ -18,7 +18,7 @@ String response(AiProvider provider, String? reason) =>
       AiProvider.gemini => {
         'candidates': [
           {
-            if (reason != null) 'finishReason': reason,
+            'finishReason': ?reason,
             'content': {
               'parts': [
                 {'text': 'Partial answer'},
@@ -30,7 +30,7 @@ String response(AiProvider provider, String? reason) =>
       _ => {
         'choices': [
           {
-            if (reason != null) 'finish_reason': reason,
+            'finish_reason': ?reason,
             'message': {'content': 'Partial answer'},
           },
         ],

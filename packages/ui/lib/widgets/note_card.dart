@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
+
 import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
@@ -157,9 +159,8 @@ bool nexNoteCanExpand(
     final painter = TextPainter(
       text: TextSpan(
         text: paragraph,
-        style: DefaultTextStyle.of(
-          context,
-        ).style.merge(density.previewStyle(Theme.of(context))),
+        style: DefaultTextStyle.of(context).style
+            .merge(density.previewStyle(Theme.of(context))),
       ),
       textDirection: nexDirectionOf(paragraph) ?? Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
@@ -909,7 +910,8 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context) || !TickerMode.of(context)) {
+    if (MediaQuery.disableAnimationsOf(context) ||
+        !TickerMode.valuesOf(context).enabled) {
       _pulse?.stop();
       _pulse?.value = 1;
     }
@@ -922,7 +924,8 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
         _markers(old.note) == _markers(widget.note)) {
       return;
     }
-    if (MediaQuery.disableAnimationsOf(context) || !TickerMode.of(context)) {
+    if (MediaQuery.disableAnimationsOf(context) ||
+        !TickerMode.valuesOf(context).enabled) {
       _pulse?.stop();
       _pulse?.value = 1;
       return;

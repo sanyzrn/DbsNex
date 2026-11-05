@@ -145,13 +145,12 @@ class NexSponsor {
 class NexSponsorService {
   NexSponsorService({
     required this.preferences,
-    http.Client? client,
+    this._client,
     this.endpoint = defaultEndpoint,
     this.dismissible = dismissibleByDefault,
     DateTime Function()? now,
     Random? random,
-  }) : _client = client,
-       _now = now ?? DateTime.now,
+  }) : _now = now ?? DateTime.now,
        _random = random ?? Random();
 
   final Random _random;

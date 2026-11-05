@@ -52,7 +52,7 @@ class _NexVideoPlayerState extends State<NexVideoPlayer>
       _route = route;
       if (route != null) nexRouteObserver.subscribe(this, route);
     }
-    if (!TickerMode.of(context)) _pause();
+    if (!TickerMode.valuesOf(context).enabled) _pause();
   }
 
   @override
@@ -156,10 +156,8 @@ class _NexVideoPlayerState extends State<NexVideoPlayer>
         _failed = false;
       });
       try {
-        await Future.any([
-          controller.initialize(),
-          cancelled.future,
-        ]).timeout(const Duration(seconds: 20));
+        await Future.any([controller.initialize(), cancelled.future])
+            .timeout(const Duration(seconds: 20));
         if (!mounted || generation != _generation) return;
         _cancelOpening = null;
         setState(() => _loading = false);
@@ -270,7 +268,7 @@ class _NexVideoPlayerState extends State<NexVideoPlayer>
                           _poster!,
                           fit: BoxFit.contain,
                           excludeFromSemantics: true,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
                         )
                       else
                         Icon(

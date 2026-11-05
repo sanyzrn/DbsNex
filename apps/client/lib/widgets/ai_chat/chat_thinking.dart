@@ -19,7 +19,8 @@ class _ThinkingIndicatorState extends State<_ThinkingIndicator>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context) || !TickerMode.of(context)) {
+    if (MediaQuery.disableAnimationsOf(context) ||
+        !TickerMode.valuesOf(context).enabled) {
       _pulse.stop();
       _pulse.value = 0;
     } else if (!_pulse.isAnimating) {

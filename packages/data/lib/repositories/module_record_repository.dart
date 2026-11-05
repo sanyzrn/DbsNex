@@ -44,7 +44,7 @@ class SqliteModuleRecordRepository {
       'ORDER BY updated_at DESC, id',
       [module, kind],
     ))
-      if (_read(row) case final record?) record,
+      ?_read(row),
   ];
 
   ModuleRecord? get(String module, String kind, String id) {

@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:nex_data/nex_data.dart' show NexBackupArchive;
 import 'package:nex_data/schema/zip_file_writer.dart';
+
 import 'vault_store.dart';
 import 'authenticated_zip.dart';
 
@@ -100,7 +101,12 @@ class VaultFiles {
 
   static Uint8List _decrypt(Uint8List sealed, String key) {
     final decoder = ZipDecoder();
-    final archive = decoder.decodeBytes(sealed, password: key);
+    final archive = decoder.decodeBytes(
+      sealed,
+      verify: true,
+      throwOnError: true,
+      password: key,
+    );
     assertAuthenticatedZip(decoder);
     if (archive.length != 1 ||
         archive.first.name != 'a' ||
@@ -166,7 +172,11 @@ class VaultFiles {
     final input = InputFileStream(source);
     final installed = <String, String>{};
     try {
-      final archive = ZipDecoder().decodeStream(input);
+      final archive = ZipDecoder().decodeStream(
+        input,
+        verify: true,
+        throwOnError: true,
+      );
       final ids = _references(snapshot);
       final names = {for (final id in ids) '$id.bin'};
       if (archive.length != names.length ||

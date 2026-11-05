@@ -652,7 +652,6 @@ extension _TimelineAiHeader on TimelineScreenState {
                 : l10n.aiDaySummaryCollapse,
             onToggle: _toggleAiSummary,
             title: l10n.aiDaySummaryTitle,
-            badge: l10n.aiDaySummaryBadge,
             byModel: widget.preferences.briefStyle.usesModel,
             updatedAt:
                 widget.preferences.briefStyle.usesModel &&

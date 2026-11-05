@@ -1,4 +1,5 @@
 import 'crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -544,7 +545,7 @@ class OsCaptureBridge {
     try {
       return await _channel.invokeMethod<String>('copyShared', <String, Object>{
         'uri': uri,
-        if (requestId != null) 'requestId': requestId,
+        'requestId': ?requestId,
       });
     } on MissingPluginException {
       return null;

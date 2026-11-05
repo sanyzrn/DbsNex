@@ -139,11 +139,13 @@ void main() {
 
   Future<void> settleReader(WidgetTester tester) async {
     await tester.pump();
-    // Let native PNG decoding finish outside the fake clock before settling
-    // loading animations; no platform operation is replaced by this wait.
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 30)),
-    );
+    // Native image decoding runs outside the fake clock. Wait for that work,
+    // rather than assuming a loaded runner will finish it within 30 ms.
+    await tester.runAsync(() async {
+      do {
+        await Future<void>.delayed(Duration.zero);
+      } while (PaintingBinding.instance.imageCache.pendingImageCount > 0);
+    });
     await tester.pumpAndSettle();
   }
 
@@ -533,17 +535,15 @@ void main() {
     },
   );
 
-  testWidgets(
-    'unsupported desktop never allocates an unavailable player',
-    (tester) async {
-      await show(tester, NexVideoPlayer(path: '/clip.mp4', onOpen: () {}));
-      await tester.tap(find.byKey(const ValueKey('video-cover-play')));
-      await settleReader(tester);
-      expect(platform.created, 0);
-      expect(find.textContaining('cannot be shown'), findsOneWidget);
-    },
-    variant: TargetPlatformVariant.only(TargetPlatform.windows),
-  );
+  testWidgets('unsupported desktop never allocates an unavailable player', (
+    tester,
+  ) async {
+    await show(tester, NexVideoPlayer(path: '/clip.mp4', onOpen: () {}));
+    await tester.tap(find.byKey(const ValueKey('video-cover-play')));
+    await settleReader(tester);
+    expect(platform.created, 0);
+    expect(find.textContaining('cannot be shown'), findsOneWidget);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
   readerTest('changing a playing video releases the old decoder', (
     tester,

@@ -174,7 +174,10 @@ abstract final class NexTextImport {
   }
 
   static String? _odt(Uint8List bytes) {
-    final content = _zipText(ZipDecoder().decodeBytes(bytes), 'content.xml');
+    final content = _zipText(
+      ZipDecoder().decodeBytes(bytes, verify: true, throwOnError: true),
+      'content.xml',
+    );
     if (content == null) return null;
     final document = XmlDocument.parse(content);
     final body = document.descendants.whereType<XmlElement>().where(
@@ -268,7 +271,11 @@ abstract final class NexTextImport {
   }
 
   static String? _epub(Uint8List bytes) {
-    final archive = ZipDecoder().decodeBytes(bytes);
+    final archive = ZipDecoder().decodeBytes(
+      bytes,
+      verify: true,
+      throwOnError: true,
+    );
     String? read(String name) => _zipText(archive, name);
 
     final container = read('META-INF/container.xml');

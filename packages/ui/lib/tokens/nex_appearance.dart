@@ -641,9 +641,8 @@ class NexBackgroundPreview extends StatelessWidget {
             width: 23,
             height: 14,
             decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerLowest.withValues(alpha: 0.78),
+              color: Theme.of(context).colorScheme.surfaceContainerLowest
+                  .withValues(alpha: 0.78),
               borderRadius: BorderRadius.circular(5),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart'
     show debugDefaultTargetPlatformOverride;
+
 import 'dart:async';
 import 'dart:io';
 
@@ -60,6 +61,7 @@ void main() {
     tmp = Directory.systemTemp.createTempSync('nex_timeline_');
     services = await build(tmp);
     preferences = await NexPreferences.load();
+    await preferences.setLocale('en');
     // Every one of these tests starts from an empty preference store, which
     // is exactly what a first-ever launch looks like — so without this they
     // would all open on the onboarding screen instead of the timeline.

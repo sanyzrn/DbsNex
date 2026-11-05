@@ -36,6 +36,11 @@ Working convention:
 
 ## v2.6.6
 
+Applied the three open dependency groups with a matching Flutter/Dart toolchain,
+SQLite native-asset and ZIP/authentication compatibility guards, and TS7 compilation
+with its supported TS6 lint API. Renderer baselines were measured and reviewed;
+see [2.6.6-dependency-refresh.md](2.6.6-dependency-refresh.md).
+
 Internal verification update: contract path selection, HTTP/PostgreSQL auth coverage,
 non-empty integration gates, dependency-based heavy jobs, APK identity/versionCode/ABI
 checks, immutable actions, changed-file formatting and deterministic clocks.

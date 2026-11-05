@@ -167,11 +167,8 @@ extension _TimelineLayout on TimelineScreenState {
                             showSummary &&
                             widget.preferences.briefStyle.usesModel,
                         child: CustomScrollView(
+                          scrollCacheExtent: ScrollCacheExtent.pixels(900),
                           controller: _scroll,
-                          // Build nearby cards before they enter the viewport
-                          // so local photo decoding happens during the scroll,
-                          // not after the thumbnail is already on screen.
-                          cacheExtent: 900,
                           // Always scrollable, so a short list still bounces rather
                           // than feeling locked.
                           physics: _pullRefresh.physics(
@@ -222,9 +219,8 @@ extension _TimelineLayout on TimelineScreenState {
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
-                                        MediaQuery.textScalerOf(
-                                                  context,
-                                                ).scale(16) *
+                                        MediaQuery.textScalerOf(context)
+                                                    .scale(16) *
                                                 1.5 +
                                             16,
                                       ) +
@@ -284,9 +280,8 @@ extension _TimelineLayout on TimelineScreenState {
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
-                                        MediaQuery.textScalerOf(
-                                                  context,
-                                                ).scale(14) *
+                                        MediaQuery.textScalerOf(context)
+                                                    .scale(14) *
                                                 1.5 +
                                             16,
                                       ) +
@@ -455,7 +450,7 @@ extension _TimelineLayout on TimelineScreenState {
               // and centring the two would lift the capsule mid-change.
               layoutBuilder: (current, previous) => Stack(
                 alignment: Alignment.bottomCenter,
-                children: [...previous, if (current != null) current],
+                children: [...previous, ?current],
               ),
               child: _selecting
                   ? KeyedSubtree(

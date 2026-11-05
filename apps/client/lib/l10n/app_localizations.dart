@@ -281,7 +281,7 @@ abstract class AppLocalizations {
   /// No description provided for @layoutDaySummary.
   ///
   /// In en, this message translates to:
-  /// **'Smart daily summary'**
+  /// **'Recap'**
   String get layoutDaySummary;
 
   /// No description provided for @layoutSearchField.
@@ -1919,13 +1919,13 @@ abstract class AppLocalizations {
   /// Banner when re-generating the daily recap fails; the old text stays on screen
   ///
   /// In en, this message translates to:
-  /// **'The smart summary could not be refreshed. The one below is the last one Nex made.'**
+  /// **'The recap could not be refreshed. The one below is the last one Nex made.'**
   String get recapRefreshFailed;
 
   /// No description provided for @recapRefreshing.
   ///
   /// In en, this message translates to:
-  /// **'Refreshing the smart summary…'**
+  /// **'Refreshing the recap…'**
   String get recapRefreshing;
 
   /// No description provided for @whatsNewAbout.
@@ -3767,7 +3767,7 @@ abstract class AppLocalizations {
   /// Header of the AI day summary card on the timeline
   ///
   /// In en, this message translates to:
-  /// **'Smart summary'**
+  /// **'Recap'**
   String get aiDaySummaryTitle;
 
   /// Small badge beside the smart summary's title when a model writes it
@@ -5027,7 +5027,7 @@ abstract class AppLocalizations {
   /// No description provided for @briefEnabled.
   ///
   /// In en, this message translates to:
-  /// **'Show the smart summary'**
+  /// **'Show the recap'**
   String get briefEnabled;
 
   /// No description provided for @briefEnabledOn.
@@ -5045,7 +5045,7 @@ abstract class AppLocalizations {
   /// Title of the sheet that configures the card at the top of the timeline.
   ///
   /// In en, this message translates to:
-  /// **'Smart summary'**
+  /// **'Recap'**
   String get briefTitle;
 
   /// Subtitle under the daily-brief sheet's title.
@@ -8393,7 +8393,7 @@ abstract class AppLocalizations {
   /// No description provided for @disclosureDailySummary.
   ///
   /// In en, this message translates to:
-  /// **'Smart summary'**
+  /// **'Recap'**
   String get disclosureDailySummary;
 
   /// No description provided for @disclosureGreeting.

@@ -137,9 +137,9 @@ extension AiProviderWire on AiProvider {
 /// The models from Claude Opus 4.7 and Sonnet 5 on reject any sampling
 /// setting with a 400, so the creativity setting is sent only to the models
 /// that take it. Read from the name, because the name is all a request has.
-bool anthropicTakesTemperature(String model) => !RegExp(
-  r'^claude-(?:opus|sonnet|fable|mythos)-(?:[5-9]|4-[7-9])\b',
-).hasMatch(model.trim());
+bool anthropicTakesTemperature(String model) =>
+    !RegExp(r'^claude-(?:opus|sonnet|fable|mythos)-(?:[5-9]|4-[7-9])\b')
+        .hasMatch(model.trim());
 
 /// Whether a provider is taken to offer one capability.
 ///
@@ -860,8 +860,8 @@ bool aiTextAvailableWith(AiProviderConfig config) =>
 class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   CloudAIAdapter({
     required this.config,
-    AiOutputLanguage outputLanguage = AiOutputLanguage.auto,
-    AiOutputLanguage Function()? outputLanguageProvider,
+    this._outputLanguage = AiOutputLanguage.auto,
+    this._outputLanguageProvider,
     @visibleForTesting Duration? mediaTimeout,
     @visibleForTesting Duration? localTimeout,
     this.unlimitedSummary = false,
@@ -871,8 +871,6 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
          client ?? _defaultClient(),
          provider: config.provider.label,
        ),
-       _outputLanguage = outputLanguage,
-       _outputLanguageProvider = outputLanguageProvider,
        _mediaBudget = mediaTimeout ?? _mediaTimeout,
        _localBudget = localTimeout ?? const Duration(minutes: 5),
        _ownsClient = client == null,
@@ -1056,9 +1054,8 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   bool get _openAiNative => config.provider == AiProvider.openai;
   bool get _openAiReasoning =>
       _openAiNative &&
-      RegExp(
-        r'^(?:o[1-9]|gpt-(?:[5-9]|\d{2,}))(?:[-.]|$)',
-      ).hasMatch(config.resolvedModel);
+      RegExp(r'^(?:o[1-9]|gpt-(?:[5-9]|\d{2,}))(?:[-.]|$)')
+          .hasMatch(config.resolvedModel);
 
   Uri get _chatUri => switch (config.provider.format) {
     AiWireFormat.anthropic => Uri.parse(
@@ -1853,7 +1850,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   /// and a small model copied the labels — "DUE in 6h:" opened the reply —
   /// and then carried on in the language they were in.
   static const _briefLabelsRule =
-      'The labels in those lines — DUE, overdue, was, in, days, ago, today, '
+      'The labels in those lines — URGENT, DUE, overdue, was, in, days, ago, today, '
       'tomorrow, yesterday, next, text, checklist, left, done, every, '
       'reminder — are markers for you, not words to copy: never write them, '
       'and say what they mean in the language of your reply.';
@@ -1868,8 +1865,10 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   /// call" — when most reminders are simply the time somebody means to do a
   /// thing.
   static const _briefDueKey =
-      'A line starting DUE is a reminder the person has already set, and '
-      'those lines come first: "DUE today 18:30", "DUE tomorrow 09:00", '
+      'Prioritise notes marked URGENT, then notes with reminders, then ordinary '
+      'notes. URGENT is the user’s explicit priority, not a made-up deadline. '
+      'Within reminders, prefer overdue and upcoming ones. '
+      'A line starting DUE is a reminder the person has already set: "DUE today 18:30", "DUE tomorrow 09:00", '
       '"DUE Wednesday 09:00, in 5 days", "DUE overdue, was yesterday 09:00". '
       'The day and the time are when they chose to be reminded, which is '
       'usually when they mean to do the thing. It is not a deadline. Say it '
@@ -2035,8 +2034,8 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       'with a single emoji that fits it, then '
       '${words > 16 ? 'one or two sentences of up to about $words words: what '
                 'it is, and why it matters now or what the next step is' : 'a short sentence'}. '
-      'Overdue '
-      'first, then what is due soon, then what is unfinished, then anything '
+      'Urgent notes '
+      'first, then reminders, then what is unfinished and anything '
       'worth being reminded of. Say what to do where there is something to '
       'do: "Call the plumber — overdue by two days", not "you have an '
       'overdue reminder". Name the real things, not the categories they '
@@ -3290,9 +3289,8 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
         http.AbortableRequest('POST', uri, abortTrigger: abortTrigger)
           ..headers.addAll(headers)
           ..body = body;
-    return http.Response.fromStream(
-      await _client.send(request),
-    ).timeout(_textTimeout);
+    return http.Response.fromStream(await _client.send(request))
+        .timeout(_textTimeout);
   }
 
   Future<Vector> _embed(String text, {Future<void>? abortTrigger}) async {

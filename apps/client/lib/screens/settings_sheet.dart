@@ -12,6 +12,7 @@ import 'package:nex_core/nex_core.dart'
         nexPersianMonthNames,
         nexPersianMonthNamesLatin;
 import 'package:nex_ui/nex_ui.dart';
+
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/ai_capability_status.dart';
@@ -22,7 +23,9 @@ import '../widgets/nex_banner.dart';
 import '../widgets/nex_time_picker.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_color_picker.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import '../platform/daily_nudge.dart';
 import '../platform/install_source.dart';
 import '../platform/nex_preferences.dart';
@@ -522,19 +525,12 @@ class SettingsSheet extends StatelessWidget {
       summary: preferences.aiEnabled
           ? nexProviderName(l10n, preferences.aiProvider.provider)
           : l10n.intelligenceOff,
+      header: _IntelligenceGlance(preferences: preferences),
       children: [
-        _Searchable(
-          text: '${l10n.intelligence} AI هوش مصنوعی',
-          child: _IntelligenceGlance(
-            services: services,
-            preferences: preferences,
-          ),
-        ),
         _Row(
           icon: Icons.auto_awesome_outlined,
           title: l10n.intelligenceOpen,
-          keywords:
-              'AI provider API key model offline transcription OCR هوش مصنوعی ارائه‌دهنده کلید مدل آفلاین رونویسی',
+          keywords: 'AI provider API key model offline transcription OCR هوش مصنوعی ارائه‌دهنده کلید مدل آفلاین رونویسی',
           value: preferences.aiEnabled
               ? nexProviderName(l10n, preferences.aiProvider.provider)
               : l10n.intelligenceOff,
@@ -634,8 +630,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.cloud_upload_outlined,
           title: l10n.disclosuresTitle,
-          keywords:
-              'privacy sent provider log disclosure data left device حریم خصوصی ارسال فرستاده خارج شد',
+          keywords: 'privacy sent provider log disclosure data left device حریم خصوصی ارسال فرستاده خارج شد',
           value: l10n.disclosuresRow,
           onTap: () => Navigator.push(
             context,
@@ -647,8 +642,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.speed_outlined,
           title: l10n.metricsTitle,
-          keywords:
-              'speed performance metrics measure startup reliability crash سرعت کارایی اندازه‌گیری پایداری',
+          keywords: 'speed performance metrics measure startup reliability crash سرعت کارایی اندازه‌گیری پایداری',
           value: preferences.metricsEnabled
               ? l10n.metricsRowOn
               : l10n.metricsRowOff,

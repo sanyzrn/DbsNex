@@ -157,7 +157,7 @@ CREATE TABLE notes (
       "NULL, NULL, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', "
       "NULL, 'test', 1, 'synced')",
     );
-    legacy.dispose();
+    legacy.close();
 
     final upgraded = NexDatabase.open(file.path);
     addTearDown(() {

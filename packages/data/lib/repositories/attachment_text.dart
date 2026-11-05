@@ -11,12 +11,7 @@ import 'attachment_repository.dart';
 /// finds the receipt. Only when reading text in photos is on, and only
 /// photos: a PDF or a document attached to a note is not an image.
 class AttachmentTextReader {
-  AttachmentTextReader(
-    this._attachments,
-    this._enrichment, {
-    Future<String?> Function(String noteId, Future<String?> Function() read)?
-    disclose,
-  }) : _disclose = disclose;
+  AttachmentTextReader(this._attachments, this._enrichment, {this._disclose});
 
   final SqliteAttachmentRepository _attachments;
   final EnrichmentService _enrichment;

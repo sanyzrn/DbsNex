@@ -98,9 +98,10 @@ WhatsNewItem _item(String text) {
 /// The changes of [version] in a changelog.
 @visibleForTesting
 List<WhatsNewItem> whatsNewItems(String raw, String version) =>
-    parseWhatsNewReleases(
-      raw,
-    ).where((r) => r.version == version).firstOrNull?.items ??
+    parseWhatsNewReleases(raw)
+        .where((r) => r.version == version)
+        .firstOrNull
+        ?.items ??
     const [];
 
 /// The whole history, in the reader's language where it was written in it:
@@ -127,9 +128,8 @@ class WhatsNewScreen extends StatefulWidget {
 
   static Future<void> show(BuildContext context, NexPreferences preferences) {
     unawaited(preferences.setWhatsNewSeen(nexAppVersion));
-    return Navigator.of(
-      context,
-    ).push<void>(NexPageRoute<void>(builder: (_) => const WhatsNewScreen()));
+    return Navigator.of(context)
+        .push<void>(NexPageRoute<void>(builder: (_) => const WhatsNewScreen()));
   }
 
   @override
@@ -214,7 +214,7 @@ class _WhatsNewScreenState extends State<WhatsNewScreen>
     final earlier = [
       for (final r in all)
         if (r != current)
-          if (query.isEmpty) r else if (_filter(r, query) case final hit?) hit,
+          if (query.isEmpty) r else ?_filter(r, query),
     ];
     final currentHit = query.isEmpty ? current : _filter(current, query);
     final rows = <Widget Function()>[
@@ -304,9 +304,8 @@ class _WhatsNewScreenState extends State<WhatsNewScreen>
             suffixIcon: _search.text.isEmpty
                 ? null
                 : IconButton(
-                    tooltip: MaterialLocalizations.of(
-                      context,
-                    ).deleteButtonTooltip,
+                    tooltip: MaterialLocalizations.of(context)
+                        .deleteButtonTooltip,
                     icon: const Icon(Icons.close),
                     onPressed: () => setState(_search.clear),
                   ),
@@ -325,9 +324,8 @@ class _WhatsNewScreenState extends State<WhatsNewScreen>
     ),
     child: Text(
       text,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
+      style: Theme.of(context).textTheme.titleSmall
+          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
     ),
   );
 

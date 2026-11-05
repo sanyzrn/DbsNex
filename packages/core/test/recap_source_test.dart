@@ -16,6 +16,7 @@ void main() {
     Duration? due,
     DateTime? deletedAt,
     List<String> tags = const [],
+    bool urgent = false,
   }) {
     final written = now.subtract(age);
     return Note(
@@ -29,6 +30,7 @@ void main() {
       rev: 1,
       syncState: SyncState.pending,
       dueAt: due == null ? null : now.add(due),
+      isUrgent: urgent,
       tags: [
         for (final name in tags) Tag(id: name, name: name, createdAt: now),
       ],
@@ -91,6 +93,40 @@ void main() {
       );
     },
   );
+
+  test('urgent notes lead reminders, including ones beyond the horizon', () {
+    final notes = [
+      note(id: 'ordinary', content: 'a new thought'),
+      note(
+        id: 'urgent',
+        content: 'call the supplier',
+        urgent: true,
+        age: const Duration(days: 30),
+      ),
+      note(
+        id: 'reminder',
+        content: 'the appointment',
+        due: const Duration(days: 90),
+        age: const Duration(days: 10),
+      ),
+    ];
+    expect(nexRecapNoteIds(notes, now: now), [
+      'urgent',
+      'reminder',
+      'ordinary',
+    ]);
+    expect(linesOf(notes).first, contains('URGENT text'));
+    expect(nexRecapNoteIds(notes, now: now, limit: 1), ['urgent']);
+  });
+
+  test('an urgency change invalidates the source fingerprint', () {
+    final ordinary = note(id: 'one', content: 'the same note');
+    final urgent = ordinary.copyWith(isUrgent: true);
+    expect(
+      nexRecapSource([ordinary], now: now, forFingerprint: true),
+      isNot(nexRecapSource([urgent], now: now, forFingerprint: true)),
+    );
+  });
 
   test('a note that is due is first, however old it is', () {
     // The case the old source could not represent at all. A reminder set last
@@ -203,7 +239,7 @@ void main() {
     expect(signature(quiet, evening), signature(quiet, morning));
   });
 
-  test('a reminder far enough out is not something waiting', () {
+  test('a distant reminder keeps priority without being called due soon', () {
     // Past the horizon it is a note with a date on it. Somebody opening the
     // app this morning does not need told about something due in three
     // months, and putting it at the top would push out what is.
@@ -217,14 +253,13 @@ void main() {
       note(id: 'today', content: 'the boiler man is coming'),
     ]);
 
-    // Described by when it was written, and not marked DUE at all — the
-    // prompt tells the model every DUE line comes first, so a DUE line that
-    // is not first would be the source contradicting its own instructions.
-    expect(lines.first, 'today | text | the boiler man is coming');
+    // A reminder has priority, but its distant date is still stated as a
+    // later reminder rather than an imminent deadline.
+    expect(lines[1], 'today | text | the boiler man is coming');
     // Not DUE, but the reminder is said: without it the brief advised
     // setting one that was already set.
     expect(
-      lines[1],
+      lines.first,
       '3 days ago · reminder in 90 days | text | renew the passport',
     );
   });

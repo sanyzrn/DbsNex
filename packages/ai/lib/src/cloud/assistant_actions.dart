@@ -980,10 +980,7 @@ String? _string(Object? value) {
 
 List<String> _strings(Object? value) {
   if (value is! List) return const [];
-  return [
-    for (final entry in value)
-      if (_string(entry) case final name?) name,
-  ];
+  return [for (final entry in value) ?_string(entry)];
 }
 
 /// What the model wrote with the block taken out.

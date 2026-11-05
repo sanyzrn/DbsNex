@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:nex_client/modules/module_api.dart';
+
 import 'models.dart';
 import 'units.dart';
 import 'logic.dart';
@@ -51,17 +53,13 @@ class MaintenanceController extends ChangeNotifier {
         for (final r in result[0]) MaintenanceAsset.fromBody(r.id, r.body),
       ];
       events = [for (final r in result[1]) ServiceEvent.fromBody(r.id, r.body)];
-      rules = [
-        for (final r in result[2])
-          if (IntervalRule.fromBody(r.id, r.body) case final item?) item,
-      ];
+      rules = [for (final r in result[2]) ?IntervalRule.fromBody(r.id, r.body)];
       invalidRules = [
         for (final r in result[2])
           if (IntervalRule.fromBody(r.id, r.body) == null) r,
       ];
       readings = [
-        for (final r in result[3])
-          if (MaintenanceReading.fromBody(r.id, r.body) case final item?) item,
+        for (final r in result[3]) ?MaintenanceReading.fromBody(r.id, r.body),
       ];
       loading = false;
       readFailed = false;

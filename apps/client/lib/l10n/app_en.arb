@@ -35,7 +35,7 @@
   "layoutTitle": "Home layout",
   "layoutSubtitle": "What sits above your notes.",
   "layoutGreeting": "Greeting",
-  "layoutDaySummary": "Smart daily summary",
+  "layoutDaySummary": "Recap",
   "layoutSearchField": "Search box",
   "layoutTagRow": "Tag row",
   "layoutShowSection": "On the home screen",
@@ -544,8 +544,8 @@
   "@restoredStaysLocal": {
     "description": "Shown after a restore or import when a sync server is configured"
   },
-  "recapRefreshFailed": "The smart summary could not be refreshed. The one below is the last one Nex made.",
-  "recapRefreshing": "Refreshing the smart summary…",
+  "recapRefreshFailed": "The recap could not be refreshed. The one below is the last one Nex made.",
+  "recapRefreshing": "Refreshing the recap…",
   "whatsNewAbout": "Every change, release by release",
   "whatsNewBadge": "New",
   "whatsNewEarlier": "Earlier releases",
@@ -1680,7 +1680,7 @@
   "@intelligenceOpen": {
     "description": "Settings row that opens the intelligence screen"
   },
-  "aiDaySummaryTitle": "Smart summary",
+  "aiDaySummaryTitle": "Recap",
   "@aiDaySummaryTitle": {
     "description": "Header of the AI day summary card on the timeline"
   },
@@ -2337,10 +2337,10 @@
   "@assistantConfirmSetting": {
     "description": "Confirmation for an assistant-proposed settings change"
   },
-  "briefEnabled": "Show the smart summary",
+  "briefEnabled": "Show the recap",
   "briefEnabledOn": "Written for you each day on the timeline.",
   "briefEnabledOff": "Off: no summary is written and nothing is sent to a provider for it.",
-  "briefTitle": "Smart summary",
+  "briefTitle": "Recap",
   "@briefTitle": {"description": "Title of the sheet that configures the card at the top of the timeline."},
   "briefSubtitle": "The card above your notes. You choose what it is for.",
   "@briefSubtitle": {"description": "Subtitle under the daily-brief sheet's title."},
@@ -3276,7 +3276,7 @@
   "disclosureChat": "Assistant question",
   "disclosureTags": "Tag suggestions",
   "disclosureSummary": "Note summary",
-  "disclosureDailySummary": "Smart summary",
+  "disclosureDailySummary": "Recap",
   "disclosureGreeting": "Greeting",
   "disclosureTranslation": "Translation",
   "disclosureRewrite": "Rewrite",

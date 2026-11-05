@@ -76,6 +76,10 @@ class NexTestHarness {
       backupDir: p.join(root.path, 'backups'),
     );
     if (onboarded) {
+      // UI fixtures use English unless the test explicitly chooses a locale.
+      if (!preferences.containsKey('appearance.locale')) {
+        await prefs.setLocale('en');
+      }
       await prefs.completeOnboarding();
       await prefs.completeTour();
     }

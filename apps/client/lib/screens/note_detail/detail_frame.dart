@@ -18,10 +18,8 @@ class _ActionRow extends StatelessWidget {
     }
 
     final visible = <_DetailAction>[
-      if (find((a) => a.label == AppLocalizations.of(context).edit)
-          case final action?)
-        action,
-      if (find((a) => a.icon == Icons.ios_share) case final action?) action,
+      ?find((a) => a.label == AppLocalizations.of(context).edit),
+      ?find((a) => a.icon == Icons.ios_share),
     ];
     if (visible.length < 3) {
       final copy = find((a) => a.icon == Icons.copy_outlined);

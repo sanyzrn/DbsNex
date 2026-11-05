@@ -16,8 +16,7 @@ extension _TimelineSelection on TimelineScreenState {
   /// The picked notes, in the order they were picked, less any that have
   /// gone from the timeline since.
   List<Note> get _selectedNotes => [
-    for (final id in _selected)
-      if (_model.byId(id) case final note?) note,
+    for (final id in _selected) ?_model.byId(id),
   ];
 
   void _toggleSelected(Note note) {
@@ -141,10 +140,7 @@ extension _TimelineSelection on TimelineScreenState {
   Future<void> _copySelected() async {
     final l10n = AppLocalizations.of(context);
     final notes = _selectedNotes;
-    final words = [
-      for (final note in notes)
-        if (await nexCopyTextOf(note) case final text?) text,
-    ];
+    final words = [for (final note in notes) ?await nexCopyTextOf(note)];
     if (!mounted) return;
     if (words.isEmpty) {
       nexShowBanner(context, message: l10n.nothingToCopy);

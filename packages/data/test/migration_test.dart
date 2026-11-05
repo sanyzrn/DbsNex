@@ -76,7 +76,7 @@ CREATE INDEX idx_notes_created_at ON notes(created_at DESC);
       "INSERT INTO notes_fts (note_id, content) VALUES "
       "('text-1', 'کتاب‌خانه و boiler service')",
     );
-    db.dispose();
+    db.close();
   }
 
   Map<String, Object?> shape(NexDatabase db) => {
@@ -163,7 +163,7 @@ CREATE INDEX idx_notes_created_at ON notes(created_at DESC);
     NexDatabase.open(path).close();
     final db = sqlite3.open(path);
     db.execute('PRAGMA user_version = ${NexDatabase.schemaVersion + 1}');
-    db.dispose();
+    db.close();
 
     expect(() => NexDatabase.open(path), throwsA(isA<NewerLibraryException>()));
     // Untouched: the stamp is still the newer build's.
@@ -172,6 +172,6 @@ CREATE INDEX idx_notes_created_at ON notes(created_at DESC);
       check.select('PRAGMA user_version').first.values.first,
       NexDatabase.schemaVersion + 1,
     );
-    check.dispose();
+    check.close();
   });
 }

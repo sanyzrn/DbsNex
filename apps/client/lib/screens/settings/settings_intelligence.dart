@@ -4,12 +4,8 @@ part of '../settings_sheet.dart';
 /// is on and with whom, and which of its six abilities are working — lit or
 /// dim — before opening anything.
 class _IntelligenceGlance extends StatelessWidget {
-  const _IntelligenceGlance({
-    required this.services,
-    required this.preferences,
-  });
+  const _IntelligenceGlance({required this.preferences});
 
-  final NexServices services;
   final NexPreferences preferences;
 
   @override
@@ -19,17 +15,16 @@ class _IntelligenceGlance extends StatelessWidget {
     final scheme = theme.colorScheme;
     final on = preferences.aiEnabled;
     final abilities = nexAbilityGlance(preferences);
-    return InkWell(
+    return Padding(
       key: const ValueKey('intelligence-glance'),
-      onTap: () => Navigator.push(
-        context,
-        NexPageRoute<void>(
-          builder: (_) =>
-              IntelligenceScreen(services: services, preferences: preferences),
-        ),
+      padding: const EdgeInsets.fromLTRB(
+        NexSpacing.sm,
+        NexSpacing.sm,
+        NexSpacing.sm,
+        NexSpacing.lg,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(NexSpacing.md),
+      child: Semantics(
+        container: true,
         child: Row(
           children: [
             NexIntelligenceOrb(lit: on),

@@ -65,6 +65,7 @@ void main() {
     tmp = Directory.systemTemp.createTempSync('nex_client_');
     services = await _testServices(tmp);
     preferences = await NexPreferences.load();
+    await preferences.setLocale('system');
     // Every one of these tests starts from an empty preference store, which
     // is exactly what a first-ever launch looks like — so without this they
     // would all open on the onboarding screen instead of the timeline.
@@ -635,15 +636,13 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
-    final before = MediaQuery.of(
-      tester.element(find.byType(Scaffold).first),
-    ).textScaler;
+    final before = MediaQuery.of(tester.element(find.byType(Scaffold).first))
+        .textScaler;
 
     await preferences.setUiScale(1.3);
     await tester.pumpAndSettle();
-    final after = MediaQuery.of(
-      tester.element(find.byType(Scaffold).first),
-    ).textScaler;
+    final after = MediaQuery.of(tester.element(find.byType(Scaffold).first))
+        .textScaler;
 
     expect(after.scale(100), greaterThan(before.scale(100)));
   });
@@ -1054,7 +1053,7 @@ void main() {
     // back in is the most visible thing about a brief. It is still one
     // setting for the whole app, which the sheet says in a line under it, and
     // which the rest of this test is about.
-    await tester.tap(find.text('Smart summary'));
+    await tester.tap(find.text('Recap'));
     await tester.pumpAndSettle();
     // Scrolled to rather than merely found. The brief is a pushed screen with
     // a `ListView` now, like the assistant's settings beside it, and a

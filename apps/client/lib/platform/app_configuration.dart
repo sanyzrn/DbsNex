@@ -1,5 +1,7 @@
 import 'nex_preferences.dart';
+
 import 'package:flutter/widgets.dart';
+
 import '../l10n/app_localizations.dart';
 
 Locale? nexSystemLocale(BuildContext context) {

@@ -94,7 +94,7 @@ void main() {
       'كتاب‌ها',
     ]);
     raw.execute("DELETE FROM nex_meta WHERE key = 'search_index_folded'");
-    raw.dispose();
+    raw.close();
 
     db = NexDatabase.open(path);
     repo = SqliteNoteRepository(db);

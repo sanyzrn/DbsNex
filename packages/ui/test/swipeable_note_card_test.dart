@@ -511,7 +511,7 @@ void main() {
             slivers: [
               SliverReorderableList(
                 itemCount: 3,
-                onReorder: onReorder,
+                onReorderItem: onReorder,
                 itemBuilder: (context, index) => SizedBox(
                   key: ValueKey(index),
                   child: SwipeableNoteCard(
@@ -588,7 +588,7 @@ void main() {
               slivers: [
                 SliverReorderableList(
                   itemCount: 1,
-                  onReorder: (_, _) {},
+                  onReorderItem: (_, _) {},
                   itemBuilder: (context, index) => SizedBox(
                     key: const ValueKey(0),
                     width: 400,

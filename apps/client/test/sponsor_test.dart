@@ -44,9 +44,9 @@ void main() {
     'body': 'Ten percent off this month',
     'color': '#F0A93B',
     'url': 'https://example.com',
-    if (starts != null) 'starts': starts,
-    if (ends != null) 'ends': ends,
-    if (locales != null) 'locales': locales,
+    'starts': ?starts,
+    'ends': ?ends,
+    'locales': ?locales,
   });
 
   group('parse', () {
@@ -191,44 +191,41 @@ void main() {
       dismissible: true,
     );
 
-    test(
-      'hourly revalidation updates installed devices and close repeats every eight hours',
-      () async {
-        var clock = now;
-        var requests = 0;
-        NexSponsorService service() => NexSponsorService(
-          preferences: preferences,
-          now: () => clock,
-          client: MockClient((request) async {
-            requests++;
-            expect(request.headers['Cache-Control'], 'no-cache');
-            return http.Response(
-              card(id: requests == 1 ? 'old' : 'current'),
-              200,
-            );
-          }),
-        );
-        final first = service();
-        expect(first.dismissible, isTrue);
-        await first.refresh();
-        clock = now.add(const Duration(minutes: 59));
-        await service().refresh();
-        expect(requests, 1);
-        clock = now.add(const Duration(hours: 1));
-        final updated = service();
-        await updated.refresh();
-        expect(updated.visible()?.id, 'current');
-        await updated.dismiss('current');
-        clock = clock.add(const Duration(hours: 7, minutes: 59));
-        expect(service().visible(), isNull);
-        clock = clock.add(const Duration(minutes: 1));
-        expect(service().visible()?.id, 'current');
-        await service().dismiss('current');
-        expect(service().visible(), isNull);
-        clock = clock.add(const Duration(hours: 8));
-        expect(service().visible()?.id, 'current');
-      },
-    );
+    test('hourly revalidation updates installed devices and close repeats every eight hours', () async {
+      var clock = now;
+      var requests = 0;
+      NexSponsorService service() => NexSponsorService(
+        preferences: preferences,
+        now: () => clock,
+        client: MockClient((request) async {
+          requests++;
+          expect(request.headers['Cache-Control'], 'no-cache');
+          return http.Response(
+            card(id: requests == 1 ? 'old' : 'current'),
+            200,
+          );
+        }),
+      );
+      final first = service();
+      expect(first.dismissible, isTrue);
+      await first.refresh();
+      clock = now.add(const Duration(minutes: 59));
+      await service().refresh();
+      expect(requests, 1);
+      clock = now.add(const Duration(hours: 1));
+      final updated = service();
+      await updated.refresh();
+      expect(updated.visible()?.id, 'current');
+      await updated.dismiss('current');
+      clock = clock.add(const Duration(hours: 7, minutes: 59));
+      expect(service().visible(), isNull);
+      clock = clock.add(const Duration(minutes: 1));
+      expect(service().visible()?.id, 'current');
+      await service().dismiss('current');
+      expect(service().visible(), isNull);
+      clock = clock.add(const Duration(hours: 8));
+      expect(service().visible()?.id, 'current');
+    });
 
     test('with the close button off, a dismissed card still shows', () async {
       final service = NexSponsorService(
@@ -653,43 +650,40 @@ void main() {
       },
     );
 
-    test(
-      'missing pictures retry after the cool-off without refetching the daily manifest',
-      () async {
-        var clock = now;
-        var picturesWork = false;
-        var manifests = 0;
-        var pictures = 0;
-        final client = MockClient((r) async {
-          if (r.url.path.endsWith('.gif')) {
-            pictures++;
-            return picturesWork
-                ? http.Response.bytes(gif, 200)
-                : http.Response('', 503);
-          }
-          manifests++;
-          return http.Response(withImage(), 200);
-        });
-        NexSponsorService make() => NexSponsorService(
-          preferences: preferences,
-          client: client,
-          now: () => clock,
-        );
-        await make().refresh();
-        final fetched = preferences.sponsorFetchedAt;
-        picturesWork = true;
-        final restarted = make();
-        await restarted.restoreCachedImage();
-        expect(await restarted.refresh(), isFalse);
-        expect(pictures, 1);
-        clock = now.add(NexSponsorService.failedRefreshCooldown);
-        expect(await restarted.refresh(), isTrue);
-        expect(restarted.image, isNotNull);
-        expect(pictures, 2);
-        expect(manifests, 1);
-        expect(preferences.sponsorFetchedAt, fetched);
-      },
-    );
+    test('missing pictures retry after the cool-off without refetching the daily manifest', () async {
+      var clock = now;
+      var picturesWork = false;
+      var manifests = 0;
+      var pictures = 0;
+      final client = MockClient((r) async {
+        if (r.url.path.endsWith('.gif')) {
+          pictures++;
+          return picturesWork
+              ? http.Response.bytes(gif, 200)
+              : http.Response('', 503);
+        }
+        manifests++;
+        return http.Response(withImage(), 200);
+      });
+      NexSponsorService make() => NexSponsorService(
+        preferences: preferences,
+        client: client,
+        now: () => clock,
+      );
+      await make().refresh();
+      final fetched = preferences.sponsorFetchedAt;
+      picturesWork = true;
+      final restarted = make();
+      await restarted.restoreCachedImage();
+      expect(await restarted.refresh(), isFalse);
+      expect(pictures, 1);
+      clock = now.add(NexSponsorService.failedRefreshCooldown);
+      expect(await restarted.refresh(), isTrue);
+      expect(restarted.image, isNotNull);
+      expect(pictures, 2);
+      expect(manifests, 1);
+      expect(preferences.sponsorFetchedAt, fetched);
+    });
 
     test(
       'switching to a card without a picture deletes the old file',
@@ -728,25 +722,22 @@ void main() {
       expect(service((_) => http.Response('', 503)).visible(), isNull);
     });
 
-    test(
-      'GitHub filtering responses use the mirror without treating a mirror miss as deletion',
-      () async {
-        final asked = <String>[];
-        var missing = false;
-        final s = service((r) {
-          asked.add(r.url.host);
-          return r.url.host == 'raw.githubusercontent.com'
-              ? http.Response('', 403)
-              : http.Response(missing ? '' : card(), missing ? 404 : 200);
-        }, endpoint: onGitHub);
-        await s.refresh();
-        expect(asked, ['raw.githubusercontent.com', 'cdn.jsdelivr.net']);
-        expect(s.cached?.id, 'c1');
-        missing = true;
-        await s.refresh(force: true);
-        expect(s.cached?.id, 'c1');
-      },
-    );
+    test('GitHub filtering responses use the mirror without treating a mirror miss as deletion', () async {
+      final asked = <String>[];
+      var missing = false;
+      final s = service((r) {
+        asked.add(r.url.host);
+        return r.url.host == 'raw.githubusercontent.com'
+            ? http.Response('', 403)
+            : http.Response(missing ? '' : card(), missing ? 404 : 200);
+      }, endpoint: onGitHub);
+      await s.refresh();
+      expect(asked, ['raw.githubusercontent.com', 'cdn.jsdelivr.net']);
+      expect(s.cached?.id, 'c1');
+      missing = true;
+      await s.refresh(force: true);
+      expect(s.cached?.id, 'c1');
+    });
 
     test(
       'oversized chunked responses are stopped before the rest is read',
@@ -754,12 +745,11 @@ void main() {
         var delivered = 0;
         final client = MockClient.streaming(
           (request, body) async => http.StreamedResponse(
-            Stream.fromIterable(
-              List.generate(20, (_) => List.filled(4096, 32)),
-            ).map((chunk) {
-              delivered++;
-              return chunk;
-            }),
+            Stream.fromIterable(List.generate(20, (_) => List.filled(4096, 32)))
+                .map((chunk) {
+                  delivered++;
+                  return chunk;
+                }),
             200,
           ),
         );
@@ -1132,9 +1122,8 @@ void main() {
       expect(preferences.firstOpenedAt?.isAtSameMomentAs(now), isTrue);
       // Nine days on, still not.
       expect(
-        at(
-          now.add(const Duration(days: 9)),
-        ).earned(NexSponsor.parse(card())!, notes: 0),
+        at(now.add(const Duration(days: 9)))
+            .earned(NexSponsor.parse(card())!, notes: 0),
         isFalse,
       );
     });

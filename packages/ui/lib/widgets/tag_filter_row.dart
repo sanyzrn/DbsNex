@@ -126,7 +126,7 @@ class TagFilterRow extends StatelessWidget {
                 theme: theme,
               ),
             ),
-          if (trailing != null) trailing!,
+          ?trailing,
           if (untaggedLabel case final label?)
             Padding(
               padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
@@ -239,9 +239,8 @@ class _Pill extends StatelessWidget {
                 if (icon != null)
                   SizedBox(
                     height:
-                        MediaQuery.textScalerOf(
-                          context,
-                        ).scale(theme.textTheme.labelLarge?.fontSize ?? 14) *
+                        MediaQuery.textScalerOf(context)
+                            .scale(theme.textTheme.labelLarge?.fontSize ?? 14) *
                         (theme.textTheme.labelLarge?.height ?? 1.43),
                     child: Icon(icon, size: 18, color: fg),
                   )

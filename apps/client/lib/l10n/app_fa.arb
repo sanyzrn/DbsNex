@@ -30,7 +30,7 @@
   "layoutTitle": "چیدمان خانه",
   "layoutSubtitle": "چه چیزهایی بالای یادداشت‌ها دیده شوند.",
   "layoutGreeting": "خوش‌آمدگویی",
-  "layoutDaySummary": "خلاصهٔ هوشمند روز",
+  "layoutDaySummary": "مرور",
   "layoutSearchField": "جعبهٔ جست‌وجو",
   "layoutTagRow": "نوار برچسب‌ها",
   "layoutShowSection": "روی صفحه‌ی اصلی",
@@ -929,7 +929,7 @@
   "@intelligenceOpen": {
     "description": "Settings row that opens the intelligence screen"
   },
-  "aiDaySummaryTitle": "خلاصه هوشمند",
+  "aiDaySummaryTitle": "مرور",
   "@aiDaySummaryTitle": {
     "description": "Header of the AI day summary card on the timeline"
   },
@@ -1250,10 +1250,10 @@
   "commitmentsTitle": "موارد تکرارشونده",
   "commitmentsSubtitle": "قبض‌ها، تمدیدها، دارو — چیزهایی که دوباره برمی‌گردند",
   "commitmentsEmpty": "هنوز چیزی نیست.\nبیمه، اجاره، قرص هر هشت ساعت.",
-  "briefEnabled": "نمایش خلاصهٔ هوشمند",
+  "briefEnabled": "نمایش مرور",
   "briefEnabledOn": "هر روز بالای تایم‌لاین برایتان نوشته می‌شود.",
   "briefEnabledOff": "خاموش: خلاصه‌ای نوشته نمی‌شود و چیزی برای آن به سرویس فرستاده نمی‌شود.",
-  "briefTitle": "خلاصه هوشمند",
+  "briefTitle": "مرور",
   "briefSubtitle": "کارتی که بالای یادداشت‌هاست. خودتان تعیین می‌کنید به چه درد بخورد.",
   "briefStyleLabel": "چه چیزی بنویسد",
   "briefStyleAssistant": "دستیار",
@@ -1921,7 +1921,7 @@
   "disclosureChat": "پرسش از دستیار",
   "disclosureTags": "پیشنهاد برچسب",
   "disclosureSummary": "خلاصهٔ یادداشت",
-  "disclosureDailySummary": "خلاصهٔ هوشمند",
+  "disclosureDailySummary": "مرور",
   "disclosureGreeting": "خوشامدگویی",
   "disclosureTranslation": "ترجمه",
   "disclosureRewrite": "بازنویسی",

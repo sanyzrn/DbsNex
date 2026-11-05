@@ -24,7 +24,7 @@ void main() {
         final probe = sqlite3.open(future);
         probe.execute('CREATE TABLE future_only(value TEXT)');
         probe.execute('PRAGMA user_version = ${NexDatabase.schemaVersion + 1}');
-        probe.dispose();
+        probe.close();
         var backup = future;
         if (zipped) {
           final bytes = File(future).readAsBytesSync();

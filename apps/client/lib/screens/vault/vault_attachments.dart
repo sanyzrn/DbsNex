@@ -64,6 +64,7 @@ extension _VaultAttachments on _VaultScreenState {
       return;
     }
     if (picked == null || !mounted) return;
+    final attachment = picked;
     if (picked.bytes.length > VaultFiles.maxBytes) {
       _rebuild(() => error = l.vaultAttachTooLarge);
       return;
@@ -73,7 +74,7 @@ extension _VaultAttachments on _VaultScreenState {
     if (!mounted || !unlocked) return;
     final caption = messageInput.text.trim();
     await _operate(() async {
-      final id = await _vaultFiles.put(picked!.bytes);
+      final id = await _vaultFiles.put(attachment.bytes);
       final empty = VaultStore.empty(VaultKind.message);
       try {
         await store.save(
@@ -83,12 +84,12 @@ extension _VaultAttachments on _VaultScreenState {
             fields: {
               if (caption.isNotEmpty) 'text': caption,
               'file': id,
-              'fileKind': picked.kind,
-              'fileName': picked.name,
-              'fileSize': '${picked.bytes.length}',
-              if (picked.mime != null) 'fileMime': picked.mime!,
-              if (picked.durationMs != null)
-                'durationMs': '${picked.durationMs}',
+              'fileKind': attachment.kind,
+              'fileName': attachment.name,
+              'fileSize': '${attachment.bytes.length}',
+              if (attachment.mime != null) 'fileMime': attachment.mime!,
+              if (attachment.durationMs != null)
+                'durationMs': '${attachment.durationMs}',
             },
             updatedAt: empty.updatedAt,
           ),

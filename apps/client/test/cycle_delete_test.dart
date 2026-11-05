@@ -21,11 +21,12 @@ void main() {
       await harness.services.captureText('a note that must survive');
       await harness.services.cycleStartPeriod(DateTime(2026, 9, 1));
       await harness.db.backup(harness.backupDir, mediaDir: harness.mediaDir);
-      List<File> backups() => Directory(harness.backupDir)
-          .listSync()
-          .whereType<File>()
-          .where((f) => NexBackupArchive.isBackupFile(f.path))
-          .toList();
+      List<File> backups() =>
+          Directory(harness.backupDir)
+              .listSync()
+              .whereType<File>()
+              .where((f) => NexBackupArchive.isBackupFile(f.path))
+              .toList();
       final before = backups().single;
 
       await harness.services.cycleDeleteAll();
@@ -51,7 +52,7 @@ void main() {
           hasLength(1),
         );
       } finally {
-        db.dispose();
+        db.close();
       }
     } finally {
       await harness.dispose();

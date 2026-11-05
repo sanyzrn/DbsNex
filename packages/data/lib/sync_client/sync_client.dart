@@ -225,12 +225,8 @@ class SyncClient implements SyncPort {
 
   Future<PullPage> _pull() async {
     final since = repo.syncCursor;
-    final uri = Uri.parse('$baseUrl/sync/pull').replace(
-      queryParameters: {
-        'device_id': deviceId,
-        if (since != null) 'since': since,
-      },
-    );
+    final uri = Uri.parse('$baseUrl/sync/pull')
+        .replace(queryParameters: {'device_id': deviceId, 'since': ?since});
     final res = await _http.get(uri, headers: _headers).timeout(requestTimeout);
     if (res.statusCode >= 300) {
       throw StateError('sync pull failed: ${res.statusCode} ${res.body}');

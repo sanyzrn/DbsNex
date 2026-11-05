@@ -179,7 +179,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
     required this.toggleTooltip,
     required this.onToggle,
     required this.title,
-    required this.badge,
     required this.byModel,
     this.updatedAt,
     this.solarCalendar = false,
@@ -190,7 +189,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
 
   /// Beside the name while a model writes the brief; the plain report is
   /// Nex's own arithmetic and does not wear it.
-  final String badge;
   final bool byModel;
   final DateTime? updatedAt;
   final bool solarCalendar;
@@ -236,7 +234,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
               children: [
                 _BriefHeader(
                   title: title,
-                  badge: badge,
                   byModel: byModel,
                   // A new brief makes the mark twinkle once.
                   token: text,
@@ -254,7 +251,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
                     children: [
                       for (final child in previous)
                         ExcludeSemantics(child: IgnorePointer(child: child)),
-                      if (current != null) current,
+                      ?current,
                     ],
                   ),
                   transitionBuilder: (child, animation) => FadeTransition(
@@ -360,8 +357,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
   }
 }
 
-/// The brief's heading: a mark, its name and, when a model wrote it, a small
-/// badge saying so.
+/// The brief's heading: its mark and name, with the last update alongside.
 ///
 /// The mark is a sparkle in a soft accent disc that turns and settles once
 /// each time a new brief arrives — the one moment the card has news — and
@@ -370,7 +366,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
 class _BriefHeader extends StatelessWidget {
   const _BriefHeader({
     required this.title,
-    required this.badge,
     required this.byModel,
     required this.token,
     this.updatedAt,
@@ -378,7 +373,6 @@ class _BriefHeader extends StatelessWidget {
   });
 
   final String title;
-  final String badge;
   final bool byModel;
   final Object? token;
   final DateTime? updatedAt;
@@ -432,41 +426,11 @@ class _BriefHeader extends StatelessWidget {
             mark,
           const SizedBox(width: NexSpacing.sm),
           Expanded(
-            child: Wrap(
-              spacing: NexSpacing.sm,
-              runSpacing: NexSpacing.xs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (byModel)
-                  DecoratedBox(
-                    key: const ValueKey('brief-ai-badge'),
-                    decoration: BoxDecoration(
-                      color: scheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(NexRadius.pill),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: NexSpacing.sm,
-                        vertical: 2,
-                      ),
-                      child: Text(
-                        badge,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: scheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+            child: Text(
+              title,
+              style: label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

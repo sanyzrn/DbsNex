@@ -63,7 +63,7 @@ void main() {
     'month': month,
     'day': day,
     'yearKnown': year != null,
-    if (year != null) 'year': year,
+    'year': ?year,
     'leapPolicy': 'lastDay',
     'note': '',
     'favorite': false,

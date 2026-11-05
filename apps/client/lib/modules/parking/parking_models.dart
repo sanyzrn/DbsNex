@@ -97,8 +97,8 @@ class ParkingModels {
     'startedAt': startedAt.toUtc().toIso8601String(),
     if (foundAt != null) 'foundAt': foundAt.toUtc().toIso8601String(),
     if (expiresAt != null) 'expiresAt': expiresAt.toUtc().toIso8601String(),
-    if (lat != null) 'lat': lat,
-    if (lng != null) 'lng': lng,
+    'lat': ?lat,
+    'lng': ?lng,
   };
 
   /// The body of a remembered place.
@@ -119,8 +119,8 @@ class ParkingModels {
     'landmark': landmark,
     'useCount': useCount,
     'lastUsedAt': lastUsedAt.toUtc().toIso8601String(),
-    if (lat != null) 'lat': lat,
-    if (lng != null) 'lng': lng,
+    'lat': ?lat,
+    'lng': ?lng,
   };
 
   /// The body of a remembered search query.

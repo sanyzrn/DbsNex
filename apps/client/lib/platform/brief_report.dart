@@ -3,6 +3,7 @@ import 'package:nex_core/nex_core.dart';
 
 import '../l10n/app_localizations.dart';
 import '../l10n/relative_span.dart';
+
 import 'package:nex_ai/cloud.dart';
 
 /// The brief the app writes itself, from what it already knows.
@@ -19,10 +20,8 @@ import 'package:nex_ai/cloud.dart';
 /// When [notes] are provided, their recent content is also reported in short
 /// excerpts after the dated facts. A note does not need a reminder to matter.
 ///
-/// The [maxLines] budget is spent from the top, so a long list of overdue
-/// items can take the whole card. That is the right failure: a brief that
-/// drops the third overdue bill to make room for an unticked shopping list
-/// has its priorities the wrong way round.
+/// The [maxLines] budget goes to urgent notes first, then reminders, then
+/// ordinary notes. Within each group, retain the existing date order.
 ///
 /// A reminder coming up is said by its day and time — "call the plumber —
 /// tomorrow at 09:00" — not as a countdown (2.1.6). Most reminders are when
@@ -49,15 +48,34 @@ String? nexBriefReport(
         '${local.minute.toString().padLeft(2, '0')}',
         persian: persian,
       );
-  final lines = <String>[];
+  final urgentTitles = {
+    for (final note in notes)
+      if (note.deletedAt == null && note.isUrgent)
+        note.displayText?.trim() ?? '',
+  };
+  final reminderTitles = {
+    for (final note in notes)
+      if (note.deletedAt == null && note.dueAt != null)
+        note.displayText?.trim() ?? '',
+    for (final entry in [...facts.overdue, ...facts.dueSoon])
+      entry.title.trim(),
+  };
+  final groups = [<String>[], <String>[], <String>[]];
 
-  void add(String line) {
-    if (lines.length < maxLines) lines.add(line);
+  void add(String line, String title) {
+    final key = title.trim();
+    final priority = urgentTitles.contains(key)
+        ? 0
+        : reminderTitles.contains(key)
+        ? 1
+        : 2;
+    groups[priority].add(line);
   }
 
   for (final entry in facts.overdue) {
     add(
       '⏰ ${l10n.briefLineOverdue(entry.title, nexRelativeSpan(l10n, at.difference(entry.dueAt!)))}',
+      entry.title,
     );
   }
   for (final entry in facts.dueSoon) {
@@ -81,11 +99,13 @@ String? nexBriefReport(
       when != null
           ? '📅 ${l10n.briefLineAt(entry.title, when)}'
           : '📅 ${l10n.briefLineDue(entry.title, days >= 1 ? l10n.spanDays(days) : nexRelativeSpan(l10n, entry.dueAt!.difference(at)))}',
+      entry.title,
     );
   }
   for (final entry in facts.unfinished) {
     add(
       '☑️ ${l10n.briefLineChecklist(entry.title, entry.remaining!, entry.total!)}',
+      entry.title,
     );
   }
 
@@ -103,14 +123,17 @@ String? nexBriefReport(
   final recent = notes.where((note) => selected.contains(note.id)).toList()
     ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   for (final note in recent) {
-    if (lines.length >= maxLines) break;
     final text = note.displayText?.trim() ?? '';
     if (text.isEmpty || !covered.add(text)) continue;
     final words = text.replaceAll(RegExp(r'\s+'), ' ').split(' ');
     final excerpt = words.take(maxWords).join(' ');
-    add('📝 $excerpt${words.length > maxWords ? '…' : ''}');
+    add(
+      '${note.isUrgent ? '🔥' : '📝'} $excerpt${words.length > maxWords ? '…' : ''}',
+      text,
+    );
   }
 
+  final lines = groups.expand((group) => group).take(maxLines).toList();
   return lines.isEmpty ? null : lines.join('\n');
 }
 

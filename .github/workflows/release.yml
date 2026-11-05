@@ -409,6 +409,10 @@ jobs:
           # stops being installable at all.
           test "$(ls dist | wc -l)" -eq 7
 
+      - name: Bundled SQLite covers every release ABI
+        working-directory: apps/client
+        run: python3 ../../tools/check_sqlite_assets.py dist/*.apk dist/*.aab
+
       # Keep the signed APKs available for inspection even when the identity
       # check below fails. A failed build job otherwise discards them before we
       # can determine which value differed.
@@ -460,9 +464,8 @@ jobs:
     # The installer itself needs no wiring: publish-release stages assets by
     # extension, so a .exe artifact is picked up as soon as one exists.
     if: false
-    # Same pin as CI: windows-latest is Visual Studio 2026 since June 2026, and
-    # Flutter 3.35.5 does not recognise it. A release must not build on an image
-    # the verification pipeline never used.
+    # Same reviewed image as CI. Keep Windows paused until the upgraded SDK
+    # and its plugins receive separate desktop verification.
     runs-on: windows-2022
     timeout-minutes: 45
     defaults:

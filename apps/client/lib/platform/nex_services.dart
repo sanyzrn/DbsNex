@@ -1,7 +1,10 @@
 import '../documents/text_import.dart';
+
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
+
 import 'dart:isolate';
 import 'dart:math';
 import 'dart:io';
@@ -16,7 +19,6 @@ import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
 import 'brief_refresh.dart';
@@ -29,7 +31,9 @@ import '../modules/habits/habit_model.dart';
 import '../modules/habits/habit_math.dart';
 import '../modules/habits/habit_reminder.dart';
 import '../l10n/app_localizations.dart';
+
 import 'package:flutter/widgets.dart' show Locale;
+
 import 'install_source.dart';
 import 'full_backup.dart';
 import 'vault_store.dart';
@@ -40,7 +44,9 @@ import 'voice_spool.dart';
 import 'chat_history.dart';
 import 'export_cache.dart';
 import 'db_worker.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import 'backup_folder.dart';
 import 'nex_db.dart';
 import 'photo_encoding.dart';
@@ -101,10 +107,9 @@ class NexServices {
     required this.dbPath,
     required this.mediaDir,
     required this.backupDir,
-    required BackupPolicy backupPolicy,
-    required NexPreferences preferences,
-  }) : _backupPolicy = backupPolicy,
-       _preferences = preferences {
+    required this._backupPolicy,
+    required this._preferences,
+  }) {
     _startDailyNudge();
   }
 
@@ -234,11 +239,6 @@ class NexServices {
     MediaPicker? mediaPicker,
     bool recoverDrafts = true,
   }) async {
-    if (!kIsWeb &&
-        (Platform.isAndroid || Platform.isIOS || Platform.isWindows)) {
-      await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
-    }
-
     final support = await getApplicationSupportDirectory();
     final dbPath = p.join(support.path, 'nex.sqlite');
     ChatHistory.storageDirectory = support.path;

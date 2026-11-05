@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -146,7 +147,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get layoutGreeting => 'خوش‌آمدگویی';
 
   @override
-  String get layoutDaySummary => 'خلاصهٔ هوشمند روز';
+  String get layoutDaySummary => 'مرور';
 
   @override
   String get layoutSearchField => 'جعبهٔ جست‌وجو';
@@ -2330,7 +2331,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get intelligenceOpen => 'رونویسی، خلاصه، برچسب';
 
   @override
-  String get aiDaySummaryTitle => 'خلاصه هوشمند';
+  String get aiDaySummaryTitle => 'مرور';
 
   @override
   String get aiDaySummaryBadge => 'هوش مصنوعی';
@@ -3176,7 +3177,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
 
   @override
-  String get briefEnabled => 'نمایش خلاصهٔ هوشمند';
+  String get briefEnabled => 'نمایش مرور';
 
   @override
   String get briefEnabledOn => 'هر روز بالای تایم‌لاین برایتان نوشته می‌شود.';
@@ -3186,7 +3187,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'خاموش: خلاصه‌ای نوشته نمی‌شود و چیزی برای آن به سرویس فرستاده نمی‌شود.';
 
   @override
-  String get briefTitle => 'خلاصه هوشمند';
+  String get briefTitle => 'مرور';
 
   @override
   String get briefSubtitle =>
@@ -5258,7 +5259,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get disclosureSummary => 'خلاصهٔ یادداشت';
 
   @override
-  String get disclosureDailySummary => 'خلاصهٔ هوشمند';
+  String get disclosureDailySummary => 'مرور';
 
   @override
   String get disclosureGreeting => 'خوشامدگویی';

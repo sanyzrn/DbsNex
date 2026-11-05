@@ -129,8 +129,5 @@ List<NexTool> nexPinnedTools(
     ])
       tool.id: tool,
   };
-  return [
-    for (final id in pins)
-      if (all[id] case final tool?) tool,
-  ];
+  return [for (final id in pins) ?all[id]];
 }

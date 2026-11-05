@@ -120,7 +120,7 @@ class _NexPdfReaderState extends State<NexPdfReader>
       await precacheImage(
         MemoryImage(page.bytes),
         context,
-        onError: (_, __) => decoded = false,
+        onError: (_, _) => decoded = false,
       );
       if (!mounted || generation != _generation) {
         unawaited(MemoryImage(page.bytes).evict());
@@ -413,7 +413,7 @@ class _NexPdfReaderState extends State<NexPdfReader>
         children: [
           for (final child in previous)
             ExcludeSemantics(child: IgnorePointer(child: child)),
-          if (current != null) current,
+          ?current,
         ],
       ),
       transitionBuilder: (child, animation) => FadeTransition(
@@ -434,9 +434,8 @@ class _NexPdfReaderState extends State<NexPdfReader>
           position: DecorationPosition.foreground,
           decoration: BoxDecoration(
             border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outlineVariant.withValues(alpha: 0.8),
+              color: Theme.of(context).colorScheme.outlineVariant
+                  .withValues(alpha: 0.8),
               width: 0.5,
             ),
           ),

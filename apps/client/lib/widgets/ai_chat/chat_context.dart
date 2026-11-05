@@ -124,10 +124,7 @@ extension _ChatContext on _AiChatSheetState {
     if (widget.scope case final scoped?) {
       _remember(scoped);
       await _knowThreads(scoped);
-      final lines = <String>[
-        for (final note in scoped)
-          if (_contextLine(note) case final line?) line,
-      ];
+      final lines = <String>[for (final note in scoped) ?_contextLine(note)];
       if (mounted) _rebuild(() => _notesContext = lines.join('\n'));
       return;
     }
@@ -141,10 +138,7 @@ extension _ChatContext on _AiChatSheetState {
     }
     _remember(notes);
     await _knowThreads(notes);
-    final lines = <String>[
-      for (final note in notes)
-        if (_contextLine(note) case final line?) line,
-    ];
+    final lines = <String>[for (final note in notes) ?_contextLine(note)];
     if (!mounted) return;
     _rebuild(() => _notesContext = lines.join('\n'));
   }
@@ -406,7 +400,7 @@ extension _ChatContext on _AiChatSheetState {
     if (!mounted || generation != _sendGeneration) return;
     final lines = <String>[
       for (final note in found.take(_AiChatSheetState._retrievedCount))
-        if (_contextLine(note) case final line?) line,
+        ?_contextLine(note),
     ];
     _remember(found.take(_AiChatSheetState._retrievedCount));
     _retrieved = lines.join('\n');

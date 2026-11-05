@@ -47,7 +47,11 @@ abstract final class NexDocx {
     if (bytes.length > maxBytes) return null;
     final Archive archive;
     try {
-      archive = ZipDecoder().decodeBytes(bytes);
+      archive = ZipDecoder().decodeBytes(
+        bytes,
+        verify: true,
+        throwOnError: true,
+      );
     } catch (_) {
       return null;
     }
@@ -62,7 +66,9 @@ abstract final class NexDocx {
     final body = document.rootElement.getElement('w:body');
     if (body == null) return null;
 
-    final links = _relationships(_entry(archive, 'word/_rels/document.xml.rels'));
+    final links = _relationships(
+      _entry(archive, 'word/_rels/document.xml.rels'),
+    );
     final blocks = <_Block>[];
     var length = 0;
     var truncated = false;
@@ -94,7 +100,9 @@ abstract final class NexDocx {
     final out = StringBuffer();
     for (var i = 0; i < blocks.length; i++) {
       if (i > 0) {
-        out.write(blocks[i].isListItem && blocks[i - 1].isListItem ? '\n' : '\n\n');
+        out.write(
+          blocks[i].isListItem && blocks[i - 1].isListItem ? '\n' : '\n\n',
+        );
       }
       out.write(blocks[i].text);
     }
@@ -301,9 +309,8 @@ abstract final class NexDocx {
     );
     if (columns == 0) return null;
 
-    String line(List<String> cells) => '| ${[
-      for (var i = 0; i < columns; i++) i < cells.length ? cells[i] : '',
-    ].join(' | ')} |';
+    String line(List<String> cells) =>
+        '| ${[for (var i = 0; i < columns; i++) i < cells.length ? cells[i] : ''].join(' | ')} |';
 
     final out = StringBuffer()
       ..writeln(line(rows.first))

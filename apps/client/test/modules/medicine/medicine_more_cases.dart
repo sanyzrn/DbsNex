@@ -114,7 +114,7 @@ void _registerMedicineMore(
         'v': 2,
         'medicineId': 'm1',
         'action': 'taken',
-        'at': '2026-10-13T15:30:00.000Z',
+        'at': DateTime(2026, 10, 13, 15, 30).toUtc().toIso8601String(),
         'stockDelta': 0,
       });
       await _pump(
@@ -246,9 +246,8 @@ void _registerMedicineMore(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(2)),
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(2)),
             child: child ?? const SizedBox.shrink(),
           ),
           home: MedicineScreen(store: NexModuleStore(h.services, 'medicine')),

@@ -49,7 +49,7 @@ class _ImageFileBody extends StatelessWidget {
                 // A file named `.png` that is not one lands here as a decode
                 // failure rather than as a crash. Nothing is drawn, and the
                 // row above still says everything the file itself knows.
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
           ),

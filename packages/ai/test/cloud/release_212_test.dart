@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -11,7 +12,7 @@ String reply(String text, {String? finish}) => jsonEncode({
   'choices': [
     {
       'message': {'content': text},
-      if (finish != null) 'finish_reason': finish,
+      'finish_reason': ?finish,
     },
   ],
 });
@@ -65,37 +66,31 @@ void main() {
       adapter.close();
     });
   }
-  test(
-    'rewrite preserves authored markup and still strips actual reasoning on normal text',
-    () async {
-      var answer = '<analysis>literal source</analysis> tail';
-      final adapter = CloudAIAdapter(
-        config: const AiProviderConfig(
-          provider: AiProvider.openai,
-          apiKey: 'k',
-        ),
-        client: MockClient((_) async => http.Response(reply(answer), 200)),
-      );
-      expect(
-        await adapter.rewrite(answer, style: NexRewriteStyle.values.first),
-        answer,
-      );
-      answer = '<think>private reasoning</think> Clean answer';
-      expect(
-        await adapter.rewrite(
-          'Normal source',
-          style: NexRewriteStyle.values.first,
-        ),
-        'Clean answer',
-      );
-      expect(
-        adapter.extractTextForTest(
-          reply('Before <analysis>literal</analysis> after'),
-        ),
-        'Before <analysis>literal</analysis> after',
-      );
-    },
-  );
+  test('rewrite preserves authored markup and still strips actual reasoning on normal text', () async {
+    var answer = '<analysis>literal source</analysis> tail';
+    final adapter = CloudAIAdapter(
+      config: const AiProviderConfig(provider: AiProvider.openai, apiKey: 'k'),
+      client: MockClient((_) async => http.Response(reply(answer), 200)),
+    );
+    expect(
+      await adapter.rewrite(answer, style: NexRewriteStyle.values.first),
+      answer,
+    );
+    answer = '<think>private reasoning</think> Clean answer';
+    expect(
+      await adapter.rewrite(
+        'Normal source',
+        style: NexRewriteStyle.values.first,
+      ),
+      'Clean answer',
+    );
+    expect(
+      adapter.extractTextForTest(
+        reply('Before <analysis>literal</analysis> after'),
+      ),
+      'Before <analysis>literal</analysis> after',
+    );
+  });
   test(
     'cloud history is bounded without mutating or clipping the newest question',
     () async {

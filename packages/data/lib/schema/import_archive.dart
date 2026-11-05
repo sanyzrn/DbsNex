@@ -116,7 +116,11 @@ abstract final class NoteImportArchive {
   }) {
     final Archive archive;
     try {
-      archive = ZipDecoder().decodeStream(input);
+      archive = ZipDecoder().decodeStream(
+        input,
+        verify: true,
+        throwOnError: true,
+      );
     } catch (_) {
       return const NoteImportResult(notes: []);
     }
