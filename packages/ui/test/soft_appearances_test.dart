@@ -12,6 +12,27 @@ void main() {
     expect(c.onSurface, NexSoftLightColors.text);
     expect(c.onSurfaceVariant, NexSoftLightColors.muted);
     expect(c.primaryContainer, NexSoftLightColors.accentContainer);
+    expect(c.primary, NexColors.accentStrongLight);
+    expect(c.outline, NexSoftLightColors.outline);
+    expect(
+      theme.floatingActionButtonTheme.backgroundColor,
+      NexSoftLightColors.accent,
+    );
+    for (final surface in [c.surfaceContainerLowest, c.surfaceContainerHigh]) {
+      expect(nexContrastRatio(c.outline, surface), greaterThanOrEqualTo(3));
+      expect(
+        nexContrastRatio(c.onSurfaceVariant, surface),
+        greaterThanOrEqualTo(4.5),
+      );
+    }
+    expect(
+      nexContrastRatio(c.primary, c.surfaceContainerLowest),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      nexContrastRatio(c.primary, c.primaryContainer),
+      greaterThanOrEqualTo(4.5),
+    );
     expect(theme.extension<NexVisualStyle>()!.minimal, isTrue);
     expect(theme.shadowColor, Colors.transparent);
     expect(theme.dialogTheme.elevation, 0);
@@ -62,6 +83,24 @@ void main() {
                 ? nexOledNightTheme(accentSeed: seed, liquidGlass: glass)
                 : nexSoftLightTheme(accentSeed: seed, liquidGlass: glass);
             final c = theme.colorScheme;
+            if (!night) {
+              expect(c.outline, NexSoftLightColors.outline);
+              if (seed == null) {
+                expect(c.primary, NexColors.accentStrongLight);
+                expect(
+                  theme.floatingActionButtonTheme.backgroundColor,
+                  NexSoftLightColors.accent,
+                );
+              } else {
+                expect(
+                  c.primaryContainer,
+                  Color.alphaBlend(
+                    c.primary.withValues(alpha: 0.16),
+                    NexSoftLightColors.card,
+                  ),
+                );
+              }
+            }
             for (final ground in [
               c.surface,
               c.surfaceContainerLowest,
