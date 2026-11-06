@@ -2,9 +2,11 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
-## Unreleased
+## v2.6.7
 
-- **Softer Light and true-black Night.** Light gets quiet grey cards; Night gets an OLED-black page, charcoal cards and softer text. Decorative borders and shadows are removed in both, while focus, accessibility, custom accents and optional Liquid Glass remain intact. Dark retains its surfaces with softer main text.
+- **Night is now true OLED black.** A pure-black page, charcoal cards and softer text give Night its own quiet look.
+- **Light feels calmer.** A white page and gentle grey cards make notes easier to scan, without decorative card borders or shadows.
+- **Clearer fields and matching Android colours.** Text fields keep a slim visible outline; Android launch and home-widget colours follow the new look. Your accent, Liquid Glass and accessibility settings still work.
 
 ## v2.6.6
 

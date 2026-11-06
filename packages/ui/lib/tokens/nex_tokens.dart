@@ -836,7 +836,9 @@ ThemeData _theme({
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(NexRadius.md),
-        borderSide: minimal ? BorderSide.none : BorderSide(color: borderSoft),
+        borderSide: minimal
+            ? BorderSide(color: border, width: 1)
+            : BorderSide(color: borderSoft),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(NexRadius.md),

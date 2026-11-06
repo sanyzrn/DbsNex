@@ -10,25 +10,26 @@ abstract final class NexSoftLightColors {
   static const text = Color(0xFF14171C);
   static const muted = Color(0xFF626B7A);
   static const line = Color(0xFFE6E9EE);
-  static const outline = Color(0xFF657080);
-  static const accentText = Color(0xFF0069C4);
+  static const outline = Color(0xFF737C8C);
+  static const accent = Color(0xFF0084F7);
+  static const accentText = NexColors.accentStrongLight;
   static const accentContainer = Color(0xFFE3F1FF);
-  static const accentFill = Color(0xFF0069C4);
-  static const captureFill = Color(0xFF0084F7);
+  static const accentFill = NexColors.accentStrongLight;
+  static const captureFill = accent;
 }
 
 abstract final class NexOledNightColors {
-  static const background = Color(0xFF000000);
-  static const card = Color(0xFF0E0F12);
-  static const elevated = Color(0xFF1A1C21);
-  static const text = Color(0xFFD9DDE6);
-  static const muted = Color(0xFF8E96A8);
-  static const line = Color(0xFF24272E);
-  static const outline = Color(0xFF6A7588);
-  static const accentText = Color(0xFF5AB0FF);
-  static const accentContainer = Color(0xFF0F2A47);
-  static const accentFill = Color(0xFF0069C4);
-  static const captureFill = Color(0xFF0084F7);
+  static const background = NexNightColors.background;
+  static const card = NexNightColors.card;
+  static const elevated = NexNightColors.elevated;
+  static const text = NexNightColors.text;
+  static const muted = NexNightColors.muted;
+  static const line = NexNightColors.line;
+  static const outline = NexNightColors.outline;
+  static const accentText = NexNightColors.accentText;
+  static const accentContainer = NexNightColors.accentContainer;
+  static const accentFill = NexNightColors.accentFilled;
+  static const captureFill = NexNightColors.accent;
 }
 
 /// White page, gently tinted cards, softened secondary text and no decorative
@@ -40,13 +41,14 @@ ThemeData nexSoftLightTheme({
   String? fontFamily,
   Color? accentSeed,
 }) {
-  final custom = accentSeed == null ? null : nexAccentPaletteFrom(accentSeed);
-  final accent = custom?.strongLight ?? NexSoftLightColors.accentText;
-  final filled = custom?.strongLight ?? NexSoftLightColors.accentFill;
-  final selected = custom == null
+  final palette = accentSeed == null
+      ? NexColors.defaultAccent
+      : nexAccentPaletteFrom(accentSeed);
+  final accent = palette.strongLight;
+  final selected = accentSeed == null
       ? NexSoftLightColors.accentContainer
       : Color.alphaBlend(
-          accent.withValues(alpha: 0.12),
+          accent.withValues(alpha: 0.16),
           NexSoftLightColors.card,
         );
   final theme = _theme(
@@ -60,9 +62,9 @@ ThemeData nexSoftLightTheme({
     border: NexSoftLightColors.outline,
     borderSoft: NexSoftLightColors.line,
     accent: accent,
-    accentStrong: filled,
+    accentStrong: palette.strongLight,
     onAccent: Colors.white,
-    accentOnInverse: custom?.dark ?? NexColors.accentDark,
+    accentOnInverse: palette.dark,
     fontFamily: fontFamily ?? nexLatinFont,
     liquidGlass: liquidGlass,
     transparentScaffold: transparentScaffold,
@@ -72,9 +74,9 @@ ThemeData nexSoftLightTheme({
     theme,
     primaryContainer: selected,
     onPrimaryContainer: nexReadableOn(accent, selected),
-    filled: filled,
+    filled: palette.strongLight,
     filledInk: Colors.white,
-    fab: custom?.strongLight ?? NexSoftLightColors.captureFill,
+    fab: accentSeed == null ? NexSoftLightColors.accent : palette.strongLight,
     fabInk: Colors.white,
   );
 }
