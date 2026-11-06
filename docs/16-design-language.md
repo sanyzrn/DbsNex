@@ -215,22 +215,49 @@ changes cross-fade with a small settle and one border sweep rather than four.
 Glass toggles participate in the existing
 theme reveal. All additions respect reduced motion and settle without idle loops.
 
-### Appearance modes (2.6.6)
+### Appearance modes (2.6.7)
 
-The app exposes Light, Dark, Night and System. All three app appearances are
-flat, with tonal cards instead of decorative borders or shadows. Light uses
-`nexSoftLightTheme` (`#FFFFFF` page, `#F4F5F8` cards, `#14171C` text).
-Dark keeps `nexSoftDarkTheme` (`#141821` page, `#1C212C` cards, `#D9DDE6`
-text). OLED Night uses `nexOledNightTheme` (`#000000` page, `#0E0F12`
-cards, `#D9DDE6` soft text). Functional selection, focus, error and
-high-contrast outlines remain explicit; Liquid Glass and the custom accent
-are independent. Blue text and blue fills keep contrast-appropriate roles.
-System follows the OS and uses Soft Dark for a dark OS. Legacy library APIs
-`nexLightTheme` and `nexNightTheme` remain unchanged for older consumers and
-golden baselines.
+The app exposes Light, Dark, Night and System, with flat note cards and tonal
+surfaces instead of decorative borders and shadows. The palette sources are
+`NexSoftLightColors` in `nex_soft_appearances.dart`,
+`NexSoftDarkColors` and `NexNightColors` in `nex_soft_dark.dart`.
 
-The gallery is paused behind `nexThemePresetsAvailable`. Keep its registry and
-stored selection; render `effectiveThemePreset` (Nex) instead. Stored `dark`
-resolves to Night without rewriting old backups. New Dark stores `soft_dark`;
-Night stores `night`. Observe appearanceMode separately from Flutter ThemeMode,
-so switching between the two dark modes updates the whole app.
+- **Light:** `nexSoftLightTheme` uses `#FFFFFF` for the page,
+  `#F4F5F8` for cards, `#E9ECF1` for elevated surfaces, `#14171C`
+  for text and `#626B7A` for secondary text. The readable accent and
+  filled-button role is `NexColors.accentStrongLight` (`#006DCC`);
+  the default capture FAB uses `#0084F7`.
+- **Dark:** `nexSoftDarkTheme` uses `#141821` for the page,
+  `#1C212C` for cards, `#252B38` for elevated surfaces, `#D9DDE6`
+  for text and `#98A1B5` for secondary text.
+- **Night:** `nexOledNightTheme` and its public alias `nexNightTheme`
+  use `#000000` for the page, `#0E0F12` for cards, `#1A1C21`
+  for elevated surfaces, `#D9DDE6` for text and `#8E96A8`
+  for secondary text. Night is *not* the legacy Dark renderer.
+- **System:** follows the OS, selecting Soft Light or Soft Dark. Night
+  requires explicit selection.
+
+All three flat appearances keep their filled text inputs' **1 px functional
+enabled outline** (`_theme`, the palette's `outline` colour), plus distinct
+accent focus, error and focused-error borders. This applies only to input
+boundaries; card surfaces remain flat. Contrast guards enforce 4.5:1 for
+readable text and 3:1 for functional outlines; never weaken them to remove
+a border. Custom accent seeds, optional Liquid Glass, high-contrast surfaces,
+RTL/LTR and reduced-motion behaviour are independent of the appearance.
+
+The Flutter app's `app.dart` and the bootstrap/recovery host use the same
+Soft Light and Soft Dark renderers. Native launch colours and pre-Android-12
+widget colours in `values/colors.xml` and `values-night/colors.xml` mirror
+the flat Light/Dark tokens, while the icon's artwork colours and Cycle widget
+palette are unchanged. Android 12+ widgets continue to use the wallpaper's
+Material You overrides in `values-v31` and `values-night-v31`.
+The Android night resource qualifier follows OS brightness, so it cannot
+distinguish the app's explicitly selected OLED Night from Soft Dark.
+
+The legacy `nexLightTheme` and `nexDarkTheme` remain available to library
+consumers; `nexNightTheme` now delegates to `nexOledNightTheme`.
+The preset gallery stays paused behind `nexThemePresetsAvailable`: preserve
+stored selections and render `effectiveThemePreset` (Nex). Stored `dark`
+resolves to Night without rewriting backups; new Dark stores `soft_dark`;
+Night stores `night`. Read appearanceMode separately from Flutter ThemeMode
+so Dark and Night can repaint even though both use dark brightness.
