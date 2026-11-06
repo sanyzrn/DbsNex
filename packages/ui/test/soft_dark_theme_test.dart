@@ -22,7 +22,7 @@ void main() {
     expect(
       (theme.inputDecorationTheme.enabledBorder! as OutlineInputBorder)
           .borderSide,
-      BorderSide.none,
+      BorderSide(color: c.outline, width: 1),
     );
     expect(
       (theme.inputDecorationTheme.focusedBorder! as OutlineInputBorder)
