@@ -110,7 +110,10 @@ void main() {
       for (final glass in [false, true]) {
         final night = nexNightTheme(accentSeed: seed, liquidGlass: glass);
         final scheme = night.colorScheme;
-        expect(night.scaffoldBackgroundColor, NexNightColors.background);
+        expect(
+          night.scaffoldBackgroundColor,
+          glass ? Colors.transparent : NexNightColors.background,
+        );
         expect(scheme.surface, NexNightColors.background);
         expect(scheme.surfaceContainerLowest, NexNightColors.card);
         expect(scheme.surfaceContainerHigh, NexNightColors.elevated);
