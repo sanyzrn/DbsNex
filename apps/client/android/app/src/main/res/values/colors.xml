@@ -4,35 +4,26 @@
          fill, so the adaptive-icon background layer never shows a seam
          against the foreground bitmap's baked-in corners. -->
     <color name="nex_icon_background">#1D1D1D</color>
-    <color name="nex_launch_light">#F5F6F6</color>
-    <color name="nex_launch_dark">#131312</color>
+    <color name="nex_launch_light">#FFFFFF</color>
+    <color name="nex_launch_dark">#141821</color>
 
-    <!-- The home-screen widgets' palette, copied token for token from
-         packages/ui/lib/tokens/nex_tokens.dart (NexColors). The widget cannot
-         read Dart constants and tokens must not drift into hand-spelled hex,
-         so every line here names the token it mirrors:
-           nex_widget_accent      accentStrongLight / accentStrongDark — the
-                                  capture button's fill, the same value the FAB
-                                  paints;
-           nex_widget_on_accent   onAccent;
-           nex_widget_card        bgCardLight / bgCardDark;
-           nex_widget_text        textPrimaryLight / textPrimaryDark;
-           nex_widget_text_dim    textSecondaryLight / textSecondaryDark;
-           nex_widget_stroke      the hairline between card and page. The card
-                                  token bgElevated is the closest quiet step in
-                                  both ramps and is what is used here; a widget
-                                  on the launcher has no shadow to fall back on,
-                                  so the hairline does the card's edge alone.
-         Android 12+ replaces the whole set with wallpaper-derived Material You
-         colors — see values-v31/colors.xml. -->
-    <color name="nex_widget_accent">#1D4ED8</color>
+    <!-- Widget colours mirror the current app's flat appearance tokens:
+         NexSoftLightColors (packages/ui/lib/tokens/nex_soft_appearances.dart),
+         NexSoftDarkColors (packages/ui/lib/tokens/nex_soft_dark.dart), and
+         NexColors.accentStrongLight for the readable light capture/action fill.
+         Light: card/text/muted/elevated map to the corresponding Soft Light
+         tokens. Action is the light text colour at low alpha (ARGB).
+         Night-qualified widget colours mirror Soft Dark, not OLED Night;
+         Android 12+ overrides widgets with wallpaper-based Material You in
+         values-v31/colors.xml and values-night-v31/colors.xml. -->
+    <color name="nex_widget_accent">#006DCC</color>
     <color name="nex_widget_on_accent">#FFFFFF</color>
-    <color name="nex_widget_card">#FFFFFF</color>
-    <color name="nex_widget_text">#262626</color>
-    <color name="nex_widget_text_dim">#5C5C5C</color>
-    <color name="nex_widget_stroke">#E0E0E0</color>
+    <color name="nex_widget_card">#F4F5F8</color>
+    <color name="nex_widget_text">#14171C</color>
+    <color name="nex_widget_text_dim">#626B7A</color>
+    <color name="nex_widget_stroke">#E9ECF1</color>
     <!-- The capture buttons' pill: the text colour at a few percent. -->
-    <color name="nex_widget_action">#10262626</color>
+    <color name="nex_widget_action">#1014171C</color>
 
     <!-- Cycle's own space on the home screen (CycleWidgetProvider). -->
     <color name="nex_cycle_bg_start">#FCEAF0</color>
