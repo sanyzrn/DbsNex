@@ -18,17 +18,17 @@ abstract final class NexSoftLightColors {
 }
 
 abstract final class NexOledNightColors {
-  static const background = Color(0xFF000000);
-  static const card = Color(0xFF0E0F12);
-  static const elevated = Color(0xFF1A1C21);
-  static const text = Color(0xFFD9DDE6);
-  static const muted = Color(0xFF8E96A8);
-  static const line = Color(0xFF24272E);
-  static const outline = Color(0xFF6A7588);
-  static const accentText = Color(0xFF5AB0FF);
-  static const accentContainer = Color(0xFF0F2A47);
-  static const accentFill = Color(0xFF0069C4);
-  static const captureFill = Color(0xFF0084F7);
+  static const background = NexNightColors.background;
+  static const card = NexNightColors.card;
+  static const elevated = NexNightColors.elevated;
+  static const text = NexNightColors.text;
+  static const muted = NexNightColors.muted;
+  static const line = NexNightColors.line;
+  static const outline = NexNightColors.outline;
+  static const accentText = NexNightColors.accentText;
+  static const accentContainer = NexNightColors.accentContainer;
+  static const accentFill = NexNightColors.accentFilled;
+  static const captureFill = NexNightColors.accent;
 }
 
 /// White page, gently tinted cards, softened secondary text and no decorative

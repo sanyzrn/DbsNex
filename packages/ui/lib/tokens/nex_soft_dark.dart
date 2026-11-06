@@ -17,15 +17,31 @@ abstract final class NexSoftDarkColors {
   static const outline = Color(0xFF7F8AA0);
 }
 
-/// Explicit name for the former dark renderer. Preserve nexDarkTheme's public
-/// contract for existing integrations; the app's new Dark uses nexSoftDarkTheme.
+/// OLED Night keeps its own tones without changing the legacy NexColors ramp.
+abstract final class NexNightColors {
+  static const background = Color(0xFF000000);
+  static const card = Color(0xFF0E0F12);
+  static const elevated = Color(0xFF1A1C21);
+  static const text = Color(0xFFD9DDE6);
+  static const muted = Color(0xFF8E96A8);
+  static const accent = Color(0xFF0084F7);
+  static const accentText = Color(0xFF5AB0FF);
+  static const accentContainer = Color(0xFF0F2A47);
+  static const accentFilled = Color(0xFF0069C4);
+  static const line = Color(0xFF24272E);
+  // Focus and high-contrast outlines remain available even with flat cards.
+  static const outline = Color(0xFF7F8AA0);
+}
+
+/// OLED Night uses the existing flat OLED renderer, not legacy nexDarkTheme.
+/// The public legacy nexDarkTheme remains unchanged for existing consumers.
 ThemeData nexNightTheme({
   bool comfortMode = false,
   bool liquidGlass = false,
   bool transparentScaffold = false,
   String? fontFamily,
   Color? accentSeed,
-}) => nexDarkTheme(
+}) => nexOledNightTheme(
   comfortMode: comfortMode,
   liquidGlass: liquidGlass,
   transparentScaffold: transparentScaffold,

@@ -98,7 +98,8 @@ void main() {
 
   test('previous library renderers and Soft Dark remain available', () {
     expect(nexLightTheme().colorScheme.surface, NexColors.bgPrimaryLight);
-    expect(nexNightTheme().colorScheme, nexDarkTheme().colorScheme);
+    expect(nexNightTheme().colorScheme, nexOledNightTheme().colorScheme);
+    expect(nexDarkTheme().scaffoldBackgroundColor, NexColors.bgPrimaryDark);
     expect(
       nexSoftDarkTheme().colorScheme.surface,
       NexSoftDarkColors.background,
