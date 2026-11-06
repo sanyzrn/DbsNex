@@ -117,11 +117,11 @@ void main() {
         app().darkTheme!.colorScheme.surface,
         NexSoftDarkColors.background,
       );
-      expect(app().theme!.colorScheme, nexLightTheme().colorScheme);
+      expect(app().theme!.colorScheme, nexSoftLightTheme().colorScheme);
       await h.preferences.setAppearanceMode(NexAppearanceMode.night);
       await tester.pumpAndSettle();
       expect(app().themeMode, ThemeMode.dark);
-      expect(app().darkTheme!.colorScheme, nexNightTheme().colorScheme);
+      expect(app().darkTheme!.colorScheme, nexOledNightTheme().colorScheme);
       await h.preferences.setAppearanceMode(NexAppearanceMode.dark);
       await tester.pumpAndSettle();
       expect(app().themeMode, ThemeMode.dark);
@@ -150,7 +150,11 @@ void main() {
   // Actual app previews, not an HTML recreation. Saved only when explicitly
   // requested by a local verification invocation, never during ordinary CI.
   for (final lang in ['en', 'fa']) {
-    for (final mode in [NexAppearanceMode.dark, NexAppearanceMode.night]) {
+    for (final mode in [
+      NexAppearanceMode.light,
+      NexAppearanceMode.dark,
+      NexAppearanceMode.night,
+    ]) {
       testWidgets('$lang ${mode.name}: readable real app and settings', (
         tester,
       ) async {

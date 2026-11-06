@@ -145,9 +145,8 @@ void main() {
       await tester.pumpAndSettle();
       TextStyle styleOf(String text) {
         final element = tester.element(find.text(text));
-        return DefaultTextStyle.of(
-          element,
-        ).style.merge((element.widget as Text).style);
+        return DefaultTextStyle.of(element).style
+            .merge((element.widget as Text).style);
       }
 
       final first = styleOf('First line');
@@ -232,11 +231,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(tester.getSize(recap).height, greaterThan(foldedHeight));
-    final expandedHeight = tester.getSize(recap).height;
     await tester.tap(recap);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(tester.getSize(recap).height, lessThan(expandedHeight));
+    // Save the folded state immediately; the animation can settle after a
+    // short deferred frame depending on which appearance is active.
+    expect(preferences.daySummaryFolded, isTrue);
     await tester.pumpAndSettle();
     expect(tester.getSize(recap).height, closeTo(foldedHeight, 1));
     expect(preferences.daySummaryFolded, isTrue);

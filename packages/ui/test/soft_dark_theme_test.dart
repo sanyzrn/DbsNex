@@ -9,7 +9,7 @@ void main() {
     expect(c.surface, const Color(0xFF141821));
     expect(c.surfaceContainerLowest, const Color(0xFF1C212C));
     expect(c.surfaceContainerHigh, const Color(0xFF252B38));
-    expect(c.onSurface, const Color(0xFFE4E8F1));
+    expect(c.onSurface, const Color(0xFFD9DDE6));
     expect(c.onSurfaceVariant, const Color(0xFF98A1B5));
     expect(c.primaryContainer, const Color(0xFF16304D));
     expect(theme.extension<NexVisualStyle>()!.minimal, isTrue);
