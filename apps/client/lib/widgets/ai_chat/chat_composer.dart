@@ -519,6 +519,7 @@ class _ActionCard extends StatelessWidget {
     return switch ((key, v)) {
       ('theme', 'light') => l10n.themeLight,
       ('theme', 'dark') => l10n.themeDark,
+      ('theme', 'night') => l10n.themeNight,
       ('theme', 'system') => l10n.themeSystem,
       ('language' || 'ai_language', 'en') => l10n.aiOutputLanguageEnglish,
       ('language' || 'ai_language', 'fa') => l10n.aiOutputLanguagePersian,

@@ -340,8 +340,8 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
   /// sees when their library fails to open was permanently English.
   Widget _host({required Widget child}) => MaterialApp(
     debugShowCheckedModeBanner: false,
-    theme: nexLightTheme(),
-    darkTheme: nexDarkTheme(),
+    theme: nexSoftLightTheme(),
+    darkTheme: nexSoftDarkTheme(),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: child),
