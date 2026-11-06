@@ -99,50 +99,68 @@ void main() {
     }
   }
 
-  test('Night renders OLED surfaces without mutating the legacy dark theme', () {
-    final legacy = nexDarkTheme();
-    expect(legacy.scaffoldBackgroundColor, NexColors.bgPrimaryDark);
-    for (final seed in <Color?>[
-      null,
-      const Color(0xFFB61615),
-      const Color(0xFFFFD600),
-    ]) {
-      for (final glass in [false, true]) {
-        final night = nexNightTheme(accentSeed: seed, liquidGlass: glass);
-        final scheme = night.colorScheme;
-        expect(
-          night.scaffoldBackgroundColor,
-          glass ? Colors.transparent : NexNightColors.background,
-        );
-        expect(scheme.surface, NexNightColors.background);
-        expect(scheme.surfaceContainerLowest, NexNightColors.card);
-        expect(scheme.surfaceContainerHigh, NexNightColors.elevated);
-        expect(scheme.onSurface, NexNightColors.text);
-        expect(scheme.onSurfaceVariant, NexNightColors.muted);
-        expect(night.extension<NexVisualStyle>()!.minimal, isTrue);
-        expect(night.extension<NexVisualStyle>()!.liquidGlass, glass);
-        for (final surface in [
-          scheme.surface,
-          scheme.surfaceContainerLowest,
-          scheme.surfaceContainerHigh,
-        ]) {
-          expect(nexContrastRatio(scheme.onSurface, surface), greaterThanOrEqualTo(4.5));
-          expect(nexContrastRatio(scheme.onSurfaceVariant, surface), greaterThanOrEqualTo(4.5));
-          expect(nexContrastRatio(scheme.primary, surface), greaterThanOrEqualTo(4.5));
+  test(
+    'Night renders OLED surfaces without mutating the legacy dark theme',
+    () {
+      final legacy = nexDarkTheme();
+      expect(legacy.scaffoldBackgroundColor, NexColors.bgPrimaryDark);
+      for (final seed in <Color?>[
+        null,
+        const Color(0xFFB61615),
+        const Color(0xFFFFD600),
+      ]) {
+        for (final glass in [false, true]) {
+          final night = nexNightTheme(accentSeed: seed, liquidGlass: glass);
+          final scheme = night.colorScheme;
+          expect(
+            night.scaffoldBackgroundColor,
+            glass ? Colors.transparent : NexNightColors.background,
+          );
+          expect(scheme.surface, NexNightColors.background);
+          expect(scheme.surfaceContainerLowest, NexNightColors.card);
+          expect(scheme.surfaceContainerHigh, NexNightColors.elevated);
+          expect(scheme.onSurface, NexNightColors.text);
+          expect(scheme.onSurfaceVariant, NexNightColors.muted);
+          expect(night.extension<NexVisualStyle>()!.minimal, isTrue);
+          expect(night.extension<NexVisualStyle>()!.liquidGlass, glass);
+          for (final surface in [
+            scheme.surface,
+            scheme.surfaceContainerLowest,
+            scheme.surfaceContainerHigh,
+          ]) {
+            expect(
+              nexContrastRatio(scheme.onSurface, surface),
+              greaterThanOrEqualTo(4.5),
+            );
+            expect(
+              nexContrastRatio(scheme.onSurfaceVariant, surface),
+              greaterThanOrEqualTo(4.5),
+            );
+            expect(
+              nexContrastRatio(scheme.primary, surface),
+              greaterThanOrEqualTo(4.5),
+            );
+          }
+          for (final surface in [
+            scheme.surfaceContainerLowest,
+            scheme.surfaceContainerHigh,
+          ]) {
+            expect(
+              nexContrastRatio(scheme.outline, surface),
+              greaterThanOrEqualTo(3),
+            );
+          }
+          final buttonStyle = night.filledButtonTheme.style!;
+          expect(
+            nexContrastRatio(
+              buttonStyle.backgroundColor!.resolve({})!,
+              buttonStyle.foregroundColor!.resolve({})!,
+            ),
+            greaterThanOrEqualTo(4.5),
+          );
+          expect(legacy.scaffoldBackgroundColor, NexColors.bgPrimaryDark);
         }
-        for (final surface in [scheme.surfaceContainerLowest, scheme.surfaceContainerHigh]) {
-          expect(nexContrastRatio(scheme.outline, surface), greaterThanOrEqualTo(3));
-        }
-        final buttonStyle = night.filledButtonTheme.style!;
-        expect(
-          nexContrastRatio(
-            buttonStyle.backgroundColor!.resolve({})!,
-            buttonStyle.foregroundColor!.resolve({})!,
-          ),
-          greaterThanOrEqualTo(4.5),
-        );
-        expect(legacy.scaffoldBackgroundColor, NexColors.bgPrimaryDark);
       }
-    }
-  });
+    },
+  );
 }

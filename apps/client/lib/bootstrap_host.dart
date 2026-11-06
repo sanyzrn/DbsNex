@@ -1,4 +1,5 @@
 import 'platform/crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:isolate';
 
