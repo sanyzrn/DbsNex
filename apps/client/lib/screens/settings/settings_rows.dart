@@ -337,22 +337,30 @@ class _SwitchRow extends StatelessWidget {
   final String title;
   final String? subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
-  Widget build(BuildContext context) => NexSwitchTile(
-    contentPadding: _rowPadding,
-    secondary: _IconTile(icon),
-    title: Text(title),
-    subtitle: subtitle == null ? null : Text(subtitle!),
-    value: value,
-    // A bump, not a tick: a switch is a thing changing state, not a
-    // selection moving across a set of options.
-    onChanged: (next) {
-      nexBump();
-      onChanged(next);
-    },
-  );
+  Widget build(BuildContext context) {
+    final callback = onChanged;
+    return Opacity(
+      opacity: callback == null ? 0.6 : 1,
+      child: NexSwitchTile(
+        contentPadding: _rowPadding,
+        secondary: _IconTile(icon),
+        title: Text(title),
+        subtitle: subtitle == null ? null : Text(subtitle!),
+        value: value,
+        // A bump, not a tick: a switch is a thing changing state, not a
+        // selection moving across a set of options.
+        onChanged: callback == null
+            ? null
+            : (next) {
+                nexBump();
+                callback(next);
+              },
+      ),
+    );
+  }
 }
 
 /// Reads another app's export into the library.
