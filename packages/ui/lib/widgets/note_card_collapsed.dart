@@ -138,7 +138,7 @@ class _CardStatusMarks extends StatelessWidget {
                         math.pi +
                             ((badges.length - 1) / 2 - i) * (18.5 / radius),
                       ) -
-                  10,
+                  20,
               child: Container(
                 key: ValueKey('note-status-orbit-${badges[i].id}'),
                 width: 20,
