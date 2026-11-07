@@ -589,7 +589,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // Scaffolds see through to the app's background whenever it shows
     // anything: glass, a pattern, or a theme's motif along the bottom.
     final transparentScaffold =
-        prefs.liquidGlass ||
+        prefs.effectiveLiquidGlass ||
         prefs.backgroundPattern != NexBackgroundPattern.plain ||
         texture != NexThemeTexture.none;
     _applyOverlayStyle(context, prefs.themeMode);
@@ -608,7 +608,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       theme: nexApplyThemePreset(
         nexSoftLightTheme(
           comfortMode: prefs.comfortMode,
-          liquidGlass: prefs.liquidGlass,
+          liquidGlass: prefs.effectiveLiquidGlass,
           transparentScaffold: transparentScaffold,
           fontFamily: font,
           accentSeed: accentSeed,
@@ -621,7 +621,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
             ? nexOledNightTheme
             : nexSoftDarkTheme)(
           comfortMode: prefs.comfortMode,
-          liquidGlass: prefs.liquidGlass,
+          liquidGlass: prefs.effectiveLiquidGlass,
           transparentScaffold: transparentScaffold,
           fontFamily: font,
           accentSeed: accentSeed,
@@ -663,7 +663,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
             prefs.effectiveThemePreset,
             prefs.accentSeed,
             prefs.backgroundPattern,
-            prefs.liquidGlass,
+            prefs.effectiveLiquidGlass,
           ),
           child: NexCardDensityScope(
             density: prefs.cardDensity,
