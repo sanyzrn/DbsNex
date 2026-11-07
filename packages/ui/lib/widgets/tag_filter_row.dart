@@ -214,7 +214,8 @@ class _Pill extends StatelessWidget {
     return NexTappable(
       onTap: onTap,
       selected: selected,
-      semanticLabel: semanticLabel ?? (count == null ? label : '$label, $count'),
+      semanticLabel: semanticLabel ??
+          (count == null ? label : '$label, $count'),
       shape: const StadiumBorder(),
       child: _edge(
         selected: selected,
