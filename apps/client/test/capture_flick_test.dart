@@ -62,8 +62,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-
-  (Color ink, Color fill) captureColors(WidgetTester tester) {
+  ({Color ink, Color fill}) captureColors(WidgetTester tester) {
     final fab = find.byType(FloatingActionButton);
     final fill = tester
         .widget<Material>(
