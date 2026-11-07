@@ -142,7 +142,9 @@ void main() {
           final positions = <double>[];
           for (final id in ids) {
             final rect = tester.getRect(badge(id));
-            expect(rect.size, const Size(20, 20));
+            // Layout transforms can introduce sub-pixel floating-point noise.
+            expect(rect.width, closeTo(20, 0.01));
+            expect(rect.height, closeTo(20, 0.01));
             expect(rect.center.dy, greaterThan(orb.center.dy));
             positions.add(rect.center.dx);
           }
