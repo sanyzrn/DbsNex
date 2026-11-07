@@ -139,7 +139,10 @@ void main() {
       );
       expect(h.preferences.liquidGlass, isTrue);
       expect(h.preferences.effectiveLiquidGlass, isFalse);
-      expect(app().darkTheme!.extension<NexVisualStyle>()!.liquidGlass, isFalse);
+      expect(
+        app().darkTheme!.extension<NexVisualStyle>()!.liquidGlass,
+        isFalse,
+      );
       await h.preferences.setAppearanceMode(NexAppearanceMode.system);
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       await tester.pumpAndSettle();
