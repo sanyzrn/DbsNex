@@ -88,6 +88,30 @@ void main() {
     return () => latest;
   }
 
+  testWidgets('counts remain tiny, muted, and independent of selection', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        home: Scaffold(
+          body: TagFilterRow(
+            tags: tags.take(2).toList(),
+            tagCounts: const {'a': 4, 'b': 3},
+            selectedTagIds: const {'a'},
+            onSelected: (_) {},
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Work'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(tester.widget<Text>(find.text('4')).style?.fontSize, 10);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a second tag joins the first rather than replacing it', (
     tester,
   ) async {
