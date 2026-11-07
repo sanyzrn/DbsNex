@@ -72,13 +72,23 @@ class NexNavigationDock extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: radius,
-                boxShadow: visual.liquidGlass || visual.minimal
+                // A fine edge keeps the dock visible against the new
+                // near-matching page surface, including Minimal mode.
+                border: Border.all(
+                  color: MediaQuery.highContrastOf(context)
+                      ? scheme.outline
+                      : scheme.outlineVariant.withValues(alpha: 0.55),
+                  width: MediaQuery.highContrastOf(context) ? 1 : 0.65,
+                ),
+                // Glass already paints its own optical edge and shadow.
+                // The standard and Minimal docks only need a quiet lift.
+                boxShadow: visual.liquidGlass
                     ? null
                     : [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.10),
-                          blurRadius: 18,
-                          offset: const Offset(0, 6),
+                          color: scheme.shadow.withValues(alpha: 0.07),
+                          blurRadius: 11,
+                          offset: const Offset(0, 3),
                         ),
                       ],
               ),
