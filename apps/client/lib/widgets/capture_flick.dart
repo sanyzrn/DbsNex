@@ -329,7 +329,7 @@ class _CaptureFlickState extends State<CaptureFlick>
       amount,
     )!;
     final baseInk = fab.foregroundColor ?? theme.colorScheme.onPrimaryContainer;
-    final ink = nexReadableOn(baseInk, fill);
+    final ink = nexReadableOn(baseInk, fill, ratio: 3);
     final left = widget.preferences.captureFlickLeft;
     final right = widget.preferences.captureFlickRight;
     return Semantics(

@@ -25,13 +25,17 @@ void main() {
     bool still = false,
     String language = 'en',
     Brightness brightness = Brightness.light,
+    ThemeData? appearanceTheme,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
         locale: Locale(language),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        theme: brightness == Brightness.dark ? nexDarkTheme() : nexLightTheme(),
+        theme:
+            appearanceTheme ??
+            (brightness == Brightness.dark ? nexDarkTheme() : nexLightTheme()),
+        darkTheme: appearanceTheme,
         home: MediaQuery(
           data: MediaQueryData(disableAnimations: still),
           child: Scaffold(
@@ -57,6 +61,74 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+
+  (Color ink, Color fill) captureColors(WidgetTester tester) {
+    final fab = find.byType(FloatingActionButton);
+    final fill = tester
+        .widget<Material>(
+          find.descendant(of: fab, matching: find.byType(Material)).first,
+        )
+        .color!;
+    final ink = Theme.of(
+      tester.element(fab),
+    ).floatingActionButtonTheme.foregroundColor!;
+    return (ink: ink, fill: fill);
+  }
+
+  for (final appearance in ['Light', 'Dark', 'Night']) {
+    testWidgets('default blue capture + stays white in $appearance', (
+      tester,
+    ) async {
+      final theme = switch (appearance) {
+        'Light' => nexSoftLightTheme(),
+        'Dark' => nexSoftDarkTheme(),
+        _ => nexNightTheme(),
+      };
+      await show(tester, appearanceTheme: theme);
+      final colors = captureColors(tester);
+      expect(colors.fill, const Color(0xFF0084F7));
+      expect(colors.ink, const Color(0xFFFFFFFF));
+      expect(
+        nexContrastRatio(colors.ink, colors.fill),
+        greaterThanOrEqualTo(3),
+      );
+    });
+  }
+
+  testWidgets('pink custom accent keeps the capture + white in Light', (
+    tester,
+  ) async {
+    await show(
+      tester,
+      appearanceTheme: nexSoftLightTheme(
+        accentSeed: const Color(0xFFB61615),
+      ),
+    );
+    final colors = captureColors(tester);
+    expect(colors.ink, Colors.white);
+    expect(
+      nexContrastRatio(colors.ink, colors.fill),
+      greaterThanOrEqualTo(3),
+    );
+  });
+
+  testWidgets('pastel pink capture + remains dark and legible in Dark', (
+    tester,
+  ) async {
+    await show(
+      tester,
+      appearanceTheme: nexSoftDarkTheme(
+        accentSeed: const Color(0xFFB61615),
+      ),
+    );
+    final colors = captureColors(tester);
+    expect(ThemeData.estimateBrightnessForColor(colors.ink), Brightness.dark);
+    expect(
+      nexContrastRatio(colors.ink, colors.fill),
+      greaterThanOrEqualTo(3),
+    );
+  });
 
   Future<TestGesture> drag(WidgetTester tester, double distance) async {
     final gesture = await tester.startGesture(
