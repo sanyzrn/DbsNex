@@ -22,9 +22,17 @@ extension _TimelineSelection on TimelineScreenState {
   void _toggleSelected(Note note) {
     if (widget.preferences.haptics) HapticFeedback.selectionClick();
     _swipe.closeAll();
+    final picking = !_selected.contains(note.id);
     _rebuild(() {
-      if (!_selected.remove(note.id)) _selected.add(note.id);
+      if (picking) {
+        _selected.add(note.id);
+      } else {
+        _selected.remove(note.id);
+      }
     });
+    // Picking this card is an explicit acknowledgement, just like opening it.
+    // Only stop an already-ringing notification; never delete its schedule.
+    if (picking) unawaited(widget.services.answerRinging(note.id));
   }
 
   void _endSelection() {

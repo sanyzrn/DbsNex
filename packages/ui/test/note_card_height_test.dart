@@ -131,7 +131,7 @@ void main() {
   });
 
   testWidgets(
-    'the leading icon box is rounder than the old concentric radius, and borderless',
+    'the leading icon box is circular and borderless',
     (tester) async {
       await heightOf(tester, note('one line'));
       final box = tester.widget<Container>(
@@ -144,11 +144,8 @@ void main() {
       );
       final decoration = box.decoration! as BoxDecoration;
       expect(decoration.border, isNull);
-      final radius = decoration.borderRadius! as BorderRadius;
-      expect(radius, BorderRadius.circular(NexRadius.cardLeading));
-      // The old NexRadius.inside(lg, cardInset) floored out at 4px — this is
-      // meant to be visibly rounder than that.
-      expect(NexRadius.cardLeading, greaterThan(4));
+      expect(decoration.shape, BoxShape.circle);
+      expect(decoration.borderRadius, isNull);
     },
   );
 

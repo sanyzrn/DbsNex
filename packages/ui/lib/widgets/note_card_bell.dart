@@ -1,6 +1,6 @@
 part of 'note_card.dart';
 
-/// The leading square of a note whose reminder has rung and not been looked
+/// The leading circle of a note whose reminder has rung and not been looked
 /// at (2.3.0): a bell in place of the note's type, swinging now and then, with
 /// a soft ring spreading from it as it swings — until the card is opened.
 ///
@@ -74,9 +74,7 @@ class _RingingBellState extends State<_RingingBell>
                   width: side * (1 + 0.32 * local),
                   height: side * (1 + 0.32 * local),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(
-                      NexRadius.cardLeading * (1 + 0.32 * local),
-                    ),
+                    shape: BoxShape.circle,
                     border: Border.all(
                       color: scheme.primary.withValues(
                         alpha: 0.5 * (1 - local),
@@ -90,7 +88,7 @@ class _RingingBellState extends State<_RingingBell>
                 height: side,
                 decoration: BoxDecoration(
                   color: fill,
-                  borderRadius: BorderRadius.circular(NexRadius.cardLeading),
+                  shape: BoxShape.circle,
                 ),
                 child: Transform.rotate(
                   angle: angle,

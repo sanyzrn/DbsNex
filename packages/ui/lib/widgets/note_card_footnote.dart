@@ -2,8 +2,6 @@ part of 'note_card.dart';
 
 extension on _CardBody {
   Widget _withFootnote(BuildContext context) {
-    final due = showDue ? note.dueAt : null;
-    final marked = due != null || note.attachmentCount > 0 || note.isUrgent;
     final caption =
         note.type == NoteType.text && note.caption?.trim().isNotEmpty == true
         ? NexMarkdownText.preview(note.caption!.trim())
@@ -12,7 +10,6 @@ extension on _CardBody {
       return _CollapsedCardContent(
         note: note,
         strings: strings,
-        due: due,
         caption: caption,
         previewOverride: previewOverride,
       );
@@ -29,10 +26,6 @@ extension on _CardBody {
               lines: NexCardDensity.of(context).lines,
             ),
         if (caption != null) _CardCaption(text: caption),
-        if (marked) ...[
-          const SizedBox(height: NexSpacing.xs),
-          _CardStatusMarks(note: note, strings: strings, due: due),
-        ],
       ],
     );
   }
