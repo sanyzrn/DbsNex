@@ -69,9 +69,9 @@ void main() {
           find.descendant(of: fab, matching: find.byType(Material)).first,
         )
         .color!;
-    final ink = Theme.of(
-      tester.element(fab),
-    ).floatingActionButtonTheme.foregroundColor!;
+    final ink = Theme.of(tester.element(fab))
+        .floatingActionButtonTheme
+        .foregroundColor!;
     return (ink: ink, fill: fill);
   }
 
@@ -100,16 +100,11 @@ void main() {
   ) async {
     await show(
       tester,
-      appearanceTheme: nexSoftLightTheme(
-        accentSeed: const Color(0xFFB61615),
-      ),
+      appearanceTheme: nexSoftLightTheme(accentSeed: const Color(0xFFB61615)),
     );
     final colors = captureColors(tester);
     expect(colors.ink, Colors.white);
-    expect(
-      nexContrastRatio(colors.ink, colors.fill),
-      greaterThanOrEqualTo(3),
-    );
+    expect(nexContrastRatio(colors.ink, colors.fill), greaterThanOrEqualTo(3));
   });
 
   testWidgets('pastel pink capture + remains dark and legible in Dark', (
@@ -117,16 +112,11 @@ void main() {
   ) async {
     await show(
       tester,
-      appearanceTheme: nexSoftDarkTheme(
-        accentSeed: const Color(0xFFB61615),
-      ),
+      appearanceTheme: nexSoftDarkTheme(accentSeed: const Color(0xFFB61615)),
     );
     final colors = captureColors(tester);
     expect(ThemeData.estimateBrightnessForColor(colors.ink), Brightness.dark);
-    expect(
-      nexContrastRatio(colors.ink, colors.fill),
-      greaterThanOrEqualTo(3),
-    );
+    expect(nexContrastRatio(colors.ink, colors.fill), greaterThanOrEqualTo(3));
   });
 
   Future<TestGesture> drag(WidgetTester tester, double distance) async {
