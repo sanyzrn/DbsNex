@@ -11,6 +11,10 @@ mixin _AppearancePreferences on _PreferencesStore {
   // glass was retired must not silently enable it after this update.
   bool get liquidGlass => _prefs.getBool('appearance.liquid_glass_v2') ?? false;
 
+  /// The choice stays on disk while Liquid Glass is paused, but the visual
+  /// material is disabled until its switch becomes available again.
+  bool get effectiveLiquidGlass => nexLiquidGlassAvailable && liquidGlass;
+
   bool get editPhotoBeforeCapture =>
       _prefs.getBool('capture.edit_photo_before_save') ?? false;
 
