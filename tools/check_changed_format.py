@@ -8,9 +8,5 @@ base = os.environ.get('BASE_SHA') or 'HEAD^'
 files = subprocess.check_output(['git', 'diff', '--name-only', '-z', f'{base}...HEAD']).decode().split('\0')
 paths = [p for p in files if p.endswith('.dart') and os.path.isfile(p) and not p.endswith(('.g.dart', '.freezed.dart')) and not p.startswith('apps/client/lib/l10n/app_localizations')]
 if paths:
-    status = subprocess.run(['dart', 'format', '--output=none', '--set-exit-if-changed', *paths]).returncode
-    if status:
-        subprocess.run(['dart', 'format', *paths], check=True)
-        subprocess.run(['git', 'diff', '--', *paths], check=True)
-    sys.exit(status)
+    sys.exit(subprocess.run(['dart', 'format', '--output=none', '--set-exit-if-changed', *paths]).returncode)
 print('No changed, maintained Dart files to format.')

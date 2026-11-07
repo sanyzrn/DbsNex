@@ -117,10 +117,12 @@ void main() {
           final value = note(mask);
           await pump(tester, value, rtl: rtl, density: density);
           final p = tester.renderObject<RenderParagraph>(
-            find.descendant(
-              of: find.byKey(const ValueKey('note-card-preview')),
-              matching: find.byType(RichText),
-            ).first,
+            find
+                .descendant(
+                  of: find.byKey(const ValueKey('note-card-preview')),
+                  matching: find.byType(RichText),
+                )
+                .first,
           );
           previewSize ??= p.size;
           height ??= tester.getSize(find.byType(NoteCard)).height;
@@ -164,7 +166,7 @@ void main() {
         for (var i = 0; i < count; i++)
           tester.getRect(find.byKey(ValueKey('note-tag-dot-$i'))),
       ];
-      expect(find.byKey(const ValueKey('note-tag-dot-$count')), findsNothing);
+      expect(find.byKey(ValueKey('note-tag-dot-$count')), findsNothing);
       for (final dot in dots) {
         expect(dot.center.dy, lessThan(orb.center.dy));
       }
@@ -230,9 +232,7 @@ void main() {
     expect(badge('attachment'), findsOneWidget);
   });
 
-  testWidgets('caption remains muted and badges can disappear', (
-    tester,
-  ) async {
+  testWidgets('caption remains muted and badges can disappear', (tester) async {
     await pump(tester, note(0, caption: 'Secondary caption'));
     final caption = tester.widget<NexTextSurface>(
       find.byKey(const ValueKey('note-card-caption')),

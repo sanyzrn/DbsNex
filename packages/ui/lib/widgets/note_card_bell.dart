@@ -86,10 +86,7 @@ class _RingingBellState extends State<_RingingBell>
               Container(
                 width: side,
                 height: side,
-                decoration: BoxDecoration(
-                  color: fill,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
                 child: Transform.rotate(
                   angle: angle,
                   // From the top, where a bell hangs.

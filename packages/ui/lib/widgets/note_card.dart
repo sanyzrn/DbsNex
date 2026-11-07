@@ -423,11 +423,13 @@ class _ArcTagDots extends StatelessWidget {
           children: [
             for (var i = 0; i < shown.length; i++)
               Positioned(
-                left: radius +
+                left:
+                    radius +
                     radius *
                         math.sin((i - (shown.length - 1) / 2) * math.pi / 6) -
                     7,
-                top: radius -
+                top:
+                    radius -
                     radius *
                         math.cos((i - (shown.length - 1) / 2) * math.pi / 6) -
                     7,

@@ -130,24 +130,23 @@ void main() {
     expect(above, closeTo(below, 0.5));
   });
 
-  testWidgets(
-    'the leading icon box is circular and borderless',
-    (tester) async {
-      await heightOf(tester, note('one line'));
-      final box = tester.widget<Container>(
-        find
-            .ancestor(
-              of: find.byIcon(nexNoteTypeIcon('text')).first,
-              matching: find.byType(Container),
-            )
-            .first,
-      );
-      final decoration = box.decoration! as BoxDecoration;
-      expect(decoration.border, isNull);
-      expect(decoration.shape, BoxShape.circle);
-      expect(decoration.borderRadius, isNull);
-    },
-  );
+  testWidgets('the leading icon box is circular and borderless', (
+    tester,
+  ) async {
+    await heightOf(tester, note('one line'));
+    final box = tester.widget<Container>(
+      find
+          .ancestor(
+            of: find.byIcon(nexNoteTypeIcon('text')).first,
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    final decoration = box.decoration! as BoxDecoration;
+    expect(decoration.border, isNull);
+    expect(decoration.shape, BoxShape.circle);
+    expect(decoration.borderRadius, isNull);
+  });
 
   testWidgets('the preview wraps to two lines and stops there', (tester) async {
     // Two, not one: one line was enough to tell cards apart and not enough to

@@ -33,7 +33,8 @@ class _CollapsedCardContent extends StatelessWidget {
             height: rowHeight * lines,
             child: Align(
               alignment: AlignmentDirectional.centerStart,
-              child: previewOverride ??
+              child:
+                  previewOverride ??
                   _Preview(
                     note: note,
                     expanded: false,
@@ -75,7 +76,9 @@ class _CardStatusMarks extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final side = NexCardDensity.of(context).leading;
     final radius = side / 2;
-    final full = due == null ? null : strings.dueLabel?.call(due!, note.dueRepeat);
+    final full = due == null
+        ? null
+        : strings.dueLabel?.call(due!, note.dueRepeat);
     final badges = <({String id, Widget child})>[
       if (note.attachmentCount > 0)
         (
@@ -105,7 +108,8 @@ class _CardStatusMarks extends StatelessWidget {
                 strings.dueDescription?.call(due!, note.dueRepeat) ?? full,
             compactLabel: strings.dueCompactLabel?.call(due!, note.dueRepeat),
             label: _showCardStatusLabels ? full : null,
-            upcoming: note.dueRepeat != NoteRepeat.once ||
+            upcoming:
+                note.dueRepeat != NoteRepeat.once ||
                 due!.isAfter(DateTime.now().toUtc()),
           ),
         ),
@@ -119,14 +123,16 @@ class _CardStatusMarks extends StatelessWidget {
         children: [
           for (var i = 0; i < badges.length; i++)
             Positioned(
-              left: radius +
+              left:
+                  radius +
                   radius *
                       math.sin(
                         math.pi +
                             ((badges.length - 1) / 2 - i) * (18.5 / radius),
                       ) -
                   10,
-              top: radius -
+              top:
+                  radius -
                   radius *
                       math.cos(
                         math.pi +
