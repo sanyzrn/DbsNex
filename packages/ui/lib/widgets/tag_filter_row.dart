@@ -211,11 +211,11 @@ class _Pill extends StatelessWidget {
     // A tag with no colour used to get a grey dot, which reads as a broken
     // swatch rather than as an absence.
     final dot = accent == null ? null : nexParseTagColor(accent);
+    final countLabel = count == null ? label : '$label, $count';
     return NexTappable(
       onTap: onTap,
       selected: selected,
-      semanticLabel: semanticLabel ??
-          (count == null ? label : '$label, $count'),
+      semanticLabel: semanticLabel ?? countLabel,
       shape: const StadiumBorder(),
       child: _edge(
         selected: selected,
@@ -261,7 +261,7 @@ class _Pill extends StatelessWidget {
                     // so it follows the app's face rather than the platform's.
                     style: theme.textTheme.labelLarge?.copyWith(color: fg),
                   ),
-                if (count case final count?) ...[
+                if (count != null) ...[
                   const SizedBox(width: 5),
                   Text(
                     '$count',
