@@ -2,6 +2,10 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.8
+
+- **A clearer capture button.** The + stays white on Nex blue while custom accent colours keep a legible icon.
+
 ## v2.6.7
 
 - **Night is now true OLED black.** A pure-black page, charcoal cards and softer text give Night its own quiet look.

@@ -101,10 +101,9 @@ void main() {
       await gesture.moveBy(Offset(0, kind == 'short' ? 60 : 240));
       await tester.pump();
       if (kind == 'multitouch') {
-        final other = await tester.startGesture(
-          const Offset(250, 200),
-          pointer: 2,
-        );
+        // Let the tester allocate a fresh pointer ID. A fixed ID can
+        // collide with the first gesture after randomized test ordering.
+        final other = await tester.startGesture(const Offset(250, 200));
         await tester.pump();
         await other.up();
       }
