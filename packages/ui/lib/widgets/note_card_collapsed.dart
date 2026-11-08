@@ -148,7 +148,7 @@ class _CardStatusMarks extends StatelessWidget {
         children: [
           for (var i = 0; i < badges.length; i++)
             Positioned(
-              // Every badge CENTER is on the same radius as the main glyph.
+              // Badge centers follow the inset lower orbit, fully within the hit area.
               left:
                   _noteStatusCenter(
                     side,
