@@ -918,18 +918,25 @@ class _LeadingMarkers extends StatelessWidget {
         : ringing
         ? const _RingingBell()
         : _Leading(note: note);
+    final hasStatuses =
+        (showDue && note.dueAt != null) ||
+        note.attachmentCount > 0 ||
+        note.isUrgent;
     return SizedBox.square(
       key: const ValueKey('note-leading-orbit'),
       dimension: side,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          leading,
+          // Raise only marked icons into the existing top padding. The
+          // status badges then fit below the circle, inside the card.
+          Transform.translate(
+            offset: Offset(0, hasStatuses ? -6 : 0),
+            child: leading,
+          ),
           if (note.tags.isNotEmpty)
             _ArcTagDots(tags: note.tags, strings: strings),
-          if ((showDue && note.dueAt != null) ||
-              note.attachmentCount > 0 ||
-              note.isUrgent)
+          if (hasStatuses)
             _CardStatusMarks(
               note: note,
               strings: strings,
