@@ -1,6 +1,7 @@
 import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart' show nexMaxTagsPerNote;
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -45,6 +46,11 @@ class TagPickerSheet extends StatefulWidget {
     builder: (_) => TagPickerSheet(tags: tags, alreadyOn: alreadyOn),
   );
 
+  static String limitMessage(BuildContext context) =>
+      Localizations.localeOf(context).languageCode == 'fa'
+      ? 'هر یادداشت حداکثر ۳ تگ می‌تواند داشته باشد.'
+      : 'Each note can have at most 3 tags.';
+
   @override
   State<TagPickerSheet> createState() => _TagPickerSheetState();
 }
@@ -75,6 +81,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
   }
 
   bool get _canCreate {
+    if (widget.alreadyOn.length >= nexMaxTagsPerNote) return false;
     final name = _query.trim();
     if (name.isEmpty) return false;
     return !widget.tags.any(
@@ -90,6 +97,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final matches = _matches;
+    final atLimit = widget.alreadyOn.length >= nexMaxTagsPerNote;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
@@ -105,6 +113,14 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
             ),
             child: Text(l10n.addTag, style: theme.textTheme.titleLarge),
           ),
+          if (atLimit)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+              child: Text(
+                TagPickerSheet.limitMessage(context),
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
             child: NexAutoDirection(
@@ -113,7 +129,8 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
                 controller: _controller,
                 selectionWidthStyle: BoxWidthStyle.tight,
                 contextMenuBuilder: nexReadingMenu,
-                autofocus: true,
+                autofocus: !atLimit,
+                enabled: !atLimit,
                 textDirection: direction,
                 textAlign: TextAlign.start,
                 textInputAction: TextInputAction.done,
@@ -175,6 +192,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
                             _TagOption(
                               tag: tag,
                               alreadyOn: widget.alreadyOn.contains(tag.id),
+                              disabled: atLimit,
                               onTap: () => Navigator.pop(
                                 context,
                                 TagChoice.existing(tag),
@@ -200,11 +218,13 @@ class _TagOption extends StatelessWidget {
   const _TagOption({
     required this.tag,
     required this.alreadyOn,
+    required this.disabled,
     required this.onTap,
   });
 
   final Tag tag;
   final bool alreadyOn;
+  final bool disabled;
   final VoidCallback onTap;
 
   @override
@@ -218,7 +238,7 @@ class _TagOption extends StatelessWidget {
           : scheme.surfaceContainerLowest,
       shape: StadiumBorder(side: BorderSide(color: scheme.outline)),
       child: InkWell(
-        onTap: alreadyOn ? null : onTap,
+        onTap: alreadyOn || disabled ? null : onTap,
         customBorder: const StadiumBorder(),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 48, minWidth: 48),

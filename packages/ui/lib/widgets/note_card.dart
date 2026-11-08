@@ -411,7 +411,7 @@ class _ArcTagDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shown = tags.take(3).toList();
+    final shown = tags.take(nexMaxTagsPerNote).toList();
     final side = NexCardDensity.of(context).leading;
     final radius = side / 2;
     final arcRadius = raised ? radius - 4 : radius;
@@ -935,15 +935,12 @@ class _LeadingMarkers extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Keep the bottom badges inside the orbit's hit-test bounds so a
-          // long press can still show reminder details. The main circle
-          // becomes slightly smaller and rises into the existing top inset.
+          // Keep the main circle at its full size in every state. A small
+          // vertical lift leaves room for the status halos on its lower rim.
           Transform.translate(
-            offset: Offset(0, hasStatuses ? -12 : 0),
-            child: Transform.scale(
-              scale: hasStatuses ? (side - 8) / side : 1,
-              child: leading,
-            ),
+            key: const ValueKey('note-main-circle'),
+            offset: Offset(0, hasStatuses ? -6 : 0),
+            child: leading,
           ),
           if (note.tags.isNotEmpty)
             _ArcTagDots(tags: note.tags, strings: strings, raised: hasStatuses),

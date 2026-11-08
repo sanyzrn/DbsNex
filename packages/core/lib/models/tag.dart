@@ -1,3 +1,6 @@
+/// Maximum number of tags a single note can carry.
+const nexMaxTagsPerNote = 3;
+
 /// A freeform tag (FR-3). `color` is optional accent (ADR-021).
 class Tag {
   const Tag({

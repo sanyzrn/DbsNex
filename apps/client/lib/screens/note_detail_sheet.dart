@@ -1,5 +1,6 @@
 import '../platform/crash_reporter.dart';
 import '../widgets/folded_note.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
@@ -7,9 +8,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show compute;
+
 import '../platform/note_copy.dart';
 import '../platform/os_capture_bridge.dart';
 import '../platform/photo_encoding.dart';
+
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
@@ -32,7 +35,9 @@ import '../widgets/steady_position.dart';
 import '../widgets/voice_player.dart';
 import '../platform/voice_spool.dart';
 import '../widgets/ai_chat_sheet.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
@@ -478,7 +483,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           ActionChip(
                             avatar: const Icon(Icons.add, size: 16),
                             label: Text(l10n.tag),
-                            onPressed: _addTag,
+                            onPressed: note.tags.length < nexMaxTagsPerNote
+                                ? _addTag
+                                : null,
                           ),
                         ?_attachChip(note, l10n),
                         // Threads sit with the tags: both say what a note

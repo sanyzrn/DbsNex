@@ -56,19 +56,32 @@ extension _TimelineSelection on TimelineScreenState {
     );
     if (choice == null || !mounted) return;
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
+    final chosenName = choice.tag?.name ?? choice.name!;
+    var changed = 0;
     for (final note in notes) {
+      if (note.tags.any(
+        (tag) => tag.name.toLowerCase() == chosenName.toLowerCase(),
+      )) {
+        continue;
+      }
+      if (note.tags.length >= nexMaxTagsPerNote) continue;
       await widget.services.addTag(
         noteId: note.id,
-        name: choice.tag?.name ?? choice.name!,
+        name: chosenName,
         color: choice.color,
       );
+      changed++;
     }
-    await widget.services.refreshTimeline();
-    await _model.loadFilterTags();
+    if (changed > 0) {
+      await widget.services.refreshTimeline();
+      await _model.loadFilterTags();
+    }
     if (!mounted) return;
     nexShowBanner(
       context,
-      message: AppLocalizations.of(context).selectionTagged(notes.length),
+      message: changed == 0
+          ? TagPickerSheet.limitMessage(context)
+          : AppLocalizations.of(context).selectionTagged(changed),
     );
   }
 

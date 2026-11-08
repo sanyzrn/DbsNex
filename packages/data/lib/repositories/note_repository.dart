@@ -845,10 +845,23 @@ ORDER BY t.name COLLATE NOCASE
     // The tag and the note's sync stamp together: apart, a process killed
     // between them left a tag the outbox would never send (DATA-06).
     db.together(() {
-      db.execute(
-        'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
+      final present = db.select(
+        'SELECT 1 FROM note_tags WHERE note_id = ? AND tag_id = ?',
         [noteId, tagId],
       );
+      if (present.isNotEmpty) return;
+      final count =
+          db.select('SELECT COUNT(*) AS n FROM note_tags WHERE note_id = ?', [
+                noteId,
+              ]).first['n']!
+              as int;
+      if (count >= nexMaxTagsPerNote) {
+        throw StateError('A note can have at most $nexMaxTagsPerNote tags.');
+      }
+      db.execute('INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)', [
+        noteId,
+        tagId,
+      ]);
       // Filing, not editing: the note still says exactly what it said.
       _bumpNote(noteId, edited: false);
     });
