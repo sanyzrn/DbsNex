@@ -138,10 +138,7 @@ class _CardStatusMarks extends StatelessWidget {
     final statusRadius = radius - markSize / 2;
     final outerAngle = badges.length == 3
         ? math.asin(math.min(1, markSize / statusRadius))
-        : math.min(
-            math.pi / 4,
-            math.asin((radius - markSize / 2) / radius),
-          );
+        : math.min(math.pi / 4, math.asin((radius - markSize / 2) / radius));
 
     return SizedBox.square(
       dimension: side,
@@ -178,10 +175,7 @@ class _CardStatusMarks extends StatelessWidget {
                   // Exact card background, including selected tint.
                   color: backgroundColor,
                 ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: badges[i].child,
-                ),
+                child: FittedBox(fit: BoxFit.scaleDown, child: badges[i].child),
               ),
             ),
         ],
