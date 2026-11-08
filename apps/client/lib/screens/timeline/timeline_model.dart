@@ -117,13 +117,19 @@ class TimelineModel extends ChangeNotifier {
 
   /// Follows the timeline stream. [onDelivered] runs after each delivery has
   /// been taken in, for what the screen does on top of showing it.
-  void listen(void Function(List<Note> delivered) onDelivered) {
+  void listen(
+    void Function(List<Note> delivered) onDelivered, {
+    VoidCallback? onUnchanged,
+  }) {
     _subscription = services.timelineStream.listen((value) {
       if (_disposed) return;
       _loadFailed = false;
-      // Keep the model's full snapshot up to date, but do no work for a
-      // delivery that repeats the same visible and hidden note data.
-      if (!_take(value)) return;
+      // Suppress an identical note snapshot without hiding a newly cached
+      // recap written by another service (which has its own callback).
+      if (!_take(value)) {
+        onUnchanged?.call();
+        return;
+      }
       // A capture or a delete can change whether there is more to load —
       // most obviously a capture, past a window an earlier scroll had
       // already exhausted. Re-arming here costs one wasted fetch on the next

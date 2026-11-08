@@ -385,13 +385,14 @@ class TimelineScreenState extends State<TimelineScreen>
             }
           }),
     );
-    _model.listen((delivered) {
-      if (!mounted) return;
-      // The tour waits for a first note, and this is the path the note that
-      // ends that wait arrives on.
-      _tourWhenReady();
-      _requestAiHeader(delivered);
-    });
+    _model.listen(
+      (delivered) {
+        if (!mounted) return;
+        _tourWhenReady();
+        _requestAiHeader(delivered);
+      },
+      onUnchanged: _refreshExternalBriefIfChanged,
+    );
     WidgetsBinding.instance.addObserver(this);
     _search.addListener(_onSearchChanged);
     _scroll.addListener(_onAiSummaryScroll);
