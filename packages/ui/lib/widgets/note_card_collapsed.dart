@@ -91,10 +91,30 @@ class _CardStatusMarks extends StatelessWidget {
         (
           id: 'urgent',
           child: const ExcludeSemantics(
-            child: Text(
-              '🔥',
+            // Emoji fonts are not guaranteed (Linux goldens had a blank fire).
+            // Two vector layers make the flame stable on every platform.
+            child: SizedBox(
               key: ValueKey('note-urgent-mark'),
-              style: TextStyle(fontSize: 13, height: 1),
+              width: 14,
+              height: 14,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    Icons.local_fire_department_rounded,
+                    size: 15,
+                    color: Color(0xFFE95432),
+                  ),
+                  Positioned(
+                    bottom: 1,
+                    child: Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 7,
+                      color: Color(0xFFFFCA52),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
