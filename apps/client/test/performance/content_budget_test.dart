@@ -46,7 +46,6 @@ void main() {
 
   setUp(() async {
     harness = await NexTestHarness.create(name: 'nex_content_budget_');
-    final rnd = Random(20261108);
     final db = NexDatabase.open(harness.dbPath);
     final now = DateTime.now();
 
