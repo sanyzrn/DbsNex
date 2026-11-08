@@ -6,7 +6,13 @@ import '../platform/hold_menu.dart';
 
 /// One line of a note's hold menu: what it is, and what pressing it does.
 class NoteMenuEntry {
-  const NoteMenuEntry(this.action, this.onPressed, {this.label, this.icon});
+  const NoteMenuEntry(
+    this.action,
+    this.onPressed, {
+    this.label,
+    this.icon,
+    this.subtitle,
+  });
 
   final NexHoldAction action;
   final VoidCallback onPressed;
@@ -15,6 +21,9 @@ class NoteMenuEntry {
   /// pinned note, Collapse for an expanded card.
   final String? label;
   final IconData? icon;
+
+  /// Optional subdued second line, shown only when relevant.
+  final String? subtitle;
 }
 
 /// The note's hold menu, also reached with a secondary click or the
@@ -95,6 +104,7 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
       String label,
       VoidCallback? onPressed, {
       bool destructive = false,
+      String? subtitle,
     }) {
       final error =
           context.nexVisualStyle.liquidGlass &&
@@ -116,7 +126,12 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
           ),
           textStyle: theme.textTheme.bodyMedium,
         ),
-        child: NexMenuEntryContent(icon: icon, label: label, color: tint),
+        child: NexMenuEntryContent(
+          icon: icon,
+          label: label,
+          subtitle: subtitle,
+          color: tint,
+        ),
       );
     }
 
@@ -128,6 +143,7 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
           entry.label ?? entry.action.label(context),
           entry.onPressed,
           destructive: entry.action == NexHoldAction.delete,
+          subtitle: entry.subtitle,
         ),
     ];
     return MenuAnchor(

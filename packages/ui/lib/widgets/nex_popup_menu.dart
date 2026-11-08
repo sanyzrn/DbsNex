@@ -10,11 +10,15 @@ class NexMenuEntryContent extends StatelessWidget {
     super.key,
     required this.icon,
     required this.label,
+    this.subtitle,
     this.color,
   });
 
   final IconData icon;
   final String label;
+
+  /// Optional smaller detail, for example an active note reminder schedule.
+  final String? subtitle;
   final Color? color;
 
   @override
@@ -35,9 +39,23 @@ class NexMenuEntryContent extends StatelessWidget {
       ),
       const SizedBox(width: NexSpacing.md),
       Flexible(
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: color),
+            ),
+            if (subtitle case final detail?)
+              Text(
+                detail,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
         ),
       ),
     ],
@@ -97,9 +115,8 @@ PopupMenuItem<T> nexMenuItem<T>({
       return icon == null
           ? Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: tint),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: tint),
             )
           : NexMenuEntryContent(icon: icon, label: label, color: tint);
     },
@@ -252,9 +269,8 @@ class _GlassMenuGroupState<T> extends State<_GlassMenuGroup<T>> {
               Semantics(
                 selected: true,
                 child: ColoredBox(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.12),
+                  color: Theme.of(context).colorScheme.primary
+                      .withValues(alpha: 0.12),
                   child: entry,
                 ),
               )

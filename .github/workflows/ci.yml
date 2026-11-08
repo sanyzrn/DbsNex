@@ -167,6 +167,7 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
       - run: flutter pub get
       - run: flutter test --tags budget --run-skipped test/performance/
 
@@ -318,6 +319,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - run: flutter pub get
       - run: flutter analyze --fatal-infos
+      - name: Use system SQLite for Linux-only widget tests
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
       - name: Daily Nudge JVM policy
         run: python3 ../../tools/daily_nudge_native_test.py
       - name: flutter test (active and affected modules)
