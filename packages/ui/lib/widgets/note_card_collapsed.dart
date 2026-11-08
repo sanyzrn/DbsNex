@@ -98,7 +98,7 @@ class _CardStatusMarks extends StatelessWidget {
               child: Center(
                 // Android draws the requested coloured emoji. Linux test and
                 // desktop fonts may not include it; keep a visible fallback.
-                child: Theme.of(context).platform == TargetPlatform.linux
+                child: Platform.isLinux
                     ? const Icon(
                         Icons.local_fire_department_rounded,
                         size: 14,
