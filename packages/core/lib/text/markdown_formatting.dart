@@ -72,6 +72,11 @@ class NexFormattedText {
 }
 
 abstract final class NexTextFormatting {
+  /// A quote line's marker. Reused rather than recompiled on each call: a
+  /// Dart regex literal compiles at every evaluation, and the editor's quote
+  /// button should not pay for the compiler on every press.
+  static final RegExp _quoteMarker = RegExp(r'^\s{0,3}>\s?');
+
   /// Wraps the selection in [format]'s markers, or unwraps it if it is already
   /// wrapped.
   ///
@@ -79,6 +84,7 @@ abstract final class NexTextFormatting {
   /// This is not tidiness: `** bold **` is not bold in any CommonMark parser,
   /// it is two asterisks, a word and two more asterisks — and a drag that
   /// overshoots a word by one space is the ordinary way to select one.
+
   static NexFormattedText toggleInline(
     String text,
     int start,
@@ -162,10 +168,9 @@ abstract final class NexTextFormatting {
     final block = text.substring(blockStart, blockEnd);
     final lines = block.split('\n');
 
-    final quoted = RegExp(r'^\s{0,3}>\s?');
+    final quoted = _quoteMarker;
     final content = lines.where((line) => line.trim().isNotEmpty);
-    final allQuoted =
-        content.isNotEmpty && content.every(quoted.hasMatch);
+    final allQuoted = content.isNotEmpty && content.every(quoted.hasMatch);
 
     final rewritten = [
       for (final line in lines)
@@ -219,6 +224,33 @@ abstract final class NexTextFormatting {
 /// show a line or two of raw `content`, and both would otherwise show the
 /// asterisks — which is precisely the thing rendering was meant to stop.
 abstract final class NexMarkdownText {
+  /// A link becomes its label, its URL dropped. Used before any marker pass:
+  /// the URL inside one is full of characters the passes below would
+  /// otherwise chew on.
+  static final RegExp _link = RegExp(r'\[([^\]\n]*)\]\([^)\s]*\)');
+
+  /// A quote line's marker, and a heading's.
+  static final RegExp _quote = RegExp(r'(^|\n)\s{0,3}>\s?');
+  static final RegExp _heading = RegExp(r'(^|\n)\s{0,3}#{1,6}\s+');
+
+  /// The unwrapping pattern for each marker [plain] strips, longest marker
+  /// first so `**bold**` is not read as two `*` pairs.
+  static final Map<String, RegExp> _unwraps = {
+    for (final marker in const ['**', '~~', '`', '_', '*'])
+      marker: _unwrapPattern(marker),
+  };
+
+  static RegExp _unwrapPattern(String marker) {
+    final escaped = RegExp.escape(marker);
+    // CommonMark's own intraword rule for `_`, and the reason it exists: an
+    // underscore between two word characters is not emphasis, it is part of
+    // `flutter_test_config`. Without this the stripper would quietly damage
+    // text nobody ever formatted.
+    return marker == '_'
+        ? RegExp(r'(?<![\w\u0600-\u06FF])_([^\n_]+?)_(?![\w\u0600-\u06FF])')
+        : RegExp('$escaped([^\\n]+?)$escaped');
+  }
+
   /// [source] with the formatting markers removed and the words kept.
   ///
   /// Only paired markers are touched. A lone `*` in prose is an asterisk
@@ -229,26 +261,27 @@ abstract final class NexMarkdownText {
     var out = source;
     // A link becomes its label. Done first: the URL inside one is full of
     // characters the marker passes below would otherwise chew on.
-    out = out.replaceAllMapped(
-      RegExp(r'\[([^\]\n]*)\]\([^)\s]*\)'),
-      (match) => match[1] ?? '',
-    );
+    out = out.replaceAllMapped(_link, (match) => match[1] ?? '');
     // Longest markers first, so `**bold**` is not read as two `*` pairs.
     for (final marker in const ['**', '~~', '`', '_', '*']) {
       out = _unwrap(out, marker);
     }
-    out = out.replaceAllMapped(
-      RegExp(r'(^|\n)\s{0,3}>\s?'),
-      (match) => match[1] ?? '',
-    );
+    out = out.replaceAllMapped(_quote, (match) => match[1] ?? '');
     if (headings) {
-      out = out.replaceAllMapped(
-        RegExp(r'(^|\n)\s{0,3}#{1,6}\s+'),
-        (match) => match[1] ?? '',
-      );
+      out = out.replaceAllMapped(_heading, (match) => match[1] ?? '');
     }
     return out;
   }
+
+  /// How much of a note [preview] will ever read.
+  ///
+  /// A card shows two lines, twelve expanded; a notification and a chat row
+  /// show less still; the one surface that shows a note in full — the detail
+  /// sheet — is handed the text itself and never asks here. The first pages
+  /// of a note are therefore all that a caller can put on a screen, and this
+  /// cap is what keeps a 128KB body from being re-stripped on the UI thread
+  /// every time a two-line card of it is built.
+  static const int _previewScanLimit = 4096;
 
   /// [source] as it should read where a note is *shown* rather than rendered —
   /// a timeline card, a search hit, a notification.
@@ -259,19 +292,114 @@ abstract final class NexMarkdownText {
   /// of a different note. It also keeps the stripper away from text that was
   /// never formatted — `2 * 3 * 4` is arithmetic, and unwrapping it would
   /// quietly delete two operators.
-  static String preview(String source) =>
-      nexLooksLikeMarkdown(source) ? plain(source) : source;
+  ///
+  /// A source past [_previewScanLimit] is stripped from its first pages only.
+  /// The gate still reads the whole of it — so a note that keeps its Markdown
+  /// ten kilobytes in still has the pairs in its first lines unwrapped, and
+  /// card and sheet still agree about what the note is — but the stripping
+  /// itself stops where every surface that asks here stops too. The answer is
+  /// memoized, so a card asked for again — a rebuild, a scroll back, the four
+  /// widgets of one build that each want the preview of the same note — costs
+  /// a lookup rather than the strip again.
+  static String preview(String source) {
+    if (source.length <= _previewScanLimit) {
+      return nexLooksLikeMarkdown(source) ? plain(source) : source;
+    }
+    return _LongPreviewCache.read(source);
+  }
+
+  /// The pages of a long note that a preview can ever show, cut on a line
+  /// break near the cap so a construct that spans the cut — a fenced block, a
+  /// wrapped link — is either whole or absent rather than half-open.
+  static String _previewPrefix(String source) {
+    final cut = source.lastIndexOf('\n', _previewScanLimit);
+    // A quarter of the window to find a line break in; a note with none there
+    // (one unbroken line, say) is cut mid-line, which nothing downstream can
+    // see — no card reaches line two of a four-kilobyte line, let alone the
+    // end of this.
+    final floor = _previewScanLimit - _previewScanLimit ~/ 4;
+    return source.substring(0, cut >= floor ? cut : _previewScanLimit);
+  }
 
   static String _unwrap(String source, String marker) {
-    final escaped = RegExp.escape(marker);
-    // CommonMark's own intraword rule for `_`, and the reason it exists: an
-    // underscore between two word characters is not emphasis, it is part of
-    // `flutter_test_config`. Without this the stripper would quietly damage
-    // text nobody ever formatted.
-    final pattern = marker == '_'
-        ? RegExp(r'(?<![\w\u0600-\u06FF])_([^\n_]+?)_(?![\w\u0600-\u06FF])')
-        : RegExp('$escaped([^\\n]+?)$escaped');
-    return source.replaceAllMapped(pattern, (match) => match[1] ?? '');
+    return source.replaceAllMapped(
+      _unwraps[marker]!,
+      (match) => match[1] ?? '',
+    );
+  }
+}
+
+/// [NexMarkdownText.preview] for sources past the scan cap, remembered.
+///
+/// A long note's preview is asked for by every card of it that is built, and
+/// the answer never changes until the note does: the same string in, the same
+/// string out. The cache holds a bounded window of those answers — notes age
+/// out oldest-first, both by count and by how much text they pin — so a
+/// library of long notes cannot turn it into a second library.
+final class _LongPreviewCache {
+  /// Enough entries for every card a screen can hold, and every one the
+  /// cache-below-it builds on the way to it.
+  static const int _maxEntries = 32;
+
+  /// A ceiling on the source text the cache pins: the point where holding
+  /// notes becomes its own memory cost rather than a saving of work.
+  static const int _maxChars = 256 * 1024;
+
+  static final Map<String, String> _entries = {};
+
+  static int _heldChars = 0;
+
+  /// The last note asked for, by identity: a card's build asks for the same
+  /// string four times over (overflow, label, preview, footnote), and this
+  /// makes three of them a reference compare.
+  static String? _lastKey;
+  static String? _lastValue;
+
+  static String read(String source) {
+    if (identical(_lastKey, source)) return _lastValue!;
+    final cached = _entries[source];
+    if (cached != null) {
+      _touch(source, cached);
+      return cached;
+    }
+    final value = _compute(source);
+    _entries[source] = value;
+    _heldChars += source.length + value.length;
+    _touch(source, value);
+    _evict();
+    return value;
+  }
+
+  static String _compute(String source) {
+    final prefix = NexMarkdownText._previewPrefix(source);
+    // The gate reads all of the source on purpose — see [NexMarkdownText.preview].
+    return nexLooksLikeMarkdown(source)
+        ? NexMarkdownText.plain(prefix)
+        : prefix;
+  }
+
+  static void _touch(String key, String value) {
+    // Move to the back of the eviction order, and remember for the identity
+    // fast path.
+    _entries.remove(key);
+    _entries[key] = value;
+    _lastKey = key;
+    _lastValue = value;
+  }
+
+  static void _evict() {
+    // The just-inserted entry is never the one evicted: a note past the char
+    // ceiling on its own is better cached than recomputed on every build.
+    while (_entries.length > 1 &&
+        (_entries.length > _maxEntries || _heldChars > _maxChars)) {
+      final eldestKey = _entries.keys.first;
+      final eldestValue = _entries.remove(eldestKey)!;
+      _heldChars -= eldestKey.length + eldestValue.length;
+      if (identical(_lastKey, eldestKey)) {
+        _lastKey = null;
+        _lastValue = null;
+      }
+    }
   }
 }
 
@@ -315,7 +443,7 @@ class _Range {
 /// Rendering an ordinary sentence through a Markdown parser is not wrong so
 /// much as pointless, and it has one real cost: a lone `*` or `_` in prose —
 /// or in Persian, a line that opens with `-` as a dash — would be eaten as
-/// markup. So the renderer is used only where there is a structure to gain.
+/// markup. So the renderer is used only where there is structure to gain.
 ///
 /// Deliberately conservative. It looks for constructs that are unambiguous at
 /// the start of a line (a heading, a fence, a list marker, a quote, a rule, a
@@ -324,17 +452,23 @@ class _Range {
 bool nexLooksLikeMarkdown(String text) {
   if (text.trim().isEmpty) return false;
   if (text.contains('```')) return true;
-  if (RegExp(r'(^|\n)\s{0,3}#{1,6}\s+\S').hasMatch(text)) return true;
-  if (RegExp(r'(^|\n)\s{0,3}([-*+]|\d{1,9}[.)])\s+\S').hasMatch(text)) {
-    return true;
-  }
-  if (RegExp(r'(^|\n)\s{0,3}>\s+\S').hasMatch(text)) return true;
-  if (RegExp(r'(^|\n)\s{0,3}(([-*_])\s*){3,}\s*(\n|$)').hasMatch(text)) {
-    return true;
-  }
-  if (RegExp(r'(^|\n)\s*\|.+\|\s*(\n|$)').hasMatch(text)) return true;
-  if (RegExp(r'\*\*[^*\n]+\*\*').hasMatch(text)) return true;
-  if (RegExp(r'`[^`\n]+`').hasMatch(text)) return true;
-  if (RegExp(r'\[[^\]\n]+\]\([^)\s]+\)').hasMatch(text)) return true;
+  if (_gate.hasMatch(text)) return true;
   return false;
 }
+
+/// The gate's constructs, tried together in one alternation: one compile for
+/// the library's life and one scan of the text, where the eight literal
+/// patterns before it compiled on every call. Branch order cannot change the
+/// answer — every branch is line-anchored or pair-anchored on its own, so no
+/// branch can make another unreachable, and a construct is found whether it
+/// sits before or after any other.
+final RegExp _gate = RegExp(
+  r'(^|\n)\s{0,3}#{1,6}\s+\S'
+  r'|(^|\n)\s{0,3}([-*+]|\d{1,9}[.)])\s+\S'
+  r'|(^|\n)\s{0,3}>\s+\S'
+  r'|(^|\n)\s{0,3}(([-*_])\s*){3,}\s*(\n|$)'
+  r'|(^|\n)\s*\|.+\|\s*(\n|$)'
+  r'|\*\*[^*\n]+\*\*'
+  r'|`[^`\n]+`'
+  r'|\[[^\]\n]+\]\([^)\s]+\)',
+);

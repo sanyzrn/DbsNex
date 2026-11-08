@@ -100,7 +100,12 @@ void main() {
 
   group('link', () {
     test('turns the selection into a link and selects the whole of it', () {
-      final out = NexTextFormatting.link('see docs here', 4, 8, 'https://x.dev');
+      final out = NexTextFormatting.link(
+        'see docs here',
+        4,
+        8,
+        'https://x.dev',
+      );
       expect(out.text, 'see [docs](https://x.dev) here');
       expect(out.text.substring(out.start, out.end), '[docs](https://x.dev)');
     });
@@ -150,7 +155,9 @@ void main() {
   group('NexMarkdownText.plain', () {
     test('strips the markers a card must not show', () {
       expect(
-        NexMarkdownText.plain('# Plan\n\n**do** the `thing` [now](https://a.b)'),
+        NexMarkdownText.plain(
+          '# Plan\n\n**do** the `thing` [now](https://a.b)',
+        ),
         'Plan\n\ndo the thing now',
       );
     });
@@ -200,6 +207,118 @@ void main() {
       expect(nexLooksLikeMarkdown('یک جملهٔ فارسی ساده.'), isFalse);
       // A dash used as punctuation mid-line, not as a list marker.
       expect(nexLooksLikeMarkdown('سلام - حالت خوبه؟'), isFalse);
+    });
+
+    test('edge shapes decide the same way they always did', () {
+      // Seven hashes is not a heading; a quote needs its space; a "1." past
+      // nine digits is prose. The construct list is one alternation now, and
+      // these are the shapes most likely to disagree if it ever drifted.
+      expect(nexLooksLikeMarkdown('####### seven hashes'), isFalse);
+      expect(nexLooksLikeMarkdown('>nospace'), isFalse);
+      expect(nexLooksLikeMarkdown('1000000000. ten digits'), isFalse);
+      expect(nexLooksLikeMarkdown('999999999. nine digits'), isTrue);
+      expect(nexLooksLikeMarkdown('line\r\n# crlf heading'), isTrue);
+      expect(nexLooksLikeMarkdown('- - -'), isTrue);
+      expect(nexLooksLikeMarkdown('a | b'), isFalse);
+      expect(nexLooksLikeMarkdown('| a | b |'), isTrue);
+    });
+  });
+  group('NexMarkdownText.preview on a long note', () {
+    // A body past the scan cap: enough filler to be past it, then the shapes
+    // that decide what the cap may and may not change.
+    String longBody(String tail, {int head = 6000}) =>
+        List.filled(
+          head ~/ 20,
+          'word word word word\n',
+          growable: false,
+        ).join() +
+        tail;
+
+    test('a short note is previewed exactly as before', () {
+      expect(NexMarkdownText.preview('# Plan\n**do** it'), 'Plan\ndo it');
+      expect(NexMarkdownText.preview('just a sentence'), 'just a sentence');
+    });
+
+    test('a long plain note shows its first pages, not its whole body', () {
+      final note = longBody('the end of a very long note');
+      final out = NexMarkdownText.preview(note);
+      // Starts with the same words...
+      expect(out.startsWith('word word'), isTrue);
+      // ...stops somewhere near the cap rather than at the end...
+      expect(out.length, lessThanOrEqualTo(4096));
+      // ...and never reaches the note's actual ending.
+      expect(out.contains('the end of a very long note'), isFalse);
+    });
+
+    test('a long Markdown note is stripped where it is shown', () {
+      final note = longBody('and then **bold** to finish');
+      final out = NexMarkdownText.preview(note);
+      expect(out.contains('**'), isFalse);
+      expect(out.endsWith('bold to finish'), isFalse); // past the cap
+      // The visible start is exactly what stripping the whole note would
+      // show there — the cap changes where the preview stops, not what it
+      // says.
+      expect(out, NexMarkdownText.plain(note).substring(0, out.length));
+    });
+
+    test('the gate still reads the whole note, so the card keeps agreeing '
+        'with the sheet', () {
+      // Markdown structure begins well past the scan cap; the pairs in the
+      // first pages must still be unwrapped, because the renderer will treat
+      // this note as Markdown from its first line.
+      // Filler to put the pairs inside the scan window, more filler to push
+      // the note past it, and the structure that trips the gate last.
+      final head = longBody('a _paired_ word\n', head: 2000);
+      final rest = longBody('', head: 6000);
+      final note = '$head$rest\n# A heading at the far end';
+      final out = NexMarkdownText.preview(note);
+      expect(nexLooksLikeMarkdown(note), isTrue);
+      expect(out.contains('_paired_'), isFalse);
+      expect(out.contains('paired'), isTrue);
+      expect(out.contains('# A heading'), isFalse);
+    });
+
+    test('the cut lands on a line break when there is one', () {
+      final note = longBody('tail line');
+      final out = NexMarkdownText.preview(note);
+      // Either it stopped on a line boundary or the note had no line break
+      // near the cap — both are correct; what must hold is the length cap.
+      expect(out.length, lessThanOrEqualTo(4096));
+      expect(note.startsWith(out), isTrue);
+    });
+
+    test('one unbroken line is cut mid-line and stays honest', () {
+      final note = 'x' * 9000;
+      final out = NexMarkdownText.preview(note);
+      expect(out.length, 4096);
+      expect(out, 'x' * 4096);
+    });
+
+    test('asking twice costs one answer: the memoized result is returned', () {
+      final note = longBody('repeat me', head: 12000);
+      final first = NexMarkdownText.preview(note);
+      final second = NexMarkdownText.preview(note);
+      expect(
+        identical(first, second),
+        isTrue,
+        reason:
+            'the same string object should be handed back, not '
+            'restripped',
+      );
+      // A different string with the same content reaches the same answer.
+      final copy = String.fromCharCodes(note.runes);
+      final third = NexMarkdownText.preview(copy);
+      expect(third, first);
+      // And a note edited inside its first pages is a different answer.
+      // (One edited past the scan cap is not, and should not be: no preview
+      // of it can show the difference.)
+      final prefix = 'different start\n';
+      final edited = '$prefix${note.substring(prefix.length)}';
+      expect(
+        NexMarkdownText.preview(edited).endsWith('repeat me too'),
+        isFalse,
+      );
+      expect(NexMarkdownText.preview(edited) != first, isTrue);
     });
   });
 }

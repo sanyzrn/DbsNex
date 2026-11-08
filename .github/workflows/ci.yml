@@ -150,7 +150,9 @@ jobs:
   # it. Counts that must hold exactly (one window read, only visible cards
   # built, nothing rebuilt while scrolling) and CPU-time limits with headroom
   # for a shared runner. Its own job, like the retrieval budget, so the
-  # ordinary suite does not pay for seeding.
+  # ordinary suite does not pay for seeding. The two files run one after the
+  # other, not together: each seeds its own library and each is timed, and
+  # two timed tests sharing a runner only measure each other.
   timeline-budget:
     name: apps/client timeline budget (5,000 notes)
     runs-on: ubuntu-latest
@@ -169,7 +171,8 @@ jobs:
           cache: true
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
       - run: flutter pub get
-      - run: flutter test --tags budget --run-skipped test/performance/
+      - run: flutter test --tags budget --run-skipped test/performance/timeline_budget_test.dart
+      - run: flutter test --tags budget --run-skipped test/performance/content_budget_test.dart
 
   core-boundary:
     name: packages/core must not re-export the storage layer
