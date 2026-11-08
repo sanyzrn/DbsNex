@@ -145,7 +145,8 @@ class _CardStatusMarks extends StatelessWidget {
           for (var i = 0; i < badges.length; i++)
             Positioned(
               // Every badge CENTER is on the same radius as the main glyph.
-              left: _noteOrbitCenter(
+              left:
+                  _noteOrbitCenter(
                     side,
                     lift,
                     (i - (badges.length - 1) / 2) *
@@ -153,7 +154,8 @@ class _CardStatusMarks extends StatelessWidget {
                     upper: false,
                   ).dx -
                   markSize / 2,
-              top: _noteOrbitCenter(
+              top:
+                  _noteOrbitCenter(
                     side,
                     lift,
                     (i - (badges.length - 1) / 2) *

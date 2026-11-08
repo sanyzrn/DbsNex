@@ -427,7 +427,8 @@ class _ArcTagDots extends StatelessWidget {
           children: [
             for (var i = 0; i < shown.length; i++)
               Positioned(
-                left: _noteOrbitCenter(
+                left:
+                    _noteOrbitCenter(
                       side,
                       lift,
                       (i - (shown.length - 1) / 2) *
@@ -435,7 +436,8 @@ class _ArcTagDots extends StatelessWidget {
                       upper: true,
                     ).dx -
                     7,
-                top: _noteOrbitCenter(
+                top:
+                    _noteOrbitCenter(
                       side,
                       lift,
                       (i - (shown.length - 1) / 2) *
@@ -905,7 +907,12 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
 }
 
 /// A marker center on the true, unscaled circumference of the main circle.
-Offset _noteOrbitCenter(double side, double lift, double angle, {required bool upper}) {
+Offset _noteOrbitCenter(
+  double side,
+  double lift,
+  double angle, {
+  required bool upper,
+}) {
   final radius = side / 2;
   return Offset(
     radius + radius * math.sin(angle),
