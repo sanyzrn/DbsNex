@@ -914,11 +914,7 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
 }
 
 /// Every marker shares one fixed center, whether or not statuses exist.
-Offset _noteOrbitCenter(
-  double side,
-  double angle, {
-  required bool upper,
-}) {
+Offset _noteOrbitCenter(double side, double angle, {required bool upper}) {
   final radius = side / 2;
   return Offset(
     radius + radius * math.sin(angle),

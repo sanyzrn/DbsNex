@@ -276,8 +276,11 @@ void main() {
 
   testWidgets('three coloured tag dots never overlap', (tester) async {
     for (final density in NexCardDensity.values) {
-      await pump(tester, note(7, tags: [tag(0), tag(1), tag(2)]),
-          density: density);
+      await pump(
+        tester,
+        note(7, tags: [tag(0), tag(1), tag(2)]),
+        density: density,
+      );
       final dots = [
         for (var i = 0; i < 3; i++)
           tester.getRect(find.byKey(ValueKey('note-tag-dot-$i'))),
@@ -289,16 +292,25 @@ void main() {
     }
   });
 
-  testWidgets('marker backgrounds match selected and normal cards', (tester) async {
+  testWidgets('marker backgrounds match selected and normal cards', (
+    tester,
+  ) async {
     for (final selected in <bool?>[null, false, true]) {
-      await pump(tester, note(7, tags: [tag(0), tag(1), tag(2)]),
-          selected: selected);
-      final cardColor = tester.widget<Material>(
-        find.ancestor(
-          of: find.byKey(const ValueKey('note-leading-orbit')),
-          matching: find.byType(Material),
-        ).first,
-      ).color;
+      await pump(
+        tester,
+        note(7, tags: [tag(0), tag(1), tag(2)]),
+        selected: selected,
+      );
+      final cardColor = tester
+          .widget<Material>(
+            find
+                .ancestor(
+                  of: find.byKey(const ValueKey('note-leading-orbit')),
+                  matching: find.byType(Material),
+                )
+                .first,
+          )
+          .color;
       for (var i = 0; i < 3; i++) {
         final dot = tester.widget<Container>(
           find.byKey(ValueKey('note-tag-dot-$i')),
