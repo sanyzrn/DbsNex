@@ -30,6 +30,7 @@ import '../widgets/nex_shelf.dart' show NexHue;
 import '../l10n/app_localizations.dart';
 import '../l10n/relative_span.dart';
 import '../widgets/card_strings.dart';
+import '../widgets/due_label.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/steady_position.dart';
 import '../widgets/voice_player.dart';
@@ -446,6 +447,31 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         time: true,
                       ),
                     ),
+                    if (note.dueAt case final due?)
+                      Padding(
+                        key: const ValueKey('detail-reminder-when'),
+                        padding: const EdgeInsets.only(top: NexSpacing.xs),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.notifications_none,
+                              size: 15,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: NexSpacing.xs),
+                            Expanded(
+                              child: Text(
+                                '${l10n.detailsReminder}: '
+                                '${nexDueCardDescription(context, due, note.dueRepeat)}',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     if (archived)
                       _ArchivedStrip(
                         note: note,

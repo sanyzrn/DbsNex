@@ -264,6 +264,78 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 1));
       });
 
+      testWidgets('reminder subtitle appears in hold menu $variant', (
+        tester,
+      ) async {
+        await _frame(tester, const Size(420, 500));
+        final schedule = rtl ? 'هر روز · ۰۹:۰۰' : 'Every day · 09:00';
+        await tester.pumpWidget(
+          _app(
+            locale: locale,
+            dark: dark,
+            child: NoteContextMenu(
+              entries: [
+                NoteMenuEntry(
+                  NexHoldAction.remind,
+                  () {},
+                  subtitle: schedule,
+                ),
+              ],
+              child: NoteCard(
+                note: note('reminder', NoteType.text, rtl ? persian : english),
+                onTap: () {},
+              ),
+            ),
+          ),
+        );
+        await tester.longPress(find.byType(NoteCard));
+        await tester.pumpAndSettle();
+        expect(find.text(schedule), findsOneWidget);
+      });
+
+      testWidgets('reminder time is visible under note creation date $variant', (
+        tester,
+      ) async {
+        await _frame(tester, const Size(420, 760));
+        final harness = await NexTestHarness.create(name: 'nex_due_detail_');
+        addTearDown(harness.dispose);
+        final captured = await harness.services.captureText(
+          rtl ? persian : english,
+        );
+        final due = DateTime.utc(2099, 4, 15, 9, 45);
+        final db = NexDatabase.open(harness.dbPath);
+        db.db.execute(
+          'UPDATE notes SET due_at = ?, due_repeat = ? WHERE id = ?',
+          [due.toIso8601String(), 'once', captured!.id],
+        );
+        db.close();
+        await tester.pumpWidget(
+          _app(
+            locale: locale,
+            dark: dark,
+            child: NoteDetailSheet(
+              services: harness.services,
+              noteId: captured.id,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('detail-reminder-when')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('detail-reminder-when')),
+            matching: find.textContaining(
+              rtl ? 'یادآور' : 'Reminder',
+              findRichText: true,
+            ),
+          ),
+          findsOneWidget,
+        );
+      });
+
       testWidgets('note detail sheet $variant', (tester) async {
         await _frame(tester, const Size(420, 760));
         final harness = await NexTestHarness.create(name: 'nex_golden_');

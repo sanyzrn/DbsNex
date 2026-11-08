@@ -10,11 +10,14 @@ class NexMenuEntryContent extends StatelessWidget {
     super.key,
     required this.icon,
     required this.label,
+    this.subtitle,
     this.color,
   });
 
   final IconData icon;
   final String label;
+  /// Optional smaller detail, for example an active note reminder schedule.
+  final String? subtitle;
   final Color? color;
 
   @override
@@ -35,9 +38,24 @@ class NexMenuEntryContent extends StatelessWidget {
       ),
       const SizedBox(width: NexSpacing.md),
       Flexible(
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: color),
+            ),
+            if (subtitle case final detail?)
+              Text(
+                detail,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
         ),
       ),
     ],
