@@ -16,8 +16,16 @@ hooks:
   user_defines:
     sqlite3:
       source:
+        # Linux CI uses the runner's installed SQLite, never remote binaries.
         linux: system
+        # Build all Android ABIs from a verified upstream source checkout.
+        # This retains a bundled libsqlite3.so; do not use Android's private
+        # OS SQLite library (not guaranteed to be accessible to applications).
+        android: source
         default: sqlite3
+      # File verified by SHA3-256 against SQLite 3.54.1 release on sqlite.org.
+      # Relative to the client Flutter workspace root.
+      path: third_party/sqlite/sqlite3.c
 
 dependencies:
   flutter:
