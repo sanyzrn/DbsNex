@@ -393,11 +393,13 @@ class _ImportRowState extends State<_ImportRow> {
     final host = NexBannerHost.of(context);
     setState(() => _running = true);
     int count;
+    var tooManyTags = false;
     try {
       count = await widget.services.importNotes(picked.path);
-    } catch (_) {
-      // Anything that goes wrong here is "that file was not an export",
-      // which is one message rather than a stack trace someone has to read.
+    } catch (error) {
+      // The worker preserves this stable marker in its error description.
+      // A valid export with extra tags should never look like corrupt input.
+      tooManyTags = error.toString().contains('NEX_IMPORT_TAG_LIMIT');
       count = -1;
     }
     if (mounted) setState(() => _running = false);
@@ -405,8 +407,13 @@ class _ImportRowState extends State<_ImportRow> {
       widget.services.refreshTimeline();
       nexBump();
     }
+    if (!mounted) return;
     host?.show(
-      message: count < 0
+      message: tooManyTags
+          ? (Localizations.localeOf(context).languageCode == 'fa'
+                ? 'این فایل یادداشتی با بیش از ۳ تگ دارد. هیچ یادداشتی وارد نشد؛ تگ‌های اضافی را در فایل مبدأ اصلاح کنید.'
+                : 'An imported note has over 3 tags. Nothing was imported; adjust the source and retry.')
+          : count < 0
           ? l10n.foreignImportUnreadable
           : l10n.foreignImportDone(count),
       kind: count < 0 ? NexBannerKind.failed : NexBannerKind.done,

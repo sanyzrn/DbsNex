@@ -2,6 +2,11 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.9
+
+- **Precisely aligned note badges.** The centres of tag dots above and attachment, priority and reminder badges below now sit on the full-size note icon's actual circular rim. The main icon stays the same size even with multiple badges, and spacing adapts to the card density.
+- **Three tags, without losing your data.** New notes cannot take a fourth tag. Older notes keep existing extra tags until you remove them in note details. Imports with more than three distinct tags on a note are rejected before saving any notes, with a clear warning rather than silently discarding tags.
+
 ## v2.6.8
 
 - **A clearer capture button.** The + stays white on Nex blue while custom accent colours keep a legible icon.
