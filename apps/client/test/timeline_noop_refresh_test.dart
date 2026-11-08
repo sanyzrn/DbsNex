@@ -37,9 +37,7 @@ void main() {
       await harness.dispose();
     });
 
-    test(
-      'identical deliveries do not rebuild, query tags or rerun recap',
-      () async {
+    test('no-op delivery skips redundant work', () async {
       await harness.services.captureText('the only note');
       await model.load();
       final before = rebuilds;
@@ -61,9 +59,7 @@ void main() {
       expect(model.notes.map((n) => n.content), contains('second'));
     });
 
-    test(
-      'pin and reminder changes count even without a revision bump',
-      () async {
+    test('pin and reminder updates still notify', () async {
       final note = (await harness.services.captureText('to pin'))!;
       await model.load();
       final before = rebuilds;
@@ -80,9 +76,7 @@ void main() {
       expect(model.byId(note.id)!.dueAt, isNotNull);
     });
 
-    test(
-      'summary changes without rev or updatedAt still reach cards',
-      () async {
+    test('AI summary changes without rev bump notify', () async {
       final note = (await harness.services.captureText('original'))!;
       await model.load();
       final before = model.byId(note.id)!;
@@ -96,9 +90,7 @@ void main() {
       expect(rebuilds, greaterThan(seen));
     });
 
-    test(
-      'transcription and OCR changes without rev still reach cards',
-      () async {
+    test('transcription and OCR without rev bump notify', () async {
       final note = (await harness.services.captureText('original'))!;
       await model.load();
       final before = model.byId(note.id)!;
@@ -116,9 +108,7 @@ void main() {
       expect(rebuilds, greaterThan(seenAgain));
     });
 
-    test(
-      'change outside active filter still reaches the smart summary',
-      () async {
+    test('hidden note updates still reach the recap', () async {
       final tagged = (await harness.services.captureText('shown'))!;
       final hidden = (await harness.services.captureText('hidden'))!;
       final tag = await harness.services.addTag(
@@ -141,9 +131,7 @@ void main() {
       expect(deliveries, greaterThan(heard));
     });
 
-    test(
-      'tag pills do not rebuild unless name, color or count changes',
-      () async {
+    test('tag name, color and count updates notify', () async {
       final note = (await harness.services.captureText('tagged'))!;
       final tag = await harness.services.addTag(noteId: note.id, name: 'work');
       await model.loadFilterTags();
@@ -187,9 +175,7 @@ void main() {
       await harness.dispose();
     });
 
-    testWidgets(
-      'closing a read-only detail avoids card rebuilds',
-      (tester) async {
+    testWidgets('read-only note close does not rebuild cards', (tester) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
       await tester.tap(find.byType(NoteCard).first);
@@ -204,9 +190,7 @@ void main() {
       expect(cardRebuilds, 0);
     });
 
-    testWidgets(
-      'returning from an unchanged page avoids card rebuilds',
-      (tester) async {
+    testWidgets('unchanged page return does not rebuild cards', (tester) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
 
@@ -227,9 +211,7 @@ void main() {
       expect(cardRebuilds, 0);
     });
 
-    testWidgets(
-      'a preference change on a covered page still applies',
-      (tester) async {
+    testWidgets('covered settings changes still apply', (tester) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
       final nav = Navigator.of(tester.element(find.byType(TimelineScreen)));
