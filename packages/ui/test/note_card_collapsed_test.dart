@@ -30,7 +30,7 @@ void main() {
   Tag tag(int i) => Tag(
     id: 't$i',
     name: 'Tag $i',
-    color: ['#0E9384', '#E5502D', '#7357E8'][i],
+    color: ['#0E9384', '#E5502D', '#7357E8'][i % 3],
     createdAt: at,
   );
   final strings = NexCardStrings(
@@ -177,8 +177,10 @@ void main() {
     }
   }
 
-  testWidgets('tag dots form a top arc for 1, 2 and 3 tags', (tester) async {
-    for (var count = 1; count <= 3; count++) {
+  testWidgets('tag dots show at most three, even on legacy notes', (
+    tester,
+  ) async {
+    for (var count = 1; count <= 4; count++) {
       await pump(
         tester,
         note(0, tags: [for (var i = 0; i < count; i++) tag(i)]),
@@ -186,11 +188,12 @@ void main() {
       final orb = tester.getRect(
         find.byKey(const ValueKey('note-leading-orbit')),
       );
+      final shown = count > nexMaxTagsPerNote ? nexMaxTagsPerNote : count;
       final dots = [
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < shown; i++)
           tester.getRect(find.byKey(ValueKey('note-tag-dot-$i'))),
       ];
-      expect(find.byKey(ValueKey('note-tag-dot-$count')), findsNothing);
+      expect(find.byKey(ValueKey('note-tag-dot-$shown')), findsNothing);
       for (final dot in dots) {
         expect(dot.center.dy, lessThan(orb.center.dy));
       }
