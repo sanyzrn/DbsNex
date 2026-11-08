@@ -976,7 +976,10 @@ class _LeadingMarkers extends StatelessWidget {
           Transform.translate(
             key: const ValueKey('note-main-circle'),
             offset: Offset(0, -lift),
-            child: leading,
+            child: KeyedSubtree(
+              key: const ValueKey('note-main-circle-paint'),
+              child: leading,
+            ),
           ),
           if (note.tags.isNotEmpty)
             _ArcTagDots(tags: note.tags, strings: strings, lift: lift),

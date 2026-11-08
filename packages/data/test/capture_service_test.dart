@@ -88,6 +88,9 @@ void main() {
     });
 
     test('imports reject excess tags before inserting any note', () {
+      // The database seeds its starter tag catalogue; failed imports must
+      // leave it unchanged, not erase those independent existing tags.
+      final initialTagNames = repo.listTags().map((t) => t.name).toList();
       expect(
         () => capture.importNotes([
           const ImportedNote(type: NoteType.text, text: 'First'),
@@ -100,7 +103,10 @@ void main() {
         throwsA(isA<FormatException>()),
       );
       expect(repo.listTimeline(), isEmpty);
-      expect(repo.listTags(), isEmpty);
+      expect(
+        repo.listTags().map((t) => t.name).toList(),
+        initialTagNames,
+      );
     });
 
     test('imports accept three distinct tags and repeated casing', () {

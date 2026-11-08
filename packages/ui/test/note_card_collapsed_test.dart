@@ -154,7 +154,7 @@ void main() {
             // Unlike the previous design, the circle is never shrunk when
             // status marks appear. Each white disc sits on its lower rim.
             final circle = tester.getRect(
-              find.byKey(const ValueKey('note-main-circle')),
+              find.byKey(const ValueKey('note-main-circle-paint')),
             );
             expect(circle.width, closeTo(density.leading, 0.01));
             expect(circle.height, closeTo(density.leading, 0.01));
@@ -200,7 +200,7 @@ void main() {
       ];
       expect(find.byKey(ValueKey('note-tag-dot-$shown')), findsNothing);
       final circle = tester.getRect(
-        find.byKey(const ValueKey('note-main-circle')),
+        find.byKey(const ValueKey('note-main-circle-paint')),
       );
       for (final dot in dots) {
         expect(dot.center.dy, lessThan(orb.center.dy));
@@ -225,7 +225,7 @@ void main() {
         final value = note(7, tags: [tag(0), tag(1), tag(2)]);
         await pump(tester, value, density: density, rtl: rtl);
         final circle = tester.getRect(
-          find.byKey(const ValueKey('note-main-circle')),
+          find.byKey(const ValueKey('note-main-circle-paint')),
         );
         expect(circle.size, Size(density.leading, density.leading));
         for (final id in ['attachment', 'urgent', 'reminder']) {
