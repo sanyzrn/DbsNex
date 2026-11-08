@@ -1,0 +1,59 @@
+name: Nex 2.6.10 one-time release dispatch
+
+# The connected GitHub tool can merge PRs but cannot dispatch Actions.
+# This narrow, one-shot bridge dispatches the existing release.yml only after
+# the reviewed PR merges. It does not alter the signing or store update paths.
+# Remove this file after release v2.6.10 is confirmed in the public repo.
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch-269-successor:
+    name: Start official Nex 2.6.10 release once
+    if: >-
+      github.event.pull_request.number == 419 &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'feat/nex-2.6.10-performance' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: nex-2.6.10-one-time-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+      - name: Verify reviewed head, version and no duplicate public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEWED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          grep -qx 'version: 2.6.10' apps/client/pubspec.yaml
+          grep -q '^## v2.6.10$' CHANGELOG.md
+          grep -q '^## v2.6.10$' CHANGELOG.fa.md
+          gh api "repos/$GITHUB_REPOSITORY/commits/$REVIEWED_HEAD/check-runs?per_page=100" \
+            --jq '.check_runs[] | select(.name == "CI green" and .conclusion == "success") | .name' \
+            | grep -Fx 'CI green'
+          if gh release view v2.6.10 --repo sanyzrn/DbsNex-releases >/dev/null 2>&1; then
+            echo "Public 2.6.10 release already exists; refusing duplicate dispatch."
+            exit 0
+          fi
+          echo "Checked PR #419 CI and release notes; no release yet."
+      - name: Dispatch existing signed Release workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v2.6.10 --repo sanyzrn/DbsNex-releases >/dev/null 2>&1; then
+            echo "Release already present; do nothing."
+            exit 0
+          fi
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag=v2.6.10
+          echo "Requested official release.yml for v2.6.10."
