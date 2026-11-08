@@ -160,6 +160,11 @@ void main() {
             expect(circle.height, closeTo(density.leading, 0.01));
             expect(rect.center.dy, greaterThan(circle.bottom - 14));
             expect(rect.center.dy, lessThan(circle.bottom + 3));
+            expect(
+              (rect.center - circle.center).distance,
+              closeTo(circle.width / 2, 0.03),
+              reason: 'badge center must be precisely on the main circle rim',
+            );
             final halo = tester.widget<Container>(badge(id));
             expect(
               (halo.decoration! as BoxDecoration).color,
@@ -194,13 +199,51 @@ void main() {
           tester.getRect(find.byKey(ValueKey('note-tag-dot-$i'))),
       ];
       expect(find.byKey(ValueKey('note-tag-dot-$shown')), findsNothing);
+      final circle = tester.getRect(
+        find.byKey(const ValueKey('note-main-circle')),
+      );
       for (final dot in dots) {
         expect(dot.center.dy, lessThan(orb.center.dy));
+        expect(
+          (dot.center - circle.center).distance,
+          closeTo(circle.width / 2, 0.03),
+          reason: 'tag center must be precisely on the main circle rim',
+        );
       }
       expect(
         dots.map((r) => r.center.dx).toList(),
         orderedEquals([...dots.map((r) => r.center.dx)]..sort()),
       );
+    }
+  });
+
+  testWidgets('tags and all statuses share the exact same orbit', (
+    tester,
+  ) async {
+    for (final density in NexCardDensity.values) {
+      for (final rtl in [false, true]) {
+        final value = note(7, tags: [tag(0), tag(1), tag(2)]);
+        await pump(tester, value, density: density, rtl: rtl);
+        final circle = tester.getRect(
+          find.byKey(const ValueKey('note-main-circle')),
+        );
+        expect(circle.size, Size(density.leading, density.leading));
+        for (final id in ['attachment', 'urgent', 'reminder']) {
+          final mark = tester.getRect(badge(id));
+          expect(
+            (mark.center - circle.center).distance,
+            closeTo(circle.width / 2, 0.03),
+          );
+        }
+        for (var i = 0; i < 3; i++) {
+          final dot = tester.getRect(find.byKey(ValueKey('note-tag-dot-$i')));
+          expect(
+            (dot.center - circle.center).distance,
+            closeTo(circle.width / 2, 0.03),
+          );
+        }
+        expect(tester.takeException(), isNull);
+      }
     }
   });
 
