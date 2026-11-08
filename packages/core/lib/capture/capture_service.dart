@@ -169,6 +169,20 @@ class CaptureService {
     List<ImportedNote> imported, {
     String? Function(ImportedNote note)? mediaFor,
   }) {
+    // Validate all tags before the first insert. Earlier imports silently
+    // dropped a fourth label; rejection preserves every source tag instead.
+    for (final source in imported) {
+      final unique = <String>{
+        for (final name in source.tags)
+          if (name.trim().isNotEmpty) name.trim().toLowerCase(),
+      };
+      if (unique.length > nexMaxTagsPerNote) {
+        throw const FormatException(
+          'NEX_IMPORT_TAG_LIMIT: An imported note has more than 3 tags. '
+          'No notes were imported; adjust the source and retry.',
+        );
+      }
+    }
     final written = <Note>[];
     for (final source in imported) {
       final body = source.text.trim();
@@ -206,7 +220,7 @@ class CaptureService {
         if (trimmed.isEmpty || !importedTags.add(trimmed.toLowerCase())) {
           continue;
         }
-        if (importedTags.length > nexMaxTagsPerNote) break;
+        // The preflight guarantees this tag is within the limit.
         // `upsertTag` is what makes two notes carrying the same label share
         // one tag rather than minting one each — and what makes a label that
         // already exists in Nex merge with it instead of duplicating.

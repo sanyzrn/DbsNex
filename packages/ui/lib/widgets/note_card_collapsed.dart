@@ -129,16 +129,12 @@ class _CardStatusMarks extends StatelessWidget {
         ),
     ];
 
-    final markSize = switch (NexCardDensity.of(context)) {
-      NexCardDensity.compact => 14.0,
-      NexCardDensity.standard => 16.0,
-      NexCardDensity.readable => 18.0,
-    };
-    final spread = badges.length == 3
-        ? (side - markSize) / 2
-        : side >= 48
-        ? 22.0
-        : 18.0;
+    final markSize = _noteStatusBadgeSize(context, badges.length);
+    final lift = markSize / 2;
+    final outerAngle = math.min(
+      math.pi / 4,
+      math.asin((radius - markSize / 2) / radius),
+    );
 
     return SizedBox.square(
       dimension: side,
@@ -148,13 +144,25 @@ class _CardStatusMarks extends StatelessWidget {
         children: [
           for (var i = 0; i < badges.length; i++)
             Positioned(
-              // One badge is centred; two spread apart; three form a low arc.
-              // Their entire touch targets remain within the leading square.
+              // Every badge CENTER is on the same radius as the main glyph.
               left:
-                  radius +
-                  (i - (badges.length - 1) / 2) * spread -
+                  _noteOrbitCenter(
+                    side,
+                    lift,
+                    (i - (badges.length - 1) / 2) *
+                        (badges.length == 2 ? outerAngle * 2 : outerAngle),
+                    upper: false,
+                  ).dx -
                   markSize / 2,
-              top: side - markSize - (badges.length == 3 && i != 1 ? 4 : 0),
+              top:
+                  _noteOrbitCenter(
+                    side,
+                    lift,
+                    (i - (badges.length - 1) / 2) *
+                        (badges.length == 2 ? outerAngle * 2 : outerAngle),
+                    upper: false,
+                  ).dy -
+                  markSize / 2,
               child: Container(
                 key: ValueKey('note-status-orbit-${badges[i].id}'),
                 width: markSize,

@@ -98,6 +98,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     final theme = Theme.of(context);
     final matches = _matches;
     final atLimit = widget.alreadyOn.length >= nexMaxTagsPerNote;
+    final legacyOverflow = widget.alreadyOn.length > nexMaxTagsPerNote;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
@@ -117,7 +118,11 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
               child: Text(
-                TagPickerSheet.limitMessage(context),
+                legacyOverflow
+                    ? (Localizations.localeOf(context).languageCode == 'fa'
+                          ? 'این یادداشت بیش از ۳ تگ قدیمی دارد؛ از جزئیات یادداشت تگ‌های اضافه را حذف کنید. هیچ تگی خودکار پاک نمی‌شود.'
+                          : 'This older note has over 3 tags. Remove extras in note details; no tags are deleted automatically.')
+                    : TagPickerSheet.limitMessage(context),
                 style: theme.textTheme.bodySmall,
               ),
             ),

@@ -402,20 +402,17 @@ class _ArcTagDots extends StatelessWidget {
   const _ArcTagDots({
     required this.tags,
     required this.strings,
-    this.raised = false,
+    required this.lift,
   });
 
   final List<Tag> tags;
   final NexCardStrings strings;
-  final bool raised;
+  final double lift;
 
   @override
   Widget build(BuildContext context) {
     final shown = tags.take(nexMaxTagsPerNote).toList();
     final side = NexCardDensity.of(context).leading;
-    final radius = side / 2;
-    final arcRadius = raised ? radius - 4 : radius;
-    final arcY = raised ? radius - 7 : radius;
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       container: true,
@@ -431,14 +428,22 @@ class _ArcTagDots extends StatelessWidget {
             for (var i = 0; i < shown.length; i++)
               Positioned(
                 left:
-                    radius +
-                    arcRadius *
-                        math.sin((i - (shown.length - 1) / 2) * math.pi / 6) -
+                    _noteOrbitCenter(
+                      side,
+                      lift,
+                      (i - (shown.length - 1) / 2) *
+                          (shown.length == 2 ? math.pi / 3 : math.pi / 6),
+                      upper: true,
+                    ).dx -
                     7,
                 top:
-                    arcY -
-                    arcRadius *
-                        math.cos((i - (shown.length - 1) / 2) * math.pi / 6) -
+                    _noteOrbitCenter(
+                      side,
+                      lift,
+                      (i - (shown.length - 1) / 2) *
+                          (shown.length == 2 ? math.pi / 3 : math.pi / 6),
+                      upper: true,
+                    ).dy -
                     7,
                 child: Container(
                   key: ValueKey('note-tag-dot-$i'),
@@ -901,6 +906,31 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
   }
 }
 
+/// A marker center on the true, unscaled circumference of the main circle.
+Offset _noteOrbitCenter(
+  double side,
+  double lift,
+  double angle, {
+  required bool upper,
+}) {
+  final radius = side / 2;
+  return Offset(
+    radius + radius * math.sin(angle),
+    radius - lift + (upper ? -1 : 1) * radius * math.cos(angle),
+  );
+}
+
+/// With three statuses, fit their full hit areas inside the leading square.
+double _noteStatusBadgeSize(BuildContext context, int count) {
+  final density = NexCardDensity.of(context);
+  final normal = switch (density) {
+    NexCardDensity.compact => 14.0,
+    NexCardDensity.standard => 16.0,
+    NexCardDensity.readable => 18.0,
+  };
+  return count == 3 ? math.min(normal, density.leading / 3) : normal;
+}
+
 class _LeadingMarkers extends StatelessWidget {
   const _LeadingMarkers({
     required this.note,
@@ -929,21 +959,30 @@ class _LeadingMarkers extends StatelessWidget {
         (showDue && note.dueAt != null) ||
         note.attachmentCount > 0 ||
         note.isUrgent;
+    final statusCount =
+        (showDue && note.dueAt != null ? 1 : 0) +
+        (note.attachmentCount > 0 ? 1 : 0) +
+        (note.isUrgent ? 1 : 0);
+    final lift = hasStatuses
+        ? _noteStatusBadgeSize(context, statusCount) / 2
+        : 0.0;
     return SizedBox.square(
       key: const ValueKey('note-leading-orbit'),
       dimension: side,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Keep the main circle at its full size in every state. A small
-          // vertical lift leaves room for the status halos on its lower rim.
+          // Never scale the main circle. Markers share this exact center.
           Transform.translate(
             key: const ValueKey('note-main-circle'),
-            offset: Offset(0, hasStatuses ? -6 : 0),
-            child: leading,
+            offset: Offset(0, -lift),
+            child: KeyedSubtree(
+              key: const ValueKey('note-main-circle-paint'),
+              child: leading,
+            ),
           ),
           if (note.tags.isNotEmpty)
-            _ArcTagDots(tags: note.tags, strings: strings, raised: hasStatuses),
+            _ArcTagDots(tags: note.tags, strings: strings, lift: lift),
           if (hasStatuses)
             _CardStatusMarks(
               note: note,

@@ -87,17 +87,35 @@ void main() {
       expect(repo.getById(note.id)!.tags, hasLength(nexMaxTagsPerNote));
     });
 
-    test('imports keep at most three distinct tags', () {
+    test('imports reject excess tags before inserting any note', () {
+      // The database seeds its starter tag catalogue; failed imports must
+      // leave it unchanged, not erase those independent existing tags.
+      final initialTagNames = repo.listTags().map((t) => t.name).toList();
+      expect(
+        () => capture.importNotes([
+          const ImportedNote(type: NoteType.text, text: 'First'),
+          const ImportedNote(
+            type: NoteType.text,
+            text: 'Imported',
+            tags: ['Work', 'work', 'Idea', 'Home', 'Fourth'],
+          ),
+        ]),
+        throwsA(isA<FormatException>()),
+      );
+      expect(repo.listTimeline(), isEmpty);
+      expect(repo.listTags().map((t) => t.name).toList(), initialTagNames);
+    });
+
+    test('imports accept three distinct tags and repeated casing', () {
       final imported = capture.importNotes([
         const ImportedNote(
           type: NoteType.text,
           text: 'Imported',
-          tags: ['Work', 'work', 'Idea', 'Home', 'Fourth'],
+          tags: ['Work', 'work', 'Idea', 'Home'],
         ),
       ]);
       expect(imported, hasLength(1));
       expect(repo.getById(imported.single.id)!.tags, hasLength(3));
-      expect(repo.listTags().any((t) => t.name == 'Fourth'), isFalse);
     });
 
     test('search filters by query and type', () {

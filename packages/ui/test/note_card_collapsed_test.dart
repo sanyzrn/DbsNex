@@ -143,23 +143,31 @@ void main() {
           for (final id in ids) {
             final rect = tester.getRect(badge(id));
             // Layout transforms can introduce sub-pixel floating-point noise.
-            final markSide = switch (density) {
+            final normalSide = switch (density) {
               NexCardDensity.compact => 14.0,
               NexCardDensity.standard => 16.0,
               NexCardDensity.readable => 18.0,
             };
+            final markSide = ids.length == 3 && density.leading / 3 < normalSide
+                ? density.leading / 3
+                : normalSide;
             expect(rect.width, closeTo(markSide, 0.01));
             expect(rect.height, closeTo(markSide, 0.01));
             expect(rect.center.dy, greaterThan(orb.center.dy));
             // Unlike the previous design, the circle is never shrunk when
             // status marks appear. Each white disc sits on its lower rim.
             final circle = tester.getRect(
-              find.byKey(const ValueKey('note-main-circle')),
+              find.byKey(const ValueKey('note-main-circle-paint')),
             );
             expect(circle.width, closeTo(density.leading, 0.01));
             expect(circle.height, closeTo(density.leading, 0.01));
             expect(rect.center.dy, greaterThan(circle.bottom - 14));
             expect(rect.center.dy, lessThan(circle.bottom + 3));
+            expect(
+              (rect.center - circle.center).distance,
+              closeTo(circle.width / 2, 0.03),
+              reason: 'badge center must be precisely on the main circle rim',
+            );
             final halo = tester.widget<Container>(badge(id));
             expect(
               (halo.decoration! as BoxDecoration).color,
@@ -194,13 +202,52 @@ void main() {
           tester.getRect(find.byKey(ValueKey('note-tag-dot-$i'))),
       ];
       expect(find.byKey(ValueKey('note-tag-dot-$shown')), findsNothing);
+      final circle = tester.getRect(
+        find.byKey(const ValueKey('note-main-circle-paint')),
+      );
       for (final dot in dots) {
         expect(dot.center.dy, lessThan(orb.center.dy));
+        expect(
+          (dot.center - circle.center).distance,
+          closeTo(circle.width / 2, 0.03),
+          reason: 'tag center must be precisely on the main circle rim',
+        );
       }
       expect(
         dots.map((r) => r.center.dx).toList(),
         orderedEquals([...dots.map((r) => r.center.dx)]..sort()),
       );
+    }
+  });
+
+  testWidgets('tags and all statuses share the exact same orbit', (
+    tester,
+  ) async {
+    for (final density in NexCardDensity.values) {
+      for (final rtl in [false, true]) {
+        final value = note(7, tags: [tag(0), tag(1), tag(2)]);
+        await pump(tester, value, density: density, rtl: rtl);
+        final circle = tester.getRect(
+          find.byKey(const ValueKey('note-main-circle-paint')),
+        );
+        expect(circle.width, closeTo(density.leading, 0.03));
+        expect(circle.height, closeTo(density.leading, 0.03));
+        for (final id in ['attachment', 'urgent', 'reminder']) {
+          final mark = tester.getRect(badge(id));
+          expect(
+            (mark.center - circle.center).distance,
+            closeTo(circle.width / 2, 0.03),
+          );
+        }
+        for (var i = 0; i < 3; i++) {
+          final dot = tester.getRect(find.byKey(ValueKey('note-tag-dot-$i')));
+          expect(
+            (dot.center - circle.center).distance,
+            closeTo(circle.width / 2, 0.03),
+          );
+        }
+        expect(tester.takeException(), isNull);
+      }
     }
   });
 
