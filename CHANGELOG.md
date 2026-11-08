@@ -5,6 +5,9 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## v2.6.8
 
 - **A clearer capture button.** The + stays white on Nex blue while custom accent colours keep a legible icon.
+- **Clearer timeline cards.** Circular note icons now show tag colours above and reminder, urgent and attachment marks below. Selection and ringing reminders use the same circle; selecting a ringing note acknowledges it without deleting its reminder.
+- **More readable navigation and filters.** Tag filters show quiet note counts, while the floating navigation bar gets a fine outline and soft shadow.
+- **Liquid Glass temporarily paused.** The option is disabled while its appearance is refined; the saved selection remains intact.
 
 ## v2.6.7
 

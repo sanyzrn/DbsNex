@@ -190,7 +190,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('glass toggles use the theme reveal in both directions', (
+  testWidgets('paused glass does not interrupt the theme with a reveal', (
     tester,
   ) async {
     final h = await open(tester);
@@ -207,9 +207,9 @@ void main() {
     for (final enabled in [true, false]) {
       await h.preferences.setLiquidGlass(enabled);
       await tester.pump();
-      expect(overlay(), findsOneWidget);
-      await tester.pumpAndSettle();
+      expect(h.preferences.effectiveLiquidGlass, isFalse);
       expect(overlay(), findsNothing);
+      await tester.pumpAndSettle();
     }
     expect(
       tester.widget<NexThemeReveal>(find.byType(NexThemeReveal)).signature,

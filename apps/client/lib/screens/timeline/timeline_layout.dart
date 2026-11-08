@@ -298,6 +298,7 @@ extension _TimelineLayout on TimelineScreenState {
                                         vertical: NexSpacing.sm,
                                       ),
                                       tags: _model.filterTags,
+                                      tagCounts: _model.filterTagCounts,
                                       hasOtherFilters:
                                           _model.selectedType != null ||
                                           _model.onlyReminders,

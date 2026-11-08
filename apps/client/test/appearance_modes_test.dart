@@ -59,6 +59,7 @@ void main() {
       expect(prefs.effectiveThemePreset, 'classic');
       expect(prefs.accentSeed, '#B61615');
       expect(prefs.liquidGlass, isTrue);
+      expect(prefs.effectiveLiquidGlass, isFalse);
       final raw = await SharedPreferences.getInstance();
       expect(raw.getString('appearance.theme'), 'dark');
       expect(raw.getString('appearance.theme_preset'), 'forest');
@@ -136,7 +137,12 @@ void main() {
         app().darkTheme!.colorScheme.primary,
         isNot(NexSoftDarkColors.accentText),
       );
-      expect(app().darkTheme!.extension<NexVisualStyle>()!.liquidGlass, isTrue);
+      expect(h.preferences.liquidGlass, isTrue);
+      expect(h.preferences.effectiveLiquidGlass, isFalse);
+      expect(
+        app().darkTheme!.extension<NexVisualStyle>()!.liquidGlass,
+        isFalse,
+      );
       await h.preferences.setAppearanceMode(NexAppearanceMode.system);
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       await tester.pumpAndSettle();
@@ -209,7 +215,7 @@ void main() {
           await h.preferences.setLiquidGlass(true);
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
-          await capture('accent_glass');
+          await capture('accent_paused_glass');
         }
       });
     }

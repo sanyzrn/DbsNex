@@ -23,6 +23,7 @@ class TagFilterRow extends StatelessWidget {
     this.activeFilterLabel = '',
     this.onOpenActiveFilter,
     this.tagLabel,
+    this.tagCounts = const {},
     this.allLabel = 'All',
     this.leading,
     this.trailing,
@@ -56,6 +57,10 @@ class TagFilterRow extends StatelessWidget {
   final String activeFilterLabel;
   final VoidCallback? onOpenActiveFilter;
   final String Function(Tag)? tagLabel;
+
+  /// Per-tag live note counts from the existing usage snapshot.
+  /// Builds require no extra query or note iteration.
+  final Map<String, int> tagCounts;
 
   /// Label of the "clear the filter" pill. The design system carries no
   /// localizations of its own, so the app passes the translated string in —
@@ -118,6 +123,7 @@ class TagFilterRow extends StatelessWidget {
                 label: tagLabel?.call(tag) ?? tag.name,
                 selected: selectedTagIds.contains(tag.id),
                 accent: tag.color,
+                count: tagCounts[tag.id],
                 onTap: () => onSelected(
                   selectedTagIds.contains(tag.id)
                       ? (selectedTagIds.toSet()..remove(tag.id))
@@ -174,6 +180,7 @@ class _Pill extends StatelessWidget {
     required this.theme,
     this.accent,
     this.icon,
+    this.count,
     this.semanticLabel,
   });
 
@@ -184,6 +191,7 @@ class _Pill extends StatelessWidget {
   final VoidCallback onTap;
   final ThemeData theme;
   final String? accent;
+  final int? count;
 
   @override
   Widget build(BuildContext context) {
@@ -203,10 +211,11 @@ class _Pill extends StatelessWidget {
     // A tag with no colour used to get a grey dot, which reads as a broken
     // swatch rather than as an absence.
     final dot = accent == null ? null : nexParseTagColor(accent);
+    final countLabel = count == null ? label : '$label, $count';
     return NexTappable(
       onTap: onTap,
       selected: selected,
-      semanticLabel: semanticLabel ?? label,
+      semanticLabel: semanticLabel ?? countLabel,
       shape: const StadiumBorder(),
       child: _edge(
         selected: selected,
@@ -252,6 +261,18 @@ class _Pill extends StatelessWidget {
                     // so it follows the app's face rather than the platform's.
                     style: theme.textTheme.labelLarge?.copyWith(color: fg),
                   ),
+                if (count != null) ...[
+                  const SizedBox(width: 5),
+                  Text(
+                    '$count',
+                    textDirection: TextDirection.ltr,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.60),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

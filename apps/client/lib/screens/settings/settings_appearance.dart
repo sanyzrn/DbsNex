@@ -243,9 +243,17 @@ class _ThemeScreen extends StatelessWidget {
                 _SwitchRow(
                   icon: Icons.blur_on_rounded,
                   title: l10n.liquidGlass,
-                  subtitle: l10n.liquidGlassSubtitle,
-                  value: preferences.liquidGlass,
-                  onChanged: preferences.setLiquidGlass,
+                  subtitle: nexLiquidGlassAvailable
+                      ? l10n.liquidGlassSubtitle
+                      : nexLabel(
+                          context,
+                          'Temporarily unavailable',
+                          'موقتاً غیرفعال',
+                        ),
+                  value: preferences.effectiveLiquidGlass,
+                  onChanged: nexLiquidGlassAvailable
+                      ? preferences.setLiquidGlass
+                      : null,
                 ),
               ],
             ),

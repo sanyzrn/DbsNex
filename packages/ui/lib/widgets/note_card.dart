@@ -372,148 +372,93 @@ class _CardBody extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: expanded
-            ? Padding(
-                padding: EdgeInsets.all(NexCardDensity.of(context).inset),
-                child: Row(
-                  // Keep the icon aligned with the top of an expanded preview.
-                  crossAxisAlignment: expanded
-                      ? CrossAxisAlignment.start
-                      : CrossAxisAlignment.center,
-                  children: [
-                    if (selected case final picked?)
-                      _PickMark(picked: picked, note: note, strings: strings)
-                    else
-                      _LeadingWithPin(
-                        note: note,
-                        strings: strings,
-                        ringing: ringing,
-                      ),
-                    const SizedBox(width: NexSpacing.contentGap),
-                    Expanded(child: _withFootnote(context)),
-                  ],
-                ),
-              )
-            : Stack(
-                fit: StackFit.expand,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.all(NexCardDensity.of(context).inset),
-                    child: Row(
-                      // Keep the icon aligned with the top of an expanded preview.
-                      crossAxisAlignment: expanded
-                          ? CrossAxisAlignment.start
-                          : CrossAxisAlignment.center,
-                      children: [
-                        if (selected case final picked?)
-                          _PickMark(
-                            picked: picked,
-                            note: note,
-                            strings: strings,
-                          )
-                        else
-                          _LeadingWithPin(
-                            note: note,
-                            strings: strings,
-                            ringing: ringing,
-                          ),
-                        const SizedBox(width: NexSpacing.contentGap),
-                        Expanded(child: _withFootnote(context)),
-                      ],
-                    ),
-                  ),
-                  if ((showDue && note.dueAt != null) ||
-                      note.attachmentCount > 0 ||
-                      note.isUrgent)
-                    PositionedDirectional(
-                      start:
-                          NexCardDensity.of(context).inset +
-                          NexCardDensity.of(context).leading +
-                          NexSpacing.contentGap,
-                      end: NexCardDensity.of(context).inset,
-                      bottom: _statusBottomGap,
-                      child: Align(
-                        alignment: AlignmentDirectional.bottomStart,
-                        child: _CardStatusMarks(
-                          note: note,
-                          strings: strings,
-                          due: showDue ? note.dueAt : null,
-                          halos: true,
-                        ),
-                      ),
-                    ),
-                ],
+        child: Padding(
+          padding: EdgeInsets.all(NexCardDensity.of(context).inset),
+          child: Row(
+            crossAxisAlignment: expanded
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
+            children: [
+              _LeadingWithPin(
+                note: note,
+                strings: strings,
+                ringing: ringing && selected == null,
+                selected: selected,
+                showDue: showDue,
               ),
+              const SizedBox(width: NexSpacing.contentGap),
+              Expanded(child: _withFootnote(context)),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-/// Up to 4 tag-colour dots, one per corner of the leading icon box.
-///
-/// On the icon rather than in a column beside it: a column cost the card no
-/// height, but a photo note's thumbnail already fills that column's width
-/// with the photo itself, so the dots had nowhere consistent to sit once a
-/// card's leading square stopped always being a bare glyph. A dot pinned to
-/// the icon's own corner reads as a property of that note's icon at a
-/// glance, the way an app badge sits on a home-screen icon, without a
-/// second column competing with the preview text for width.
-///
-/// Corners fill top-right, bottom-left, top-left, bottom-right in that
-/// order — RTL-aware (top-end, bottom-start, top-start, bottom-end) — so a
-/// fourth tag's dot lands under the pin badge on a pinned note rather than
-/// swapping position with it.
-///
-/// A tag with no colour still gets a mark, drawn as an outline, so "this note
-/// is tagged" never depends on the user having picked a colour. Display-only:
-/// nothing here reacts to a tap, since a dot this small identifies a tag by
-/// colour, not by picking it.
-class _CornerTagDots extends StatelessWidget {
-  const _CornerTagDots({required this.tags, required this.strings});
-
-  static const _max = 4;
-  static const _size = 10.0;
-
-  static const _corners = [
-    _DotCorner.topEnd,
-    _DotCorner.bottomStart,
-    _DotCorner.topStart,
-    _DotCorner.bottomEnd,
-  ];
+/// At most three tag colours sit on the *top arc* of the circular icon.
+/// They keep the card's own semantics and never consume preview width.
+class _ArcTagDots extends StatelessWidget {
+  const _ArcTagDots({
+    required this.tags,
+    required this.strings,
+    this.raised = false,
+  });
 
   final List<Tag> tags;
   final NexCardStrings strings;
+  final bool raised;
 
   @override
   Widget build(BuildContext context) {
+    final shown = tags.take(3).toList();
+    final side = NexCardDensity.of(context).leading;
+    final radius = side / 2;
+    final arcRadius = raised ? radius - 4 : radius;
+    final arcY = raised ? radius - 7 : radius;
     final scheme = Theme.of(context).colorScheme;
-    final shown = tags.take(_max).toList();
     return Semantics(
-      // A node of its own: the card sets `explicitChildNodes`, so a label
-      // without a container of its own merges into the parent and stops being
-      // something a screen reader can navigate to.
       container: true,
       label: strings.tagList(
         tags.map((tag) => strings.tagName?.call(tag) ?? tag.name).join(', '),
       ),
       excludeSemantics: true,
-      child: SizedBox(
-        width: NexCardDensity.of(context).leading,
-        height: NexCardDensity.of(context).leading,
+      child: SizedBox.square(
+        dimension: side,
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
             for (var i = 0; i < shown.length; i++)
-              _positioned(
-                _corners[i],
-                Container(
-                  width: _size,
-                  height: _size,
+              Positioned(
+                left:
+                    radius +
+                    arcRadius *
+                        math.sin((i - (shown.length - 1) / 2) * math.pi / 6) -
+                    7,
+                top:
+                    arcY -
+                    arcRadius *
+                        math.cos((i - (shown.length - 1) / 2) * math.pi / 6) -
+                    7,
+                child: Container(
+                  key: ValueKey('note-tag-dot-$i'),
+                  width: 14,
+                  height: 14,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: nexParseTagColor(shown[i].color),
-                    border: shown[i].color == null
-                        ? Border.all(color: scheme.outline, width: 1.5)
-                        : null,
+                    color: scheme.surfaceContainerLowest,
+                  ),
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: nexParseTagColor(shown[i].color),
+                      border: shown[i].color == null
+                          ? Border.all(color: scheme.outline, width: 1.5)
+                          : null,
+                    ),
                   ),
                 ),
               ),
@@ -522,24 +467,7 @@ class _CornerTagDots extends StatelessWidget {
       ),
     );
   }
-
-  Widget _positioned(_DotCorner corner, Widget dot) => switch (corner) {
-    _DotCorner.topEnd => PositionedDirectional(top: 0, end: 0, child: dot),
-    _DotCorner.bottomStart => PositionedDirectional(
-      bottom: 0,
-      start: 0,
-      child: dot,
-    ),
-    _DotCorner.topStart => PositionedDirectional(top: 0, start: 0, child: dot),
-    _DotCorner.bottomEnd => PositionedDirectional(
-      bottom: 0,
-      end: 0,
-      child: dot,
-    ),
-  };
 }
-
-enum _DotCorner { topEnd, bottomStart, topStart, bottomEnd }
 
 /// The note's own words, laid out in the note's own direction.
 ///
@@ -851,10 +779,10 @@ class _Leading extends StatelessWidget {
     final ratio = MediaQuery.devicePixelRatioOf(context);
     if (note.type == NoteType.photo && uri != null) {
       return ClipRRect(
-        // Matches _IconBox's own rounding — see NexRadius.cardLeading — so a
-        // photo note's thumbnail and every other type's icon box read as the
-        // same shape.
-        borderRadius: BorderRadius.circular(NexRadius.cardLeading),
+        // The photo shares the same circular outline as every note type.
+        borderRadius: BorderRadius.circular(
+          NexCardDensity.of(context).leading / 2,
+        ),
         child: Image.file(
           File(uri),
           width: NexCardDensity.of(context).leading,
@@ -888,10 +816,14 @@ class _LeadingWithPin extends StatefulWidget {
     required this.note,
     required this.strings,
     this.ringing = false,
+    this.selected,
+    this.showDue = true,
   });
   final Note note;
   final NexCardStrings strings;
   final bool ringing;
+  final bool? selected;
+  final bool showDue;
 
   @override
   State<_LeadingWithPin> createState() => _LeadingWithPinState();
@@ -949,6 +881,8 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
       note: widget.note,
       strings: widget.strings,
       ringing: widget.ringing,
+      selected: widget.selected,
+      showDue: widget.showDue,
     );
     final pulse = _pulse;
     if (pulse == null) return child;
@@ -972,66 +906,87 @@ class _LeadingMarkers extends StatelessWidget {
     required this.note,
     required this.strings,
     this.ringing = false,
+    this.selected,
+    this.showDue = true,
   });
 
   final Note note;
   final NexCardStrings strings;
   final bool ringing;
-
-  static const _size = 20.0;
+  final bool? selected;
+  final bool showDue;
 
   @override
   Widget build(BuildContext context) {
-    final leading = ringing ? const _RingingBell() : _Leading(note: note);
-    final hasTags = note.tags.isNotEmpty;
-    if (note.pinnedAt == null && !hasTags) return leading;
     final scheme = Theme.of(context).colorScheme;
-    return Stack(
-      // The badge sits half off the square's corner. Nothing is clipped: it
-      // lands well inside the card, which is what does the clipping here.
-      clipBehavior: Clip.none,
-      children: [
-        leading,
-        if (hasTags) _CornerTagDots(tags: note.tags, strings: strings),
-        if (note.pinnedAt != null)
-          PositionedDirectional(
-            bottom: -NexSpacing.xs,
-            end: -NexSpacing.xs,
-            child: Container(
-              width: _size,
-              height: _size,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                // The card's own fill, so the badge reads as lifted off the
-                // square rather than painted onto it.
-                color: scheme.surfaceContainerLowest,
-                border: Border.all(color: scheme.outline),
-              ),
-              child: Icon(
-                Icons.push_pin,
-                size: 11,
-                color: scheme.onSurfaceVariant,
-              ),
+    final side = NexCardDensity.of(context).leading;
+    final leading = selected != null
+        ? _PickMark(picked: selected!, note: note)
+        : ringing
+        ? const _RingingBell()
+        : _Leading(note: note);
+    final hasStatuses =
+        (showDue && note.dueAt != null) ||
+        note.attachmentCount > 0 ||
+        note.isUrgent;
+    return SizedBox.square(
+      key: const ValueKey('note-leading-orbit'),
+      dimension: side,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Keep the bottom badges inside the orbit's hit-test bounds so a
+          // long press can still show reminder details. The main circle
+          // becomes slightly smaller and rises into the existing top inset.
+          Transform.translate(
+            offset: Offset(0, hasStatuses ? -12 : 0),
+            child: Transform.scale(
+              scale: hasStatuses ? (side - 8) / side : 1,
+              child: leading,
             ),
           ),
-      ],
+          if (note.tags.isNotEmpty)
+            _ArcTagDots(tags: note.tags, strings: strings, raised: hasStatuses),
+          if (hasStatuses)
+            _CardStatusMarks(
+              note: note,
+              strings: strings,
+              due: showDue ? note.dueAt : null,
+            ),
+          if (note.pinnedAt != null)
+            PositionedDirectional(
+              end: -3,
+              top: (side - 16) / 2,
+              child: Container(
+                width: 16,
+                height: 16,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.surfaceContainerLowest,
+                  border: Border.all(color: scheme.outline),
+                ),
+                child: Icon(
+                  Icons.push_pin,
+                  size: 10,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-/// The card's icon while cards are being picked: a tick in the accent when
-/// this one is picked, the icon with an empty ring when it is not.
+/// The selection keeps the exact same circle and orbit of badges.
+/// A picked card uses a check; an unpicked card keeps its type icon and a
+/// small selection ring on the left, away from the top tags.
 class _PickMark extends StatelessWidget {
-  const _PickMark({
-    required this.picked,
-    required this.note,
-    required this.strings,
-  });
+  const _PickMark({required this.picked, required this.note});
 
   final bool picked;
   final Note note;
-  final NexCardStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -1043,7 +998,7 @@ class _PickMark extends StatelessWidget {
         height: side,
         decoration: BoxDecoration(
           color: scheme.primary,
-          borderRadius: BorderRadius.circular(NexRadius.cardLeading),
+          shape: BoxShape.circle,
         ),
         child: Icon(Icons.check_rounded, color: scheme.onPrimary),
       );
@@ -1051,13 +1006,13 @@ class _PickMark extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        _LeadingWithPin(note: note, strings: strings),
+        _Leading(note: note),
         PositionedDirectional(
-          top: -NexSpacing.xs,
-          start: -NexSpacing.xs,
+          start: -6,
+          top: (side - 18) / 2,
           child: Container(
-            width: 20,
-            height: 20,
+            width: 18,
+            height: 18,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: scheme.surfaceContainerLowest,
@@ -1093,7 +1048,7 @@ class _IconBox extends StatelessWidget {
         color: plain
             ? scheme.surfaceContainerHighest
             : nexNoteTypeWash(type, scheme),
-        borderRadius: BorderRadius.circular(NexRadius.cardLeading),
+        shape: BoxShape.circle,
       ),
       child: Icon(
         icon,

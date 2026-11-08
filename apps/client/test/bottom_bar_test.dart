@@ -171,27 +171,22 @@ void main() {
     }
   });
 
-  testWidgets('opted-in glass reaches the dock and capture sheet', (
+  testWidgets('paused glass keeps the saved choice but uses standard dock', (
     tester,
   ) async {
-    // An opaque modal Material used to be painted before the glass wrapper,
-    // leaving the backdrop filter only its own solid colour to sample.
     await preferences.setLiquidGlass(true);
     await open(tester);
-    // Any sheet over the timeline: the capture sheet, now that Settings is
-    // a page.
+    expect(preferences.liquidGlass, isTrue);
+    expect(preferences.effectiveLiquidGlass, isFalse);
+    final dockContext = tester.element(find.byType(NexNavigationDock));
+    expect(
+      Theme.of(dockContext).extension<NexVisualStyle>()!.liquidGlass,
+      isFalse,
+    );
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-
-    final sheets = tester.widgetList<BottomSheet>(find.byType(BottomSheet));
-    expect(sheets.last.backgroundColor, Colors.transparent);
-    expect(
-      find.descendant(
-        of: find.byType(BottomSheet).last,
-        matching: find.byType(BackdropFilter),
-      ),
-      findsWidgets,
-    );
+    expect(find.byType(BottomSheet), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(

@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +11,7 @@ void main() {
     String? content,
     String? caption,
     NoteType type = NoteType.text,
+    List<Tag> tags = const [],
   }) => Note(
     id: 'n',
     type: type,
@@ -25,6 +25,13 @@ void main() {
     deviceId: 'test',
     rev: 1,
     syncState: SyncState.pending,
+    tags: tags,
+  );
+  Tag tag(int i) => Tag(
+    id: 't$i',
+    name: 'Tag $i',
+    color: ['#0E9384', '#E5502D', '#7357E8'][i],
+    createdAt: at,
   );
   final strings = NexCardStrings(
     noteOfType: (s) => s,
@@ -39,6 +46,7 @@ void main() {
     bool rtl = false,
     bool dark = false,
     bool? selected,
+    bool ringing = false,
     NexCardDensity density = NexCardDensity.standard,
     double width = 360,
     double scale = 1,
@@ -55,15 +63,13 @@ void main() {
               density: density,
               child: SizedBox(
                 width: width,
-                child: RepaintBoundary(
-                  key: const ValueKey('pixels'),
-                  child: NoteCard(
-                    note: value,
-                    strings: strings,
-                    selected: selected,
-                    onTap: () {},
-                    previewOverride: preview,
-                  ),
+                child: NoteCard(
+                  note: value,
+                  strings: strings,
+                  selected: selected,
+                  ringing: ringing,
+                  onTap: () {},
+                  previewOverride: preview,
                 ),
               ),
             ),
@@ -72,39 +78,40 @@ void main() {
       ),
     ),
   );
-  Finder halo(String id) => find.byKey(ValueKey('note-status-halo-$id'));
+
+  Finder badge(String id) => find.byKey(ValueKey('note-status-orbit-$id'));
+
   for (final rtl in [false, true]) {
     for (final density in NexCardDensity.values) {
-      testWidgets(
-        '$rtl $density: one, two and three lines are vertically centred',
-        (tester) async {
-          for (var lines = 1; lines <= density.lines; lines++) {
-            final content = List.filled(
-              lines,
-              rtl ? 'متن فارسی' : 'A short line',
-            ).join('\n');
-            for (final type in [NoteType.text, NoteType.file]) {
-              await pump(
-                tester,
-                note(0, content: content, type: type),
-                rtl: rtl,
-                density: density,
-              );
-              final text = tester.getRect(find.text(content));
-              final area = tester.getRect(
-                find.byKey(const ValueKey('note-card-preview')),
-              );
-              expect(text.center.dy, closeTo(area.center.dy, .01));
-              expect(tester.takeException(), isNull);
-            }
-          }
-        },
-      );
-      testWidgets('$rtl $density: marks preserve full-width text and height', (
+      testWidgets('$rtl $density: previews stay vertically centred', (
         tester,
       ) async {
-        Size? size;
-        List<Rect>? boxes;
+        for (var lines = 1; lines <= density.lines; lines++) {
+          final content = List.filled(
+            lines,
+            rtl ? 'متن فارسی' : 'A short line',
+          ).join('\n');
+          for (final type in [NoteType.text, NoteType.file]) {
+            await pump(
+              tester,
+              note(0, content: content, type: type),
+              rtl: rtl,
+              density: density,
+            );
+            final text = tester.getRect(find.text(content));
+            final area = tester.getRect(
+              find.byKey(const ValueKey('note-card-preview')),
+            );
+            expect(text.center.dy, closeTo(area.center.dy, .01));
+            expect(tester.takeException(), isNull);
+          }
+        }
+      });
+
+      testWidgets('$rtl $density: one to three badges follow the lower arc', (
+        tester,
+      ) async {
+        Size? previewSize;
         double? height;
         for (var mask = 0; mask < 8; mask++) {
           final value = note(mask);
@@ -117,182 +124,138 @@ void main() {
                 )
                 .first,
           );
-          final actual = p
-              .getBoxesForSelection(
-                TextSelection(
-                  baseOffset: 0,
-                  extentOffset: value.content!.length,
-                ),
-              )
-              .map((b) => b.toRect())
-              .toList();
-          size ??= p.size;
-          boxes ??= actual;
+          previewSize ??= p.size;
           height ??= tester.getSize(find.byType(NoteCard)).height;
-          expect(p.size, size);
-          expect(actual, boxes);
-          expect(actual.map((b) => b.top).toSet(), hasLength(density.lines));
+          expect(p.size, previewSize);
           expect(tester.getSize(find.byType(NoteCard)).height, height);
           expect(find.text('2d'), findsNothing);
           expect(find.text('+3'), findsNothing);
+          expect(find.byType(ShaderMask), findsNothing);
           final ids = [
-            if (mask & 1 != 0) 'reminder',
             if (mask & 2 != 0) 'attachment',
             if (mask & 4 != 0) 'urgent',
+            if (mask & 1 != 0) 'reminder',
           ];
-          final area = tester.getRect(
-            find.byKey(const ValueKey('note-card-preview')),
+          final orb = tester.getRect(
+            find.byKey(const ValueKey('note-leading-orbit')),
           );
-          Rect? previous;
+          final positions = <double>[];
           for (final id in ids) {
-            final rect = tester.getRect(halo(id));
-            expect(rect.size, const Size(18, 22));
-            final surface = tester.getRect(
-              find
-                  .descendant(
-                    of: find.byType(NoteCard),
-                    matching: find.byType(Material),
-                  )
-                  .first,
-            );
-            expect(rect.bottom, closeTo(surface.bottom - 4, .01));
-            if (previous == null) {
-              expect(
-                rtl ? rect.right : rect.left,
-                closeTo(rtl ? area.right : area.left, .01),
-              );
-            } else {
-              expect(
-                rtl ? previous.left - rect.right : rect.left - previous.right,
-                closeTo(0, .01),
-              );
-            }
-            previous = rect;
+            final rect = tester.getRect(badge(id));
+            // Layout transforms can introduce sub-pixel floating-point noise.
+            expect(rect.width, closeTo(16, 0.01));
+            expect(rect.height, closeTo(16, 0.01));
+            expect(rect.center.dy, greaterThan(orb.center.dy));
+            // The lower marks may graze the rim, never cover the glyph.
+            final gap =
+                (rect.center - orb.center.translate(0, -12)).distance -
+                (orb.width - 8) / 2 -
+                rect.width / 2;
+            expect(gap, greaterThanOrEqualTo(-0.01));
+            // A badge painted outside the stack cannot receive a long press.
+            expect(rect.top, greaterThanOrEqualTo(orb.top));
+            expect(rect.bottom, lessThanOrEqualTo(orb.bottom));
+            positions.add(rect.center.dx);
           }
+          expect(positions, orderedEquals([...positions]..sort()));
           expect(tester.takeException(), isNull);
         }
       });
     }
   }
-  testWidgets(
-    'all note types and captions retain the same envelope at larger text',
-    (tester) async {
-      for (final density in NexCardDensity.values) {
-        double? height;
-        for (final type in NoteType.values) {
-          for (final mask in [0, 7]) {
-            await pump(
-              tester,
-              note(
-                mask,
-                type: type,
-                caption: type == NoteType.text ? 'Muted caption' : null,
-              ),
-              width: 220,
-              scale: 1.9,
-              density: density,
-            );
-            height ??= tester.getSize(find.byType(NoteCard)).height;
-            expect(tester.getSize(find.byType(NoteCard)).height, height);
-            expect(tester.takeException(), isNull);
-          }
+
+  testWidgets('tag dots form a top arc for 1, 2 and 3 tags', (tester) async {
+    for (var count = 1; count <= 3; count++) {
+      await pump(
+        tester,
+        note(0, tags: [for (var i = 0; i < count; i++) tag(i)]),
+      );
+      final orb = tester.getRect(
+        find.byKey(const ValueKey('note-leading-orbit')),
+      );
+      final dots = [
+        for (var i = 0; i < count; i++)
+          tester.getRect(find.byKey(ValueKey('note-tag-dot-$i'))),
+      ];
+      expect(find.byKey(ValueKey('note-tag-dot-$count')), findsNothing);
+      for (final dot in dots) {
+        expect(dot.center.dy, lessThan(orb.center.dy));
+      }
+      expect(
+        dots.map((r) => r.center.dx).toList(),
+        orderedEquals([...dots.map((r) => r.center.dx)]..sort()),
+      );
+    }
+  });
+
+  testWidgets('all note kinds and text scales share the collapsed height', (
+    tester,
+  ) async {
+    for (final density in NexCardDensity.values) {
+      double? height;
+      for (final type in NoteType.values) {
+        for (final mask in [0, 7]) {
+          await pump(
+            tester,
+            note(
+              mask,
+              type: type,
+              caption: type == NoteType.text ? 'Muted caption' : null,
+            ),
+            width: 220,
+            scale: 1.9,
+            density: density,
+          );
+          height ??= tester.getSize(find.byType(NoteCard)).height;
+          expect(tester.getSize(find.byType(NoteCard)).height, height);
+          expect(tester.takeException(), isNull);
         }
       }
-    },
-  );
-  testWidgets('hidden labels retain reminder semantics and attachment data', (
+    }
+  });
+
+  testWidgets('reminder and attachment semantics stay accessible', (
     tester,
   ) async {
     final handle = tester.ensureSemantics();
-    final value = note(7);
-    await pump(tester, value);
-    expect(find.text('2d'), findsNothing);
-    expect(find.text('+3'), findsNothing);
+    await pump(tester, note(7));
     expect(find.bySemanticsLabel('Full reminder schedule'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('3 more files')), findsOneWidget);
-    expect(value.dueAt, at);
-    expect(value.attachmentCount, 3);
     await tester.longPress(find.byIcon(Icons.notifications_active_outlined));
     await tester.pumpAndSettle();
     expect(find.text('Full reminder schedule'), findsOneWidget);
     handle.dispose();
   });
-  for (final dark in [false, true]) {
-    testWidgets(
-      '$dark: tiny radial halos follow pressed/selected card surface',
-      (tester) async {
-        for (final selected in [false, true]) {
-          await pump(
-            tester,
-            note(7),
-            dark: dark,
-            selected: selected,
-            preview: const SizedBox.expand(
-              child: ColoredBox(color: Color(0xFFFF00FF)),
-            ),
-          );
-          final h = halo('urgent');
-          expect(find.byKey(const ValueKey('note-status-fill')), findsNothing);
-          expect(find.byType(ShaderMask), findsNWidgets(3));
-          for (final mask in tester.widgetList<ShaderMask>(
-            find.byType(ShaderMask),
-          )) {
-            expect(mask.blendMode, BlendMode.dstOut);
-          }
-          final rect = tester.getRect(h);
-          Future<int> pixel() async {
-            final boundary = tester.renderObject<RenderRepaintBoundary>(
-              find.byKey(const ValueKey('pixels')),
-            );
-            final local =
-                Offset(rect.center.dx, rect.center.dy + 9) -
-                boundary.localToGlobal(Offset.zero);
-            final im = await tester.runAsync(
-              () => boundary.toImage(pixelRatio: 1),
-            );
-            final bytes = await tester.runAsync(
-              () => im!.toByteData(format: ui.ImageByteFormat.rawRgba),
-            );
-            final offset =
-                (local.dy.floor() * im!.width + local.dx.floor()) * 4;
-            final result =
-                bytes!.getUint8(offset) << 16 |
-                bytes.getUint8(offset + 1) << 8 |
-                bytes.getUint8(offset + 2);
-            im.dispose();
-            return result;
-          }
 
-          final before = await pixel();
-          final finger = await tester.startGesture(
-            tester.getCenter(find.byType(NoteCard)),
-          );
-          await tester.pump(const Duration(milliseconds: 300));
-          await tester.pump(const Duration(milliseconds: 220));
-          expect(await pixel(), isNot(before));
-          await finger.up();
-          await tester.pumpAndSettle();
-          expect(await pixel(), before);
-          expect(tester.takeException(), isNull);
-        }
-      },
-    );
-  }
-  testWidgets('caption stays grey and the icon group can disappear entirely', (
+  testWidgets('selection and ringing use the same circle and status badges', (
     tester,
   ) async {
+    await pump(tester, note(7), ringing: true);
+    expect(find.byIcon(Icons.notifications_active_rounded), findsOneWidget);
+    expect(badge('urgent'), findsOneWidget);
+    await pump(tester, note(7), selected: true, ringing: true);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.notifications_active_rounded), findsNothing);
+    expect(badge('urgent'), findsOneWidget);
+    expect(badge('reminder'), findsOneWidget);
+    expect(find.byType(ShaderMask), findsNothing);
+    await pump(tester, note(7), selected: false);
+    expect(badge('attachment'), findsOneWidget);
+  });
+
+  testWidgets('caption remains muted and badges can disappear', (tester) async {
     await pump(tester, note(0, caption: 'Secondary caption'));
     final caption = tester.widget<NexTextSurface>(
       find.byKey(const ValueKey('note-card-caption')),
     );
     expect(
       caption.style!.color,
-      Theme.of(
-        tester.element(find.byType(NoteCard)),
-      ).colorScheme.onSurfaceVariant,
+      Theme.of(tester.element(find.byType(NoteCard)))
+          .colorScheme
+          .onSurfaceVariant,
     );
-    expect(halo('reminder'), findsNothing);
-    expect(halo('attachment'), findsNothing);
-    expect(halo('urgent'), findsNothing);
+    for (final id in ['reminder', 'attachment', 'urgent']) {
+      expect(badge(id), findsNothing);
+    }
   });
 }

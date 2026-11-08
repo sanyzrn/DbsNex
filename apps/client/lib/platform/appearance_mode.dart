@@ -3,6 +3,9 @@ import 'package:flutter/material.dart' show ThemeMode;
 /// Temporarily paused; stored palette IDs and the gallery remain intact.
 const nexThemePresetsAvailable = false;
 
+/// Paused without erasing a user's existing choice; easy to restore later.
+const nexLiquidGlassAvailable = false;
+
 /// Appearance is separate from Flutter's three brightness modes. Night keeps
 /// the former Dark palette; System uses the new soft Dark when the OS is dark.
 enum NexAppearanceMode {

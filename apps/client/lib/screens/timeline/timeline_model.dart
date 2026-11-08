@@ -54,6 +54,10 @@ class TimelineModel extends ChangeNotifier {
   List<Tag> get filterTags => _filterTags;
   List<Tag> _filterTags = const [];
 
+  /// Live note counts from the same tag-usage query that powers the pills.
+  Map<String, int> get filterTagCounts => _filterTagCounts;
+  Map<String, int> _filterTagCounts = const {};
+
   /// Every tag the timeline is being narrowed to. Empty is "All".
   ///
   /// A set, because one pill could only ever answer "notes tagged work", and
@@ -170,6 +174,10 @@ class TimelineModel extends ChangeNotifier {
       for (final usage in loaded)
         if (usage.count > 0) usage.tag,
     ];
+    _filterTagCounts = {
+      for (final usage in loaded)
+        if (usage.count > 0) usage.tag.id: usage.count,
+    };
     notifyListeners();
   }
 
