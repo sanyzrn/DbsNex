@@ -147,7 +147,8 @@ void main() {
             expect(rect.height, closeTo(16, 0.01));
             expect(rect.center.dy, greaterThan(orb.center.dy));
             // The lower marks may graze the rim, never cover the glyph.
-            final gap = (rect.center - orb.center.translate(0, -6)).distance -
+            final gap =
+                (rect.center - orb.center.translate(0, -6)).distance -
                 orb.width / 2 -
                 rect.width / 2;
             expect(gap, greaterThanOrEqualTo(-2));
