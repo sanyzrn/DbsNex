@@ -382,6 +382,7 @@ class _CardBody extends StatelessWidget {
               _LeadingWithPin(
                 note: note,
                 strings: strings,
+                backgroundColor: surfaceColor,
                 ringing: ringing && selected == null,
                 selected: selected,
                 showDue: showDue,
@@ -402,18 +403,20 @@ class _ArcTagDots extends StatelessWidget {
   const _ArcTagDots({
     required this.tags,
     required this.strings,
-    required this.lift,
+    required this.backgroundColor,
   });
 
   final List<Tag> tags;
   final NexCardStrings strings;
-  final double lift;
+  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     final shown = tags.take(nexMaxTagsPerNote).toList();
     final side = NexCardDensity.of(context).leading;
-    final scheme = Theme.of(context).colorScheme;
+    // Clear separation for three dots, even at compact density.
+    const dotDiameter = 10.0;
+    const colorDiameter = 7.5;
     return Semantics(
       container: true,
       label: strings.tagList(
@@ -430,38 +433,39 @@ class _ArcTagDots extends StatelessWidget {
                 left:
                     _noteOrbitCenter(
                       side,
-                      lift,
                       (i - (shown.length - 1) / 2) *
-                          (shown.length == 2 ? math.pi / 3 : math.pi / 6),
+                          (shown.length == 2 ? math.pi / 3 : math.pi / 4),
                       upper: true,
                     ).dx -
-                    7,
+                    dotDiameter / 2,
                 top:
                     _noteOrbitCenter(
                       side,
-                      lift,
                       (i - (shown.length - 1) / 2) *
-                          (shown.length == 2 ? math.pi / 3 : math.pi / 6),
+                          (shown.length == 2 ? math.pi / 3 : math.pi / 4),
                       upper: true,
                     ).dy -
-                    7,
+                    dotDiameter / 2,
                 child: Container(
                   key: ValueKey('note-tag-dot-$i'),
-                  width: 14,
-                  height: 14,
+                  width: dotDiameter,
+                  height: dotDiameter,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: scheme.surfaceContainerLowest,
+                    color: backgroundColor,
                   ),
                   child: Container(
-                    width: 10,
-                    height: 10,
+                    width: colorDiameter,
+                    height: colorDiameter,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: nexParseTagColor(shown[i].color),
                       border: shown[i].color == null
-                          ? Border.all(color: scheme.outline, width: 1.5)
+                          ? Border.all(
+                              color: Theme.of(context).colorScheme.outline,
+                              width: 1,
+                            )
                           : null,
                     ),
                   ),
@@ -820,12 +824,14 @@ class _LeadingWithPin extends StatefulWidget {
   const _LeadingWithPin({
     required this.note,
     required this.strings,
+    required this.backgroundColor,
     this.ringing = false,
     this.selected,
     this.showDue = true,
   });
   final Note note;
   final NexCardStrings strings;
+  final Color backgroundColor;
   final bool ringing;
   final bool? selected;
   final bool showDue;
@@ -885,6 +891,7 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
     final child = _LeadingMarkers(
       note: widget.note,
       strings: widget.strings,
+      backgroundColor: widget.backgroundColor,
       ringing: widget.ringing,
       selected: widget.selected,
       showDue: widget.showDue,
@@ -906,17 +913,12 @@ class _LeadingWithPinState extends State<_LeadingWithPin>
   }
 }
 
-/// A marker center on the true, unscaled circumference of the main circle.
-Offset _noteOrbitCenter(
-  double side,
-  double lift,
-  double angle, {
-  required bool upper,
-}) {
+/// Every marker shares one fixed center, whether or not statuses exist.
+Offset _noteOrbitCenter(double side, double angle, {required bool upper}) {
   final radius = side / 2;
   return Offset(
     radius + radius * math.sin(angle),
-    radius - lift + (upper ? -1 : 1) * radius * math.cos(angle),
+    radius + (upper ? -1 : 1) * radius * math.cos(angle),
   );
 }
 
@@ -928,13 +930,16 @@ double _noteStatusBadgeSize(BuildContext context, int count) {
     NexCardDensity.standard => 16.0,
     NexCardDensity.readable => 18.0,
   };
-  return count == 3 ? math.min(normal, density.leading / 3) : normal;
+  // Three badges need a little breathing room around the lower arc,
+  // including the compact 40px circle. Larger badges remain unchanged.
+  return count == 3 ? math.min(normal, density.leading / 3 - 2) : normal;
 }
 
 class _LeadingMarkers extends StatelessWidget {
   const _LeadingMarkers({
     required this.note,
     required this.strings,
+    required this.backgroundColor,
     this.ringing = false,
     this.selected,
     this.showDue = true,
@@ -942,16 +947,20 @@ class _LeadingMarkers extends StatelessWidget {
 
   final Note note;
   final NexCardStrings strings;
+  final Color backgroundColor;
   final bool ringing;
   final bool? selected;
   final bool showDue;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final side = NexCardDensity.of(context).leading;
     final leading = selected != null
-        ? _PickMark(picked: selected!, note: note)
+        ? _PickMark(
+            picked: selected!,
+            note: note,
+            backgroundColor: backgroundColor,
+          )
         : ringing
         ? const _RingingBell()
         : _Leading(note: note);
@@ -959,56 +968,34 @@ class _LeadingMarkers extends StatelessWidget {
         (showDue && note.dueAt != null) ||
         note.attachmentCount > 0 ||
         note.isUrgent;
-    final statusCount =
-        (showDue && note.dueAt != null ? 1 : 0) +
-        (note.attachmentCount > 0 ? 1 : 0) +
-        (note.isUrgent ? 1 : 0);
-    final lift = hasStatuses
-        ? _noteStatusBadgeSize(context, statusCount) / 2
-        : 0.0;
     return SizedBox.square(
       key: const ValueKey('note-leading-orbit'),
       dimension: side,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Never scale the main circle. Markers share this exact center.
-          Transform.translate(
+          // Status badges do not move the type, selection or ringing circle.
+          KeyedSubtree(
             key: const ValueKey('note-main-circle'),
-            offset: Offset(0, -lift),
             child: KeyedSubtree(
               key: const ValueKey('note-main-circle-paint'),
               child: leading,
             ),
           ),
           if (note.tags.isNotEmpty)
-            _ArcTagDots(tags: note.tags, strings: strings, lift: lift),
+            _ArcTagDots(
+              tags: note.tags,
+              strings: strings,
+              backgroundColor: backgroundColor,
+            ),
           if (hasStatuses)
             _CardStatusMarks(
               note: note,
               strings: strings,
+              backgroundColor: backgroundColor,
               due: showDue ? note.dueAt : null,
             ),
-          if (note.pinnedAt != null)
-            PositionedDirectional(
-              end: -3,
-              top: (side - 16) / 2,
-              child: Container(
-                width: 16,
-                height: 16,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: scheme.surfaceContainerLowest,
-                  border: Border.all(color: scheme.outline),
-                ),
-                child: Icon(
-                  Icons.push_pin,
-                  size: 10,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ),
+          // Pin badge is temporarily hidden. Pinning and Pinned group remain.
         ],
       ),
     );
@@ -1019,10 +1006,15 @@ class _LeadingMarkers extends StatelessWidget {
 /// A picked card uses a check; an unpicked card keeps its type icon and a
 /// small selection ring on the left, away from the top tags.
 class _PickMark extends StatelessWidget {
-  const _PickMark({required this.picked, required this.note});
+  const _PickMark({
+    required this.picked,
+    required this.note,
+    required this.backgroundColor,
+  });
 
   final bool picked;
   final Note note;
+  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1051,7 +1043,7 @@ class _PickMark extends StatelessWidget {
             height: 18,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: scheme.surfaceContainerLowest,
+              color: backgroundColor,
               border: Border.all(color: scheme.outline, width: 1.5),
             ),
           ),
