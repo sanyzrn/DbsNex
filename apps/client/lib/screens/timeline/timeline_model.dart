@@ -121,7 +121,9 @@ class TimelineModel extends ChangeNotifier {
     _subscription = services.timelineStream.listen((value) {
       if (_disposed) return;
       _loadFailed = false;
-      _take(value);
+      // Keep the model's full snapshot up to date, but do no work for a
+      // delivery that repeats the same visible and hidden note data.
+      if (!_take(value)) return;
       // A capture or a delete can change whether there is more to load —
       // most obviously a capture, past a window an earlier scroll had
       // already exhausted. Re-arming here costs one wasted fetch on the next
@@ -170,14 +172,21 @@ class TimelineModel extends ChangeNotifier {
   Future<void> loadFilterTags() async {
     final loaded = await services.tagUsage();
     if (_disposed) return;
-    _filterTags = [
+    final tags = [
       for (final usage in loaded)
         if (usage.count > 0) usage.tag,
     ];
-    _filterTagCounts = {
+    final counts = {
       for (final usage in loaded)
         if (usage.count > 0) usage.tag.id: usage.count,
     };
+    // Tag queries often return the same labels and counts. Do not rebuild
+    // the entire home screen just to display an identical filter row.
+    if (_sameTags(_filterTags, tags) && mapEquals(_filterTagCounts, counts)) {
+      return;
+    }
+    _filterTags = tags;
+    _filterTagCounts = counts;
     notifyListeners();
   }
 
@@ -325,10 +334,17 @@ class TimelineModel extends ChangeNotifier {
     _take(loaded);
   }
 
-  void _take(List<Note> delivered) {
+  /// Returns true when the *entire* timeline snapshot actually changed.
+  ///
+  /// Comparing the unfiltered window matters: notes hidden by a tag/type
+  /// filter still contribute to the smart summary and reminder state.
+  /// A changed hidden note must reach the summary even when cards stay put.
+  bool _take(List<Note> delivered) {
+    final changed = _all == null || !_sameNotes(_all!, delivered);
     _all = delivered;
     _notes = visible(delivered);
-    notifyListeners();
+    if (changed) notifyListeners();
+    return changed;
   }
 
   /// FR-4.5: the content-type filter layers on top of the tag filter — it is
@@ -353,5 +369,60 @@ class TimelineModel extends ChangeNotifier {
     _disposed = true;
     unawaited(_subscription?.cancel());
     super.dispose();
+  }
+
+  /// A refreshed DB snapshot contains new Note objects even if no data moved.
+  /// Keep no-op navigation from rebuilding the cards, filter row, and recap.
+  static bool _sameNotes(List<Note> before, List<Note> after) {
+    if (before.length != after.length) return false;
+    for (var i = 0; i < before.length; i++) {
+      if (!_sameNote(before[i], after[i])) return false;
+    }
+    return true;
+  }
+
+  static bool _sameNote(Note a, Note b) {
+    if (identical(a, b)) return true;
+    // AI summary, transcription, and OCR updates do NOT necessarily bump
+    // updatedAt/rev, so those fields must be compared explicitly.
+    // The same applies to local-only reminder, pin and urgency metadata.
+    return a.id == b.id &&
+        a.type == b.type &&
+        a.rev == b.rev &&
+        a.updatedAt == b.updatedAt &&
+        a.deletedAt == b.deletedAt &&
+        a.content == b.content &&
+        a.caption == b.caption &&
+        a.title == b.title &&
+        a.linkExcerpt == b.linkExcerpt &&
+        a.transcriptText == b.transcriptText &&
+        a.ocrText == b.ocrText &&
+        a.summaryText == b.summaryText &&
+        a.mediaUri == b.mediaUri &&
+        a.mediaHash == b.mediaHash &&
+        a.durationMs == b.durationMs &&
+        a.mimeType == b.mimeType &&
+        a.pinnedAt == b.pinnedAt &&
+        a.isUrgent == b.isUrgent &&
+        a.setAsideAt == b.setAsideAt &&
+        a.setAsideUntil == b.setAsideUntil &&
+        a.dueAt == b.dueAt &&
+        a.dueRepeat == b.dueRepeat &&
+        a.sortOrder == b.sortOrder &&
+        a.attachmentCount == b.attachmentCount &&
+        _sameTags(a.tags, b.tags);
+    // syncState is intentionally omitted: there is no card-level sync badge.
+  }
+
+  static bool _sameTags(List<Tag> before, List<Tag> after) {
+    if (before.length != after.length) return false;
+    for (var i = 0; i < before.length; i++) {
+      if (before[i].id != after[i].id ||
+          before[i].name != after[i].name ||
+          before[i].color != after[i].color) {
+        return false;
+      }
+    }
+    return true;
   }
 }

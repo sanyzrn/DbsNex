@@ -355,6 +355,8 @@ class TimelineScreenState extends State<TimelineScreen>
     _swipe.addListener(_onSwipeChanged);
     _model.addListener(_onModelChanged);
     _wireRinging();
+    // A first return from a read-only sheet is not a settings change.
+    _briefSettingsKey = _briefSettingsSignature();
     widget.preferences.addListener(_onBriefPreferencesChanged);
     _habitBriefChanges = widget.services.moduleChanges.listen((module) {
       if (module == 'habits' &&
