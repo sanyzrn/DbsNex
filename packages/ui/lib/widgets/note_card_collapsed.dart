@@ -131,10 +131,8 @@ class _CardStatusMarks extends StatelessWidget {
     ];
 
     final markSize = _noteStatusBadgeSize(context, badges.length);
-    // The badges have to fit INSIDE the leading hit-test box. On the
-    // full-radius arc their centres sit on its lower edge, so a long-press
-    // on the reminder (including its tooltip) is silently missed.
-    // Inset the status orbit only; the main circle never moves.
+    // Preserve the existing spacing angles; only the badge centres move
+    // to the main circle's exact circumference.
     final statusRadius = radius - markSize / 2;
     final outerAngle = badges.length == 3
         ? math.asin(math.min(1, markSize / statusRadius))
@@ -148,11 +146,11 @@ class _CardStatusMarks extends StatelessWidget {
         children: [
           for (var i = 0; i < badges.length; i++)
             Positioned(
-              // Badge centers follow the inset lower orbit, fully within the hit area.
+              // The badge centre sits on the main circle's circumference.
               left:
                   _noteStatusCenter(
                     side,
-                    statusRadius,
+                    radius,
                     (i - (badges.length - 1) / 2) *
                         (badges.length == 2 ? outerAngle * 2 : outerAngle),
                   ).dx -
@@ -160,7 +158,7 @@ class _CardStatusMarks extends StatelessWidget {
               top:
                   _noteStatusCenter(
                     side,
-                    statusRadius,
+                    radius,
                     (i - (badges.length - 1) / 2) *
                         (badges.length == 2 ? outerAngle * 2 : outerAngle),
                   ).dy -
@@ -184,7 +182,7 @@ class _CardStatusMarks extends StatelessWidget {
   }
 }
 
-/// A lower-arc badge stays inside the leading icon's interactive bounds.
+/// Lower-arc marker centres are placed on the main circle's circumference.
 Offset _noteStatusCenter(double side, double radius, double angle) {
   final center = side / 2;
   return Offset(

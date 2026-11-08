@@ -2,6 +2,12 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.11
+
+- **Smoother return to Home.** Closing note details or returning from another page avoids unnecessary timeline rebuilding when nothing has changed.
+- **Reliable note updates.** Actual changes to notes, reminders, tags and AI-enriched content continue to appear, even while filters are active.
+- **Tidier circular note markers.** Reminder, urgent and attachment indicators now sit precisely on the main icon's rim rather than overlapping its centre.
+
 ## v2.6.10
 
 - **Smoother scrolling with long notes.** Timeline previews now do far less work when a note contains lengthy text or Markdown, so the list responds more smoothly.

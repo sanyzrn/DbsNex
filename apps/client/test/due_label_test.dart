@@ -191,7 +191,10 @@ void main() {
             ),
           );
           expect(find.bySemanticsLabel(description), findsOneWidget);
-          await tester.longPress(find.byIcon(Icons.repeat_rounded));
+          final icon = tester.getRect(find.byIcon(Icons.repeat_rounded));
+          // The centre sits on the outer rim; the upper half remains
+          // interactive within the original leading hit-test bounds.
+          await tester.longPressAt(icon.topCenter + const Offset(0, 2));
           await tester.pumpAndSettle();
           expect(find.text(description), findsOneWidget);
           expect(tester.takeException(), isNull);
