@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -148,8 +150,8 @@ void main() {
               NexCardDensity.standard => 16.0,
               NexCardDensity.readable => 18.0,
             };
-            final markSide = ids.length == 3 && density.leading / 3 < normalSide
-                ? density.leading / 3
+            final markSide = ids.length == 3
+                ? math.min(normalSide, density.leading / 3 - 2)
                 : normalSide;
             expect(rect.width, closeTo(markSide, 0.01));
             expect(rect.height, closeTo(markSide, 0.01));
@@ -161,12 +163,12 @@ void main() {
             );
             expect(circle.width, closeTo(density.leading, 0.01));
             expect(circle.height, closeTo(density.leading, 0.01));
-            expect(rect.center.dy, greaterThan(circle.bottom - 14));
-            expect(rect.center.dy, lessThan(circle.bottom + 3));
+            expect(rect.center.dy, greaterThan(circle.center.dy));
+            expect(rect.bottom, lessThanOrEqualTo(circle.bottom + 0.01));
             expect(
               (rect.center - circle.center).distance,
-              closeTo(circle.width / 2, 0.03),
-              reason: 'badge center must be precisely on the main circle rim',
+              closeTo((circle.width - markSide) / 2, 0.03),
+              reason: 'badge center stays on the lower, hit-testable arc',
             );
             final halo = tester.widget<Container>(badge(id));
             expect(
@@ -225,7 +227,7 @@ void main() {
     }
   });
 
-  testWidgets('tags and all statuses share the exact same orbit', (
+  testWidgets('tags stay on the rim while statuses remain tappable', (
     tester,
   ) async {
     for (final density in NexCardDensity.values) {
@@ -241,8 +243,15 @@ void main() {
           final mark = tester.getRect(badge(id));
           expect(
             (mark.center - circle.center).distance,
-            closeTo(circle.width / 2, 0.03),
+            closeTo((circle.width - mark.width) / 2, 0.03),
           );
+          // Neither long-press nor tooltip may land outside the hit box.
+          final bounds = tester.getRect(
+            find.byKey(const ValueKey('note-leading-orbit')),
+          );
+          expect(mark.left, greaterThanOrEqualTo(bounds.left - 0.01));
+          expect(mark.right, lessThanOrEqualTo(bounds.right + 0.01));
+          expect(mark.bottom, lessThanOrEqualTo(bounds.bottom + 0.01));
         }
         for (var i = 0; i < 3; i++) {
           final dot = tester.getRect(find.byKey(ValueKey('note-tag-dot-$i')));

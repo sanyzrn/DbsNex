@@ -1,0 +1,44 @@
+name: Nex 2.6.10 reference image refresh (temporary)
+on:
+  push:
+    branches:
+      - fix/nex-2610-card-marker-polish
+permissions:
+  contents: write
+concurrency:
+  group: nex-2610-goldens
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: fix/nex-2610-card-marker-polish
+          persist-credentials: true
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      - name: Resolve Flutter packages
+        working-directory: apps/client
+        run: flutter pub get
+      - name: Supply SQLite to golden harness
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      - name: Regenerate ONLY the existing visual baselines
+        working-directory: apps/client
+        run: flutter test --update-goldens test/goldens/golden_test.dart
+      - name: Commit refreshed images to review branch
+        run: |
+          git add apps/client/test/goldens/*.png
+          if git diff --cached --quiet; then
+            echo "Visual baselines already match; nothing to push."
+            exit 0
+          fi
+          git diff --cached --name-only
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "test(goldens): update 2.6.10 card marker baselines"
+          git push origin HEAD:refs/heads/fix/nex-2610-card-marker-polish

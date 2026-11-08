@@ -555,7 +555,14 @@ void main() {
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(NoteCard),
+        matching: find.byIcon(Icons.push_pin),
+      ),
+      findsNothing,
+      reason: '2.6.10 hides only the badge, not the pinned state',
+    );
     expect(
       tester.getCenter(find.text('older note')).dy,
       lessThan(tester.getCenter(find.text('newer note')).dy),
@@ -579,7 +586,13 @@ void main() {
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.push_pin), findsNWidgets(2));
+    expect(
+      find.descendant(
+        of: find.byType(NoteCard),
+        matching: find.byIcon(Icons.push_pin),
+      ),
+      findsNothing,
+    );
     expect(
       tester.getCenter(find.text('newer note')).dy,
       lessThan(tester.getCenter(find.text('older note')).dy),

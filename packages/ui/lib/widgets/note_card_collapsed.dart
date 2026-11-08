@@ -131,10 +131,17 @@ class _CardStatusMarks extends StatelessWidget {
     ];
 
     final markSize = _noteStatusBadgeSize(context, badges.length);
-    final outerAngle = math.min(
-      math.pi / 4,
-      math.asin((radius - markSize / 2) / radius),
-    );
+    // The badges have to fit INSIDE the leading hit-test box. On the
+    // full-radius arc their centres sit on its lower edge, so a long-press
+    // on the reminder (including its tooltip) is silently missed.
+    // Inset the status orbit only; the main circle never moves.
+    final statusRadius = radius - markSize / 2;
+    final outerAngle = badges.length == 3
+        ? math.asin(math.min(1, markSize / statusRadius))
+        : math.min(
+            math.pi / 4,
+            math.asin((radius - markSize / 2) / radius),
+          );
 
     return SizedBox.square(
       dimension: side,
@@ -146,19 +153,19 @@ class _CardStatusMarks extends StatelessWidget {
             Positioned(
               // Every badge CENTER is on the same radius as the main glyph.
               left:
-                  _noteOrbitCenter(
+                  _noteStatusCenter(
                     side,
+                    statusRadius,
                     (i - (badges.length - 1) / 2) *
                         (badges.length == 2 ? outerAngle * 2 : outerAngle),
-                    upper: false,
                   ).dx -
                   markSize / 2,
               top:
-                  _noteOrbitCenter(
+                  _noteStatusCenter(
                     side,
+                    statusRadius,
                     (i - (badges.length - 1) / 2) *
                         (badges.length == 2 ? outerAngle * 2 : outerAngle),
-                    upper: false,
                   ).dy -
                   markSize / 2,
               child: Container(
@@ -171,11 +178,23 @@ class _CardStatusMarks extends StatelessWidget {
                   // Exact card background, including selected tint.
                   color: backgroundColor,
                 ),
-                child: badges[i].child,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: badges[i].child,
+                ),
               ),
             ),
         ],
       ),
     );
   }
+}
+
+/// A lower-arc badge stays inside the leading icon's interactive bounds.
+Offset _noteStatusCenter(double side, double radius, double angle) {
+  final center = side / 2;
+  return Offset(
+    center + radius * math.sin(angle),
+    center + radius * math.cos(angle),
+  );
 }

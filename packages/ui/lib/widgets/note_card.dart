@@ -930,7 +930,9 @@ double _noteStatusBadgeSize(BuildContext context, int count) {
     NexCardDensity.standard => 16.0,
     NexCardDensity.readable => 18.0,
   };
-  return count == 3 ? math.min(normal, density.leading / 3) : normal;
+  // Three badges need a little breathing room around the lower arc,
+  // including the compact 40px circle. Larger badges remain unchanged.
+  return count == 3 ? math.min(normal, density.leading / 3 - 2) : normal;
 }
 
 class _LeadingMarkers extends StatelessWidget {
