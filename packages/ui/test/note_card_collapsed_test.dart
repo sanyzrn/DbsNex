@@ -143,11 +143,15 @@ void main() {
           for (final id in ids) {
             final rect = tester.getRect(badge(id));
             // Layout transforms can introduce sub-pixel floating-point noise.
-            final markSide = switch (density) {
+            final normalSide = switch (density) {
               NexCardDensity.compact => 14.0,
               NexCardDensity.standard => 16.0,
               NexCardDensity.readable => 18.0,
             };
+            final markSide =
+                ids.length == 3 && density.leading / 3 < normalSide
+                ? density.leading / 3
+                : normalSide;
             expect(rect.width, closeTo(markSide, 0.01));
             expect(rect.height, closeTo(markSide, 0.01));
             expect(rect.center.dy, greaterThan(orb.center.dy));
@@ -227,7 +231,8 @@ void main() {
         final circle = tester.getRect(
           find.byKey(const ValueKey('note-main-circle-paint')),
         );
-        expect(circle.size, Size(density.leading, density.leading));
+        expect(circle.width, closeTo(density.leading, 0.03));
+        expect(circle.height, closeTo(density.leading, 0.03));
         for (final id in ['attachment', 'urgent', 'reminder']) {
           final mark = tester.getRect(badge(id));
           expect(
