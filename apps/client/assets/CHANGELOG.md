@@ -2,6 +2,11 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.10
+
+- **Smoother scrolling with long notes.** Timeline previews now do far less work when a note contains lengthy text or Markdown, so the list responds more smoothly.
+- **Lighter expand and collapse.** Opening or closing groups of long notes is faster, without changing the full contents of your notes or their appearance.
+
 ## v2.6.9
 
 - **Precisely aligned note badges.** The centres of tag dots above and attachment, priority and reminder badges below now sit on the full-size note icon's actual circular rim. The main icon stays the same size even with multiple badges, and spacing adapts to the card density.
