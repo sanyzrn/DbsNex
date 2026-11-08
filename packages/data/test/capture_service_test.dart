@@ -103,10 +103,7 @@ void main() {
         throwsA(isA<FormatException>()),
       );
       expect(repo.listTimeline(), isEmpty);
-      expect(
-        repo.listTags().map((t) => t.name).toList(),
-        initialTagNames,
-      );
+      expect(repo.listTags().map((t) => t.name).toList(), initialTagNames);
     });
 
     test('imports accept three distinct tags and repeated casing', () {
