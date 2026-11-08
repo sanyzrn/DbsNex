@@ -123,26 +123,15 @@ class _CardStatusMarks extends StatelessWidget {
         children: [
           for (var i = 0; i < badges.length; i++)
             Positioned(
-              left:
-                  radius +
-                  radius *
-                      math.sin(
-                        math.pi +
-                            ((badges.length - 1) / 2 - i) * (18.5 / radius),
-                      ) -
-                  10,
-              top:
-                  radius -
-                  radius *
-                      math.cos(
-                        math.pi +
-                            ((badges.length - 1) / 2 - i) * (18.5 / radius),
-                      ) -
-                  20,
+              // A compact row follows the bottom edge of the raised circle.
+              // It does not cover the note-type glyph, even with three marks.
+              // The outside badges sit 4 px higher to suggest a soft arc.
+              left: radius + (i - (badges.length - 1) / 2) * 16 - 8,
+              top: side - (badges.length == 3 && i != 1 ? 11 : 7),
               child: Container(
                 key: ValueKey('note-status-orbit-${badges[i].id}'),
-                width: 20,
-                height: 20,
+                width: 16,
+                height: 16,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
