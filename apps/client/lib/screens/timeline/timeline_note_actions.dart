@@ -205,11 +205,7 @@ extension _TimelineNoteActions on TimelineScreenState {
         () => unawaited(_runSwipe(NexSwipeAction.remind, note)),
         subtitle: note.dueAt == null
             ? null
-            : nexDueCardDescription(
-                menuContext,
-                note.dueAt!,
-                note.dueRepeat,
-              ),
+            : nexDueCardDescription(menuContext, note.dueAt!, note.dueRepeat),
       ),
       NexHoldAction.share =>
         !nexCanShare

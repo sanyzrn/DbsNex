@@ -16,6 +16,7 @@ class NexMenuEntryContent extends StatelessWidget {
 
   final IconData icon;
   final String label;
+
   /// Optional smaller detail, for example an active note reminder schedule.
   final String? subtitle;
   final Color? color;
@@ -44,9 +45,8 @@ class NexMenuEntryContent extends StatelessWidget {
           children: [
             Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: color),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: color),
             ),
             if (subtitle case final detail?)
               Text(
@@ -115,9 +115,8 @@ PopupMenuItem<T> nexMenuItem<T>({
       return icon == null
           ? Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: tint),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: tint),
             )
           : NexMenuEntryContent(icon: icon, label: label, color: tint);
     },
@@ -270,9 +269,8 @@ class _GlassMenuGroupState<T> extends State<_GlassMenuGroup<T>> {
               Semantics(
                 selected: true,
                 child: ColoredBox(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.12),
+                  color: Theme.of(context).colorScheme.primary
+                      .withValues(alpha: 0.12),
                   child: entry,
                 ),
               )

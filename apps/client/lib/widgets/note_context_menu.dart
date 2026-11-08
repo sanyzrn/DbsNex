@@ -21,6 +21,7 @@ class NoteMenuEntry {
   /// pinned note, Collapse for an expanded card.
   final String? label;
   final IconData? icon;
+
   /// Optional subdued second line, shown only when relevant.
   final String? subtitle;
 }
