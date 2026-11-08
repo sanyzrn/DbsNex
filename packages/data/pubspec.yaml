@@ -9,6 +9,16 @@ version: 0.1.0
 environment:
   sdk: ^3.13.0
 
+
+# The Linux test runner uses its installed SQLite, avoiding network downloads
+# from third-party GitHub assets. Android and Windows retain the bundled build.
+hooks:
+  user_defines:
+    sqlite3:
+      source:
+        linux: system
+        default: sqlite3
+
 dependencies:
   archive: ^4.6.0
   crypto: ^3.0.6
@@ -18,8 +28,7 @@ dependencies:
   nex_core:
     path: ../core
   path: ^1.9.1
-  # Pin until the sqlite3 3.9.0 native Linux artifact hash is corrected.
-  sqlite3: 3.8.0
+  sqlite3: ^3.8.0
   uuid: ^4.5.1
 
 dev_dependencies:
