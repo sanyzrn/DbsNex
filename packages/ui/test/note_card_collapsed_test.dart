@@ -148,8 +148,7 @@ void main() {
               NexCardDensity.standard => 16.0,
               NexCardDensity.readable => 18.0,
             };
-            final markSide =
-                ids.length == 3 && density.leading / 3 < normalSide
+            final markSide = ids.length == 3 && density.leading / 3 < normalSide
                 ? density.leading / 3
                 : normalSide;
             expect(rect.width, closeTo(markSide, 0.01));
