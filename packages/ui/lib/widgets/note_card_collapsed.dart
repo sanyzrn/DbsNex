@@ -90,11 +90,25 @@ class _CardStatusMarks extends StatelessWidget {
       if (note.isUrgent)
         (
           id: 'urgent',
-          child: const ExcludeSemantics(
-            child: Text(
-              '🔥',
-              key: ValueKey('note-urgent-mark'),
-              style: TextStyle(fontSize: 14, height: 1),
+          child: ExcludeSemantics(
+            child: SizedBox(
+              key: const ValueKey('note-urgent-mark'),
+              width: 14,
+              height: 14,
+              child: Center(
+                // Android draws the requested coloured emoji. Linux test and
+                // desktop fonts may not include it; keep a visible fallback.
+                child: Theme.of(context).platform == TargetPlatform.linux
+                    ? const Icon(
+                        Icons.local_fire_department_rounded,
+                        size: 14,
+                        color: Color(0xFFE95432),
+                      )
+                    : const Text(
+                        '🔥',
+                        style: TextStyle(fontSize: 14, height: 1),
+                      ),
+              ),
             ),
           ),
         ),
@@ -150,7 +164,9 @@ class _CardStatusMarks extends StatelessWidget {
                   shape: BoxShape.circle,
                   // The badge must read as its own white/light disc against
                   // the card, not disappear into the card's identical fill.
-                  color: scheme.surface,
+                  color: scheme.brightness == Brightness.dark
+                      ? scheme.surfaceContainerHighest
+                      : scheme.surface,
                   border: Border.all(
                     color: scheme.outlineVariant.withValues(alpha: 0.18),
                     width: 0.5,
