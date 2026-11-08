@@ -91,30 +91,10 @@ class _CardStatusMarks extends StatelessWidget {
         (
           id: 'urgent',
           child: const ExcludeSemantics(
-            // Emoji fonts are not guaranteed (Linux goldens had a blank fire).
-            // Two vector layers make the flame stable on every platform.
-            child: SizedBox(
+            child: Text(
+              '🔥',
               key: ValueKey('note-urgent-mark'),
-              width: 14,
-              height: 14,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(
-                    Icons.local_fire_department_rounded,
-                    size: 15,
-                    color: Color(0xFFE95432),
-                  ),
-                  Positioned(
-                    bottom: 1,
-                    child: Icon(
-                      Icons.local_fire_department_rounded,
-                      size: 7,
-                      color: Color(0xFFFFCA52),
-                    ),
-                  ),
-                ],
-              ),
+              style: TextStyle(fontSize: 14, height: 1),
             ),
           ),
         ),
@@ -135,6 +115,17 @@ class _CardStatusMarks extends StatelessWidget {
         ),
     ];
 
+    final markSize = switch (NexCardDensity.of(context)) {
+      NexCardDensity.compact => 14.0,
+      NexCardDensity.standard => 16.0,
+      NexCardDensity.readable => 18.0,
+    };
+    final spread = badges.length == 3
+        ? (side - markSize) / 2
+        : side >= 48
+        ? 22.0
+        : 18.0;
+
     return SizedBox.square(
       dimension: side,
       child: Stack(
@@ -143,18 +134,26 @@ class _CardStatusMarks extends StatelessWidget {
         children: [
           for (var i = 0; i < badges.length; i++)
             Positioned(
-              // Every badge stays inside this square's hit-test region.
-              // The raised, slightly smaller circle ends above the badges.
-              left: radius + (i - (badges.length - 1) / 2) * 16 - 8,
-              top: side - (badges.length == 3 && i != 1 ? 20 : 16),
+              // One badge is centred; two spread apart; three form a low arc.
+              // Their entire touch targets remain within the leading square.
+              left: radius + (i - (badges.length - 1) / 2) * spread -
+                  markSize / 2,
+              top: side - markSize -
+                  (badges.length == 3 && i != 1 ? 4 : 0),
               child: Container(
                 key: ValueKey('note-status-orbit-${badges[i].id}'),
-                width: 16,
-                height: 16,
+                width: markSize,
+                height: markSize,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: scheme.surfaceContainerLowest,
+                  // The badge must read as its own white/light disc against
+                  // the card, not disappear into the card's identical fill.
+                  color: scheme.surface,
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.18),
+                    width: 0.5,
+                  ),
                 ),
                 child: badges[i].child,
               ),

@@ -63,6 +63,43 @@ void main() {
       expect(search.timeline().first.tags, isEmpty);
     });
 
+    test('three tags per note, duplicates and removals remain safe', () {
+      final note = capture.submitTextCapture('tag cap')!;
+      final first = tags.addTag(noteId: note.id, name: 'Work');
+      tags.addTag(noteId: note.id, name: 'Idea');
+      tags.addTag(noteId: note.id, name: 'Home');
+
+      expect(
+        () => tags.addTag(noteId: note.id, name: 'Fourth'),
+        throwsStateError,
+      );
+      expect(repo.listTags().any((t) => t.name == 'Fourth'), isFalse);
+      tags.addTag(noteId: note.id, name: 'work');
+      expect(repo.getById(note.id)!.tags, hasLength(nexMaxTagsPerNote));
+
+      final fourth = repo.upsertTag(name: 'Fourth');
+      expect(
+        () => repo.attachTag(noteId: note.id, tagId: fourth.id),
+        throwsStateError,
+      );
+      tags.removeTag(noteId: note.id, tagId: first.id);
+      tags.addTag(noteId: note.id, name: 'Fourth');
+      expect(repo.getById(note.id)!.tags, hasLength(nexMaxTagsPerNote));
+    });
+
+    test('imports keep at most three distinct tags', () {
+      final imported = capture.importNotes([
+        const ImportedNote(
+          type: NoteType.text,
+          text: 'Imported',
+          tags: ['Work', 'work', 'Idea', 'Home', 'Fourth'],
+        ),
+      ]);
+      expect(imported, hasLength(1));
+      expect(repo.getById(imported.single.id)!.tags, hasLength(3));
+      expect(repo.listTags().any((t) => t.name == 'Fourth'), isFalse);
+    });
+
     test('search filters by query and type', () {
       capture.submitTextCapture('findme please');
       capture.submitTextCapture('other');

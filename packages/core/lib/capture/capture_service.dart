@@ -201,9 +201,13 @@ class CaptureService {
           syncState: SyncState.pending,
         ),
       );
+      final importedTags = <String>{};
       for (final name in source.tags) {
         final trimmed = name.trim();
-        if (trimmed.isEmpty) continue;
+        if (trimmed.isEmpty || !importedTags.add(trimmed.toLowerCase())) {
+          continue;
+        }
+        if (importedTags.length > nexMaxTagsPerNote) break;
         // `upsertTag` is what makes two notes carrying the same label share
         // one tag rather than minting one each — and what makes a label that
         // already exists in Nex merge with it instead of duplicating.
@@ -222,6 +226,13 @@ class TagService {
   final NoteRepository _repo;
 
   Tag addTag({required String noteId, required String name, String? color}) {
+    final current = _repo.getById(noteId)?.tags ?? const <Tag>[];
+    final alreadyTagged = current.any(
+      (tag) => tag.name.toLowerCase() == name.trim().toLowerCase(),
+    );
+    if (!alreadyTagged && current.length >= nexMaxTagsPerNote) {
+      throw StateError('A note can have at most $nexMaxTagsPerNote tags.');
+    }
     final tag = _repo.upsertTag(name: name, color: color);
     _repo.attachTag(noteId: noteId, tagId: tag.id);
     return tag;

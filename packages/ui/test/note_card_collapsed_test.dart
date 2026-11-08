@@ -143,15 +143,28 @@ void main() {
           for (final id in ids) {
             final rect = tester.getRect(badge(id));
             // Layout transforms can introduce sub-pixel floating-point noise.
-            expect(rect.width, closeTo(16, 0.01));
-            expect(rect.height, closeTo(16, 0.01));
+            final markSide = switch (density) {
+              NexCardDensity.compact => 14.0,
+              NexCardDensity.standard => 16.0,
+              NexCardDensity.readable => 18.0,
+            };
+            expect(rect.width, closeTo(markSide, 0.01));
+            expect(rect.height, closeTo(markSide, 0.01));
             expect(rect.center.dy, greaterThan(orb.center.dy));
-            // The lower marks may graze the rim, never cover the glyph.
-            final gap =
-                (rect.center - orb.center.translate(0, -12)).distance -
-                (orb.width - 8) / 2 -
-                rect.width / 2;
-            expect(gap, greaterThanOrEqualTo(-0.01));
+            // Unlike the previous design, the circle is never shrunk when
+            // status marks appear. Each white disc sits on its lower rim.
+            final circle = tester.getRect(
+              find.byKey(const ValueKey('note-main-circle')),
+            );
+            expect(circle.width, closeTo(density.leading, 0.01));
+            expect(circle.height, closeTo(density.leading, 0.01));
+            expect(rect.center.dy, greaterThan(circle.bottom - 14));
+            expect(rect.center.dy, lessThan(circle.bottom + 3));
+            final halo = tester.widget<Container>(badge(id));
+            expect(
+              (halo.decoration! as BoxDecoration).color,
+              Theme.of(tester.element(badge(id))).colorScheme.surface,
+            );
             // A badge painted outside the stack cannot receive a long press.
             expect(rect.top, greaterThanOrEqualTo(orb.top));
             expect(rect.bottom, lessThanOrEqualTo(orb.bottom));

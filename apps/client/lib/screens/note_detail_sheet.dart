@@ -478,7 +478,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           ActionChip(
                             avatar: const Icon(Icons.add, size: 16),
                             label: Text(l10n.tag),
-                            onPressed: _addTag,
+                            onPressed: note.tags.length < nexMaxTagsPerNote
+                                ? _addTag
+                                : null,
                           ),
                         ?_attachChip(note, l10n),
                         // Threads sit with the tags: both say what a note

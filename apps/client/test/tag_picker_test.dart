@@ -60,6 +60,29 @@ void main() {
     expect(choice?.tag?.id, '1');
   });
 
+  testWidgets('the fourth tag cannot be chosen or created', (tester) async {
+    await tester.pumpWidget(
+      _harness(
+        (_) {},
+        tags: [
+          _tag('1', 'Idea'),
+          _tag('2', 'Work'),
+          _tag('3', 'Errands'),
+          _tag('4', 'Other'),
+        ],
+        alreadyOn: {'1', '2', '3'},
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('at most 3 tags'), findsOneWidget);
+    await tester.tap(find.text('Other'));
+    await tester.pumpAndSettle();
+    expect(find.text('Other'), findsOneWidget);
+    expect(find.byType(TagPickerSheet), findsOneWidget);
+  });
+
   testWidgets(
     'a tag already on the note shows a check and does not pop again',
     (tester) async {
