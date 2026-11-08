@@ -1,0 +1,32 @@
+name: Format PR 422 Dart tests (temporary)
+on:
+  push:
+    branches: [fix/nex-2610-return-to-timeline-lag]
+permissions:
+  contents: write
+jobs:
+  format-once:
+    if: github.event.head_commit.message != 'ci: format PR 422 tests'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/nex-2610-return-to-timeline-lag
+          persist-credentials: true
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d
+        with:
+          sdk: "3.13.7"
+      - name: Format targeted test only
+        run: dart format apps/client/test/timeline_noop_refresh_test.dart
+      - name: Commit formatting only
+        run: |
+          git add apps/client/test/timeline_noop_refresh_test.dart
+          if git diff --cached --quiet; then
+            echo "Already formatted"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "ci: format PR 422 tests"
+          git push origin HEAD:refs/heads/fix/nex-2610-return-to-timeline-lag

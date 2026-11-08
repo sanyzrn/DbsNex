@@ -390,6 +390,7 @@ class TimelineModel extends ChangeNotifier {
         a.type == b.type &&
         a.rev == b.rev &&
         a.updatedAt == b.updatedAt &&
+        a.createdAt == b.createdAt &&
         a.deletedAt == b.deletedAt &&
         a.content == b.content &&
         a.caption == b.caption &&

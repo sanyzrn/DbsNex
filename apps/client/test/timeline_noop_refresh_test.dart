@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline/timeline_model.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
