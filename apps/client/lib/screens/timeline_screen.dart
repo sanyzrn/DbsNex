@@ -355,6 +355,8 @@ class TimelineScreenState extends State<TimelineScreen>
     _swipe.addListener(_onSwipeChanged);
     _model.addListener(_onModelChanged);
     _wireRinging();
+    // A first return from a read-only sheet is not a settings change.
+    _briefSettingsKey = _briefSettingsSignature();
     widget.preferences.addListener(_onBriefPreferencesChanged);
     _habitBriefChanges = widget.services.moduleChanges.listen((module) {
       if (module == 'habits' &&
@@ -385,11 +387,9 @@ class TimelineScreenState extends State<TimelineScreen>
     );
     _model.listen((delivered) {
       if (!mounted) return;
-      // The tour waits for a first note, and this is the path the note that
-      // ends that wait arrives on.
       _tourWhenReady();
       _requestAiHeader(delivered);
-    });
+    }, onUnchanged: _refreshExternalBriefIfChanged);
     WidgetsBinding.instance.addObserver(this);
     _search.addListener(_onSearchChanged);
     _scroll.addListener(_onAiSummaryScroll);
@@ -693,17 +693,14 @@ class TimelineScreenState extends State<TimelineScreen>
   @override
   void didPushNext() => unawaited(_model.retireSpentReminders());
 
-  /// The timeline is back in front, so the walk-through may be due again.
-  ///
-  /// It is due exactly when this screen is the one being looked at, and the
-  /// two moments that can make it due — the first note arriving, and a cold
-  /// launch finishing its read — can both land while somebody is in Settings
-  /// or the Library. [_maybeStartTour] now declines in that case, which would
-  /// leave the tour never shown at all without somewhere to ask again.
+  /// Recheck the first-run tour when the timeline becomes visible.
   @override
   void didPopNext() {
     _tourWhenReady();
-    _onBriefPreferencesChanged();
+    // Avoid re-rendering all cards on an unchanged route return.
+    if (_briefSettingsKey != _briefSettingsSignature()) {
+      _onBriefPreferencesChanged();
+    }
   }
 
   /// Leaving the app counts as leaving the timeline.

@@ -480,6 +480,50 @@ extension _TimelineNoteActions on TimelineScreenState {
     await widget.services.refreshTimeline();
   }
 
+  /// The sheet may edit note metadata without emitting a timeline event.
+  /// Compare its one fresh row with what the list already displays; avoid
+  /// loading and repainting the entire timeline on a read-only dismissal.
+  bool _matchesTimelineNote(Note old, Note fresh) {
+    if (old.id != fresh.id ||
+        old.type != fresh.type ||
+        old.content != fresh.content ||
+        old.mediaUri != fresh.mediaUri ||
+        old.mediaHash != fresh.mediaHash ||
+        old.durationMs != fresh.durationMs ||
+        old.transcriptText != fresh.transcriptText ||
+        old.ocrText != fresh.ocrText ||
+        old.summaryText != fresh.summaryText ||
+        old.caption != fresh.caption ||
+        old.title != fresh.title ||
+        old.linkExcerpt != fresh.linkExcerpt ||
+        old.mimeType != fresh.mimeType ||
+        old.updatedAt != fresh.updatedAt ||
+        old.deletedAt != fresh.deletedAt ||
+        old.rev != fresh.rev ||
+        old.syncState != fresh.syncState ||
+        old.pinnedAt != fresh.pinnedAt ||
+        old.isUrgent != fresh.isUrgent ||
+        old.setAsideAt != fresh.setAsideAt ||
+        old.setAsideUntil != fresh.setAsideUntil ||
+        old.dueAt != fresh.dueAt ||
+        old.dueRepeat != fresh.dueRepeat ||
+        old.sortOrder != fresh.sortOrder ||
+        old.attachmentCount != fresh.attachmentCount ||
+        old.tags.length != fresh.tags.length) {
+      return false;
+    }
+    for (var i = 0; i < old.tags.length; i++) {
+      final before = old.tags[i];
+      final after = fresh.tags[i];
+      if (before.id != after.id ||
+          before.name != after.name ||
+          before.color != after.color) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _openNote(
     Note note, {
     bool edit = false,
@@ -496,11 +540,20 @@ extension _TimelineNoteActions on TimelineScreenState {
         initialNote: note,
       ),
     );
-    if (result == DetailResult.deleted) await deleteWithUndo(note);
+    if (!mounted) return;
+    if (result == DetailResult.deleted) {
+      await deleteWithUndo(note);
+      return;
+    }
+    // Most edits have already refreshed the stream inside their save path.
+    // A checklist tick or another metadata-only write may not have done so;
+    // compare one row before deciding whether the full timeline is stale.
+    final latest = await widget.services.getById(note.id);
+    if (!mounted) return;
+    final shown = _model.byId(note.id) ?? note;
+    if (latest != null && _matchesTimelineNote(shown, latest)) return;
     await widget.services.refreshTimeline();
-    // The sheet can create a tag; the filter row has to learn about it without
-    // an app restart.
-    await _model.loadFilterTags();
-    if (_searching) await _search.run();
+    // TimelineModel refreshes tag usage from the timeline stream itself.
+    if (mounted && _searching) await _search.run();
   }
 }

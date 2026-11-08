@@ -18,6 +18,19 @@ extension _TimelineAiHeader on TimelineScreenState {
     );
   }
 
+  /// The cache may be updated without changing any note (for example by an
+  /// external summary writer). A no-op timeline delivery is still its signal.
+  /// Compare the cached text before doing work; never rebuild all note cards.
+  void _refreshExternalBriefIfChanged() {
+    if (!mounted) return;
+    final cached = CloudAIAdapter.cleanDecorativeReply(
+      widget.preferences.aiDaySummaryText,
+    );
+    if (cached != null && cached.isNotEmpty && cached != _aiSummaryText) {
+      unawaited(_loadAiSummary());
+    }
+  }
+
   void _onBriefPreferencesChanged() {
     if (!mounted || _briefPreferencesQueued) return;
     _briefPreferencesQueued = true;
