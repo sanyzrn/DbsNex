@@ -20,6 +20,42 @@ void main() {
 
   tearDown(() => harness.dispose());
 
+  testWidgets('closing a note without editing does not reload the timeline', (
+    tester,
+  ) async {
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NoteCard).first);
+    await tester.pumpAndSettle();
+    final reads = harness.db.timelineReads;
+
+    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+    await tester.pumpAndSettle();
+
+    expect(harness.db.timelineReads, reads);
+    expect(find.byType(NoteCard), findsWidgets);
+  });
+
+  testWidgets('an unseen note edit still refreshes the timeline on close', (
+    tester,
+  ) async {
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    final note = (await harness.services.timeline()).first;
+    await tester.tap(find.byType(NoteCard).first);
+    await tester.pumpAndSettle();
+    final reads = harness.db.timelineReads;
+    // Simulate an edit that persisted but did not dispatch a timeline event,
+    // as some detail-sheet metadata actions do.
+    await harness.db.updateNote(note.id, 'updated behind the detail sheet');
+
+    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+    await tester.pumpAndSettle();
+
+    expect(harness.db.timelineReads, reads + 1);
+    expect(find.text('updated behind the detail sheet'), findsOneWidget);
+  });
+
   testWidgets("the note rises from the bottom at the assistant's pace", (
     tester,
   ) async {

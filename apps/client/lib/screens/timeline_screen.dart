@@ -703,7 +703,14 @@ class TimelineScreenState extends State<TimelineScreen>
   @override
   void didPopNext() {
     _tourWhenReady();
-    _onBriefPreferencesChanged();
+    // Sheets and pages can return without touching recap preferences. Calling
+    // _onBriefPreferencesChanged unconditionally rebuilt every visible card
+    // during the route's exit animation, even for a read-only note.
+    // Preference listeners already handle normal changes; only catch up with
+    // changes made while another route covered the timeline.
+    if (_briefSettingsKey != _briefSettingsSignature()) {
+      _onBriefPreferencesChanged();
+    }
   }
 
   /// Leaving the app counts as leaving the timeline.
