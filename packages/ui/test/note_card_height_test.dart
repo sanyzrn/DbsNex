@@ -66,7 +66,7 @@ void main() {
     expect(short, nexCardHeight + nexCardInsets.vertical);
   });
 
-  testWidgets('a pinned note shows a pin, an unpinned one does not', (
+  testWidgets('a pinned note keeps pin state without showing the card badge', (
     tester,
   ) async {
     final now = DateTime.utc(2026, 7, 28);
@@ -92,7 +92,8 @@ void main() {
         ),
       ),
     );
-    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+    expect(pinned.pinnedAt, isNotNull);
+    expect(find.byIcon(Icons.push_pin), findsNothing);
   });
 
   testWidgets('tags are colours on the card, never names', (tester) async {

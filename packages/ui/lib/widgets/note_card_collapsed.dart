@@ -64,16 +64,17 @@ class _CardStatusMarks extends StatelessWidget {
   const _CardStatusMarks({
     required this.note,
     required this.strings,
+    required this.backgroundColor,
     required this.due,
   });
 
   final Note note;
   final NexCardStrings strings;
+  final Color backgroundColor;
   final DateTime? due;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final side = NexCardDensity.of(context).leading;
     final radius = side / 2;
     final full = due == null
@@ -130,7 +131,6 @@ class _CardStatusMarks extends StatelessWidget {
     ];
 
     final markSize = _noteStatusBadgeSize(context, badges.length);
-    final lift = markSize / 2;
     final outerAngle = math.min(
       math.pi / 4,
       math.asin((radius - markSize / 2) / radius),
@@ -148,7 +148,6 @@ class _CardStatusMarks extends StatelessWidget {
               left:
                   _noteOrbitCenter(
                     side,
-                    lift,
                     (i - (badges.length - 1) / 2) *
                         (badges.length == 2 ? outerAngle * 2 : outerAngle),
                     upper: false,
@@ -157,7 +156,6 @@ class _CardStatusMarks extends StatelessWidget {
               top:
                   _noteOrbitCenter(
                     side,
-                    lift,
                     (i - (badges.length - 1) / 2) *
                         (badges.length == 2 ? outerAngle * 2 : outerAngle),
                     upper: false,
@@ -170,15 +168,8 @@ class _CardStatusMarks extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  // The badge must read as its own white/light disc against
-                  // the card, not disappear into the card's identical fill.
-                  color: scheme.brightness == Brightness.dark
-                      ? scheme.surfaceContainerHighest
-                      : scheme.surface,
-                  border: Border.all(
-                    color: scheme.outlineVariant.withValues(alpha: 0.18),
-                    width: 0.5,
-                  ),
+                  // Exact card background, including selected tint.
+                  color: backgroundColor,
                 ),
                 child: badges[i].child,
               ),

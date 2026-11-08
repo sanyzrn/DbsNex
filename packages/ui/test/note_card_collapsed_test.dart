@@ -171,11 +171,16 @@ void main() {
             final halo = tester.widget<Container>(badge(id));
             expect(
               (halo.decoration! as BoxDecoration).color,
-              Theme.of(tester.element(badge(id))).colorScheme.surface,
+              Theme.of(tester.element(badge(id)))
+                  .colorScheme
+                  .surfaceContainerLowest,
             );
             // A badge painted outside the stack cannot receive a long press.
-            expect(rect.top, greaterThanOrEqualTo(orb.top));
-            expect(rect.bottom, lessThanOrEqualTo(orb.bottom));
+            // Fixed center means bottom badges can project below the orbit
+            // square, but they remain within the padded card material.
+            final card = tester.getRect(find.byType(NoteCard));
+            expect(rect.top, greaterThanOrEqualTo(card.top));
+            expect(rect.bottom, lessThanOrEqualTo(card.bottom));
             positions.add(rect.center.dx);
           }
           expect(positions, orderedEquals([...positions]..sort()));
@@ -248,6 +253,63 @@ void main() {
         }
         expect(tester.takeException(), isNull);
       }
+    }
+  });
+
+  testWidgets('adding statuses never moves the main circle', (tester) async {
+    for (final density in NexCardDensity.values) {
+      for (final rtl in [false, true]) {
+        double? originalTop;
+        for (final mask in [0, 1, 2, 4, 7]) {
+          await pump(tester, note(mask), density: density, rtl: rtl);
+          await tester.pumpAndSettle();
+          final circle = tester.getRect(
+            find.byKey(const ValueKey('note-main-circle-paint')),
+          );
+          originalTop ??= circle.top;
+          expect(circle.top, closeTo(originalTop, 0.01));
+          expect(tester.takeException(), isNull);
+        }
+      }
+    }
+  });
+
+  testWidgets('three coloured tag dots never overlap', (tester) async {
+    for (final density in NexCardDensity.values) {
+      await pump(tester, note(7, tags: [tag(0), tag(1), tag(2)]),
+          density: density);
+      final dots = [
+        for (var i = 0; i < 3; i++)
+          tester.getRect(find.byKey(ValueKey('note-tag-dot-$i'))),
+      ];
+      for (var i = 1; i < dots.length; i++) {
+        expect(dots[i - 1].right, lessThan(dots[i].left));
+      }
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('marker backgrounds match selected and normal cards', (tester) async {
+    for (final selected in <bool?>[null, false, true]) {
+      await pump(tester, note(7, tags: [tag(0), tag(1), tag(2)]),
+          selected: selected);
+      final cardColor = tester.widget<Material>(
+        find.ancestor(
+          of: find.byKey(const ValueKey('note-leading-orbit')),
+          matching: find.byType(Material),
+        ).first,
+      ).color;
+      for (var i = 0; i < 3; i++) {
+        final dot = tester.widget<Container>(
+          find.byKey(ValueKey('note-tag-dot-$i')),
+        );
+        expect((dot.decoration! as BoxDecoration).color, cardColor);
+      }
+      for (final id in ['attachment', 'urgent', 'reminder']) {
+        final mark = tester.widget<Container>(badge(id));
+        expect((mark.decoration! as BoxDecoration).color, cardColor);
+      }
+      expect(tester.takeException(), isNull);
     }
   });
 
