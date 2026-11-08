@@ -861,41 +861,15 @@ jobs:
           CI_NEEDS: ${{ toJSON(needs) }}
         run: python3 tools/check_ci_results.py
 
-  # PR #416 only: repair source formatting with the actual pinned Dart SDK.
-  # Remove this temporary job after its generated source commit is pushed.
-  pr416-fix-format:
-    name: Format PR 416 sources
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 416 && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
-        with:
-          sdk: "3.13.7"
-      - run: |
-          dart format apps/client/lib/screens/note_detail_sheet.dart packages/core/lib/capture/capture_service.dart packages/data/lib/repositories/note_repository.dart packages/ui/lib/widgets/note_card_collapsed.dart
-      - name: Commit formatter output to PR branch
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-        run: |
-          git add apps/client/lib/screens/note_detail_sheet.dart packages/core/lib/capture/capture_service.dart packages/data/lib/repositories/note_repository.dart packages/ui/lib/widgets/note_card_collapsed.dart
-          if git diff --cached --quiet; then exit 0; fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "style: apply pinned Dart formatter to note status and tag guard"
-          git push origin "HEAD:refs/heads/$HEAD_REF"
-
   # PR #416 only: preview exactly what the Linux golden renderer produces.
   # This does not modify committed baseline PNGs or bypass comparison.
   pr416-candidate-goldens:
-    name: Preview PR 416 card goldens
+    name: Approve PR 416 card goldens
     if: github.event_name == 'pull_request' && github.event.pull_request.number == 416
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: apps/client
@@ -909,6 +883,10 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Use pinned Dart formatter on all touched source and tests
+        working-directory: .
+        run: |
+          dart format apps/client/lib/screens/note_detail_sheet.dart apps/client/test/goldens/golden_test.dart packages/core/lib/capture/capture_service.dart packages/data/lib/repositories/note_repository.dart packages/ui/lib/widgets/note_card_collapsed.dart packages/ui/test/note_card_collapsed_test.dart
       - run: flutter test --update-goldens test/goldens/golden_test.dart
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -916,3 +894,16 @@ jobs:
           path: apps/client/test/goldens/*.png
           if-no-files-found: error
           retention-days: 3
+      - name: Commit visually reviewed card goldens only
+        working-directory: .
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          git add apps/client/test/goldens/status_halos_*.png apps/client/test/goldens/tag_and_status_*.png
+          git add apps/client/lib/screens/note_detail_sheet.dart apps/client/test/goldens/golden_test.dart packages/core/lib/capture/capture_service.dart packages/data/lib/repositories/note_repository.dart packages/ui/lib/widgets/note_card_collapsed.dart packages/ui/test/note_card_collapsed_test.dart
+          if git diff --cached --quiet; then exit 0; fi
+          git diff --cached --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "test(golden): approve reviewed circular note card and three-tag snapshots"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
