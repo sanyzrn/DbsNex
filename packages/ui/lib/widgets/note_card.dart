@@ -946,11 +946,7 @@ class _LeadingMarkers extends StatelessWidget {
             ),
           ),
           if (note.tags.isNotEmpty)
-            _ArcTagDots(
-              tags: note.tags,
-              strings: strings,
-              raised: hasStatuses,
-            ),
+            _ArcTagDots(tags: note.tags, strings: strings, raised: hasStatuses),
           if (hasStatuses)
             _CardStatusMarks(
               note: note,
