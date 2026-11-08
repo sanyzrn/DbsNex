@@ -399,16 +399,23 @@ class _CardBody extends StatelessWidget {
 /// At most three tag colours sit on the *top arc* of the circular icon.
 /// They keep the card's own semantics and never consume preview width.
 class _ArcTagDots extends StatelessWidget {
-  const _ArcTagDots({required this.tags, required this.strings});
+  const _ArcTagDots({
+    required this.tags,
+    required this.strings,
+    this.raised = false,
+  });
 
   final List<Tag> tags;
   final NexCardStrings strings;
+  final bool raised;
 
   @override
   Widget build(BuildContext context) {
     final shown = tags.take(3).toList();
     final side = NexCardDensity.of(context).leading;
     final radius = side / 2;
+    final arcRadius = raised ? radius - 4 : radius;
+    final arcY = raised ? radius - 7 : radius;
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       container: true,
@@ -425,12 +432,12 @@ class _ArcTagDots extends StatelessWidget {
               Positioned(
                 left:
                     radius +
-                    radius *
+                    arcRadius *
                         math.sin((i - (shown.length - 1) / 2) * math.pi / 6) -
                     7,
                 top:
-                    radius -
-                    radius *
+                    arcY -
+                    arcRadius *
                         math.cos((i - (shown.length - 1) / 2) * math.pi / 6) -
                     7,
                 child: Container(
@@ -928,14 +935,22 @@ class _LeadingMarkers extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Raise only marked icons into the existing top padding. The
-          // status badges then fit below the circle, inside the card.
+          // Keep the bottom badges inside the orbit's hit-test bounds so a
+          // long press can still show reminder details. The main circle
+          // becomes slightly smaller and rises into the existing top inset.
           Transform.translate(
-            offset: Offset(0, hasStatuses ? -6 : 0),
-            child: leading,
+            offset: Offset(0, hasStatuses ? -12 : 0),
+            child: Transform.scale(
+              scale: hasStatuses ? (side - 8) / side : 1,
+              child: leading,
+            ),
           ),
           if (note.tags.isNotEmpty)
-            _ArcTagDots(tags: note.tags, strings: strings),
+            _ArcTagDots(
+              tags: note.tags,
+              strings: strings,
+              raised: hasStatuses,
+            ),
           if (hasStatuses)
             _CardStatusMarks(
               note: note,
