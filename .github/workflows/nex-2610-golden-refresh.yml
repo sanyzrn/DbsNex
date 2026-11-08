@@ -1,4 +1,4 @@
-name: Nex 2.6.10 reference image refresh (temporary)
+name: Nex 2.6.10 Dart formatting (temporary)
 on:
   push:
     branches:
@@ -6,39 +6,31 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: nex-2610-goldens
+  group: nex-2610-format
   cancel-in-progress: false
 jobs:
-  refresh:
+  format:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: fix/nex-2610-card-marker-polish
           persist-credentials: true
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         with:
-          flutter-version-file: .fvmrc
-          channel: stable
-          cache: true
-      - name: Resolve Flutter packages
-        working-directory: apps/client
-        run: flutter pub get
-      - name: Supply SQLite to golden harness
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
-      - name: Regenerate ONLY the existing visual baselines
-        working-directory: apps/client
-        run: flutter test --update-goldens test/goldens/golden_test.dart
-      - name: Commit refreshed images to review branch
+          sdk: "3.13.7"
+      - name: Format the changed lower badge widget
+        run: dart format packages/ui/lib/widgets/note_card_collapsed.dart
+      - name: Commit only canonical format changes
         run: |
-          git add apps/client/test/goldens/*.png
+          git add packages/ui/lib/widgets/note_card_collapsed.dart
           if git diff --cached --quiet; then
-            echo "Visual baselines already match; nothing to push."
+            echo "Already correctly formatted"
             exit 0
           fi
-          git diff --cached --name-only
+          git diff --cached --stat
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "test(goldens): update 2.6.10 card marker baselines"
+          git commit -m "style(ui): canonical lower-arc Dart formatting"
           git push origin HEAD:refs/heads/fix/nex-2610-card-marker-polish
