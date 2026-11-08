@@ -1,4 +1,3 @@
-
 import '../ids.dart';
 import '../import/note_import.dart';
 import '../models/checklist.dart';

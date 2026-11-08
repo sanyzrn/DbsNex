@@ -136,10 +136,11 @@ class _CardStatusMarks extends StatelessWidget {
             Positioned(
               // One badge is centred; two spread apart; three form a low arc.
               // Their entire touch targets remain within the leading square.
-              left: radius + (i - (badges.length - 1) / 2) * spread -
+              left:
+                  radius +
+                  (i - (badges.length - 1) / 2) * spread -
                   markSize / 2,
-              top: side - markSize -
-                  (badges.length == 3 && i != 1 ? 4 : 0),
+              top: side - markSize - (badges.length == 3 && i != 1 ? 4 : 0),
               child: Container(
                 key: ValueKey('note-status-orbit-${badges[i].id}'),
                 width: markSize,

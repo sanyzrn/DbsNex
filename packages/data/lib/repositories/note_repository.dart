@@ -850,17 +850,18 @@ ORDER BY t.name COLLATE NOCASE
         [noteId, tagId],
       );
       if (present.isNotEmpty) return;
-      final count = db.select(
-        'SELECT COUNT(*) AS n FROM note_tags WHERE note_id = ?',
-        [noteId],
-      ).first['n']! as int;
+      final count =
+          db.select('SELECT COUNT(*) AS n FROM note_tags WHERE note_id = ?', [
+                noteId,
+              ]).first['n']!
+              as int;
       if (count >= nexMaxTagsPerNote) {
         throw StateError('A note can have at most $nexMaxTagsPerNote tags.');
       }
-      db.execute(
-        'INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)',
-        [noteId, tagId],
-      );
+      db.execute('INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)', [
+        noteId,
+        tagId,
+      ]);
       // Filing, not editing: the note still says exactly what it said.
       _bumpNote(noteId, edited: false);
     });
