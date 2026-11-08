@@ -143,9 +143,17 @@ void main() {
           for (final id in ids) {
             final rect = tester.getRect(badge(id));
             // Layout transforms can introduce sub-pixel floating-point noise.
-            expect(rect.width, closeTo(20, 0.01));
-            expect(rect.height, closeTo(20, 0.01));
+            expect(rect.width, closeTo(16, 0.01));
+            expect(rect.height, closeTo(16, 0.01));
             expect(rect.center.dy, greaterThan(orb.center.dy));
+            // The lower marks may graze the rim, never cover the glyph.
+            final gap = (rect.center - orb.center.translate(0, -6)).distance -
+                orb.width / 2 -
+                rect.width / 2;
+            expect(gap, greaterThanOrEqualTo(-2));
+            final cardRect = tester.getRect(find.byType(NoteCard));
+            expect(rect.top, greaterThanOrEqualTo(cardRect.top));
+            expect(rect.bottom, lessThanOrEqualTo(cardRect.bottom));
             positions.add(rect.center.dx);
           }
           expect(positions, orderedEquals([...positions]..sort()));
