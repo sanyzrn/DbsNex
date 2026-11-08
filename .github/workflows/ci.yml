@@ -341,6 +341,19 @@ jobs:
           path: apps/client/test/goldens/failures/
           if-no-files-found: ignore
           retention-days: 3
+      # Temporary PR #415 diagnostic: make *candidate* goldens for review,
+      # without changing the committed baseline or accepting visual regressions.
+      - name: Render candidate card goldens for review
+        if: failure() && github.event_name == 'pull_request' && github.head_ref == 'codex/soft-ui-final-orbit-2.6.8'
+        run: flutter test --update-goldens test/goldens/golden_test.dart
+      - name: Upload candidate card goldens for review
+        if: failure() && github.event_name == 'pull_request' && github.head_ref == 'codex/soft-ui-final-orbit-2.6.8'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: client-candidate-goldens
+          path: apps/client/test/goldens/*.png
+          if-no-files-found: error
+          retention-days: 3
       # --flavor is required once flavorDimensions is defined (ADR-031);
       # "standard" is the AI-free default, matching what this job always
       # built before flavors existed.
