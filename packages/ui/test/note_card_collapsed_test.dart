@@ -148,13 +148,13 @@ void main() {
             expect(rect.center.dy, greaterThan(orb.center.dy));
             // The lower marks may graze the rim, never cover the glyph.
             final gap =
-                (rect.center - orb.center.translate(0, -6)).distance -
-                orb.width / 2 -
+                (rect.center - orb.center.translate(0, -12)).distance -
+                (orb.width - 8) / 2 -
                 rect.width / 2;
-            expect(gap, greaterThanOrEqualTo(-2));
-            final cardRect = tester.getRect(find.byType(NoteCard));
-            expect(rect.top, greaterThanOrEqualTo(cardRect.top));
-            expect(rect.bottom, lessThanOrEqualTo(cardRect.bottom));
+            expect(gap, greaterThanOrEqualTo(-0.01));
+            // A badge painted outside the stack cannot receive a long press.
+            expect(rect.top, greaterThanOrEqualTo(orb.top));
+            expect(rect.bottom, lessThanOrEqualTo(orb.bottom));
             positions.add(rect.center.dx);
           }
           expect(positions, orderedEquals([...positions]..sort()));
