@@ -385,14 +385,11 @@ class TimelineScreenState extends State<TimelineScreen>
             }
           }),
     );
-    _model.listen(
-      (delivered) {
-        if (!mounted) return;
-        _tourWhenReady();
-        _requestAiHeader(delivered);
-      },
-      onUnchanged: _refreshExternalBriefIfChanged,
-    );
+    _model.listen((delivered) {
+      if (!mounted) return;
+      _tourWhenReady();
+      _requestAiHeader(delivered);
+    }, onUnchanged: _refreshExternalBriefIfChanged);
     WidgetsBinding.instance.addObserver(this);
     _search.addListener(_onSearchChanged);
     _scroll.addListener(_onAiSummaryScroll);
