@@ -128,6 +128,44 @@ void main() {
         await tester.pumpAndSettle();
       });
 
+      testWidgets('three tags and all lower badges $variant', (
+        tester,
+      ) async {
+        await _frame(tester, const Size(420, 150));
+        await tester.pumpWidget(
+          _app(
+            locale: locale,
+            dark: dark,
+            child: NoteCard(
+              note: note(
+                'all-badges',
+                NoteType.text,
+                rtl ? 'سه تگ و سه نشانگر' : 'Three tags and three badges',
+              ).copyWith(
+                dueAt: DateTime.utc(2099),
+                attachmentCount: 2,
+                isUrgent: true,
+                tags: [
+                  for (var i = 0; i < 3; i++)
+                    Tag(
+                      id: 'tag-$i',
+                      name: 'Tag $i',
+                      color: ['#0E9384', '#E5502D', '#7357E8'][i],
+                      createdAt: written,
+                    ),
+                ],
+              ),
+              onTap: () {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('tag_and_status_$variant.png'),
+        );
+      });
+
       testWidgets('timeline cards $variant', (tester) async {
         await _frame(tester, const Size(420, 330));
         await tester.pumpWidget(
