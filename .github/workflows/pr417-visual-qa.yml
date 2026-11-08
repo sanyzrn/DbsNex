@@ -46,3 +46,17 @@ jobs:
           path: apps/client/test/goldens/*.png
           retention-days: 3
           if-no-files-found: error
+      - name: Commit only the eight visually approved circular badge snapshots
+        env:
+          HEAD_REF: ${{ github.ref_name }}
+        run: |
+          git add apps/client/test/goldens/status_halos_*.png apps/client/test/goldens/tag_and_status_*.png
+          if git diff --cached --quiet; then
+            echo "Approved goldens already match."
+            exit 0
+          fi
+          git diff --cached --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "test(golden): approve radius-aligned 2.6.9 note badges"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
