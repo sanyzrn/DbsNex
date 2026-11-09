@@ -46,6 +46,7 @@ class NexMarkdown extends StatefulWidget {
     this.text, {
     super.key,
     this.style,
+    this.direction,
     this.onTapLink,
     this.onHoldLink,
     this.onCopyCode,
@@ -55,6 +56,17 @@ class NexMarkdown extends StatefulWidget {
 
   /// The raw Markdown source.
   final String text;
+
+  /// The direction this text reads in, when the caller has already decided.
+  ///
+  /// Null — the default, and every caller until long documents began to be
+  /// opened in slices — is derived from the text itself, as documented on
+  /// this class. A caller that renders one document as several bodies passes
+  /// the whole document's direction here, so an English paragraph inside a
+  /// Persian document keeps the page's direction instead of flipping the
+  /// slice that happens to hold it: the document is what reads one way, not
+  /// whichever part of it fit in a slice.
+  final TextDirection? direction;
 
   /// Base style for paragraph text. Defaults to `bodyLarge`, matching
   /// [NexTextSurface] so a rendered note and a plain one read as the same app.
@@ -121,7 +133,8 @@ class _NexMarkdownState extends State<NexMarkdown> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final text = widget.text;
-    final direction = nexDirectionOf(text) ?? Directionality.of(context);
+    final direction =
+        widget.direction ?? nexDirectionOf(text) ?? Directionality.of(context);
     _codeSpans.onTap = widget.onCopyCode;
     _links.recognizers
       ..onTap = widget.onTapLink
