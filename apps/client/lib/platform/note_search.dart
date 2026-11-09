@@ -185,9 +185,36 @@ class NoteSearchController extends ChangeNotifier {
     return null;
   }
 
+  /// Reads the tag list the sheet and the `tag:` operator resolve against.
+  ///
+  /// Nothing in production called this for the whole life of the controller:
+  /// `allTags` stayed empty, so the sheet's Tags section never appeared (its
+  /// `isNotEmpty` guard) and a typed `tag:name` resolved to [_noSuchTag] — a
+  /// deliberate no-match that turned every such search into "nothing found".
+  /// The timeline now loads it once after the first frame and again whenever
+  /// the library changes, and the sheet refreshes it as it opens.
+  ///
+  /// Notifies only when something actually changed: this runs on every
+  /// timeline delivery, and a notify per delivery would rebuild the screen
+  /// for an identical list — the same discipline [loadFilterTags] follows on
+  /// the timeline model.
   Future<void> loadTags() async {
-    allTags = await services.listTags();
+    final loaded = await services.listTags();
+    if (_sameTags(allTags, loaded)) return;
+    allTags = loaded;
     notifyListeners();
+  }
+
+  static bool _sameTags(List<Tag> a, List<Tag> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id ||
+          a[i].name != b[i].name ||
+          a[i].color != b[i].color) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Coalesces keystrokes. Without it every character is a database round trip.
