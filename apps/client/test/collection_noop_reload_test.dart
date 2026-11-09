@@ -67,10 +67,9 @@ void main() {
             matching: find.byIcon(Icons.timeline_outlined),
           )
           .last;
-      final action = find.ancestor(
-        of: icon,
-        matching: find.byType(InkWell),
-      ).first;
+      final action = find
+          .ancestor(of: icon, matching: find.byType(InkWell))
+          .first;
       final onTap = tester.widget<InkWell>(action).onTap;
       expect(onTap, isNotNull);
       onTap!();
