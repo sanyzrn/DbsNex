@@ -206,8 +206,7 @@ class TimelineModel extends ChangeNotifier {
       final dayKey = nexDayKey(now ?? DateTime.now());
       // Returning from Settings or Recurring should not repaint every card
       // when neither the commitments nor their local-day meaning changed.
-      if (_commitmentsDayKey == dayKey &&
-          _sameCommitments(_commitments, all)) {
+      if (_commitmentsDayKey == dayKey && _sameCommitments(_commitments, all)) {
         return;
       }
       _commitmentsDayKey = dayKey;

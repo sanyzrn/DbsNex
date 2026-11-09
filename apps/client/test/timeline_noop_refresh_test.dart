@@ -257,10 +257,9 @@ void main() {
       );
       await model.loadCommitments(now: day);
       expect(rebuilds, greaterThan(before));
-      expect(
-        model.commitments.single.history.single['receipt'],
-        {'reference': 'B'},
-      );
+      expect(model.commitments.single.history.single['receipt'], {
+        'reference': 'B',
+      });
     });
 
     test('local midnight refreshes completion counts exactly once', () async {
