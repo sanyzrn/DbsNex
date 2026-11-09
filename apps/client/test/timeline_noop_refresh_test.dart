@@ -6,6 +6,7 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline/timeline_model.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
@@ -156,6 +157,137 @@ void main() {
       await model.loadFilterTags();
       expect(model.filterTagCounts[tag.id], 2);
       expect(rebuilds, greaterThan(next));
+    });
+
+    test('reloading unchanged commitments avoids a rebuild', () async {
+      final day = DateTime(2026, 11, 9, 12);
+      final due = day.add(const Duration(days: 9));
+      await harness.services.worker.saveCommitment(
+        NexCommitment(
+          id: 'c-rent',
+          title: 'Rent',
+          cadence: NexCadence.months,
+          every: 1,
+          dueAt: due,
+          createdAt: day,
+          updatedAt: day,
+        ),
+      );
+      await model.loadCommitments(now: day);
+      expect(model.commitments, hasLength(1));
+      final seen = rebuilds;
+      await model.loadCommitments(now: day);
+      await model.loadCommitments(now: day);
+      expect(rebuilds, seen);
+    });
+
+    test('a changed commitment flag still notifies', () async {
+      final day = DateTime(2026, 11, 9, 12);
+      final due = day.add(const Duration(days: 9));
+      NexCommitment rent({bool paused = false}) => NexCommitment(
+        id: 'c-rent',
+        title: 'Rent',
+        cadence: NexCadence.months,
+        every: 1,
+        dueAt: due,
+        createdAt: day,
+        updatedAt: day,
+        paused: paused,
+      );
+      await harness.services.worker.saveCommitment(rent());
+      await model.loadCommitments(now: day);
+      final seen = rebuilds;
+      // No rev or updatedAt change: the field itself must be detected.
+      await harness.services.worker.saveCommitment(rent(paused: true));
+      await model.loadCommitments(now: day);
+      expect(rebuilds, greaterThan(seen));
+      expect(model.commitments.single.paused, isTrue);
+    });
+
+    test('nested details changes notify, equal maps do not', () async {
+      final day = DateTime(2026, 11, 9, 12);
+      NexCommitment rent(Map<String, dynamic> details) => NexCommitment(
+        id: 'c-rent',
+        title: 'Rent',
+        cadence: NexCadence.months,
+        every: 1,
+        dueAt: day.add(const Duration(days: 9)),
+        createdAt: day,
+        updatedAt: day,
+        details: details,
+      );
+      await harness.services.worker.saveCommitment(
+        rent({
+          'amountMinor': 2000,
+          'history': [
+            {
+              'action': 'done',
+              'receipt': {'reference': 'A'},
+            },
+          ],
+        }),
+      );
+      await model.loadCommitments(now: day);
+      final before = rebuilds;
+      // Reordering map keys does not change its meaning.
+      await harness.services.worker.saveCommitment(
+        rent({
+          'history': [
+            {
+              'receipt': {'reference': 'A'},
+              'action': 'done',
+            },
+          ],
+          'amountMinor': 2000,
+        }),
+      );
+      await model.loadCommitments(now: day);
+      expect(rebuilds, before);
+      // Nested receipt edit, without rev or updatedAt bump, must be visible.
+      await harness.services.worker.saveCommitment(
+        rent({
+          'amountMinor': 2000,
+          'history': [
+            {
+              'action': 'done',
+              'receipt': {'reference': 'B'},
+            },
+          ],
+        }),
+      );
+      await model.loadCommitments(now: day);
+      expect(rebuilds, greaterThan(before));
+      expect(model.commitments.single.history.single['receipt'], {
+        'reference': 'B',
+      });
+    });
+
+    test('local midnight refreshes completion counts exactly once', () async {
+      final yesterday = DateTime(2026, 11, 8, 23, 59);
+      final today = DateTime(2026, 11, 9, 0, 1);
+      await harness.services.worker.saveCommitment(
+        NexCommitment(
+          id: 'c-water',
+          title: 'Water',
+          cadence: NexCadence.hours,
+          every: 2,
+          dueAt: today.add(const Duration(hours: 2)),
+          createdAt: yesterday,
+          updatedAt: yesterday,
+          metToday: 3,
+          metTodayOn: nexDayKey(yesterday),
+        ),
+      );
+      await model.loadCommitments(now: yesterday);
+      expect(model.commitments.single.metOn(yesterday), 3);
+      final before = rebuilds;
+      await model.loadCommitments(now: yesterday);
+      expect(rebuilds, before);
+      await model.loadCommitments(now: today);
+      expect(rebuilds, before + 1);
+      expect(model.commitments.single.metOn(today), 0);
+      await model.loadCommitments(now: today);
+      expect(rebuilds, before + 1);
     });
   });
 

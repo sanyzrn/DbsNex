@@ -1,7 +1,7 @@
-name: Nex 2.6.11 one-time release dispatch
+name: Nex 2.6.12 one-time release dispatch
 
 # This one-shot bridge triggers the existing signed release workflow when the
-# fully CI-verified 2.6.11 PR merges. No change to signing, store or updater.
+# fully CI-verified 2.6.12 PR merges. No change to signing, store or updater.
 on:
   pull_request:
     types: [closed]
@@ -12,17 +12,17 @@ permissions:
   actions: write
 
 jobs:
-  dispatch-v2611:
-    name: Start official Nex 2.6.11 release once
+  dispatch-v2612:
+    name: Start official Nex 2.6.12 release once
     if: >-
-      github.event.pull_request.number == 421 &&
+      github.event.pull_request.number == 423 &&
       github.event.pull_request.merged == true &&
-      github.event.pull_request.head.ref == 'fix/nex-2610-status-center-on-rim' &&
+      github.event.pull_request.head.ref == 'fix/nex-2612-recurring-return-lag' &&
       github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     concurrency:
-      group: nex-2.6.11-one-time-publish
+      group: nex-2.6.12-one-time-publish
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -34,26 +34,26 @@ jobs:
           REVIEWED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          grep -qx 'version: 2.6.11' apps/client/pubspec.yaml
-          grep -q '^## v2.6.11$' CHANGELOG.md
-          grep -q '^## v2.6.11$' CHANGELOG.fa.md
-          grep -q "const nexAppVersion = '2.6.11';" apps/client/lib/app_version.dart
+          grep -qx 'version: 2.6.12' apps/client/pubspec.yaml
+          grep -q '^## v2.6.12$' CHANGELOG.md
+          grep -q '^## v2.6.12$' CHANGELOG.fa.md
+          grep -q "const nexAppVersion = '2.6.12';" apps/client/lib/app_version.dart
           gh api "repos/$GITHUB_REPOSITORY/commits/$REVIEWED_HEAD/check-runs?per_page=100" \
             --jq '.check_runs[] | select(.name == "CI green" and .conclusion == "success") | .name' \
             | grep -Fx 'CI green'
-          if gh release view v2.6.11 --repo sanyzrn/DbsNex-releases >/dev/null 2>&1; then
-            echo "Public v2.6.11 already exists; do nothing."
+          if gh release view v2.6.12 --repo sanyzrn/DbsNex-releases >/dev/null 2>&1; then
+            echo "Public v2.6.12 already exists; do nothing."
             exit 0
           fi
-          echo "Reviewed PR #421 is green; ready for official release."
+          echo "Reviewed PR #423 is green; ready for official release."
       - name: Dispatch existing signed Release workflow
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v2.6.11 --repo sanyzrn/DbsNex-releases >/dev/null 2>&1; then
-            echo "Public v2.6.11 exists; skipping duplicate."
+          if gh release view v2.6.12 --repo sanyzrn/DbsNex-releases >/dev/null 2>&1; then
+            echo "Public v2.6.12 exists; skipping duplicate."
             exit 0
           fi
-          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag=v2.6.11
-          echo "Dispatched signed v2.6.11 release on main."
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag=v2.6.12
+          echo "Dispatched signed v2.6.12 release on main."

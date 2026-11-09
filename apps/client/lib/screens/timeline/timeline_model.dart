@@ -105,6 +105,9 @@ class TimelineModel extends ChangeNotifier {
   List<NexCommitment> get commitments => _commitments;
   List<NexCommitment> _commitments = const [];
 
+  // The meaning of "met today" changes at local midnight without a DB write.
+  String? _commitmentsDayKey;
+
   /// Guards against firing a second [NexServices.loadMoreTimeline] while one
   /// is still in flight, and against firing one at all once a fetch has come
   /// back empty — a finger held past the bottom during the overscroll bounce
@@ -196,10 +199,17 @@ class TimelineModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadCommitments() async {
+  Future<void> loadCommitments({DateTime? now}) async {
     try {
       final all = await services.commitments();
       if (_disposed) return;
+      final dayKey = nexDayKey(now ?? DateTime.now());
+      // Returning from Settings or Recurring should not repaint every card
+      // when neither the commitments nor their local-day meaning changed.
+      if (_commitmentsDayKey == dayKey && _sameCommitments(_commitments, all)) {
+        return;
+      }
+      _commitmentsDayKey = dayKey;
       _commitments = all;
       notifyListeners();
     } catch (_) {
@@ -431,5 +441,57 @@ class TimelineModel extends ChangeNotifier {
       }
     }
     return true;
+  }
+
+  static bool _sameCommitments(List<NexCommitment> a, List<NexCommitment> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!_sameCommitment(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  static bool _sameCommitment(NexCommitment a, NexCommitment b) {
+    if (identical(a, b)) return true;
+    // Not all save paths bump rev/updatedAt. Compare every persisted field,
+    // including nested details such as recurrence, cost and history.
+    return a.id == b.id &&
+        a.rev == b.rev &&
+        a.createdAt == b.createdAt &&
+        a.updatedAt == b.updatedAt &&
+        a.title == b.title &&
+        a.cadence == b.cadence &&
+        a.every == b.every &&
+        a.dueAt == b.dueAt &&
+        a.lead == b.lead &&
+        a.windowStart == b.windowStart &&
+        a.windowEnd == b.windowEnd &&
+        a.lastMetAt == b.lastMetAt &&
+        a.metToday == b.metToday &&
+        a.metTodayOn == b.metTodayOn &&
+        a.paused == b.paused &&
+        a.notify == b.notify &&
+        _sameDetails(a.details, b.details);
+  }
+
+  // JSON-compatible details can contain nested maps and history lists.
+  // A shallow mapEquals would hide edits inside an existing history entry.
+  static bool _sameDetails(Object? a, Object? b) {
+    if (identical(a, b)) return true;
+    if (a is Map && b is Map) {
+      if (a.length != b.length) return false;
+      for (final key in a.keys) {
+        if (!b.containsKey(key) || !_sameDetails(a[key], b[key])) return false;
+      }
+      return true;
+    }
+    if (a is List && b is List) {
+      if (a.length != b.length) return false;
+      for (var i = 0; i < a.length; i++) {
+        if (!_sameDetails(a[i], b[i])) return false;
+      }
+      return true;
+    }
+    return a == b;
   }
 }

@@ -2,6 +2,11 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.12
+
+- **Smoother returns from Settings and Recurring.** Unchanged recurring commitments no longer trigger a full Home screen redraw when closing these pages.
+- **Reliable recurring updates.** Changes to schedules, completion history and attached details still appear, and today's completion counts refresh correctly after midnight.
+
 ## v2.6.11
 
 - **Smoother return to Home.** Closing note details or returning from another page avoids unnecessary timeline rebuilding when nothing has changed.
