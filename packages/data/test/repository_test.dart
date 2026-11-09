@@ -106,6 +106,32 @@ void main() {
       expect(repo.getById(note.id)!.tags, isEmpty);
     });
 
+    // Several tags mean "any of these", the way the timeline's own filter
+    // chips mean it. This used to demand every chosen tag at once, so the
+    // same-shaped chips filtered the same library in opposite directions in
+    // the two places a person could tap them.
+    test('filtering by several tags matches any of them', () {
+      final both = repo.insert(makeText('carries both'));
+      final one = repo.insert(makeText('carries one'));
+      repo.insert(makeText('carries none'));
+      final work = repo.upsertTag(name: 'Work');
+      final home = repo.upsertTag(name: 'Home');
+      repo.attachTag(noteId: both.id, tagId: work.id);
+      repo.attachTag(noteId: both.id, tagId: home.id);
+      repo.attachTag(noteId: one.id, tagId: home.id);
+
+      final hits = repo.search(
+        SearchFilters(tagIds: [work.id, home.id]),
+      );
+      expect(hits.map((n) => n.content), containsAll(['carries both', 'carries one']));
+      expect(hits, hasLength(2));
+      // One tag still narrows to its own notes.
+      expect(
+        repo.search(SearchFilters(tagIds: [work.id])).single.content,
+        'carries both',
+      );
+    });
+
     test('FTS query finds English text notes', () {
       repo.insert(makeText('alpha bravo charlie'));
       repo.insert(makeText('delta echo'));
