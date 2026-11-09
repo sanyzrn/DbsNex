@@ -341,16 +341,23 @@ class _FileTextBodyState extends State<_FileTextBody> {
   List<List<String>> _rows = const [];
   int _omittedRows = 0;
 
-  /// Whether the file is drawn only once the sheet has finished rising.
+  /// Whether the table is drawn only once the sheet has finished rising.
   ///
-  /// A long document read and laid out in the sheet's first frame took that
-  /// frame past the whole opening animation, so the sheet appeared at once
-  /// instead of rising (it did so for nothing shorter). A long file now
-  /// rises as an empty sheet of its final height and its text fades in when
-  /// the movement is done. A short one is cheap and is drawn straight away.
+  /// A table's first frame is the whole table — up to [maxRows] rows of
+  /// intrinsic column widths, every one of them laid out before anything
+  /// shows — so a big one rises as a sheet of its final height and its rows
+  /// fade in when the movement is done.
+  ///
+  /// Text does not wait, and used to. The deferral was written when the
+  /// first frame was the whole document; since the preview folds (see
+  /// [FoldedNote]) the first frame is one bounded first page, and the wait
+  /// had nothing left to pay for except its own delay: the sheet rose, the
+  /// route opened, the text faded in — near half a second of empty sheet
+  /// for a preview that was cheap to draw all along. A small text file never
+  /// waited; a large one now does not either.
   bool _deferred = false;
 
-  /// Past this many bytes a file waits for the opening animation.
+  /// Past this many bytes a table waits for the opening animation.
   static const _deferAbove = 8 * 1024;
 
   @override
@@ -372,7 +379,8 @@ class _FileTextBodyState extends State<_FileTextBody> {
     } catch (_) {
       // Missing or unreadable: [_load] says which.
     }
-    if (size <= _deferAbove) {
+    // Only tables defer — see [_deferred] for why text stopped.
+    if (widget.kind != NexFileKind.table || size <= _deferAbove) {
       _deferred = false;
       _load();
       return;
@@ -435,8 +443,8 @@ class _FileTextBodyState extends State<_FileTextBody> {
       color: theme.colorScheme.onSurfaceVariant,
     );
     if (_deferred) {
-      // The height the text will take, more or less: a long file fills the
-      // sheet, so the sheet rises at the size it will stay.
+      // The height the table will take, more or less: a big table fills
+      // the sheet, so the sheet rises at the size it will stay.
       return SizedBox(height: MediaQuery.sizeOf(context).height);
     }
     if (_tooLarge) {
