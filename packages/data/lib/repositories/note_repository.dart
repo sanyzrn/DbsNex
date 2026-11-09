@@ -2011,7 +2011,14 @@ ${filters.pageSize != null
   }
 
   /// The WHERE terms for everything in [filters] except the query, on notes
-  /// aliased `n`: live notes, all of the tags, the date range, the types.
+  /// aliased `n`: live notes, any of the tags, the date range, the types.
+  ///
+  /// Several tags mean "any of these", the way the same-shaped chips on the
+  /// timeline's own filter row mean it. This used to demand every tag at once
+  /// (`HAVING COUNT` equal to the number chosen), so the two rows of chips a
+  /// person could see in one session filtered the same library in opposite
+  /// directions — the timeline widened as the search narrowed. One meaning,
+  /// the one the chips teach.
   (List<String>, List<Object?>) _filterClause(SearchFilters filters) {
     final where = <String>['n.deleted_at IS NULL'];
     final args = <Object?>[];
@@ -2020,12 +2027,9 @@ ${filters.pageSize != null
       where.add('''
 n.id IN (
   SELECT note_id FROM note_tags WHERE tag_id IN ($placeholders)
-  GROUP BY note_id
-  HAVING COUNT(DISTINCT tag_id) = ?
 )
 ''');
       args.addAll(filters.tagIds);
-      args.add(filters.tagIds.length);
     }
     if (filters.createdFrom != null) {
       where.add('n.created_at >= ?');
