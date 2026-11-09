@@ -101,12 +101,10 @@ class _DocumentBodyState extends State<_DocumentBody> {
     // reused across notes — and writing this answer onto a different file
     // would be worse than dropping it.
     if (!mounted || widget.path != path) return;
-    // A long document laid out while the sheet is still rising stalls the
-    // rise (see [_FileTextBody]); it is drawn once the sheet is open.
-    if ((read?.markdown.length ?? 0) > 8 * 1024) {
-      await nexRouteOpened(context);
-      if (!mounted || widget.path != path) return;
-    }
+    // No wait for the route to open: the preview folds, so the first frame
+    // of even a long document is a bounded first page (see [_FileTextBody],
+    // whose deferral this used to share) and the document takes its place
+    // under the sheet while it is still rising, rather than after.
     setState(() {
       _document = read;
       _error = error;
