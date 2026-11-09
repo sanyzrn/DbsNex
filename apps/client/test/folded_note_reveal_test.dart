@@ -203,12 +203,7 @@ void main() {
         'Read [the site][nex] early in the document.\n\n'
         '${markdownDoc(paragraphs: 200)}\n\n'
         '[nex]: https://example.com/defined';
-    await openFile(
-      tester,
-      'defined.md',
-      source,
-      mimeType: 'text/markdown',
-    );
+    await openFile(tester, 'defined.md', source, mimeType: 'text/markdown');
     await Scrollable.ensureVisible(
       tester.element(find.text('More').first),
       alignment: 0.5,
@@ -241,12 +236,7 @@ void main() {
       'A LATE paragraph that is entirely in English.',
       persian(60, 100),
     ].join('\n\n');
-    await openFile(
-      tester,
-      'mixed.md',
-      source,
-      mimeType: 'text/markdown',
-    );
+    await openFile(tester, 'mixed.md', source, mimeType: 'text/markdown');
     await Scrollable.ensureVisible(
       tester.element(find.text('More').first),
       alignment: 0.5,
@@ -403,9 +393,7 @@ void main() {
     expect(slices.map((part) => part.text).join(), source);
   });
 
-  testWidgets('a four-tick fence is not closed by three ticks', (
-    tester,
-  ) async {
+  testWidgets('a four-tick fence is not closed by three ticks', (tester) async {
     final longLine = List.filled(5000, 'x').join();
     final fenced = [
       '````dart',
@@ -441,5 +429,4 @@ void main() {
     expect(fenceSlices.single, contains('final stillInside = true;'));
     expect(fenceSlices.single, contains('\n````'));
   });
-
 }
