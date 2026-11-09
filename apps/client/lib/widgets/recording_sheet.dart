@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:record/record.dart';
+
 import '../l10n/app_localizations.dart';
 import '../platform/display_date.dart';
 
