@@ -40,7 +40,13 @@ enum NexBannerKind {
 /// One at a time. A second call replaces the first rather than queueing, since
 /// a queue means the message you are reading is about something you did
 /// several actions ago.
-void nexShowBanner(
+///
+/// Returns a [NexBannerHandle] naming the banner this call put up, so a
+/// screen whose promise expires with it — an Undo that only works while the
+/// page is alive — can take that one banner down when it goes, without
+/// reaching for [nexHideBanner] and whatever unrelated banner is showing by
+/// then. Ignoring the return value shows the banner exactly as before.
+NexBannerHandle? nexShowBanner(
   BuildContext context, {
   required String message,
   NexBannerKind kind = NexBannerKind.done,
@@ -81,7 +87,7 @@ class NexBannerHost {
     return overlay == null ? null : NexBannerHost._(overlay);
   }
 
-  void show({
+  NexBannerHandle? show({
     required String message,
     NexBannerKind kind = NexBannerKind.done,
     String? actionLabel,
@@ -90,8 +96,8 @@ class NexBannerHost {
     Duration? duration,
     bool haptics = true,
   }) {
-    if (!_overlay.mounted) return;
-    _show(
+    if (!_overlay.mounted) return null;
+    return _show(
       _overlay,
       message: message,
       kind: kind,
@@ -104,7 +110,7 @@ class NexBannerHost {
   }
 }
 
-void _show(
+NexBannerHandle _show(
   OverlayState overlay, {
   required String message,
   required NexBannerKind kind,
@@ -141,10 +147,30 @@ void _show(
   );
   _current = entry;
   overlay.insert(entry);
+  return NexBannerHandle._(entry);
 }
 
 /// The banner on screen right now, if any — see the one-at-a-time note above.
 OverlayEntry? _current;
+
+/// The one banner a specific [nexShowBanner] call put up.
+///
+/// [hide] is a no-op once that banner has already gone — dismissed, acted
+/// on, or replaced by a newer one — so taking down an expired promise can
+/// never take down somebody else's message with it.
+class NexBannerHandle {
+  NexBannerHandle._(this._entry);
+
+  final OverlayEntry _entry;
+
+  bool get isShowing => _current == _entry;
+
+  void hide() {
+    if (_current != _entry) return;
+    _current = null;
+    _entry.remove();
+  }
+}
 
 /// Removes whatever banner is showing. Called when a screen that raised one
 /// goes away, so a message cannot outlive the thing it was about.
