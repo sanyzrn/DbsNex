@@ -57,6 +57,27 @@ void main() {
       matching: find.byType(NoteCard),
     );
 
+    // These are reload tests, not hit-testing tests. The pinned Threads
+    // action can be occluded in a small default test viewport. Invoke its
+    // real InkWell handler rather than accidentally hitting a thread chip.
+    Future<void> openThreadPicker(WidgetTester tester) async {
+      final icon = find
+          .descendant(
+            of: find.byType(NoteDetailSheet),
+            matching: find.byIcon(Icons.timeline_outlined),
+          )
+          .last;
+      final action = find.ancestor(
+        of: icon,
+        matching: find.byType(InkWell),
+      ).first;
+      final onTap = tester.widget<InkWell>(action).onTap;
+      expect(onTap, isNotNull);
+      onTap!();
+      await tester.pumpAndSettle();
+      expect(find.byType(CheckboxListTile), findsOneWidget);
+    }
+
     testWidgets('thread notes: read-only note close repaints no cards', (
       tester,
     ) async {
@@ -151,18 +172,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(NoteDetailSheet), findsOneWidget);
 
-      // The Threads action in the sheet's pinned action row — the chips
-      // row above it wears the same icon for the thread it belongs to.
-      await tester.tap(
-        find
-            .descendant(
-              of: find.byType(NoteDetailSheet),
-              matching: find.byIcon(Icons.timeline_outlined),
-            )
-            .last,
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(CheckboxListTile), findsOneWidget);
+      // Open the toolbar action, not the visually similar thread chip.
+      await openThreadPicker(tester);
 
       var sheetRebuilds = 0;
       debugOnRebuildDirtyWidget = (element, _) {
@@ -191,16 +202,7 @@ void main() {
       await tester.tap(find.byType(NoteCard).first);
       await tester.pumpAndSettle();
 
-      await tester.tap(
-        find
-            .descendant(
-              of: find.byType(NoteDetailSheet),
-              matching: find.byIcon(Icons.timeline_outlined),
-            )
-            .first,
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(CheckboxListTile), findsOneWidget);
+      await openThreadPicker(tester);
 
       var sheetRebuilds = 0;
       debugOnRebuildDirtyWidget = (element, _) {
@@ -291,9 +293,17 @@ void main() {
       // A second sub-page closing recounts the shelves; nothing changed,
       // so the counts are the same records as before.
       await tester.tap(find.byKey(const ValueKey('library-set-aside')));
-      await tester.pumpAndSettle();
+      // Empty-state animations may keep scheduling frames indefinitely.
+      // Pump through the route transition without waiting for every ticker.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pump();
+      expect(find.byType(SetAsideScreen), findsOneWidget);
+
       Navigator.of(tester.element(find.byType(SetAsideScreen))).pop();
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pump();
       debugOnRebuildDirtyWidget = null;
 
       expect(libraryRebuilds, 0);
