@@ -85,7 +85,21 @@ class _RecordingSheetState extends State<RecordingSheet> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return PopScope(
-      canPop: true,
+      // The system back gesture cannot be allowed to throw a recording away:
+      // this is the one sheet in the app whose dismissal is silent data loss —
+      // the opener reads a null result as "not kept", deletes the temp folder,
+      // and minutes of speech are gone with no Undo and no message.
+      // `dismissible: false` on the sheet only stops taps and drags; the back
+      // gesture walks straight past it. Back now keeps the recording — the
+      // same as Stop — which is also the rule everywhere else a capture is
+      // interrupted (the capture sheet's own dispose keeps one). Discard
+      // stays on its own labelled button, a decision made with a finger, not
+      // by a gesture that also means "navigate".
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        Navigator.pop(context, true);
+      },
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
