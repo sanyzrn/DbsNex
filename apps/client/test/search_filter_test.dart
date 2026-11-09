@@ -135,9 +135,8 @@ void main() {
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(
-              onPressed: () => unawaited(
-                nexShowSearchFilterSheet(context, search: fresh),
-              ),
+              onPressed: () =>
+                  unawaited(nexShowSearchFilterSheet(context, search: fresh)),
               child: const Text('open'),
             ),
           ),
