@@ -389,9 +389,13 @@ class TimelineScreenState extends State<TimelineScreen>
       if (!mounted) return;
       _tourWhenReady();
       _requestAiHeader(delivered);
+      // The library moved; tags may have moved with it. Guarded in loadTags.
+      unawaited(_search.loadTags());
     }, onUnchanged: _refreshExternalBriefIfChanged);
     WidgetsBinding.instance.addObserver(this);
     _search.addListener(_onSearchChanged);
+    // The search's tag list; nothing ever loaded it (see note_search.dart).
+    unawaited(_search.loadTags());
     _scroll.addListener(_onAiSummaryScroll);
     // Both halves of a tapped reminder: one for a tap while the app is up,
     // one for the tap that started it.
