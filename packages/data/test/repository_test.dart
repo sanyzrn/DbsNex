@@ -120,10 +120,11 @@ void main() {
       repo.attachTag(noteId: both.id, tagId: home.id);
       repo.attachTag(noteId: one.id, tagId: home.id);
 
-      final hits = repo.search(
-        SearchFilters(tagIds: [work.id, home.id]),
+      final hits = repo.search(SearchFilters(tagIds: [work.id, home.id]));
+      expect(
+        hits.map((n) => n.content),
+        containsAll(['carries both', 'carries one']),
       );
-      expect(hits.map((n) => n.content), containsAll(['carries both', 'carries one']));
       expect(hits, hasLength(2));
       // One tag still narrows to its own notes.
       expect(
@@ -341,11 +342,11 @@ void main() {
       final newest = repo.insert(makeText('new', at: t2));
 
       repo.pinNote(old.id);
-      expect(
-        repo.listTimeline().map((n) => n.content).toList(),
-        ['old', 'new', 'mid'],
-        reason: 'pinned leads even though it is the oldest',
-      );
+      expect(repo.listTimeline().map((n) => n.content).toList(), [
+        'old',
+        'new',
+        'mid',
+      ], reason: 'pinned leads even though it is the oldest');
 
       repo.pinNote(mid.id);
       expect(repo.listTimeline().map((n) => n.content).toList(), [
@@ -355,11 +356,11 @@ void main() {
       ]);
 
       repo.unpinNote(mid.id);
-      expect(
-        repo.listTimeline().map((n) => n.content).toList(),
-        ['old', 'new', 'mid'],
-        reason: 'the remaining pinned note still leads',
-      );
+      expect(repo.listTimeline().map((n) => n.content).toList(), [
+        'old',
+        'new',
+        'mid',
+      ], reason: 'the remaining pinned note still leads');
 
       final fourth = repo.insert(makeText('fourth'));
       final fifth = repo.insert(makeText('fifth'));
