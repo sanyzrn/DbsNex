@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
@@ -7,8 +9,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/note_search.dart';
+import 'package:nex_client/widgets/search_filter_sheet.dart';
 
 import 'support/in_process_db.dart';
 
@@ -95,6 +99,58 @@ void main() {
     search.toggleType(NoteType.photo);
     await pump();
     expect(search.results, isEmpty, reason: 'no photo notes exist');
+  });
+
+  // The typed form of the chip: `tag:food` resolves through the same loaded
+  // list. Nothing in production ever called loadTags, so allTags was empty
+  // from launch to launch and every `tag:` search matched nothing.
+  test('a typed tag: operator filters through the loaded tags', () async {
+    search.query.text = 'tag:food';
+    await search.run();
+    expect(search.results, hasLength(1));
+    expect(search.results.single.content, contains('oatmeal'));
+
+    search.query.text = 'tag:nosuchtag';
+    await search.run();
+    expect(search.results, isEmpty);
+  });
+
+  // The sheet itself now loads the list as it opens — the one place that
+  // catches a tag renamed or created without a note moving underneath it.
+  testWidgets('opening the filter sheet loads the tag list itself', (
+    tester,
+  ) async {
+    final fresh = NoteSearchController(services: services);
+    addTearDown(fresh.dispose);
+    expect(
+      fresh.allTags,
+      isEmpty,
+      reason: 'a controller nobody has loaded tags into yet',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => unawaited(
+                nexShowSearchFilterSheet(context, search: fresh),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(fresh.allTags.map((t) => t.name), containsAll(['food', 'Work']));
+    // The Tags section the sheet exists to offer.
+    expect(find.text('food'), findsOneWidget);
+    expect(find.text('Work'), findsOneWidget);
   });
 
   test('the date presets bound the window', () async {
