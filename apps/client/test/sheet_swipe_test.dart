@@ -108,9 +108,7 @@ void main() {
                                       child: Column(
                                         children: [
                                           for (var i = 0; i < 30; i++)
-                                            ListTile(
-                                              title: Text('Nested $i'),
-                                            ),
+                                            ListTile(title: Text('Nested $i')),
                                         ],
                                       ),
                                     ),
@@ -172,9 +170,8 @@ void main() {
         if (file is File &&
             file.path.endsWith('.dart') &&
             !allowed.contains(file.path.replaceAll(r'\', '/')) &&
-            RegExp(
-              r'\bshowModalBottomSheet\s*<|\bshowModalBottomSheet\s*\(',
-            ).hasMatch(file.readAsStringSync()))
+            RegExp(r'\bshowModalBottomSheet\s*<|\bshowModalBottomSheet\s*\(')
+                .hasMatch(file.readAsStringSync()))
           file.path,
     ];
     expect(
