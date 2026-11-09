@@ -70,9 +70,8 @@ void main() {
   testWidgets('the library lists what is set aside and brings it back', (
     tester,
   ) async {
-    final alpha = (await services.worker.timeline(
-      limit: 10,
-    )).firstWhere((n) => n.content == 'alpha note');
+    final alpha = (await services.worker.timeline(limit: 10))
+        .firstWhere((n) => n.content == 'alpha note');
     expect(await services.setAside(alpha.id), isTrue);
     await services.refreshTimeline();
 
@@ -117,9 +116,8 @@ void main() {
   testWidgets('a set-aside note stays findable and says why it is hidden', (
     tester,
   ) async {
-    final beta = (await services.worker.timeline(
-      limit: 10,
-    )).firstWhere((n) => n.content == 'beta note');
+    final beta = (await services.worker.timeline(limit: 10))
+        .firstWhere((n) => n.content == 'beta note');
     await services.setAside(beta.id);
     await services.refreshTimeline();
     await open(tester);
