@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/library_screen.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/set_aside_screen.dart';
@@ -56,8 +57,9 @@ void main() {
       matching: find.byType(NoteCard),
     );
 
-    testWidgets('thread notes: read-only note close repaints no cards',
-        (tester) async {
+    testWidgets('thread notes: read-only note close repaints no cards', (
+      tester,
+    ) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
       await pushThreads(tester);
@@ -84,8 +86,9 @@ void main() {
       expect(cardRebuilds, lessThanOrEqualTo(1));
     });
 
-    testWidgets('thread notes: a real change still repaints the card',
-        (tester) async {
+    testWidgets('thread notes: a real change still repaints the card', (
+      tester,
+    ) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
       await pushThreads(tester);
@@ -113,8 +116,9 @@ void main() {
       expect(cardRebuilds, greaterThan(0));
     });
 
-    testWidgets('threads list: unchanged thread return repaints no tiles',
-        (tester) async {
+    testWidgets('threads list: unchanged thread return repaints no tiles', (
+      tester,
+    ) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
       await pushThreads(tester);
@@ -137,8 +141,9 @@ void main() {
       expect(tileRebuilds, lessThanOrEqualTo(1));
     });
 
-    testWidgets('note sheet: a dismissed thread picker repaints nothing',
-        (tester) async {
+    testWidgets('note sheet: a dismissed thread picker repaints nothing', (
+      tester,
+    ) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
 
@@ -163,9 +168,8 @@ void main() {
       debugOnRebuildDirtyWidget = (element, _) {
         if (element.widget is NoteDetailSheet) sheetRebuilds++;
       };
-      await Navigator.of(
-        tester.element(find.byType(CheckboxListTile)),
-      ).maybePop();
+      await Navigator.of(tester.element(find.byType(CheckboxListTile)))
+          .maybePop();
       await tester.pumpAndSettle();
       debugOnRebuildDirtyWidget = null;
 
@@ -173,8 +177,9 @@ void main() {
       expect(sheetRebuilds, 0);
     });
 
-    testWidgets('note sheet: ticking a thread still reloads it',
-        (tester) async {
+    testWidgets('note sheet: ticking a thread still reloads it', (
+      tester,
+    ) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
 
@@ -204,9 +209,8 @@ void main() {
       // Ticking joins the note to the thread: the picker answers "changed".
       await tester.tap(find.byType(CheckboxListTile).first);
       await tester.pumpAndSettle();
-      await Navigator.of(
-        tester.element(find.byType(CheckboxListTile)),
-      ).maybePop();
+      await Navigator.of(tester.element(find.byType(CheckboxListTile)))
+          .maybePop();
       await tester.pumpAndSettle();
       debugOnRebuildDirtyWidget = null;
 
@@ -216,8 +220,9 @@ void main() {
       expect(find.text('alpha'), findsOneWidget);
     });
 
-    testWidgets('set-aside: read-only note close repaints no rows',
-        (tester) async {
+    testWidgets('set-aside: read-only note close repaints no rows', (
+      tester,
+    ) async {
       await harness.services.setAside(noteId);
       await harness.services.refreshTimeline();
       await tester.pumpWidget(harness.app());
@@ -253,8 +258,9 @@ void main() {
       expect(tileRebuilds, 0);
     });
 
-    testWidgets('library: unchanged sub-page return repaints no shelves',
-        (tester) async {
+    testWidgets('library: unchanged sub-page return repaints no shelves', (
+      tester,
+    ) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
 

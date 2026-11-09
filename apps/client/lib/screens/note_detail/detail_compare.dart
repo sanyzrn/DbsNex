@@ -41,7 +41,7 @@ bool _sameAttachments(List<NoteAttachment> a, List<NoteAttachment> b) {
         x.transcriptText != y.transcriptText ||
         x.createdAt != y.createdAt ||
         x.deviceId != y.deviceId ||
-    x.rev != y.rev ||
+        x.rev != y.rev ||
         x.updatedAt != y.updatedAt ||
         x.deletedAt != y.deletedAt) {
       return false;
@@ -49,4 +49,3 @@ bool _sameAttachments(List<NoteAttachment> a, List<NoteAttachment> b) {
   }
   return true;
 }
-

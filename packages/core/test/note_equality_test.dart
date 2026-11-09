@@ -67,10 +67,7 @@ void main() {
       nexSameNote(note(), note(pinnedAt: DateTime.utc(2026, 2, 1))),
       isFalse,
     );
-    expect(
-      nexSameNote(note(), note(dueAt: DateTime.utc(2026, 3, 1))),
-      isFalse,
-    );
+    expect(nexSameNote(note(), note(dueAt: DateTime.utc(2026, 3, 1))), isFalse);
     expect(
       nexSameNote(note(), note(deletedAt: DateTime.utc(2026, 2, 2))),
       isFalse,
@@ -84,19 +81,13 @@ void main() {
   });
 
   test('tags are compared by what a pill draws: id, name, colour', () {
-    final tag = Tag(
-      id: 't1',
-      name: 'work',
-      createdAt: DateTime.utc(2026),
-    );
+    final tag = Tag(id: 't1', name: 'work', createdAt: DateTime.utc(2026));
     expect(nexSameNote(note(tags: [tag]), note(tags: [tag])), isTrue);
     expect(
       nexSameNote(
         note(tags: [tag]),
         note(
-          tags: [
-            Tag(id: 't1', name: 'home', createdAt: DateTime.utc(2026)),
-          ],
+          tags: [Tag(id: 't1', name: 'home', createdAt: DateTime.utc(2026))],
         ),
       ),
       isFalse,
