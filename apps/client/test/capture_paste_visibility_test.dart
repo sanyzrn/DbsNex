@@ -135,10 +135,7 @@ void main() {
           // The slot stays put and turns into Clear; nothing fades.
           await tester.pump(const Duration(milliseconds: 150));
           expect(tester.getSize(slot).width, 48);
-          expect(
-            find.byKey(const ValueKey('capture-clear')),
-            findsOneWidget,
-          );
+          expect(find.byKey(const ValueKey('capture-clear')), findsOneWidget);
         } else {
           await tester.pump(const Duration(milliseconds: 150));
           expect(
@@ -168,10 +165,7 @@ void main() {
           await tester.pumpAndSettle();
           expect(controller.text, isEmpty);
           expect(tester.getSize(slot).width, 48);
-          expect(
-            find.byKey(const ValueKey('capture-clear')),
-            findsNothing,
-          );
+          expect(find.byKey(const ValueKey('capture-clear')), findsNothing);
         } else {
           expect(tester.getSize(slot).width, 0);
           expect(tester.getSize(field).width, closeTo(width + 48, 0.01));
