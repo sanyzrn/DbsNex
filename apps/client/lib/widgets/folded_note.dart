@@ -237,9 +237,9 @@ class _FoldedNoteState extends State<FoldedNote> {
           marker != null &&
           marker[0] == fence[0] &&
           marker.length >= fence.length &&
-          line.substring(markerMatch.end).trim().isEmpty;
+          line.substring(markerMatch!.end).trim().isEmpty;
       if (opening) {
-        fence = marker!;
+        fence = marker;
       } else if (closing) {
         fence = '';
       }
