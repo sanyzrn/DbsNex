@@ -69,6 +69,13 @@ void main() {
       testWidgets('$language $kind paste fades and returns its entire column', (
         tester,
       ) async {
+        // A link box is the exception this test also pins: its slot never
+        // leaves. Empty it is Paste; once words are in, it becomes Clear —
+        // the one-tap way out of a paste that missed, in a field whose one
+        // line leaves no room to find select-all in. Note and checklist
+        // keep the fade: their field is multiline and carries the editor's
+        // own selection tools.
+        final isLink = kind == CaptureKind.link;
         final h = await NexTestHarness.create();
         addTearDown(h.dispose);
         var reads = 0;
@@ -124,15 +131,28 @@ void main() {
         await tester.enterText(field, 'typed');
         final value = controller.value;
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 150));
-        expect(tester.getSize(slot).width, allOf(greaterThan(0), lessThan(48)));
-        final fading = find
-            .ancestor(of: paste, matching: find.byType(Opacity))
-            .first;
-        expect(
-          tester.widget<Opacity>(fading).opacity,
-          allOf(greaterThan(0), lessThan(1)),
-        );
+        if (isLink) {
+          // The slot stays put and turns into Clear; nothing fades.
+          await tester.pump(const Duration(milliseconds: 150));
+          expect(tester.getSize(slot).width, 48);
+          expect(
+            find.byKey(const ValueKey('capture-clear')),
+            findsOneWidget,
+          );
+        } else {
+          await tester.pump(const Duration(milliseconds: 150));
+          expect(
+            tester.getSize(slot).width,
+            allOf(greaterThan(0), lessThan(48)),
+          );
+          final fading = find
+              .ancestor(of: paste, matching: find.byType(Opacity))
+              .first;
+          expect(
+            tester.widget<Opacity>(fading).opacity,
+            allOf(greaterThan(0), lessThan(1)),
+          );
+        }
         expect(controller.value, value);
         expect(focus.hasFocus, isTrue);
         await tester.pumpAndSettle();
@@ -140,16 +160,35 @@ void main() {
         expect(tester.widget<TextField>(field).focusNode, same(focus));
         expect(controller.value, value);
         expect(focus.hasFocus, isTrue);
-        expect(tester.getSize(slot).width, 0);
-        expect(tester.getSize(field).width, closeTo(width + 48, 0.01));
-        expect(paste.hitTestable(), findsNothing);
+        if (isLink) {
+          expect(tester.getSize(slot).width, 48);
+          expect(tester.getSize(field).width, closeTo(width, 0.01));
+          // Clear empties the box and hands the slot back to Paste.
+          await tester.tap(paste);
+          await tester.pumpAndSettle();
+          expect(controller.text, isEmpty);
+          expect(tester.getSize(slot).width, 48);
+          expect(
+            find.byKey(const ValueKey('capture-clear')),
+            findsNothing,
+          );
+        } else {
+          expect(tester.getSize(slot).width, 0);
+          expect(tester.getSize(field).width, closeTo(width + 48, 0.01));
+          expect(paste.hitTestable(), findsNothing);
+        }
         await tester.enterText(field, ' ');
         await tester.pumpAndSettle();
-        expect(tester.getSize(slot).width, 0);
+        if (!isLink) expect(tester.getSize(slot).width, 0);
         await tester.enterText(field, '');
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 150));
-        expect(tester.getSize(slot).width, allOf(greaterThan(0), lessThan(48)));
+        if (!isLink) {
+          await tester.pump(const Duration(milliseconds: 150));
+          expect(
+            tester.getSize(slot).width,
+            allOf(greaterThan(0), lessThan(48)),
+          );
+        }
         await tester.pumpAndSettle();
         expect(tester.getSize(slot).width, 48);
         await tester.tap(paste);
@@ -159,7 +198,11 @@ void main() {
           controller.text,
           kind == CaptureKind.link ? clipboard.trim() : clipboard,
         );
-        expect(tester.getSize(slot).width, 0);
+        expect(
+          tester.getSize(slot).width,
+          isLink ? 48 : 0,
+          reason: isLink ? 'a link box keeps its slot as Clear' : 'reclaimed',
+        );
         expect(focus.hasFocus, isTrue);
         expect(controller.selection.isCollapsed, isTrue);
         await tester.enterText(field, '');
