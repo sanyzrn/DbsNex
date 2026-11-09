@@ -2,6 +2,15 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.14
+
+- **Working tag filters in search.** The Tags row finally appears in the search filter sheet, typing `tag:` finds your tags, and several chosen tags now mean "any of them" — the same as the timeline's filter chips.
+- **An honest Undo in the trash.** Leaving the trash after deleting a note for good no longer leaves an Undo banner that cannot bring it back.
+- **Reading an AI answer or a translation no longer closes the note.** Scrolling a long result inside its box stays inside the box, instead of taking the whole sheet with it.
+- **Delete works from a recurring item's linked notes.** Deleting a linked note there now moves it to the trash with an Undo, instead of quietly doing nothing.
+- **A friendlier link capture.** Pasting text that is not an address no longer dead-ends: Send keeps it as the note it already is and says so, a Clear button appears, and the "not a link" hint waits until you stop typing.
+- **The back gesture keeps a recording in progress.** Leaving the recording sheet the way Android goes back now keeps the recording — the same as Stop — instead of throwing it away.
+
 ## v2.6.13
 
 - **Faster opening of long notes and text files.** The first page appears with the detail sheet instead of waiting for it to finish opening.
