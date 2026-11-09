@@ -1,8 +1,8 @@
 name: Release
 
 # Builds a signed Android App Bundle + split APKs and a Windows Inno Setup
-# installer, and attaches them to a GitHub Release. Triggered by version tags or
-# manually.
+# installer, and attaches them to a GitHub Release. MANUAL ONLY.
+# Merging PRs or pushing tags must never trigger an automatic release.
 #
 # The release is published to RELEASES_REPO — a separate, public repo — not to
 # this one. The source repository is currently public; GitHub's API and assets
@@ -32,9 +32,6 @@ name: Release
 #   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, RELEASES_REPO_TOKEN
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
   workflow_dispatch:
     inputs:
       tag:
@@ -57,8 +54,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Tag push -> github.ref_name; manual run -> inputs.tag
-  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  # Only the version explicitly entered in GitHub's Run workflow UI.
+  RELEASE_TAG: ${{ inputs.tag }}
   # The public repo the in-app updater actually checks — see the note at the
   # top of this file. Change this and UpdateChecker's default `repository`
   # together; the two have to agree, or the app looks in the wrong place.
@@ -135,7 +132,7 @@ jobs:
           TAG: ${{ steps.parse.outputs.tag }}
         run: python3 tools/release_notes.py --tag "$TAG"
 
-  # A tag used to ship straight to a public Release without ever running
+  # A manual release request could ship without ever running
   # analyze, tests, or the backend suite: ci.yml triggers on branches, and tags
   # do not match branches.
   verify:
