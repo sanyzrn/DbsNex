@@ -47,6 +47,10 @@ class _SetAsideScreenState extends State<SetAsideScreen> {
   Future<void> reload() async {
     final loaded = await widget.services.listSetAside();
     if (!mounted) return;
+    // The sheet above these rows closes unchanged more often than not, and
+    // its pop transition is the wrong moment to repaint identical cards for
+    // a fresh set of the same rows.
+    if (notes != null && nexSameNotes(notes!, loaded)) return;
     setState(() => notes = loaded);
   }
 

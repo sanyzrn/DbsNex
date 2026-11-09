@@ -42,7 +42,31 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
 
   Future<void> _reload() async {
     final threads = await widget.services.threads();
-    if (mounted) setState(() => _threads = threads);
+    if (!mounted) return;
+    // A re-read makes new thread rows even when nothing moved. This fires
+    // the moment a thread page or a note sheet above this list closes —
+    // mid pop-transition — and a same answer was a full repaint of the
+    // list for nothing.
+    if (_threads != null && _sameThreads(_threads!, threads)) return;
+    setState(() => _threads = threads);
+  }
+
+  /// Whether two reads of the threads table say the same thing, in the
+  /// order this screen shows them (most recently active first).
+  static bool _sameThreads(List<NoteThread> a, List<NoteThread> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      final x = a[i];
+      final y = b[i];
+      if (x.id != y.id ||
+          x.name != y.name ||
+          x.noteCount != y.noteCount ||
+          x.updatedAt != y.updatedAt ||
+          x.lastActivityAt != y.lastActivityAt) {
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<void> _create() async {
@@ -198,7 +222,12 @@ class _ThreadScreenState extends State<ThreadScreen> {
 
   Future<void> _reload() async {
     final notes = await widget.services.threadNotes(widget.thread.id);
-    if (mounted) setState(() => _notes = notes);
+    if (!mounted) return;
+    // The sheet above this list closes without a change more often than
+    // not; its pop transition is the wrong moment to repaint identical
+    // cards, and a re-read answers with new objects either way.
+    if (_notes != null && nexSameNotes(_notes!, notes)) return;
+    setState(() => _notes = notes);
   }
 
   Future<void> _open(Note note) async {
