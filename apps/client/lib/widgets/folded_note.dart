@@ -1,6 +1,7 @@
 import 'package:nex_core/nex_core.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
+
 import 'feature_label.dart';
 
 /// A reading body that starts folded and opens to its whole text.
@@ -129,17 +130,13 @@ class _FoldedNoteState extends State<FoldedNote> {
   /// A document carrying one anywhere does not open in slices at all — see
   /// [_splitSlices] for why that is the honest answer rather than a
   /// relocation of them.
-  static final RegExp _referenceDefinition = RegExp(
-    r'^ {0,3}\[[^\[\]\n]+\]:',
-  );
+  static final RegExp _referenceDefinition = RegExp(r'^ {0,3}\[[^\[\]\n]+\]:');
 
   /// A line that starts an item of a list at the list's own top level —
   /// column zero, so a nested item can never be mistaken for a boundary.
   /// This is the secondary cut for lists that grow past the target without
   /// a blank line between their items; see [_splitSlices].
-  static final RegExp _topLevelItem = RegExp(
-    r'^(?:[-*+]|\d{1,9}[.)])[ \t]+',
-  );
+  static final RegExp _topLevelItem = RegExp(r'^(?:[-*+]|\d{1,9}[.)])[ \t]+');
 
   /// The opening or closing of a fenced block. Content between a pair is
   /// never a boundary, so a fence stays whole inside one slice.
@@ -317,14 +314,16 @@ class _FoldedNoteState extends State<FoldedNote> {
   Widget _slice(int index) {
     while (_sliceWidgets.length <= index) {
       final i = _sliceWidgets.length;
-      _sliceWidgets.add(_ExpandedSlice(
-        text: _sliceTexts[i],
-        markdown: _sliceMarkdown,
-        direction: _sliceDirection,
-        onTapLink: widget.onTapLink,
-        onHoldLink: widget.onHoldLink,
-        onCopyCode: widget.onCopyCode,
-      ));
+      _sliceWidgets.add(
+        _ExpandedSlice(
+          text: _sliceTexts[i],
+          markdown: _sliceMarkdown,
+          direction: _sliceDirection,
+          onTapLink: widget.onTapLink,
+          onHoldLink: widget.onHoldLink,
+          onCopyCode: widget.onCopyCode,
+        ),
+      );
     }
     return _sliceWidgets[index];
   }
