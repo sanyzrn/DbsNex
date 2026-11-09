@@ -600,15 +600,18 @@ class _CaptureSheetState extends State<CaptureSheet> {
     if (mounted) Navigator.pop(context);
   }
 
-  /// Send in a link box: only something that reads as a link.
-  bool get _sendable {
-    if (_shown != CaptureKind.link) return true;
+  /// Whether the words in a link box will not be an address, so closing will
+  /// keep them as the note they already are — the `_settleOnce` path. Send
+  /// always goes and its glyph says where the words are going; see
+  /// [_pasteSlot] for the rest of the way out of the old dead-end.
+  bool get _keepingAsNote {
+    if (_shown != CaptureKind.link) return false;
     final text = controller.text.trim();
-    return text.isEmpty || writtenLink(text) != null;
+    return text.isNotEmpty && writtenLink(text) == null;
   }
 
   void _submit() {
-    if (_sendable) unawaited(close());
+    unawaited(close());
   }
 
   /// Set as `dispose` begins, while `mounted` still says true: nothing may
@@ -686,17 +689,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(child: _field(context, l10n)),
-                            _CapturePasteSlot(
-                              visible: controller.text.isEmpty,
-                              label: MaterialLocalizations.of(
-                                context,
-                              ).pasteButtonLabel,
-                              onPressed: _closing ? null : _paste,
-                              color: nexNoteTypeTint(
-                                _wire(shown),
-                                Theme.of(context).colorScheme,
-                              ),
-                            ),
+                            _pasteSlot(context, shown),
                           ],
                         ),
                       ),
@@ -766,6 +759,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
                     _SendButton(
                       kind: shown,
                       closing: _closing,
+                      keepingAsNote: _keepingAsNote,
                       onSend: _closing
                           ? null
                           : switch (shown) {
@@ -773,7 +767,11 @@ class _CaptureSheetState extends State<CaptureSheet> {
                                 _voice == _Voice.on
                                     ? () => unawaited(_keepRecording())
                                     : null,
-                              _ => _sendable ? () => unawaited(close()) : null,
+                              // Including a link box whose words are not an
+                              // address: close settles them into the note
+                              // they already are, and says so — see
+                              // [_keepingAsNote].
+                              _ => () => unawaited(close()),
                             },
                       onSchedule: shown == CaptureKind.note && typed
                           ? () => unawaited(_schedule())
