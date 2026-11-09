@@ -459,8 +459,10 @@ class _FileTextBodyState extends State<_FileTextBody> {
         child: Text(l10n.filePreviewUnreadable(_error!), style: quiet),
       );
     }
-    final text = _text?.trim() ?? '';
-    if (text.isEmpty) return const SizedBox.shrink();
+    // Check meaningful content without altering the file's original text:
+    // slicing relies on preserving leading/trailing whitespace and blank lines.
+    final text = _text ?? '';
+    if (text.trim().isEmpty) return const SizedBox.shrink();
     return _FadeIn(
       child: Padding(
         padding: const EdgeInsets.only(top: NexSpacing.sm),
