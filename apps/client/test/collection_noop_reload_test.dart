@@ -57,24 +57,23 @@ void main() {
       matching: find.byType(NoteCard),
     );
 
-    // These are reload tests, not hit-testing tests. The pinned Threads
-    // action can be occluded in a small default test viewport. Invoke its
-    // real InkWell handler rather than accidentally hitting a thread chip.
-    Future<void> openThreadPicker(WidgetTester tester) async {
-      final icon = find
-          .descendant(
-            of: find.byType(NoteDetailSheet),
-            matching: find.byIcon(Icons.timeline_outlined),
-          )
-          .last;
-      final action = find
-          .ancestor(of: icon, matching: find.byType(InkWell))
-          .first;
-      final onTap = tester.widget<InkWell>(action).onTap;
-      expect(onTap, isNotNull);
-      onTap!();
-      await tester.pumpAndSettle();
-      expect(find.byType(CheckboxListTile), findsOneWidget);
+    // Pump bounded frames: the Library has continuously animated placeholders.
+    Future<void> finishRoute(WidgetTester tester) async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pump();
+    }
+
+    // Background database reads are independent of the Flutter frame clock.
+    Future<void> waitFor(WidgetTester tester, Finder finder) async {
+      for (var i = 0; i < 20; i++) {
+        await finishRoute(tester);
+        if (finder.evaluate().isNotEmpty) return;
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+      }
+      expect(finder, findsOneWidget);
     }
 
     testWidgets('thread notes: read-only note close repaints no cards', (
@@ -161,64 +160,66 @@ void main() {
       expect(tileRebuilds, lessThanOrEqualTo(1));
     });
 
-    testWidgets('note sheet: a dismissed thread picker repaints nothing', (
+    testWidgets('note sheet: unchanged thread visit repaints nothing', (
       tester,
     ) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
-
       await tester.tap(find.byType(NoteCard).first);
-      await tester.pumpAndSettle();
-      expect(find.byType(NoteDetailSheet), findsOneWidget);
+      await waitFor(tester, find.widgetWithText(ActionChip, 'alpha'));
 
-      // Open the toolbar action, not the visually similar thread chip.
-      await openThreadPicker(tester);
+      // Follow the real thread-chip route and return to the sheet.
+      final chip = tester.widget<ActionChip>(
+        find.widgetWithText(ActionChip, 'alpha'),
+      );
+      expect(chip.onPressed, isNotNull);
+      chip.onPressed!();
+      await waitFor(tester, find.byType(ThreadScreen));
 
       var sheetRebuilds = 0;
       debugOnRebuildDirtyWidget = (element, _) {
         if (element.widget is NoteDetailSheet) sheetRebuilds++;
       };
-      await Navigator.of(tester.element(find.byType(CheckboxListTile)))
-          .maybePop();
-      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(ThreadScreen))).pop();
+      await finishRoute(tester);
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
       debugOnRebuildDirtyWidget = null;
 
-      expect(find.byType(CheckboxListTile), findsNothing);
+      expect(find.byType(NoteDetailSheet), findsOneWidget);
       expect(sheetRebuilds, 0);
     });
 
-    testWidgets('note sheet: ticking a thread still reloads it', (
+    testWidgets('note sheet: changed note after thread visit repaints', (
       tester,
     ) async {
       await tester.pumpWidget(harness.app());
       await tester.pumpAndSettle();
-
-      // A note that is in no thread yet, so the picker starts unticked.
-      await harness.services.captureText('a second note');
-      await harness.services.refreshTimeline();
-      await tester.pumpAndSettle();
-
       await tester.tap(find.byType(NoteCard).first);
-      await tester.pumpAndSettle();
+      await waitFor(tester, find.widgetWithText(ActionChip, 'alpha'));
 
-      await openThreadPicker(tester);
-
+      final chip = tester.widget<ActionChip>(
+        find.widgetWithText(ActionChip, 'alpha'),
+      );
+      chip.onPressed!();
+      await waitFor(tester, find.byType(ThreadScreen));
+      await harness.services.setUrgent(noteId, true);
       var sheetRebuilds = 0;
       debugOnRebuildDirtyWidget = (element, _) {
         if (element.widget is NoteDetailSheet) sheetRebuilds++;
       };
-      // Ticking joins the note to the thread: the picker answers "changed".
-      await tester.tap(find.byType(CheckboxListTile).first);
-      await tester.pumpAndSettle();
-      await Navigator.of(tester.element(find.byType(CheckboxListTile)))
-          .maybePop();
-      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(ThreadScreen))).pop();
+      await finishRoute(tester);
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
       debugOnRebuildDirtyWidget = null;
 
-      expect(find.byType(CheckboxListTile), findsNothing);
+      expect(find.byType(NoteDetailSheet), findsOneWidget);
       expect(sheetRebuilds, greaterThan(0));
-      // The chip row shows what the picker did.
-      expect(find.text('alpha'), findsOneWidget);
     });
 
     testWidgets('set-aside: read-only note close repaints no rows', (
@@ -263,7 +264,7 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(harness.app());
-      await tester.pumpAndSettle();
+      await finishRoute(tester);
 
       final nav = Navigator.of(tester.element(find.byType(TimelineScreen)));
       unawaited(
@@ -276,13 +277,13 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await finishRoute(tester);
 
       // The Threads shelf, opened and closed without a change.
       await tester.tap(find.byKey(const ValueKey('library-threads')));
-      await tester.pumpAndSettle();
+      await finishRoute(tester);
       Navigator.of(tester.element(find.byType(ThreadsScreen))).pop();
-      await tester.pumpAndSettle();
+      await finishRoute(tester);
       expect(find.byType(LibraryScreen), findsOneWidget);
 
       var libraryRebuilds = 0;
