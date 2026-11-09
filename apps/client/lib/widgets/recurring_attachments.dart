@@ -14,6 +14,7 @@ import '../platform/vault_store.dart';
 import '../screens/camera_sheet.dart';
 import '../screens/note_detail_sheet.dart';
 import '../screens/vault_screen.dart';
+import 'collection_page.dart';
 import 'feature_label.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
@@ -169,11 +170,25 @@ class _RecurringAttachmentsState extends State<RecurringAttachments> {
   }
 
   Future<void> _open(Note note) async {
-    await nexShowSheet<DetailResult>(
+    final result = await nexShowSheet<DetailResult>(
       context: context,
       builder: (_) =>
           NoteDetailSheet(services: widget.services, noteId: note.id),
     );
+    // Delete inside the sheet is a request this side has to act on — the
+    // collections learned this the hard way (see nexOpenNoteFromCollection):
+    // dropping the answer closed the sheet over a note that was still there,
+    // and a delete that sometimes does nothing is the one belief about an
+    // app nobody comes back from. Soft delete with Undo, the same as the
+    // timeline.
+    if (result == DetailResult.deleted && mounted) {
+      await nexDeleteNoteWithUndo(
+        context,
+        services: widget.services,
+        preferences: null,
+        note: note,
+      );
+    }
     if (mounted) await _load();
   }
 

@@ -2,17 +2,23 @@ part of 'capture_sheet.dart';
 
 /// Fade the action while reclaiming its column. The editor remains the same
 /// keyed child with the same controller/focus node throughout the transition.
+///
+/// In a link box the slot never leaves: empty it is Paste, and once words are
+/// in it becomes Clear ([clear]) — the one-tap way out of a paste that was
+/// not an address, in a field too single-line for select-all to be found in.
 class _CapturePasteSlot extends StatelessWidget {
   const _CapturePasteSlot({
     required this.visible,
     required this.label,
     required this.color,
     required this.onPressed,
+    this.clear = false,
   });
   final bool visible;
   final String label;
   final Color color;
   final VoidCallback? onPressed;
+  final bool clear;
 
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
@@ -32,7 +38,11 @@ class _CapturePasteSlot extends StatelessWidget {
             height: nexMinTapTarget,
           ),
           color: color,
-          icon: const Icon(Icons.content_paste_outlined, size: 18),
+          icon: Icon(
+            clear ? Icons.close : Icons.content_paste_outlined,
+            key: ValueKey(clear ? 'capture-clear' : 'capture-paste-icon'),
+            size: 18,
+          ),
         ),
       ),
     ),
@@ -396,7 +406,9 @@ class _ComposerRecorderState extends State<_ComposerRecorder> {
 ///
 /// A list's item count, a link's site or validation message, and the note's
 /// hint that holding Send schedules it.
-class _ComposerFootnote extends StatelessWidget {
+///
+/// The link verdict waits for the words to be still — see [_verdictAfter].
+class _ComposerFootnote extends StatefulWidget {
   const _ComposerFootnote({
     required this.kind,
     required this.text,
@@ -408,17 +420,65 @@ class _ComposerFootnote extends StatelessWidget {
   final bool scheduleHint;
 
   @override
+  State<_ComposerFootnote> createState() => _ComposerFootnoteState();
+}
+
+class _ComposerFootnoteState extends State<_ComposerFootnote> {
+  /// How long the words must be still before the link box passes judgement.
+  ///
+  /// The red line used to arrive with the first character of a paste that was
+  /// not an address — before the person had even seen what landed — and
+  /// `www.exa` is "not a link" only until the rest of it arrives. Judgement
+  /// waits for a pause; the site line, which says something useful the moment
+  /// it is true, does not.
+  static const _verdictAfter = Duration(milliseconds: 600);
+
+  bool _typedRecently = true;
+  Timer? _verdict;
+
+  @override
+  void initState() {
+    super.initState();
+    _arm();
+  }
+
+  void _arm() {
+    _verdict?.cancel();
+    _typedRecently = true;
+    _verdict = Timer(_verdictAfter, () {
+      if (mounted) setState(() => _typedRecently = false);
+    });
+  }
+
+  @override
+  void didUpdateWidget(_ComposerFootnote old) {
+    super.didUpdateWidget(old);
+    // Only a change in the words re-arms the pause: switching kind with the
+    // same words already in the box is a decision, and deserves the verdict
+    // at once.
+    if (widget.text != old.text) _arm();
+  }
+
+  @override
+  void dispose() {
+    _verdict?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final kind = widget.kind;
+    final text = widget.text;
     final quiet = theme.textTheme.labelMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
     final tint = nexNoteTypeTint(_wire(kind), scheme);
     final trimmed = text.trim();
     final (String, Widget)? line = switch (kind) {
-      CaptureKind.note when scheduleHint => (
+      CaptureKind.note when widget.scheduleHint => (
         'hint',
         Align(
           alignment: AlignmentDirectional.centerEnd,
@@ -463,6 +523,9 @@ class _ComposerFootnote extends StatelessWidget {
             ],
           ),
         ),
+        // While the words are still arriving: no verdict yet. Send says
+        // where the words are going instead — see _SendButton.
+        null when _typedRecently => null,
         null => (
           'invalid',
           Text(
@@ -590,19 +653,26 @@ class _SideAction extends StatelessWidget {
 }
 
 /// Send — or, while recording, Stop, which keeps the recording. Held in a
-/// note, it schedules.
+/// note, it schedules. In a link box whose words are not an address, it
+/// becomes the note glyph: the send that keeps them as the note they already
+/// are, the same route back and swipe always took.
 class _SendButton extends StatelessWidget {
   const _SendButton({
     required this.kind,
     required this.closing,
     required this.onSend,
     required this.onSchedule,
+    this.keepingAsNote = false,
   });
 
   final CaptureKind kind;
   final bool closing;
   final VoidCallback? onSend;
   final VoidCallback? onSchedule;
+
+  /// The words are not a link, so Send keeps them as a note — see
+  /// [_CaptureSheetState._keepingAsNote].
+  final bool keepingAsNote;
 
   @override
   Widget build(BuildContext context) {
@@ -641,8 +711,18 @@ class _SendButton extends StatelessWidget {
                       child: ScaleTransition(scale: animation, child: child),
                     ),
                     child: Icon(
-                      voice ? Icons.stop_rounded : Icons.arrow_upward,
-                      key: ValueKey(voice),
+                      voice
+                          ? Icons.stop_rounded
+                          : keepingAsNote
+                          ? Icons.notes_outlined
+                          : Icons.arrow_upward,
+                      key: ValueKey(
+                        voice
+                            ? 'stop'
+                            : keepingAsNote
+                            ? 'note'
+                            : 'up',
+                      ),
                       size: 32,
                     ),
                   ),

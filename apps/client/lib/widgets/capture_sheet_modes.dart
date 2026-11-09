@@ -2,6 +2,29 @@ part of 'capture_sheet.dart';
 
 /// The microphone and the field: the two things the box can hold.
 extension _CaptureModes on _CaptureSheetState {
+  /// The link field's own way out. Paste when the box is empty, as
+  /// everywhere; once it holds words — a paste that missed is the usual way
+  /// that happens — the same slot turns into Clear, because a one-line link
+  /// field gives select-all no room to be found in and a dead end no way
+  /// out. Note and checklist keep the old behaviour: their field is
+  /// multiline, and the editor's own selection tools are already there.
+  Widget _pasteSlot(BuildContext context, CaptureKind shown) {
+    final clearing = shown == CaptureKind.link && controller.text.isNotEmpty;
+    return _CapturePasteSlot(
+      visible: controller.text.isEmpty || shown == CaptureKind.link,
+      clear: clearing,
+      label: clearing
+          ? AppLocalizations.of(context).clear
+          : MaterialLocalizations.of(context).pasteButtonLabel,
+      onPressed: _closing
+          ? null
+          : clearing
+          ? _clearField
+          : _paste,
+      color: nexNoteTypeTint(_wire(shown), Theme.of(context).colorScheme),
+    );
+  }
+
   /// The box turns into a recorder and starts listening.
   ///
   /// What was typed stays a note — it already is one — and comes back
@@ -132,6 +155,17 @@ extension _CaptureModes on _CaptureSheetState {
     if (widget.initialKind == CaptureKind.voice && controller.text.isEmpty) {
       unawaited(close());
     }
+  }
+
+  /// The link box's Clear: one tap takes the words away. The empty box is
+  /// then an empty capture again — `changed('')` runs the ordinary machinery,
+  /// which retires the draft note the words had already become, so nothing
+  /// is left on the timeline that is not on the screen.
+  Future<void> _clearField() async {
+    if (_closing || _voiceOn) return;
+    controller.clear();
+    changed('');
+    if (!_fieldFocus.hasFocus) _fieldFocus.requestFocus();
   }
 
   /// Paste into the shared editor, replacing its selection or inserting at

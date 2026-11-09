@@ -301,22 +301,75 @@ void main() {
     );
   });
 
-  testWidgets('a link that is not a link cannot be sent', (tester) async {
+  testWidgets('a link that is not a link is sent as the note it already is', (
+    tester,
+  ) async {
     await openComposer(tester);
     await tester.tap(find.byTooltip('Link'));
     await tester.pumpAndSettle();
 
     await tester.enterText(_field, 'javascript:alert(1)');
     await tester.pumpAndSettle();
-
+    // The verdict waits for the words to be still — not the first character.
+    expect(find.text('That does not look like a link.'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
     expect(find.text('That does not look like a link.'), findsOneWidget);
-    // Send is there and does nothing: the sheet stays, and no link is made.
+
+    // Send says where the words are going instead of refusing: the note
+    // glyph, not the arrow.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('capture-send')),
+        matching: find.byIcon(Icons.notes_outlined),
+      ),
+      findsOneWidget,
+    );
     await tester.tap(_send);
     await tester.pumpAndSettle();
 
-    expect(find.text('That does not look like a link.'), findsOneWidget);
+    // No link is made; the words are kept as the note they already are, and
+    // the reason is said — the same route back and swipe always took.
     final notes = await services.timeline(limit: 5);
     expect(notes.where((n) => n.type == NoteType.link), isEmpty);
+    expect(notes.single.type, NoteType.text);
+    expect(notes.single.content, 'javascript:alert(1)');
+    expect(
+      find.text('That is not a link, so it stays a note.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a link box offers Clear once it holds words', (tester) async {
+    await openComposer(tester);
+    await tester.tap(find.byTooltip('Link'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(_field, 'definitely not a url');
+    await tester.pumpAndSettle();
+    // The slot stays: Paste has become Clear, the one-tap way out of a
+    // paste that missed.
+    final clear = find.byKey(const ValueKey('capture-clear'));
+    expect(clear, findsOneWidget);
+    final field = find.descendant(
+      of: find.byType(CaptureSheet),
+      matching: find.byType(TextField),
+    );
+    expect(tester.widget<TextField>(field).controller!.text, isNotEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('capture-paste')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(field).controller!.text, isEmpty);
+    // Empty again: the slot is Paste once more, and reads the clipboard only
+    // when asked.
+    expect(clear, findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(CaptureSheet),
+        matching: find.byIcon(Icons.content_paste_outlined),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the detail sheet ticks an item, and offers no title', (

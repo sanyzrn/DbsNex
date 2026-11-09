@@ -46,6 +46,14 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   /// when the page closes, whichever comes first.
   final _purging = <String, Timer>{};
 
+  /// The banner the last "deleted for good" is waiting on. Kept so the page
+  /// can take it down when it goes: leaving the page purges immediately (see
+  /// [dispose]), and a Undo banner whose Undo is dead — it rebuilds a page
+  /// that no longer exists — is a promise the app cannot keep. The purge
+  /// itself is the designed behaviour; the banner that outlived it was the
+  /// bug.
+  NexBannerHandle? _purgeBanner;
+
   /// A little longer than a banner with an action stays up.
   static const _purgeAfter = Duration(seconds: 7);
 
@@ -57,6 +65,12 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
 
   @override
   void dispose() {
+    // The banner first, while the overlay it lives in is still there: leaving
+    // the page runs the purge below, and the Undo it advertises cannot work
+    // on a page that is gone. Without this the banner stayed up over a note
+    // that was already permanently gone.
+    _purgeBanner?.hide();
+    _purgeBanner = null;
     for (final MapEntry(key: id, value: timer) in _purging.entries) {
       timer.cancel();
       unawaited(widget.services.purgeNote(id));
@@ -119,7 +133,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       }
     });
     final l10n = AppLocalizations.of(context);
-    nexShowBanner(
+    _purgeBanner = nexShowBanner(
       context,
       message: l10n.trashDeletedForever,
       haptics: widget.preferences?.haptics ?? true,

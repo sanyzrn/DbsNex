@@ -70,6 +70,86 @@ void main() {
     expect(find.text('page underneath'), findsOneWidget);
   });
 
+  // A box that scrolls inside the sheet's own scroll view — an AI result, a
+  // translation — overscrolls at its own top too, and that is not a request
+  // to close anything: reading a long transcript to its first line and
+  // pulling a little further used to take the whole sheet with it, position
+  // and all. The note detail sheet's own shape: a capped box in the scroll.
+  testWidgets('overscroll inside a nested box does not close the sheet', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => nexShowSheet<void>(
+                  context: context,
+                  builder: (_) => ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 700),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: NexDismissOnOverscroll(
+                            child: SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxHeight: 240,
+                                    ),
+                                    child: SingleChildScrollView(
+                                      primary: false,
+                                      child: Column(
+                                        children: [
+                                          for (var i = 0; i < 30; i++)
+                                            ListTile(title: Text('Nested $i')),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  for (var i = 0; i < 60; i++)
+                                    ListTile(title: Text('Row $i')),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                child: const Text('page underneath'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('page underneath'));
+    await tester.pumpAndSettle();
+    expect(find.text('Row 0'), findsOneWidget);
+
+    // The nested box starts at its own top: a downward pull over it
+    // overscrolls the box (a depth the sheet never asked about), not the
+    // sheet's own scroll.
+    await tester.drag(find.text('Nested 2'), const Offset(0, 120));
+    await tester.pumpAndSettle();
+    expect(find.text('Row 0'), findsOneWidget, reason: 'the sheet stays');
+
+    // The same drag over the sheet's own scroll, pinned at its top, still
+    // closes it.
+    await tester.drag(find.text('Row 2'), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(find.text('Row 0'), findsNothing);
+    expect(find.text('page underneath'), findsOneWidget);
+  });
+
   test('no new raw bottom sheet: they go through nexShowSheet', () {
     // The few that predate the rule, each with its own reason. A sheet
     // added anywhere else uses nexShowSheet, and with it the glass surface,
@@ -90,9 +170,8 @@ void main() {
         if (file is File &&
             file.path.endsWith('.dart') &&
             !allowed.contains(file.path.replaceAll(r'\', '/')) &&
-            RegExp(
-              r'\bshowModalBottomSheet\s*<|\bshowModalBottomSheet\s*\(',
-            ).hasMatch(file.readAsStringSync()))
+            RegExp(r'\bshowModalBottomSheet\s*<|\bshowModalBottomSheet\s*\(')
+                .hasMatch(file.readAsStringSync()))
           file.path,
     ];
     expect(
