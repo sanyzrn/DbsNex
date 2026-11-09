@@ -24,6 +24,13 @@ import 'package:flutter/material.dart';
 /// Without this check that fling closed the sheet on the way to the top
 /// instead of merely scrolling it there; only a second, deliberate drag once
 /// it has actually arrived should do that.
+///
+/// Only the scrollable this widget wraps — [ScrollNotification.depth] zero.
+/// A scroll view nested inside it, like the capped boxes an AI result or a
+/// translation reads in, reports its overscroll from a depth this listener
+/// never asked about, and treating it as the sheet's own edge closed the
+/// whole sheet from inside the box the reader was scrolling — losing the
+/// sheet's scroll position with it.
 class NexDismissOnOverscroll extends StatefulWidget {
   const NexDismissOnOverscroll({super.key, required this.child});
 
@@ -37,6 +44,10 @@ class _NexDismissOnOverscrollState extends State<NexDismissOnOverscroll> {
   bool _dismissed = false;
 
   bool _onNotification(OverscrollNotification notification) {
+    // A scroll view nested inside this one (an AI result, a translation)
+    // overscrolls at its own boundary too, and from a depth above zero —
+    // that is a box being scrolled, not the sheet being pulled.
+    if (notification.depth > 0) return false;
     // Only a finger pulling down past the top of a vertical list. A
     // horizontal row of chips overscrolls too, at its start edge, and that
     // is not a request to close anything.
