@@ -216,6 +216,41 @@ void main() {
     expect(await services.deletedNotes(), hasLength(1));
   });
 
+  // Leaving the trash runs the purge at once (by design — see the page's own
+  // comment), so its Undo banner must not outlive the page: a Restore that
+  // works on a screen that is gone is a promise the app cannot keep.
+  testWidgets('leaving the trash takes its dead Undo banner with it', (
+    tester,
+  ) async {
+    final notes = await services.worker.timeline(limit: 10);
+    for (final note in notes) {
+      await services.deleteNote(note.id);
+    }
+    await services.refreshTimeline();
+    await open(tester);
+    await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Trash'));
+    await tester.pumpAndSettle();
+
+    final first = notes.first;
+    await tester.tap(find.byKey(ValueKey('trash-purge-${first.id}')));
+    await tester.pumpAndSettle();
+    expect(find.text('Deleted permanently'), findsOneWidget);
+
+    // Back out of the trash: the note is gone for good either way, and the
+    // banner that offers to bring it back goes with the page. The other
+    // note is still waiting its thirty days, as it should.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Deleted permanently'), findsNothing);
+    expect(await services.getById(first.id), isNull);
+    expect(
+      (await services.deletedNotes()).map((n) => n.id),
+      isNot(contains(first.id)),
+    );
+  });
+
   testWidgets('from a card, a swipe back leaves; its buttons act', (
     tester,
   ) async {
