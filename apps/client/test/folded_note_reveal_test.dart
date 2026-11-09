@@ -146,7 +146,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Paragraph 199'), findsOneWidget);
     expect(
-      find.byType(NexMarkdown),
+      find.byType(NexMarkdown).evaluate().length,
       greaterThan(1),
       reason: 'the document opened in slices',
     );
