@@ -30,9 +30,7 @@ void main() {
                   kept = await nexShowSheet<bool>(
                     context: context,
                     dismissible: false,
-                    builder: (_) => RecordingSheet(
-                      recorder: _SilentRecorder(),
-                    ),
+                    builder: (_) => RecordingSheet(recorder: _SilentRecorder()),
                   );
                 },
                 child: const Text('record'),
@@ -70,9 +68,7 @@ void main() {
                   kept = await nexShowSheet<bool>(
                     context: context,
                     dismissible: false,
-                    builder: (_) => RecordingSheet(
-                      recorder: _SilentRecorder(),
-                    ),
+                    builder: (_) => RecordingSheet(recorder: _SilentRecorder()),
                   );
                 },
                 child: const Text('record'),
@@ -109,9 +105,7 @@ void main() {
                   kept = await nexShowSheet<bool>(
                     context: context,
                     dismissible: false,
-                    builder: (_) => RecordingSheet(
-                      recorder: _SilentRecorder(),
-                    ),
+                    builder: (_) => RecordingSheet(recorder: _SilentRecorder()),
                   );
                 },
                 child: const Text('record'),
