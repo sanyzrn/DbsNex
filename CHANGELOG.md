@@ -2,6 +2,11 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.13
+
+- **Faster opening of long notes and text files.** The first page appears with the detail sheet instead of waiting for it to finish opening.
+- **Smoother reading and actions.** Long documents reveal progressively and keep menus and scrolling more responsive; Markdown blocks and whitespace stay intact.
+
 ## v2.6.12
 
 - **Smoother returns from Settings and Recurring.** Unchanged recurring commitments no longer trigger a full Home screen redraw when closing these pages.
