@@ -69,15 +69,36 @@ class _NexSidebarState extends State<NexSidebar> {
     try {
       final usage = await widget.services.tagUsage();
       if (!mounted) return;
-      setState(
-        () => _tags = [
-          for (final u in usage)
-            if (u.count > 0) u,
-        ],
-      );
+      final tags = [
+        for (final u in usage)
+          if (u.count > 0) u,
+      ];
+      // The timeline's stream wakes this rail on every mutation, and most
+      // of them leave the labels and counts where they were. A same
+      // answer must not repaint the rail — the model already stays quiet
+      // for the notes, and this is the desktop's copy of that rule.
+      if (_sameTagUsage(_tags, tags)) return;
+      setState(() => _tags = tags);
     } catch (_) {
       // A rail without its tags is still a rail.
     }
+  }
+
+  /// Whether two tag-usage reads say the same thing, in the order the rail
+  /// shows them (count first).
+  static bool _sameTagUsage(List<TagUsage> a, List<TagUsage> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      final x = a[i];
+      final y = b[i];
+      if (x.count != y.count ||
+          x.tag.id != y.tag.id ||
+          x.tag.name != y.tag.name ||
+          x.tag.color != y.tag.color) {
+        return false;
+      }
+    }
+    return true;
   }
 
   TimelineScreenState? get _timeline => widget.timelineKey.currentState;

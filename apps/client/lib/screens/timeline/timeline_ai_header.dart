@@ -477,10 +477,14 @@ extension _TimelineAiHeader on TimelineScreenState {
   /// The screen where the assistant is switched on, from the notice that
   /// says it is not.
   ///
-  /// Awaited, and the timeline rebuilds on the way back: turning intelligence
-  /// on is exactly the change that makes the button this came from start
-  /// doing something else.
+  /// Awaited, and the timeline rebuilds on the way back — but only when the
+  /// intelligence settings actually moved: turning intelligence on is
+  /// exactly the change that makes the button this came from start doing
+  /// something else, and a real change rebuilds through the preferences
+  /// listener and [didPopNext] as well. A visit that changed nothing must
+  /// not repaint every card mid pop-transition.
   Future<void> _openIntelligence() async {
+    final before = _briefSettingsSignature();
     await Navigator.push(
       context,
       NexPageRoute<void>(
@@ -490,7 +494,7 @@ extension _TimelineAiHeader on TimelineScreenState {
         ),
       ),
     );
-    if (mounted) _rebuild(() {});
+    if (mounted && _briefSettingsSignature() != before) _rebuild(() {});
   }
 
   void _toggleAiSummary() {

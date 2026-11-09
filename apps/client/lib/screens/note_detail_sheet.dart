@@ -73,6 +73,7 @@ part 'note_detail/detail_ai_panel.dart';
 part 'note_detail/detail_ai_widgets.dart';
 part 'note_detail/detail_type_body.dart';
 part 'note_detail/detail_attachments.dart';
+part 'note_detail/detail_compare.dart';
 part 'note_detail/detail_attachment_menu.dart';
 part 'note_detail/detail_facts.dart';
 
@@ -269,22 +270,44 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       widget.services.attachmentsFor(widget.noteId),
     ).wait;
     if (!mounted) return;
-    setState(() {
-      _note = loaded;
-      if (loaded != null) {
-        final source = _translationSource(loaded);
-        TranslateSheet.invalidate(loaded.id, source);
-        if (_translationRequested && _translationText != source) {
-          _translationText = source;
-          _translationRequested = false;
-          if (_activeAiResult == 'translation') _activeAiResult = null;
+    // Cache invalidation is a read's side effect and runs every time.
+    final String? source;
+    if (loaded == null) {
+      source = null;
+    } else {
+      source = _translationSource(loaded);
+      TranslateSheet.invalidate(loaded.id, source);
+    }
+    // Quiet when the answer has not moved: this reload follows the thread
+    // page or the thread picker closing — mid pop-transition — and a fresh
+    // set of identical rows was a full repaint of the sheet for nothing.
+    // The first read (or a note that vanished underneath the sheet) is
+    // always a change; so is a translation the source has moved under.
+    final unchanged =
+        _read &&
+        loaded != null &&
+        _note != null &&
+        nexSameNote(_note!, loaded) &&
+        _pinnedNoteCount == pinnedNoteCount &&
+        _sameThreads(_threads, threads) &&
+        _sameAttachments(_attachments, attachments) &&
+        !(_translationRequested && _translationText != source);
+    if (!unchanged) {
+      setState(() {
+        _note = loaded;
+        if (loaded != null) {
+          if (_translationRequested && _translationText != source) {
+            _translationText = source!;
+            _translationRequested = false;
+            if (_activeAiResult == 'translation') _activeAiResult = null;
+          }
         }
-      }
-      _pinnedNoteCount = pinnedNoteCount;
-      _threads = threads;
-      _attachments = attachments;
-      _read = true;
-    });
+        _pinnedNoteCount = pinnedNoteCount;
+        _threads = threads;
+        _attachments = attachments;
+        _read = true;
+      });
+    }
     final note = _note;
     // A voice note, and now a music file someone shared in as well. Both are a
     // path to something the bundled player already decodes, and there was

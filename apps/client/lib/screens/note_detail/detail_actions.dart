@@ -11,8 +11,14 @@ extension _DetailActions on _NoteDetailSheetState {
   }
 
   Future<void> _pickThreads(String noteId) async {
-    await showThreadPicker(context, services: widget.services, noteId: noteId);
-    await _reload();
+    final changed = await showThreadPicker(
+      context,
+      services: widget.services,
+      noteId: noteId,
+    );
+    // The picker answers whether anything moved; a dismissed picker used to
+    // cost this sheet a full repaint mid sheet-close transition.
+    if (changed) await _reload();
   }
 
   Future<void> _openThread(NoteThread thread) async {

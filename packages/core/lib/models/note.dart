@@ -488,6 +488,68 @@ class Note {
   }
 }
 
+/// Whether two reads of the notes table say the same thing, new instances
+/// notwithstanding.
+///
+/// A re-read always makes fresh [Note] objects, so `identical` is useless for
+/// "did anything move": callers that repaint a list after a page above it
+/// closes — the timeline's stream, the threads page, the archive — need a
+/// content answer or they repaint identical rows mid pop-transition.
+bool nexSameNotes(List<Note> before, List<Note> after) {
+  if (before.length != after.length) return false;
+  for (var i = 0; i < before.length; i++) {
+    if (!nexSameNote(before[i], after[i])) return false;
+  }
+  return true;
+}
+
+/// Whether two [Note]s say the same thing to a reader.
+///
+/// Field by field, deliberately: AI enrichment (summary, transcript, OCR)
+/// writes without bumping `rev` or `updatedAt`, and reminder, pin and
+/// urgency metadata is local-only, so those columns cannot stand in for the
+/// fields themselves. [syncState] is deliberately absent — nothing a card
+/// or a collection row draws reads it.
+bool nexSameNote(Note a, Note b) {
+  if (identical(a, b)) return true;
+  if (a.id != b.id ||
+      a.type != b.type ||
+      a.rev != b.rev ||
+      a.updatedAt != b.updatedAt ||
+      a.createdAt != b.createdAt ||
+      a.deletedAt != b.deletedAt ||
+      a.content != b.content ||
+      a.caption != b.caption ||
+      a.title != b.title ||
+      a.linkExcerpt != b.linkExcerpt ||
+      a.transcriptText != b.transcriptText ||
+      a.ocrText != b.ocrText ||
+      a.summaryText != b.summaryText ||
+      a.mediaUri != b.mediaUri ||
+      a.mediaHash != b.mediaHash ||
+      a.durationMs != b.durationMs ||
+      a.mimeType != b.mimeType ||
+      a.pinnedAt != b.pinnedAt ||
+      a.isUrgent != b.isUrgent ||
+      a.setAsideAt != b.setAsideAt ||
+      a.setAsideUntil != b.setAsideUntil ||
+      a.dueAt != b.dueAt ||
+      a.dueRepeat != b.dueRepeat ||
+      a.sortOrder != b.sortOrder ||
+      a.attachmentCount != b.attachmentCount) {
+    return false;
+  }
+  if (a.tags.length != b.tags.length) return false;
+  for (var i = 0; i < a.tags.length; i++) {
+    if (a.tags[i].id != b.tags[i].id ||
+        a.tags[i].name != b.tags[i].name ||
+        a.tags[i].color != b.tags[i].color) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /// How often a reminder comes back.
 ///
 /// Deliberately three, and deliberately these three. Android and iOS both

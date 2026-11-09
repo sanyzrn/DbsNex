@@ -74,12 +74,22 @@ extension _TimelineLayout on TimelineScreenState {
               // meaning two different things is worse than either.
               icon: const Icon(Icons.dashboard_customize_outlined),
               onPressed: () async {
+                // The sheet's own writes rebuild this screen through the
+                // preferences listener; what is left to catch is a sheet
+                // dismissed without a change, and that must not repaint
+                // every card mid sheet-close transition.
+                final prefs = widget.preferences;
+                String layout() =>
+                    '${prefs.showGreeting}|${prefs.showDaySummary}|'
+                    '${prefs.showSearchField}|${prefs.showTagRow}|'
+                    '${prefs.pinnedTools.join(',')}';
+                final before = layout();
                 await nexShowSheet<void>(
                   context: context,
                   builder: (_) =>
                       HomeLayoutSheet(preferences: widget.preferences),
                 );
-                if (mounted) _rebuild(() {});
+                if (mounted && layout() != before) _rebuild(() {});
               },
             ),
           // The library and the gear used to be here. They are the two things

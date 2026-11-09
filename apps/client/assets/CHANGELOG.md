@@ -7,6 +7,9 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 - **Smoother returns from Settings and Recurring.** Unchanged recurring commitments no longer trigger a full Home screen redraw when closing these pages.
 - **Reliable recurring updates.** Changes to schedules, completion history and attached details still appear, and today's completion counts refresh correctly after midnight.
 
+- **Smoother navigation throughout Nex.** Unchanged screens in Threads, Library, Set Aside, note details, Home layout, and Intelligence no longer redraw unnecessarily after returning.
+- **Real changes remain visible.** Notes, tags, attachments, and thread membership continue to update when edited.
+
 ## v2.6.11
 
 - **Smoother return to Home.** Closing note details or returning from another page avoids unnecessary timeline rebuilding when nothing has changed.

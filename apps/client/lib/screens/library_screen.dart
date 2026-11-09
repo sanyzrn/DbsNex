@@ -72,6 +72,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
         scheduled: scheduled.length,
       );
       if (!mounted) return;
+      // A sub-page that closed without a change must not repaint these
+      // tiles mid pop-transition; equal records need no second reading.
+      if (_counts == counts) return;
       setState(() => _counts = counts);
     } catch (_) {
       // The tiles still open their pages; only the counts are missing.
