@@ -716,7 +716,13 @@ class _SendButton extends StatelessWidget {
                           : keepingAsNote
                           ? Icons.notes_outlined
                           : Icons.arrow_upward,
-                      key: ValueKey(voice ? 'stop' : keepingAsNote ? 'note' : 'up'),
+                      key: ValueKey(
+                        voice
+                            ? 'stop'
+                            : keepingAsNote
+                            ? 'note'
+                            : 'up',
+                      ),
                       size: 32,
                     ),
                   ),
