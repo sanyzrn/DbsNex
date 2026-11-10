@@ -137,8 +137,10 @@ void main() {
   testWidgets('a recovered draft opens with the caret at its end', (
     tester,
   ) async {
-    final dir = await Directory.systemTemp.createTemp('nex_editor_draft_');
-    addTearDown(() => dir.delete(recursive: true));
+    // testWidgets uses a fake-async clock: awaiting an actual filesystem
+    // future here can hang until the ten-minute test timeout.
+    final dir = Directory.systemTemp.createTempSync('nex_editor_draft_');
+    addTearDown(() => dir.deleteSync(recursive: true));
     final drafts = EditorDrafts(dir.path);
     preferences.editorDrafts = drafts;
     drafts.write('note-7', {'text': 'half-finished thou'});
