@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
 
