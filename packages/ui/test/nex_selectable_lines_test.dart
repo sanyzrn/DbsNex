@@ -72,14 +72,16 @@ void main() {
       // still a good half-line apart.
       final copied = await copyAll(
         tester,
-        Column(
-          children: [
-            const NexTextSurface.line('First'),
-            Transform.translate(
-              offset: const Offset(0, -2),
-              child: const NexTextSurface.line('Second'),
-            ),
-          ],
+        NexSelectableLines(
+          child: Column(
+            children: [
+              const NexTextSurface.line('First'),
+              Transform.translate(
+                offset: const Offset(0, -2),
+                child: const NexTextSurface.line('Second'),
+              ),
+            ],
+          ),
         ),
       );
       expect(copied.split('\n'), ['First', 'Second']);
