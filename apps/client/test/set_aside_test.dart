@@ -196,16 +196,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(await services.deletedNotes(), hasLength(2));
 
+    // Accessibility keeps Undo available beyond the ordinary banner timer.
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(
+          accessibleNavigation: true,
+          disableAnimations: true,
+        );
     // Deleting for good waits for its Undo, and the Undo keeps the note.
     await tester.tap(find.byKey(ValueKey('trash-purge-${first.id}')));
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('trash-${first.id}')), findsNothing);
+    await tester.pump(const Duration(seconds: 12));
+    expect(await services.getById(first.id), isNotNull);
+    expect(find.text('Undo'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 8));
     expect(await services.deletedNotes(), hasLength(2));
     expect(find.byKey(ValueKey('trash-${first.id}')), findsWidgets);
 
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    await tester.pump();
     // Left alone, it goes.
     await tester.tap(find.byKey(ValueKey('trash-purge-${first.id}')));
     await tester.pumpAndSettle();

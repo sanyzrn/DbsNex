@@ -112,6 +112,7 @@ abstract interface class NexDb {
 
   Future<int> pinnedNoteCount();
   Future<Map<String, int>> libraryNoteCounts();
+  Future<bool> hasUntaggedTimelineNotes();
 
   /// Puts a note to one side: off the home timeline, still searchable. A null
   /// [until] means until it is brought back. False when the note is gone or

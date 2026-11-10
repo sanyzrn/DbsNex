@@ -460,6 +460,12 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                                   ),
                           ),
                         ),
+                      if (_undo.isNotEmpty && !showUndo)
+                        IconButton(
+                          onPressed: _running == null ? _undoLast : null,
+                          tooltip: l10n.undo,
+                          icon: const Icon(Icons.undo),
+                        ),
                       const Spacer(),
                       // The same two buttons in either size — ✕ and ✓ with
                       // their tooltips — rather than words that became icons

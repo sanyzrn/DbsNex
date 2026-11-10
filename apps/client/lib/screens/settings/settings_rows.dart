@@ -387,7 +387,7 @@ class _ImportRowState extends State<_ImportRow> {
 
   Future<void> _import() async {
     if (_running) return;
-    final picked = await OsCaptureBridge.pickFile();
+    final picked = await nexPickAttachment(context);
     if (picked == null || !mounted) return;
     final l10n = AppLocalizations.of(context);
     final host = NexBannerHost.of(context);

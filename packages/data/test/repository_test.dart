@@ -36,6 +36,30 @@ void main() {
   }
 
   test(
+    'untagged existence covers unloaded notes, excluding trash and archives',
+    () {
+      expect(repo.hasUntaggedTimelineNotes(), isFalse);
+      final older = repo.insert(makeText('older bare', at: DateTime.utc(2020)));
+      final newest = repo.insert(makeText('newest tagged'));
+      final tag = repo.upsertTag(name: 'Work');
+      repo.attachTag(noteId: newest.id, tagId: tag.id);
+      expect(repo.listTimeline(limit: 1).single.id, newest.id);
+      expect(repo.hasUntaggedTimelineNotes(), isTrue);
+      repo.softDelete(older.id);
+      expect(repo.hasUntaggedTimelineNotes(), isFalse);
+      repo.undelete(older.id);
+      repo.setAside(older.id);
+      expect(repo.hasUntaggedTimelineNotes(), isFalse);
+      repo.bringBack(older.id);
+      expect(repo.hasUntaggedTimelineNotes(), isTrue);
+      repo.attachTag(noteId: older.id, tagId: tag.id);
+      expect(repo.hasUntaggedTimelineNotes(), isFalse);
+      repo.detachTag(noteId: older.id, tagId: tag.id);
+      expect(repo.hasUntaggedTimelineNotes(), isTrue);
+    },
+  );
+
+  test(
     'library counts include set-aside but exclude trash and distinguish files',
     () {
       final text = repo.insert(makeText('live'));

@@ -11,7 +11,6 @@ import 'package:flutter/foundation.dart' show compute;
 
 import '../platform/note_copy.dart';
 import '../widgets/copy_feedback.dart';
-import '../platform/os_capture_bridge.dart';
 import '../platform/photo_encoding.dart';
 
 import 'package:flutter/services.dart';
@@ -57,6 +56,7 @@ import '../widgets/attachment_tile.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/voice_clip_sheet.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/attachment_picker.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/set_aside_flow.dart';
 import '../widgets/tag_picker.dart';

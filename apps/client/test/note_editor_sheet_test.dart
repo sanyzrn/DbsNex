@@ -100,6 +100,28 @@ void main() {
     return () => done ? result : null;
   }
 
+  testWidgets('AI undo stays reachable after the editor height shrinks', (
+    tester,
+  ) async {
+    await enableAi();
+    await open(tester, initial: 'teh draft', client: replying('the draft'));
+    await tester.tap(find.byTooltip('Edit with AI'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fix writing'));
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(900, 320);
+    await tester.pumpAndSettle();
+    final undo = find.byTooltip('Undo').hitTestable();
+    expect(undo, findsOneWidget);
+    await tester.tap(undo);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'teh draft',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('it opens as a sheet on the text it was given', (tester) async {
     await open(tester, initial: 'the boiler is making a noise');
 

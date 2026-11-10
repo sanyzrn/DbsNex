@@ -186,12 +186,22 @@ void main() {
     await tester.tap(find.byTooltip('Checklist'));
     await tester.pumpAndSettle();
     expect(find.text('2 items'), findsOneWidget);
+    // A failed reminder transfer keeps the source and sheet, then reuses
+    // the converted note on retry rather than making a second checklist.
+    harness.db.failReminders = 1;
+    await tester.tap(_send);
+    await tester.pumpAndSettle();
+    expect(find.byType(CaptureSheet), findsOneWidget);
+    expect((await services.getById(draft.id))?.dueAt, due);
+    final pending = (await services.timeline(limit: 5))
+        .singleWhere((note) => note.type == NoteType.checklist);
     // Back closes it the way Send does.
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     final notes = await services.timeline(limit: 5);
     expect(notes.single.type, NoteType.checklist);
+    expect(notes.single.id, pending.id);
     expect(notes.single.checklistItems.map((i) => i.text), ['milk', 'eggs']);
     expect(
       notes.single.dueAt?.millisecondsSinceEpoch,

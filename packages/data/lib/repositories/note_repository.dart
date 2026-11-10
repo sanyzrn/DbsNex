@@ -451,6 +451,17 @@ WHERE id = ? AND deleted_at IS NULL
     }
   }
 
+  /// Existence across the entire home timeline, including unloaded pages.
+  bool hasUntaggedTimelineNotes() =>
+      db.select(
+        'SELECT EXISTS(SELECT 1 FROM notes n '
+        'WHERE n.deleted_at IS NULL AND $_notSetAside '
+        'AND NOT EXISTS(SELECT 1 FROM note_tags nt JOIN tags t ON t.id = nt.tag_id '
+        'WHERE nt.note_id = n.id)) AS found',
+        [DateTime.now().toUtc().toIso8601String()],
+      ).first['found'] ==
+      1;
+
   /// Exact live counts, including set-aside notes, without reading content.
   Map<String, int> libraryNoteCounts() => {
     for (final type in NoteType.values) type.wireName: 0,

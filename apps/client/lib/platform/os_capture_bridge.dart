@@ -28,27 +28,10 @@ class OsCaptureBridge {
   static const _channel = MethodChannel('nex/os_capture');
   final _events = StreamController<Map<Object?, Object?>>.broadcast();
 
-  /// The largest attachment Nex will take in.
-  ///
-  /// Nex is a notes app. The cost of an attachment is not what it weighs
-  /// once: the automatic backup zips the whole media directory and keeps
-  /// [NexDatabase.backupRetention] of them, so one file is stored its own
-  /// size plus up to five times over again, and every backup after it is
-  /// slower and larger for good. A two-gigabyte video shared in came to
-  /// roughly fourteen gigabytes by that arithmetic — and reported itself as
-  /// an out-of-memory crash on the next launch rather than as a full disk.
-  ///
-  /// A hundred megabytes clears everything this app is for — a phone photo is
-  /// under twelve, a long voice note about fifty, a document rarely twenty —
-  /// while keeping the worst case a file can impose to about half a gigabyte.
-  static const defaultMaxAttachmentBytes = 100 * 1024 * 1024;
+  /// Ordinary attachments are streamed to disk, up to 500 MiB.
+  static const defaultMaxAttachmentBytes = 500 * 1024 * 1024;
 
-  /// The limit in force. Production never passes it.
-  ///
-  /// A parameter rather than only a constant so a test can reach the rule
-  /// without writing a hundred-megabyte file to prove it — the same trade as
-  /// `SyncClient.requestTimeout`, and for the same reason: a case that costs
-  /// that much to run is a case people stop running.
+  /// Injectable so size checks can be exercised with small files.
   final int maxAttachmentBytes;
 
   /// Called when something was shared in that Nex will not keep.
@@ -577,6 +560,16 @@ class OsCaptureBridge {
     if (!isSupported) {
       final file = await openFile();
       if (file == null) return null;
+      final bytes = await file.length();
+      if (bytes > defaultMaxAttachmentBytes) {
+        throw AttachmentSizeException(
+          RejectedShare(
+            filename: file.name,
+            bytes: bytes,
+            limit: defaultMaxAttachmentBytes,
+          ),
+        );
+      }
       return PickedOsFile(
         path: file.path,
         filename: file.name,
@@ -594,6 +587,20 @@ class OsCaptureBridge {
       );
     }
     if (result is Map) {
+      if (result['error'] == 'too_large') {
+        throw AttachmentSizeException(
+          RejectedShare(
+            filename: result['filename'] as String? ?? 'file',
+            bytes:
+                int.tryParse('${result['size']}') ??
+                defaultMaxAttachmentBytes + 1,
+            limit: defaultMaxAttachmentBytes,
+          ),
+        );
+      }
+      if (result['error'] != null) {
+        throw PlatformException(code: 'attachment_unreadable');
+      }
       final path = result['path'] as String?;
       if (path == null) return null;
       return PickedOsFile(
@@ -753,4 +760,10 @@ class QuickCaptureNotification {
       // A notification that could not be posted is not worth a crash.
     }
   }
+}
+
+/// A refused file, distinct from cancelling the system picker.
+class AttachmentSizeException implements Exception {
+  const AttachmentSizeException(this.rejection);
+  final RejectedShare rejection;
 }

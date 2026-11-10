@@ -40,22 +40,28 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   /// and a purge runs before the read that produces it.
   List<Note>? notes;
 
-  /// Notes deleted for good on this page whose Undo is still on screen
-  /// (2.3.1). The purge waits for the banner: a permanent delete cannot be
-  /// taken back once it has run, so it runs only once the Undo is gone — or
-  /// when the page closes, whichever comes first.
-  final _purging = <String, Timer>{};
+  /// A permanent deletion waits for its actual Undo window, including holds
+  /// and accessibility timing. Null means no overlay was available.
+  final _purging = <String, NexBannerHandle?>{};
 
-  /// The banner the last "deleted for good" is waiting on. Kept so the page
-  /// can take it down when it goes: leaving the page purges immediately (see
-  /// [dispose]), and a Undo banner whose Undo is dead — it rebuilds a page
-  /// that no longer exists — is a promise the app cannot keep. The purge
-  /// itself is the designed behaviour; the banner that outlived it was the
-  /// bug.
-  NexBannerHandle? _purgeBanner;
-
-  /// A little longer than a banner with an action stays up.
-  static const _purgeAfter = Duration(seconds: 7);
+  Future<void> _finishPurge(String id) async {
+    if (!_purging.containsKey(id)) return;
+    _purging.remove(id);
+    try {
+      await widget.services.purgeNote(id);
+    } catch (_) {
+      // A failed deletion stays in the trash and can be retried.
+      if (mounted) {
+        await reload();
+        if (!mounted) return;
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).operationFailed,
+          kind: NexBannerKind.failed,
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -65,17 +71,12 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
 
   @override
   void dispose() {
-    // The banner first, while the overlay it lives in is still there: leaving
-    // the page runs the purge below, and the Undo it advertises cannot work
-    // on a page that is gone. Without this the banner stayed up over a note
-    // that was already permanently gone.
-    _purgeBanner?.hide();
-    _purgeBanner = null;
-    for (final MapEntry(key: id, value: timer) in _purging.entries) {
-      timer.cancel();
-      unawaited(widget.services.purgeNote(id));
+    for (final handle in _purging.values.toList()) {
+      handle?.hide();
     }
-    _purging.clear();
+    for (final id in _purging.keys.toList()) {
+      unawaited(_finishPurge(id));
+    }
     super.dispose();
   }
 
@@ -128,23 +129,25 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       unawaited(HapticFeedback.mediumImpact());
     }
     setState(() => notes = [...?notes]..removeWhere((n) => n.id == note.id));
-    _purging[note.id]?.cancel();
-    _purging[note.id] = Timer(_purgeAfter, () {
-      if (_purging.remove(note.id) != null) {
-        unawaited(widget.services.purgeNote(note.id));
-      }
-    });
+    _purging[note.id] = null;
     final l10n = AppLocalizations.of(context);
-    _purgeBanner = nexShowBanner(
+    final handle = nexShowBanner(
       context,
       message: l10n.trashDeletedForever,
       haptics: widget.preferences?.haptics ?? true,
       actionLabel: l10n.undo,
       onAction: () {
-        _purging.remove(note.id)?.cancel();
+        _purging.remove(note.id);
         unawaited(reload());
       },
     );
+    if (handle?.closed case final closed?) {
+      _purging[note.id] = handle;
+      unawaited(closed.then((_) => _finishPurge(note.id)));
+    } else {
+      _purging.remove(note.id);
+      unawaited(reload());
+    }
   }
 
   Future<void> _emptyTrash() async {
@@ -159,8 +162,8 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     if (widget.preferences?.haptics ?? true) {
       unawaited(HapticFeedback.mediumImpact());
     }
-    for (final timer in _purging.values) {
-      timer.cancel();
+    for (final handle in _purging.values.toList()) {
+      handle?.hide();
     }
     _purging.clear();
     await widget.services.purgeAllDeleted();

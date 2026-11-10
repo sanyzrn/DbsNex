@@ -152,6 +152,7 @@ enum _DbCommand {
   sync,
   close,
   libraryNoteCounts,
+  hasUntaggedTimelineNotes,
 }
 
 class _DbRequest {

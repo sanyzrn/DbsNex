@@ -11,20 +11,7 @@ extension _TimelineCapture on TimelineScreenState {
   /// of app is refusing.
   void _sayTooLarge(RejectedShare rejection) {
     if (!mounted) return;
-    NexBannerHost.of(context)?.show(
-      message: AppLocalizations.of(context).shareTooLarge(
-        rejection.filename,
-        nexDigits(
-          nexFormatBytes(rejection.bytes),
-          persian: Localizations.localeOf(context).languageCode == 'fa',
-        ),
-        nexDigits(
-          nexFormatBytes(rejection.limit),
-          persian: Localizations.localeOf(context).languageCode == 'fa',
-        ),
-      ),
-      kind: NexBannerKind.failed,
-    );
+    nexShowAttachmentTooLarge(context, rejection);
   }
 
   /// Offers the thread a just-captured note clearly continues (W5.3).
@@ -296,7 +283,7 @@ extension _TimelineCapture on TimelineScreenState {
   }
 
   Future<void> captureFile() async {
-    final picked = await OsCaptureBridge.pickFile();
+    final picked = await nexPickAttachment(context);
     if (picked == null) return;
     await widget.osCapture?.handle({
       'type': 'shared_file',

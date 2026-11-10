@@ -341,7 +341,9 @@ extension _TimelineLayout on TimelineScreenState {
                                           unawaited(_clearFilters()),
                                       selectedTagIds: _model.selectedTagIds,
                                       allLabel: l10n.all,
-                                      untaggedLabel: l10n.filterUntagged,
+                                      untaggedLabel: _model.hasUntagged
+                                          ? l10n.filterUntagged
+                                          : null,
                                       untaggedSelected: _model.onlyUntagged,
                                       onUntagged: () {
                                         _tick();

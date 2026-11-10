@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/screens/recurring_screen.dart';
 import 'package:nex_client/widgets/note_spotlight.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -106,6 +107,44 @@ void main() {
     expect(active(), findsOneWidget, reason: 'after $frames frames');
     h.services.ringing.value = const {};
     await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('a recurring notification opens only after unlocking, once', (
+    tester,
+  ) async {
+    final h = await NexTestHarness.create();
+    addTearDown(h.dispose);
+    final locked = ValueNotifier<bool>(true);
+    addTearDown(locked.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ValueListenableBuilder<bool>(
+          valueListenable: locked,
+          builder: (_, value, _) => TimelineScreen(
+            services: h.services,
+            preferences: h.preferences,
+            locked: value,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    h.services.reminders.onOpenRecurring!();
+    await tester.pumpAndSettle();
+    expect(find.byType(RecurringScreen), findsNothing);
+    locked.value = false;
+    await tester.pumpAndSettle();
+    expect(find.byType(RecurringScreen), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    locked.value = true;
+    await tester.pump();
+    locked.value = false;
+    await tester.pumpAndSettle();
+    expect(find.byType(RecurringScreen), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 }

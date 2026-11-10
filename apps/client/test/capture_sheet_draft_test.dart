@@ -54,7 +54,7 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
-  Future<void> showSheet(WidgetTester tester) async {
+  Future<void> showSheet(WidgetTester tester, {VoidCallback? onFile}) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -65,7 +65,7 @@ void main() {
             preferences: preferences,
             onCamera: () {},
             onGallery: () {},
-            onFile: () {},
+            onFile: onFile ?? () {},
             onCommitted: committed.add,
           ),
         ),
@@ -73,6 +73,28 @@ void main() {
     );
     await tester.pump();
   }
+
+  testWidgets('media handoff stays open when the text write fails', (
+    tester,
+  ) async {
+    await boot();
+    var launched = 0;
+    await showSheet(tester, onFile: () => launched++);
+    await tester.enterText(find.byType(TextField), 'saved');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'saved and newer words');
+    db.failUpdates = 10;
+    await tester.tap(find.byIcon(Icons.insert_drive_file_outlined));
+    await tester.pumpAndSettle();
+    expect(launched, 0);
+    expect(find.byType(CaptureSheet), findsOneWidget);
+    expect((await db.timeline()).single.content, 'saved');
+    db.failUpdates = 0;
+    await tester.tap(find.byIcon(Icons.insert_drive_file_outlined));
+    await tester.pumpAndSettle();
+    expect(launched, 1);
+    expect((await db.timeline()).single.content, 'saved and newer words');
+  });
 
   testWidgets('closing before first insert preserves the entire draft', (
     tester,
