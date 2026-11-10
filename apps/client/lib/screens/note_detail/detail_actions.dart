@@ -314,7 +314,12 @@ extension _DetailActions on _NoteDetailSheetState {
     final edited = await nexShowSheet<List<ChecklistItem>>(
       context: context,
       dismissible: false,
-      swipeToClose: true,
+      // A draft-guarded sheet must not also be swipe-to-close: the swipe
+      // walks past the guard's PopScope, so an edit in progress is dropped
+      // without the discard question — and the discarded text lingers in
+      // the drafts to reappear on the next edit. The guard's own paths
+      // (back, ×) already ask.
+      swipeToClose: false,
       builder: (_) => ChecklistCaptureSheet(
         preferences: preferences,
         initial: before,
