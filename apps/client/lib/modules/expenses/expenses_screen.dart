@@ -388,6 +388,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       final id = tx.categoryId ?? 'cat-other';
       if (!ids.contains(id)) ids.add(id);
     }
+    // The chosen category stays in the row even in a month that has none of
+    // it: without the chip there is no visible control left that lifts the
+    // filter, and a month of "nothing found" with no way out is where a
+    // feature goes to die. The chip is how the filter comes off — it has to
+    // remain.
+    final filter = _categoryFilter;
+    if (filter != null && !ids.contains(filter)) ids.add(filter);
     return ids;
   }
 }
