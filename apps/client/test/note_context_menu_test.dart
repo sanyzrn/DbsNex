@@ -180,7 +180,7 @@ void main() {
         ),
       ),
     );
-    final scaleOf = () =>
+    double scaleOf() =>
         tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale;
 
     expect(scaleOf(), 1.0);
