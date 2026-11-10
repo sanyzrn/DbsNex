@@ -57,7 +57,7 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
   /// Whether the menu is up. All the card does with that is duck, briefly
   /// (see the `AnimatedScale` in [build]): the finger that held it sees the
   /// card itself answer, rather than nothing moving until words appear.
-  bool _open = false;
+  bool _isOpen = false;
 
   void _open([Offset? position]) {
     final builder = widget.entriesBuilder;
@@ -93,14 +93,14 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
     // became a menu, and the card agrees by ducking a hair for
     // [NexMotion.fast].
     nexTick();
-    if (mounted && !_open) setState(() => _open = true);
+    if (mounted && !_isOpen) setState(() => _isOpen = true);
     _guard.open(this, close: _controller.close);
   }
 
   void _closed() {
     // The menu can close while this element is already being taken down —
     // the same timing didChangeDependencies above guards against.
-    if (mounted && _open) setState(() => _open = false);
+    if (mounted && _isOpen) setState(() => _isOpen = false);
     _guard.closed(this);
   }
 
@@ -252,7 +252,7 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
               // fast beat, back to size when it closes. A scale, not an
               // opacity — the words stay as legible as they were.
               child: AnimatedScale(
-                scale: _open ? 0.98 : 1.0,
+                scale: _isOpen ? 0.98 : 1.0,
                 duration: NexMotion.fast,
                 child: child!,
               ),
