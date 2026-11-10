@@ -255,4 +255,18 @@ void main() {
       expect(result, isNot(equals(_testPng)));
     },
   );
+
+  testWidgets('leaving without touching anything is not an unsaved change', (
+    tester,
+  ) async {
+    final getResult = await _pushCropScreen(tester);
+    // Fully loaded and ready — the state that used to count "ready" as an
+    // edit and ask "discard changes?" of somebody who had only waited.
+    await _waitAndSettle(tester);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    // No discard question: nothing was changed, nothing is pending.
+    expect(find.text('Discard'), findsNothing);
+    expect(getResult(), isNull);
+  });
 }
