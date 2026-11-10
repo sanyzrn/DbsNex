@@ -80,14 +80,17 @@ extension TimelineCommands on TimelineScreenState {
 
   Future<void> deleteWithUndo(Note note) async {
     final l10n = AppLocalizations.of(context);
-    if (widget.preferences.haptics) HapticFeedback.mediumImpact();
     await widget.services.deleteNote(note.id);
     await widget.services.refreshTimeline();
     if (!mounted) return;
+    // One buzz per delete, and it has already happened: the swipe's own
+    // threshold thud — or the tap that chose Delete — is the whole
+    // confirmation. The action and then the banner each added another:
+    // three in a row for one delete, which reads as an error, not a receipt.
     nexShowBanner(
       context,
       message: l10n.noteDeleted,
-      haptics: widget.preferences.haptics,
+      haptics: false,
       actionLabel: l10n.undo,
       onAction: () async {
         _tick();
@@ -130,6 +133,45 @@ extension TimelineCommands on TimelineScreenState {
   Future<void> clearFilterForRail() => _model.clearFilters();
 
   // Search and filter commands share the timeline's existing state.
+
+  /// Brings the field in and puts the cursor in it.
+  ///
+  /// Tapping the field itself does this, and so does Ctrl+F — the field lives
+  /// at the top of the list permanently now, so a dedicated AppBar icon for it
+  /// pointed at something already on screen.
+  Future<void> revealSearch() async {
+    // Already searching with the cursor already in the field: this tap came
+    // from the field itself — moving the caret, a paste, a second look — and
+    // the search it would restart is the one already on screen. Re-running
+    // it re-faded the results and re-billed the semantic round trip for a
+    // query that never changed; the field's own edits debounce on their own.
+    if (_searching && _searchFocus.hasFocus) {
+      _searchFocus.requestFocus();
+      return;
+    }
+    if (_scroll.hasClients && _scroll.offset > 0) {
+      await _scroll.animateTo(
+        0,
+        duration: NexMotion.standard,
+        curve: NexMotion.curve,
+      );
+    }
+    if (!mounted) return;
+    _rebuild(() {
+      _searching = true;
+      _selected.clear();
+    });
+    _fadeInBody();
+    _searchStarted = Stopwatch()..start();
+    // After the frame: with the field switched off it is not in the list
+    // until this setState puts it there, and a focus request aimed at a node
+    // no widget has attached yet is simply dropped.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    _searchFocus.requestFocus();
+    unawaited(_search.run());
+  }
+
   void _exitSearch() {
     // Left with words in the field: a search worth offering again.
     unawaited(widget.preferences.rememberSearch(_search.query.text));
