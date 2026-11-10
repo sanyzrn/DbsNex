@@ -33,7 +33,10 @@ void main() {
       ),
     );
     await tester.tap(find.text('copy'));
-    await tester.pumpAndSettle();
+    // pumpAndSettle advances the banner's lifetime timer too, hiding the
+    // acknowledgement before it can be asserted. Observe it while visible.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
   }
 
   testWidgets('a plain copy says the one word', (tester) async {
