@@ -103,8 +103,11 @@ void main() {
     await tester.tap(find.text('Edit item'));
     await tester.pumpAndSettle();
 
-    final field = () => tester.widget<TextFormField>(
-      find.byKey(const ValueKey('vault-field-password')),
+    final field = () => tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(const ValueKey('vault-field-password')),
+        matching: find.byType(TextField),
+      ),
     );
     expect(field().obscureText, isTrue);
 
