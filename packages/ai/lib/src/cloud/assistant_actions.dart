@@ -992,7 +992,8 @@ List<String> _strings(Object? value) {
 bool hasInvalidAssistantAction(String reply) {
   for (final match in [
     ..._blockPattern.allMatches(reply),
-    ..._looseBlocks(reply),
+    ..._looseBlocks(reply)
+        .where((match) => RegExp(r'"action"\s*:').hasMatch(match.group(1)!)),
   ]) {
     if (parseAssistantActions(match.group(0)!).isEmpty) return true;
   }
