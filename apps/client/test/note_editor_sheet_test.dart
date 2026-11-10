@@ -142,7 +142,23 @@ void main() {
     final drafts = EditorDrafts(dir.path);
     preferences.editorDrafts = drafts;
     drafts.write('note-7', {'text': 'half-finished thou'});
-    await open(tester, initial: 'original words', draftKey: 'note-7');
+    // This test verifies draft restoration itself, without adding an
+    // unrelated modal-route settle to the synchronous recovery assertion.
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NoteEditorSheet(
+            initial: 'original words',
+            preferences: preferences,
+            draftKey: 'note-7',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
     final controller = tester
         .widget<TextField>(find.byType(TextField))
         .controller!;
