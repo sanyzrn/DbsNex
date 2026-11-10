@@ -68,7 +68,7 @@ void main() {
     expect(find.text(l.edit), findsOneWidget);
     expect(
       tester.getTopLeft(find.text(l.edit)).dx,
-      lessThan(tester.getTopLeft(find.text(l.share)).dx),
+      lessThan(tester.getTopLeft(find.text(l.copy)).dx),
     );
     // Copy keeps its slot too: three actions plus More.
     expect(find.text(l.copy), findsOneWidget);
@@ -81,7 +81,7 @@ void main() {
   ) async {
     final h = await NexTestHarness.create();
     addTearDown(h.dispose);
-    final note = (await h.services.captureText('https://example.com/recipe'))!;
+    final note = (await h.services.captureLink('https://example.com/recipe'))!;
     await show(tester, h, note.id);
     final l = AppLocalizations.of(tester.element(find.byType(NoteDetailSheet)));
 
@@ -90,7 +90,10 @@ void main() {
     // The toolbar's actions are not repeated behind their own row: Open
     // appears once in the whole tree (the toolbar behind the sheet), and the
     // More sheet carries the secondaries.
-    expect(find.text(l.openLink), findsOneWidget);
+    // The primary action remains mounted behind the new modal route, but
+    // must not appear again as a second entry inside More.
+    expect(find.text(l.openLink), findsNothing);
+    expect(find.text(l.openLink, skipOffstage: false), findsOneWidget);
     expect(find.text(l.details), findsOneWidget);
     expect(find.text(l.delete), findsOneWidget);
     await tester.pumpWidget(const SizedBox());

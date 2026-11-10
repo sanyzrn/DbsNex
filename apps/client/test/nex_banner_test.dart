@@ -253,14 +253,15 @@ void main() {
     );
     await tester.tap(find.text('go'));
     await tester.pump();
-    // Advance through the entrance in its own frame; a single large pump
-    // otherwise starts the lifetime at the end of that pump.
-    await tester.pump(const Duration(milliseconds: 360));
-    await tester.pump(const Duration(milliseconds: 2100));
+    // Step fake time in frames so the entrance completes when its animation
+    // does, rather than only at the end of a single multi-second pump.
+    for (var i = 0; i < 24; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     expect(find.text('Saved'), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pump(const Duration(milliseconds: 450));
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     expect(find.text('Saved'), findsNothing);
   });
 
@@ -289,9 +290,9 @@ void main() {
 
     await gesture.up();
     // Roughly a second of life was left when the hold began; it goes now.
-    await tester.pump(const Duration(seconds: 2));
-    await tester.pump(const Duration(milliseconds: 450));
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 35; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     expect(find.text('Saved'), findsNothing);
   });
 

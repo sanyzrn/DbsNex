@@ -382,7 +382,6 @@ class _NexBannerState extends State<_NexBanner>
   /// the banner is paused so resuming continues the countdown rather than
   /// starting it over.
   int _lifeMs = 0;
-  Duration? _lifeStartedAt;
 
   /// How long the banner stays. Given outright by callers who know better —
   /// a module's retry window — and otherwise earned: 45ms a character, so a
@@ -436,21 +435,31 @@ class _NexBannerState extends State<_NexBanner>
   void _scheduleLife(Duration remaining) {
     _timer?.cancel();
     _lifeMs = remaining.inMilliseconds;
-    _lifeStartedAt = WidgetsBinding.instance.currentFrameTimeStamp;
-    _timer = Timer(remaining, _dismiss);
+    _tickLife();
+  }
+
+  /// A one-shot Timer cannot report elapsed time before it fires; its tick
+  /// remains zero, which incorrectly restarted a held Undo's entire lifetime.
+  /// Small clock slices let a pause preserve the remaining time without
+  /// relying on a frame timestamp (gestures can arrive between frames).
+  void _tickLife() {
+    if (_leaving || !mounted) return;
+    if (_lifeMs <= 0) {
+      unawaited(_dismiss());
+      return;
+    }
+    final slice = math.min(_lifeMs, 100);
+    _timer = Timer(Duration(milliseconds: slice), () {
+      _lifeMs -= slice;
+      _tickLife();
+    });
   }
 
   void _pauseLife() {
     if (_holding || _timer == null) return;
     _holding = true;
-    // A one-shot Timer's tick is always zero until it fires. Use the frame
-    // clock so holding a partially read banner preserves only its remaining time.
-    final startedAt = _lifeStartedAt!;
-    final elapsed = (WidgetsBinding.instance.currentFrameTimeStamp - startedAt)
-        .inMilliseconds;
     _timer!.cancel();
     _timer = null;
-    _lifeMs = math.max(0, _lifeMs - elapsed);
   }
 
   void _resumeLife() {
