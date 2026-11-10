@@ -1,4 +1,5 @@
 import '../platform/crash_reporter.dart';
+
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -8,6 +9,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
 import 'package:uuid/uuid.dart';
+
 import '../platform/file_opener.dart';
 import '../platform/vault_files.dart';
 import '../platform/sharing.dart';
@@ -19,9 +21,13 @@ import '../widgets/feature_label.dart';
 import '../widgets/nex_text_field.dart';
 import '../platform/password_csv.dart';
 import '../platform/export_cache.dart';
+
 import 'package:path_provider/path_provider.dart';
+
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../l10n/app_localizations.dart';
 import '../documents/text_import.dart';
 import '../platform/app_lock.dart';
@@ -30,7 +36,9 @@ import '../platform/private_clipboard.dart';
 import '../platform/secure_window.dart';
 import '../platform/vault_session.dart';
 import '../platform/vault_store.dart';
+
 import 'package:nex_ui/nex_ui.dart';
+
 import 'vault_editor.dart';
 import '../widgets/nex_banner.dart';
 part 'vault/vault_items.dart';
