@@ -142,7 +142,8 @@ extension NexLibraryServices on NexServices {
     return removed;
   }
 
-  Future<List<TagUsage>> tagUsage() => worker.tagUsage();
+  Future<List<TagUsage>> tagUsage({bool timelineOnly = false}) =>
+      worker.tagUsage(timelineOnly: timelineOnly);
 
   Future<void> renameTag(String id, String name) => worker.renameTag(id, name);
 
