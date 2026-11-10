@@ -13,6 +13,7 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/screens/tools_screen.dart';
 import 'package:nex_client/widgets/ai_chat_sheet.dart';
+import 'package:nex_client/widgets/capture_sheet.dart';
 
 import 'support/nex_harness.dart';
 
@@ -129,6 +130,54 @@ void main() {
     expect(capture.center.dx, closeTo(dock.center.dx, 1));
     expect(capture.top, closeTo(dock.top, 1));
     expect(capture.center.dy, lessThan(dock.center.dy));
+  });
+
+  testWidgets('closing capture restores the dock without rotation or zoom', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(400, 1000);
+    addTearDown(tester.view.reset);
+    await open(tester);
+    final dock = find.byType(NexNavigationDock);
+    final restingRect = tester.getRect(dock);
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(CaptureSheet), findsOneWidget);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await tester.pumpAndSettle();
+    expect(dock, findsNothing);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(CaptureSheet), findsNothing);
+    tester.view.viewInsets = FakeViewPadding.zero;
+
+    // Inspect the returning frames, before settling could hide the old spin.
+    for (final milliseconds in [0, 16, 80, 160]) {
+      await tester.pump(Duration(milliseconds: milliseconds));
+      expect(dock, findsOneWidget);
+      final turns = tester.widgetList<RotationTransition>(
+        find.ancestor(of: dock, matching: find.byType(RotationTransition)),
+      );
+      final scales = tester.widgetList<ScaleTransition>(
+        find.ancestor(of: dock, matching: find.byType(ScaleTransition)),
+      );
+      expect(turns, isNotEmpty);
+      expect(scales, isNotEmpty);
+      for (final transition in turns) {
+        expect(transition.turns.value, closeTo(1, 0.0001));
+      }
+      for (final transition in scales) {
+        expect(transition.scale.value, closeTo(1, 0.0001));
+      }
+      expect(tester.getRect(dock), restingRect);
+    }
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
   });
 
   testWidgets('every action in the bar is a full tap target', (tester) async {

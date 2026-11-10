@@ -452,12 +452,15 @@ extension _TimelineLayout on TimelineScreenState {
       // [NexGlassBar] for the top. Floating keeps the timeline running under
       // it, which is the only arrangement in which any of this is glass.
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      // This slot holds the whole dock, not a single circular FAB. Restoring
+      // it after the keyboard closes must not rotate or scale the capsule.
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
       // Capture is a timeline action. Left up while searching, the bar read
       // as part of the search flow itself rather than what it actually still
       // did — open a fresh note, unrelated to whatever was just searched.
       // It also gives way under any open keyboard — not only the search
       // field's: floating over a keyboard puts it in the typing's own
-      // airspace, and it comes back with the same morph as ever.
+      // airspace. It returns at full size without an entrance animation.
       // The desktop's rail replaces the dock; the selection bar stays.
       floatingActionButton:
           _searching ||

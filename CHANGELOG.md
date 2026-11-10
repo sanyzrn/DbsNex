@@ -2,6 +2,11 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.17
+
+- **Bottom navigation is easier to see.** A subtle outline and a distinct background separate the dock from content in Light, Dark and Night.
+- **Navigation returns quietly after capture.** Closing capture restores the dock without the rotation and zoom animation.
+
 ## v2.6.16
 
 - **An Undo can no longer be swallowed silently.** A plain banner arriving while an actionable one is still up waits its turn instead of eating it — and a banner replaced by a newer one leaves through the edge it came from, with its exit animation.
