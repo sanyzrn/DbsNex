@@ -301,7 +301,10 @@ class _NexBannerState extends State<_NexBanner>
             onPressed: _act,
             style: TextButton.styleFrom(
               foregroundColor: accent,
-              minimumSize: const Size(48, 40),
+              // Forty-eight tall, the app's own floor ([nexMinTapTarget]):
+              // Undo is the most time-critical touch in the app — six
+              // seconds and counting — and it sat at forty.
+              minimumSize: const Size(48, 48),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               textStyle: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w700,
