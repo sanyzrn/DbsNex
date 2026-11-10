@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -287,9 +288,8 @@ void main() {
         expect(RegExp('[!@#%+_=\\-?]').hasMatch(value), isTrue);
       }
       expect(
-        RegExp(
-          r'^[a-zA-Z0-9]+$',
-        ).hasMatch(generateVaultPassword(symbols: false)),
+        RegExp(r'^[a-zA-Z0-9]+$')
+            .hasMatch(generateVaultPassword(symbols: false)),
         isTrue,
       );
       expect(validVaultCard('۴۱۱۱ ۱۱۱۱ ۱۱۱۱ ۱۱۱۱'), isTrue);
@@ -453,9 +453,8 @@ void main() {
     expect(first.added, 2);
     expect(first.duplicates, 0);
     final again = await store.importPasswords(
-      parsePasswordCsv(
-        'name,url,username,password\nA,https://a.test,u,p1\n',
-      ).entries,
+      parsePasswordCsv('name,url,username,password\nA,https://a.test,u,p1\n')
+          .entries,
     );
     expect(again.added, 0);
     expect(again.duplicates, 1);
