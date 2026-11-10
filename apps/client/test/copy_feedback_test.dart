@@ -16,6 +16,7 @@ void main() {
     WidgetTester tester,
     Future<void> Function(BuildContext context) onCopy,
   ) async {
+    late Future<void> copyComplete;
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -24,7 +25,9 @@ void main() {
           builder: (context) => Scaffold(
             body: Center(
               child: TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  copyComplete = onCopy(context);
+                },
                 child: const Text('copy'),
               ),
             ),
@@ -32,11 +35,11 @@ void main() {
         ),
       ),
     );
-    // Test the asynchronous copy-to-clipboard boundary explicitly.
-    // A button's void callback does not await nexCopy, so the banner may
-    // not exist when pumpAndSettle decides that there are no more frames.
-    await onCopy(tester.element(find.text('copy')));
+    // Exercise the button and await its clipboard write before inspecting
+    // the banner. pumpAndSettle alone can finish before the async callback.
+    await tester.tap(find.text('copy'));
     await tester.pump();
+    await copyComplete;
     await tester.pump(const Duration(milliseconds: 750));
   }
 
