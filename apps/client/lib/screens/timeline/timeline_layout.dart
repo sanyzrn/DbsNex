@@ -243,9 +243,8 @@ extension _TimelineLayout on TimelineScreenState {
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
-                                        MediaQuery.textScalerOf(
-                                                  context,
-                                                ).scale(16) *
+                                        MediaQuery.textScalerOf(context)
+                                                    .scale(16) *
                                                 1.5 +
                                             16,
                                       ) +
@@ -306,9 +305,8 @@ extension _TimelineLayout on TimelineScreenState {
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
-                                        MediaQuery.textScalerOf(
-                                                  context,
-                                                ).scale(14) *
+                                        MediaQuery.textScalerOf(context)
+                                                    .scale(14) *
                                                 1.5 +
                                             16,
                                       ) +
