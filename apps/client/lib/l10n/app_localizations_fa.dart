@@ -1022,6 +1022,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get uiScaleDefault => 'پیش‌فرض';
 
   @override
+  String get uiScaleWideNote =>
+      'در پنجرهٔ پهن، رابط در ۹۰٪ اندازهٔ انتخاب‌شده رسم می‌شود.';
+
+  @override
   String get uiScaleLarge => 'بزرگ';
 
   @override
@@ -4835,7 +4839,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cycleStepMore => 'یک روز بیشتر';
 
   @override
-  String get assistantHoldHint => 'برای دستیار + را نگه دارید • فهمیدم';
+  String get assistantHoldHint => 'برای دستیار + را نگه دارید';
+
+  @override
+  String get gotIt => 'فهمیدم';
 
   @override
   String get aiAnalyzeVideo => 'تحلیل ویدئو';
@@ -5225,6 +5232,9 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cameraUseSystem => 'استفاده از برنامهٔ دوربین';
+
+  @override
+  String get cameraStarting => 'در حال روشن کردن دوربین…';
 
   @override
   String get disclosuresTitle => 'آنچه از این گوشی خارج شد';

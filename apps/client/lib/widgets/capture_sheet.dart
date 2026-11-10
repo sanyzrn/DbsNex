@@ -95,7 +95,8 @@ class CaptureSheet extends StatefulWidget {
 /// Where the microphone is: off, asking for itself, or listening.
 enum _Voice { off, starting, on }
 
-class _CaptureSheetState extends State<CaptureSheet> {
+class _CaptureSheetState extends State<CaptureSheet>
+    with WidgetsBindingObserver {
   final controller = TextEditingController();
   final _fieldFocus = FocusNode();
 
@@ -111,6 +112,26 @@ class _CaptureSheetState extends State<CaptureSheet> {
   /// Whether this sheet has already said the journal write failed (see
   /// [changed]): a broken journal is a condition, not an event.
   bool _journalFailureTold = false;
+
+  /// Whether the clipboard holds words to paste — asked without reading
+  /// them: [Clipboard.hasStrings] touches only the clip's description, so
+  /// Android does not announce "Nex pasted from your clipboard" for it. The
+  /// Paste button used to show whatever the clipboard held, and a button
+  /// that visibly does nothing when pressed reads as broken, not as empty.
+  bool _clipboardHasText = false;
+
+  /// Asked when the sheet opens and when the app comes back to the front —
+  /// the two moments the clipboard can have changed unseen.
+  Future<void> _checkClipboard() async {
+    final has = await Clipboard.hasStrings();
+    if (!mounted || has == _clipboardHasText) return;
+    setState(() => _clipboardHasText = has);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_checkClipboard());
+  }
 
   /// The sheet's one failure voice: failed colours, the setting's own
   /// haptics (a banner that is the direct result of a gesture never adds a
@@ -163,6 +184,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_checkClipboard());
     if (widget.initialKind == CaptureKind.voice) {
       // The recorder shows from the first frame, not after the permission
       // round trip: a sheet opened to speak into should never flash a
@@ -601,8 +624,14 @@ class _CaptureSheetState extends State<CaptureSheet> {
     setState(() => _allowClose = true);
     nexDismissKeyboard(context);
     if (!mounted) return;
+    // The sheet goes before the timeline reloads: the reload is the
+    // database's business, not something the author of three words waits
+    // on. What a send leaves behind is a ✓ on a closing sheet — not a
+    // greyed-out, locked one that reads as something having failed. The
+    // sheet stays open only on the failure path above, where the words are
+    // still unsaved and still editable.
+    Navigator.pop(context);
     await widget.services.refreshTimeline();
-    if (mounted) Navigator.pop(context);
   }
 
   /// Whether the words in a link box will not be an address, so closing will
@@ -626,6 +655,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
   @override
   void dispose() {
     _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     // The journal first: the database write below may still fail, and the
     // snapshot is what a relaunch recovers from.
     widget.services.captureJournal.flushPending();
@@ -652,7 +682,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
       _hintCounted = true;
       unawaited(widget.preferences.countScheduleHint());
     }
-    final tools = !_voiceOn && !_closing;
+    final tools = !_voiceOn;
     return PopScope(
       canPop: _allowClose,
       onPopInvokedWithResult: (didPop, _) {
@@ -671,7 +701,11 @@ class _CaptureSheetState extends State<CaptureSheet> {
           children: [
             _KindBar(
               shown: _kind,
-              recording: _voiceOn || _closing,
+              // Closing no longer dims the chips: the words are settled and
+              // the sheet is on its way out — a sheet that greys itself at
+              // the moment of success looks like one that failed. Taps are
+              // simply ignored ([_select] guards on [_closing]).
+              recording: _voiceOn,
               onSelect: _select,
             ),
             const SizedBox(height: NexSpacing.sm),
@@ -706,85 +740,89 @@ class _CaptureSheetState extends State<CaptureSheet> {
               scheduleHint: showScheduleHint,
             ),
             const SizedBox(height: NexSpacing.xs),
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: NexSpacing.sm,
-              runSpacing: NexSpacing.xs,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _Tool(
-                      icon: Icons.mic_none,
-                      label: l10n.voice,
-                      type: 'voice',
-                      selected: _voiceOn,
-                      onTap: tools ? () => _select(CaptureKind.voice) : null,
-                    ),
-                    _Tool(
-                      icon: Icons.photo_camera_outlined,
-                      label: l10n.camera,
-                      type: 'photo',
-                      onTap: tools
-                          ? () => unawaited(_leaveFor(widget.onCamera))
-                          : null,
-                    ),
-                    _Tool(
-                      icon: Icons.photo_library_outlined,
-                      label: l10n.gallery,
-                      type: 'photo',
-                      onTap: tools
-                          ? () => unawaited(_leaveFor(widget.onGallery))
-                          : null,
-                    ),
-                    _Tool(
-                      icon: Icons.insert_drive_file_outlined,
-                      label: l10n.file,
-                      type: 'file',
-                      onTap: tools
-                          ? () => unawaited(_leaveFor(widget.onFile))
-                          : null,
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _SideAction(
-                      recording: _voiceOn,
-                      canRemind: controller.text.isNotEmpty && !_closing,
-                      hasReminder: hasReminder,
-                      onRemind: () => unawaited(_remind()),
-                      onDiscard: _closing
-                          ? null
-                          : () => unawaited(_discardRecording()),
-                    ),
-                    const SizedBox(width: NexSpacing.xs),
-                    _SendButton(
-                      kind: shown,
-                      closing: _closing,
-                      keepingAsNote: _keepingAsNote,
-                      onSend: _closing
-                          ? null
-                          : switch (shown) {
-                              CaptureKind.voice =>
-                                _voice == _Voice.on
-                                    ? () => unawaited(_keepRecording())
-                                    : null,
-                              // Including a link box whose words are not an
-                              // address: close settles them into the note
-                              // they already are, and says so — see
-                              // [_keepingAsNote].
-                              _ => () => unawaited(close()),
-                            },
-                      onSchedule: shown == CaptureKind.note && typed
-                          ? () => unawaited(_schedule())
-                          : null,
-                    ),
-                  ],
-                ),
-              ],
+            // Everything below stays fully drawn while closing — the tools
+            // keep their colour and the buttons their shape; the pointers are
+            // simply ignored, rather than the sheet greying itself out.
+            IgnorePointer(
+              ignoring: _closing,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: NexSpacing.sm,
+                runSpacing: NexSpacing.xs,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _Tool(
+                        icon: Icons.mic_none,
+                        label: l10n.voice,
+                        type: 'voice',
+                        selected: _voiceOn,
+                        onTap: tools ? () => _select(CaptureKind.voice) : null,
+                      ),
+                      _Tool(
+                        icon: Icons.photo_camera_outlined,
+                        label: l10n.camera,
+                        type: 'photo',
+                        onTap: tools
+                            ? () => unawaited(_leaveFor(widget.onCamera))
+                            : null,
+                      ),
+                      _Tool(
+                        icon: Icons.photo_library_outlined,
+                        label: l10n.gallery,
+                        type: 'photo',
+                        onTap: tools
+                            ? () => unawaited(_leaveFor(widget.onGallery))
+                            : null,
+                      ),
+                      _Tool(
+                        icon: Icons.insert_drive_file_outlined,
+                        label: l10n.file,
+                        type: 'file',
+                        onTap: tools
+                            ? () => unawaited(_leaveFor(widget.onFile))
+                            : null,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _SideAction(
+                        recording: _voiceOn,
+                        canRemind: controller.text.isNotEmpty,
+                        hasReminder: hasReminder,
+                        onRemind: () => unawaited(_remind()),
+                        onDiscard: _closing
+                            ? null
+                            : () => unawaited(_discardRecording()),
+                      ),
+                      const SizedBox(width: NexSpacing.xs),
+                      _SendButton(
+                        kind: shown,
+                        closing: _closing,
+                        keepingAsNote: _keepingAsNote,
+                        onSend: switch (shown) {
+                          CaptureKind.voice =>
+                            _voice == _Voice.on
+                                ? () => unawaited(_keepRecording())
+                                : null,
+                          // Including a link box whose words are not an
+                          // address: close settles them into the note
+                          // they already are, and says so — see
+                          // [_keepingAsNote].
+                          _ => () => unawaited(close()),
+                        },
+                        onSchedule: shown == CaptureKind.note && typed
+                            ? () => unawaited(_schedule())
+                            : null,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),

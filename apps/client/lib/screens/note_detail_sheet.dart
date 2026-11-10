@@ -579,6 +579,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         _DetailAction(
                           icon: Icons.open_in_new,
                           label: l10n.open,
+                          // A file is opened to be opened: the primary slot
+                          // is its own. A photo or a video is already on the
+                          // sheet — leaving is the exception, and stays in
+                          // More.
+                          primaryRank: note.type == NoteType.file
+                              ? 1
+                              : _DetailAction.unranked,
                           onPressed: _openExternally,
                         ),
                       // Absent on Windows rather than present and broken: the
@@ -588,12 +595,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         _DetailAction(
                           icon: Icons.ios_share,
                           label: l10n.share,
+                          primaryRank: 2,
                           onPressed: _share,
                         ),
                       if (nexSaveTargetFor(note) != null)
                         _DetailAction(
                           icon: Icons.save_alt,
                           label: l10n.saveToDevice,
+                          primaryRank: 3,
                           onPressed: _saveToDevice,
                         ),
                       if (note.type == NoteType.file && !archived)
@@ -606,6 +615,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         _DetailAction(
                           icon: Icons.copy_outlined,
                           label: l10n.copy,
+                          primaryRank: 3,
                           onPressed: _copyText,
                         ),
                       // The editor needs the preferences it reads the AI
@@ -616,12 +626,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         _DetailAction(
                           icon: Icons.edit_outlined,
                           label: l10n.edit,
+                          // A text is opened to be worked on: the editor is
+                          // the primary action.
+                          primaryRank: 1,
                           onPressed: _editContent,
                         ),
                       if (editableImage && !archived)
                         _DetailAction(
                           icon: Icons.crop_rotate,
                           label: l10n.edit,
+                          primaryRank: 1,
                           onPressed: () => unawaited(_editImage()),
                         ),
                       // Needs the preferences the sheet it opens reads its
@@ -634,6 +648,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         _DetailAction(
                           icon: Icons.edit_outlined,
                           label: l10n.edit,
+                          primaryRank: 1,
                           onPressed: _editChecklist,
                         ),
                       if (!archived &&
@@ -656,6 +671,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         _DetailAction(
                           icon: Icons.open_in_new,
                           label: l10n.openLink,
+                          // The one thing a link is for, in the first slot
+                          // rather than behind More.
+                          primaryRank: 1,
                           onPressed: _openLink,
                         ),
                     ],

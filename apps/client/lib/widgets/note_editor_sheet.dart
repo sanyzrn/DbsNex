@@ -128,6 +128,17 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
   bool _saving = false;
   NexRewriteStyle? _running;
 
+  /// Whether this much text is what the small box was hiding.
+  ///
+  /// More than about eight lines and the editor opens owning the screen
+  /// outright: a tall note in the 220px box started life already scrolling,
+  /// most of itself out of view, its Save a thumb-stretch below the fold.
+  static bool _ownsTheScreen(String text) {
+    if (text.isEmpty) return false;
+    final lines = '\n'.allMatches(text).length + 1;
+    return lines > 8 || text.length > 640;
+  }
+
   /// Keeps the one field — and Android's editor under it, with its caret,
   /// selection and keyboard — when it moves between the two layouts.
   final _fieldKey = GlobalKey();
@@ -159,6 +170,7 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
     }
     _lastText = _text.text;
     _text.addListener(_onChanged);
+    if (_ownsTheScreen(_text.text)) _expanded = true;
   }
 
   @override
@@ -343,7 +355,10 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                 : MediaQuery.sizeOf(context).height * 0.85;
             final showStyles =
                 _aiAvailable && (!_expanded || _aiTrayOpen) && room > 420;
-            final showUndo = !_expanded && _undo.isNotEmpty && room > 340;
+            // The Undo bar is the same control in both sizes — it used to be
+            // a bar in the small sheet and a bare icon in the header when
+            // expanded, two shapes for one action.
+            final showUndo = _undo.isNotEmpty && room > 340;
             final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
             final chrome =
                 124.0 +
@@ -375,12 +390,6 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                                 ),
                         ),
                       ),
-                      if (_expanded && _undo.isNotEmpty)
-                        IconButton(
-                          onPressed: _undoLast,
-                          tooltip: l10n.aiEditUndo,
-                          icon: const Icon(Icons.undo),
-                        ),
                       IconButton(
                         onPressed: _toggleSize,
                         tooltip: _expanded
@@ -455,29 +464,21 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                           ),
                         ),
                       const Spacer(),
-                      if (_expanded)
-                        IconButton(
-                          onPressed: requestDiscard,
-                          tooltip: l10n.cancel,
-                          icon: const Icon(Icons.close),
-                        )
-                      else
-                        TextButton(
-                          onPressed: requestDiscard,
-                          child: Text(l10n.cancel),
-                        ),
+                      // The same two buttons in either size — ✕ and ✓ with
+                      // their tooltips — rather than words that became icons
+                      // the moment the sheet grew: two shapes for one action
+                      // taught two positions for the same finger.
+                      IconButton(
+                        onPressed: requestDiscard,
+                        tooltip: l10n.cancel,
+                        icon: const Icon(Icons.close),
+                      ),
                       const SizedBox(width: NexSpacing.sm),
-                      if (_expanded)
-                        IconButton.filled(
-                          onPressed: _canSave ? _save : null,
-                          tooltip: l10n.save,
-                          icon: const Icon(Icons.check),
-                        )
-                      else
-                        FilledButton(
-                          onPressed: _canSave ? _save : null,
-                          child: Text(l10n.save),
-                        ),
+                      IconButton.filled(
+                        onPressed: _canSave ? _save : null,
+                        tooltip: l10n.save,
+                        icon: const Icon(Icons.check),
+                      ),
                     ],
                   ),
                 ],

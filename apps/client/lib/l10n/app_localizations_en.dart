@@ -1037,6 +1037,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uiScaleDefault => 'Default';
 
   @override
+  String get uiScaleWideNote =>
+      'In a wide window the interface is drawn at 90% of the chosen size.';
+
+  @override
   String get uiScaleLarge => 'Large';
 
   @override
@@ -4891,7 +4895,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cycleStepMore => 'One day more';
 
   @override
-  String get assistantHoldHint => 'Hold + for the assistant • Got it';
+  String get assistantHoldHint => 'Hold + for the assistant';
+
+  @override
+  String get gotIt => 'Got it';
 
   @override
   String get aiAnalyzeVideo => 'Analyze video';
@@ -5293,6 +5300,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cameraUseSystem => 'Use the camera app';
+
+  @override
+  String get cameraStarting => 'Turning the camera on…';
 
   @override
   String get disclosuresTitle => 'What left this device';

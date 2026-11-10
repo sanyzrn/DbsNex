@@ -1,11 +1,16 @@
 part of 'capture_sheet.dart';
 
-/// Fade the action while reclaiming its column. The editor remains the same
-/// keyed child with the same controller/focus node throughout the transition.
+/// Fade the action while its column stays where it is. The editor remains
+/// the same keyed child with the same controller/focus node throughout the
+/// transition.
 ///
 /// In a link box the slot never leaves: empty it is Paste, and once words are
 /// in it becomes Clear ([clear]) — the one-tap way out of a paste that was
 /// not an address, in a field too single-line for select-all to be found in.
+/// Note and checklist keep the slot too: the column is permanent and only
+/// the icon fades, because reclaiming its width on the first keystroke moved
+/// the field's edge under the words mid-type — one of three layout changes
+/// that used to land together on the first key.
 class _CapturePasteSlot extends StatelessWidget {
   const _CapturePasteSlot({
     required this.visible,
@@ -48,7 +53,10 @@ class _CapturePasteSlot extends StatelessWidget {
     ),
     builder: (context, value, child) => SizedBox(
       key: const ValueKey('capture-paste-slot'),
-      width: nexMinTapTarget * value,
+      // The width never moves: the icon fades in and out inside a column
+      // that is always exactly one touch target wide, so no keystroke ever
+      // changes the field's own width.
+      width: nexMinTapTarget,
       height: nexMinTapTarget,
       child: ClipRect(
         child: OverflowBox(
@@ -478,7 +486,12 @@ class _ComposerFootnoteState extends State<_ComposerFootnote> {
     final tint = nexNoteTypeTint(_wire(kind), scheme);
     final trimmed = text.trim();
     final (String, Widget)? line = switch (kind) {
-      CaptureKind.note when widget.scheduleHint => (
+      // The hint waits for the words to be still — the same pause the link
+      // verdict waits for. Arriving with the first keystroke, it was one of
+      // three simultaneous layout changes under a keyboard that was itself
+      // still arriving; after a pause the sheet has already settled, and the
+      // hint grows into a quiet row instead of jumping under a typing hand.
+      CaptureKind.note when widget.scheduleHint && !_typedRecently => (
         'hint',
         Align(
           alignment: AlignmentDirectional.centerEnd,
@@ -695,10 +708,10 @@ class _SendButton extends StatelessWidget {
             onPressed: onSend,
             tooltip: voice ? l10n.stopRecording : l10n.capture,
             icon: closing
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                ? const Icon(
+                    Icons.check_rounded,
+                    key: ValueKey('sent'),
+                    size: 32,
                   )
                 : AnimatedSwitcher(
                     duration: NexMotion.of(context, NexMotion.pop),

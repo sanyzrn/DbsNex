@@ -2,6 +2,7 @@ import '../platform/crash_reporter.dart';
 
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' show ImageFilter;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:image_picker/image_picker.dart';
@@ -120,6 +121,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _flushDraft();
     idle?.cancel();
+    _veilHide?.cancel();
     copiedTimer?.cancel();
     revealTimer?.cancel();
     search.dispose();
@@ -152,17 +154,60 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       case AppLifecycleState.detached:
         _lock();
       case AppLifecycleState.paused || AppLifecycleState.hidden:
-        _hide();
+        // Actually leaving: covered at once, and the real clearing a beat
+        // later — a pause that resumes inside the beat keeps everything
+        // where it was, and one that doesn't keeps nothing readable either
+        // way. The veil itself was raised by the `inactive` that always
+        // comes first.
+        if (!authenticating && !_veiled) _cover();
+        _veilHide?.cancel();
+        _veilHide = Timer(const Duration(milliseconds: 600), () {
+          _veilHide = null;
+          if (!mounted) return;
+          setState(() => _veiled = false);
+          _hide();
+        });
       case AppLifecycleState.inactive:
-        if (!authenticating) _hide();
+        // The shade, a system dialog, the app switcher's glance: cover, don't
+        // clear. The form beneath keeps its words, its caret and its place,
+        // and the veil lifts the moment the app is active again — clearing
+        // here used to trade a pulled-down notification for a half-restored
+        // form and a caret back at the top.
+        if (!authenticating && !_veiled) _cover();
       case AppLifecycleState.resumed:
-        if (unlocked || authenticating) return;
+        _veilHide?.cancel();
+        _veilHide = null;
+        if (_veiled && mounted) setState(() => _veiled = false);
+        if (authenticating) return;
+        // The veil keeps everything — but time still passed while it was
+        // up. The session's own deadline decides whether what it covered
+        // comes back or the locked screen does; without this check a
+        // background that never ran the clearing timer would come back to
+        // an unlocked vault hours later.
+        if (unlocked && !session.isOpen) {
+          _lock();
+          return;
+        }
+        if (unlocked) return;
         if (session.isOpen) {
           unawaited(_reload());
         } else {
           _lock();
         }
     }
+  }
+
+  /// The privacy layer over everything private: a blur and a scrim the
+  /// switcher's thumbnail and a passing glance read as nothing. Nothing
+  /// beneath it is touched — that is the whole point of it.
+  bool _veiled = false;
+
+  /// The pause that has not yet become a real leave.
+  Timer? _veilHide;
+
+  void _cover() {
+    if (!mounted) return;
+    setState(() => _veiled = true);
   }
 
   void _flushDraft() {
@@ -204,6 +249,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       copiedField = null;
       revealedSecret = null;
       revealTimer?.cancel();
+      _veiled = false;
     });
   }
 
@@ -455,97 +501,129 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       },
       child: Listener(
         onPointerDown: (_) => _touch(),
-        child: Scaffold(
-          appBar: NexAppBar(
-            leading: BackButton(
-              onPressed: busy
-                  ? null
-                  : () {
-                      if (editing != null) {
-                        _back();
-                      } else {
-                        Navigator.maybePop(context);
-                      }
-                    },
-            ),
-            title: Text(editing == null ? title : l.vaultEdit),
-            actions: [
-              if (unlocked &&
-                  widget.kind == VaultKind.password &&
-                  editing == null)
-                IconButton(
-                  tooltip: nexLabel(
-                    context,
-                    'Import Chrome CSV',
-                    'ورود رمزهای Chrome',
+        child: Stack(
+          children: [
+            // Covered rather than cleared also means still present to a
+            // screen reader: while the veil is up, nothing beneath it is
+            // announced either.
+            ExcludeSemantics(
+              excluding: _veiled,
+              child: Scaffold(
+                appBar: NexAppBar(
+                  leading: BackButton(
+                    onPressed: busy
+                        ? null
+                        : () {
+                            if (editing != null) {
+                              _back();
+                            } else {
+                              Navigator.maybePop(context);
+                            }
+                          },
                   ),
-                  onPressed: busy ? null : _importPasswords,
-                  icon: const Icon(Icons.file_download_outlined),
-                ),
-              if (unlocked &&
-                  editing == null &&
-                  !widget.picking &&
-                  widget.focusId == null &&
-                  entries.any((e) => e.kind == widget.kind))
-                NexPopupMenuButton<String>(
-                  key: const ValueKey('vault-page-menu'),
-                  tooltip: nexLabel(context, 'More', 'بیشتر'),
-                  enabled: !busy,
-                  onSelected: (_) => unawaited(_confirmDeleteAll()),
-                  itemBuilder: (context) => [
-                    nexMenuItem(
-                      value: 'delete-all',
-                      icon: Icons.delete_sweep_outlined,
-                      label: _deleteAllLabel(context),
-                    ),
+                  title: Text(editing == null ? title : l.vaultEdit),
+                  actions: [
+                    if (unlocked &&
+                        widget.kind == VaultKind.password &&
+                        editing == null)
+                      IconButton(
+                        tooltip: nexLabel(
+                          context,
+                          'Import Chrome CSV',
+                          'ورود رمزهای Chrome',
+                        ),
+                        onPressed: busy ? null : _importPasswords,
+                        icon: const Icon(Icons.file_download_outlined),
+                      ),
+                    if (unlocked &&
+                        editing == null &&
+                        !widget.picking &&
+                        widget.focusId == null &&
+                        entries.any((e) => e.kind == widget.kind))
+                      NexPopupMenuButton<String>(
+                        key: const ValueKey('vault-page-menu'),
+                        tooltip: nexLabel(context, 'More', 'بیشتر'),
+                        enabled: !busy,
+                        onSelected: (_) => unawaited(_confirmDeleteAll()),
+                        itemBuilder: (context) => [
+                          nexMenuItem(
+                            value: 'delete-all',
+                            icon: Icons.delete_sweep_outlined,
+                            label: _deleteAllLabel(context),
+                          ),
+                        ],
+                      ),
+                    if (unlocked)
+                      IconButton(
+                        tooltip: l.vaultLock,
+                        onPressed: _lock,
+                        icon: const Icon(Icons.lock_outline),
+                      ),
                   ],
                 ),
-              if (unlocked)
-                IconButton(
-                  tooltip: l.vaultLock,
-                  onPressed: _lock,
-                  icon: const Icon(Icons.lock_outline),
+                body: SafeArea(
+                  child: Column(
+                    children: [
+                      if (error != null)
+                        Padding(
+                          padding: const EdgeInsets.all(NexSpacing.md),
+                          child: Text(
+                            error!,
+                            style: TextStyle(color: theme.colorScheme.error),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      if (busy) const LinearProgressIndicator(minHeight: 2),
+                      Expanded(
+                        child: !unlocked
+                            ? _locked(l, theme)
+                            : editing != null
+                            ? VaultEditor(
+                                key: ValueKey(editing!.id),
+                                entry: editing!,
+                                busy: busy,
+                                onChanged: _changed,
+                                onSave: (entry) => _operate(
+                                  () => store.save(entry),
+                                  closeEditor: true,
+                                ),
+                                onDiscard: () => _operate(
+                                  () => store.saveDraft(null),
+                                  closeEditor: true,
+                                ),
+                              )
+                            : widget.kind == VaultKind.message
+                            ? _messages(l, theme)
+                            : _list(l, theme),
+                      ),
+                    ],
+                  ),
                 ),
-            ],
-          ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                if (error != null)
-                  Padding(
-                    padding: const EdgeInsets.all(NexSpacing.md),
-                    child: Text(
-                      error!,
-                      style: TextStyle(color: theme.colorScheme.error),
-                      textAlign: TextAlign.center,
+              ),
+            ),
+            // Over everything, including the app bar and its private title:
+            // the switcher's thumbnail and a glance from beside the phone
+            // read blur and scrim, and the form beneath is untouched.
+            if (_veiled)
+              Positioned.fill(
+                key: const ValueKey('vault-veil'),
+                child: AbsorbPointer(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+                    child: ColoredBox(
+                      color: theme.colorScheme.surface.withValues(alpha: 0.86),
+                      child: Center(
+                        child: Icon(
+                          Icons.lock_outline,
+                          size: 32,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   ),
-                if (busy) const LinearProgressIndicator(minHeight: 2),
-                Expanded(
-                  child: !unlocked
-                      ? _locked(l, theme)
-                      : editing != null
-                      ? VaultEditor(
-                          key: ValueKey(editing!.id),
-                          entry: editing!,
-                          busy: busy,
-                          onChanged: _changed,
-                          onSave: (entry) => _operate(
-                            () => store.save(entry),
-                            closeEditor: true,
-                          ),
-                          onDiscard: () => _operate(
-                            () => store.saveDraft(null),
-                            closeEditor: true,
-                          ),
-                        )
-                      : widget.kind == VaultKind.message
-                      ? _messages(l, theme)
-                      : _list(l, theme),
                 ),
-              ],
-            ),
-          ),
+              ),
+          ],
         ),
       ),
     );

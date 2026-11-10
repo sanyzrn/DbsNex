@@ -52,6 +52,24 @@ open class MainActivity : FlutterFragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         captureRequestId = savedInstanceState?.getString("nex.captureRequestId")
         super.onCreate(savedInstanceState)
+        // Cold start with a chosen Night: Android's dark qualifier cannot
+        // tell the user's Night from Soft Dark, so the window the splash
+        // hands over to opened on Soft Dark's grey before the app's own
+        // first black frame — the flash docs/16-design-language.md
+        // documents. The choice lives in plain SharedPreferences, written
+        // long before this launch; painting the window black here covers
+        // the gap between the splash and the first frame. The system
+        // splash's own background still follows the qualifier — the
+        // handoff is the part that is ours.
+        if (isChosenNight()) window.setBackgroundResource(android.R.color.black)
+    }
+
+    /** Night on its own, not Soft Dark following the system's dark mode. */
+    private fun isChosenNight(): Boolean {
+        val theme = getSharedPreferences("FlutterSharedPreferences", MODE_PRIVATE)
+            .getString("flutter.appearance.theme", null)
+        // 'dark' is the legacy wire value for Night — NexAppearanceMode.fromWire.
+        return theme == "night" || theme == "dark"
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

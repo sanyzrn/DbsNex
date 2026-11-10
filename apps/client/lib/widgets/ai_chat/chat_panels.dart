@@ -219,9 +219,10 @@ class _HistoryThreadRow extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onDelete;
 
-  String _preview(String text) => NexMarkdownText.preview(
-    String.fromCharCodes(text.runes.take(400)),
-  ).replaceAll(RegExp(r'\s+'), ' ').trim();
+  String _preview(String text) =>
+      NexMarkdownText.preview(String.fromCharCodes(text.runes.take(400)))
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
 
   @override
   Widget build(BuildContext context) {
@@ -283,9 +284,8 @@ class _HistoryThreadRow extends StatelessWidget {
                       ],
                       const SizedBox(height: NexSpacing.sm),
                       Text(
-                        nexCardStrings(
-                          context,
-                        ).relativeTime(nexRelativeTimeOf(thread.updatedAt)),
+                        nexCardStrings(context)
+                            .relativeTime(nexRelativeTimeOf(thread.updatedAt)),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -329,12 +329,8 @@ class AssistantSettingsPanel extends StatelessWidget {
   static Future<void> show(
     BuildContext context, {
     required NexPreferences preferences,
-  }) => showModalBottomSheet<void>(
-    sheetAnimationStyle: NexMotion.sheet,
+  }) => nexShowSheet<void>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
     builder: (_) => AssistantSettingsPanel(preferences: preferences),
   );
 

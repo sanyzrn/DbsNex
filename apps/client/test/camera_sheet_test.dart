@@ -79,6 +79,25 @@ void main() {
     await _drain(tester);
   });
 
+  testWidgets(
+    'the wait says so, and offers the system camera before giving up',
+    (tester) async {
+      // The panel is not black while the sensor is being asked for: a faint
+      // skeleton and the words, in the same voice the microphone permission
+      // bar speaks in.
+      final outcomes = await _open(tester, () async => [_back]);
+      expect(find.textContaining('Turning the camera on'), findsOneWidget);
+      expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget);
+      expect(find.text('Use the camera app'), findsNothing);
+      // Six seconds in — two before the timeout — the way out arrives while
+      // there is still time to take it.
+      await tester.pump(const Duration(seconds: 6));
+      expect(find.text('Use the camera app'), findsOneWidget);
+      await _drain(tester);
+      expect(outcomes, isEmpty);
+    },
+  );
+
   testWidgets('a camera that will not open offers the camera app', (
     tester,
   ) async {

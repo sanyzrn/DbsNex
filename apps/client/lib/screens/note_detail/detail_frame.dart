@@ -1,6 +1,6 @@
 part of '../note_detail_sheet.dart';
 
-/// Keeps Edit, Share and Copy visible when available. Secondary note actions
+/// Keeps the note's own primary actions visible when available. Secondary note actions
 /// live in the labelled More sheet; AI has its own workspace below the content.
 class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.groups});
@@ -10,21 +10,23 @@ class _ActionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final all = groups.expand((group) => group).toList();
-    _DetailAction? find(bool Function(_DetailAction) test) {
-      for (final action in all) {
-        if (test(action)) return action;
-      }
-      return null;
-    }
-
-    final visible = <_DetailAction>[
-      ?find((a) => a.label == AppLocalizations.of(context).edit),
-      ?find((a) => a.icon == Icons.ios_share),
-    ];
-    if (visible.length < 3) {
-      final copy = find((a) => a.icon == Icons.copy_outlined);
-      if (copy != null) visible.add(copy);
-    }
+    // The short toolbar takes the three highest-ranked actions — the ones
+    // the note's own kind is opened to do: a link's Open, a file's Open, a
+    // text's Edit, and Share and Copy after them. Finding them by comparing
+    // translated labels and icon codes is why a link's Open — the one thing
+    // a link is for — always fell into More: its icon was never one the
+    // picker looked for, in any language.
+    final ranked =
+        <({int rank, int at, _DetailAction action})>[
+          for (final (at, action) in all.indexed)
+            if (action.primaryRank < _DetailAction.unranked)
+              (rank: action.primaryRank, at: at, action: action),
+        ]..sort(
+          (a, b) => a.rank == b.rank
+              ? a.at.compareTo(b.at)
+              : a.rank.compareTo(b.rank),
+        );
+    final visible = [for (final each in ranked) each.action];
     final remaining = all.where((action) => !visible.contains(action)).toList();
     return Row(
       children: [
@@ -101,10 +103,23 @@ class _DetailAction extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.destructive = false,
+    this.primaryRank = unranked,
   }) : assert(
          icon != null || glyph != null,
          'an action needs something to show',
        );
+
+  /// Above this rank an action is a candidate for the sheet's short
+  /// toolbar; at it, the action belongs to the More sheet only.
+  static const unranked = 4;
+
+  /// Where this action stands when the short toolbar picks its three.
+  ///
+  /// The note's own kind decides what is primary: opening is what a link or
+  /// a file is *for*, editing is what a text is opened to do — so those take
+  /// the first slot, Share follows, and Copy or Save the third. Everything
+  /// else is a setting or a rarity, and lives behind More.
+  final int primaryRank;
 
   final IconData? icon;
 

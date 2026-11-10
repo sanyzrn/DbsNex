@@ -266,6 +266,59 @@ void main() {
     expect(find.byType(NexEdgeTrace), findsNothing);
   });
 
+  testWidgets('a fast retreat through the middle fires nothing', (
+    tester,
+  ) async {
+    await show(tester);
+    // Arm-distance to the right, then pull back hard past the middle: the
+    // release velocity points left and the leftover displacement passes the
+    // short-flick floor, which the old code read as a leftward flick — the
+    // cancel itself pulled the opposite trigger.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(FloatingActionButton)),
+    );
+    await gesture.moveBy(
+      const Offset(30, 0),
+      timeStamp: const Duration(milliseconds: 20),
+    );
+    await gesture.moveBy(
+      const Offset(-50, 0),
+      timeStamp: const Duration(milliseconds: 70),
+    );
+    await tester.pump();
+    await gesture.up(timeStamp: const Duration(milliseconds: 71));
+    await tester.pumpAndSettle();
+    expect(launched, isEmpty);
+    expect(find.byType(NexEdgeTrace), findsNothing);
+    expect(holdStarts, 0);
+  });
+
+  testWidgets('a deliberate crossing of the opposite full arm still fires', (
+    tester,
+  ) async {
+    await show(tester);
+    // Changing one's mind is not only retreating: pulling all the way
+    // through to the other side's full arm is a decision, and it fires that
+    // side — the lock only stops *short* crossings from counting.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(FloatingActionButton)),
+    );
+    await gesture.moveBy(
+      const Offset(30, 0),
+      timeStamp: const Duration(milliseconds: 20),
+    );
+    await gesture.moveBy(
+      const Offset(-80, 0),
+      timeStamp: const Duration(milliseconds: 120),
+    );
+    await tester.pump();
+    // dx = -50, past the full arm of 44 on the left.
+    await gesture.up(timeStamp: const Duration(milliseconds: 121));
+    await tester.pumpAndSettle();
+    expect(launched, [CaptureShortcut.voice]);
+    expect(holdStarts, 0);
+  });
+
   testWidgets('moving after the hold ramp starts cancels the assistant', (
     tester,
   ) async {

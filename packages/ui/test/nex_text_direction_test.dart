@@ -113,7 +113,10 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: SizedBox(width: 400, child: NexTextSurface('$english\n$persian')),
+          body: SizedBox(
+            width: 400,
+            child: NexTextSurface('$english\n$persian'),
+          ),
         ),
       ),
     );
@@ -232,6 +235,67 @@ void main() {
     expect(find.text('یک خط فارسی'), findsNothing);
     expect(tester.widget<Text>(find.text(english)).maxLines, 2);
   });
+
+  testWidgets('a preview cut at a line boundary says so with an ellipsis', (
+    tester,
+  ) async {
+    // The budget ended exactly where a line did, with more lines after it:
+    // without a mark the preview reads as the note's ending rather than
+    // its beginning.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 300,
+            child: NexTextSurface('first\nدوم\nسوم', maxLines: 2),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('first'), findsOneWidget);
+    expect(find.text('دوم\u2026'), findsOneWidget);
+    expect(find.text('سوم'), findsNothing);
+  });
+
+  testWidgets('a line cut mid-sentence does not wear two ellipses', (
+    tester,
+  ) async {
+    final english = 'word ' * 60;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 300,
+            child: NexTextSurface('$english\nیک خط فارسی', maxLines: 2),
+          ),
+        ),
+      ),
+    );
+    // The long line was clamped by the budget itself, so its own overflow
+    // ellipsis is the whole of the mark — nothing is appended to it.
+    expect(find.text('$english\u2026'), findsNothing);
+  });
+
+  testWidgets('blank lines are not spent from a larger mixed budget either', (
+    tester,
+  ) async {
+    // Small budgets filtered the blanks before they got here; a four-row
+    // preview used to spend a row of them on air.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 300,
+            child: NexTextSurface('first\n\nسطر فارسی\n\nthird', maxLines: 4),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('\u200B'), findsNothing);
+    expect(find.text('first'), findsOneWidget);
+    expect(find.text('سطر فارسی'), findsOneWidget);
+    expect(find.text('third'), findsOneWidget);
+  });
 }
 
 /// [NexAutoDirection] is a widget rather than a call to [nexDirectionOf]
@@ -242,23 +306,23 @@ void _autoDirection() {
     TextEditingController controller, {
     required void Function() onBuild,
   }) => MaterialApp(
-        home: Directionality(
-          textDirection: TextDirection.ltr,
-          child: Material(
-            child: NexAutoDirection(
+    home: Directionality(
+      textDirection: TextDirection.ltr,
+      child: Material(
+        child: NexAutoDirection(
+          controller: controller,
+          builder: (context, direction) {
+            onBuild();
+            return TextField(
               controller: controller,
-              builder: (context, direction) {
-                onBuild();
-                return TextField(
-                  controller: controller,
-                  textDirection: direction,
-                  textAlign: TextAlign.start,
-                );
-              },
-            ),
-          ),
+              textDirection: direction,
+              textAlign: TextAlign.start,
+            );
+          },
         ),
-      );
+      ),
+    ),
+  );
 
   testWidgets('a moving selection does not rebuild the field', (tester) async {
     // The bug this is here for: a `TextEditingController` notifies its

@@ -6,21 +6,22 @@ extension _CaptureModes on _CaptureSheetState {
   /// everywhere; once it holds words — a paste that missed is the usual way
   /// that happens — the same slot turns into Clear, because a one-line link
   /// field gives select-all no room to be found in and a dead end no way
-  /// out. Note and checklist keep the old behaviour: their field is
-  /// multiline, and the editor's own selection tools are already there.
+  /// out. Note and checklist keep the slot in place with only a fade: their
+  /// field is multiline, and the editor's own selection tools are already
+  /// there.
   Widget _pasteSlot(BuildContext context, CaptureKind shown) {
     final clearing = shown == CaptureKind.link && controller.text.isNotEmpty;
     return _CapturePasteSlot(
-      visible: controller.text.isEmpty || shown == CaptureKind.link,
+      // Paste shows only when there is something to paste — asked without
+      // reading it ([Clipboard.hasStrings], see [_checkClipboard]): on open
+      // and on resume. Clear keeps its place whatever the clipboard holds;
+      // it is a way out of words already in the box.
+      visible: clearing || (controller.text.isEmpty && _clipboardHasText),
       clear: clearing,
       label: clearing
           ? AppLocalizations.of(context).clear
           : MaterialLocalizations.of(context).pasteButtonLabel,
-      onPressed: _closing
-          ? null
-          : clearing
-          ? _clearField
-          : _paste,
+      onPressed: clearing ? _clearField : _paste,
       color: nexNoteTypeTint(_wire(shown), Theme.of(context).colorScheme),
     );
   }

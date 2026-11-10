@@ -26,6 +26,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(captureField(), 'open me next month');
     await tester.pumpAndSettle();
+    // The hint waits for the words to be still before it arrives, so it
+    // never lands under a keyboard that is itself still arriving.
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
     // Told about the hold, the first few times there is something to send.
     expect(find.byKey(const ValueKey('schedule-hint')), findsOneWidget);
 
@@ -97,11 +101,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ScheduledScreen), findsOneWidget);
     final cards = find.textContaining(RegExp('^(soon|later still)\$'));
-    expect(
-      tester.widgetList<Text>(cards).map((t) => t.data),
-      ['soon', 'later still'],
-      reason: 'the soonest first',
-    );
+    expect(tester.widgetList<Text>(cards).map((t) => t.data), [
+      'soon',
+      'later still',
+    ], reason: 'the soonest first');
 
     await tester.tap(find.byTooltip('Deliver now').first);
     await tester.pumpAndSettle();

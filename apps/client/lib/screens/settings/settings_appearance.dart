@@ -197,21 +197,43 @@ class _ThemeScreen extends StatelessWidget {
               // them came down a step — so "Large" is roughly what "Default"
               // used to be, which is where anyone who liked the old size
               // should land.
-              child: NexChoiceCards<double>(
-                selected: preferences.uiScale,
-                onSelected: preferences.setUiScale,
-                choices: [
-                  for (final (scale, label, size) in [
-                    (0.9, l10n.uiScaleSmall, 13.0),
-                    (1.0, l10n.uiScaleDefault, 17.0),
-                    (1.15, l10n.uiScaleLarge, 21.0),
-                    (1.3, l10n.uiScaleLarger, 25.0),
-                  ])
-                    NexChoice(
-                      value: scale,
-                      label: label,
-                      preview: _TextSizePreview(fontSize: size),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  NexChoiceCards<double>(
+                    selected: preferences.uiScale,
+                    onSelected: preferences.setUiScale,
+                    choices: [
+                      for (final (scale, label, size) in [
+                        (0.9, l10n.uiScaleSmall, 13.0),
+                        (1.0, l10n.uiScaleDefault, 17.0),
+                        (1.15, l10n.uiScaleLarge, 21.0),
+                        (1.3, l10n.uiScaleLarger, 25.0),
+                      ])
+                        NexChoice(
+                          value: scale,
+                          label: label,
+                          preview: _TextSizePreview(fontSize: size),
+                        ),
+                    ],
+                  ),
+                  // The wide window's own factor, said out loud: it is
+                  // applied on top of this choice to everything — including
+                  // the notes' own text — and a size that quietly changes
+                  // with the window deserved a word where it is chosen.
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      top: NexSpacing.xs,
+                      start: NexSpacing.md,
+                      end: NexSpacing.md,
                     ),
+                    child: Text(
+                      l10n.uiScaleWideNote,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

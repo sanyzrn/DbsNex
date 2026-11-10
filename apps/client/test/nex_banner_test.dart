@@ -135,6 +135,161 @@ void main() {
     expect(find.text('Second'), findsOneWidget);
   });
 
+  testWidgets('a plain banner waits behind an Undo instead of eating it', (
+    tester,
+  ) async {
+    // The Undo a banner carries is a promise with a countdown; swallowing it
+    // to say "Saved" trades something the user might still need for something
+    // they can guess. The plain banner waits its turn and shows when the
+    // actionable one leaves.
+    var undone = false;
+    await tester.pumpWidget(
+      host(
+        onTap: (context) {
+          nexShowBanner(
+            context,
+            message: 'Note deleted',
+            actionLabel: 'Undo',
+            duration: const Duration(seconds: 30),
+            haptics: false,
+            onAction: () => undone = true,
+          );
+          nexShowBanner(context, message: 'Saved', haptics: false);
+        },
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Note deleted'), findsOneWidget);
+    // Waiting, not shown: the Undo keeps its place and its countdown.
+    expect(find.text('Saved'), findsNothing);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(undone, isTrue);
+    expect(find.text('Note deleted'), findsNothing);
+
+    // The waiting banner takes the freed slot in the same breath.
+    expect(find.text('Saved'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a newer waiting banner replaces an older one', (tester) async {
+    // One slot, newest wins — a queue of stale receipts is worse than a
+    // dropped one.
+    await tester.pumpWidget(
+      host(
+        onTap: (context) {
+          nexShowBanner(
+            context,
+            message: 'Note deleted',
+            actionLabel: 'Undo',
+            duration: const Duration(seconds: 30),
+            haptics: false,
+          );
+          nexShowBanner(context, message: 'First', haptics: false);
+          nexShowBanner(context, message: 'Second', haptics: false);
+        },
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+    expect(find.text('Note deleted'), findsOneWidget);
+
+    // Dismissing the actionable banner (its own tap) frees the slot.
+    await tester.tap(find.text('Note deleted'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('First'), findsNothing);
+    expect(find.text('Second'), findsOneWidget);
+  });
+
+  testWidgets('a replaced banner leaves through the edge, not by vanishing', (
+    tester,
+  ) async {
+    // Replacement used to remove the old capsule in the same frame — its
+    // reverseDuration was defined but never ran. Now the exit is an exit:
+    // the old banner is still on screen a hundred milliseconds into the
+    // replacement, mid-way back into the edge.
+    await tester.pumpWidget(
+      host(
+        onTap: (context) {
+          nexShowBanner(context, message: 'First', haptics: false);
+        },
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+    expect(find.text('First'), findsOneWidget);
+
+    // A second button, so the two banners are not raised in the same frame.
+    await tester.pumpWidget(
+      host(
+        onTap: (context) {
+          nexShowBanner(context, message: 'Second', haptics: false);
+        },
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('First'), findsOneWidget);
+
+    await tester.pumpAndSettle();
+    expect(find.text('First'), findsNothing);
+    expect(find.text('Second'), findsOneWidget);
+  });
+
+  testWidgets('the countdown starts once the entrance is over', (tester) async {
+    // The lifetime timer used to start in initState, so the entrance ate into
+    // the message's own time. 'Saved' earns 2200ms of life (a five-character
+    // message, at the floor), and they begin when the 360ms entrance ends —
+    // at 2400ms the banner is still up, and it leaves shortly after.
+    await tester.pumpWidget(
+      host(
+        onTap: (context) =>
+            nexShowBanner(context, message: 'Saved', haptics: false),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 2400));
+    expect(find.text('Saved'), findsOneWidget);
+
+    await tester.pumpAndSettle();
+    expect(find.text('Saved'), findsNothing);
+  });
+
+  testWidgets('holding a banner pauses its countdown', (tester) async {
+    // The one person still reading it is the one holding it: the countdown
+    // pauses under the finger and continues where it left off.
+    await tester.pumpWidget(
+      host(
+        onTap: (context) =>
+            nexShowBanner(context, message: 'Saved', haptics: false),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+
+    // A second into its 2200ms life.
+    await tester.pump(const Duration(seconds: 1));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('Saved')),
+    );
+    // The hold engages, and four seconds pass under the finger — longer
+    // than the whole banner.
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(seconds: 4));
+    expect(find.text('Saved'), findsOneWidget);
+
+    await gesture.up();
+    // Roughly a second of life was left when the hold began; it goes now.
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved'), findsNothing);
+  });
+
   testWidgets('an action gets longer to be reached than a confirmation does', (
     tester,
   ) async {

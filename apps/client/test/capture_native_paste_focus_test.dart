@@ -41,12 +41,15 @@ void main() {
         }
         return null;
       });
-      messenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (call) async => call.method == 'Clipboard.getData'
-            ? {'text': 'https://example.com'}
-            : null,
-      );
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.getData') {
+          return {'text': 'https://example.com'};
+        }
+        if (call.method == 'Clipboard.hasStrings') {
+          return {'value': true};
+        }
+        return null;
+      });
       addTearDown(() async {
         NexTextField.native = false;
         messenger.setMockMethodCallHandler(SystemChannels.platform_views, null);

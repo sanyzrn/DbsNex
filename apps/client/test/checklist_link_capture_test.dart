@@ -301,6 +301,28 @@ void main() {
     );
   });
 
+  testWidgets('sending leaves with a ✓, not a locked grey sheet', (
+    tester,
+  ) async {
+    await openComposer(tester);
+    await tester.enterText(_field, 'optimistic words');
+    await tester.pumpAndSettle();
+
+    await tester.tap(_send);
+    await tester.pump();
+    // The moment of success reads as success: the button is a ✓ and the
+    // sheet is on its way out — not greyed out and locked, waiting on the
+    // database to deign to reload the timeline.
+    expect(find.byKey(const ValueKey('sent')), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.byType(CaptureSheet), findsNothing);
+    final notes = await services.timeline();
+    expect(
+      notes.any((n) => n.content?.contains('optimistic words') ?? false),
+      isTrue,
+    );
+  });
+
   testWidgets('a link that is not a link is sent as the note it already is', (
     tester,
   ) async {
