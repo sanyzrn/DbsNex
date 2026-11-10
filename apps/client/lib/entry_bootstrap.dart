@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -67,7 +69,7 @@ https://github.com/google-ai-edge/LiteRT-LM''',
   // app asked. Declaring it is what makes the platform report the real inset
   // sizes, so a three-button navigation bar becomes padding the layout can
   // respect instead of a strip the content silently runs underneath.
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

@@ -825,10 +825,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String mergeTagDone(String target) => 'Merged into $target';
+  String mergeTagDone(String target) {
+    return 'Merged into $target';
+  }
 
   @override
-  String tagRemoved(String tag) => 'Removed tag $tag';
+  String tagRemoved(String tag) {
+    return 'Removed tag $tag';
+  }
 
   @override
   String get timelineGroupPinned => 'Pinned';
@@ -2783,6 +2787,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatSend => 'Send';
+
+  @override
+  String get chatIncompleteReply =>
+      'The response was interrupted. Your message is kept; try again.';
 
   @override
   String get chatFailed =>
@@ -6017,10 +6025,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiEmbeddingEndpoint => 'Embedding endpoint (optional)';
-
-  @override
-  String get chatIncompleteReply =>
-      'The response was interrupted. Your message is kept; try again.';
 
   @override
   String get aiIncompleteReply =>

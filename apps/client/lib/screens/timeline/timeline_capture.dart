@@ -216,7 +216,7 @@ extension _TimelineCapture on TimelineScreenState {
       landedId = note.id;
       NexMetrics.shared.markCapture();
       widget.services.scheduleEnrichment(note.id);
-      if (widget.preferences.haptics) HapticFeedback.lightImpact();
+      if (widget.preferences.haptics) unawaited(HapticFeedback.lightImpact());
       await widget.services.refreshTimeline();
     } catch (error) {
       // Not `catch (_)` with one sentence. Photo capture fails for at least
@@ -271,7 +271,7 @@ extension _TimelineCapture on TimelineScreenState {
       landedId = note.id;
       NexMetrics.shared.markCapture();
       widget.services.scheduleEnrichment(note.id);
-      if (widget.preferences.haptics) HapticFeedback.lightImpact();
+      if (widget.preferences.haptics) unawaited(HapticFeedback.lightImpact());
       unawaited(widget.services.refreshTimeline());
     } catch (error) {
       unawaited(NexCrashLog.handled('capture.recording', error));

@@ -4478,6 +4478,12 @@ abstract class AppLocalizations {
   /// **'Send'**
   String get chatSend;
 
+  /// No description provided for @chatIncompleteReply.
+  ///
+  /// In en, this message translates to:
+  /// **'The response was interrupted. Your message is kept; try again.'**
+  String get chatIncompleteReply;
+
   /// Shown in the assistant thread when a reply does not arrive
   ///
   /// In en, this message translates to:
@@ -7688,7 +7694,7 @@ abstract class AppLocalizations {
   /// **'One day more'**
   String get cycleStepMore;
 
-  /// One-time capsule over the + button; its button dismisses it.
+  /// One-time capsule over the + button; tapping it dismisses it.
   ///
   /// In en, this message translates to:
   /// **'Hold + for the assistant'**
@@ -9493,8 +9499,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A complete answer could not be obtained. Your original text is kept. Try a shorter text or a model with a larger limit.'**
   String get aiIncompleteReply;
-
-  String get chatIncompleteReply;
 
   /// No description provided for @chatStop.
   ///

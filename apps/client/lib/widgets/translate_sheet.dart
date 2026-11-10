@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+
 import 'package:nex_ai/cloud.dart';
 import 'package:nex_core/nex_core.dart' show nexDigits;
+
 import '../platform/nex_preferences.dart';
 import 'ai_failure_message.dart';
 import 'nex_dialog.dart';
@@ -183,7 +185,7 @@ class _TranslateSheetState extends State<TranslateSheet> {
     final host = NexBannerHost.of(context);
     final message = AppLocalizations.of(context).translateSaved;
     await widget.services.captureText(text);
-    widget.services.refreshTimeline();
+    unawaited(widget.services.refreshTimeline());
     if (!mounted) return;
     nexBump();
     host?.show(message: message, haptics: widget.preferences.haptics);

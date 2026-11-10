@@ -404,7 +404,7 @@ class _ImportRowState extends State<_ImportRow> {
     }
     if (mounted) setState(() => _running = false);
     if (count > 0) {
-      widget.services.refreshTimeline();
+      unawaited(widget.services.refreshTimeline());
       nexBump();
     }
     if (!mounted) return;

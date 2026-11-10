@@ -33,7 +33,8 @@ extension TimelineCommands on TimelineScreenState {
             NexMetrics.shared
               ..record(NexMetric.capture, opened.elapsed)
               ..markCapture();
-            if (widget.preferences.haptics) HapticFeedback.lightImpact();
+            if (widget.preferences.haptics)
+              unawaited(HapticFeedback.lightImpact());
           }
         },
         onRetracted: (id) {
@@ -59,7 +60,7 @@ extension TimelineCommands on TimelineScreenState {
         },
       ),
     );
-    widget.services.refreshTimeline();
+    unawaited(widget.services.refreshTimeline());
     // Once the sheet is closed, not at the first keystroke that created the
     // note: only then is there a whole note to compare.
     if (committed case final id?) unawaited(_offerThread(id));

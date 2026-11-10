@@ -325,7 +325,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType) ==
                   NexFileKind.audio);
       if (playable) {
-        _initPlayer(note.mediaUri!, voice: note.type == NoteType.voice);
+        unawaited(
+          _initPlayer(note.mediaUri!, voice: note.type == NoteType.voice),
+        );
       }
     }
   }

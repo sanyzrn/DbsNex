@@ -19,7 +19,7 @@ The React source was inspected to confirm that AUDIT.md is the full report.
 | D1, E1/reminders | Empty reminder cancellation/action catches now record content-free diagnostics; behavior and fallback order remain intact. |
 | D2 | Enabled unawaited_futures and only_throw_errors in all five Dart packages; explicit unawaited fixes preserve async ordering. discarded_futures and mass catch/import lints are not enabled blindly. |
 | D9 | Worker now shares the backend ESLint policy and is linted by make and CI. Removed an initial assignment overwritten on both success and exception paths. |
-| E2 | Normalize localization output using the pinned CI Flutter generator, then enforce a clean generated diff. No alternative handwritten generator is introduced. |
+| E2 | Normalized the three localization outputs using the pinned CI Flutter generator; CI now enforces a clean generated diff and marks the files as generated. No alternative handwritten generator is introduced. |
 | E3, E4 | Corrected README toolchain/setup references and CI badge, replaced retired shared-branch instructions with the actual release-branch flow; retained old stage checks as manual-only instead of duplicating PR checks. |
 | E5 | Removed unreachable module_brief, and unused ChangelogPanel with its widget-only test; kept the executable server merge specification. |
 | E8 | Added least-privilege contents:read to the manual AI test build. |
@@ -57,3 +57,9 @@ bootstrap is unavailable in this workspace; Flutter generation, analysis and
 widget/native builds are verified by the pinned CI SDK. Backend HTTP tests need
 local listening permissions and PostgreSQL; never label a blocked local test as
 passed. No release is published by this maintenance review.
+
+Local results: Core 278 passed, backend 52 passed, worker 19 passed, Python
+tooling checks 39 passed; core/data analyzers clean. Backend production audit:
+zero advisories. Both Node toolchains retain 10 moderate dev-only advisories
+(minimatch through ESLint/TypeScript ESLint); npm currently offers breaking
+compiler/linter downgrades for these, so no force/overrides were applied.

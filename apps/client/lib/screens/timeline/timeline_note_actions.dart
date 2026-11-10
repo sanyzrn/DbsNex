@@ -20,7 +20,7 @@ extension _TimelineNoteActions on TimelineScreenState {
       alreadyOn: note.tags.map((t) => t.id).toSet(),
     );
     if (choices == null || choices.isEmpty || !mounted) return;
-    if (widget.preferences.haptics) HapticFeedback.lightImpact();
+    if (widget.preferences.haptics) unawaited(HapticFeedback.lightImpact());
     // As many tags as were ticked, in one stay in the sheet: three tags used
     // to cost three rounds of open, pick, wait for the close animation.
     for (final choice in choices) {
@@ -90,7 +90,7 @@ extension _TimelineNoteActions on TimelineScreenState {
   }
 
   Future<void> _dismissSponsor(NexSponsor sponsor) async {
-    if (widget.preferences.haptics) HapticFeedback.lightImpact();
+    if (widget.preferences.haptics) unawaited(HapticFeedback.lightImpact());
     await _sponsor.dismiss(sponsor.id);
     _armSponsorReturn();
     if (mounted) _rebuild(() {});
@@ -142,7 +142,7 @@ extension _TimelineNoteActions on TimelineScreenState {
       ),
     );
     if (confirmed != true || !mounted) return;
-    if (widget.preferences.haptics) HapticFeedback.mediumImpact();
+    if (widget.preferences.haptics) unawaited(HapticFeedback.mediumImpact());
     for (final note in notes) {
       await widget.services.deleteNote(note.id);
     }
