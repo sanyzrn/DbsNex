@@ -335,23 +335,33 @@ class _SpeedChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Material(
-      color: scheme.primary.withValues(alpha: 0.12),
-      shape: const StadiumBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: const ValueKey('voice-player-speed'),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: NexSpacing.sm,
-            vertical: 2,
-          ),
-          child: Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: scheme.primary,
-              fontWeight: FontWeight.w700,
+    // The pill stays as small as it ever was; the target does not. A
+    // twenty-pixel chip beside the waveform is where mis-taps go to become
+    // accidental seeks — the square around it is the app's own 48dp floor,
+    // and the ripple says which of the two was tapped.
+    return SizedBox(
+      width: nexMinTapTarget,
+      height: nexMinTapTarget,
+      child: Material(
+        color: scheme.primary.withValues(alpha: 0.12),
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const ValueKey('voice-player-speed'),
+          onTap: onTap,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: NexSpacing.sm,
+                vertical: 2,
+              ),
+              child: Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ),
