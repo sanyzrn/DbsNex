@@ -589,7 +589,8 @@ class InProcessDb implements NexDb {
   Future<void> purgeAllDeleted() async => _maintenance.purgeAllDeleted();
 
   @override
-  Future<List<TagUsage>> tagUsage() async => _maintenance.tagUsage();
+  Future<List<TagUsage>> tagUsage({bool timelineOnly = false}) async =>
+      _maintenance.tagUsage(timelineOnly: timelineOnly);
 
   @override
   Future<void> renameTag(String id, String name) async =>

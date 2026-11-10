@@ -634,6 +634,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get pinLimitReached => 'می‌توانید حداکثر ۵ یادداشت را پین کنید';
 
   @override
+  String get notePinned => 'پین شد';
+
+  @override
+  String get showPinned => 'نمایش پین‌شده‌ها';
+
+  @override
   String get storageModels => 'مدل آفلاین';
 
   @override
@@ -790,6 +796,24 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get merge => 'ادغام';
+
+  @override
+  String get mergeTagTitle => 'تگ‌ها ادغام شوند؟';
+
+  @override
+  String mergeTagBody(int count, String source, String target) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString یادداشتِ دارای «$source» به «$target» منتقل می‌شوند.';
+  }
+
+  @override
+  String mergeTagDone(String target) => 'با «$target» ادغام شد';
+
+  @override
+  String tagRemoved(String tag) => 'برچسب «$tag» برداشته شد';
 
   @override
   String get timelineGroupPinned => 'سنجاق‌شده';

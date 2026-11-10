@@ -643,6 +643,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pinLimitReached => 'You can pin up to 5 notes';
 
   @override
+  String get notePinned => 'Pinned';
+
+  @override
+  String get showPinned => 'Show pinned';
+
+  @override
   String get storageModels => 'Offline model';
 
   @override
@@ -799,6 +805,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get merge => 'Merge';
+
+  @override
+  String get mergeTagTitle => 'Merge tags?';
+
+  @override
+  String mergeTagBody(int count, String source, String target) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString notes carrying $source move to $target.',
+      one: '1 note carrying $source moves to $target.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String mergeTagDone(String target) => 'Merged into $target';
+
+  @override
+  String tagRemoved(String tag) => 'Removed tag $tag';
 
   @override
   String get timelineGroupPinned => 'Pinned';

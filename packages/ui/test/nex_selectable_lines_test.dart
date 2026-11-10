@@ -51,6 +51,43 @@ void main() {
     expect(copied, text);
   });
 
+  testWidgets('an empty line copies as a line, not as a zero-width space', (
+    tester,
+  ) async {
+    // The empty line is *drawn* as a zero-width space so it keeps its
+    // height; what it copies as is the newline between its neighbours.
+    const text = 'First\n\nThird';
+    final copied = await copyAll(tester, const NexTextSurface(text));
+    expect(copied, text);
+    expect(copied.contains('\u200B'), isFalse);
+  });
+
+  testWidgets(
+    'lines whose boxes overlap by more than a pixel still copy as lines',
+    (tester) async {
+      // Persian descenders and large text scales make neighbouring line
+      // boxes overlap by more than the one pixel the old row test allowed;
+      // those copies came back glued with spaces. A two-pixel overlap stands
+      // in for that here — the centres, which the row test reads now, are
+      // still a good half-line apart.
+      final copied = await copyAll(
+        tester,
+        NexSelectableLines(
+          child: Column(
+            children: [
+              const NexTextSurface.line('First'),
+              Transform.translate(
+                offset: const Offset(0, -2),
+                child: const NexTextSurface.line('Second'),
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(copied.split('\n'), ['First', 'Second']);
+    },
+  );
+
   testWidgets('Markdown keeps a line break between its blocks', (tester) async {
     final copied = await copyAll(
       tester,

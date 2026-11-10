@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_ai/cloud.dart';
+import 'package:nex_client/platform/editor_drafts.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -52,6 +54,8 @@ void main() {
     WidgetTester tester, {
     required String initial,
     http.Client? client,
+    String? draftKey,
+    int? initialSelection,
   }) async {
     tester.view.physicalSize = const Size(900, 1800);
     tester.view.devicePixelRatio = 1;
@@ -73,6 +77,8 @@ void main() {
                     context,
                     initial: initial,
                     preferences: preferences,
+                    draftKey: draftKey,
+                    initialSelection: initialSelection,
                     client: client == null
                         ? null
                         : () => CloudAIAdapter(
@@ -102,6 +108,65 @@ void main() {
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       'the boiler is making a noise',
     );
+  });
+
+  testWidgets('the caret opens at the start, not after the last word', (
+    tester,
+  ) async {
+    // A long note used to open with the caret at its end — the native
+    // editor's fallback for a selection nobody set — so the first swipe of
+    // selection started from the bottom.
+    await open(tester, initial: 'the boiler is making a noise');
+    final controller = tester
+        .widget<TextField>(find.byType(TextField))
+        .controller!;
+    expect(controller.selection.isCollapsed, isTrue);
+    expect(controller.selection.baseOffset, 0);
+  });
+
+  testWidgets('a caller can place the caret where its flow needs it', (
+    tester,
+  ) async {
+    await open(tester, initial: 'call the landlord', initialSelection: 5);
+    final controller = tester
+        .widget<TextField>(find.byType(TextField))
+        .controller!;
+    expect(controller.selection.baseOffset, 5);
+  });
+
+  testWidgets('a recovered draft opens with the caret at its end', (
+    tester,
+  ) async {
+    // testWidgets uses a fake-async clock: awaiting an actual filesystem
+    // future here can hang until the ten-minute test timeout.
+    final dir = Directory.systemTemp.createTempSync('nex_editor_draft_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final drafts = EditorDrafts(dir.path);
+    preferences.editorDrafts = drafts;
+    drafts.write('note-7', {'text': 'half-finished thou'});
+    // This test verifies draft restoration itself, without adding an
+    // unrelated modal-route settle to the synchronous recovery assertion.
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NoteEditorSheet(
+            initial: 'original words',
+            preferences: preferences,
+            draftKey: 'note-7',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final controller = tester
+        .widget<TextField>(find.byType(TextField))
+        .controller!;
+    expect(controller.text, 'half-finished thou');
+    // Composition half-finished: the caret waits after the last word typed.
+    expect(controller.selection.baseOffset, 'half-finished thou'.length);
   });
 
   testWidgets('the AI row is absent when there is no model to ask', (

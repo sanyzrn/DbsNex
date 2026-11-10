@@ -177,6 +177,33 @@ void main() {
     expect(given, {'a'});
     expect(reported(), isNot(same(given)));
   });
+
+  testWidgets('a Latin tag reads left-to-right under a Persian row', (
+    tester,
+  ) async {
+    // `C++` worn by an RTL row of pills used to render as `++C` — the
+    // glyphs followed the row's direction instead of the name's own. The
+    // count beside a label already took its own direction; the label now
+    // does too.
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            body: TagFilterRow(
+              tags: [tag('c', 'C++')],
+              selectedTagIds: {},
+              onSelected: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    final label = tester.widget<Text>(find.text('C++'));
+    expect(label.textDirection, TextDirection.ltr);
+    expect(tester.takeException(), isNull);
+  });
   for (final look in ['light', 'dark', 'glass']) {
     for (final rtl in [false, true]) {
       for (final scale in [1.0, 1.8]) {

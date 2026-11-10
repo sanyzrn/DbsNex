@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -109,7 +110,14 @@ void main() {
       await tester.pumpAndSettle();
       // Every detail is on the list itself; no page in between.
       expect(find.text('Account one'), findsOneWidget);
+      // Only an explicit eye tap reveals the secret; merely unlocking does not.
+      await tester.tap(find.byIcon(Icons.visibility_off).first);
+      await tester.pump();
       expect(find.text('private-value'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.visibility).first);
+      await tester.pump();
+      expect(find.text('private-value'), findsNothing);
+      expect(find.text('••••••••'), findsOneWidget);
       await tester.dragFrom(const Offset(20, 450), const Offset(600, 0));
       await tester.pumpAndSettle();
       expect(find.text('Open tools vault'), findsOneWidget);
@@ -117,7 +125,8 @@ void main() {
 
       await tester.tap(find.text('Open tools vault'));
       await tester.pumpAndSettle();
-      expect(find.text('private-value'), findsOneWidget);
+      expect(find.text('private-value'), findsNothing);
+      expect(find.text('••••••••'), findsOneWidget);
       expect(auth.calls, 1);
 
       await tester.dragFrom(const Offset(20, 450), const Offset(600, 0));
@@ -279,9 +288,8 @@ void main() {
         expect(RegExp('[!@#%+_=\\-?]').hasMatch(value), isTrue);
       }
       expect(
-        RegExp(
-          r'^[a-zA-Z0-9]+$',
-        ).hasMatch(generateVaultPassword(symbols: false)),
+        RegExp(r'^[a-zA-Z0-9]+$')
+            .hasMatch(generateVaultPassword(symbols: false)),
         isTrue,
       );
       expect(validVaultCard('۴۱۱۱ ۱۱۱۱ ۱۱۱۱ ۱۱۱۱'), isTrue);
@@ -312,7 +320,8 @@ void main() {
       expect(find.text('Account one'), findsNothing);
       await tester.tap(find.text('Unlock vault'));
       await tester.pumpAndSettle();
-      expect(find.text('private-value'), findsOneWidget);
+      expect(find.text('private-value'), findsNothing);
+      expect(find.text('••••••••'), findsOneWidget);
 
       // Copying a password to paste it into a browser is the point of the
       // vault; coming back from the browser must not start over.
@@ -322,7 +331,8 @@ void main() {
       expect(find.text('Account one'), findsNothing);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
-      expect(find.text('private-value'), findsOneWidget);
+      expect(find.text('private-value'), findsNothing);
+      expect(find.text('••••••••'), findsOneWidget);
       expect(auth.calls, 1);
 
       // Away for longer than the grace period: locked on return.
@@ -443,9 +453,8 @@ void main() {
     expect(first.added, 2);
     expect(first.duplicates, 0);
     final again = await store.importPasswords(
-      parsePasswordCsv(
-        'name,url,username,password\nA,https://a.test,u,p1\n',
-      ).entries,
+      parsePasswordCsv('name,url,username,password\nA,https://a.test,u,p1\n')
+          .entries,
     );
     expect(again.added, 0);
     expect(again.duplicates, 1);

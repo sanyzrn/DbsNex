@@ -160,4 +160,38 @@ void main() {
     expect(folded, 0);
     expect(guard.isOpen, isFalse);
   });
+
+  testWidgets('hold pulse settles with menu still open', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NoteContextMenu(
+            entries: [NoteMenuEntry(NexHoldAction.copy, () {})],
+            child: const SizedBox(
+              height: 80,
+              width: double.infinity,
+              child: Center(child: Text('A note')),
+            ),
+          ),
+        ),
+      ),
+    );
+    double scaleOf() =>
+        tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale;
+
+    expect(scaleOf(), 1.0);
+    await tester.longPress(find.text('A note'));
+    await tester.pumpAndSettle();
+    expect(find.text('Copy'), findsOneWidget);
+    // A transient tap response returns to the original geometry after
+    // the animation settles, while the actual menu stays visible.
+    expect(scaleOf(), 1.0);
+
+    await tester.tap(find.text('Copy'));
+    await tester.pumpAndSettle();
+    expect(find.text('Copy'), findsNothing);
+    expect(scaleOf(), 1.0);
+  });
 }

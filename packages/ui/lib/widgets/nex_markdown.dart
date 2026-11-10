@@ -167,6 +167,12 @@ class _NexMarkdownState extends State<NexMarkdown> {
           selectable: false,
           fitContent: false,
           builders: {
+            // Code fences always use LTR, independently of the document.
+            // All prose, list and inline-code directions stay untouched.
+            'pre': _NexFencedCodeBuilder(
+              style: sheet.code,
+              padding: sheet.codeblockPadding,
+            ),
             if (widget.onCopyCode != null) 'code': _codeSpans,
             if (widget.onHoldLink != null) 'a': _links,
           },
@@ -265,6 +271,79 @@ class _NexMarkdownState extends State<NexMarkdown> {
       checkbox: base.copyWith(color: scheme.primary),
     );
   }
+}
+
+/// Fenced and indented code must be left-to-right even in a Persian document.
+/// Only the pre block is overridden; the Markdown package retains its outer
+/// code-block decoration, and text outside the block keeps its direction.
+class _NexFencedCodeBuilder extends MarkdownElementBuilder {
+  _NexFencedCodeBuilder({required this.style, required this.padding});
+
+  final TextStyle? style;
+  final EdgeInsets? padding;
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    // Match the package's formatter: remove the terminal fence newline,
+    // never indentation, intentional blank lines or internal whitespace.
+    final code = element.textContent.replaceFirst(RegExp(r'\n$'), '');
+    return _NexFencedCode(
+      code: code,
+      style: style,
+      padding: padding ?? EdgeInsets.zero,
+    );
+  }
+}
+
+/// Keep the code's horizontal scrollbar independent of the RTL page scroll.
+class _NexFencedCode extends StatefulWidget {
+  const _NexFencedCode({
+    required this.code,
+    required this.style,
+    required this.padding,
+  });
+
+  final String code;
+  final TextStyle? style;
+  final EdgeInsets padding;
+
+  @override
+  State<_NexFencedCode> createState() => _NexFencedCodeState();
+}
+
+class _NexFencedCodeState extends State<_NexFencedCode> {
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+    textDirection: TextDirection.ltr,
+    child: Scrollbar(
+      controller: _scroll,
+      child: SingleChildScrollView(
+        controller: _scroll,
+        scrollDirection: Axis.horizontal,
+        padding: widget.padding,
+        child: Text(
+          widget.code,
+          style: widget.style,
+          textDirection: TextDirection.ltr,
+          textAlign: TextAlign.left,
+          softWrap: false,
+        ),
+      ),
+    ),
+  );
 }
 
 class _NexMarkdownColumnWidth extends IntrinsicColumnWidth {

@@ -310,8 +310,18 @@ extension _VaultItems on _VaultScreenState {
     final l = AppLocalizations.of(context);
     final id = '${entry.id}:$key';
     final copied = copiedField == id;
+    final secret = key == 'password';
     final raw = entry.value(key);
-    final shown = key == 'number' ? _groupDigits(vaultCardDigits(raw)) : raw;
+    // A masked row prints dots of no particular length — the length of a
+    // password is itself a fact about it — and the eye is the only way to
+    // read the value back, for the few seconds [_revealSecret] allows.
+    final shown = secret
+        ? revealedSecret == id
+              ? raw
+              : '••••••••'
+        : key == 'number'
+        ? _groupDigits(vaultCardDigits(raw))
+        : raw;
     final value = key == 'number' ? vaultCardDigits(raw) : raw;
     return InkWell(
       borderRadius: BorderRadius.circular(NexRadius.md),
@@ -346,6 +356,17 @@ extension _VaultItems on _VaultScreenState {
                 ],
               ),
             ),
+            if (secret)
+              IconButton(
+                tooltip: revealedSecret == id ? l.vaultHide : l.vaultShow,
+                onPressed: () => _revealSecret(id),
+                icon: Icon(
+                  revealedSecret == id
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                  size: 20,
+                ),
+              ),
             IconButton(
               tooltip: copied ? l.vaultCopied : '${l.copy} · $label',
               onPressed: () => _copy(id, value),

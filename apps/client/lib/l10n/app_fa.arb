@@ -163,6 +163,14 @@
   "securityLockedSubtitle": "برای بازکردن یادداشت‌ها با دستگاه احراز هویت کنید.",
   "securityUnlock": "بازکردن",
   "pinLimitReached": "می‌توانید حداکثر ۵ یادداشت را پین کنید",
+  "notePinned": "پین شد",
+  "@notePinned": {
+    "description": "Confirms a single pin from a swipe or the hold menu"
+  },
+  "showPinned": "نمایش پین‌شده‌ها",
+  "@showPinned": {
+    "description": "Action on a pin banner: scroll to the pinned cards"
+  },
   "storageModels": "مدل آفلاین",
   "storageImages": "تصاویر",
   "storageAudio": "ضبط‌ها",
@@ -210,6 +218,28 @@
   "restore": "بازیابی",
   "rename": "تغییر نام",
   "merge": "ادغام",
+  "mergeTagTitle": "تگ‌ها ادغام شوند؟",
+  "@mergeTagTitle": {
+    "description": "Confirms merging one tag into another"
+  },
+  "mergeTagBody": "{count} یادداشتِ دارای «{source}» به «{target}» منتقل می‌شوند.",
+  "@mergeTagBody": {
+    "placeholders": {
+      "count": {"type": "int", "format": "decimalPattern"},
+      "source": {"type": "String"},
+      "target": {"type": "String"}
+    }
+  },
+  "mergeTagDone": "با «{target}» ادغام شد",
+  "@mergeTagDone": {
+    "description": "Said after a merge completed; the target keeps the notes",
+    "placeholders": {"target": {"type": "String"}}
+  },
+  "tagRemoved": "برچسب «{tag}» برداشته شد",
+  "@tagRemoved": {
+    "description": "Said after the ✕ on a note's tag chip; Undo re-adds it",
+    "placeholders": {"tag": {"type": "String"}}
+  },
   "timelineGroupPinned": "سنجاق‌شده",
   "timelineGroupToday": "امروز",
   "timelineGroupYesterday": "دیروز",

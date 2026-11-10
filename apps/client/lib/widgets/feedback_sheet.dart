@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/crash_reporter.dart';
 import '../platform/feedback_service.dart';
 import '../platform/metrics.dart';
+import 'draft_guard.dart';
 import 'nex_dialog.dart';
 import 'nex_banner.dart';
 
@@ -47,6 +48,11 @@ class FeedbackSheet extends StatefulWidget {
     bool idea = false,
   }) => nexShowSheet<void>(
     context: context,
+    // Draft-guarded, so the sheet's own drag stays off (it pops past the
+    // guard) and the guarded swipe — which routes through maybePop — is on,
+    // the same arrangement the note editor uses.
+    dismissible: false,
+    swipeToClose: true,
     builder: (_) => FeedbackSheet(service: service, idea: idea),
   );
 
@@ -54,12 +60,30 @@ class FeedbackSheet extends StatefulWidget {
   State<FeedbackSheet> createState() => _FeedbackSheetState();
 }
 
-class _FeedbackSheetState extends State<FeedbackSheet> {
+class _FeedbackSheetState extends State<FeedbackSheet>
+    with NexDraftGuard<FeedbackSheet> {
   final _controller = TextEditingController();
   final _contact = TextEditingController();
   FeedbackKind _kind = FeedbackKind.idea;
   bool _sending = false;
   FeedbackOutcome? _lastFailure;
+  bool _hasDraft = false;
+
+  // PopScope must rebuild when the form becomes dirty or clean. Without
+  // this, typing did not change canPop and Android Back could discard text.
+  void _onDraftChanged() {
+    final dirty =
+        _controller.text.trim().isNotEmpty || _contact.text.trim().isNotEmpty;
+    if (dirty != _hasDraft && mounted) setState(() => _hasDraft = dirty);
+  }
+
+  /// The sheet used to close on any pull or tap outside with the words
+  /// still in it — eight pixels of overscroll was enough to eat a typed
+  /// complaint. The words are guarded now, the way an editor's are: back,
+  /// the swipe and the barrier all ask first. A send that succeeded has
+  /// popped the sheet by other means and never asks.
+  @override
+  bool get hasUnsavedChanges => _hasDraft;
 
   /// Whether the measurements go with this message (W3.4). Never ticked on
   /// its own: attaching them is something the person does, every time.
@@ -76,6 +100,8 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
   @override
   void initState() {
     super.initState();
+    _controller.addListener(_onDraftChanged);
+    _contact.addListener(_onDraftChanged);
     _readDiagnostics();
   }
 
@@ -106,6 +132,8 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
 
   @override
   void dispose() {
+    _controller.removeListener(_onDraftChanged);
+    _contact.removeListener(_onDraftChanged);
     _controller.dispose();
     _contact.dispose();
     super.dispose();
@@ -167,209 +195,211 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.idea) return _ideaBody(context);
+    if (widget.idea) return guardDraft(_ideaBody(context));
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return NexSheetBody(
-      // Scrollable: the sheet's body is `Flexible`, and a message box, a
-      // reply field and the attached measurements do not fit a small phone
-      // with the keyboard up.
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.sendFeedback, style: theme.textTheme.titleLarge),
-            const SizedBox(height: NexSpacing.xs),
-            Text(
-              nexLabel(
-                context,
-                'Goes straight to the people who make Nex. Nothing from your notes is attached.',
-                'مستقیم به سازندگان Nex می‌رسد. چیزی از یادداشت‌هایتان پیوست نمی‌شود.',
-              ),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: NexSpacing.md),
-            SegmentedButton<FeedbackKind>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(
-                  value: FeedbackKind.bug,
-                  icon: const Icon(Icons.bug_report_outlined),
-                  label: Text(nexLabel(context, 'Problem', 'مشکل')),
-                ),
-                ButtonSegment(
-                  value: FeedbackKind.idea,
-                  icon: const Icon(Icons.lightbulb_outline),
-                  label: Text(nexLabel(context, 'Idea', 'ایده')),
-                ),
-                ButtonSegment(
-                  value: FeedbackKind.other,
-                  icon: const Icon(Icons.chat_bubble_outline),
-                  label: Text(nexLabel(context, 'Other', 'سایر')),
-                ),
-              ],
-              selected: {_kind},
-              onSelectionChanged: _sending
-                  ? null
-                  : (value) => setState(() => _kind = value.first),
-            ),
-            const SizedBox(height: NexSpacing.md),
-            NexTextField(
-              controller: _controller,
-              autofocus: true,
-              minLines: 4,
-              maxLines: 8,
-              decoration: InputDecoration(
-                hintText: l10n.feedbackHint,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: NexSpacing.sm),
-            TextField(
-              controller: _contact,
-              maxLength: 80,
-              contextMenuBuilder: nexReadingMenu,
-              keyboardType: TextInputType.emailAddress,
-              textDirection: TextDirection.ltr,
-              decoration: InputDecoration(
-                counterText: '',
-                prefixIcon: const Icon(Icons.alternate_email),
-                labelText: nexLabel(
-                  context,
-                  'How to reach you (optional)',
-                  'راه ارتباط با شما (اختیاری)',
-                ),
-                hintText: nexLabel(
-                  context,
-                  'Telegram ID or email, if you want a reply',
-                  'آیدی تلگرام یا ایمیل، اگر پاسخ می‌خواهید',
-                ),
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            if (_canAttach) ...[
+    return guardDraft(
+      NexSheetBody(
+        // Scrollable: the sheet's body is `Flexible`, and a message box, a
+        // reply field and the attached measurements do not fit a small phone
+        // with the keyboard up.
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.sendFeedback, style: theme.textTheme.titleLarge),
               const SizedBox(height: NexSpacing.xs),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                value: _attachMetrics,
-                onChanged: _sending
-                    ? null
-                    : (value) =>
-                          setState(() => _attachMetrics = value ?? false),
-                title: Text(l10n.feedbackAttachMetrics),
-                subtitle: Text(l10n.feedbackAttachMetricsHint),
+              Text(
+                nexLabel(
+                  context,
+                  'Goes straight to the people who make Nex. Nothing from your notes is attached.',
+                  'مستقیم به سازندگان Nex می‌رسد. چیزی از یادداشت‌هایتان پیوست نمی‌شود.',
+                ),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-              if (_attachMetrics)
-                Container(
-                  padding: const EdgeInsets.all(NexSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(NexRadius.sm),
+              const SizedBox(height: NexSpacing.md),
+              SegmentedButton<FeedbackKind>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: FeedbackKind.bug,
+                    icon: const Icon(Icons.bug_report_outlined),
+                    label: Text(nexLabel(context, 'Problem', 'مشکل')),
                   ),
-                  child: Text(
-                    _report,
-                    textDirection: TextDirection.ltr,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontFamily: 'monospace',
+                  ButtonSegment(
+                    value: FeedbackKind.idea,
+                    icon: const Icon(Icons.lightbulb_outline),
+                    label: Text(nexLabel(context, 'Idea', 'ایده')),
+                  ),
+                  ButtonSegment(
+                    value: FeedbackKind.other,
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    label: Text(nexLabel(context, 'Other', 'سایر')),
+                  ),
+                ],
+                selected: {_kind},
+                onSelectionChanged: _sending
+                    ? null
+                    : (value) => setState(() => _kind = value.first),
+              ),
+              const SizedBox(height: NexSpacing.md),
+              NexTextField(
+                controller: _controller,
+                autofocus: true,
+                minLines: 4,
+                maxLines: 8,
+                decoration: InputDecoration(
+                  hintText: l10n.feedbackHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              TextField(
+                controller: _contact,
+                maxLength: 80,
+                contextMenuBuilder: nexReadingMenu,
+                keyboardType: TextInputType.emailAddress,
+                textDirection: TextDirection.ltr,
+                decoration: InputDecoration(
+                  counterText: '',
+                  prefixIcon: const Icon(Icons.alternate_email),
+                  labelText: nexLabel(
+                    context,
+                    'How to reach you (optional)',
+                    'راه ارتباط با شما (اختیاری)',
+                  ),
+                  hintText: nexLabel(
+                    context,
+                    'Telegram ID or email, if you want a reply',
+                    'آیدی تلگرام یا ایمیل، اگر پاسخ می‌خواهید',
+                  ),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              if (_canAttach) ...[
+                const SizedBox(height: NexSpacing.xs),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: _attachMetrics,
+                  onChanged: _sending
+                      ? null
+                      : (value) =>
+                            setState(() => _attachMetrics = value ?? false),
+                  title: Text(l10n.feedbackAttachMetrics),
+                  subtitle: Text(l10n.feedbackAttachMetricsHint),
+                ),
+                if (_attachMetrics)
+                  Container(
+                    padding: const EdgeInsets.all(NexSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(NexRadius.sm),
                     ),
-                  ),
-                ),
-            ],
-            if (_diagnostics != null) ...[
-              CheckboxListTile(
-                key: const ValueKey('feedback-attach-diagnostics'),
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                value: _attachDiagnostics,
-                onChanged: _sending
-                    ? null
-                    : (value) =>
-                          setState(() => _attachDiagnostics = value ?? false),
-                title: Text(
-                  nexLabel(
-                    context,
-                    'Attach the diagnostics report',
-                    'پیوست گزارش عیب‌یابی',
-                  ),
-                ),
-                subtitle: Text(
-                  nexLabel(
-                    context,
-                    'Recent errors and app events, with links, keys and passwords removed. Nothing from your notes. Shown below before sending.',
-                    'خطاها و رویدادهای اخیر برنامه، بدون لینک، کلید و رمز. چیزی از یادداشت‌هایتان در آن نیست. پیش از ارسال در زیر نشان داده می‌شود.',
-                  ),
-                ),
-              ),
-              if (_attachDiagnostics)
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  padding: const EdgeInsets.all(NexSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(NexRadius.sm),
-                  ),
-                  child: SingleChildScrollView(
                     child: Text(
-                      _diagnostics!,
+                      _report,
                       textDirection: TextDirection.ltr,
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontFamily: 'monospace',
                       ),
                     ),
                   ),
-                ),
-            ],
-            if (_lastFailure != null) ...[
-              const SizedBox(height: NexSpacing.sm),
-              Text(
-                _lastFailure == FeedbackOutcome.unavailable
-                    ? l10n.feedbackUnavailable
-                    : l10n.feedbackFailed,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-              const SizedBox(height: NexSpacing.xs),
-              // The old fallback copied a link to this repository's issue
-              // tracker, which is private: nobody outside could open it. The
-              // words are what matter, so they are what gets kept.
-              InkWell(
-                onTap: () async {
-                  await Clipboard.setData(
-                    ClipboardData(text: _controller.text.trim()),
-                  );
-                  if (!context.mounted) return;
-                  nexShowBanner(context, message: l10n.copied);
-                },
-                child: Text(
-                  nexLabel(
-                    context,
-                    'Copy your message to send it another way (DbsStudio.ir)',
-                    'پیامتان را کپی کنید تا از راه دیگری بفرستید (DbsStudio.ir)',
+              ],
+              if (_diagnostics != null) ...[
+                CheckboxListTile(
+                  key: const ValueKey('feedback-attach-diagnostics'),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: _attachDiagnostics,
+                  onChanged: _sending
+                      ? null
+                      : (value) =>
+                            setState(() => _attachDiagnostics = value ?? false),
+                  title: Text(
+                    nexLabel(
+                      context,
+                      'Attach the diagnostics report',
+                      'پیوست گزارش عیب‌یابی',
+                    ),
                   ),
+                  subtitle: Text(
+                    nexLabel(
+                      context,
+                      'Recent errors and app events, with links, keys and passwords removed. Nothing from your notes. Shown below before sending.',
+                      'خطاها و رویدادهای اخیر برنامه، بدون لینک، کلید و رمز. چیزی از یادداشت‌هایتان در آن نیست. پیش از ارسال در زیر نشان داده می‌شود.',
+                    ),
+                  ),
+                ),
+                if (_attachDiagnostics)
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    padding: const EdgeInsets.all(NexSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(NexRadius.sm),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        _diagnostics!,
+                        textDirection: TextDirection.ltr,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+              if (_lastFailure != null) ...[
+                const SizedBox(height: NexSpacing.sm),
+                Text(
+                  _lastFailure == FeedbackOutcome.unavailable
+                      ? l10n.feedbackUnavailable
+                      : l10n.feedbackFailed,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    decoration: TextDecoration.underline,
+                    color: theme.colorScheme.error,
                   ),
                 ),
+                const SizedBox(height: NexSpacing.xs),
+                // The old fallback copied a link to this repository's issue
+                // tracker, which is private: nobody outside could open it. The
+                // words are what matter, so they are what gets kept.
+                InkWell(
+                  onTap: () async {
+                    await Clipboard.setData(
+                      ClipboardData(text: _controller.text.trim()),
+                    );
+                    if (!context.mounted) return;
+                    nexShowBanner(context, message: l10n.copied);
+                  },
+                  child: Text(
+                    nexLabel(
+                      context,
+                      'Copy your message to send it another way (DbsStudio.ir)',
+                      'پیامتان را کپی کنید تا از راه دیگری بفرستید (DbsStudio.ir)',
+                    ),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: NexSpacing.lg),
+              FilledButton(
+                onPressed: _sending ? null : _send,
+                child: _sending
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.feedbackSend),
               ),
             ],
-            const SizedBox(height: NexSpacing.lg),
-            FilledButton(
-              onPressed: _sending ? null : _send,
-              child: _sending
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.feedbackSend),
-            ),
-          ],
+          ),
         ),
       ),
     );

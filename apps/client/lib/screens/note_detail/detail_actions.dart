@@ -63,29 +63,21 @@ extension _DetailActions on _NoteDetailSheetState {
       _toast(l10n.nothingToCopy);
       return;
     }
-    await Clipboard.setData(ClipboardData(text: text));
-    if (!mounted) return;
-    _toast(l10n.copied);
+    await nexCopy(context, text);
   }
 
   /// Copies one of the AI panel's own texts — a transcript, an OCR read, a
   /// summary — rather than [_copyableText]'s fallback chain, which is the
   /// note's own content first and would copy the wrong thing here.
   Future<void> _copyDerivedText(String text) async {
-    final l10n = AppLocalizations.of(context);
-    await Clipboard.setData(ClipboardData(text: text));
-    if (!mounted) return;
-    _toast(l10n.copied);
+    await nexCopy(context, text);
   }
 
   Future<void> _copyPath() async {
     final note = _note;
     final uri = note?.mediaUri;
     if (uri == null) return;
-    final l10n = AppLocalizations.of(context);
-    await Clipboard.setData(ClipboardData(text: uri));
-    if (!mounted) return;
-    _toast(l10n.copied);
+    await nexCopy(context, uri);
   }
 
   /// Hands the note's media to the OS, exactly as a file manager would: the
@@ -367,19 +359,53 @@ extension _DetailActions on _NoteDetailSheetState {
     final note = _note;
     final all = await widget.services.listTags();
     if (!mounted) return;
-    final choice = await TagPickerSheet.show(
+    final choices = await TagPickerSheet.show(
       context,
       tags: all,
       alreadyOn: note?.tags.map((t) => t.id).toSet() ?? const {},
     );
-    if (choice == null || !mounted) return;
-    await widget.services.addTag(
-      noteId: widget.noteId,
-      name: choice.tag?.name ?? choice.name!,
-      color: choice.color,
-    );
+    if (choices == null || choices.isEmpty || !mounted) return;
+    for (final choice in choices) {
+      await widget.services.addTag(
+        noteId: widget.noteId,
+        name: choice.tag?.name ?? choice.name!,
+        color: choice.color,
+      );
+    }
     await widget.services.refreshTimeline();
     await _reload();
+  }
+
+  /// The ✕ on a tag chip. It used to be a one-way door: the tag left with
+  /// no sound and no way back, and putting it on again meant opening the
+  /// picker and finding it. The banner hands it straight back — [addTag] is
+  /// idempotent per note, so undo is the same write the chip's ✕ reversed.
+  Future<void> _removeTag(Note note, Tag tag) async {
+    await widget.services.removeTag(noteId: note.id, tagId: tag.id);
+    // Unlike _addTag, this can take a tag's usage count to zero — without a
+    // refresh here, the filter row on the timeline never hears about it and
+    // keeps showing a tag nothing wears anymore until some unrelated capture
+    // or delete happens to trigger one.
+    await widget.services.refreshTimeline();
+    await _reload();
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    // A direct result of the ✕ the finger just pressed: no second buzz.
+    nexShowBanner(
+      context,
+      message: l10n.tagRemoved(nexTagLabel(tag, l10n)),
+      actionLabel: l10n.undo,
+      onAction: () async {
+        await widget.services.addTag(
+          noteId: note.id,
+          name: tag.name,
+          color: tag.color,
+        );
+        await widget.services.refreshTimeline();
+        await _reload();
+      },
+      haptics: false,
+    );
   }
 
   /// Shows this note's card in full on the timeline, or puts it back to two
@@ -403,7 +429,21 @@ extension _DetailActions on _NoteDetailSheetState {
     if (note.pinnedAt != null) {
       await widget.services.unpinNote(note.id);
     } else {
-      await widget.services.pinNote(note.id);
+      final pinned = await widget.services.pinNote(note.id);
+      if (!pinned) {
+        // The five slots are full. Said here, where the press happened,
+        // with the button's own word still on it — the timeline's banner
+        // for the same wall offers the trip to the pins; from inside the
+        // sheet there is nothing to scroll to, so the word is all there is.
+        if (mounted) {
+          nexShowBanner(
+            context,
+            message: AppLocalizations.of(context).pinLimitReached,
+            haptics: false,
+          );
+        }
+        return;
+      }
     }
     await widget.services.refreshTimeline();
     await _reload();

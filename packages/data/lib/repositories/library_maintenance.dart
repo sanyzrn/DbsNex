@@ -257,21 +257,31 @@ class LibraryMaintenance {
     return removed;
   }
 
-  // A trashed note (deleted_at set) keeps its note_tags row until it is
-  // purged — only a hard delete cascades that away — so counting nt.note_id
-  // itself still counted a tag as "in use" by a note nobody can see anymore,
-  // until the trash was emptied. Counting n.id instead, joined on
-  // deleted_at IS NULL, means only a note actually on the timeline counts.
-  List<TagUsage> tagUsage() => repo.db
-      .select('''
+  // Deleted notes never count, even before the trash is purged. The tag
+  // manager needs the counts for *all* live notes, including those set aside,
+  // while the Home filter row must count only notes actually visible on Home.
+  // Match SqliteNoteRepository.listTimeline's set-aside rule, including notes
+  // whose scheduled return time has already passed.
+  List<TagUsage> tagUsage({bool timelineOnly = false}) {
+    final homeConstraint = timelineOnly
+        ? 'AND (n.set_aside_at IS NULL OR '
+              '(n.set_aside_until IS NOT NULL AND n.set_aside_until <= ?))'
+        : '';
+    return repo.db
+        .select(
+          '''
     SELECT t.*, COUNT(n.id) AS usage_count
     FROM tags t
     LEFT JOIN note_tags nt ON nt.tag_id = t.id
     LEFT JOIN notes n ON n.id = nt.note_id AND n.deleted_at IS NULL
+      $homeConstraint
     GROUP BY t.id ORDER BY usage_count DESC, t.name COLLATE NOCASE
-  ''')
-      .map((row) => TagUsage(Tag.fromRow(row), row['usage_count'] as int))
-      .toList();
+  ''',
+          [if (timelineOnly) DateTime.now().toUtc().toIso8601String()],
+        )
+        .map((row) => TagUsage(Tag.fromRow(row), row['usage_count'] as int))
+        .toList();
+  }
 
   /// Renames a tag, and says so to the server.
   ///

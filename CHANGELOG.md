@@ -2,6 +2,8 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.15
+
 - **A tap in the search field is no longer a re-run.** Touching the field to move the caret or paste no longer restarts the whole search and re-fades the results; the keyboard's Search key now actually runs the query instead of just closing the keyboard.
 - **Leaving search keeps your words.** With text typed, a touch outside the field now only lowers the keyboard — it never wipes the query. Clearing stays on the ✕ and Back.
 - **One buzz per delete.** Deleting a note used to vibrate three times in a row (gesture, action, banner). Now the one confirming buzz is the whole receipt.
@@ -16,6 +18,21 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 - **Crop and annotation failures look and sound like failures** — a proper message in your language, not a success-styled banner with a raw exception in it.
 - **PDF page arrows follow the reading direction** in Persian, agreeing with the swipe instead of arguing with it.
 - **Smaller controls reach the 48dp touch floor.** The Undo banner's button and the voice speed chip now meet the app's own minimum touch size.
+
+- **Passwords in the vault are masked.** The editor dots them while typing and the list dots them at rest; the eye beside either lends the real characters for a few seconds and covers them again by itself.
+- **The editor's caret starts where the words start.** Opening a note no longer drops the caret after the last character; a recovered draft still opens with the caret at its end, where typing left off.
+- **Merging tags says what it will do before it does it.** Both names and how many notes follow, with a receipt naming the tag that kept them — the same confirmation deleting a tag always had.
+- **Back lifts the timeline's filter before it leaves the app.** A filtered list used to survive the Back key: now Back takes the filter off first, and only a second Back exits.
+- **A pin says so, and shows the way.** Pinning from the menu or a swipe raises a short banner whose action scrolls to the pinned cards — and the five-pin limit now offers the same trip instead of a bare refusal. The button in the note sheet keeps its word, "Pin", and says the limit only when pressed there.
+- **Capture keeps its buzzes to one per event.** The sheet's failure banners respect the haptics setting, a broken journal is announced once per sheet rather than per keystroke, and a capture that converts to a list or link no longer buzzes twice.
+- **The day summary folds under a real scroll, not a tremble.** Four pixels used to close it — and save the closure for every launch after; now it takes a finger-dragged 56, lasts the session, and the preference belongs to its own chevron.
+- **A typed complaint is guarded like typed words.** The feedback sheet asks before Back, a swipe or a tap outside closes over what was written.
+- **Removing a tag from a note can be undone.** The ✕ now leaves a banner: the tag's name, and an Undo that puts it straight back.
+- **Several tags in one visit.** The tag picker takes ticks in place and one Add commits them all — three tags on a note no longer cost three rounds of open, pick, wait for the close.
+- **Technical tags read as themselves in Persian.** `C++`, `#work`, `v2.0!` keep their own order on the timeline's filter pills instead of coming out reversed.
+- **One receipt for every copy.** The hold menu, the note sheet and the selection all use one voice; Android 13+ leaves the word to the system's own clipboard preview, and everywhere else the banner says it.
+- **The hold menu answers the hold.** A tick when it opens, the card ducks a hair while it is up, and the menu hangs from the card's top edge rather than from under the finger.
+- **Copied text is only the text.** Empty lines copy as lines, not as invisible zero-width spaces, and neighbouring lines whose boxes touch no longer glue together with spaces.
 
 ## v2.6.14
 

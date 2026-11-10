@@ -19,11 +19,16 @@ class TagChoice {
   final String? color;
 }
 
-/// Choose a tag for a note.
+/// Choose tags for a note.
 ///
 /// It offers the tags that actually exist. It used to offer a hardcoded list of
 /// five starter names and nothing else — not the tags the user had made, which
 /// is the one thing the list needed to contain.
+///
+/// Picking is now several at once: a tap ticks a tag in place — the sheet
+/// stays open — and one Add at the bottom commits the lot. It used to close
+/// on every single pick, so three tags on one note meant three rounds of
+/// open, pick, wait out the closing animation.
 class TagPickerSheet extends StatefulWidget {
   const TagPickerSheet({
     super.key,
@@ -37,11 +42,11 @@ class TagPickerSheet extends StatefulWidget {
   /// list does not reshuffle as tags are added.
   final Set<String> alreadyOn;
 
-  static Future<TagChoice?> show(
+  static Future<List<TagChoice>?> show(
     BuildContext context, {
     required List<Tag> tags,
     Set<String> alreadyOn = const {},
-  }) => nexShowSheet<TagChoice>(
+  }) => nexShowSheet<List<TagChoice>>(
     context: context,
     builder: (_) => TagPickerSheet(tags: tags, alreadyOn: alreadyOn),
   );
@@ -58,6 +63,12 @@ class TagPickerSheet extends StatefulWidget {
 class _TagPickerSheetState extends State<TagPickerSheet> {
   final _controller = TextEditingController();
   String _query = '';
+
+  /// Tags ticked this visit, by id — added to the note on Add, not on tap.
+  final _chosen = <String>{};
+
+  /// Names typed this visit that the note does not have yet, in order.
+  final List<String> _toCreate = [];
 
   @override
   void dispose() {
@@ -81,7 +92,10 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
   }
 
   bool get _canCreate {
-    if (widget.alreadyOn.length >= nexMaxTagsPerNote) return false;
+    if (widget.alreadyOn.length + _chosen.length + _toCreate.length >=
+        nexMaxTagsPerNote) {
+      return false;
+    }
     final name = _query.trim();
     if (name.isEmpty) return false;
     return !widget.tags.any(
@@ -92,6 +106,42 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     );
   }
 
+  /// How many tag slots the note still has, counting what is ticked here.
+  bool get _full {
+    final at = widget.alreadyOn.length + _chosen.length + _toCreate.length;
+    return at >= nexMaxTagsPerNote;
+  }
+
+  void _toggle(Tag tag) {
+    setState(() {
+      if (!_chosen.remove(tag.id)) {
+        if (_full) return;
+        _chosen.add(tag.id);
+      }
+    });
+  }
+
+  void _create(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    setState(() {
+      _toCreate.add(trimmed);
+      _controller.clear();
+      _query = '';
+    });
+  }
+
+  void _add() {
+    // The create field's pending name goes with the rest rather than being
+    // lost to an early Add.
+    if (_canCreate) _toCreate.add(_query.trim());
+    Navigator.pop(context, [
+      for (final tag in widget.tags)
+        if (_chosen.contains(tag.id)) TagChoice.existing(tag),
+      for (final name in _toCreate) TagChoice.create(name),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -99,6 +149,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     final matches = _matches;
     final atLimit = widget.alreadyOn.length >= nexMaxTagsPerNote;
     final legacyOverflow = widget.alreadyOn.length > nexMaxTagsPerNote;
+    final picked = _chosen.length + _toCreate.length;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
@@ -146,9 +197,10 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
                 ),
                 onChanged: (value) => setState(() => _query = value),
                 onSubmitted: (value) {
-                  if (_canCreate) {
-                    Navigator.pop(context, TagChoice.create(value.trim()));
-                  }
+                  // Done on the keyboard makes the name a ticked tag — the
+                  // sheet stays open, like every other pick here — rather
+                  // than committing the whole visit.
+                  if (_canCreate) _create(value);
                 },
               ),
             ),
@@ -164,12 +216,9 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
                       leading: const Icon(Icons.add),
                       title: Text(_query.trim()),
                       subtitle: Text(l10n.createTag),
-                      onTap: () => Navigator.pop(
-                        context,
-                        TagChoice.create(_query.trim()),
-                      ),
+                      onTap: () => _create(_query),
                     ),
-                  if (matches.isEmpty && !_canCreate)
+                  if (matches.isEmpty && !_canCreate && _toCreate.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(NexSpacing.lg),
                       child: Text(
@@ -178,7 +227,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
                         style: theme.textTheme.bodyMedium,
                       ),
                     ),
-                  if (matches.isNotEmpty)
+                  if (matches.isNotEmpty || _toCreate.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
                         NexSpacing.lg,
@@ -197,11 +246,24 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
                             _TagOption(
                               tag: tag,
                               alreadyOn: widget.alreadyOn.contains(tag.id),
-                              disabled: atLimit,
-                              onTap: () => Navigator.pop(
-                                context,
-                                TagChoice.existing(tag),
-                              ),
+                              checked: _chosen.contains(tag.id),
+                              // Full is full for tags not yet ticked: a
+                              // tick is un-tickable whatever the count,
+                              // because taking one off is how room is made.
+                              disabled:
+                                  atLimit ||
+                                  (_full && !_chosen.contains(tag.id)),
+                              onTap: () => _toggle(tag),
+                            ),
+                          // A name typed and entered: on the note's card as a
+                          // ticked pill of its own, so what Add will do is
+                          // all on screen. Its ✕-free removal is a second
+                          // tap on it.
+                          for (final name in _toCreate)
+                            _PendingTagOption(
+                              name: name,
+                              onTap: () =>
+                                  setState(() => _toCreate.remove(name)),
                             ),
                         ],
                       ),
@@ -211,6 +273,22 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
             ),
           ),
           const SizedBox(height: NexSpacing.md),
+          // The one commit: everything ticked, in one press, with the sheet
+          // staying open for second thoughts until then. No check icon on
+          // the button — the check is what a ticked pill wears, and the
+          // button saying it too would read as a state it does not have.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.lg,
+              0,
+              NexSpacing.lg,
+              NexSpacing.sm,
+            ),
+            child: FilledButton(
+              onPressed: atLimit || picked == 0 ? null : _add,
+              child: Text(l10n.addAction),
+            ),
+          ),
         ],
       ),
     );
@@ -223,12 +301,14 @@ class _TagOption extends StatelessWidget {
   const _TagOption({
     required this.tag,
     required this.alreadyOn,
+    required this.checked,
     required this.disabled,
     required this.onTap,
   });
 
   final Tag tag;
   final bool alreadyOn;
+  final bool checked;
   final bool disabled;
   final VoidCallback onTap;
 
@@ -238,7 +318,7 @@ class _TagOption extends StatelessWidget {
     final scheme = theme.colorScheme;
     final dot = nexParseTagColor(tag.color);
     final pill = Material(
-      color: alreadyOn
+      color: alreadyOn || checked
           ? scheme.surfaceContainerHighest
           : scheme.surfaceContainerLowest,
       shape: StadiumBorder(side: BorderSide(color: scheme.outline)),
@@ -273,7 +353,7 @@ class _TagOption extends StatelessWidget {
                         )
                       : theme.textTheme.bodyMedium,
                 ),
-                if (alreadyOn) ...[
+                if (alreadyOn || checked) ...[
                   const SizedBox(width: NexSpacing.contentGap),
                   Icon(Icons.check, size: 16, color: scheme.onSurfaceVariant),
                 ],
@@ -283,6 +363,50 @@ class _TagOption extends StatelessWidget {
         ),
       ),
     );
-    return Semantics(selected: alreadyOn, child: pill);
+    return Semantics(selected: alreadyOn || checked, child: pill);
+  }
+}
+
+/// A name typed this visit, ticked and waiting for Add: the pill a tag that
+/// does not exist yet gets to wear so the whole choice is on screen.
+class _PendingTagOption extends StatelessWidget {
+  const _PendingTagOption({required this.name, required this.onTap});
+
+  final String name;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Material(
+      color: scheme.surfaceContainerHighest,
+      shape: StadiumBorder(
+        side: BorderSide(color: scheme.outline, style: BorderStyle.solid),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const StadiumBorder(),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: NexSpacing.md,
+              vertical: NexSpacing.sm,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.add, size: 16),
+                const SizedBox(width: NexSpacing.contentGap),
+                Text(name, style: theme.textTheme.bodyMedium),
+                const SizedBox(width: NexSpacing.contentGap),
+                Icon(Icons.check, size: 16, color: scheme.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

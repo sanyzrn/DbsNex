@@ -76,6 +76,54 @@ void main() {
       expect(repo.listTimeline().single.id, kept.id);
     });
 
+    test('Home tag counts exclude set-aside notes; tag manager does not', () {
+      final homeNote = insertText('visible on Home');
+      final archived = insertText('set aside');
+      final trashed = insertText('in trash');
+      final tag = repo.upsertTag(name: 'Work');
+      for (final note in [homeNote, archived, trashed]) {
+        repo.attachTag(noteId: note.id, tagId: tag.id);
+      }
+      expect(repo.setAside(archived.id), isTrue);
+      repo.softDelete(trashed.id);
+
+      final libraryCount = maintenance.tagUsage().singleWhere(
+        (usage) => usage.tag.id == tag.id,
+      );
+      final homeCount = maintenance
+          .tagUsage(timelineOnly: true)
+          .singleWhere((usage) => usage.tag.id == tag.id);
+      expect(
+        libraryCount.count,
+        2,
+        reason: 'tag manager still counts the archived, live note',
+      );
+      expect(
+        homeCount.count,
+        1,
+        reason: 'Home matches the notes it can actually show',
+      );
+      expect(repo.listTimeline().map((note) => note.id), [homeNote.id]);
+
+      // A note's scheduled return means it is back on Home even before a
+      // maintenance sweep clears its set-aside columns.
+      repo.db.execute('UPDATE notes SET set_aside_until = ? WHERE id = ?', [
+        DateTime.now()
+            .toUtc()
+            .subtract(const Duration(days: 1))
+            .toIso8601String(),
+        archived.id,
+      ]);
+      final returned = maintenance
+          .tagUsage(timelineOnly: true)
+          .singleWhere((usage) => usage.tag.id == tag.id);
+      expect(returned.count, 2);
+      expect(repo.listTimeline().map((note) => note.id).toSet(), {
+        homeNote.id,
+        archived.id,
+      });
+    });
+
     test('purging a tagged note drops its tag links, not the tag', () {
       final note = insertText('tagged');
       final tag = repo.upsertTag(name: 'Work');

@@ -3,6 +3,7 @@ import 'package:nex_core/nex_core.dart';
 
 import '../tokens/nex_appearance.dart';
 import '../tokens/nex_contrast.dart';
+import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
 import 'nex_tappable.dart';
 
@@ -256,6 +257,12 @@ class _Pill extends StatelessWidget {
                 else
                   Text(
                     label,
+                    // A technical tag — `C++`, `#work`, `v2.0!` — is Latin
+                    // even under a Persian interface, and the pill's row is
+                    // RTL: without its own direction the glyphs came out
+                    // reordered, `++C`, `work#`, `!0.2v`. The count beside it
+                    // already knew this.
+                    textDirection: nexDirectionOf(label),
                     // Through the theme, so the most-used control on the timeline
                     // is not the one thing typeset outside the design system — and
                     // so it follows the app's face rather than the platform's.

@@ -54,6 +54,12 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
   final _controller = MenuController();
   List<NoteMenuEntry>? _resolved;
 
+  /// Whether the menu is up. All the card does with that is duck, briefly
+  /// (see the `AnimatedScale` in [build]): the finger that held it sees the
+  /// card itself answer, rather than nothing moving until words appear.
+  bool _isOpen = false;
+  bool _ducking = false;
+
   void _open([Offset? position]) {
     final builder = widget.entriesBuilder;
     if (builder == null) {
@@ -83,8 +89,31 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
     _screenGuard = NexTapGuard.maybeOf(context);
   }
 
-  void _opened() => _guard.open(this, close: _controller.close);
-  void _closed() => _guard.closed(this);
+  void _opened() {
+    // The tick the hold itself never gave: this is the moment the press
+    // became a menu, and the card agrees by ducking a hair for
+    // [NexMotion.fast].
+    nexTick();
+    if (mounted && !_isOpen) {
+      setState(() {
+        _isOpen = true;
+        _ducking = true;
+      });
+    }
+    _guard.open(this, close: _controller.close);
+  }
+
+  void _closed() {
+    // The menu can close while this element is already being taken down —
+    // the same timing didChangeDependencies above guards against.
+    if (mounted && _isOpen) {
+      setState(() {
+        _isOpen = false;
+        _ducking = false;
+      });
+    }
+    _guard.closed(this);
+  }
 
   @override
   void dispose() {
@@ -209,16 +238,35 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
             onLongPressStart:
                 widget.entries.isEmpty && widget.entriesBuilder == null
                 ? null
+                // The touch location is the platform's established,
+                // screen-aware anchor. Forcing y=0 or the full card height
+                // moves the menu off screen for cards near either edge.
                 : (details) => _open(details.localPosition),
             onSecondaryTapDown:
                 widget.entries.isEmpty && widget.entriesBuilder == null
                 ? null
+                // A mouse expects the menu at its cursor, wherever on the
+                // card that lands — the touch rules are not its rules.
                 : (details) => _open(details.localPosition),
             // A tap on the card that owns the open menu closes the menu and
             // nothing else, the same as a tap anywhere outside it. The card
             // stays in the tree either way, so an expanded card does not fold
             // when its menu opens.
-            child: NexTapGuarded(controller: _guard, child: child!),
+            child: NexTapGuarded(
+              controller: _guard,
+              // Brief acknowledgment only; keeping the card at 98%
+              // for the whole menu session alters its layout and golden UI.
+              child: AnimatedScale(
+                scale: _ducking ? 0.98 : 1.0,
+                duration: NexMotion.fast,
+                onEnd: () {
+                  if (mounted && _ducking) {
+                    setState(() => _ducking = false);
+                  }
+                },
+                child: child!,
+              ),
+            ),
           ),
         ),
       ),

@@ -303,6 +303,14 @@
   "securityLockedSubtitle": "Authenticate with your device to open your notes.",
   "securityUnlock": "Unlock",
   "pinLimitReached": "You can pin up to 5 notes",
+  "notePinned": "Pinned",
+  "@notePinned": {
+    "description": "Confirms a single pin from a swipe or the hold menu"
+  },
+  "showPinned": "Show pinned",
+  "@showPinned": {
+    "description": "Action on a pin banner: scroll to the pinned cards"
+  },
   "storageModels": "Offline model",
   "storageImages": "Photos",
   "storageAudio": "Recordings",
@@ -364,6 +372,28 @@
   "restore": "Restore",
   "rename": "Rename",
   "merge": "Merge",
+  "mergeTagTitle": "Merge tags?",
+  "@mergeTagTitle": {
+    "description": "Confirms merging one tag into another"
+  },
+  "mergeTagBody": "{count, plural, =1{1 note carrying {source} moves to {target}.} other{{count} notes carrying {source} move to {target}.}}",
+  "@mergeTagBody": {
+    "placeholders": {
+      "count": {"type": "int", "format": "decimalPattern"},
+      "source": {"type": "String"},
+      "target": {"type": "String"}
+    }
+  },
+  "mergeTagDone": "Merged into {target}",
+  "@mergeTagDone": {
+    "description": "Said after a merge completed; the target keeps the notes",
+    "placeholders": {"target": {"type": "String"}}
+  },
+  "tagRemoved": "Removed tag {tag}",
+  "@tagRemoved": {
+    "description": "Said after the ✕ on a note's tag chip; Undo re-adds it",
+    "placeholders": {"tag": {"type": "String"}}
+  },
   "timelineGroupPinned": "Pinned",
   "@timelineGroupPinned": {"description": "Timeline section for the pinned note"},
   "timelineGroupToday": "Today",

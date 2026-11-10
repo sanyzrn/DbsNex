@@ -115,6 +115,58 @@ void main() {
       expect(rebuilds, greaterThan(seenAgain));
     });
 
+    test(
+      'tag chips update the displayed cards in the same notification',
+      () async {
+        final workNote = (await harness.services.captureText('work only'))!;
+        final homeNote = (await harness.services.captureText('home only'))!;
+        final work = await harness.services.addTag(
+          noteId: workNote.id,
+          name: 'Work',
+        );
+        final home = await harness.services.addTag(
+          noteId: homeNote.id,
+          name: 'Home',
+        );
+        await model.load();
+
+        // The old implementation notified listeners before applying the tag
+        // filter, then suppressed the second notification because the raw
+        // timeline rows had not changed. The next tap appeared to reveal the
+        // previous selection, just as in the reported screen recording.
+        final painted = <List<String>>[];
+        model.addListener(() {
+          painted.add([for (final note in model.notes) note.id]);
+        });
+
+        await model.selectTags({work.id});
+        expect(model.notes.map((n) => n.id), [workNote.id]);
+        expect(painted.last, [workNote.id]);
+
+        await model.selectTags({home.id});
+        expect(model.notes.map((n) => n.id), [homeNote.id]);
+        expect(painted.last, [homeNote.id]);
+
+        await model.selectTags({work.id, home.id});
+        expect(model.notes.map((n) => n.id).toSet(), {
+          workNote.id,
+          homeNote.id,
+        });
+        expect(painted.last.toSet(), {workNote.id, homeNote.id});
+
+        await model.clearFilters();
+        expect(model.selectedTagIds, isEmpty);
+        expect(painted.last.toSet(), {workNote.id, homeNote.id});
+
+        final first = model.selectTags({work.id});
+        final second = model.selectTags({home.id});
+        await Future.wait([first, second]);
+        expect(painted.last, [
+          homeNote.id,
+        ], reason: 'quick taps must never repaint an older selection');
+      },
+    );
+
     test('hidden note updates still reach the recap', () async {
       final tagged = (await harness.services.captureText('shown'))!;
       final hidden = (await harness.services.captureText('hidden'))!;

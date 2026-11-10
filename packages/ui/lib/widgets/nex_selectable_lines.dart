@@ -54,16 +54,27 @@ class NexLineBreakingSelectionDelegate
         selectable.getTransformTo(null),
         Offset.zero & selectable.size,
       );
+      // A new line when the next piece's centre has really moved down a
+      // row. The old test — raw top edge past the previous bottom minus a
+      // pixel — glued lines together whenever two adjacent boxes overlapped
+      // by more than that pixel, which Persian descenders and large text
+      // scales do: a copy of three paragraphs came back as one line with
+      // spaces. Centres stay a good half-line apart even then.
       if (row == null) {
         row = rect;
-      } else if (rect.top >= row.bottom - 1) {
+      } else if (rect.center.dy > row.bottom - rect.height * 0.35) {
         buffer.write('\n');
         row = rect;
       } else {
         buffer.write(' ');
         row = row.expandToInclude(rect);
       }
-      buffer.write(content.plainText);
+      // The zero-width space is what an empty line is *drawn* as — it keeps
+      // the row's height — not what it should *copy* as. It went onto the
+      // clipboard as an invisible character that breaks terminals, code and
+      // searches on paste; the newline above is the whole of what an empty
+      // line has to say.
+      buffer.write(content.plainText.replaceAll('\u200B', ''));
     }
     return row == null ? null : SelectedContent(plainText: buffer.toString());
   }

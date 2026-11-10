@@ -374,7 +374,9 @@ class _Worker {
       _DbCommand.purgeAllDeleted => NexDbWorker._voided(
         maintenance.purgeAllDeleted,
       ),
-      _DbCommand.tagUsage => maintenance.tagUsage(),
+      _DbCommand.tagUsage => maintenance.tagUsage(
+        timelineOnly: arg('timelineOnly') == true,
+      ),
       _DbCommand.renameTag => NexDbWorker._voided(
         () =>
             maintenance.renameTag(arg('id')! as String, arg('name')! as String),

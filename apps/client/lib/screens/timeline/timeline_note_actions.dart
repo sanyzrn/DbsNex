@@ -14,18 +14,22 @@ extension _TimelineNoteActions on TimelineScreenState {
   Future<void> _addTagTo(Note note) async {
     final all = await widget.services.listTags();
     if (!mounted) return;
-    final choice = await TagPickerSheet.show(
+    final choices = await TagPickerSheet.show(
       context,
       tags: all,
       alreadyOn: note.tags.map((t) => t.id).toSet(),
     );
-    if (choice == null || !mounted) return;
+    if (choices == null || choices.isEmpty || !mounted) return;
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
-    await widget.services.addTag(
-      noteId: note.id,
-      name: choice.tag?.name ?? choice.name!,
-      color: choice.color,
-    );
+    // As many tags as were ticked, in one stay in the sheet: three tags used
+    // to cost three rounds of open, pick, wait for the close animation.
+    for (final choice in choices) {
+      await widget.services.addTag(
+        noteId: note.id,
+        name: choice.tag?.name ?? choice.name!,
+        color: choice.color,
+      );
+    }
     await widget.services.refreshTimeline();
     // A tag created here is new to the filter row too; without this it only
     // appeared after a restart.
@@ -163,10 +167,11 @@ extension _TimelineNoteActions on TimelineScreenState {
   /// this particular note cannot do — no Open file on a text note, no
   /// Translate with nothing to translate or no provider to ask.
   /// Copy from the hold menu: [nexCopyTextOf], so a text or Markdown file
-  /// copies its words rather than its name.
+  /// copies its words rather than its name — and [nexCopy], so the receipt
+  /// is the same one every copy in the app gives.
   Future<void> _copyNote(Note note) async {
     final text = await nexCopyTextOf(note);
-    if (text != null) await Clipboard.setData(ClipboardData(text: text));
+    if (text != null && mounted) await nexCopy(context, text);
   }
 
   List<NoteMenuEntry> _holdEntries(
@@ -402,8 +407,31 @@ extension _TimelineNoteActions on TimelineScreenState {
         // pin that could only ever be set would need a second route to undo.
         if (note.pinnedAt == null) {
           final pinned = await widget.services.pinNote(note.id);
-          if (!pinned && mounted) {
-            nexShowBanner(context, message: l10n.pinLimitReached);
+          if (mounted) {
+            if (pinned) {
+              // The card has left the finger's neighbourhood for the pinned
+              // section above; the banner says what became of it, and its
+              // action is the trip there. The swipe's own tick is the whole
+              // haptic receipt — the banner does not add a second one.
+              nexShowBanner(
+                context,
+                message: l10n.notePinned,
+                actionLabel: l10n.showPinned,
+                onAction: () => unawaited(_scrollToPinned()),
+                haptics: false,
+              );
+            } else {
+              // The limit is not a refusal so much as a fork: see the five,
+              // lift one, pin again. The banner's action is the trip that
+              // used to cost the four taps of doing it by hand.
+              nexShowBanner(
+                context,
+                message: l10n.pinLimitReached,
+                actionLabel: l10n.showPinned,
+                onAction: () => unawaited(_scrollToPinned()),
+                haptics: false,
+              );
+            }
           }
         } else {
           await widget.services.unpinNote(note.id);
@@ -440,6 +468,18 @@ extension _TimelineNoteActions on TimelineScreenState {
           focus: note,
         );
     }
+  }
+
+  /// The pin banners' "Show pinned" trip: up to the top of the list, where
+  /// the pinned cards sit. The same scroll the search reveal takes, never a
+  /// jump that would read as the list teleporting.
+  Future<void> _scrollToPinned() async {
+    if (!_scroll.hasClients || _scroll.offset == 0) return;
+    await _scroll.animateTo(
+      0,
+      duration: NexMotion.standard,
+      curve: NexMotion.curve,
+    );
   }
 
   /// A tap on a card, which means two different things depending on what the

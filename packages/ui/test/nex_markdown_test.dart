@@ -95,6 +95,58 @@ void main() {
     });
   });
 
+  group('code blocks inside right-to-left documents', () {
+    testWidgets('fenced code remains LTR and keeps whitespace and punctuation', (
+      tester,
+    ) async {
+      const snippet = '  void main() {\n    print("hello (world)");\n  }';
+      await pumpMarkdown(
+        tester,
+        'یک توضیح فارسی برای کد زیر.\n\n```dart\n$snippet\n```\n\nپایان توضیح.',
+        ambient: TextDirection.rtl,
+      );
+
+      // The surrounding document and its Persian paragraphs remain RTL.
+      expect(renderedDirection(tester), TextDirection.rtl);
+
+      final code = find.text(snippet);
+      expect(code, findsOneWidget);
+      final widget = tester.widget<Text>(code);
+      expect(widget.textDirection, TextDirection.ltr);
+      expect(widget.textAlign, TextAlign.left);
+      expect(widget.softWrap, false);
+      expect(widget.data, snippet);
+      expect(Directionality.of(tester.element(code)), TextDirection.ltr);
+      expect(tester.getTopLeft(code).dx, lessThan(_width / 2));
+    });
+
+    testWidgets('an overflowing RTL-document code block scrolls horizontally', (
+      tester,
+    ) async {
+      const longLine =
+          'final numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];';
+      await pumpMarkdown(
+        tester,
+        'این کد باید چپ به راست خوانده شود.\n\n```dart\n$longLine\n```',
+        ambient: TextDirection.rtl,
+      );
+
+      final code = find.text(longLine);
+      expect(code, findsOneWidget);
+      final horizontal = tester
+          .widgetList<SingleChildScrollView>(
+            find.ancestor(
+              of: code,
+              matching: find.byType(SingleChildScrollView),
+            ),
+          )
+          .firstWhere((scroll) => scroll.scrollDirection == Axis.horizontal);
+      expect(horizontal.controller, isNotNull);
+      expect(horizontal.controller!.position.maxScrollExtent, greaterThan(0));
+      expect(Directionality.of(tester.element(code)), TextDirection.ltr);
+    });
+  });
+
   group('a tappable code span', () {
     Future<void> pump(
       WidgetTester tester,
@@ -153,11 +205,7 @@ void main() {
       // handles every gesture itself and dispatches none of them to the spans
       // underneath, so neither a link nor a code span inside one can be hit.
       final followed = <String>[];
-      await pump(
-        tester,
-        '[the docs](https://x.dev)',
-        onTapLink: followed.add,
-      );
+      await pump(tester, '[the docs](https://x.dev)', onTapLink: followed.add);
 
       await tester.tap(find.text('the docs', findRichText: true));
       await tester.pumpAndSettle();
