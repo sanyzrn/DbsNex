@@ -268,16 +268,17 @@ class LibraryMaintenance {
               '(n.set_aside_until IS NOT NULL AND n.set_aside_until <= ?))'
         : '';
     return repo.db
-        .select('''
+        .select(
+          '''
     SELECT t.*, COUNT(n.id) AS usage_count
     FROM tags t
     LEFT JOIN note_tags nt ON nt.tag_id = t.id
     LEFT JOIN notes n ON n.id = nt.note_id AND n.deleted_at IS NULL
       $homeConstraint
     GROUP BY t.id ORDER BY usage_count DESC, t.name COLLATE NOCASE
-  ''', [
-          if (timelineOnly) DateTime.now().toUtc().toIso8601String(),
-        ])
+  ''',
+          [if (timelineOnly) DateTime.now().toUtc().toIso8601String()],
+        )
         .map((row) => TagUsage(Tag.fromRow(row), row['usage_count'] as int))
         .toList();
   }
