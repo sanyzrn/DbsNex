@@ -16,7 +16,7 @@ void main() {
     addTearDown(harness.dispose);
 
     final note = await harness.services.captureText('carries the source tag');
-    await harness.services.addTag(noteId: note.id, name: 'alpha');
+    await harness.services.addTag(noteId: note!.id, name: 'alpha');
     await harness.services.createTag('beta');
     await harness.services.refreshTimeline();
 
@@ -65,7 +65,7 @@ void main() {
     addTearDown(harness.dispose);
 
     final note = await harness.services.captureText('carries the source tag');
-    await harness.services.addTag(noteId: note.id, name: 'alpha');
+    await harness.services.addTag(noteId: note!.id, name: 'alpha');
     await harness.services.createTag('beta');
     await harness.services.refreshTimeline();
 
