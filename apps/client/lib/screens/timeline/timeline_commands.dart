@@ -33,8 +33,9 @@ extension TimelineCommands on TimelineScreenState {
             NexMetrics.shared
               ..record(NexMetric.capture, opened.elapsed)
               ..markCapture();
-            if (widget.preferences.haptics)
+            if (widget.preferences.haptics) {
               unawaited(HapticFeedback.lightImpact());
+            }
           }
         },
         onRetracted: (id) {

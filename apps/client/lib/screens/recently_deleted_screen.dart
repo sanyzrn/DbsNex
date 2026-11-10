@@ -124,8 +124,9 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
 
   /// Deleted for good — after the Undo has had its moment (see [_purging]).
   void _purge(Note note) {
-    if (widget.preferences?.haptics ?? true)
+    if (widget.preferences?.haptics ?? true) {
       unawaited(HapticFeedback.mediumImpact());
+    }
     setState(() => notes = [...?notes]..removeWhere((n) => n.id == note.id));
     _purging[note.id]?.cancel();
     _purging[note.id] = Timer(_purgeAfter, () {
@@ -155,8 +156,9 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       confirm: l10n.emptyTrash,
     );
     if (!ok) return;
-    if (widget.preferences?.haptics ?? true)
+    if (widget.preferences?.haptics ?? true) {
       unawaited(HapticFeedback.mediumImpact());
+    }
     for (final timer in _purging.values) {
       timer.cancel();
     }
