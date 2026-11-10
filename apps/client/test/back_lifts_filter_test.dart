@@ -16,7 +16,7 @@ void main() {
     addTearDown(harness.dispose);
 
     final tagged = await harness.services.captureText('alpha carries the tag');
-    await harness.services.addTag(noteId: tagged.id, name: 'work');
+    await harness.services.addTag(noteId: tagged!.id, name: 'work');
     await harness.services.captureText('beta has none at all');
     await harness.services.refreshTimeline();
 
