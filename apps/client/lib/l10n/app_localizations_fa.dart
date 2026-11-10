@@ -2117,6 +2117,10 @@ class AppLocalizationsFa extends AppLocalizations {
       'این فایل خوانده نشد. اگر در پوشهٔ ابری است، یک بار بازش کنید تا نسخه‌اش روی دستگاه بیاید.';
 
   @override
+  String get photoEditFailed =>
+      'ویرایش عکس انجام نشد. چیزی تغییر نکرد — دوباره تلاش کنید.';
+
+  @override
   String get retry => 'تلاش دوباره';
 
   @override
