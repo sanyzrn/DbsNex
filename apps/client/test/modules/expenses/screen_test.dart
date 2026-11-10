@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/expenses/controller.dart';
 import 'package:nex_client/modules/expenses/expenses_form.dart';
+import 'package:nex_client/modules/expenses/expenses_rows.dart';
 import 'package:nex_client/modules/expenses/expenses_screen.dart';
 import 'package:nex_client/modules/expenses/local_values.dart';
 import 'package:nex_client/modules/expenses/models.dart';
