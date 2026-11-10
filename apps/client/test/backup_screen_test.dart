@@ -106,8 +106,29 @@ void main() {
       mediaUri: photo.path,
       mediaHash: (await sha256OfFile(photo.path))!,
     );
-    await services.backupNow();
-    final selected = (await services.listBackups()).single;
+    // The in-process test worker normally writes self-contained format 1.
+    // Construct the compact format used by the production backup worker.
+    final database = NexDatabase.open(services.dbPath);
+    late final File snapshot;
+    try {
+      snapshot = NexBackupArchive.snapshotDatabase(
+        database: database,
+        backupDir: services.backupDir,
+      );
+    } finally {
+      database.close();
+    }
+    late final File selected;
+    try {
+      selected = NexBackupArchive.createFromSnapshot(
+        snapshotPath: snapshot.path,
+        mediaDir: services.mediaDir,
+        backupDir: services.backupDir,
+        compact: true,
+      );
+    } finally {
+      snapshot.deleteSync();
+    }
     await services.updateNote(note.id, 'keep this newer note');
     // Header/database preflight succeeds; materializing the staged media
     // fails after closing the worker because this compact blob was lost.
