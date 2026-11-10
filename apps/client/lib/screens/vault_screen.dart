@@ -75,6 +75,13 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       authenticating = false,
       favorites = false;
   String? error, copiedField;
+
+  /// The one secret row currently shown in the clear, as `entryId:password`.
+  /// Masked by default — a password in the list was the plain text — and
+  /// revealed by a tap that puts itself back after a few seconds, so a
+  /// secret left open does not walk off with the phone.
+  String? revealedSecret;
+  Timer? revealTimer;
   Timer? idle, draftTimer, copiedTimer;
   final messageInput = TextEditingController();
   late final _vaultFiles = VaultFiles();
@@ -106,6 +113,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     _flushDraft();
     idle?.cancel();
     copiedTimer?.cancel();
+    revealTimer?.cancel();
     search.dispose();
     unawaited(NexSecureWindow.releasePrivateSurface());
     super.dispose();
@@ -186,6 +194,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       editing = null;
       draft = null;
       copiedField = null;
+      revealedSecret = null;
+      revealTimer?.cancel();
     });
   }
 
@@ -361,6 +371,19 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       if (mounted && ticket == generation) {
         setState(() => error = AppLocalizations.of(context).vaultCopyFailed);
       }
+    }
+  }
+
+  /// The eye beside a secret row: a few seconds of reading, then the mask
+  /// returns by itself. Off the same generation ticket as [_copy], so a
+  /// reveal cannot outlive the entry it belongs to.
+  void _revealSecret(String field) {
+    revealTimer?.cancel();
+    setState(() => revealedSecret = revealedSecret == field ? null : field);
+    if (revealedSecret != null) {
+      revealTimer = Timer(const Duration(seconds: 4), () {
+        if (mounted) setState(() => revealedSecret = null);
+      });
     }
   }
 

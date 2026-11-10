@@ -1046,6 +1046,18 @@ abstract class AppLocalizations {
   /// **'You can pin up to 5 notes'**
   String get pinLimitReached;
 
+  /// Confirms a single pin from a swipe or the hold menu
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get notePinned;
+
+  /// Action on a pin banner: scroll to the pinned cards
+  ///
+  /// In en, this message translates to:
+  /// **'Show pinned'**
+  String get showPinned;
+
   /// No description provided for @storageModels.
   ///
   /// In en, this message translates to:
@@ -1321,6 +1333,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Merge'**
   String get merge;
+
+  /// Confirms merging one tag into another
+  ///
+  /// In en, this message translates to:
+  /// **'Merge tags?'**
+  String get mergeTagTitle;
+
+  /// No description provided for @mergeTagBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note carrying {source} moves to {target}.} other{{count} notes carrying {source} move to {target}.}}'**
+  String mergeTagBody(int count, String source, String target);
+
+  /// Said after a merge completed; the target keeps the notes
+  ///
+  /// In en, this message translates to:
+  /// **'Merged into {target}'**
+  String mergeTagDone(String target);
+
+  /// Said after the ✕ on a note's tag chip; Undo re-adds it
+  ///
+  /// In en, this message translates to:
+  /// **'Removed tag {tag}'**
+  String tagRemoved(String tag);
 
   /// Timeline section for the pinned note
   ///

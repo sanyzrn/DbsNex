@@ -48,6 +48,12 @@ class _VaultEditorState extends State<VaultEditor> {
   };
   bool discard = false;
 
+  /// The one secret field whose value is on screen in the clear, by its
+  /// key. Passwords used to sit in plain sight in every list and editor —
+  /// `secret` only ever chose the keyboard — and a shoulder on a train
+  /// reads a masked field no better than a blank one.
+  String? _revealedSecret;
+
   /// The bank name this editor filled in by itself, so a later digit can
   /// replace it while a name the person typed is never touched.
   String? _autoBank;
@@ -355,7 +361,10 @@ class _VaultEditorState extends State<VaultEditor> {
       key: ValueKey('vault-field-$key'),
       controller: fields[key],
       enabled: !widget.busy,
-      obscureText: false,
+      // Masked while typing unless the eye has been pressed for this field
+      // — the mask follows [secret], which used to be the keyboard's business
+      // alone.
+      obscureText: secret && _revealedSecret != key,
       maxLength: key == 'notes' ? 2000 : 256,
       autocorrect: false,
       enableSuggestions: false,
@@ -417,6 +426,25 @@ class _VaultEditorState extends State<VaultEditor> {
       decoration: InputDecoration(
         labelText: label,
         counterText: '',
+        // A tap on the eye is the one deliberate way to read a secret
+        // back; it lasts as long as the editor does.
+        suffixIcon: secret
+            ? IconButton(
+                tooltip: _revealedSecret == key ? l.vaultHide : l.vaultShow,
+                onPressed: widget.busy
+                    ? null
+                    : () => setState(
+                        () => _revealedSecret = _revealedSecret == key
+                            ? null
+                            : key,
+                      ),
+                icon: Icon(
+                  _revealedSecret == key
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                ),
+              )
+            : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(NexRadius.md),
         ),

@@ -108,6 +108,23 @@ class _CaptureSheetState extends State<CaptureSheet> {
   bool _allowClose = false;
   bool _closing = false;
 
+  /// Whether this sheet has already said the journal write failed (see
+  /// [changed]): a broken journal is a condition, not an event.
+  bool _journalFailureTold = false;
+
+  /// The sheet's one failure voice: failed colours, the setting's own
+  /// haptics (a banner that is the direct result of a gesture never adds a
+  /// buzz of its own), and the standard capture message unless a site names
+  /// its own.
+  void _fail([String? message]) {
+    if (!mounted) return;
+    NexBannerHost.of(context)?.show(
+      message: message ?? AppLocalizations.of(context).captureFailed,
+      kind: NexBannerKind.failed,
+      haptics: widget.preferences.haptics,
+    );
+  }
+
   /// The text kinds: what the words become. The microphone is shown over
   /// them rather than replacing the choice, so discarding a recording comes
   /// back to the list it interrupted.
@@ -192,10 +209,12 @@ class _CaptureSheetState extends State<CaptureSheet> {
     try {
       widget.services.captureJournal.writeSoon(_draftId, value);
     } catch (_) {
-      NexBannerHost.of(context)?.show(
-        message: AppLocalizations.of(context).captureFailed,
-        kind: NexBannerKind.failed,
-      );
+      // The journal being down is a persistent condition and this fires
+      // per keystroke: said once per sheet, not once per letter.
+      if (!_journalFailureTold) {
+        _journalFailureTold = true;
+        _fail();
+      }
     }
     setState(() {});
     if (noteId == null && value.isNotEmpty) {
@@ -251,12 +270,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
       if (_latestText != persisted) await _flushCurrent();
     } catch (error) {
       unawaited(NexCrashLog.handled('capture.firstWrite', error));
-      if (mounted) {
-        NexBannerHost.of(context)?.show(
-          message: AppLocalizations.of(context).captureFailed,
-          kind: NexBannerKind.failed,
-        );
-      }
+      _fail();
     } finally {
       // Released whenever this settles without producing a note — a capture
       // that returned null, or one that threw. [changed] reads it as "a first
@@ -310,12 +324,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
           }
         } catch (error) {
           unawaited(NexCrashLog.handled('capture.draftSwap', error));
-          if (mounted) {
-            NexBannerHost.of(context)?.show(
-              message: AppLocalizations.of(context).captureFailed,
-              kind: NexBannerKind.failed,
-            );
-          }
+          _fail();
         }
       } else if (text != persisted) {
         await _write(id, text);
@@ -351,13 +360,10 @@ class _CaptureSheetState extends State<CaptureSheet> {
       persisted = text;
     } on Object {
       if (queued == text) queued = null;
-      if (mounted) {
-        NexBannerHost.of(context)?.show(
-          message: AppLocalizations.of(context).captureFailed,
-          kind: NexBannerKind.failed,
-        );
-        return;
-      }
+      _fail();
+      // Still open: the next flush retries under the person's eyes. Gone:
+      // one immediate retry — the services outlive the sheet.
+      if (mounted) return;
       try {
         await widget.services.updateNote(id, text);
         persisted = text;
@@ -415,13 +421,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
       made = null;
     }
     if (made == null) {
-      if (mounted) {
-        nexShowBanner(
-          context,
-          message: AppLocalizations.of(context).captureFailed,
-          kind: NexBannerKind.failed,
-        );
-      }
+      _fail();
       return false;
     }
     // The reminder set while writing goes with the words.
@@ -526,11 +526,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
       final scheduled = await widget.services.scheduleNote(id, when.toUtc());
       if (!mounted) return;
       if (scheduled == null) {
-        nexShowBanner(
-          context,
-          message: l10n.scheduleFailed,
-          kind: NexBannerKind.failed,
-        );
+        _fail(l10n.scheduleFailed);
         return;
       }
       unawaited(widget.preferences.markScheduleUsed());

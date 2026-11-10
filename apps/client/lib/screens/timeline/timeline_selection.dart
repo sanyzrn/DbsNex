@@ -49,28 +49,34 @@ extension _TimelineSelection on TimelineScreenState {
       for (final tag in notes.first.tags)
         if (notes.every((n) => n.tags.any((t) => t.id == tag.id))) tag.id,
     };
-    final choice = await TagPickerSheet.show(
+    final choices = await TagPickerSheet.show(
       context,
       tags: all,
       alreadyOn: onAll,
     );
-    if (choice == null || !mounted) return;
+    if (choices == null || choices.isEmpty || !mounted) return;
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
-    final chosenName = choice.tag?.name ?? choice.name!;
+    // The picker now hands back as many tags as were ticked; the per-note
+    // rules below are the ones one choice always ran under — a tag a note
+    // already carries is skipped, and a note already at the cap is left
+    // alone rather than quietly over it.
     var changed = 0;
     for (final note in notes) {
-      if (note.tags.any(
-        (tag) => tag.name.toLowerCase() == chosenName.toLowerCase(),
-      )) {
-        continue;
+      for (final choice in choices) {
+        final chosenName = choice.tag?.name ?? choice.name!;
+        if (note.tags.any(
+          (tag) => tag.name.toLowerCase() == chosenName.toLowerCase(),
+        )) {
+          continue;
+        }
+        if (note.tags.length >= nexMaxTagsPerNote) continue;
+        await widget.services.addTag(
+          noteId: note.id,
+          name: chosenName,
+          color: choice.color,
+        );
+        changed++;
       }
-      if (note.tags.length >= nexMaxTagsPerNote) continue;
-      await widget.services.addTag(
-        noteId: note.id,
-        name: chosenName,
-        color: choice.color,
-      );
-      changed++;
     }
     if (changed > 0) {
       await widget.services.refreshTimeline();
@@ -167,10 +173,11 @@ extension _TimelineSelection on TimelineScreenState {
       nexShowBanner(context, message: l10n.nothingToCopy);
       return;
     }
-    await Clipboard.setData(ClipboardData(text: words.join('\n\n')));
+    // One receipt for the whole act — counted, as a selection's copy has
+    // always been — and it is the same helper every other copy takes.
+    await nexCopy(context, words.join('\n\n'), count: words.length);
     if (!mounted) return;
     _endSelection();
-    nexShowBanner(context, message: l10n.selectionCopied(words.length));
   }
 
   /// Deletes them all at once, with one Undo that brings them all back.

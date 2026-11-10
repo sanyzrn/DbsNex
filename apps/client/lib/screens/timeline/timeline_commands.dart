@@ -22,14 +22,19 @@ extension TimelineCommands on TimelineScreenState {
           committed = id;
           landedId = id;
           // Once a sheet: the words becoming a list as it closes are the
-          // same capture, not a second one.
+          // same capture, not a second one — and one capture is one buzz.
+          // The first commit (the first keystroke, when the note first
+          // exists — ADR-002) is the receipt's moment; the conversion that
+          // follows on close keeps the same words, so it re-runs the
+          // receipt flash without re-running the haptic that used to arrive
+          // with it.
           if (!counted) {
             counted = true;
             NexMetrics.shared
               ..record(NexMetric.capture, opened.elapsed)
               ..markCapture();
+            if (widget.preferences.haptics) HapticFeedback.lightImpact();
           }
-          if (widget.preferences.haptics) HapticFeedback.lightImpact();
         },
         onRetracted: (id) {
           if (committed == id) committed = null;

@@ -160,4 +160,40 @@ void main() {
     expect(folded, 0);
     expect(guard.isOpen, isFalse);
   });
+
+  testWidgets('the card ducks while its menu is open, and the hold ticks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NoteContextMenu(
+            entries: [NoteMenuEntry(NexHoldAction.copy, () {})],
+            child: const SizedBox(
+              height: 80,
+              width: double.infinity,
+              child: Center(child: Text('A note')),
+            ),
+          ),
+        ),
+      ),
+    );
+    final scaleOf = () =>
+        tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale;
+
+    expect(scaleOf(), 1.0);
+    await tester.longPress(find.text('A note'));
+    await tester.pumpAndSettle();
+    expect(find.text('Copy'), findsOneWidget);
+    // The card's own answer to its menu opening: a hair smaller for one
+    // fast beat, never dimmed.
+    expect(scaleOf(), 0.98);
+
+    await tester.tap(find.text('Copy'));
+    await tester.pumpAndSettle();
+    expect(find.text('Copy'), findsNothing);
+    expect(scaleOf(), 1.0);
+  });
 }

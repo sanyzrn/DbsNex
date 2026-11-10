@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show compute;
 
 import '../platform/note_copy.dart';
+import '../widgets/copy_feedback.dart';
 import '../platform/os_capture_bridge.dart';
 import '../platform/photo_encoding.dart';
 
@@ -30,6 +31,7 @@ import '../widgets/nex_shelf.dart' show NexHue;
 import '../l10n/app_localizations.dart';
 import '../l10n/relative_span.dart';
 import '../widgets/card_strings.dart';
+import '../widgets/tag_label.dart';
 import '../widgets/due_label.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/steady_position.dart';
@@ -480,9 +482,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             Icon(
                               Icons.notifications_none,
                               size: 15,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(width: NexSpacing.xs),
                             Expanded(
@@ -491,9 +493,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                                 '${nexDueCardDescription(context, due, note.dueRepeat)}',
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                               ),
                             ),
@@ -518,20 +520,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             strings: nexCardStrings(context),
                             onRemove: archived
                                 ? null
-                                : () async {
-                                    await widget.services.removeTag(
-                                      noteId: note.id,
-                                      tagId: tag.id,
-                                    );
-                                    // Unlike _addTag, this can take a tag's usage
-                                    // count to zero — without a refresh here, the
-                                    // filter row on the timeline never hears about
-                                    // it and keeps showing a tag nothing wears
-                                    // anymore until some unrelated capture or
-                                    // delete happens to trigger one.
-                                    await widget.services.refreshTimeline();
-                                    await _reload();
-                                  },
+                                : () => unawaited(_removeTag(note, tag)),
                           ),
                         if (!archived)
                           ActionChip(
@@ -690,15 +679,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           icon: note.pinnedAt != null
                               ? Icons.push_pin
                               : Icons.push_pin_outlined,
-                          label: note.pinnedAt != null
-                              ? l10n.unpin
-                              : _pinnedNoteCount >= 5
-                              ? l10n.pinLimitReached
-                              : l10n.pin,
-                          onPressed:
-                              note.pinnedAt == null && _pinnedNoteCount >= 5
-                              ? null
-                              : _togglePin,
+                          // The label is always just the word: the limit is
+                          // said by the banner a press at the limit raises
+                          // (see [_togglePin]), not by turning the button
+                          // into a disabled sentence — a sentence for a label
+                          // was a button that read as broken, and disabled
+                          // gave the same press nothing to learn from.
+                          label: note.pinnedAt != null ? l10n.unpin : l10n.pin,
+                          onPressed: _togglePin,
                         ),
                       _DetailAction(
                         icon: note.isSetAside()

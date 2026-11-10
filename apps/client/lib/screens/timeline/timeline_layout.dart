@@ -110,6 +110,12 @@ extension _TimelineLayout on TimelineScreenState {
           // Picking several notes is left before anything else.
           if (_selecting) return _endSelection();
           if (_searching) return _exitSearch();
+          // A filter still narrowing the list goes next: Back takes it off
+          // before it takes the app off the screen. Leaving with it on meant
+          // the next visit opened on a narrowed list whose reason was no
+          // longer visible — and exiting outright felt like the Back key
+          // ignoring two layers of state in one press.
+          if (_model.filtering) return unawaited(_clearFilters());
           unawaited(_leave());
         },
         // The list keeps drawing all the way down, and stops *listening*
@@ -134,6 +140,14 @@ extension _TimelineLayout on TimelineScreenState {
                   // swipe actions behaves.
                   if (notification is ScrollStartNotification) {
                     _swipe.closeAll();
+                  }
+                  // A finger-driven scroll folds the day summary's body
+                  // (see [_collapseAiSummaryOnDrag]). This is the one place
+                  // that can tell a drag from a fling: dragDetails exists
+                  // only while the finger is still down.
+                  if (notification is ScrollUpdateNotification &&
+                      notification.dragDetails != null) {
+                    _collapseAiSummaryOnDrag(notification.metrics.pixels);
                   }
                   // Past 200 notes, this is the only thing that ever asks for
                   // the rest — nothing rendered the tail of a long timeline
@@ -229,8 +243,9 @@ extension _TimelineLayout on TimelineScreenState {
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
-                                        MediaQuery.textScalerOf(context)
-                                                    .scale(16) *
+                                        MediaQuery.textScalerOf(
+                                                  context,
+                                                ).scale(16) *
                                                 1.5 +
                                             16,
                                       ) +
@@ -291,8 +306,9 @@ extension _TimelineLayout on TimelineScreenState {
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
-                                        MediaQuery.textScalerOf(context)
-                                                    .scale(14) *
+                                        MediaQuery.textScalerOf(
+                                                  context,
+                                                ).scale(14) *
                                                 1.5 +
                                             16,
                                       ) +

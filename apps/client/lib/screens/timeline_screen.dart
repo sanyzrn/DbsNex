@@ -58,6 +58,7 @@ import '../widgets/summary_updated_time.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/capture_flick.dart';
 import '../widgets/card_strings.dart';
+import '../widgets/copy_feedback.dart';
 import '../widgets/tag_label.dart';
 import '../widgets/note_context_menu.dart';
 import '../widgets/commit_receipt.dart';
@@ -396,7 +397,6 @@ class TimelineScreenState extends State<TimelineScreen>
     _search.addListener(_onSearchChanged);
     // The search's tag list; nothing ever loaded it (see note_search.dart).
     unawaited(_search.loadTags());
-    _scroll.addListener(_onAiSummaryScroll);
     // Both halves of a tapped reminder: one for a tap while the app is up,
     // one for the tap that started it.
     //
@@ -515,17 +515,24 @@ class TimelineScreenState extends State<TimelineScreen>
     return '${source.length}:${hash.toRadixString(16)}';
   }
 
-  /// Collapses the card's body on the first real scroll, the way the Figma
-  /// redesign asked for — reading a note is not the moment for a recap.
+  /// Collapses the card's body on a real, finger-driven scroll — reading a
+  /// note is not the moment for a recap.
   ///
   /// Gives way to the chevron entirely: once the user has worked the control
-  /// by hand, scrolling stops having an opinion about it.
-  void _onAiSummaryScroll() {
+  /// by hand, scrolling stops having an opinion about it. Only a drag counts
+  /// (a ballistic or programmatic move is nobody reading), only 56px of it
+  /// (four used to be the whole trigger — less than a reading finger
+  /// trembles), and only for the session: the folded preference belongs to
+  /// the chevron alone, so a bump while reading costs one fold today, not a
+  /// changed setting for every launch after.
+  ///
+  /// Reached from the body's own `NotificationListener` in
+  /// timeline_layout.dart, which can tell a drag from a fling — a plain
+  /// scroll-listener cannot.
+  void _collapseAiSummaryOnDrag(double pixels) {
     if (_aiSummaryCollapsed || _aiSummaryToggledByUser) return;
-    if (_scroll.offset > 4) {
-      setState(() => _aiSummaryCollapsed = true);
-      unawaited(widget.preferences.setDaySummaryFolded(true));
-    }
+    if (pixels <= 56) return;
+    setState(() => _aiSummaryCollapsed = true);
   }
 
   void _onSearchChanged() {
@@ -740,7 +747,6 @@ class TimelineScreenState extends State<TimelineScreen>
     _search.dispose();
     _searchFade.dispose();
     _searchFocus.dispose();
-    _scroll.removeListener(_onAiSummaryScroll);
     _scroll.dispose();
     _stickyDay.dispose();
     super.dispose();

@@ -10,6 +10,7 @@ import '../widgets/collection_page.dart';
 import '../widgets/nex_shelf.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/tag_label.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -269,11 +270,54 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
           ],
         ),
       );
-      if (target != null) {
-        await widget.services.mergeTag(
-          sourceId: value.tag.id,
-          targetId: target.tag.id,
+      if (target != null && mounted) {
+        // Destructive and used to be instant: the tap on the target row
+        // moved every note carrying the source tag without a word. Delete
+        // in this screen has always confirmed; merge now does too, naming
+        // both tags and how many notes follow them.
+        final ok = await nexShowDialog<bool>(
+          context: context,
+          builder: (context) => NexAlertDialog(
+            title: Text(l10n.mergeTagTitle),
+            content: NexDialogBody(
+              child: Text(
+                l10n.mergeTagBody(
+                  value.count,
+                  nexTagLabel(value.tag, l10n),
+                  nexTagLabel(target.tag, l10n),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.merge),
+              ),
+            ],
+          ),
         );
+        if (ok == true) {
+          await widget.services.mergeTag(
+            sourceId: value.tag.id,
+            targetId: target.tag.id,
+          );
+          if (mounted) {
+            // No undo on purpose: a merge is not reversible without
+            // remembering which of the target's notes arrived from the
+            // source, and no such record exists. The confirmation names the
+            // cost; the banner — the target keeps the notes, said with its
+            // own name — is the receipt.
+            nexShowBanner(
+              context,
+              message: l10n.mergeTagDone(nexTagLabel(target.tag, l10n)),
+              haptics: false,
+            );
+          }
+        }
       }
     } else if (action == 'delete') {
       final ok = await nexShowDialog<bool>(

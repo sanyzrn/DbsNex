@@ -145,8 +145,9 @@ void main() {
       await tester.pumpAndSettle();
       TextStyle styleOf(String text) {
         final element = tester.element(find.text(text));
-        return DefaultTextStyle.of(element).style
-            .merge((element.widget as Text).style);
+        return DefaultTextStyle.of(
+          element,
+        ).style.merge((element.widget as Text).style);
       }
 
       final first = styleOf('First line');
@@ -238,5 +239,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getSize(recap).height, closeTo(foldedHeight, 1));
     expect(preferences.daySummaryFolded, isTrue);
+  });
+  // Scrolling used to fold the card on the first four pixels — less than a
+  // reading finger trembles — and worse, write the fold to the preferences
+  // for every launch after. Now it takes a real, dragged 56 pixels, and the
+  // preference belongs to the chevron alone.
+  testWidgets('a scroll folds the summary only past a real drag, and only '
+      'for the session', (tester) async {
+    await preferences.setAiDaySummary(
+      text: 'A calm day ahead\nCall the plumber\nFinish the draft',
+      dateKey: 'cached',
+    );
+    await preferences.setDaySummaryFolded(false);
+    for (var i = 0; i < 12; i++) {
+      final note = await services.captureText('filler number $i');
+      // Keep the list long enough that a drag is a scroll, not an overscroll.
+      if (note == null) fail('capture failed');
+    }
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final recap = find.byKey(const ValueKey('timeline-recap'));
+    expect(recap, findsOneWidget);
+    final openHeight = tester.getSize(recap).height;
+
+    // A drag too small to mean anything: still open, still not a setting.
+    // (Dragged on the recap itself: the row of filter pills above the list
+    // is a scrollable of its own, and not the one being tested.)
+    await tester.drag(recap, const Offset(0, -30));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(recap).height, openHeight);
+    expect(preferences.daySummaryFolded, isFalse);
+
+    // A real drag folds it — for this session, not for the preference.
+    await tester.drag(recap, const Offset(0, -120));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(recap).height, lessThan(openHeight));
+    expect(
+      preferences.daySummaryFolded,
+      isFalse,
+      reason: 'a scroll must not write the fold to the preferences',
+    );
   });
 }

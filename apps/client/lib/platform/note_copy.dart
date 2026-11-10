@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart';
 
 import '../documents/docx_markdown.dart';
+import 'device_label.dart';
 
 /// What Copy puts on the clipboard, with a file note's own text read in.
 ///

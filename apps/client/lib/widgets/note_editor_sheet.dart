@@ -44,9 +44,19 @@ class NoteEditorSheet extends StatefulWidget {
     this.draftKey,
     this.allowEmpty = false,
     this.noteId,
+    this.initialSelection,
   });
 
   final String initial;
+
+  /// Where the caret opens on the text: an offset into [initial], clamped to
+  /// it, or null for its start. The editor used to open with the caret at
+  /// the end no matter what — the native view's fallback for a selection
+  /// that was never set — so every long note opened with the caret after
+  /// the last word and a swipe of “select all” away from the top.
+  /// The AI rewrite keeps its own caret placement (end of the new text) and
+  /// does not pass through here.
+  final int? initialSelection;
 
   /// The note being edited, named in the log of what left the phone when
   /// the text is sent for a rewrite.
@@ -67,6 +77,7 @@ class NoteEditorSheet extends StatefulWidget {
     String? draftKey,
     bool allowEmpty = false,
     String? noteId,
+    int? initialSelection,
   }) async {
     try {
       return await nexShowSheet<String>(
@@ -80,6 +91,7 @@ class NoteEditorSheet extends StatefulWidget {
           draftKey: draftKey,
           allowEmpty: allowEmpty,
           noteId: noteId,
+          initialSelection: initialSelection,
         ),
       );
     } finally {
@@ -124,7 +136,25 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
     final recovered = widget.preferences.editorDrafts?.read(
       widget.draftKey ?? '',
     )?['text'];
-    if (widget.draftKey != null && recovered is String) _text.text = recovered;
+    if (widget.draftKey != null && recovered is String) {
+      // A recovered draft is composition half-finished: the caret goes to
+      // its end, where the next word was about to be. Setting the whole
+      // value (rather than `.text =`) is what carries the selection — the
+      // same fix the checklist sheet got.
+      _text.value = TextEditingValue(
+        text: recovered,
+        selection: TextSelection.collapsed(offset: recovered.length),
+      );
+    } else {
+      final offset = (widget.initialSelection ?? 0).clamp(
+        0,
+        widget.initial.length,
+      );
+      _text.value = TextEditingValue(
+        text: widget.initial,
+        selection: TextSelection.collapsed(offset: offset),
+      );
+    }
     _lastText = _text.text;
     _text.addListener(_onChanged);
   }
