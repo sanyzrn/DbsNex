@@ -52,10 +52,7 @@ class NoteEditorSheet extends StatefulWidget {
   final String initial;
 
   /// Where the caret opens on the text: an offset into [initial], clamped to
-  /// it, or null for its start. The editor used to open with the caret at
-  /// the end no matter what — the native view's fallback for a selection
-  /// that was never set — so every long note opened with the caret after
-  /// the last word and a swipe of “select all” away from the top.
+  /// it, or null for its end so typing continues after the existing words.
   /// The AI rewrite keeps its own caret placement (end of the new text) and
   /// does not pass through here.
   final int? initialSelection;
@@ -159,7 +156,7 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
         selection: TextSelection.collapsed(offset: recovered.length),
       );
     } else {
-      final offset = (widget.initialSelection ?? 0).clamp(
+      final offset = (widget.initialSelection ?? widget.initial.length).clamp(
         0,
         widget.initial.length,
       );

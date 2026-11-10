@@ -110,18 +110,15 @@ void main() {
     );
   });
 
-  testWidgets('the caret opens at the start, not after the last word', (
+  testWidgets('the shared note and caption editor opens the caret at the end', (
     tester,
   ) async {
-    // A long note used to open with the caret at its end — the native
-    // editor's fallback for a selection nobody set — so the first swipe of
-    // selection started from the bottom.
     await open(tester, initial: 'the boiler is making a noise');
     final controller = tester
         .widget<TextField>(find.byType(TextField))
         .controller!;
     expect(controller.selection.isCollapsed, isTrue);
-    expect(controller.selection.baseOffset, 0);
+    expect(controller.selection.baseOffset, controller.text.length);
   });
 
   testWidgets('a caller can place the caret where its flow needs it', (

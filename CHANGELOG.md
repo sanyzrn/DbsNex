@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.6.17
 
+- **Editing continues at the end.** Notes, captions and attachment captions open with the caret after the existing text.
+
 - **Assistant answers use real library totals.** Counts come from the database; internal searches stay out of replies and interrupted cloud answers get one bounded retry.
 
 - **Bottom navigation is easier to see.** A subtle outline and a distinct background separate the dock from content in Light, Dark and Night.
