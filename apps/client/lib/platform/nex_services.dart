@@ -228,6 +228,7 @@ class NexServices {
   }
 
   bool _closed = false;
+  bool _restoring = false;
 
   /// [aiAdapter] is injected from Core types only. Defaults to
   /// [AIAdapterBinding.instance] (NullAIAdapter until a composition root binds
@@ -270,6 +271,10 @@ class NexServices {
       await preferences.restoreSettings(
         Map<String, dynamic>.from(interrupted['settings'] as Map),
       );
+      final previousModel = NexModels.byId(interrupted['modelId'] as String?);
+      if (previousModel != null) {
+        await (await NexModelStore.open()).select(previousModel);
+      }
       await preferences.finishRestoreRecovery();
     }
     await preferences.attachProfileMirror(mediaDir);

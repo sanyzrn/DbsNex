@@ -6,6 +6,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Bottom navigation is easier to see.** A subtle outline and a distinct background separate the dock from content in Light, Dark and Night.
 - **Navigation returns quietly after capture.** Closing capture restores the dock without the rotation and zoom animation.
+- **Restore checks compatibility before changing your library.** Older supported libraries are upgraded on a temporary copy; incompatible or malformed backups leave the current library untouched.
+- **Interrupted restores keep a recovery path.** Library, media and full-backup settings can return to the previous state; cleanup failures after a successful restore no longer report failure or stop the app opening.
+- **A healthy backup can repair missing files.** Missing photos in the current library no longer prevent restoration, and the safety copy records which files were already missing.
+- **Backup files keep their meaning when shared.** A library backup renamed to `.zip` is recognized, and shared rescue backups retain their missing-file report. Invalid appearance settings are rejected before installation.
 
 ## v2.6.16
 

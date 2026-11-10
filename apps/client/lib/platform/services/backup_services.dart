@@ -3,9 +3,23 @@ part of '../nex_services.dart';
 /// Backups, export, restore and sync — the library leaving and coming back.
 /// Split out of NexServices (REL-10).
 extension NexBackupServices on NexServices {
-  Future<void> _maybeBackupInBackground() => Future<void>.delayed(
-    const Duration(seconds: 5),
-  ).then((_) => backupWhenDue());
+  Future<RestartRequired> _restoreExclusively(
+    Future<RestartRequired> Function() restore,
+  ) async {
+    if (_closed || _restoring) {
+      throw StateError('Restore already in progress or session closed');
+    }
+    _restoring = true;
+    try {
+      return await restore();
+    } finally {
+      _restoring = false;
+    }
+  }
+
+  Future<void> _maybeBackupInBackground() =>
+      Future<void>.delayed(const Duration(seconds: 5))
+          .then((_) => backupWhenDue());
 
   /// Both automatic backups, each when its interval has passed — at launch
   /// and on every return to the app. Launch alone left someone who reopens
@@ -130,6 +144,20 @@ extension NexBackupServices on NexServices {
     String key, {
     bool allowVaultRestore = false,
     Future<bool> Function()? authorizeVaultRestore,
+  }) => _restoreExclusively(
+    () => _restoreFullBackup(
+      source,
+      key,
+      allowVaultRestore: allowVaultRestore,
+      authorizeVaultRestore: authorizeVaultRestore,
+    ),
+  );
+
+  Future<RestartRequired> _restoreFullBackup(
+    File source,
+    String key, {
+    required bool allowVaultRestore,
+    Future<bool> Function()? authorizeVaultRestore,
   }) async {
     final cache = await getTemporaryDirectory();
     final staging = await cache.createTemp('.nex-portable-full-');
@@ -152,6 +180,9 @@ extension NexBackupServices on NexServices {
         ),
       );
       NexPreferences.validateBackupSettings(settings);
+      await Isolate.run(
+        () => NexBackupArchive.validate(p.join(path, 'library.nexbak')),
+      );
       if (settings.containsKey('vault') &&
           !allowVaultRestore &&
           !(await authorizeVaultRestore?.call() ?? false)) {
@@ -171,7 +202,11 @@ extension NexBackupServices on NexServices {
       // and model installation. Bootstrap rolls the whole restore back if the
       // final commit marker was never cleared.
       final safety = await Directory(backupDir).createTemp('full-restore-');
-      await worker.backup(safety.path, mediaDir: mediaDir);
+      await worker.backup(
+        safety.path,
+        mediaDir: mediaDir,
+        allowMissingMedia: true,
+      );
       final safetyLibrary = safety
           .listSync()
           .whereType<File>()
@@ -180,9 +215,10 @@ extension NexBackupServices on NexServices {
       await _preferences.beginRestoreRecovery(
         safetyLibrary,
         includeVault: settings.containsKey('vault'),
+        modelId: (await NexModelStore.open()).selected.id,
       );
       recoveryStarted = true;
-      final result = await restoreBackup(File(p.join(path, 'library.nexbak')));
+      final result = await _restoreBackup(File(p.join(path, 'library.nexbak')));
       if (result.error != null) return result;
       try {
         await _preferences.restoreSettings(settings);
@@ -378,6 +414,14 @@ extension NexBackupServices on NexServices {
   /// caller can say what happened instead of bricking silently.
   @useResult
   Future<RestartRequired> restoreBackup(File backup) async {
+    return _restoreExclusively(() => _restoreBackup(backup));
+  }
+
+  Future<RestartRequired> _restoreBackup(File backup) async {
+    // Reject incompatible/corrupt inputs while the existing session remains
+    // usable. Restore repeats validation on its staged copy before swapping.
+    final sourcePath = backup.path;
+    await Isolate.run(() => NexBackupArchive.validate(sourcePath));
     // A selected recovery copy may itself be the oldest file in the safety
     // folder. Preserve it before that folder's retention sweep runs.
     File? selectedCopy;
@@ -396,13 +440,15 @@ extension NexBackupServices on NexServices {
       await worker.backup(
         p.join(backupDir, 'before-restore'),
         mediaDir: this.mediaDir,
-        allowMissingMedia: (await backupMissingMedia(backup.path)).isNotEmpty,
+        // Protect even an already-damaged library; a missing live photo must
+        // not prevent restoring a healthy backup that repairs it.
+        allowMissingMedia: true,
       );
-      await _closeOnce();
       final dbPath = this.dbPath;
       final mediaDir = this.mediaDir;
       final backupPath = selectedCopy?.path ?? backup.path;
       try {
+        await _closeOnce();
         await Isolate.run(
           () => NexBackupArchive.restore(
             liveDbPath: dbPath,
@@ -418,7 +464,11 @@ extension NexBackupServices on NexServices {
       }
     } finally {
       if (selectedCopy != null && await selectedCopy.exists()) {
-        await selectedCopy.delete();
+        try {
+          await selectedCopy.delete();
+        } on FileSystemException {
+          // Stale pinned sources are swept later; never hide a restart token.
+        }
       }
     }
   }

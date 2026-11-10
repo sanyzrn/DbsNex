@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:nex_core/nex_core.dart' show nexSearchIndexText, stableUuidV5;
+import 'package:nex_core/nex_core.dart'
+    show NoteType, nexSearchIndexText, stableUuidV5;
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
@@ -34,15 +35,25 @@ class NexDatabase {
     RestoreTransaction.recover(filePath);
     final db = sqlite3.open(filePath);
     final nex = NexDatabase._(db, filePath);
-    nex._migrate();
-    return nex;
+    try {
+      nex._migrate();
+      return nex;
+    } catch (_) {
+      db.close();
+      rethrow;
+    }
   }
 
   static NexDatabase openInMemory() {
     final db = sqlite3.openInMemory();
     final nex = NexDatabase._(db, ':memory:');
-    nex._migrate();
-    return nex;
+    try {
+      nex._migrate();
+      return nex;
+    } catch (_) {
+      db.close();
+      rethrow;
+    }
   }
 
   /// The library layout this build writes, stamped as `user_version`.
@@ -57,7 +68,6 @@ class NexDatabase {
   void _migrate() {
     final stamped = db.select('PRAGMA user_version').first.values.first as int;
     if (stamped > schemaVersion) {
-      db.close();
       throw NewerLibraryException(stamped, schemaVersion);
     }
     // The share window and the main app have separate SQLite connections.
@@ -733,9 +743,9 @@ CREATE TABLE notes_rebuilt (
     final dir = Directory(backupDir)..createSync(recursive: true);
     final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
     final target = File(p.join(dir.path, 'nex-$stamp.sqlite'));
-    // Checkpoint WAL so the main file is consistent, then copy.
-    db.execute('PRAGMA wal_checkpoint(FULL);');
-    File(path).copySync(target.path);
+    // A checkpoint followed by a filesystem copy races another connection's
+    // writes. SQLite produces one consistent snapshot, including WAL data.
+    db.execute('VACUUM INTO ?', [target.path]);
 
     final existing =
         dir
@@ -776,7 +786,7 @@ CREATE TABLE notes_rebuilt (
     backup.copySync(restoringPath);
 
     try {
-      _assertSqliteIntegrity(restoringPath);
+      prepareForRestore(restoringPath);
     } on NewerLibraryException {
       if (restoring.existsSync()) restoring.deleteSync();
       rethrow;
@@ -830,6 +840,23 @@ CREATE TABLE notes_rebuilt (
     }
   }
 
+  /// Upgrade only a staged copy and prove that this build can open it before
+  /// replacing the current library. The original backup stays byte-for-byte intact.
+  static void prepareForRestore(String stagedPath) {
+    assertRestorable(stagedPath);
+    NexDatabase? staged;
+    try {
+      staged = open(stagedPath);
+      staged.db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+    } on NewerLibraryException {
+      rethrow;
+    } catch (error) {
+      throw StateError('Backup cannot be opened by this build: $error');
+    } finally {
+      staged?.close();
+    }
+  }
+
   /// Requires integrity and a supported schema on a read-only probe.
   static void _assertSqliteIntegrity(String dbPath) {
     Database? probe;
@@ -847,6 +874,36 @@ CREATE TABLE notes_rebuilt (
           probe.select('PRAGMA user_version').first.values.first as int;
       if (version > schemaVersion) {
         throw NewerLibraryException(version, schemaVersion);
+      }
+      // A healthy SQLite file is not necessarily a Nex library. These columns
+      // have existed since v1; missing later columns are supplied by migrations.
+      final columns = probe
+          .select('PRAGMA table_info(notes)')
+          .map((row) => row['name'])
+          .toSet();
+      if (!columns.containsAll(const {
+        'id',
+        'type',
+        'content',
+        'media_uri',
+        'media_hash',
+        'duration_ms',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'device_id',
+        'rev',
+        'sync_state',
+      })) {
+        throw const FormatException('Not a supported Nex library');
+      }
+      for (final row in probe.select(
+        'SELECT type, created_at, updated_at, deleted_at FROM notes',
+      )) {
+        NoteType.fromWire(row['type'] as String);
+        for (final key in ['created_at', 'updated_at', 'deleted_at']) {
+          if (row[key] != null) DateTime.parse(row[key] as String);
+        }
       }
     } finally {
       probe?.close();
