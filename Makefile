@@ -65,13 +65,16 @@ check-ui:
 check-client:
 	cd apps/client && flutter analyze --fatal-infos && flutter test
 
+# Local backend checks do not exercise PostgreSQL. CI runs migrations and
+# the live PostgreSQL sync/auth suites against its service database.
 check-backend:
 	cd apps/backend && npm run typecheck && npm run lint && npm test
 
 # The feedback worker is deployed separately and was verified by nothing: no
-# make target, and no CI job matched `apps/feedback-worker/` either. Its nine
+# make target, and no CI job matched `apps/feedback-worker/` either. Its
 # tests passed the whole time and never gated anything.
 check-worker:
+	cd apps/feedback-worker && npm run lint
 	cd apps/feedback-worker && npm run typecheck && npm test
 
 check: check-dart check-ai check-ui check-client check-backend check-worker

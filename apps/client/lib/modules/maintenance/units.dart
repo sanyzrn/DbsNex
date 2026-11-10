@@ -11,6 +11,8 @@
 /// into anything.
 library;
 
+import '../module_api.dart' show nexDigits;
+
 import 'local_values.dart';
 
 /// What an asset counts, if it counts at all.
@@ -108,10 +110,7 @@ String groupDigits(String digits, {required bool persian}) {
 }
 
 /// `123` → `۱۲۳`.
-String persianDigits(String text) => text.replaceAllMapped(
-  RegExp(r'[0-9]'),
-  (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-);
+String persianDigits(String text) => nexDigits(text, persian: true);
 
 const maxIntervalDays = 365250;
 const maxIntervalMonths = 12000;

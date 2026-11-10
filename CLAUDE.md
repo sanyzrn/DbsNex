@@ -10,8 +10,9 @@
   closed, and everything after it goes under the next number — never add to a
   released version's changelog section or reuse its tag. (2.1.14 was out while a
   later change was still being written under that number; it moved to 2.1.15.)
-- Continue work on the shared `codex/2.0-polish` branch. Do not create a new
-  branch for each change or module unless the owner explicitly requests it.
+- Continue on the current release branch and keep subsequent edits together.
+  Start new release work from current `main`; use a release branch and a pull
+  request back to `main`. Never resume the retired `codex/2.0-polish` branch.
 - Available modules are **Cycle, Breathing break (Pause), Birthdays & occasions,
   Word by Word and Habits** (`cycle`, `pause`, `occasions`, `words`, `habits`).
   The authoritative rollout list is `apps/client/lib/modules/module_rollout.dart`;

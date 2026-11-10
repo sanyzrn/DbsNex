@@ -3,6 +3,7 @@ import 'package:nex_core/nex_core.dart';
 export 'package:nex_core/nex_core.dart'
     show
         nexDigits,
+        nexPad2,
         nexDisplayDate,
         nexPersianDate,
         nexGregorianDate,

@@ -26,12 +26,7 @@ class ParkingFields {
   /// Persian side, "1405" in English. This is the app's own `nexDigits`
   /// (packages/core), which is not exported to modules, written locally.
   static String digits(BuildContext context, String text) =>
-      NexModuleStrings.persian(context)
-      ? text.replaceAllMapped(
-          RegExp(r'[0-9]'),
-          (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-        )
-      : text;
+      nexDigits(text, persian: NexModuleStrings.persian(context));
 
   // ------------------------------------------------------------- dates
 

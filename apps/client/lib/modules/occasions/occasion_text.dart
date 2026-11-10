@@ -41,9 +41,8 @@ String occasionDateText(
 );
 
 String occasionTimeText(BuildContext context, int minutes) {
-  String two(int v) => v.toString().padLeft(2, '0');
   return nexDigits(
-    '${two(minutes ~/ 60)}:${two(minutes % 60)}',
+    '${nexPad2(minutes ~/ 60)}:${nexPad2(minutes % 60)}',
     persian: NexModuleStrings.persian(context),
   );
 }

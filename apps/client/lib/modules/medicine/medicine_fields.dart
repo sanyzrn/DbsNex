@@ -17,14 +17,9 @@ class MedicineFields {
 
   /// ASCII digits in [text] as the interface's digits — «۱۴۰۵» on the
   /// Persian side, "1405" in English. The app's own `nexDigits`
-  /// (packages/core) is not exported to modules, so it lives here.
+  /// is exposed through the module API and handles the conversion.
   static String digits(BuildContext context, String text) =>
-      NexModuleStrings.persian(context)
-      ? text.replaceAllMapped(
-          RegExp(r'[0-9]'),
-          (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-        )
-      : text;
+      nexDigits(text, persian: NexModuleStrings.persian(context));
 
   /// A time of day, 24-hour.
   static String hm(BuildContext context, DateTime time) =>

@@ -9,12 +9,12 @@
 
 A local-first capture app for Android, in Persian and English, with full right-to-left layout.
 
-[![CI (pull requests)](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml/badge.svg?branch=codex%2F2.0-polish&event=pull_request)](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml?query=event%3Apull_request+branch%3Acodex%2F2.0-polish)
+[![CI (pull requests)](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml?query=event%3Apull_request)
 [![Release](https://github.com/sanyzrn/DbsNex/actions/workflows/release.yml/badge.svg)](https://github.com/sanyzrn/DbsNex/actions/workflows/release.yml)
 [![Nightly stress](https://github.com/sanyzrn/DbsNex/actions/workflows/stress.yml/badge.svg?branch=main)](https://github.com/sanyzrn/DbsNex/actions/workflows/stress.yml)
 [![Latest release](https://img.shields.io/github/v/release/sanyzrn/DbsNex-releases?label=release&color=0A84FF)](https://github.com/sanyzrn/DbsNex-releases/releases/latest)
 <br>
-[![Flutter](https://img.shields.io/badge/Flutter-3.35.5-02569B?logo=flutter&logoColor=white)](./.fvmrc)
+[![Flutter](https://img.shields.io/badge/Flutter-3.47.9-02569B?logo=flutter&logoColor=white)](./.fvmrc)
 [![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](#what-works-today)
 [![Languages](https://img.shields.io/badge/languages-فارسی%20%7C%20English-0A84FF)](#what-works-today)
 [![Local-first](https://img.shields.io/badge/data-local--first-6E56CF)](./docs/04-architecture.md)
@@ -147,7 +147,7 @@ it is by pasting a base URL and a token into Settings. Treat it as unreleased.
 ```
 apps/
   client/           Flutter app — the product. Android ships; Windows builds, unreleased.
-  backend/          Node + PostgreSQL sync API. Built and tested, not deployed until 2.0.
+  backend/          Node + PostgreSQL sync API. Built and tested; deployment remains opt-in.
   feedback-worker/  Cloudflare Worker that relays in-app feedback to Telegram.
 packages/
   core/             Domain models, ports, services. Pure Dart, no Flutter.
@@ -173,7 +173,7 @@ by hand.
 
 ## Getting started
 
-Requires Flutter **3.35.5** / Dart **^3.9** (see [`.fvmrc`](./.fvmrc)). Node 20+ only if you
+Use the toolchain pinned by [`.fvmrc`](./.fvmrc) and [development setup](./docs/06-development.md). Node **≥22.6** only if you
 intend to touch the backend.
 
 ```bash

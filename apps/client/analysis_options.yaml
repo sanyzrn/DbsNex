@@ -10,3 +10,8 @@ analyzer:
     strict-casts: true
     strict-inference: true
     strict-raw-types: true
+
+linter:
+  rules:
+    only_throw_errors: true
+    unawaited_futures: true

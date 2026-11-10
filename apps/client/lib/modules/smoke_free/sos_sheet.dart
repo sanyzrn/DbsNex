@@ -192,10 +192,7 @@ class _BreathingState extends State<_Breathing>
           builder: (context, _) {
             final phase = _phase(_controller.value);
             final count = persian
-                ? '${phase.count}'.replaceAllMapped(
-                    RegExp('[0-9]'),
-                    (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-                  )
+                ? nexDigits('${phase.count}', persian: true)
                 : '${phase.count}';
             return Semantics(
               liveRegion: true,
@@ -307,12 +304,7 @@ class _WaitTimerState extends State<_WaitTimer> {
     final time =
         '${(_left ~/ 60).toString().padLeft(2, '0')}:'
         '${(_left % 60).toString().padLeft(2, '0')}';
-    final shown = persian
-        ? time.replaceAllMapped(
-            RegExp('[0-9]'),
-            (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-          )
-        : time;
+    final shown = persian ? nexDigits(time, persian: true) : time;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

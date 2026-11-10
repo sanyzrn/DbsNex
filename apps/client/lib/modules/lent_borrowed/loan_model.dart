@@ -1,4 +1,5 @@
 import 'package:nex_client/modules/module_api.dart';
+
 import 'money_format.dart';
 import 'number_input.dart';
 
@@ -124,8 +125,8 @@ class Loan {
     if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(raw)) return null;
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return null;
-    String two(int v) => v.toString().padLeft(2, '0');
-    final key = '${parsed.year}-${two(parsed.month)}-${two(parsed.day)}';
+    final key =
+        '${parsed.year}-${nexPad2(parsed.month)}-${nexPad2(parsed.day)}';
     return key == raw ? key : null;
   }
 }
@@ -178,6 +179,5 @@ class LoanReturn {
 
 /// The local civil date as `YYYY-MM-DD`.
 String civilDateKey(DateTime moment) {
-  String two(int v) => v.toString().padLeft(2, '0');
-  return '${moment.year}-${two(moment.month)}-${two(moment.day)}';
+  return '${moment.year}-${nexPad2(moment.month)}-${nexPad2(moment.day)}';
 }

@@ -1,3 +1,5 @@
+import 'crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';

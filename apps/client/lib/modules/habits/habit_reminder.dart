@@ -287,9 +287,8 @@ class _HabitReminderTileState extends State<HabitReminderTile> {
     }
     if (reminder == null) return const SizedBox(height: 64);
     final strings = habitsStrings;
-    String two(int v) => v.toString().padLeft(2, '0');
     final time = nexDigits(
-      '${two(reminder.minutes ~/ 60)}:${two(reminder.minutes % 60)}',
+      '${nexPad2(reminder.minutes ~/ 60)}:${nexPad2(reminder.minutes % 60)}',
       persian: NexModuleStrings.persian(context),
     );
     final when = switch (widget.habit.plan) {

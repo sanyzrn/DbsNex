@@ -321,6 +321,12 @@ jobs:
           cache: true
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - run: flutter pub get
+      - name: Preserve pinned localization output for drift review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: generated-localizations
+          path: apps/client/lib/l10n/app_localizations*.dart
+          retention-days: 3
       - run: flutter analyze --fatal-infos
       - name: Use system SQLite for Linux-only widget tests
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
@@ -505,6 +511,7 @@ jobs:
           cache-dependency-path: apps/feedback-worker/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm test
 
   backend:
@@ -544,6 +551,7 @@ jobs:
       # silently rewrote the lockfile instead.
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run typecheck:eslint-ts
       - run: npm run lint
       - run: npm test
       - run: npm run build

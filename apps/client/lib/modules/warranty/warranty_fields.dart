@@ -17,10 +17,7 @@ class WarrantyFields {
   /// ASCII digits in [text] as the interface's digits, grouped in threes.
   static String digits(BuildContext context, String text) {
     return NexModuleStrings.persian(context)
-        ? text.replaceAllMapped(
-            RegExp(r'[0-9]'),
-            (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-          )
+        ? nexDigits(text, persian: true)
         : text;
   }
 

@@ -34,7 +34,6 @@ String noteContextMarks(
   List<String> threads = const [],
 }) {
   final written = note.createdAt.toLocal();
-  String two(int value) => value.toString().padLeft(2, '0');
   // Only for a note that is in one, and only its name: a mark every line
   // carried would be noise the model has to read past.
   final named = [for (final name in threads.take(3)) '"$name"'].join(', ');
@@ -43,7 +42,7 @@ String noteContextMarks(
     ?reminderContextLabel(note, now),
     if (threads.isNotEmpty)
       threads.length == 1 ? 'in thread $named' : 'in threads $named',
-    'written ${written.year}-${two(written.month)}-${two(written.day)}',
+    'written ${written.year}-${nexPad2(written.month)}-${nexPad2(written.day)}',
   ].join('; ');
 }
 
@@ -61,10 +60,9 @@ String? reminderContextLabel(Note note, DateTime now) {
   final repeats = note.dueRepeat != NoteRepeat.once;
   if (!repeats && !due.isAfter(now)) return null;
   final local = due.toLocal();
-  String two(int value) => value.toString().padLeft(2, '0');
   final at =
-      '${local.year}-${two(local.month)}-${two(local.day)}'
-      'T${two(local.hour)}:${two(local.minute)}';
+      '${local.year}-${nexPad2(local.month)}-${nexPad2(local.day)}'
+      'T${nexPad2(local.hour)}:${nexPad2(local.minute)}';
   return repeats
       ? 'reminder set: $at, repeats ${note.dueRepeat.wireName}'
       : 'reminder set: $at';
@@ -75,15 +73,14 @@ String? reminderContextLabel(Note note, DateTime now) {
 @visibleForTesting
 String commitmentContextLine(NexCommitment item) {
   final next = item.dueAt.toLocal();
-  String two(int value) => value.toString().padLeft(2, '0');
   final unit = item.cadence.wireName;
   final every = item.every == 1
       ? 'every ${unit.substring(0, unit.length - 1)}'
       : 'every ${item.every} $unit';
   return [
     '- ${item.title}: $every',
-    'next due ${next.year}-${two(next.month)}-${two(next.day)}'
-        'T${two(next.hour)}:${two(next.minute)}',
+    'next due ${next.year}-${nexPad2(next.month)}-${nexPad2(next.day)}'
+        'T${nexPad2(next.hour)}:${nexPad2(next.minute)}',
     if (item.paused) 'paused',
   ].join(', ');
 }
@@ -353,7 +350,6 @@ extension _ChatContext on _AiChatSheetState {
   String get _currentSettings {
     final p = widget.preferences;
     String onOff(bool on) => on ? 'on' : 'off';
-    String two(int value) => value.toString().padLeft(2, '0');
     final scale = p.uiScale;
     return [
       'theme ${p.appearanceMode.name}',
@@ -376,8 +372,8 @@ extension _ChatContext on _AiChatSheetState {
       'show_search ${onOff(p.showSearchField)}',
       'show_tags ${onOff(p.showTagRow)}',
       'daily_nudge ${onOff(p.dailyNudge)}',
-      'daily_nudge_time ${two(p.dailyNudgeMinutes ~/ 60)}:'
-          '${two(p.dailyNudgeMinutes % 60)}',
+      'daily_nudge_time ${nexPad2(p.dailyNudgeMinutes ~/ 60)}:'
+          '${nexPad2(p.dailyNudgeMinutes % 60)}',
     ].join(', ');
   }
 

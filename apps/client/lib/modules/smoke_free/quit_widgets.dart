@@ -37,8 +37,7 @@ String quitDuration(BuildContext context, int minutes) {
       : strings(context, 'durationHM', {'h': digits(h), 'm': digits(m)});
 }
 
-String _persianDigits(String s) =>
-    s.replaceAllMapped(RegExp('[0-9]'), (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)]);
+String _persianDigits(String s) => nexDigits(s, persian: true);
 
 /// Days, hours and minutes since the attempt began, kept current every half
 /// minute for as long as it is on screen. An attempt that starts later says
@@ -223,9 +222,8 @@ class QuitWeeks extends StatelessWidget {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: colour(
-                        d,
-                      ).withValues(alpha: d.isAfter(end) ? 0.15 : 0.85),
+                      color: colour(d)
+                          .withValues(alpha: d.isAfter(end) ? 0.15 : 0.85),
                       borderRadius: BorderRadius.circular(NexRadius.xs),
                     ),
                   ),

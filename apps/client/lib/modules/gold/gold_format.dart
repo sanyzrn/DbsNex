@@ -1,13 +1,12 @@
 /// Turning scaled integers into words on a screen, and typed text back
 /// into scaled integers.
 ///
-/// The app's own `nexDigits` helper is not exported through the module API,
-/// so this is the module's local equivalent: grouped thousands, the
+/// Uses the module API's shared digits with grouped thousands, the
 /// language's digits, and — for Persian — the Persian decimal separator
 /// «٫» and percent sign «٪».
 library;
 
-// (No imports: this file is the module's own little number layer.)
+import '../module_api.dart' show nexDigits;
 
 const _enDigits = '0123456789';
 const _faDigits = '۰۱۲۳۴۵۶۷۸۹';
@@ -97,9 +96,8 @@ String formatCentiRate(int centi, {required bool persian}) {
 /// (see `gold_save_sheet.dart` and `gold_dates.dart`). `2028-02-30` fails:
 /// the day does not exist.
 bool isIsoDate(String text) {
-  final match = RegExp(
-    r'^(\d{4})-(\d{2})-(\d{2})$',
-  ).firstMatch(normalizeGoldDate(text));
+  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$')
+      .firstMatch(normalizeGoldDate(text));
   if (match == null) return false;
   final year = int.parse(match.group(1)!);
   final month = int.parse(match.group(2)!);
@@ -145,14 +143,7 @@ String isoDay(DateTime date) =>
 /// The finenesses offered in the pickers, with their karat names.
 const List<int> goldFinenessPresets = [999, 916, 875, 750];
 
-String _toPersianDigits(String text) {
-  var out = '';
-  for (final rune in text.runes) {
-    final index = _enDigits.indexOf(String.fromCharCode(rune));
-    out += index < 0 ? String.fromCharCode(rune) : _faDigits[index];
-  }
-  return out;
-}
+String _toPersianDigits(String text) => nexDigits(text, persian: true);
 
 // ------------------------------------------------------------- parsing
 
@@ -169,9 +160,8 @@ enum GoldParseProblem { empty, invalid, tooManyDecimals, negative, tooBig }
 int? parseScaled(String text, int scale) {
   if (scale < 0 || scale > 6) return null;
   final normalized = _normalize(text);
-  if (!RegExp(
-    r'^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$',
-  ).hasMatch(normalized)) {
+  if (!RegExp(r'^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$')
+      .hasMatch(normalized)) {
     return null;
   }
   final negative = normalized.startsWith('-');

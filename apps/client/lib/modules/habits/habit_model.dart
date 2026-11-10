@@ -275,8 +275,7 @@ int newestCheckFirst(HabitCheck a, HabitCheck b) {
 /// Arithmetic on keys goes through [DateTime.utc], which has no daylight
 /// saving, so a civil day is always exactly one civil day.
 String dateKeyOf(DateTime moment) {
-  String two(int v) => v.toString().padLeft(2, '0');
-  return '${moment.year}-${two(moment.month)}-${two(moment.day)}';
+  return '${moment.year}-${nexPad2(moment.month)}-${nexPad2(moment.day)}';
 }
 
 /// Parses a date key; null when it is not a real calendar date.

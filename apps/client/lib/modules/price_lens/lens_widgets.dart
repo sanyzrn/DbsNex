@@ -346,12 +346,7 @@ class LensResultPanel extends StatelessWidget {
       'best': best.option.label,
       'worst': worst.option.label,
       'pct': persian
-          ? text
-                .replaceAll('.', '٫')
-                .replaceAllMapped(
-                  RegExp('[0-9]'),
-                  (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-                )
+          ? nexDigits(text.replaceAll('.', '٫'), persian: true)
           : text,
       'unit': unitWord,
     });

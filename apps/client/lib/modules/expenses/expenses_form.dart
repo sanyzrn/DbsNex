@@ -13,8 +13,7 @@ import 'strings.dart';
 /// The text the date field holds for a civil day: `2026/03/05`. Zero
 /// padded, one separator style; `LocalValues.day` reads it back.
 String expensesDateEntryText(DateTime date) {
-  String two(int value) => value.toString().padLeft(2, '0');
-  return '${date.year}/${two(date.month)}/${two(date.day)}';
+  return '${date.year}/${nexPad2(date.month)}/${nexPad2(date.day)}';
 }
 
 class ExpensesOptionalField extends StatelessWidget {
@@ -92,8 +91,7 @@ class ExpensesTimeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final persian = NexModuleStrings.persian(context);
-    String two(int v) => v.toString().padLeft(2, '0');
-    final time = '${two(date.hour)}:${two(date.minute)}';
+    final time = '${nexPad2(date.hour)}:${nexPad2(date.minute)}';
     return Semantics(
       // The button's own text is only the clock; the word says which
       // field it is.
