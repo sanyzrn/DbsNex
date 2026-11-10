@@ -161,9 +161,7 @@ void main() {
     expect(guard.isOpen, isFalse);
   });
 
-  testWidgets('the card briefly ducks without remaining shrunk while the menu is open', (
-    tester,
-  ) async {
+  testWidgets('hold pulse settles with menu still open', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
