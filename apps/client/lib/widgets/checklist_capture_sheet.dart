@@ -82,7 +82,17 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
       );
     }
     final draft = widget.preferences.editorDrafts?.read(_draftKey)?['text'];
-    if (draft is String) _text.text = draft;
+    if (draft is String) {
+      // The caret carried across, for the same reason [initial] sets it
+      // explicitly above: assigning `.text` resets the selection to
+      // invalid, which the editor reads as the start of the text — an edit
+      // that opens in front of the first character is one that starts by
+      // scrolling to where you meant to type.
+      _text.value = TextEditingValue(
+        text: draft,
+        selection: TextSelection.collapsed(offset: draft.length),
+      );
+    }
     _lastText = _text.text;
     _text.addListener(_onChanged);
   }
@@ -117,13 +127,25 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
 
   List<ChecklistItem> get _items => parseChecklist(_text.text);
 
+  // Set before the pop and never cleared: during the exit animation the
+  // buttons are still on screen and still tappable, and a second tap on a
+  // Save that has not visibly answered yet popped the *underlying* page —
+  // the capture sheet closes the same race with its own flag.
+  bool _closing = false;
+
   void _submit() {
+    if (_closing) return;
+    _closing = true;
     if (widget.preferences.haptics) HapticFeedback.selectionClick();
     Navigator.pop(context, _items);
   }
 
   /// Closing a new list keeps it — see the class comment.
-  void _close() => Navigator.pop(context, _items);
+  void _close() {
+    if (_closing) return;
+    _closing = true;
+    Navigator.pop(context, _items);
+  }
 
   @override
   Widget build(BuildContext context) {
