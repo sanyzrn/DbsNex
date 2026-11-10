@@ -43,8 +43,11 @@ void main() {
     // that must not so much as throw.
     await tester.tap(showPinned);
     await tester.pumpAndSettle();
-    expect(showPinned, findsNothing,
-        reason: 'the banner dismisses after the navigation action');
+    expect(
+      showPinned,
+      findsNothing,
+      reason: 'the banner dismisses after the navigation action',
+    );
   });
 
   testWidgets('the fifth pin wall answers with the trip, not just "no"', (
