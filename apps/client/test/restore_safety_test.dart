@@ -193,7 +193,7 @@ void main() {
     'retired theme names in a full backup retain safe app fallbacks',
     () async {
       final settings = h.preferences.backupSettings();
-      (settings['preferences'] as Map).addAll({
+      (settings['preferences'] as Map<String, Object?>).addAll({
         'appearance.theme': 'legacy-mode',
         'appearance.theme_preset': 'Retired Theme',
       });
