@@ -58,6 +58,7 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
   /// (see the `AnimatedScale` in [build]): the finger that held it sees the
   /// card itself answer, rather than nothing moving until words appear.
   bool _isOpen = false;
+  bool _ducking = false;
 
   void _open([Offset? position]) {
     final builder = widget.entriesBuilder;
@@ -93,14 +94,24 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
     // became a menu, and the card agrees by ducking a hair for
     // [NexMotion.fast].
     nexTick();
-    if (mounted && !_isOpen) setState(() => _isOpen = true);
+    if (mounted && !_isOpen) {
+      setState(() {
+        _isOpen = true;
+        _ducking = true;
+      });
+    }
     _guard.open(this, close: _controller.close);
   }
 
   void _closed() {
     // The menu can close while this element is already being taken down —
     // the same timing didChangeDependencies above guards against.
-    if (mounted && _isOpen) setState(() => _isOpen = false);
+    if (mounted && _isOpen) {
+      setState(() {
+        _isOpen = false;
+        _ducking = false;
+      });
+    }
     _guard.closed(this);
   }
 
@@ -227,15 +238,10 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
             onLongPressStart:
                 widget.entries.isEmpty && widget.entriesBuilder == null
                 ? null
-                : (details) => _open(
-                    // Anchor just below the card. Starting at its top edge
-                    // clipped the first menu action off the screen in both
-                    // RTL and LTR, and covered the text that was pressed.
-                    Offset(
-                      details.localPosition.dx,
-                      context.size?.height ?? details.localPosition.dy,
-                    ),
-                  ),
+                // The touch location is the platform's established,
+                // screen-aware anchor. Forcing y=0 or the full card height
+                // moves the menu off screen for cards near either edge.
+                : (details) => _open(details.localPosition),
             onSecondaryTapDown:
                 widget.entries.isEmpty && widget.entriesBuilder == null
                 ? null
@@ -248,12 +254,16 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
             // when its menu opens.
             child: NexTapGuarded(
               controller: _guard,
-              // The card's own answer to its menu opening: 0.98 for one
-              // fast beat, back to size when it closes. A scale, not an
-              // opacity — the words stay as legible as they were.
+              // Brief acknowledgment only; keeping the card at 98%
+              // for the whole menu session alters its layout and golden UI.
               child: AnimatedScale(
-                scale: _isOpen ? 0.98 : 1.0,
+                scale: _ducking ? 0.98 : 1.0,
                 duration: NexMotion.fast,
+                onEnd: () {
+                  if (mounted && _ducking) {
+                    setState(() => _ducking = false);
+                  }
+                },
                 child: child!,
               ),
             ),
