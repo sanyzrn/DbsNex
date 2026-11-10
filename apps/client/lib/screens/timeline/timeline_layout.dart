@@ -241,6 +241,7 @@ extension _TimelineLayout on TimelineScreenState {
                                   searching: _searching,
                                   onTap: () => unawaited(revealSearch()),
                                   onChanged: (_) => _search.schedule(),
+                                  onSubmitted: (_) => unawaited(_search.run()),
                                   onClear: _exitSearch,
                                   filterCount: _search.activeFilterCount,
                                   trailing: NexTapGuarded(
@@ -510,7 +511,12 @@ extension _TimelineLayout on TimelineScreenState {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (!widget.preferences.captureHoldHintSeen)
+        // Only while the hold actually leads somewhere: with intelligence off
+        // (the default) the taught gesture ends in the "turn it on" banner,
+        // which is a strange first lesson. The hint waits until it can be
+        // true.
+        if (!widget.preferences.captureHoldHintSeen &&
+            AiChatSheet.availableFor(widget.preferences))
           GestureDetector(
             onTap: () => widget.preferences.dismissCaptureHoldHint(),
             child: Container(
