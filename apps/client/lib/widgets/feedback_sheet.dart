@@ -67,6 +67,15 @@ class _FeedbackSheetState extends State<FeedbackSheet>
   FeedbackKind _kind = FeedbackKind.idea;
   bool _sending = false;
   FeedbackOutcome? _lastFailure;
+  bool _hasDraft = false;
+
+  // PopScope must rebuild when the form becomes dirty or clean. Without
+  // this, typing did not change canPop and Android Back could discard text.
+  void _onDraftChanged() {
+    final dirty =
+        _controller.text.trim().isNotEmpty || _contact.text.trim().isNotEmpty;
+    if (dirty != _hasDraft && mounted) setState(() => _hasDraft = dirty);
+  }
 
   /// The sheet used to close on any pull or tap outside with the words
   /// still in it — eight pixels of overscroll was enough to eat a typed
@@ -74,8 +83,7 @@ class _FeedbackSheetState extends State<FeedbackSheet>
   /// the swipe and the barrier all ask first. A send that succeeded has
   /// popped the sheet by other means and never asks.
   @override
-  bool get hasUnsavedChanges =>
-      _controller.text.trim().isNotEmpty || _contact.text.trim().isNotEmpty;
+  bool get hasUnsavedChanges => _hasDraft;
 
   /// Whether the measurements go with this message (W3.4). Never ticked on
   /// its own: attaching them is something the person does, every time.
@@ -92,6 +100,8 @@ class _FeedbackSheetState extends State<FeedbackSheet>
   @override
   void initState() {
     super.initState();
+    _controller.addListener(_onDraftChanged);
+    _contact.addListener(_onDraftChanged);
     _readDiagnostics();
   }
 
@@ -122,6 +132,8 @@ class _FeedbackSheetState extends State<FeedbackSheet>
 
   @override
   void dispose() {
+    _controller.removeListener(_onDraftChanged);
+    _contact.removeListener(_onDraftChanged);
     _controller.dispose();
     _contact.dispose();
     super.dispose();
