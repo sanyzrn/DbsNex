@@ -102,7 +102,10 @@ void main() {
     final note = (await services.captureText('backed-up note'))!;
     final photo = File(p.join(services.mediaDir, 'photo.jpg'))
       ..writeAsBytesSync([1, 2, 3]);
-    await harness.db.capturePhoto(mediaUri: photo.path);
+    await harness.db.capturePhoto(
+      mediaUri: photo.path,
+      mediaHash: (await sha256OfFile(photo.path))!,
+    );
     await services.backupNow();
     final selected = (await services.listBackups()).single;
     await services.updateNote(note.id, 'keep this newer note');
