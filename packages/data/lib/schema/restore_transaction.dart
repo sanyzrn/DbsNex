@@ -181,14 +181,17 @@ final class RestoreTransaction {
       // Either way, every file that was set aside goes back to where it was.
       // When the database itself was never moved, these are only the
       // sidecars that had been moved before the interruption.
-      for (final suffix in [..._sidecars, '']) {
+      // Restore the main file first: its absence from the aside directory
+      // marks that deletion of the installed library has already finished.
+      // Retrying a recovery interrupted between sidecars must not delete a
+      // WAL that the previous attempt already put back.
+      for (final suffix in ['', ..._sidecars]) {
         final aside = File(p.join(dbAside.path, '$name$suffix'));
         if (!aside.existsSync()) continue;
         final live = File('$liveDbPath$suffix');
         if (live.existsSync()) live.deleteSync();
         aside.renameSync(live.path);
       }
-      dbAside.deleteSync(recursive: true);
     }
 
     // New journals keep the exact path in flushed metadata as well, so a
@@ -208,6 +211,9 @@ final class RestoreTransaction {
       }
     }
 
+    // Keep the initial state until media recovery finishes too. It is needed
+    // when rollback itself is interrupted, especially on a first restore.
     journal.deleteSync();
+    _sweepCommitted(dbAside);
   }
 }

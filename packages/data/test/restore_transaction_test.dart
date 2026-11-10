@@ -178,6 +178,47 @@ void main() {
     expect(Directory(mediaDir).existsSync(), isFalse);
   });
 
+  test('retrying interrupted rollback preserves sidecars already restored', () {
+    File(dbPath).writeAsStringSync('original database');
+    File('$dbPath-wal').writeAsStringSync('original WAL');
+    File('$dbPath-shm').writeAsStringSync('original SHM');
+    final staged = File('${tmp.path}/staged.sqlite')
+      ..writeAsStringSync('installed database');
+    RestoreTransaction.begin(liveDbPath: dbPath).installDatabase(staged);
+    // A filesystem failure after restoring the WAL but before the SHM. A
+    // directory at this file path cannot be replaced by File.renameSync.
+    final obstruction = Directory('$dbPath-shm')..createSync();
+    expect(
+      () => RestoreTransaction.recover(dbPath),
+      throwsA(isA<FileSystemException>()),
+    );
+    obstruction.deleteSync();
+    RestoreTransaction.recover(dbPath);
+    expect(File(dbPath).readAsStringSync(), 'original database');
+    expect(File('$dbPath-wal').readAsStringSync(), 'original WAL');
+    expect(File('$dbPath-shm').readAsStringSync(), 'original SHM');
+    expect(File('$dbPath.restore-journal').existsSync(), isFalse);
+  });
+
+  test('retrying media rollback retains its exact recovery path', () {
+    final staged = prepare();
+    RestoreTransaction.begin(liveDbPath: dbPath, mediaDir: mediaDir)
+      ..installDatabase(staged.stagedDb)
+      ..installMedia(staged.stagedMedia);
+    Directory(mediaDir).deleteSync(recursive: true);
+    final obstruction = File(mediaDir)..writeAsStringSync('cannot rename here');
+    File('$dbPath.restore-journal').writeAsStringSync(tmp.path);
+    expect(
+      () => RestoreTransaction.recover(dbPath),
+      throwsA(isA<FileSystemException>()),
+    );
+    obstruction.deleteSync();
+    RestoreTransaction.recover(dbPath);
+    expect(readNote(dbPath), 'the live edit');
+    expect(File(p.join(mediaDir, 'live.jpg')).existsSync(), isTrue);
+    expect(Directory('$mediaDir.rollback').existsSync(), isFalse);
+  });
+
   test(
     'cleanup failure after commit cannot fail restore or block reopening',
     () {
