@@ -87,27 +87,35 @@ void main() {
       expect(repo.setAside(archived.id), isTrue);
       repo.softDelete(trashed.id);
 
-      final libraryCount = maintenance.tagUsage()
+      final libraryCount = maintenance.tagUsage().singleWhere(
+        (usage) => usage.tag.id == tag.id,
+      );
+      final homeCount = maintenance
+          .tagUsage(timelineOnly: true)
           .singleWhere((usage) => usage.tag.id == tag.id);
-      final homeCount = maintenance.tagUsage(timelineOnly: true)
-          .singleWhere((usage) => usage.tag.id == tag.id);
-      expect(libraryCount.count, 2,
-          reason: 'tag manager still counts the archived, live note');
-      expect(homeCount.count, 1,
-          reason: 'Home matches the notes it can actually show');
+      expect(
+        libraryCount.count,
+        2,
+        reason: 'tag manager still counts the archived, live note',
+      );
+      expect(
+        homeCount.count,
+        1,
+        reason: 'Home matches the notes it can actually show',
+      );
       expect(repo.listTimeline().map((note) => note.id), [homeNote.id]);
 
       // A note's scheduled return means it is back on Home even before a
       // maintenance sweep clears its set-aside columns.
-      repo.db.execute(
-        'UPDATE notes SET set_aside_until = ? WHERE id = ?',
-        [
-          DateTime.now().toUtc().subtract(const Duration(days: 1))
-              .toIso8601String(),
-          archived.id,
-        ],
-      );
-      final returned = maintenance.tagUsage(timelineOnly: true)
+      repo.db.execute('UPDATE notes SET set_aside_until = ? WHERE id = ?', [
+        DateTime.now()
+            .toUtc()
+            .subtract(const Duration(days: 1))
+            .toIso8601String(),
+        archived.id,
+      ]);
+      final returned = maintenance
+          .tagUsage(timelineOnly: true)
           .singleWhere((usage) => usage.tag.id == tag.id);
       expect(returned.count, 2);
       expect(repo.listTimeline().map((note) => note.id).toSet(), {
