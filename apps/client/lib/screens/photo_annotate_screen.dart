@@ -1,4 +1,5 @@
 import '../platform/crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -10,7 +11,9 @@ import 'package:flutter/rendering.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/editor_drafts.dart';
+
 import 'package:crypto/crypto.dart';
+
 import '../widgets/draft_guard.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_dialog.dart';
@@ -216,7 +219,8 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
       if (mounted) {
         nexShowBanner(
           context,
-          message: AppLocalizations.of(context).captureFailed,
+          kind: NexBannerKind.failed,
+          message: AppLocalizations.of(context).photoEditFailed,
         );
       }
     } finally {
@@ -372,7 +376,8 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
       if (mounted) {
         nexShowBanner(
           context,
-          message: AppLocalizations.of(context).captureFailed,
+          kind: NexBannerKind.failed,
+          message: AppLocalizations.of(context).photoEditFailed,
         );
       }
     } finally {
