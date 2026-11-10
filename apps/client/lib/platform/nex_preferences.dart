@@ -292,7 +292,7 @@ class NexPreferences extends _PreferencesStore
     final value = jsonEncode({
       'library': library,
       'settings': settings,
-      if (modelId != null) 'modelId': modelId,
+      'modelId': ?modelId,
     });
     await _secureStorage.write(key: _restoreRecoveryKey, value: value);
     if (await _secureStorage.read(key: _restoreRecoveryKey) != value) {

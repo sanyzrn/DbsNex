@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
@@ -133,7 +134,7 @@ void main() {
         ..writeAsBytesSync([1, 2, 3]);
       final photo = await h.db.capturePhoto(
         mediaUri: image.path,
-        mediaHash: sha256OfBytes([1, 2, 3]),
+        mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
       );
       final backup = await libraryBackup();
       image.deleteSync();

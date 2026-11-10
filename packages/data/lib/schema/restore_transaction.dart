@@ -79,11 +79,15 @@ final class RestoreTransaction {
       jsonEncode({
         'databaseExisted': File(liveDbPath).existsSync(),
         'mediaExisted': mediaDir != null && Directory(mediaDir).existsSync(),
+        'mediaDir': mediaDir,
       }),
       flush: true,
     );
     // Keep the original journal format readable by existing builds.
-    File(_journalOf(liveDbPath)).writeAsStringSync(mediaDir ?? '', flush: true);
+    final journal = File(_journalOf(liveDbPath));
+    final pending = File('${journal.path}.pending');
+    pending.writeAsStringSync(mediaDir ?? '', flush: true);
+    pending.renameSync(journal.path);
     return RestoreTransaction._(liveDbPath, mediaDir);
   }
 
@@ -187,7 +191,11 @@ final class RestoreTransaction {
       dbAside.deleteSync(recursive: true);
     }
 
-    final mediaDir = journal.readAsStringSync();
+    // New journals keep the exact path in flushed metadata as well, so a
+    // damaged/truncated legacy path cannot target a different directory.
+    final mediaDir = initial != null && initial.containsKey('mediaDir')
+        ? initial['mediaDir'] as String? ?? ''
+        : journal.readAsStringSync();
     if (mediaDir.isNotEmpty) {
       final mediaAside = _mediaAsideOf(mediaDir);
       if (mediaAside.existsSync()) {

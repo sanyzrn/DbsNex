@@ -149,6 +149,21 @@ void main() {
     expect(readNote(dbPath), 'the live edit');
   });
 
+  test(
+    'a truncated journal cannot remove a parent of a first media directory',
+    () {
+      final prefix = Directory('${tmp.path}/prefix')..createSync();
+      final keep = File('${prefix.path}/keep.txt')
+        ..writeAsStringSync('unrelated');
+      final actualMedia = '${prefix.path}/full-media';
+      RestoreTransaction.begin(liveDbPath: dbPath, mediaDir: actualMedia);
+      File('$dbPath.restore-journal').writeAsStringSync(prefix.path);
+      RestoreTransaction.recover(dbPath);
+      expect(keep.readAsStringSync(), 'unrelated');
+      expect(Directory(actualMedia).existsSync(), isFalse);
+    },
+  );
+
   test('an interrupted first restore removes newly installed files', () {
     final staging = Directory('${tmp.path}/first')..createSync();
     final database = File('${staging.path}/nex.sqlite');
