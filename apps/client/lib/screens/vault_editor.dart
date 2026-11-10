@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
+
 import '../l10n/app_localizations.dart';
 import '../platform/vault_banks.dart';
 import '../platform/vault_store.dart';
@@ -111,9 +112,9 @@ class _VaultEditorState extends State<VaultEditor> {
     };
     if (normalize && widget.entry.kind == VaultKind.card) {
       values['number'] = vaultCardDigits(values['number']!);
-      values['iban'] = vaultLatinDigits(
-        values['iban']!,
-      ).replaceAll(RegExp(r'\s'), '').toUpperCase();
+      values['iban'] = vaultLatinDigits(values['iban']!)
+          .replaceAll(RegExp(r'\s'), '')
+          .toUpperCase();
       values['account'] = vaultLatinDigits(values['account']!);
       values['expiry'] = vaultLatinDigits(values['expiry']!);
       values['cvv2'] = vaultLatinDigits(values['cvv2']!);
@@ -569,9 +570,8 @@ class _CardNumberFormatter extends TextInputFormatter {
     ].join(' ');
     // Keep the caret after the same digit it was after.
     final end = newValue.selection.end.clamp(0, newValue.text.length);
-    final before = digitsOf(
-      newValue.text.substring(0, end),
-    ).length.clamp(0, digits.length);
+    final before = digitsOf(newValue.text.substring(0, end)).length
+        .clamp(0, digits.length);
     final caret = before == 0 ? 0 : before + (before - 1) ~/ 4;
     return TextEditingValue(
       text: grouped,
