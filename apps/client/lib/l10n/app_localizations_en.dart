@@ -2132,6 +2132,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That file could not be read. If it lives in a cloud folder, open it once so the device has a copy.';
 
   @override
+  String get photoEditFailed =>
+      'The photo could not be edited. Nothing was changed — please try again.';
+
+  @override
   String get retry => 'Try again';
 
   @override
