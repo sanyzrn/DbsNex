@@ -82,31 +82,51 @@ class _Composer extends StatelessWidget {
             // the field had one direction for everything in it, the bubble
             // one per line. [NexTextField] is the platform's own editor, which
             // does what the bubble does.
-            child: NexSurface(
-              key: const ValueKey('chat-composer-surface'),
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(NexRadius.xl),
-              child: NexTextField(
-                controller: controller,
-                focusNode: focusNode,
-                minLines: 1,
-                maxLines: 5,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSend(),
-                decoration: InputDecoration(
-                  hintText: l10n.chatHint,
-                  filled: false,
-                  border: outline,
-                  enabledBorder: outline,
-                  focusedBorder: outline.copyWith(
-                    borderSide: BorderSide(
-                      color: theme.colorScheme.primary,
-                      width: nexFocusRingWidth,
+            //
+            // Enter makes a new line, not a send: a prompt is prose, and the
+            // field already grows to five lines for exactly that. The button
+            // beside it is the only thing that sends — the same division the
+            // capture sheet's checklist makes. A physical Enter (desktop, or
+            // a phone with a keyboard) still sends, caught here rather than by
+            // the action, with Shift+Enter kept for the line it used to be.
+            child: Focus(
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                final isEnter =
+                    event.logicalKey == LogicalKeyboardKey.enter ||
+                    event.logicalKey == LogicalKeyboardKey.numpadEnter;
+                if (!isEnter || HardwareKeyboard.instance.isShiftPressed) {
+                  return KeyEventResult.ignored;
+                }
+                onSend();
+                return KeyEventResult.handled;
+              },
+              child: NexSurface(
+                key: const ValueKey('chat-composer-surface'),
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(NexRadius.xl),
+                child: NexTextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  minLines: 1,
+                  maxLines: 5,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: l10n.chatHint,
+                    filled: false,
+                    border: outline,
+                    enabledBorder: outline,
+                    focusedBorder: outline.copyWith(
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.primary,
+                        width: nexFocusRingWidth,
+                      ),
                     ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: NexSpacing.md,
-                    vertical: NexSpacing.sm,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: NexSpacing.md,
+                      vertical: NexSpacing.sm,
+                    ),
                   ),
                 ),
               ),
