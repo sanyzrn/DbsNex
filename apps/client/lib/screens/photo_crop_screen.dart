@@ -1,4 +1,5 @@
 import '../platform/crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -47,7 +48,22 @@ class PhotoCropScreen extends StatefulWidget {
 class _PhotoCropScreenState extends State<PhotoCropScreen>
     with NexDraftGuard<PhotoCropScreen> {
   @override
-  bool get hasUnsavedChanges => _ready || _rotating || _cropping;
+  // Every term is a real difference from the photo as it was handed in — a
+  // turn, a flip, a ratio, an area the person moved — or work in flight.
+  // `_ready` is none of those: it only says the parser finished, and counting
+  // it asked "discard changes?" of somebody who had changed nothing and only
+  // waited. The first `onMoved` after a (re)mount is the layout's own rect
+  // (the package reports the initial computation the same way it reports a
+  // drag), so [_initialArea] absorbs it and only a rect that differs from it
+  // afterwards counts.
+  bool get hasUnsavedChanges =>
+      _turns != 0 ||
+      _flipped ||
+      _aspectRatio != null ||
+      _restoredArea != null ||
+      _areaMoved ||
+      _rotating ||
+      _cropping;
   final _controller = CropController();
 
   /// The photo as it is to be seen — upright, see [uprightPhoto] — and what
@@ -72,6 +88,11 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   final _ratioScroll = ScrollController();
   Rect? _restoredArea;
   Rect? _area;
+
+  /// See [hasUnsavedChanges]: the rect as the layout left it, and whether a
+  /// later rect has differed from it.
+  Rect? _initialArea;
+  bool _areaMoved = false;
   String get _key => '${widget.draftKey}-crop';
   void _snapshot() => widget.drafts?.write(_key, {
     'ratio': _aspectRatio,
@@ -108,6 +129,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
       discardDraft();
       _restoredArea = null;
       _area = null;
+      _initialArea = null;
+      _areaMoved = false;
       _turns = 0;
       _flipped = false;
       _current = base;
@@ -192,7 +215,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
       setState(() => _rotating = false);
       nexShowBanner(
         context,
-        message: AppLocalizations.of(context).captureFailed,
+        kind: NexBannerKind.failed,
+        message: AppLocalizations.of(context).photoEditFailed,
       );
       return;
     }
@@ -215,6 +239,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
       _flipped = flip;
       _restoredArea = null;
       _area = null;
+      _initialArea = null;
       _current = rotated;
       _ready = false;
       _rotating = false;
@@ -271,7 +296,18 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
       case CropFailure(:final cause):
         if (!mounted) return;
         setState(() => _cropping = false);
-        nexShowBanner(context, message: '$cause');
+        // The cause is for the log — where someone who can read it will look
+        // — not for the banner: the banner says what happened in words that
+        // mean something, in the failure's own colours instead of the
+        // success it used to wear.
+        if (cause != null) {
+          unawaited(NexCrashLog.handled('photo.crop', cause));
+        }
+        nexShowBanner(
+          context,
+          kind: NexBannerKind.failed,
+          message: AppLocalizations.of(context).photoEditFailed,
+        );
     }
   }
 
@@ -420,9 +456,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                     )
                   : LayoutBuilder(
                       builder: (context, constraints) => MediaQuery(
-                        data: MediaQuery.of(
-                          context,
-                        ).copyWith(size: constraints.biggest),
+                        data: MediaQuery.of(context)
+                            .copyWith(size: constraints.biggest),
                         child: ClipRect(
                           child: SizedBox.fromSize(
                             size: constraints.biggest,
@@ -444,6 +479,17 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                                         ),
                                   onMoved: (_, area) {
                                     _area = area;
+                                    // The first report after a (re)mount is
+                                    // the initial rect itself — layout, not a
+                                    // hand. Only a rect that differs from it
+                                    // is an edit.
+                                    final initial = _initialArea;
+                                    if (initial == null) {
+                                      _initialArea = area;
+                                    } else if (area != null &&
+                                        area != initial) {
+                                      _areaMoved = true;
+                                    }
                                     _snapshot();
                                   },
                                   onCropped: (result) =>
