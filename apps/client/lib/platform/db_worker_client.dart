@@ -485,7 +485,9 @@ mixin _DbClient implements NexDb {
 
   @override
   Future<List<TagUsage>> tagUsage({bool timelineOnly = false}) =>
-      _send<List<TagUsage>>(_DbCommand.tagUsage, {'timelineOnly': timelineOnly});
+      _send<List<TagUsage>>(_DbCommand.tagUsage, {
+        'timelineOnly': timelineOnly,
+      });
 
   @override
   Future<void> renameTag(String id, String name) =>
