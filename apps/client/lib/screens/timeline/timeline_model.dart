@@ -179,7 +179,7 @@ class TimelineModel extends ChangeNotifier {
   }
 
   Future<void> loadFilterTags() async {
-    final loaded = await services.tagUsage();
+    final loaded = await services.tagUsage(timelineOnly: true);
     if (_disposed) return;
     final tags = [
       for (final usage in loaded)
@@ -219,20 +219,17 @@ class TimelineModel extends ChangeNotifier {
 
   Future<void> selectTags(Set<String> tagIds) {
     _onlyUntagged = false;
-    _selectedTagIds = tagIds;
-    notifyListeners();
+    _selectedTagIds = Set.unmodifiable(tagIds);
     return _applyFilters();
   }
 
   Future<void> selectType(NoteType? type) {
     _selectedType = type;
-    notifyListeners();
     return _applyFilters();
   }
 
   Future<void> selectOnlyReminders(bool only) {
     _onlyReminders = only;
-    notifyListeners();
     return _applyFilters();
   }
 
@@ -241,14 +238,12 @@ class TimelineModel extends ChangeNotifier {
     _selectedTagIds = const {};
     _selectedType = null;
     _onlyReminders = false;
-    notifyListeners();
     return _applyFilters();
   }
 
   Future<void> selectUntagged(bool selected) {
     _onlyUntagged = selected;
     if (selected) _selectedTagIds = const {};
-    notifyListeners();
     return _applyFilters();
   }
 
@@ -343,11 +338,19 @@ class TimelineModel extends ChangeNotifier {
     if (cleared) await services.refreshTimeline();
   }
 
-  Future<void> _applyFilters() async {
-    final count = _all?.length ?? 0;
-    final loaded = await services.timeline(limit: count > 200 ? count : 200);
-    if (_disposed) return;
-    _take(loaded);
+  // Filters only narrow the already-loaded timeline window. Re-reading the
+  // same database rows did not change [_all], so [_take] suppressed its
+  // notification even when [_notes] changed. The chip then showed the new
+  // selection while the cards still showed the previous one until an
+  // unrelated rebuild — especially confusing during rapid tag taps.
+  // Update both in the same turn, notify exactly once, and let the normal
+  // timeline stream keep the window fresh when underlying notes change.
+  Future<void> _applyFilters() {
+    if (!_disposed) {
+      _notes = visible(_all ?? const <Note>[]);
+      notifyListeners();
+    }
+    return Future<void>.value();
   }
 
   /// Returns true when the *entire* timeline snapshot actually changed.
