@@ -7,7 +7,9 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'draft_guard.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import '../platform/nex_preferences.dart';
 import '../platform/crash_reporter.dart';
 import 'nex_banner.dart';
@@ -253,9 +255,8 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
       // Said out loud rather than left as a button that did nothing. "Fix
       // writing" on text with nothing wrong with it is a success, and silence
       // is what a broken button looks like.
-      NexBannerHost.of(
-        context,
-      )?.show(message: AppLocalizations.of(context).aiEditUnchanged);
+      NexBannerHost.of(context)
+          ?.show(message: AppLocalizations.of(context).aiEditUnchanged);
       return;
     }
     setState(() {
