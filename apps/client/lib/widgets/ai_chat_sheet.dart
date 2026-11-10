@@ -5,7 +5,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -17,7 +17,9 @@ import 'collection_page.dart';
 import '../l10n/app_localizations.dart';
 import 'dismiss_on_overscroll.dart';
 import 'assistant_settings.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import '../platform/cycle_summary.dart';
 import '../platform/app_guide.dart';
 import '../platform/assistant_citations.dart';
