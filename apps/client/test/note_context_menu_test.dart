@@ -161,7 +161,7 @@ void main() {
     expect(guard.isOpen, isFalse);
   });
 
-  testWidgets('the card ducks while its menu is open, and the hold ticks', (
+  testWidgets('the card briefly ducks without remaining shrunk while the menu is open', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -187,9 +187,9 @@ void main() {
     await tester.longPress(find.text('A note'));
     await tester.pumpAndSettle();
     expect(find.text('Copy'), findsOneWidget);
-    // The card's own answer to its menu opening: a hair smaller for one
-    // fast beat, never dimmed.
-    expect(scaleOf(), 0.98);
+    // A transient tap response returns to the original geometry after
+    // the animation settles, while the actual menu stays visible.
+    expect(scaleOf(), 1.0);
 
     await tester.tap(find.text('Copy'));
     await tester.pumpAndSettle();
