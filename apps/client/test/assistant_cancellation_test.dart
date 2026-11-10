@@ -118,7 +118,8 @@ void main() {
 
   Future<void> send(WidgetTester tester) async {
     await tester.enterText(find.byType(TextField), 'Please read my tags');
-    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('send')));
     for (var i = 0; i < 15; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
