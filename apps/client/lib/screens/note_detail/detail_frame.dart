@@ -26,7 +26,7 @@ class _ActionRow extends StatelessWidget {
               ? a.at.compareTo(b.at)
               : a.rank.compareTo(b.rank),
         );
-    final visible = [for (final each in ranked) each.action];
+    final visible = [for (final each in ranked.take(3)) each.action];
     final remaining = all.where((action) => !visible.contains(action)).toList();
     return Row(
       children: [

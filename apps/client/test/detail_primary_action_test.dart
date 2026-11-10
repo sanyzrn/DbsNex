@@ -42,7 +42,7 @@ void main() {
   ) async {
     final h = await NexTestHarness.create();
     addTearDown(h.dispose);
-    final note = (await h.services.captureText('https://example.com/recipe'))!;
+    final note = (await h.services.captureLink('https://example.com/recipe'))!;
     await show(tester, h, note.id);
     final l = AppLocalizations.of(tester.element(find.byType(NoteDetailSheet)));
 
@@ -50,11 +50,10 @@ void main() {
     // only ever put it behind More, where it did not exist in the tree.
     expect(find.text(l.openLink), findsOneWidget);
     expect(find.text(l.openLink).hitTestable(), findsOneWidget);
-    // First slot: before Share, which is the one action that was always
-    // visible.
+    // The link's Open is before Copy, including on platforms without Share.
     expect(
       tester.getTopLeft(find.text(l.openLink)).dx,
-      lessThan(tester.getTopLeft(find.text(l.share)).dx),
+      lessThan(tester.getTopLeft(find.text(l.copy)).dx),
     );
     await tester.pumpWidget(const SizedBox());
   });

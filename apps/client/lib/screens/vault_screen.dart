@@ -159,7 +159,16 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         // where it was, and one that doesn't keeps nothing readable either
         // way. The veil itself was raised by the `inactive` that always
         // comes first.
-        if (!authenticating && !_veiled) _cover();
+        // A biometric reply after real backgrounding must never unlock.
+        // Inactive alone is expected during authentication prompts.
+        if (authenticating) {
+          generation++;
+          setState(() {
+            authenticating = false;
+            busy = false;
+          });
+        }
+        if (!_veiled) _cover();
         _veilHide?.cancel();
         _veilHide = Timer(const Duration(milliseconds: 600), () {
           _veilHide = null;

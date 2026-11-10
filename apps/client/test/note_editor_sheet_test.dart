@@ -230,6 +230,9 @@ void main() {
         return http.Response('{}', 200);
       }),
     );
+    // Longer notes open expanded, with AI actions behind their own toggle.
+    await tester.tap(find.byTooltip('Edit with AI'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Auto style'));
     await tester.pumpAndSettle();
     expect(calls, 0);
@@ -319,7 +322,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester.widget<IconButton>(
+        find.ancestor(
+          of: find.byTooltip('Save'),
+          matching: find.byType(IconButton),
+        ).first,
+      ).onPressed,
       isNull,
     );
   });

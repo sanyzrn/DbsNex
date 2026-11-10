@@ -28,28 +28,9 @@ part 'capture_sheet_parts.dart';
 /// What the capture sheet is making.
 enum CaptureKind { note, checklist, voice, link }
 
-/// The one place things are written into Nex: a note, a list, a voice note or
-/// a link. Text kinds switch above the editor; media is reached below it.
-///
-/// Each kind used to be its own sheet. Tapping the list or the link icon
-/// closed this one — keeping what had been typed as a note of its own — and
-/// opened another; the microphone did the same with a recording sheet. So a
-/// person who started typing "milk, eggs" and then thought "this is a list"
-/// ended up with a stray note and an empty list to type it all again into.
-///
-/// Now the words stay where they are and the kind is what changes: one
-/// field, the same keyboard, the box taking on the kind's colour and the
-/// hint saying what a line means. A note becomes a list line by line, a
-/// pasted address becomes a link, and the microphone turns the box itself
-/// into a recorder — no sheet closes, nothing is typed twice.
-///
-/// **Nothing is lost on the way (ADR-002).** What is typed is a note from
-/// the first keystroke, whatever kind is showing, so a process that dies
-/// mid-list comes back as a note with every line. Only when the sheet
-/// closes does a list or a link take that note's place: made first, and
-/// only once it exists is the note it came from removed, carrying its
-/// reminder across. Words that turn out not to be a link stay the note they
-/// already are.
+/// A unified capture sheet for text, checklist, voice and link entries.
+/// Edits are journaled as the user types so switching kinds or closing
+/// the sheet does not discard unfinished words (ADR-002).
 class CaptureSheet extends StatefulWidget {
   const CaptureSheet({
     super.key,
@@ -241,27 +222,8 @@ class _CaptureSheetState extends State<CaptureSheet>
     }
     setState(() {});
     if (noteId == null && value.isNotEmpty) {
-      // One first write, not one per keystroke.
-      //
-      // `noteId` is only set when that write comes back from the isolate, so
-      // every character typed while it was still in flight saw a null id and
-      // started another `captureText` — and each of those inserts a note of
-      // its own, with no dedup anywhere behind it. Typing "hello" faster than
-      // the round trip left "h", "he", "hel" and "hell" in the library for
-      // good: only the last id is kept here, so the others could never be
-      // flushed to, updated, or deleted by this sheet again. It also called
-      // `onCommitted` once per draft, flashing the timeline receipt on notes
-      // that were about to be abandoned.
-      //
-      // The window is not as narrow as an isolate hop sounds. The worker runs
-      // one command at a time, so the first capture queues behind whatever is
-      // already in flight — a timeline read after a resume, an enrichment
-      // call — and an IME that delivers a whole word at once (or a paste)
-      // needs no speed at all to get two keystrokes inside it.
-      //
-      // Nothing is scheduled for the keystrokes this skips: there is no id to
-      // flush to yet, and [_createFirstDraft] writes whatever has been typed
-      // by the time it lands.
+      // While the first isolate write is pending, do not start another note:
+      // the callback takes the latest text after the first id arrives.
       if (draft != null) return;
       final started = _createFirstDraft(value);
       draft = started;
@@ -361,19 +323,8 @@ class _CaptureSheetState extends State<CaptureSheet>
   /// flush, one after another — do not queue the same write three times.
   String? queued;
 
-  /// Writes [text] and only then records it as persisted.
-  ///
-  /// [persisted] used to be set the moment the update was *sent*, without
-  /// waiting for it. So a write that failed — a full disk, a worker that had
-  /// gone — was treated as saved: the next flush compared the field with
-  /// [persisted], found them equal, and never tried again, and the sheet
-  /// closed over text that was not in the library. Found by an independent
-  /// audit, with a failing write left as an unhandled error nobody saw.
-  ///
-  /// Now a failure leaves [persisted] where it was, so the next flush writes
-  /// again, and the person is told while the sheet is still open to type
-  /// into. A sheet already gone gets one immediate retry instead — the
-  /// services outlive it — because there is nobody left to tell.
+  /// Persist before updating the saved snapshot; failures keep the previous
+  /// snapshot available for retry while the editor stays open.
   Future<void> _write(String id, String text) async {
     queued = text;
     try {
@@ -397,12 +348,8 @@ class _CaptureSheetState extends State<CaptureSheet>
     }
   }
 
-  /// What the words become as the sheet closes — once, however many ways
-  /// it is closed (the send button, back, a swipe, leaving for the camera,
-  /// the sheet simply going away).
-  ///
-  /// False when the words could not be made into the kind showing; they are
-  /// still the note they were, and the sheet stays open to say so.
+  /// A single settlement for every way the sheet can close.
+  /// A failed conversion preserves the draft and leaves the sheet open.
   Future<bool>? _settling;
 
   Future<bool> _settle() => _settling ??= _settleOnce();
@@ -480,21 +427,8 @@ class _CaptureSheetState extends State<CaptureSheet>
     return true;
   }
 
-  /// Sets a reminder on what is being written, without interrupting it.
-  ///
-  /// The capture sheet has one hard rule over it: nothing may become a
-  /// decision on the way in (`docs/07-contributing.md`). A date picker is the
-  /// most expensive decision there is, so this button is not on the sheet
-  /// until there is something to remind anyone about — an empty sheet is
-  /// exactly what it always was — and it never blocks the capture: the note
-  /// is already saved by the time the button exists, so this hangs a time on
-  /// a note that exists rather than gating one that does not. A list or a
-  /// link made from the words when the sheet closes takes the reminder with
-  /// it.
-  ///
-  /// It sits beside the send button rather than in the row of tools, because
-  /// that row answers "what am I adding" and this answers "what should
-  /// happen to it" — the same question the send button answers.
+  /// Adds a reminder after the first draft is saved, without blocking capture.
+  /// A converted checklist or link inherits that reminder on settlement.
   Future<void> _remind() async {
     await draft;
     // What has been typed since the first keystroke, so a reminder set here

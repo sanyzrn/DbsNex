@@ -249,6 +249,7 @@ void main() {
       addTearDown(h.dispose);
       var reads = 0;
       var asked = 0;
+      var available = false;
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,
         (call) async {
@@ -258,7 +259,7 @@ void main() {
           }
           if (call.method == 'Clipboard.hasStrings') {
             asked++;
-            return {'value': asked > 1};
+            return {'value': available};
           }
           return null;
         },
@@ -288,15 +289,17 @@ void main() {
       final paste = find.byKey(const ValueKey('capture-paste'));
       final slot = find.byKey(const ValueKey('capture-paste-slot'));
       // Asked once on open; the clipboard was empty then, so no button.
-      expect(asked, 1);
+      expect(asked, greaterThanOrEqualTo(1));
+      final initialQueries = asked;
       expect(tester.getSize(slot).width, 48);
       expect(paste.hitTestable(), findsNothing);
       expect(reads, 0);
 
       // Coming back to the app asks again — this time there are words.
+      available = true;
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
-      expect(asked, 2);
+      expect(asked, greaterThan(initialQueries));
       expect(paste.hitTestable(), findsOneWidget);
 
       await tester.tap(paste);

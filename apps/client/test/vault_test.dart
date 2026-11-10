@@ -477,10 +477,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Unlock vault'));
     await tester.pump();
+    // Follow a real app lifecycle, not the forbidden paused → resumed jump.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     result.complete(true);
     await tester.pump();
     await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(find.text('Your vault is locked'), findsOneWidget);

@@ -365,39 +365,46 @@ class _NexCameraSheetState extends State<NexCameraSheet>
         NexSpacing.xl,
         120,
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.photo_camera_outlined,
-            color: Colors.white.withValues(alpha: 0.3),
-            size: 40,
-          ),
-          const SizedBox(height: NexSpacing.md),
-          // The skeleton: the panel's own shape, ghosted, where the picture
-          // is about to be.
-          Container(
-            width: 132,
-            height: 88,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(NexRadius.md),
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.photo_camera_outlined,
+                  color: Colors.white.withValues(alpha: 0.3),
+                  size: 40,
+                ),
+                const SizedBox(height: NexSpacing.md),
+                // The skeleton: the panel's own shape, ghosted, where the picture
+                // is about to be.
+                Container(
+                  width: 132,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(NexRadius.md),
+                  ),
+                ),
+                const SizedBox(height: NexSpacing.md),
+                Text(
+                  l10n.cameraStarting,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                ),
+                if (_offerSystemCamera) ...[
+                  const SizedBox(height: NexSpacing.md),
+                  FilledButton.tonal(
+                    onPressed: () => Navigator.of(context).pop(_useSystemCamera),
+                    child: Text(l10n.cameraUseSystem),
+                  ),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: NexSpacing.md),
-          Text(
-            l10n.cameraStarting,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 15),
-          ),
-          if (_offerSystemCamera) ...[
-            const SizedBox(height: NexSpacing.md),
-            FilledButton.tonal(
-              onPressed: () => Navigator.of(context).pop(_useSystemCamera),
-              child: Text(l10n.cameraUseSystem),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
