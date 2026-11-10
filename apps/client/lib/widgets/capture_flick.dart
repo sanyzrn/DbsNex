@@ -206,7 +206,7 @@ class _CaptureFlickState extends State<CaptureFlick>
   void _update(DragUpdateDetails details) {
     if (_committing) return;
     final dx = (_dx + details.delta.dx).clamp(-160.0, 160.0);
-    if (_lockedSide == 0 && dx.abs() >= _lockAfter) _lockedSide = dx.sign;
+    if (_lockedSide == 0 && dx.abs() >= _lockAfter) _lockedSide = dx.sign.toInt();
     final side = _side(dx);
     final armed = dx.abs() >= CaptureFlick.arm && side != CaptureShortcut.none
         ? side

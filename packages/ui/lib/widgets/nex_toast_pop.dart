@@ -52,7 +52,7 @@ class NexToastPop extends StatefulWidget {
 }
 
 class _NexToastPopState extends State<NexToastPop>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final _controller = AnimationController(
     vsync: this,
     duration: NexMotion.toastPop,
