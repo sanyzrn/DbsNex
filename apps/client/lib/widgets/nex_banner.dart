@@ -446,9 +446,8 @@ class _NexBannerState extends State<_NexBanner>
     // A one-shot Timer's tick is always zero until it fires. Use the frame
     // clock so holding a partially read banner preserves only its remaining time.
     final startedAt = _lifeStartedAt!;
-    final elapsed =
-        (WidgetsBinding.instance.currentFrameTimeStamp - startedAt)
-            .inMilliseconds;
+    final elapsed = (WidgetsBinding.instance.currentFrameTimeStamp - startedAt)
+        .inMilliseconds;
     _timer!.cancel();
     _timer = null;
     _lifeMs = math.max(0, _lifeMs - elapsed);

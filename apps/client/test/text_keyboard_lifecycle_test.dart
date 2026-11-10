@@ -89,9 +89,10 @@ void main() {
     );
     await tester.pump();
     final context = tester.element(find.byType(TextField));
-    final menu =
-        nexFormatContextMenuBuilder(context)(context, state)
-            as AdaptiveTextSelectionToolbar;
+    final menu = nexFormatContextMenuBuilder(context)(
+      context,
+      state,
+    ) as AdaptiveTextSelectionToolbar;
     menu.buttonItems!.firstWhere((item) => item.label == label).onPressed!();
     await tester.pumpAndSettle();
   }

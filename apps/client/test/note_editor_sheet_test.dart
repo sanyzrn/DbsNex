@@ -322,12 +322,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<IconButton>(
-        find.ancestor(
-          of: find.byTooltip('Save'),
-          matching: find.byType(IconButton),
-        ).first,
-      ).onPressed,
+      tester
+          .widget<IconButton>(
+            find
+                .ancestor(
+                  of: find.byTooltip('Save'),
+                  matching: find.byType(IconButton),
+                )
+                .first,
+          )
+          .onPressed,
       isNull,
     );
   });

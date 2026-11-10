@@ -397,7 +397,8 @@ class _NexCameraSheetState extends State<NexCameraSheet>
                 if (_offerSystemCamera) ...[
                   const SizedBox(height: NexSpacing.md),
                   FilledButton.tonal(
-                    onPressed: () => Navigator.of(context).pop(_useSystemCamera),
+                    onPressed: () =>
+                        Navigator.of(context).pop(_useSystemCamera),
                     child: Text(l10n.cameraUseSystem),
                   ),
                 ],
