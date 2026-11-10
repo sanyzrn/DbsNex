@@ -283,6 +283,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Work').last);
     await tester.pumpAndSettle();
+    // Tags are collected in a single picker visit, then committed on Add.
+    await tester.tap(find.text('Add').last);
+    await tester.pumpAndSettle();
     final notes = await harness.services.timeline();
     for (final text in ['beta note', 'gamma note']) {
       final note = notes.firstWhere((n) => n.content == text);
