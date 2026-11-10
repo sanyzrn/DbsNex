@@ -120,7 +120,10 @@ void main() {
     // at the end rather than the start, which is the same fact about this
     // screen read the other way round: now that the banner is the thing being
     // waited out, running the beam to a stop is exactly what is wanted.
-    await tester.pump(const Duration(seconds: 4));
+    // Separate frames exercise entrance, lifetime, then exit under fake time.
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(seconds: 7));
+    await tester.pump(const Duration(milliseconds: 450));
     await tester.pumpAndSettle();
     expect(find.text(l10n.recapRefreshFailed), findsNothing);
   });

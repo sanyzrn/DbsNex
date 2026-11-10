@@ -2,6 +2,26 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.16
+
+- **An Undo can no longer be swallowed silently.** A plain banner arriving while an actionable one is still up waits its turn instead of eating it — and a banner replaced by a newer one leaves through the edge it came from, with its exit animation.
+- **Banners keep their own time.** They arrive in half the time they used to, their words are readable from the first third of the entrance, the countdown starts once the entrance is over, scales with the message's length, and holding a banner pauses it.
+- **Sending a note reads as success.** The capture sheet leaves as soon as the words are settled — the timeline reloads behind the closing animation — and the send button becomes a ✓ rather than greying the sheet out like a failure.
+- **The first keystroke changes no sizes.** Paste keeps its column with only its icon fading, and the schedule hint waits for the words to be still, so nothing jumps around under the arriving keyboard.
+- **Paste shows when there is something to paste.** The sheet asks — without reading the clipboard — on open and on return, so an empty clipboard no longer shows a button that visibly does nothing.
+- **A link's Open sits on the toolbar.** Each note kind's primary action — Open for links and files, Edit for text — takes the first slot by rank, not by matching translated labels, which is why Open always used to hide behind More.
+- **Long notes open the editor full screen.** Past about eight lines the editor owns the screen from the start instead of a 220px box, and ✕ and ✓ are its controls in either size.
+- **Pickers arrive like the rest of the app.** The time and date pickers rise and settle on the app's own beat and scrim rather than Flutter's flat 150ms fade, and the assistant's settings sheet is the app's own sheet again.
+- **The camera's wait is spoken.** While the sensor is being asked for, the panel shows a faint skeleton and says what it is doing — and six seconds in it offers the phone's camera app, before the timeout does.
+- **Covered, not cleared.** Pulling the shade over the vault lays a blur across it and comes straight back with the form as it was — words, caret and place — instead of rebuilding it from a draft; being away past the grace period still locks.
+- **The assistant hold hint gets a button.** "Got it" is a real button now rather than part of the sentence, and the hint keeps to the app's own label style — still shown only when the assistant can actually answer.
+- **A toast leaves the way it arrived.** Its content's exit — a small settle and fade on the exit token — completes the entrance it always had.
+- **A cut preview says so.** A multiline bilingual preview that runs out of rows ends in an ellipsis instead of reading as the note's ending, and blank lines are no longer spent from the budget.
+- **A fast retreat is not a flick.** Pulling back through the middle to cancel a capture flick no longer fires the opposite side's shortcut; the opposite side still works by crossing its full arm.
+- **The wide-window scale is said out loud.** Appearance now notes that a wide window draws everything at 90% of the chosen size — the factor was always there, silently, on the notes' own text too.
+- **One clearance rule for the dock.** A single helper reserves the capture dock's room instead of the same sum written out screen by screen, and the dock itself gives way under an open keyboard.
+- **Chosen Night hands over in black.** With Night chosen, the window between the system splash and the app's first frame is painted black instead of flashing Soft Dark's grey.
+
 ## v2.6.15
 
 - **A tap in the search field is no longer a re-run.** Touching the field to move the caret or paste no longer restarts the whole search and re-fades the results; the keyboard's Search key now actually runs the query instead of just closing the keyboard.
@@ -33,6 +53,9 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 - **One receipt for every copy.** The hold menu, the note sheet and the selection all use one voice; Android 13+ leaves the word to the system's own clipboard preview, and everywhere else the banner says it.
 - **The hold menu answers the hold.** A tick when it opens, the card ducks a hair while it is up, and the menu hangs from the card's top edge rather than from under the finger.
 - **Copied text is only the text.** Empty lines copy as lines, not as invisible zero-width spaces, and neighbouring lines whose boxes touch no longer glue together with spaces.
+- **Home's tag filters take effect at once.** Tapping a tag, type or reminder filter now updates the notes on screen in the same breath; they used to keep showing the previous selection until something else rebuilt the screen.
+- **Home's tag counts count Home.** The number beside a tag says how many notes on the timeline carry it — archived and set-aside notes no longer inflate it.
+- **Code blocks read left-to-right inside Persian notes.** Fenced code in a Markdown note keeps its own direction, alignment and horizontal scrolling instead of being reordered by the note's Persian layout.
 
 ## v2.6.14
 

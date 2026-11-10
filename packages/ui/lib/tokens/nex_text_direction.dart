@@ -156,9 +156,14 @@ class _MixedPreview extends StatelessWidget {
     builder: (context, constraints) {
       final base = DefaultTextStyle.of(context).style.merge(style);
       final scaler = MediaQuery.textScalerOf(context);
+      // A blank line is a row that says nothing: in a clamped preview it is
+      // budget spent on air. (The small budgets filter these before they get
+      // here; larger ones did not.)
+      final words = lines.where((line) => line.trim().isNotEmpty).toList();
       var left = budget;
       final children = <Widget>[];
-      for (final line in lines) {
+      for (var i = 0; i < words.length; i++) {
+        final line = words[i];
         if (left <= 0) break;
         final painter = TextPainter(
           text: TextSpan(text: line, style: base),
@@ -167,8 +172,20 @@ class _MixedPreview extends StatelessWidget {
           maxLines: left,
         )..layout(maxWidth: constraints.maxWidth);
         final rows = painter.computeLineMetrics().length.clamp(1, left);
+        final cutItself = painter.didExceedMaxLines;
         painter.dispose();
-        children.add(_DirectionalLine(line, style, rows: rows));
+        // The last line of the budget says when there is more after it: a
+        // preview that simply stops reads as the note's ending. A line the
+        // budget cut mid-sentence already wears its own ellipsis — this is
+        // only for the line that finished exactly as the money ran out.
+        final moreRemain = i + 1 < words.length && rows == left && !cutItself;
+        children.add(
+          _DirectionalLine(
+            moreRemain ? '$line\u2026' : line,
+            style,
+            rows: rows,
+          ),
+        );
         left -= rows;
       }
       return Column(

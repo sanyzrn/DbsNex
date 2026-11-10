@@ -10,8 +10,12 @@ void main() {
     ),
   );
 
-  Finder scaleOf(Finder ancestor) =>
-      find.descendant(of: ancestor, matching: find.byType(ScaleTransition));
+  Finder scaleOf(Finder ancestor) {
+    // The outer transition is the exit; the innermost one is the entrance.
+    return find
+        .descendant(of: ancestor, matching: find.byType(ScaleTransition))
+        .last;
+  }
 
   testWidgets('the child is on screen once the pop settles', (tester) async {
     await tester.pumpWidget(host(const NexToastPop(child: Text('saved'))));
@@ -45,5 +49,78 @@ void main() {
           .value,
       1,
     );
+  });
+
+  testWidgets('dismiss leaves the way it came — a small settle, then gone', (
+    tester,
+  ) async {
+    // A toast that lands with a pop and leaves with nothing reads as
+    // half-built. The host says dismiss; the content settles toward 0.92
+    // and fades on the exit token, and only then is taken down.
+    final controller = NexToastPopController();
+    var up = false;
+    await tester.pumpWidget(
+      host(
+        StatefulBuilder(
+          builder: (context, setState) => up
+              ? const SizedBox()
+              : NexToastPop(
+                  controller: controller,
+                  onGone: () => setState(() => up = true),
+                  child: const Text('saved'),
+                ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.isAttached, isTrue);
+
+    controller.dismiss();
+    await tester.pump();
+    await tester.pump(NexMotion.exit ~/ 2);
+    // On the way out: smaller than it stood, dimmer than it was.
+    expect(
+      tester
+          .widget<ScaleTransition>(
+            find
+                .descendant(
+                  of: find.byType(NexToastPop),
+                  matching: find.byType(ScaleTransition),
+                )
+                .first,
+          )
+          .scale
+          .value,
+      allOf(greaterThan(0.92), lessThan(1)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(up, isTrue);
+    expect(find.byType(NexToastPop), findsNothing);
+    expect(controller.isAttached, isFalse);
+  });
+
+  testWidgets('reduced motion dismisses without animated frames', (
+    tester,
+  ) async {
+    final controller = NexToastPopController();
+    var gone = 0;
+    await tester.pumpWidget(
+      host(
+        NexToastPop(
+          controller: controller,
+          onGone: () => gone++,
+          child: const Text('saved'),
+        ),
+        animations: false,
+      ),
+    );
+    await tester.pump();
+
+    controller.dismiss();
+    await tester.pump();
+
+    expect(gone, 1);
+    await tester.pumpWidget(const SizedBox());
   });
 }

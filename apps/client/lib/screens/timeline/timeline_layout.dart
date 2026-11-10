@@ -414,8 +414,7 @@ extension _TimelineLayout on TimelineScreenState {
                             // both, or it cannot be read or tapped.
                             SliverToBoxAdapter(
                               child: SizedBox(
-                                height:
-                                    nexFabClearance + nexBottomInset(context),
+                                height: nexDockClearance(context),
                               ),
                             ),
                           ],
@@ -456,9 +455,14 @@ extension _TimelineLayout on TimelineScreenState {
       // Capture is a timeline action. Left up while searching, the bar read
       // as part of the search flow itself rather than what it actually still
       // did — open a fresh note, unrelated to whatever was just searched.
+      // It also gives way under any open keyboard — not only the search
+      // field's: floating over a keyboard puts it in the typing's own
+      // airspace, and it comes back with the same morph as ever.
       // The desktop's rail replaces the dock; the selection bar stays.
       floatingActionButton:
-          _searching || (NexDesktopScope.isDesktop(context) && !_selecting)
+          _searching ||
+              MediaQuery.viewInsetsOf(context).bottom > 0 ||
+              (NexDesktopScope.isDesktop(context) && !_selecting)
           ? null
           : AnimatedSwitcher(
               // The dock does not cross-fade into the selection bar: it
@@ -531,28 +535,58 @@ extension _TimelineLayout on TimelineScreenState {
         // true.
         if (!widget.preferences.captureHoldHintSeen &&
             AiChatSheet.availableFor(widget.preferences))
-          GestureDetector(
-            onTap: () => widget.preferences.dismissCaptureHoldHint(),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 230),
-              padding: const EdgeInsets.symmetric(
-                horizontal: NexSpacing.md,
-                vertical: NexSpacing.sm,
-              ),
-              margin: const EdgeInsets.only(bottom: NexSpacing.sm),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.inverseSurface,
-                borderRadius: BorderRadius.circular(NexRadius.xl),
-              ),
-              child: Text(
-                AppLocalizations.of(context).assistantHoldHint,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onInverseSurface,
-                  fontSize: 12,
+          Builder(
+            builder: (context) {
+              final theme = Theme.of(context);
+              final scheme = theme.colorScheme;
+              return Container(
+                constraints: const BoxConstraints(maxWidth: 260),
+                padding: const EdgeInsetsDirectional.fromSTEB(
+                  NexSpacing.md,
+                  NexSpacing.sm,
+                  NexSpacing.xs,
+                  0,
                 ),
-              ),
-            ),
+                margin: const EdgeInsets.only(bottom: NexSpacing.sm),
+                decoration: BoxDecoration(
+                  color: scheme.inverseSurface,
+                  borderRadius: BorderRadius.circular(NexRadius.xl),
+                ),
+                // The words are the lesson; the button is the exit — a
+                // "Got it" that was part of the sentence read as decoration
+                // and dismissed wherever in the capsule the finger landed.
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        AppLocalizations.of(context).assistantHoldHint,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onInverseSurface,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          widget.preferences.dismissCaptureHoldHint(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: scheme.inversePrimary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: NexSpacing.sm,
+                        ),
+                        minimumSize: const Size(40, 40),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: Text(AppLocalizations.of(context).gotIt),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         NexNavigationDock(
           leading: [

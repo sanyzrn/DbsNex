@@ -28,28 +28,9 @@ part 'capture_sheet_parts.dart';
 /// What the capture sheet is making.
 enum CaptureKind { note, checklist, voice, link }
 
-/// The one place things are written into Nex: a note, a list, a voice note or
-/// a link. Text kinds switch above the editor; media is reached below it.
-///
-/// Each kind used to be its own sheet. Tapping the list or the link icon
-/// closed this one — keeping what had been typed as a note of its own — and
-/// opened another; the microphone did the same with a recording sheet. So a
-/// person who started typing "milk, eggs" and then thought "this is a list"
-/// ended up with a stray note and an empty list to type it all again into.
-///
-/// Now the words stay where they are and the kind is what changes: one
-/// field, the same keyboard, the box taking on the kind's colour and the
-/// hint saying what a line means. A note becomes a list line by line, a
-/// pasted address becomes a link, and the microphone turns the box itself
-/// into a recorder — no sheet closes, nothing is typed twice.
-///
-/// **Nothing is lost on the way (ADR-002).** What is typed is a note from
-/// the first keystroke, whatever kind is showing, so a process that dies
-/// mid-list comes back as a note with every line. Only when the sheet
-/// closes does a list or a link take that note's place: made first, and
-/// only once it exists is the note it came from removed, carrying its
-/// reminder across. Words that turn out not to be a link stay the note they
-/// already are.
+/// A unified capture sheet for text, checklist, voice and link entries.
+/// Edits are journaled as the user types so switching kinds or closing
+/// the sheet does not discard unfinished words (ADR-002).
 class CaptureSheet extends StatefulWidget {
   const CaptureSheet({
     super.key,
@@ -95,7 +76,8 @@ class CaptureSheet extends StatefulWidget {
 /// Where the microphone is: off, asking for itself, or listening.
 enum _Voice { off, starting, on }
 
-class _CaptureSheetState extends State<CaptureSheet> {
+class _CaptureSheetState extends State<CaptureSheet>
+    with WidgetsBindingObserver {
   final controller = TextEditingController();
   final _fieldFocus = FocusNode();
 
@@ -111,6 +93,26 @@ class _CaptureSheetState extends State<CaptureSheet> {
   /// Whether this sheet has already said the journal write failed (see
   /// [changed]): a broken journal is a condition, not an event.
   bool _journalFailureTold = false;
+
+  /// Whether the clipboard holds words to paste — asked without reading
+  /// them: [Clipboard.hasStrings] touches only the clip's description, so
+  /// Android does not announce "Nex pasted from your clipboard" for it. The
+  /// Paste button used to show whatever the clipboard held, and a button
+  /// that visibly does nothing when pressed reads as broken, not as empty.
+  bool _clipboardHasText = false;
+
+  /// Asked when the sheet opens and when the app comes back to the front —
+  /// the two moments the clipboard can have changed unseen.
+  Future<void> _checkClipboard() async {
+    final has = await Clipboard.hasStrings();
+    if (!mounted || has == _clipboardHasText) return;
+    setState(() => _clipboardHasText = has);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_checkClipboard());
+  }
 
   /// The sheet's one failure voice: failed colours, the setting's own
   /// haptics (a banner that is the direct result of a gesture never adds a
@@ -163,6 +165,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_checkClipboard());
     if (widget.initialKind == CaptureKind.voice) {
       // The recorder shows from the first frame, not after the permission
       // round trip: a sheet opened to speak into should never flash a
@@ -218,27 +222,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
     }
     setState(() {});
     if (noteId == null && value.isNotEmpty) {
-      // One first write, not one per keystroke.
-      //
-      // `noteId` is only set when that write comes back from the isolate, so
-      // every character typed while it was still in flight saw a null id and
-      // started another `captureText` — and each of those inserts a note of
-      // its own, with no dedup anywhere behind it. Typing "hello" faster than
-      // the round trip left "h", "he", "hel" and "hell" in the library for
-      // good: only the last id is kept here, so the others could never be
-      // flushed to, updated, or deleted by this sheet again. It also called
-      // `onCommitted` once per draft, flashing the timeline receipt on notes
-      // that were about to be abandoned.
-      //
-      // The window is not as narrow as an isolate hop sounds. The worker runs
-      // one command at a time, so the first capture queues behind whatever is
-      // already in flight — a timeline read after a resume, an enrichment
-      // call — and an IME that delivers a whole word at once (or a paste)
-      // needs no speed at all to get two keystrokes inside it.
-      //
-      // Nothing is scheduled for the keystrokes this skips: there is no id to
-      // flush to yet, and [_createFirstDraft] writes whatever has been typed
-      // by the time it lands.
+      // While the first isolate write is pending, do not start another note:
+      // the callback takes the latest text after the first id arrives.
       if (draft != null) return;
       final started = _createFirstDraft(value);
       draft = started;
@@ -338,19 +323,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
   /// flush, one after another — do not queue the same write three times.
   String? queued;
 
-  /// Writes [text] and only then records it as persisted.
-  ///
-  /// [persisted] used to be set the moment the update was *sent*, without
-  /// waiting for it. So a write that failed — a full disk, a worker that had
-  /// gone — was treated as saved: the next flush compared the field with
-  /// [persisted], found them equal, and never tried again, and the sheet
-  /// closed over text that was not in the library. Found by an independent
-  /// audit, with a failing write left as an unhandled error nobody saw.
-  ///
-  /// Now a failure leaves [persisted] where it was, so the next flush writes
-  /// again, and the person is told while the sheet is still open to type
-  /// into. A sheet already gone gets one immediate retry instead — the
-  /// services outlive it — because there is nobody left to tell.
+  /// Persist before updating the saved snapshot; failures keep the previous
+  /// snapshot available for retry while the editor stays open.
   Future<void> _write(String id, String text) async {
     queued = text;
     try {
@@ -374,12 +348,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
     }
   }
 
-  /// What the words become as the sheet closes — once, however many ways
-  /// it is closed (the send button, back, a swipe, leaving for the camera,
-  /// the sheet simply going away).
-  ///
-  /// False when the words could not be made into the kind showing; they are
-  /// still the note they were, and the sheet stays open to say so.
+  /// A single settlement for every way the sheet can close.
+  /// A failed conversion preserves the draft and leaves the sheet open.
   Future<bool>? _settling;
 
   Future<bool> _settle() => _settling ??= _settleOnce();
@@ -457,21 +427,8 @@ class _CaptureSheetState extends State<CaptureSheet> {
     return true;
   }
 
-  /// Sets a reminder on what is being written, without interrupting it.
-  ///
-  /// The capture sheet has one hard rule over it: nothing may become a
-  /// decision on the way in (`docs/07-contributing.md`). A date picker is the
-  /// most expensive decision there is, so this button is not on the sheet
-  /// until there is something to remind anyone about — an empty sheet is
-  /// exactly what it always was — and it never blocks the capture: the note
-  /// is already saved by the time the button exists, so this hangs a time on
-  /// a note that exists rather than gating one that does not. A list or a
-  /// link made from the words when the sheet closes takes the reminder with
-  /// it.
-  ///
-  /// It sits beside the send button rather than in the row of tools, because
-  /// that row answers "what am I adding" and this answers "what should
-  /// happen to it" — the same question the send button answers.
+  /// Adds a reminder after the first draft is saved, without blocking capture.
+  /// A converted checklist or link inherits that reminder on settlement.
   Future<void> _remind() async {
     await draft;
     // What has been typed since the first keystroke, so a reminder set here
@@ -601,8 +558,14 @@ class _CaptureSheetState extends State<CaptureSheet> {
     setState(() => _allowClose = true);
     nexDismissKeyboard(context);
     if (!mounted) return;
+    // The sheet goes before the timeline reloads: the reload is the
+    // database's business, not something the author of three words waits
+    // on. What a send leaves behind is a ✓ on a closing sheet — not a
+    // greyed-out, locked one that reads as something having failed. The
+    // sheet stays open only on the failure path above, where the words are
+    // still unsaved and still editable.
+    Navigator.pop(context);
     await widget.services.refreshTimeline();
-    if (mounted) Navigator.pop(context);
   }
 
   /// Whether the words in a link box will not be an address, so closing will
@@ -626,6 +589,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
   @override
   void dispose() {
     _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     // The journal first: the database write below may still fail, and the
     // snapshot is what a relaunch recovers from.
     widget.services.captureJournal.flushPending();
@@ -652,7 +616,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
       _hintCounted = true;
       unawaited(widget.preferences.countScheduleHint());
     }
-    final tools = !_voiceOn && !_closing;
+    final tools = !_voiceOn;
     return PopScope(
       canPop: _allowClose,
       onPopInvokedWithResult: (didPop, _) {
@@ -671,7 +635,11 @@ class _CaptureSheetState extends State<CaptureSheet> {
           children: [
             _KindBar(
               shown: _kind,
-              recording: _voiceOn || _closing,
+              // Closing no longer dims the chips: the words are settled and
+              // the sheet is on its way out — a sheet that greys itself at
+              // the moment of success looks like one that failed. Taps are
+              // simply ignored ([_select] guards on [_closing]).
+              recording: _voiceOn,
               onSelect: _select,
             ),
             const SizedBox(height: NexSpacing.sm),
@@ -706,85 +674,89 @@ class _CaptureSheetState extends State<CaptureSheet> {
               scheduleHint: showScheduleHint,
             ),
             const SizedBox(height: NexSpacing.xs),
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: NexSpacing.sm,
-              runSpacing: NexSpacing.xs,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _Tool(
-                      icon: Icons.mic_none,
-                      label: l10n.voice,
-                      type: 'voice',
-                      selected: _voiceOn,
-                      onTap: tools ? () => _select(CaptureKind.voice) : null,
-                    ),
-                    _Tool(
-                      icon: Icons.photo_camera_outlined,
-                      label: l10n.camera,
-                      type: 'photo',
-                      onTap: tools
-                          ? () => unawaited(_leaveFor(widget.onCamera))
-                          : null,
-                    ),
-                    _Tool(
-                      icon: Icons.photo_library_outlined,
-                      label: l10n.gallery,
-                      type: 'photo',
-                      onTap: tools
-                          ? () => unawaited(_leaveFor(widget.onGallery))
-                          : null,
-                    ),
-                    _Tool(
-                      icon: Icons.insert_drive_file_outlined,
-                      label: l10n.file,
-                      type: 'file',
-                      onTap: tools
-                          ? () => unawaited(_leaveFor(widget.onFile))
-                          : null,
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _SideAction(
-                      recording: _voiceOn,
-                      canRemind: controller.text.isNotEmpty && !_closing,
-                      hasReminder: hasReminder,
-                      onRemind: () => unawaited(_remind()),
-                      onDiscard: _closing
-                          ? null
-                          : () => unawaited(_discardRecording()),
-                    ),
-                    const SizedBox(width: NexSpacing.xs),
-                    _SendButton(
-                      kind: shown,
-                      closing: _closing,
-                      keepingAsNote: _keepingAsNote,
-                      onSend: _closing
-                          ? null
-                          : switch (shown) {
-                              CaptureKind.voice =>
-                                _voice == _Voice.on
-                                    ? () => unawaited(_keepRecording())
-                                    : null,
-                              // Including a link box whose words are not an
-                              // address: close settles them into the note
-                              // they already are, and says so — see
-                              // [_keepingAsNote].
-                              _ => () => unawaited(close()),
-                            },
-                      onSchedule: shown == CaptureKind.note && typed
-                          ? () => unawaited(_schedule())
-                          : null,
-                    ),
-                  ],
-                ),
-              ],
+            // Everything below stays fully drawn while closing — the tools
+            // keep their colour and the buttons their shape; the pointers are
+            // simply ignored, rather than the sheet greying itself out.
+            IgnorePointer(
+              ignoring: _closing,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: NexSpacing.sm,
+                runSpacing: NexSpacing.xs,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _Tool(
+                        icon: Icons.mic_none,
+                        label: l10n.voice,
+                        type: 'voice',
+                        selected: _voiceOn,
+                        onTap: tools ? () => _select(CaptureKind.voice) : null,
+                      ),
+                      _Tool(
+                        icon: Icons.photo_camera_outlined,
+                        label: l10n.camera,
+                        type: 'photo',
+                        onTap: tools
+                            ? () => unawaited(_leaveFor(widget.onCamera))
+                            : null,
+                      ),
+                      _Tool(
+                        icon: Icons.photo_library_outlined,
+                        label: l10n.gallery,
+                        type: 'photo',
+                        onTap: tools
+                            ? () => unawaited(_leaveFor(widget.onGallery))
+                            : null,
+                      ),
+                      _Tool(
+                        icon: Icons.insert_drive_file_outlined,
+                        label: l10n.file,
+                        type: 'file',
+                        onTap: tools
+                            ? () => unawaited(_leaveFor(widget.onFile))
+                            : null,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _SideAction(
+                        recording: _voiceOn,
+                        canRemind: controller.text.isNotEmpty,
+                        hasReminder: hasReminder,
+                        onRemind: () => unawaited(_remind()),
+                        onDiscard: _closing
+                            ? null
+                            : () => unawaited(_discardRecording()),
+                      ),
+                      const SizedBox(width: NexSpacing.xs),
+                      _SendButton(
+                        kind: shown,
+                        closing: _closing,
+                        keepingAsNote: _keepingAsNote,
+                        onSend: switch (shown) {
+                          CaptureKind.voice =>
+                            _voice == _Voice.on
+                                ? () => unawaited(_keepRecording())
+                                : null,
+                          // Including a link box whose words are not an
+                          // address: close settles them into the note
+                          // they already are, and says so — see
+                          // [_keepingAsNote].
+                          _ => () => unawaited(close()),
+                        },
+                        onSchedule: shown == CaptureKind.note && typed
+                            ? () => unawaited(_schedule())
+                            : null,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),

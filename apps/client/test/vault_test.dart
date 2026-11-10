@@ -172,10 +172,17 @@ void main() {
         VaultKind.message,
       );
       expect(find.text('A private saved message'), findsOneWidget);
+      // Covered, not cleared: the words stay where they were, under a blur
+      // and a scrim nothing reads or touches through, and are right there
+      // again the moment the app is active.
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump();
-      expect(find.text('A private saved message'), findsNothing);
+      expect(find.byType(BackdropFilter), findsOneWidget);
+      expect(find.text('A private saved message').hitTestable(), findsNothing);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(find.byType(BackdropFilter), findsNothing);
+      expect(find.text('A private saved message'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -327,10 +334,12 @@ void main() {
       // vault; coming back from the browser must not start over.
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump();
+      expect(find.byKey(const ValueKey('vault-veil')), findsOneWidget);
       expect(find.text('private-value'), findsNothing);
-      expect(find.text('Account one'), findsNothing);
+      expect(find.text('Account one').hitTestable(), findsNothing);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('vault-veil')), findsNothing);
       expect(find.text('private-value'), findsNothing);
       expect(find.text('••••••••'), findsOneWidget);
       expect(auth.calls, 1);
@@ -468,10 +477,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Unlock vault'));
     await tester.pump();
+    // Follow a real app lifecycle, not the forbidden paused → resumed jump.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     result.complete(true);
     await tester.pump();
     await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(find.text('Your vault is locked'), findsOneWidget);

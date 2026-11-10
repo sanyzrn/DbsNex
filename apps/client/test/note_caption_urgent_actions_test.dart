@@ -45,7 +45,7 @@ void main() {
         matching: find.byType(TextField),
       );
       await tester.enterText(field, 'Separate caption needle260.');
-      await tester.tap(find.text(l.save).last);
+      await tester.tap(find.byTooltip(l.save));
       await tester.pumpAndSettle();
       var saved = (await h.services.getById(note.id))!;
       expect(saved.caption, 'Separate caption needle260.');

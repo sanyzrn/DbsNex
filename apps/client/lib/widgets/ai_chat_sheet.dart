@@ -130,6 +130,11 @@ class AiChatSheet extends StatefulWidget {
     showDragHandle: false,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
+    // The app's own scrim in glass mode, the one nexShowSheet puts behind
+    // every other sheet, rather than the raw modal's default black54.
+    barrierColor: context.nexVisualStyle.liquidGlass
+        ? Colors.black.withValues(alpha: 0.24)
+        : null,
     // A touch slower and softer than a plain sheet, so it rises together
     // with the light along the screen's edge the hold left behind.
     sheetAnimationStyle: nexSheetRise,

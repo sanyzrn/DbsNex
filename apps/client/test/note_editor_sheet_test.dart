@@ -230,6 +230,9 @@ void main() {
         return http.Response('{}', 200);
       }),
     );
+    // Longer notes open expanded, with AI actions behind their own toggle.
+    await tester.tap(find.byTooltip('Edit with AI'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Auto style'));
     await tester.pumpAndSettle();
     expect(calls, 0);
@@ -270,7 +273,7 @@ void main() {
     await tester.enterText(find.byType(TextField), 'second');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.byTooltip('Cancel'));
     await tester.pumpAndSettle();
 
     expect(find.text('Discard unsaved changes?'), findsOneWidget);
@@ -292,7 +295,7 @@ void main() {
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       'second',
     );
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.byTooltip('Cancel'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Discard'));
     await tester.pumpAndSettle();
@@ -305,7 +308,7 @@ void main() {
     await tester.enterText(find.byType(TextField), 'second');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.byTooltip('Save'));
     await tester.pumpAndSettle();
 
     expect(result(), 'second');
@@ -319,7 +322,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester
+          .widget<IconButton>(
+            find
+                .ancestor(
+                  of: find.byTooltip('Save'),
+                  matching: find.byType(IconButton),
+                )
+                .first,
+          )
+          .onPressed,
       isNull,
     );
   });
@@ -392,7 +404,9 @@ void main() {
       'the draft',
     );
 
-    await tester.tap(find.byTooltip('Undo'));
+    // The undo is the same bar in either size now, not a header icon that
+    // only the full screen had.
+    await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
@@ -402,5 +416,41 @@ void main() {
     await tester.tap(find.byTooltip('Save'));
     await tester.pumpAndSettle();
     expect(result(), 'teh draft');
+  });
+
+  testWidgets('a long note opens owning the screen outright', (tester) async {
+    // A tall note used to open in the 220px box: already scrolling, most of
+    // itself out of view, Save below the fold. More than about eight lines
+    // and the editor starts full screen — and can still be shrunk.
+    final long = List.generate(
+      12,
+      (i) => 'line $i of a note that grew',
+    ).join('\n');
+    await open(tester, initial: long);
+
+    expect(find.byTooltip('Smaller'), findsOneWidget);
+    final field = tester.getSize(find.byType(TextField)).height;
+
+    await tester.tap(find.byTooltip('Smaller'));
+    await tester.pumpAndSettle();
+    final small = tester.getSize(find.byType(TextField)).height;
+    expect(field, greaterThan(small * 2));
+  });
+
+  testWidgets('the controls are the same shape in both sizes', (tester) async {
+    // ✕ and ✓ with tooltips in either size, rather than words that became
+    // icons the moment the sheet grew.
+    await open(tester, initial: 'a note');
+    expect(find.byTooltip('Cancel'), findsOneWidget);
+    expect(find.byTooltip('Save'), findsOneWidget);
+    expect(find.text('Cancel'), findsNothing);
+    expect(find.text('Save'), findsNothing);
+
+    await tester.tap(find.byTooltip('Full screen'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Cancel'), findsOneWidget);
+    expect(find.byTooltip('Save'), findsOneWidget);
+    expect(find.text('Cancel'), findsNothing);
+    expect(find.text('Save'), findsNothing);
   });
 }

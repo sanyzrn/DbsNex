@@ -1700,6 +1700,12 @@ abstract class AppLocalizations {
   /// **'Default'**
   String get uiScaleDefault;
 
+  /// No description provided for @uiScaleWideNote.
+  ///
+  /// In en, this message translates to:
+  /// **'In a wide window the interface is drawn at 90% of the chosen size.'**
+  String get uiScaleWideNote;
+
   /// No description provided for @uiScaleLarge.
   ///
   /// In en, this message translates to:
@@ -7682,11 +7688,17 @@ abstract class AppLocalizations {
   /// **'One day more'**
   String get cycleStepMore;
 
-  /// One-time capsule over the + button; tapping it dismisses it.
+  /// One-time capsule over the + button; its button dismisses it.
   ///
   /// In en, this message translates to:
-  /// **'Hold + for the assistant • Got it'**
+  /// **'Hold + for the assistant'**
   String get assistantHoldHint;
+
+  /// No description provided for @gotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get gotIt;
 
   /// AI tool on a YouTube link: watch the video and summarise what is in it.
   ///
@@ -8365,6 +8377,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use the camera app'**
   String get cameraUseSystem;
+
+  /// No description provided for @cameraStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Turning the camera on…'**
+  String get cameraStarting;
 
   /// No description provided for @disclosuresTitle.
   ///

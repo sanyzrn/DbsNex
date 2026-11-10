@@ -108,6 +108,12 @@ class _NexCameraSheetState extends State<NexCameraSheet>
   bool _blink = false;
   double _drag = 0;
 
+  /// When a wait that is still trying stops looking like a wait and starts
+  /// offering the way out: most cameras are up long before this, and the
+  /// ones that reach it are usually heading for the timeout.
+  Timer? _systemCameraAt;
+  bool _offerSystemCamera = false;
+
   int _initialIndex() {
     final index = widget.cameras.indexWhere(
       (camera) => camera.lensDirection == _lastLens,
@@ -130,6 +136,17 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     final previous = _controller;
     _controller = null;
     if (mounted) setState(() => _failed = false);
+    // The wait is spoken: a panel that goes black for as long as the sensor
+    // takes reads as broken, not busy. Six seconds in, it also offers the
+    // system camera — the same way out the timeout ends in, arrived at
+    // while there is still time to take it.
+    _systemCameraAt?.cancel();
+    if (mounted) setState(() => _offerSystemCamera = false);
+    _systemCameraAt = Timer(const Duration(seconds: 6), () {
+      if (!mounted || generation != _generation) return;
+      if (_controller != null || _failed) return;
+      setState(() => _offerSystemCamera = true);
+    });
     // Not awaited: a controller whose opening never finished never finishes
     // disposing either, and the next camera should not wait on it.
     _release(previous);
@@ -203,6 +220,7 @@ class _NexCameraSheetState extends State<NexCameraSheet>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _systemCameraAt?.cancel();
     _release(_controller);
     super.dispose();
   }
@@ -287,7 +305,7 @@ class _NexCameraSheetState extends State<NexCameraSheet>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _preview(),
+                  _preview(context),
                   AnimatedOpacity(
                     opacity: _blink ? .85 : 0,
                     duration: const Duration(milliseconds: 90),
@@ -313,10 +331,12 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     );
   }
 
-  Widget _preview() {
+  Widget _preview(BuildContext context) {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
-      return const SizedBox.expand();
+      // Not reached when the camera has failed: [_unavailable] takes the
+      // panel then. This is the wait — faint, and saying so.
+      return _failed ? const SizedBox.expand() : _waiting(context);
     }
     // previewSize is in the sensor's landscape terms; the panel is portrait.
     final size = controller.value.previewSize;
@@ -327,6 +347,64 @@ class _NexCameraSheetState extends State<NexCameraSheet>
           width: size?.height ?? 3,
           height: size?.width ?? 4,
           child: CameraPreview(controller),
+        ),
+      ),
+    );
+  }
+
+  /// The panel while the sensor is still being asked for: a skeleton in
+  /// its own dimness and the words, in the same voice the microphone
+  /// permission speaks in. Six seconds in, the system camera is offered
+  /// here rather than only after the timeout has already eaten the wait.
+  Widget _waiting(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        NexSpacing.xl,
+        NexSpacing.xl,
+        NexSpacing.xl,
+        120,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.photo_camera_outlined,
+                  color: Colors.white.withValues(alpha: 0.3),
+                  size: 40,
+                ),
+                const SizedBox(height: NexSpacing.md),
+                // The skeleton: the panel's own shape, ghosted, where the picture
+                // is about to be.
+                Container(
+                  width: 132,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(NexRadius.md),
+                  ),
+                ),
+                const SizedBox(height: NexSpacing.md),
+                Text(
+                  l10n.cameraStarting,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                ),
+                if (_offerSystemCamera) ...[
+                  const SizedBox(height: NexSpacing.md),
+                  FilledButton.tonal(
+                    onPressed: () =>
+                        Navigator.of(context).pop(_useSystemCamera),
+                    child: Text(l10n.cameraUseSystem),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

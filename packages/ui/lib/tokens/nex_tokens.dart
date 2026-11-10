@@ -312,6 +312,14 @@ const nexSwipeThreshold = 0.35;
 /// have silently stopped clearing the button the moment its size token moved.
 const nexFabClearance = nexCaptureFabSize + NexSpacing.lg * 2;
 
+/// What a screen that does not run beneath the dock reserves at its bottom:
+/// the dock's own clearance plus whatever the system's navigation adds —
+/// one helper instead of the same sum written out screen by screen, which
+/// is exactly how the empty state ended up with its last line under the
+/// capture button.
+double nexDockClearance(BuildContext context) =>
+    nexFabClearance + nexBottomInset(context);
+
 /// How far up the screen the fade behind the bottom bar reaches, before the
 /// system's own inset is added to it.
 ///

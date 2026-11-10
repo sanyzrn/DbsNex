@@ -13,6 +13,21 @@ void main() {
     (tester) async {
       final h = await NexTestHarness.create();
       addTearDown(h.dispose);
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.hasStrings') {
+            return {'value': true};
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -34,6 +49,7 @@ void main() {
         matching: find.byType(TextField),
       );
       final slot = find.byKey(const ValueKey('capture-paste-slot'));
+      final paste = find.byKey(const ValueKey('capture-paste'));
       final animation = find.byWidgetPredicate(
         (widget) => widget.runtimeType.toString() == '_CapturePasteSlot',
       );
@@ -41,21 +57,26 @@ void main() {
       await tester.enterText(field, 'text');
       await tester.pumpAndSettle();
       final hiddenSlot = tester.widget<Widget>(animation);
-      // Isolate this component from the capture sheet's other size transitions.
+      // Isolate this component from the capture sheet's other transitions.
       Widget reduced(Widget child) => MaterialApp(
         home: MediaQuery(
           data: const MediaQueryData(disableAnimations: true),
           child: Scaffold(body: Row(children: [child])),
         ),
       );
+      // The column never moves: visible or not, the slot is one touch
+      // target wide. Only the icon inside it fades, so there is no size
+      // state to catch mid-flight at all.
       await tester.pumpWidget(reduced(visibleSlot));
       await tester.pumpAndSettle();
       await tester.pumpWidget(reduced(hiddenSlot));
       await tester.pump();
-      expect(tester.getSize(slot).width, 0);
+      expect(tester.getSize(slot).width, 48);
+      expect(paste.hitTestable(), findsNothing);
       await tester.pumpWidget(reduced(visibleSlot));
       await tester.pump();
       expect(tester.getSize(slot).width, 48);
+      expect(paste.hitTestable(), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -66,15 +87,16 @@ void main() {
     CaptureKind.link,
   ]) {
     for (final language in ['en', 'fa']) {
-      testWidgets('$language $kind paste fades and returns its entire column', (
+      testWidgets('$language $kind paste fades in a column that stays put', (
         tester,
       ) async {
         // A link box is the exception this test also pins: its slot never
         // leaves. Empty it is Paste; once words are in, it becomes Clear —
         // the one-tap way out of a paste that missed, in a field whose one
-        // line leaves no room to find select-all in. Note and checklist
-        // keep the fade: their field is multiline and carries the editor's
-        // own selection tools.
+        // line leaves no room to find select-all in. Note and checklist now
+        // keep the column too: only the icon fades, because reclaiming the
+        // width on the first keystroke moved the field's edge under the
+        // words mid-type.
         final isLink = kind == CaptureKind.link;
         final h = await NexTestHarness.create();
         addTearDown(h.dispose);
@@ -88,6 +110,9 @@ void main() {
             if (call.method == 'Clipboard.getData') {
               reads++;
               return {'text': clipboard};
+            }
+            if (call.method == 'Clipboard.hasStrings') {
+              return {'value': true};
             }
             return null;
           },
@@ -138,10 +163,8 @@ void main() {
           expect(find.byKey(const ValueKey('capture-clear')), findsOneWidget);
         } else {
           await tester.pump(const Duration(milliseconds: 150));
-          expect(
-            tester.getSize(slot).width,
-            allOf(greaterThan(0), lessThan(48)),
-          );
+          // The column stays: only the icon inside it is on its way out.
+          expect(tester.getSize(slot).width, 48);
           final fading = find
               .ancestor(of: paste, matching: find.byType(Opacity))
               .first;
@@ -167,20 +190,28 @@ void main() {
           expect(tester.getSize(slot).width, 48);
           expect(find.byKey(const ValueKey('capture-clear')), findsNothing);
         } else {
-          expect(tester.getSize(slot).width, 0);
-          expect(tester.getSize(field).width, closeTo(width + 48, 0.01));
+          // Settled: the column is exactly where it was, and the field with
+          // it — no width was reclaimed, the icon is simply gone.
+          expect(tester.getSize(slot).width, 48);
+          expect(tester.getSize(field).width, closeTo(width, 0.01));
           expect(paste.hitTestable(), findsNothing);
         }
         await tester.enterText(field, ' ');
         await tester.pumpAndSettle();
-        if (!isLink) expect(tester.getSize(slot).width, 0);
+        expect(tester.getSize(slot).width, 48);
         await tester.enterText(field, '');
         await tester.pump();
         if (!isLink) {
           await tester.pump(const Duration(milliseconds: 150));
           expect(
-            tester.getSize(slot).width,
-            allOf(greaterThan(0), lessThan(48)),
+            tester
+                .widget<Opacity>(
+                  find
+                      .ancestor(of: paste, matching: find.byType(Opacity))
+                      .first,
+                )
+                .opacity,
+            allOf(greaterThan(0), lessThan(1)),
           );
         }
         await tester.pumpAndSettle();
@@ -194,8 +225,8 @@ void main() {
         );
         expect(
           tester.getSize(slot).width,
-          isLink ? 48 : 0,
-          reason: isLink ? 'a link box keeps its slot as Clear' : 'reclaimed',
+          48,
+          reason: 'the column never moves, whatever it holds',
         );
         expect(focus.hasFocus, isTrue);
         expect(controller.selection.isCollapsed, isTrue);
@@ -207,4 +238,80 @@ void main() {
       });
     }
   }
+
+  testWidgets(
+    'Paste shows only when the clipboard holds words (asked without reading)',
+    (tester) async {
+      // `hasStrings` is asked on open and on resume; the words themselves are
+      // read only when the button is pressed. An empty clipboard leaves the
+      // column reserved but empty, rather than a button that does nothing.
+      final h = await NexTestHarness.create();
+      addTearDown(h.dispose);
+      var reads = 0;
+      var asked = 0;
+      var available = false;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.getData') {
+            reads++;
+            return {'text': 'words'};
+          }
+          if (call.method == 'Clipboard.hasStrings') {
+            asked++;
+            return {'value': available};
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: CaptureSheet(
+              services: h.services,
+              preferences: h.preferences,
+              onCamera: () {},
+              onGallery: () {},
+              onFile: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final paste = find.byKey(const ValueKey('capture-paste'));
+      final slot = find.byKey(const ValueKey('capture-paste-slot'));
+      // Asked once on open; the clipboard was empty then, so no button.
+      expect(asked, greaterThanOrEqualTo(1));
+      final initialQueries = asked;
+      expect(tester.getSize(slot).width, 48);
+      expect(paste.hitTestable(), findsNothing);
+      expect(reads, 0);
+
+      // Coming back to the app asks again — this time there are words.
+      available = true;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(asked, greaterThan(initialQueries));
+      expect(paste.hitTestable(), findsOneWidget);
+
+      await tester.tap(paste);
+      await tester.pumpAndSettle();
+      expect(reads, 1);
+      final field = find.descendant(
+        of: find.byType(CaptureSheet),
+        matching: find.byType(TextField),
+      );
+      expect(tester.widget<TextField>(field).controller!.text, 'words');
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    },
+  );
 }

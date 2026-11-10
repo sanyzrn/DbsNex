@@ -89,9 +89,10 @@ void main() {
     );
     await tester.pump();
     final context = tester.element(find.byType(TextField));
-    final menu =
-        nexFormatContextMenuBuilder(context)(context, state)
-            as AdaptiveTextSelectionToolbar;
+    final menu = nexFormatContextMenuBuilder(context)(
+      context,
+      state,
+    ) as AdaptiveTextSelectionToolbar;
     menu.buttonItems!.firstWhere((item) => item.label == label).onPressed!();
     await tester.pumpAndSettle();
   }
@@ -100,7 +101,7 @@ void main() {
     if (capture) {
       await tester.tap(find.byKey(const ValueKey('capture-send')));
     } else {
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.byTooltip('Save'));
     }
     await tester.pumpAndSettle();
     expect(find.byType(CaptureSheet), findsNothing);
@@ -196,7 +197,7 @@ void main() {
     );
     await tester.tap(find.descendant(of: dialog, matching: find.text('Save')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.byTooltip('Cancel'));
     await tester.pumpAndSettle();
     expect(find.text('Discard unsaved changes?'), findsOneWidget);
     await tester.tap(find.text('Discard'));

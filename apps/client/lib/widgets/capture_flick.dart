@@ -164,6 +164,20 @@ class _CaptureFlickState extends State<CaptureFlick>
   /// How far the finger has travelled, signed: right is positive.
   double _dx = 0;
 
+  /// The side this gesture spoke with when it began — locked from the first
+  /// real movement, `0` until then.
+  ///
+  /// A quick retreat used to be readable as a flick of the opposite side:
+  /// pulling back through the middle to cancel an armed shortcut, if it
+  /// crossed far enough and fast enough, fired *that* side's shortcut — the
+  /// cancel itself pulled the trigger. The gesture keeps the side it started
+  /// with; the opposite side can still be chosen, but only by crossing its
+  /// full arm, which no retreat on the way to "never mind" does.
+  int _lockedSide = 0;
+
+  /// How far the finger must travel before the gesture declares a side.
+  static const _lockAfter = 6.0;
+
   /// What letting go now would start.
   CaptureShortcut? _armed;
 
@@ -184,6 +198,7 @@ class _CaptureFlickState extends State<CaptureFlick>
     _label.show();
     setState(() {
       _dx = 0;
+      _lockedSide = 0;
       _armed = null;
     });
   }
@@ -191,11 +206,17 @@ class _CaptureFlickState extends State<CaptureFlick>
   void _update(DragUpdateDetails details) {
     if (_committing) return;
     final dx = (_dx + details.delta.dx).clamp(-160.0, 160.0);
+    if (_lockedSide == 0 && dx.abs() >= _lockAfter) {
+      _lockedSide = dx.sign.toInt();
+    }
     final side = _side(dx);
     final armed = dx.abs() >= CaptureFlick.arm && side != CaptureShortcut.none
         ? side
         : null;
-    if (armed != null && armed != _armed && widget.preferences.haptics) {
+    // The tick belongs to the change itself, either way: arming says "this
+    // would go", and losing the arm says "it no longer would" — the finger
+    // deserves both receipts.
+    if (widget.preferences.haptics && armed != _armed) {
       unawaited(HapticFeedback.selectionClick());
     }
     setState(() {
@@ -218,12 +239,15 @@ class _CaptureFlickState extends State<CaptureFlick>
     if (_committing) return;
     var chosen = _armed;
     // A quick flick counts even when it was short: the speed says it was
-    // meant, where a slow short drift does not.
+    // meant, where a slow short drift does not. Only on the side the gesture
+    // began with — a release on the far side of the middle is a retreat, not
+    // a flick, and retreats are how gestures get cancelled.
     final velocity = details.velocity.pixelsPerSecond.dx;
     if (chosen == null &&
         _dx.abs() >= CaptureFlick.arm / 3 &&
         velocity.abs() > 700 &&
-        velocity.sign == _dx.sign) {
+        velocity.sign == _dx.sign &&
+        _dx.sign == _lockedSide) {
       final side = _side(_dx);
       if (side != CaptureShortcut.none) chosen = side;
     }
@@ -263,6 +287,7 @@ class _CaptureFlickState extends State<CaptureFlick>
         setState(() {
           _committing = false;
           _dx = 0;
+          _lockedSide = 0;
           _armed = null;
         });
       }
@@ -275,6 +300,7 @@ class _CaptureFlickState extends State<CaptureFlick>
     unawaited(_retract());
     setState(() {
       _dx = 0;
+      _lockedSide = 0;
       _armed = null;
     });
   }

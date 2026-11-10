@@ -37,9 +37,15 @@ enum NexBannerKind {
 /// SnackBar cannot be positioned at the top, and a MaterialBanner pushes the
 /// page's content down instead of passing over it.
 ///
-/// One at a time. A second call replaces the first rather than queueing, since
-/// a queue means the message you are reading is about something you did
-/// several actions ago.
+/// One at a time — with one exception. A plain banner arriving while an
+/// actionable one is still up does not replace it: the Undo it is carrying is
+/// a promise with a countdown, and swallowing it to say "Saved" is trading
+/// something the user might need for something they can guess. The plain
+/// banner waits its turn instead, and shows when the actionable one leaves.
+/// Everything else still replaces what came before — a queue of receipts
+/// would mean the message you are reading is about something you did several
+/// actions ago. A replaced banner is drawn back into the edge it came from
+/// rather than vanishing mid-sentence: the exit animation always runs.
 ///
 /// Returns a [NexBannerHandle] naming the banner this call put up, so a
 /// screen whose promise expires with it — an Undo that only works while the
@@ -120,12 +126,21 @@ NexBannerHandle _show(
   required Duration? duration,
   required bool haptics,
 }) {
-  _current?.remove();
-  _current = null;
+  final current = _current;
+  final actionable = actionLabel != null;
 
-  late final OverlayEntry entry;
-  entry = OverlayEntry(
-    builder: (context) => _NexBanner(
+  // An actionable banner that is still up keeps its place: only another
+  // actionable banner may take it, because only another one is carrying a
+  // promise of the same weight. A plain receipt — "Saved", "Copied" — waits
+  // behind it rather than eating the Undo a finger might still be travelling
+  // toward. At most one waits: a newer plain banner replaces a queued one,
+  // exactly as shown banners replace each other.
+  if (current != null &&
+      current.actionable &&
+      !current.leaving &&
+      !actionable) {
+    _pending = _PendingBanner(
+      overlay,
       message: message,
       kind: kind,
       actionLabel: actionLabel,
@@ -133,64 +148,141 @@ NexBannerHandle _show(
       actionKey: actionKey,
       duration: duration,
       haptics: haptics,
-      onDismissed: () {
-        // Only while it is still the one showing. A newer banner (or
-        // [nexHideBanner]) has already removed it otherwise, and its exit
-        // animation can still finish in the frame before it is unmounted —
-        // removing it a second time is an assertion, which is what an action
-        // that shows a follow-up banner ran into.
-        if (_current != entry) return;
-        _current = null;
-        entry.remove();
-      },
-    ),
+    );
+    return NexBannerHandle._waiting(_pending!);
+  }
+
+  // Whatever else is up makes way — with its exit animation, not by
+  // vanishing. The capsule is drawn back into the edge it dripped from while
+  // the new one drips out of it.
+  _retire(current);
+  return _insert(
+    overlay,
+    message: message,
+    kind: kind,
+    actionLabel: actionLabel,
+    onAction: onAction,
+    actionKey: actionKey,
+    duration: duration,
+    haptics: haptics,
   );
-  _current = entry;
-  overlay.insert(entry);
-  return NexBannerHandle._(entry);
 }
 
-/// The banner on screen right now, if any — see the one-at-a-time note above.
-OverlayEntry? _current;
+/// The banner on screen right now, if any — see the one-at-a-time note on
+/// [nexShowBanner].
+_BannerSession? _current;
 
-/// The one banner a specific [nexShowBanner] call put up.
-///
-/// [hide] is a no-op once that banner has already gone — dismissed, acted
-/// on, or replaced by a newer one — so taking down an expired promise can
-/// never take down somebody else's message with it.
-class NexBannerHandle {
-  NexBannerHandle._(this._entry);
+/// The one plain banner waiting behind an actionable one, if any. One slot,
+/// newest wins: a queue of stale receipts is worse than a dropped one.
+_PendingBanner? _pending;
 
-  final OverlayEntry _entry;
-
-  bool get isShowing => _current == _entry;
-
-  void hide() {
-    if (_current != _entry) return;
-    _current = null;
-    _entry.remove();
+/// Begins a session's exit. With an animation when there is anything on
+/// screen to animate — the capsule is sucked back into the top edge — and
+/// instantly when the entry was never built, which is two banners in one
+/// frame.
+void _retire(_BannerSession? session) {
+  if (session == null || session.leaving) return;
+  session.leaving = true;
+  final state = session.state;
+  if (state != null) {
+    unawaited(state._dismiss());
+  } else {
+    session.entry.remove();
   }
 }
 
-/// Removes whatever banner is showing. Called when a screen that raised one
-/// goes away, so a message cannot outlive the thing it was about.
-void nexHideBanner() {
-  _current?.remove();
-  _current = null;
+NexBannerHandle _insert(
+  OverlayState overlay, {
+  required String message,
+  required NexBannerKind kind,
+  required String? actionLabel,
+  required VoidCallback? onAction,
+  required Key? actionKey,
+  required Duration? duration,
+  required bool haptics,
+}) {
+  final session = _BannerSession(actionable: actionLabel != null);
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (context) => _NexBanner(
+      session: session,
+      message: message,
+      kind: kind,
+      actionLabel: actionLabel,
+      onAction: onAction,
+      actionKey: actionKey,
+      duration: duration,
+      haptics: haptics,
+      onGone: () {
+        // Called once, after the exit animation has finished (or instantly,
+        // for a banner that never animated): the entry leaves the overlay
+        // here and only here, so nothing removes it twice. The module state
+        // moves on only if this is still the showing session — a replacement
+        // has already taken the slot, and a hidden one has cleaned up itself.
+        entry.remove();
+        if (identical(_current, session)) {
+          _current = null;
+          _drainPending();
+        }
+      },
+    ),
+  );
+  session.entry = entry;
+  _current = session;
+  overlay.insert(entry);
+  return NexBannerHandle._(session);
 }
 
-class _NexBanner extends StatefulWidget {
-  const _NexBanner({
+/// Shows the banner that was waiting, if any — called when the banner ahead
+/// of it is gone for good.
+void _drainPending() {
+  final pending = _pending;
+  if (pending == null) return;
+  _pending = null;
+  if (!pending.overlay.mounted) return;
+  _insert(
+    pending.overlay,
+    message: pending.message,
+    kind: pending.kind,
+    actionLabel: pending.actionLabel,
+    onAction: pending.onAction,
+    actionKey: pending.actionKey,
+    duration: pending.duration,
+    haptics: pending.haptics,
+  );
+}
+
+/// A banner that is up or on its way up, from the module's point of view.
+class _BannerSession {
+  _BannerSession({required this.actionable});
+
+  /// Whether the banner carries an action whose window dies with the banner.
+  final bool actionable;
+
+  /// Set once the banner starts leaving, by whoever started it — its own
+  /// timer, a tap, or a replacement — so a plain banner arriving during the
+  /// exit animation takes the slot instead of queueing behind a ghost.
+  bool leaving = false;
+
+  late final OverlayEntry entry;
+  _NexBannerState? state;
+}
+
+/// The parameters of a banner waiting for its turn, held as-is so what shows
+/// later is exactly what was asked for then.
+class _PendingBanner {
+  _PendingBanner(
+    this.overlay, {
     required this.message,
     required this.kind,
     required this.actionLabel,
     required this.onAction,
-    this.actionKey,
-    this.duration,
+    required this.actionKey,
+    required this.duration,
     required this.haptics,
-    required this.onDismissed,
   });
 
+  final OverlayState overlay;
   final String message;
   final NexBannerKind kind;
   final String? actionLabel;
@@ -198,7 +290,70 @@ class _NexBanner extends StatefulWidget {
   final Key? actionKey;
   final Duration? duration;
   final bool haptics;
-  final VoidCallback onDismissed;
+}
+
+/// The one banner a specific [nexShowBanner] call put up.
+///
+/// [hide] is a no-op once that banner has already gone — dismissed, acted
+/// on, or replaced by a newer one — so taking down an expired promise can
+/// never take down somebody else's message with it. For a banner still
+/// waiting behind an actionable one, [hide] takes it out of the queue, and
+/// [isShowing] reads false until it is actually up.
+class NexBannerHandle {
+  NexBannerHandle._(this._session) : _waiting = null;
+
+  NexBannerHandle._waiting(this._waiting) : _session = null;
+
+  final _BannerSession? _session;
+  final _PendingBanner? _waiting;
+
+  bool get isShowing => _session != null && identical(_current, _session);
+
+  void hide() {
+    final waiting = _waiting;
+    if (waiting != null) {
+      if (identical(_pending, waiting)) _pending = null;
+      return;
+    }
+    final session = _session;
+    if (session == null || !identical(_current, session)) return;
+    _current = null;
+    session.entry.remove();
+  }
+}
+
+/// Removes whatever banner is showing — and whatever is waiting behind it,
+/// since a message cannot outlive the thing it was about either. Called when
+/// a screen that raised one goes away.
+void nexHideBanner() {
+  final current = _current;
+  _current = null;
+  _pending = null;
+  current?.entry.remove();
+}
+
+class _NexBanner extends StatefulWidget {
+  const _NexBanner({
+    required this.session,
+    required this.message,
+    required this.kind,
+    required this.actionLabel,
+    required this.onAction,
+    this.actionKey,
+    this.duration,
+    required this.haptics,
+    required this.onGone,
+  });
+
+  final _BannerSession session;
+  final String message;
+  final NexBannerKind kind;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final Key? actionKey;
+  final Duration? duration;
+  final bool haptics;
+  final VoidCallback onGone;
 
   @override
   State<_NexBanner> createState() => _NexBannerState();
@@ -208,31 +363,114 @@ class _NexBannerState extends State<_NexBanner>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 720),
+    // The drip-in used to take 720ms — longer than a page transition, for a
+    // message whose point is that it is already gone when you look up. The
+    // drop-and-spread choreography is unchanged; it just happens in half the
+    // time, so the words land with the motion instead of after it.
+    duration: const Duration(milliseconds: 360),
     reverseDuration: const Duration(milliseconds: 420),
   );
 
   Timer? _timer;
   bool _leaving = false;
 
-  /// Longer when there is something to press. Four seconds is enough to read a
-  /// confirmation; it is not enough to notice a delete, decide against it, and
-  /// reach the Undo.
-  Duration get _life =>
-      widget.duration ??
-      (widget.actionLabel == null
-          ? const Duration(milliseconds: 3400)
-          : const Duration(milliseconds: 6000));
+  /// Set while a finger is holding the banner: the countdown is paused,
+  /// because the one person still reading it is the one holding it.
+  bool _holding = false;
+
+  /// The milliseconds of life left, from the last scheduling. Updated when
+  /// the banner is paused so resuming continues the countdown rather than
+  /// starting it over.
+  int _lifeMs = 0;
+
+  /// How long the banner stays. Given outright by callers who know better —
+  /// a module's retry window — and otherwise earned: 45ms a character, so a
+  /// message is gone roughly when it has been read, clamped to a floor that
+  /// is long enough to notice and a ceiling that stops a banner camping on
+  /// the screen. An actionable banner gets two more seconds: noticing a
+  /// delete, deciding against it and reaching the Undo takes longer than
+  /// reading "Saved".
+  Duration get _life {
+    final given = widget.duration;
+    if (given != null) return given;
+    final read = (1200 + 45 * widget.message.length).clamp(2200, 6500);
+    final reach = widget.actionLabel == null ? 0 : 2000;
+    return Duration(milliseconds: read + reach);
+  }
 
   @override
   void initState() {
     super.initState();
+    widget.session.state = this;
+    // The countdown belongs to the banner at rest, not to the banner still
+    // arriving: it used to start in initState, so the entrance ate six
+    // hundred of a plain banner's milliseconds before there was anything to
+    // read. The status listener fires only on a real completion — a reverse
+    // called mid-entrance never reaches it, and a replaced banner has no
+    // life left to start.
+    _controller.addStatusListener(_onStatus);
     _controller.forward();
     // The vibration is half of what makes this read as an arrival rather than
     // as something that was always there. Gated on the same preference as
     // every other haptic in the app.
     if (widget.haptics) HapticFeedback.mediumImpact();
-    _timer = Timer(_life, _dismiss);
+  }
+
+  void _onStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) _startLife();
+  }
+
+  void _startLife() {
+    if (_leaving || !mounted) return;
+    // A screen reader is already going to say the banner, and an actionable
+    // one is the user's only route back from something like a delete: it
+    // stays until dismissed.
+    if (MediaQuery.accessibleNavigationOf(context) &&
+        widget.actionLabel != null) {
+      return;
+    }
+    _scheduleLife(_life);
+  }
+
+  void _scheduleLife(Duration remaining) {
+    _timer?.cancel();
+    _lifeMs = remaining.inMilliseconds;
+    _tickLife();
+  }
+
+  /// A one-shot Timer cannot report elapsed time before it fires; its tick
+  /// remains zero, which incorrectly restarted a held Undo's entire lifetime.
+  /// Small clock slices let a pause preserve the remaining time without
+  /// relying on a frame timestamp (gestures can arrive between frames).
+  void _tickLife() {
+    if (_leaving || !mounted) return;
+    if (_lifeMs <= 0) {
+      unawaited(_dismiss());
+      return;
+    }
+    final slice = math.min(_lifeMs, 100);
+    _timer = Timer(Duration(milliseconds: slice), () {
+      _lifeMs -= slice;
+      _tickLife();
+    });
+  }
+
+  void _pauseLife() {
+    if (_holding || _timer == null) return;
+    _holding = true;
+    _timer!.cancel();
+    _timer = null;
+  }
+
+  void _resumeLife() {
+    if (!_holding) return;
+    _holding = false;
+    if (_leaving || !mounted) return;
+    if (MediaQuery.accessibleNavigationOf(context) &&
+        widget.actionLabel != null) {
+      return;
+    }
+    _scheduleLife(Duration(milliseconds: _lifeMs));
   }
 
   @override
@@ -241,6 +479,7 @@ class _NexBannerState extends State<_NexBanner>
     if (MediaQuery.accessibleNavigationOf(context) &&
         widget.actionLabel != null) {
       _timer?.cancel();
+      _timer = null;
     }
     if (MediaQuery.disableAnimationsOf(context)) {
       _controller.duration = Duration.zero;
@@ -251,6 +490,7 @@ class _NexBannerState extends State<_NexBanner>
 
   @override
   void dispose() {
+    widget.session.state = null;
     _timer?.cancel();
     _controller.dispose();
     super.dispose();
@@ -259,9 +499,13 @@ class _NexBannerState extends State<_NexBanner>
   Future<void> _dismiss() async {
     if (_leaving || !mounted) return;
     _leaving = true;
+    // The module learns this the moment leaving begins, so a plain banner
+    // arriving during the exit takes the slot instead of queueing behind a
+    // capsule that is already on its way into the edge.
+    widget.session.leaving = true;
     _timer?.cancel();
     await _controller.reverse();
-    if (mounted) widget.onDismissed();
+    if (mounted) widget.onGone();
   }
 
   void _act() {
@@ -322,6 +566,12 @@ class _NexBannerState extends State<_NexBanner>
           constraints: const BoxConstraints(maxWidth: 480, minWidth: 140),
           child: GestureDetector(
             onTap: _dismiss,
+            // Hold to keep it: the countdown pauses under the finger — an
+            // Undo being thought about is an Undo still on the table. The
+            // countdown continues where it left off, not from the top.
+            onLongPressStart: (_) => _pauseLife(),
+            onLongPressEnd: (_) => _resumeLife(),
+            onLongPressCancel: _resumeLife,
             // Up, not down. A downward flick is how a phone opens the
             // notification shade, and this is sitting exactly where that
             // gesture starts.
@@ -344,7 +594,11 @@ class _NexBannerState extends State<_NexBanner>
                     hairline: Colors.white.withValues(alpha: dark ? .08 : 0),
                   ),
                   child: Opacity(
-                    opacity: _CapsulePainter.span(t, .55, .9),
+                    // The words used to wait until the capsule was 55–90% of
+                    // the way in — unreadable for most of an entrance whose
+                    // whole job is to be read. They surface from 30% and are
+                    // solid by two thirds.
+                    opacity: _CapsulePainter.span(t, .3, .65),
                     child: child,
                   ),
                 );

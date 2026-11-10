@@ -43,11 +43,9 @@ void main() {
                 creates++;
                 final args = call.arguments as Map;
                 id = args['id'] as int;
-                final initial =
-                    const StandardMessageCodec().decodeMessage(
-                          ByteData.sublistView(args['params'] as Uint8List),
-                        )
-                        as Map;
+                final initial = const StandardMessageCodec().decodeMessage(
+                  ByteData.sublistView(args['params'] as Uint8List),
+                ) as Map;
                 expect(initial['expands'], isTrue);
                 messenger.setMockMethodCallHandler(
                   MethodChannel('nex/edit_text/$id'),
@@ -138,11 +136,11 @@ void main() {
                 expect(creates, 1);
               }
               if (save) {
-                await tester.tap(find.text(l10n.save));
+                await tester.tap(find.byTooltip(l10n.save));
                 await tester.pumpAndSettle();
                 expect(saved, edited);
               } else {
-                await tester.tap(find.text(l10n.cancel));
+                await tester.tap(find.byTooltip(l10n.cancel));
                 await tester.pumpAndSettle();
                 await tester.tap(find.text(l10n.discard));
                 await tester.pumpAndSettle();

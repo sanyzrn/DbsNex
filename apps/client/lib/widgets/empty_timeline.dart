@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
+
 import '../l10n/app_localizations.dart';
 
 class EmptyTimeline extends StatelessWidget {
@@ -39,9 +40,7 @@ class EmptyTimeline extends StatelessWidget {
     // empty state is shorter than the space it sits in, the last line came out
     // directly beneath the button.
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: nexFabClearance + nexBottomInset(context),
-      ),
+      padding: EdgeInsets.only(bottom: nexDockClearance(context)),
       child: Center(
         child: SingleChildScrollView(
           // md rather than lg above: the ghosts below are drawn to the real
@@ -101,9 +100,7 @@ class EmptyTimeline extends StatelessWidget {
 extension on EmptyTimeline {
   Widget _clear(BuildContext context, AppLocalizations l10n, ThemeData theme) {
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: nexFabClearance + nexBottomInset(context),
-      ),
+      padding: EdgeInsets.only(bottom: nexDockClearance(context)),
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(NexSpacing.lg),
