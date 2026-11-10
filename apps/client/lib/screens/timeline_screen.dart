@@ -539,35 +539,6 @@ class TimelineScreenState extends State<TimelineScreen>
   @visibleForTesting
   void markLanded(String id) => setState(() => landedId = id);
 
-  /// Brings the field in and puts the cursor in it.
-  ///
-  /// Tapping the field itself does this, and so does Ctrl+F — the field lives
-  /// at the top of the list permanently now, so a dedicated AppBar icon for it
-  /// pointed at something already on screen.
-  Future<void> revealSearch() async {
-    if (_scroll.hasClients && _scroll.offset > 0) {
-      await _scroll.animateTo(
-        0,
-        duration: NexMotion.standard,
-        curve: NexMotion.curve,
-      );
-    }
-    if (!mounted) return;
-    setState(() {
-      _searching = true;
-      _selected.clear();
-    });
-    _fadeInBody();
-    _searchStarted = Stopwatch()..start();
-    // After the frame: with the field switched off it is not in the list
-    // until this setState puts it there, and a focus request aimed at a node
-    // no widget has attached yet is simply dropped.
-    await WidgetsBinding.instance.endOfFrame;
-    if (!mounted) return;
-    _searchFocus.requestFocus();
-    unawaited(_search.run());
-  }
-
   Future<void> _loadTimeline() async {
     // Both sides of this matter and neither replaces the other: the model's
     // failure state is what a read that never returns needs, and the tour
