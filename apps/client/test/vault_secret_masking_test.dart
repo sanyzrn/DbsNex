@@ -103,7 +103,7 @@ void main() {
     await tester.tap(find.text('Edit item'));
     await tester.pumpAndSettle();
 
-    final field = () => tester.widget<TextField>(
+    TextField field() => tester.widget<TextField>(
       find.descendant(
         of: find.byKey(const ValueKey('vault-field-password')),
         matching: find.byType(TextField),
