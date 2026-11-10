@@ -61,7 +61,7 @@ open class MainActivity : FlutterFragmentActivity() {
         // the gap between the splash and the first frame. The system
         // splash's own background still follows the qualifier — the
         // handoff is the part that is ours.
-        if (isChosenNight()) window.setBackgroundResource(android.R.color.black)
+        if (isChosenNight()) window.setBackgroundDrawableResource(android.R.color.black)
     }
 
     /** Night on its own, not Soft Dark following the system's dark mode. */
