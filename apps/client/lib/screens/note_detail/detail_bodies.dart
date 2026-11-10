@@ -110,6 +110,11 @@ class _ChecklistBodyState extends State<_ChecklistBody>
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: NexSpacing.xs),
               child: Row(
+                // The line's own direction, so the checkbox sits at the start
+                // of the words it belongs to in mixed-language lists — the
+                // same reason the card's checklist line does it.
+                textDirection:
+                    nexDirectionOf(items[i].text) ?? Directionality.of(context),
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // A real checkbox, sized to the text beside it. The whole row
