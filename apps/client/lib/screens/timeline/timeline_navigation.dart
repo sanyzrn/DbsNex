@@ -170,6 +170,10 @@ extension _TimelineNavigation on TimelineScreenState {
     }
     await _applyMetFromShade();
     if (!mounted) return;
+    if (widget.locked) {
+      _recurringArrivalHeld = true;
+      return;
+    }
     await RecurringScreen.show(context, services: widget.services);
     await _model.loadCommitments();
   }

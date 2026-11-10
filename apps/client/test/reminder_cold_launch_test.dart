@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
-import 'package:nex_client/screens/recurring_screen.dart';
+import 'package:nex_client/widgets/commitments_sheet.dart';
 import 'package:nex_client/widgets/note_spotlight.dart';
 import 'package:nex_ui/nex_ui.dart';
 
