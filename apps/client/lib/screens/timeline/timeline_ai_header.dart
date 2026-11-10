@@ -456,7 +456,9 @@ extension _TimelineAiHeader on TimelineScreenState {
       nexShowBanner(
         context,
         kind: NexBannerKind.ai,
-        haptics: widget.preferences.haptics,
+        // The hold's own _tick (onHoldStart) already spoke; a second buzz on
+        // the same gesture is noise.
+        haptics: false,
         message: l10n.assistantNeedsIntelligence,
         actionLabel: l10n.assistantTurnOnIntelligence,
         onAction: () => unawaited(_openIntelligence()),
