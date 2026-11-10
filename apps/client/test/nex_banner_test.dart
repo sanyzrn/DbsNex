@@ -201,4 +201,27 @@ void main() {
 
     handle.dispose();
   });
+
+  testWidgets('the action button is a full-height target', (tester) async {
+    // Undo is the most time-critical touch in the app and it used to sit at
+    // forty pixels — under the app's own 48dp floor.
+    await tester.pumpWidget(
+      host(
+        onTap: (context) => nexShowBanner(
+          context,
+          message: 'Removed',
+          haptics: false,
+          actionLabel: 'Undo',
+          onAction: () {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(find.byType(TextButton)).height,
+      greaterThanOrEqualTo(48),
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
 }
