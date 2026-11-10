@@ -72,7 +72,7 @@ void main() {
     await _add(tester);
     final choices = await pending;
     expect(choices, hasLength(1));
-    expect(choices.single.tag?.id, '1');
+    expect(choices!.single.tag?.id, '1');
   });
 
   testWidgets('several tags tick in one visit and commit together', (
@@ -123,8 +123,8 @@ void main() {
     await _add(tester);
     final choices = await pending;
     expect(choices, hasLength(1));
-    expect(choices.single.name, 'Fresh');
-    expect(choices.single.tag, isNull);
+    expect(choices!.single.name, 'Fresh');
+    expect(choices!.single.tag, isNull);
   });
 
   testWidgets('the fourth tag cannot be chosen or created', (tester) async {
