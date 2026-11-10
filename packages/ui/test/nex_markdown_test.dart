@@ -205,11 +205,7 @@ void main() {
       // handles every gesture itself and dispatches none of them to the spans
       // underneath, so neither a link nor a code span inside one can be hit.
       final followed = <String>[];
-      await pump(
-        tester,
-        '[the docs](https://x.dev)',
-        onTapLink: followed.add,
-      );
+      await pump(tester, '[the docs](https://x.dev)', onTapLink: followed.add);
 
       await tester.tap(find.text('the docs', findRichText: true));
       await tester.pumpAndSettle();
