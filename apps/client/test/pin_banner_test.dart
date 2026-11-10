@@ -27,7 +27,9 @@ void main() {
     await tester.longPress(find.text('pin me to the top'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Pin'));
-    await tester.pumpAndSettle();
+    // Do not advance fake time through the banner's auto-dismiss timer.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 850));
 
     // The receipt: what became of the card, and the way to see it. "Pinned"
     // is also the section the card moved to — the banner's action label is
@@ -41,7 +43,8 @@ void main() {
     // that must not so much as throw.
     await tester.tap(showPinned);
     await tester.pumpAndSettle();
-    expect(showPinned, findsOneWidget);
+    expect(showPinned, findsNothing,
+        reason: 'the banner dismisses after the navigation action');
   });
 
   testWidgets('the fifth pin wall answers with the trip, not just "no"', (
