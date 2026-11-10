@@ -10,8 +10,12 @@ void main() {
     ),
   );
 
-  Finder scaleOf(Finder ancestor) =>
-      find.descendant(of: ancestor, matching: find.byType(ScaleTransition));
+  Finder scaleOf(Finder ancestor) {
+    // The outer transition is the exit; the innermost one is the entrance.
+    return find
+        .descendant(of: ancestor, matching: find.byType(ScaleTransition))
+        .last;
+  }
 
   testWidgets('the child is on screen once the pop settles', (tester) async {
     await tester.pumpWidget(host(const NexToastPop(child: Text('saved'))));
