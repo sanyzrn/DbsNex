@@ -300,9 +300,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
         // — not for the banner: the banner says what happened in words that
         // mean something, in the failure's own colours instead of the
         // success it used to wear.
-        if (cause != null) {
-          unawaited(NexCrashLog.handled('photo.crop', cause));
-        }
+        unawaited(NexCrashLog.handled('photo.crop', cause));
         nexShowBanner(
           context,
           kind: NexBannerKind.failed,
@@ -486,8 +484,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                                     final initial = _initialArea;
                                     if (initial == null) {
                                       _initialArea = area;
-                                    } else if (area != null &&
-                                        area != initial) {
+                                    } else if (area != initial) {
                                       _areaMoved = true;
                                     }
                                     _snapshot();
