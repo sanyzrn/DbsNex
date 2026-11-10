@@ -87,15 +87,17 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
-    // The toolbar's actions are not repeated behind their own row: Open
-    // appears once in the whole tree (the toolbar behind the sheet), and the
-    // More sheet carries the secondaries.
-    // The primary action remains mounted behind the new modal route, but
-    // must not appear again as a second entry inside More.
-    expect(find.text(l.openLink), findsNothing);
+    // A modal bottom sheet keeps the toolbar mounted underneath it. Check
+    // the menu itself for duplicates, rather than assuming the toolbar is
+    // offstage while the non-opaque modal route is open.
+    final moreSheet = find.byType(BottomSheet);
+    expect(moreSheet, findsOneWidget);
+    Finder inMore(String label) =>
+        find.descendant(of: moreSheet, matching: find.text(label));
+    expect(inMore(l.openLink), findsNothing);
     expect(find.text(l.openLink, skipOffstage: false), findsOneWidget);
-    expect(find.text(l.details), findsOneWidget);
-    expect(find.text(l.delete), findsOneWidget);
+    expect(inMore(l.details), findsOneWidget);
+    expect(inMore(l.delete), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }
