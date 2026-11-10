@@ -53,7 +53,7 @@ void main() {
     for (var i = 1; i <= 6; i++) {
       final note = await harness.services.captureText('pinned number $i');
       if (i <= 5) {
-        await harness.services.pinNote(note.id);
+        await harness.services.pinNote(note!.id);
       }
     }
     await harness.services.refreshTimeline();
