@@ -167,6 +167,13 @@ class _NexMarkdownState extends State<NexMarkdown> {
           selectable: false,
           fitContent: false,
           builders: {
+            // A code fence reads left-to-right regardless of the document's
+            // language. Only the `pre` element gets this override: paragraphs,
+            // lists, inline code and the rest keep the document direction.
+            'pre': _NexFencedCodeBuilder(
+              style: sheet.code,
+              padding: sheet.codeblockPadding,
+            ),
             if (widget.onCopyCode != null) 'code': _codeSpans,
             if (widget.onHoldLink != null) 'a': _links,
           },
@@ -265,6 +272,211 @@ class _NexMarkdownState extends State<NexMarkdown> {
       checkbox: base.copyWith(color: scheme.primary),
     );
   }
+}
+
+/// Draw only fenced/indented code as LTR. In an RTL document the default
+/// Markdown renderer inherits the page direction for the `pre` text and
+/// horizontal scroll axis, reorders punctuation and puts indentation on the
+/// wrong edge. Replacing this block keeps all other Markdown layout intact.
+///
+/// The package still owns the outer code-block decoration; only the text and
+/// its independently scrollable contents are rendered here.
+class _NexFencedCodeBuilder extends MarkdownElementBuilder {
+  _NexFencedCodeBuilder({required this.style,required this.padding});
+
+  final TextStyle? style;
+  final EdgeInsets? padding;
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    // Match flutter_markdown_plus's formatText: remove only the single
+    // terminal line feed added by the Markdown fence. Never trim leading
+    // whitespace, internal blank lines, or indentation.
+    final code = element.textContent.replaceFirst(RegExp(r'\n
+  const _NexMarkdownColumnWidth(this.maximum);
+  final double maximum;
+
+  @override
+  double minIntrinsicWidth(Iterable<RenderBox> cells, double containerWidth) =>
+      super
+          .minIntrinsicWidth(cells, containerWidth)
+          .clamp(0.0, maximum)
+          .toDouble();
+
+  @override
+  double maxIntrinsicWidth(Iterable<RenderBox> cells, double containerWidth) =>
+      super
+          .maxIntrinsicWidth(cells, containerWidth)
+          .clamp(0.0, maximum)
+          .toDouble();
+}
+
+/// Keeps links inside the paragraph, with tap and hold recognizers on each
+/// styled text run. Image links retain the renderer's existing image layout.
+class _NexLinkSpanBuilder extends MarkdownElementBuilder {
+  final recognizers = NexLinkRecognizers();
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final href = element.attributes['href'];
+    if (href == null || href.isEmpty) return null;
+    bool hasImage(md.Node node) =>
+        node is md.Element &&
+        (node.tag == 'img' || (node.children?.any(hasImage) ?? false));
+    if (element.children?.any(hasImage) ?? false) return null;
+    final recognizer = recognizers.forHref(href);
+    Iterable<TextSpan> spans(md.Node node, TextStyle? inherited) sync* {
+      if (node is md.Text) {
+        yield TextSpan(
+          text: node.textContent,
+          style: inherited,
+          recognizer: recognizer,
+          mouseCursor: SystemMouseCursors.click,
+        );
+        return;
+      }
+      final child = node as md.Element;
+      final style = switch (child.tag) {
+        'strong' => const TextStyle(fontWeight: FontWeight.w700),
+        'em' => const TextStyle(fontStyle: FontStyle.italic),
+        'del' => const TextStyle(decoration: TextDecoration.lineThrough),
+        'code' => const TextStyle(fontFamily: 'monospace'),
+        _ => null,
+      };
+      for (final node in child.children ?? <md.Node>[]) {
+        yield* spans(node, inherited?.merge(style) ?? style);
+      }
+    }
+
+    return Text.rich(
+      TextSpan(
+        // The renderer flattens one level when merging inline widgets, so
+        // pass styled leaves rather than nested spans that it would discard.
+        children: [
+          for (final node in element.children ?? <md.Node>[])
+            ...spans(
+              node,
+              parentStyle?.merge(preferredStyle) ?? preferredStyle,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A Text carrying spans is merged into the paragraph by the renderer;
+/// wrapping it in a gesture widget would break the sentence's inline layout.
+class _NexCodeSpanBuilder extends MarkdownElementBuilder {
+  /// Set by the widget on every build; null until it has been.
+  void Function(String code)? onTap;
+
+  /// Every recognizer handed to a span, so they can be disposed with the
+  /// widget.
+  ///
+  /// Only on dispose, not per rebuild: a recognizer is still attached to spans
+  /// in the tree that produced it, and a re-parse (this renderer re-parses on
+  /// a dependency change as well as a rebuild) would otherwise dispose one
+  /// still in use. The cost is a handful of small objects per rebuild of a
+  /// sheet that rebuilds a handful of times before it closes.
+  final List<TapGestureRecognizer> _recognizers = <TapGestureRecognizer>[];
+
+  void dispose() {
+    for (final recognizer in _recognizers) {
+      recognizer.dispose();
+    }
+    _recognizers.clear();
+  }
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final code = element.textContent;
+    // `code` is the tag for both an inline span and the body of a fenced
+    // block, and the two want opposite things: a block already scrolls
+    // sideways and must keep doing so. A fence keeps the line breaks of its
+    // source; an inline span cannot contain one, because the parser folds
+    // them into spaces. So the newline is the discriminator.
+    final handler = onTap;
+    if (handler == null || code.isEmpty || code.contains('\n')) return null;
+    final recognizer = TapGestureRecognizer()..onTap = () => handler(code);
+    _recognizers.add(recognizer);
+    return Text.rich(
+      TextSpan(
+        text: code,
+        style: preferredStyle ?? parentStyle,
+        recognizer: recognizer,
+      ),
+    );
+  }
+}
+), '');
+    return _NexFencedCode(
+      code: code,
+      style: style,
+      padding: padding ?? EdgeInsets.zero,
+    );
+  }
+}
+
+/// Owns the horizontal ScrollController so the scrollbar and drag gesture
+/// stay in sync, even within a vertically scrolling RTL note.
+class _NexFencedCode extends StatefulWidget {
+  const _NexFencedCode({
+    required this.code,
+    required this.style,
+    required this.padding,
+  });
+
+  final String code;
+  final TextStyle? style;
+  final EdgeInsets padding;
+
+  @override
+  State<_NexFencedCode> createState() => _NexFencedCodeState();
+}
+
+class _NexFencedCodeState extends State<_NexFencedCode> {
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+    textDirection: TextDirection.ltr,
+    child: Scrollbar(
+      controller: _scroll,
+      child: SingleChildScrollView(
+        controller: _scroll,
+        scrollDirection: Axis.horizontal,
+        padding: widget.padding,
+        child: Text(
+          widget.code,
+          style: widget.style,
+          textDirection: TextDirection.ltr,
+          textAlign: TextAlign.left,
+          softWrap: false,
+        ),
+      ),
+    ),
+  );
 }
 
 class _NexMarkdownColumnWidth extends IntrinsicColumnWidth {
