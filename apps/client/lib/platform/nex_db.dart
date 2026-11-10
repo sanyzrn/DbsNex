@@ -327,7 +327,7 @@ abstract interface class NexDb {
   /// Empties the trash.
   Future<void> purgeAllDeleted();
 
-  Future<List<TagUsage>> tagUsage();
+  Future<List<TagUsage>> tagUsage({bool timelineOnly = false});
 
   Future<void> renameTag(String id, String name);
 
