@@ -9,6 +9,7 @@ import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:nex_ai/cloud.dart';
+
 import 'local_embedder.dart';
 import 'nex_db.dart';
 import 'db_worker_error.dart';
@@ -150,6 +151,7 @@ enum _DbCommand {
   setLocalEmbedder,
   sync,
   close,
+  libraryNoteCounts,
 }
 
 class _DbRequest {
@@ -603,9 +605,8 @@ class NexDbWorker
         // throws, which `serve` catches. A stuck network call must not be
         // able to hold the app open.
         if (inFlight.isNotEmpty) {
-          await Future.wait(
-            inFlight,
-          ).timeout(_closeGrace, onTimeout: () => const <void>[]);
+          await Future.wait(inFlight)
+              .timeout(_closeGrace, onTimeout: () => const <void>[]);
         }
         // The handle is released *before* the reply, not after it. The
         // reply is what `close()` on the other side awaits, and it used to

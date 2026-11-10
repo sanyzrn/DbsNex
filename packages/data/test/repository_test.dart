@@ -35,6 +35,33 @@ void main() {
     );
   }
 
+  test(
+    'library counts include set-aside but exclude trash and distinguish files',
+    () {
+      final text = repo.insert(makeText('live'));
+      repo.setAside(text.id);
+      final gone = repo.insert(makeText('trash'));
+      repo.softDelete(gone.id);
+      final now = DateTime.now().toUtc();
+      repo.insert(
+        Note(
+          id: newUuidV7(),
+          type: NoteType.file,
+          content: 'document',
+          createdAt: now,
+          updatedAt: now,
+          deviceId: 'test',
+          rev: 1,
+          syncState: SyncState.pending,
+        ),
+      );
+      final counts = repo.libraryNoteCounts();
+      expect(counts['text'], 1);
+      expect(counts['file'], 1);
+      expect(counts.values.fold<int>(0, (a, b) => a + b), 2);
+    },
+  );
+
   group('1.1 repository integration', () {
     test('insert returns note with UUIDv7-shaped id', () {
       final note = repo.insert(makeText('hello'));

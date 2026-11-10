@@ -201,6 +201,10 @@ mixin _DbClient implements NexDb {
   Future<int> pinnedNoteCount() => _send<int>(_DbCommand.pinnedNoteCount);
 
   @override
+  Future<Map<String, int>> libraryNoteCounts() =>
+      _send<Map<String, int>>(_DbCommand.libraryNoteCounts);
+
+  @override
   Future<bool> setAside(String id, {DateTime? until}) => _send<bool>(
     _DbCommand.setAside,
     {'id': id, 'until': until?.toUtc().toIso8601String()},

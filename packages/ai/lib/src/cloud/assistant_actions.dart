@@ -363,6 +363,10 @@ Settings you may change, and nothing else:
 `show_greeting`, `show_digest`, `show_search`, `show_tags` (on/off),
 `daily_nudge` (on/off), `daily_nudge_time` (`HH:MM`).
 
+For library totals use the exact live library counts, never count the sample
+excerpts. If counts are missing, request {"action":"search","query":""}; this
+reads aggregate counts only, not all note contents. Never classify files as text.
+
 When you need a note that is not in the list below, look for it first and
 wait for the result before doing anything else:
 
@@ -690,7 +694,7 @@ AssistantAction? _action(Map<Object?, Object?> decoded) {
     ),
     'tag' when id != null => _tagAction(decoded, id),
     'search'
-        when _string(decoded['query']) != null ||
+        when decoded['query'] is String ||
             _string(decoded['tag']) != null ||
             _string(decoded['thread']) != null =>
       AssistantAction(
@@ -981,6 +985,32 @@ String? _string(Object? value) {
 List<String> _strings(Object? value) {
   if (value is! List) return const [];
   return [for (final entry in value) ?_string(entry)];
+}
+
+/// An attempted internal command that cannot be executed. Quoted code is
+/// excluded, just as it is by the action parser.
+bool hasInvalidAssistantAction(String reply) {
+  for (final match in [
+    ..._blockPattern.allMatches(reply),
+    ..._looseBlocks(reply),
+  ]) {
+    if (parseAssistantActions(match.group(0)!).isEmpty) return true;
+  }
+  final unquoted = reply.replaceAll(_anyFence, '');
+  if (RegExp(r'```[ \t]*nex\b', caseSensitive: false).hasMatch(unquoted)) {
+    return true;
+  }
+  if (RegExp(r'\{\s*"action"\s*:').hasMatch(unquoted) &&
+      parseAssistantActions(unquoted).isEmpty) {
+    return true;
+  }
+  for (final object in _objectsIn(reply.replaceAll(_anyFence, ''))) {
+    if (RegExp(r'"action"\s*:').hasMatch(object) &&
+        parseAssistantActions(object).isEmpty) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /// What the model wrote with the block taken out.

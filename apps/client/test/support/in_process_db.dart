@@ -283,6 +283,10 @@ class InProcessDb implements NexDb {
   Future<int> pinnedNoteCount() async => _repo.pinnedNoteCount();
 
   @override
+  Future<Map<String, int>> libraryNoteCounts() async =>
+      _repo.libraryNoteCounts();
+
+  @override
   Future<bool> setAside(String id, {DateTime? until}) async =>
       _repo.setAside(id, until: until);
 

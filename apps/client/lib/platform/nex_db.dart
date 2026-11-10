@@ -111,6 +111,7 @@ abstract interface class NexDb {
   Future<void> unpinNote(String id);
 
   Future<int> pinnedNoteCount();
+  Future<Map<String, int>> libraryNoteCounts();
 
   /// Puts a note to one side: off the home timeline, still searchable. A null
   /// [until] means until it is brought back. False when the note is gone or

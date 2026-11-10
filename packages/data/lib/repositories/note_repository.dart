@@ -451,6 +451,15 @@ WHERE id = ? AND deleted_at IS NULL
     }
   }
 
+  /// Exact live counts, including set-aside notes, without reading content.
+  Map<String, int> libraryNoteCounts() => {
+    for (final type in NoteType.values) type.wireName: 0,
+    for (final row in db.select(
+      'SELECT type, COUNT(*) AS n FROM notes WHERE deleted_at IS NULL GROUP BY type',
+    ))
+      row['type'] as String: row['n'] as int,
+  };
+
   void unpinNote(String noteId) =>
       db.execute('UPDATE notes SET pinned_at = NULL WHERE id = ?', [noteId]);
 

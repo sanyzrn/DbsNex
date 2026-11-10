@@ -964,6 +964,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   }
 
   bool lastReplyTruncated = false;
+  Object? _lastFinishReason;
 
   /// Generous on purpose. A free tier can take the better part of a minute to
   /// answer, and a request that is still in flight is not a failure — the
@@ -1393,6 +1394,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
             ? (candidates.first as Map)['finishReason']
             : null,
     };
+    _lastFinishReason = reason;
     final completed = switch (config.provider.format) {
       AiWireFormat.openai => const {'stop'},
       AiWireFormat.anthropic => const {'end_turn', 'stop_sequence'},
@@ -2648,7 +2650,9 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
     if (hasNotes) {
       if (!notesInline) parts.add(_notesBlock(notesText));
     } else if (options.notesOnly) {
-      parts.add('The user has no notes yet.');
+      parts.add(
+        'No note excerpts were supplied. This does not mean the library is empty. Never infer library totals from excerpts.',
+      );
     }
     return parts.join('\n\n');
   }
@@ -2750,6 +2754,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   Future<String?> _chat(
     List<ChatMessage> history, {
     required AiChatOptions options,
+    int? outputBudget,
   }) async {
     lastReplyTruncated = false;
     _lastFailure = null;
@@ -2776,7 +2781,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       }
     }
     final system = chatSystemPrompt(options, notesInline: true);
-    final maxTokens = options.length.maxTokens;
+    final maxTokens = outputBudget ?? math.max(1024, options.length.maxTokens);
     final temperature = options.creativity.temperature;
     final turns = [
       for (final message in history)
@@ -2920,7 +2925,25 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       return null;
     }
     _lastFailure = null;
-    return _extractText(_bodyText(response), requireComplete: true)?.trim();
+    final answer = _extractText(
+      _bodyText(response),
+      requireComplete: true,
+    )?.trim();
+    if (answer == null &&
+        lastReplyTruncated &&
+        outputBudget == null &&
+        const {
+          'length',
+          'max_tokens',
+          'MAX_TOKENS',
+        }.contains(_lastFinishReason)) {
+      return _chat(
+        history,
+        options: options,
+        outputBudget: math.min(4096, maxTokens * 2),
+      );
+    }
+    return answer;
   }
 
   /// The response body, decoded as UTF-8 whatever the provider said.

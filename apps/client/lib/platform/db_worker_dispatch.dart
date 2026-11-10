@@ -193,6 +193,7 @@ class _Worker {
         () => repo.unpinNote(arg('id')! as String),
       ),
       _DbCommand.pinnedNoteCount => repo.pinnedNoteCount(),
+      _DbCommand.libraryNoteCounts => repo.libraryNoteCounts(),
       _DbCommand.setAside => repo.setAside(
         arg('id')! as String,
         until: switch (arg('until')) {

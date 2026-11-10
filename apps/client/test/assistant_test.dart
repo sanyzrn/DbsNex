@@ -685,7 +685,8 @@ Sure, here you go:
 
     test('no notes shared is a working state, not a broken one', () {
       final prompt = adapter().chatSystemPrompt(const AiChatOptions());
-      expect(prompt, contains('no notes yet'));
+      expect(prompt, contains('This does not mean the library is empty'));
+      expect(prompt, isNot(contains('The user has no notes yet.')));
     });
 
     test("the user's own instruction reaches the prompt, quoted", () {

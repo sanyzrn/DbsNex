@@ -1197,6 +1197,7 @@
   "@chatSend": {
     "description": "Tooltip on the assistant's send button"
   },
+  "chatIncompleteReply": "پاسخ ناتمام ماند. پیام شما حفظ شده؛ دوباره تلاش کنید.",
   "chatFailed": "پاسخی دریافت نشد. پیام شما حفظ شده؛ دوباره تلاش کنید.",
   "@chatFailed": {
     "description": "Shown in the assistant thread when a reply does not arrive"

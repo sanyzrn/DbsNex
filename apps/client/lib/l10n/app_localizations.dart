@@ -9494,6 +9494,8 @@ abstract class AppLocalizations {
   /// **'A complete answer could not be obtained. Your original text is kept. Try a shorter text or a model with a larger limit.'**
   String get aiIncompleteReply;
 
+  String get chatIncompleteReply;
+
   /// No description provided for @chatStop.
   ///
   /// In en, this message translates to:

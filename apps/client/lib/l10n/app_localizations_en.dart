@@ -6019,6 +6019,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiEmbeddingEndpoint => 'Embedding endpoint (optional)';
 
   @override
+  String get chatIncompleteReply =>
+      'The response was interrupted. Your message is kept; try again.';
+
+  @override
   String get aiIncompleteReply =>
       'A complete answer could not be obtained. Your original text is kept. Try a shorter text or a model with a larger limit.';
 

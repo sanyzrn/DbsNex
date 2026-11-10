@@ -5924,6 +5924,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiEmbeddingEndpoint => 'آدرس کامل بردارسازی (اختیاری)';
 
   @override
+  String get chatIncompleteReply =>
+      'پاسخ ناتمام ماند. پیام شما حفظ شده؛ دوباره تلاش کنید.';
+
+  @override
   String get aiIncompleteReply =>
       'پاسخ کامل دریافت نشد. متن اصلی حفظ شده است. متن کوتاه‌تر یا مدلی با ظرفیت بیشتر را امتحان کنید.';
 

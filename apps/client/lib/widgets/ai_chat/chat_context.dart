@@ -404,6 +404,26 @@ extension _ChatContext on _AiChatSheetState {
     ];
     _remember(found.take(_AiChatSheetState._retrievedCount));
     _retrieved = lines.join('\n');
+    // Respect the user's zero-context choice. Only aggregate metadata leaves
+    // the phone; this does not widen the set of note contents being shared.
+    if (widget.preferences.aiNotesContextCount > 0) {
+      final stats = await _libraryStatistics();
+      if (!mounted || generation != _sendGeneration) return;
+      _retrieved = '$stats\n$_retrieved';
+    }
+  }
+
+  Future<String> _libraryStatistics() async {
+    try {
+      final counts = await widget.services.worker.libraryNoteCounts();
+      return 'Exact live library counts (includes set-aside; excludes trash): '
+          'total=${counts.values.fold<int>(0, (a, b) => a + b)}; '
+          '${counts.entries.map((e) => '${e.key}=${e.value}').join('; ')}. '
+          'These are totals; the note excerpts are only a sample. '
+          'A file is not a text note.';
+    } catch (_) {
+      return 'Exact library counts unavailable; never infer totals from excerpts.';
+    }
   }
 
   /// Everything the assistant answers from: the notes it was given when the
