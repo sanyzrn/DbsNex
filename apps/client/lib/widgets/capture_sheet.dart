@@ -269,8 +269,10 @@ class _CaptureSheetState extends State<CaptureSheet> {
   Future<void> flush() async {
     debounce?.cancel();
     await draft;
-    // If the first insert failed, closing must try the complete snapshot.
-    if (noteId == null && _latestText.isNotEmpty) {
+    // If the first insert failed, closing must try the complete snapshot —
+    // of actual words: a whitespace-only snapshot is the empty note (see
+    // [_flushCurrent]) and gets no second chance at existing.
+    if (noteId == null && _latestText.trim().isNotEmpty) {
       draft = _createFirstDraft(_latestText);
       await draft;
     }
@@ -287,7 +289,11 @@ class _CaptureSheetState extends State<CaptureSheet> {
     _writes = _writes.then((_) async {
       final id = noteId;
       if (id == null) return;
-      if (text.isEmpty) {
+      // Whitespace is emptiness with a card attached: the first character
+      // that made the note may have been a stray space, and a note whose
+      // whole text trims to nothing is the one card in the app that
+      // promises nothing. It is deleted exactly as the empty text is.
+      if (text.trim().isEmpty) {
         try {
           await widget.services.deleteNote(id);
           noteId = null;

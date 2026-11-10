@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/pdf_preview.dart';
+import 'package:nex_client/widgets/pdf_reader.dart';
 
 /// The native half of this is Android's own PDF renderer, reached over the
 /// channel the share intent already uses. What is testable here is the Dart
@@ -75,24 +77,30 @@ void main() {
     },
   );
 
-  test(
-    'complete-page reader treats absent, empty and invalid pages as unavailable',
-    () async {
-      expect(await NexPdfPreview.page('/x/report.pdf'), isNull);
-      answer((_) async => throw PlatformException(code: 'invalid_pdf'));
-      expect(await NexPdfPreview.page('/x/report.pdf'), isNull);
-      answer((_) async => {'bytes': Uint8List(0), 'pageCount': 1});
-      expect(await NexPdfPreview.page('/x/report.pdf'), isNull);
-      seen = null;
-      expect(await NexPdfPreview.page('', index: 0), isNull);
-      expect(await NexPdfPreview.page('/x/report.pdf', index: -1), isNull);
-      expect(seen, isNull);
-    },
-  );
+  test('complete-page reader treats absent, empty and invalid pages as unavailable', () async {
+    expect(await NexPdfPreview.page('/x/report.pdf'), isNull);
+    answer((_) async => throw PlatformException(code: 'invalid_pdf'));
+    expect(await NexPdfPreview.page('/x/report.pdf'), isNull);
+    answer((_) async => {'bytes': Uint8List(0), 'pageCount': 1});
+    expect(await NexPdfPreview.page('/x/report.pdf'), isNull);
+    seen = null;
+    expect(await NexPdfPreview.page('', index: 0), isNull);
+    expect(await NexPdfPreview.page('/x/report.pdf', index: -1), isNull);
+    expect(seen, isNull);
+  });
 
   test('an empty path never reaches the platform', () async {
     answer((_) async => Uint8List(0));
     expect(await NexPdfPreview.firstPage(''), isNull);
     expect(seen, isNull);
+  });
+
+  test('page-turn chevrons point the way the interface reads', () {
+    // In English the next page lies to the right; in Persian, to the left —
+    // the swipe already goes that way, and the arrows have to agree.
+    expect(NexPdfReader.nexPdfChevronFor(1, false), Icons.chevron_right);
+    expect(NexPdfReader.nexPdfChevronFor(-1, false), Icons.chevron_left);
+    expect(NexPdfReader.nexPdfChevronFor(1, true), Icons.chevron_left);
+    expect(NexPdfReader.nexPdfChevronFor(-1, true), Icons.chevron_right);
   });
 }

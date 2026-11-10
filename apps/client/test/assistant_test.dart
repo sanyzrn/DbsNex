@@ -18,6 +18,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 
 import 'support/in_process_db.dart';
+
 import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/platform/chat_history.dart';
 import 'package:nex_core/nex_core.dart';
@@ -313,9 +314,8 @@ Sure, here you go:
         reason: '"pin this" said which one it meant',
       );
       expect(
-        parseAssistantAction(
-          '{"action":"pin","id":"n-1","pinned":false}',
-        )?.flag,
+        parseAssistantAction('{"action":"pin","id":"n-1","pinned":false}')
+            ?.flag,
         isFalse,
       );
       final unpin = parseAssistantAction('{"action":"unpin","id":"n-1"}');
@@ -325,9 +325,8 @@ Sure, here you go:
 
     test('a title with no text clears it', () {
       expect(
-        parseAssistantAction(
-          '{"action":"title","id":"n-1","text":"Boiler"}',
-        )?.text,
+        parseAssistantAction('{"action":"title","id":"n-1","text":"Boiler"}')
+            ?.text,
         'Boiler',
       );
       final cleared = parseAssistantAction('{"action":"title","id":"n-1"}');
@@ -426,9 +425,8 @@ Sure, here you go:
       // And a few that are.
       for (final key in ['text_size', 'daily_nudge', 'palette', 'show_tags']) {
         expect(
-          parseAssistantAction(
-            '{"action":"setting","key":"$key","value":"x"}',
-          )?.settingKey,
+          parseAssistantAction('{"action":"setting","key":"$key","value":"x"}')
+              ?.settingKey,
           key,
         );
       }
@@ -933,9 +931,8 @@ Sure, here you go:
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(disableAnimations: reduceMotion),
+            data: MediaQuery.of(context)
+                .copyWith(disableAnimations: reduceMotion),
             child: child!,
           ),
           home: Builder(
@@ -971,6 +968,22 @@ Sure, here you go:
         )
         .textDirection;
 
+    testWidgets('Enter makes a new line; only the button sends', (
+      tester,
+    ) async {
+      await openSheet(tester, client: replying('sure'));
+      final field = tester.widget<TextField>(
+        find.descendant(
+          of: find.byType(AiChatSheet),
+          matching: find.byType(TextField),
+        ),
+      );
+      // A prompt is prose: the on-screen action key breaks the line, and
+      // the send button beside the field is the only thing that sends.
+      expect(field.textInputAction, TextInputAction.newline);
+      expect(field.onSubmitted, isNull);
+    });
+
     for (final language in ['en', 'fa']) {
       for (final reduceMotion in [false, true]) {
         testWidgets(
@@ -984,7 +997,8 @@ Sure, here you go:
               reduceMotion: reduceMotion,
             );
             await tester.enterText(find.byType(TextField), 'hello');
-            await tester.testTextInput.receiveAction(TextInputAction.send);
+            await tester.pumpAndSettle();
+            await tester.tap(find.byKey(const ValueKey('send')));
             for (var i = 0; i < 10; i++) {
               await tester.pump(const Duration(milliseconds: 100));
             }
@@ -1061,15 +1075,19 @@ Sure, here you go:
           matching: find.byType(TextField),
         );
         await tester.enterText(field, 'Keep this pending question');
-        await tester.testTextInput.receiveAction(TextInputAction.send);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('send')));
         for (var i = 0; i < 10; i++) {
           await tester.pump(const Duration(milliseconds: 100));
         }
         expect(calls, 1);
         expect(
-          ChatHistory(
-            await SharedPreferences.getInstance(),
-          ).threads.single.messages.single.content,
+          ChatHistory(await SharedPreferences.getInstance())
+              .threads
+              .single
+              .messages
+              .single
+              .content,
           'Keep this pending question',
         );
         await tester.tap(find.byKey(const ValueKey('stop-chat')));
@@ -1123,7 +1141,8 @@ Sure, here you go:
           matching: find.byType(TextField),
         );
         await tester.enterText(field, 'when is my period?');
-        await tester.testTextInput.receiveAction(TextInputAction.send);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('send')));
         await tester.pumpAndSettle();
         expect(sent.length, 2);
         await tester.tap(find.text('Try again'));
@@ -1163,7 +1182,8 @@ Sure, here you go:
         matching: find.byType(TextField),
       );
       await tester.enterText(field, 'original question');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
       expect(find.text('Recovered answer'), findsNothing);
       await tester.enterText(field, 'new draft');
@@ -1210,7 +1230,8 @@ Sure, here you go:
         matching: find.byType(TextField),
       );
       await tester.enterText(field, 'when is my period?');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
       expect(asked, 2);
       expect(find.text('Your period is likely in a week.'), findsOneWidget);
@@ -1236,7 +1257,8 @@ Sure, here you go:
         matching: find.byType(TextField),
       );
       await tester.enterText(field, 'چند روز به پریودی من مونده؟');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       expect(model.asked, hasLength(1));
@@ -1303,7 +1325,8 @@ Sure, here you go:
         matching: find.byType(TextField),
       );
       await tester.enterText(field, 'when is my period?');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       expect(bodies, hasLength(1));
@@ -1348,7 +1371,8 @@ Sure, here you go:
       // The user's own turn is Markdown-shaped on purpose: they typed those
       // asterisks and the app has no business eating them.
       await tester.enterText(find.byType(TextField).last, 'give me a **list**');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       // The reply is rendered — the bold marks are gone and the word is not.
@@ -1362,7 +1386,8 @@ Sure, here you go:
     testWidgets('a plain answer stays plain', (tester) async {
       await openSheet(tester, client: replying('No, ollama is simpler.'));
       await tester.enterText(find.byType(TextField).last, 'lmstudio?');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       // Nothing to gain by parsing prose, and something to lose: a stray
@@ -1403,7 +1428,8 @@ Sure, here you go:
         client: replying('The code is 4471.\nSources: [${note.id}]'),
       );
       await tester.enterText(find.byType(TextField).last, 'boiler code?');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       // The marker line is for the app: the reader sees the answer and the
@@ -1447,7 +1473,8 @@ Sure, here you go:
         }),
       );
       await tester.enterText(find.byType(TextField).last, 'boiler code');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       expect(bodies, isNotEmpty);
@@ -1463,7 +1490,8 @@ Sure, here you go:
         ),
       );
       await tester.enterText(find.byType(TextField).last, 'anything?');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
       expect(find.text('Nothing about that.'), findsOneWidget);
       expect(find.byType(ActionChip), findsNothing);
@@ -1476,7 +1504,8 @@ Sure, here you go:
         client: replying('[general] Paris is the capital of France.'),
       );
       await tester.enterText(find.byType(TextField).last, 'capital?');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
       expect(find.text('Paris is the capital of France.'), findsOneWidget);
       expect(
@@ -1505,7 +1534,8 @@ Sure, here you go:
         find.byType(TextField).last,
         'delete the cooler note',
       );
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       // The reply asked for a delete. Nothing has happened yet.
@@ -1523,7 +1553,8 @@ Sure, here you go:
 
     Future<void> ask(WidgetTester tester, String text) async {
       await tester.enterText(find.byType(TextField).last, text);
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
     }
 
@@ -1750,7 +1781,8 @@ Sure, here you go:
         find.byType(TextField).last,
         'remind me to see the doctor at nine',
       );
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
       await tester.pumpAndSettle();
@@ -1781,7 +1813,8 @@ Sure, here you go:
         ),
       );
       await tester.enterText(find.byType(TextField).last, 'delete that one');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
@@ -1803,7 +1836,8 @@ Sure, here you go:
         client: replying('```nex\n{"action":"delete","id":"${note.id}"}\n```'),
       );
       await tester.enterText(find.byType(TextField).last, 'delete it');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
@@ -1819,7 +1853,8 @@ Sure, here you go:
 
       await openSheet(tester, client: replying('You wrote about the cooler.'));
       await tester.enterText(find.byType(TextField).last, 'what did I write?');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       expect(find.text('You wrote about the cooler.'), findsOneWidget);
@@ -1919,7 +1954,8 @@ Sure, here you go:
         find.byType(TextField).last,
         'what about the cooler?',
       );
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       // Two requests: the question, then the same conversation with the
@@ -1983,7 +2019,8 @@ Sure, here you go:
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, 'find something');
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
 
       // A model that only ever searches would otherwise spend the user's
@@ -2043,7 +2080,8 @@ Sure, here you go:
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, question);
-      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('send')));
       await tester.pumpAndSettle();
       return sent;
     }

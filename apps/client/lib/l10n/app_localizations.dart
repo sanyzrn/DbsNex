@@ -3374,6 +3374,12 @@ abstract class AppLocalizations {
   /// **'That file could not be read. If it lives in a cloud folder, open it once so the device has a copy.'**
   String get captureFailedUnreadable;
 
+  /// A crop or annotation change did not go through; the photo is untouched
+  ///
+  /// In en, this message translates to:
+  /// **'The photo could not be edited. Nothing was changed — please try again.'**
+  String get photoEditFailed;
+
   /// Action on a failure message that repeats what failed
   ///
   /// In en, this message translates to:

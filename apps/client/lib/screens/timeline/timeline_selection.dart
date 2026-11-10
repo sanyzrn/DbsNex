@@ -190,7 +190,9 @@ extension _TimelineSelection on TimelineScreenState {
       message: notes.length == 1
           ? l10n.noteDeleted
           : l10n.groupDeleted(notes.length),
-      haptics: widget.preferences.haptics,
+      // The tap that chose Delete already buzzed; the banner announcing the
+      // result of that same gesture stays quiet.
+      haptics: false,
       actionLabel: l10n.undo,
       onAction: () async {
         _tick();

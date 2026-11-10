@@ -32,6 +32,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     required this.onTap,
     required this.onChanged,
     required this.onClear,
+    this.onSubmitted,
     this.anchor,
     this.filterCount = 0,
     this.onShowFilters,
@@ -51,6 +52,10 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   final VoidCallback onTap;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
+
+  /// The keyboard's own Search key: run the query now rather than waiting
+  /// out the debounce. The button used to only lower the keyboard.
+  final ValueChanged<String>? onSubmitted;
 
   /// How many chip filters are active — drawn as a dot on the filter button,
   /// because a filter that is silently narrowing every search is a filter
@@ -105,12 +110,14 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
         groupId: nexSearchTapGroup,
         onTapOutside: (_) {
           if (!searching) return;
-          // Words typed and the keyboard up: the touch that closes the
-          // keyboard is not also the one that leaves — the results are
-          // still to be looked at. With nothing typed there is nothing to
-          // look at, and a touch outside leaves at once.
+          // Words typed: a touch outside only ever puts the keyboard away —
+          // never also leaves, keyboard or no keyboard. A touch on the empty
+          // space under short results is how scrolls begin, and it used to
+          // take the whole query with it; leaving (and clearing) is the ✕'s
+          // and Back's job. With nothing typed there is nothing to keep, and
+          // a touch outside leaves at once.
           final typed = controller.text.trim().isNotEmpty;
-          if (typed && View.of(context).viewInsets.bottom > 0) {
+          if (typed) {
             // Put away here rather than left to the app's dismisser: on the
             // timeline the touch can be claimed before it gets there.
             focusNode.unfocus();
@@ -259,6 +266,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                         focusNode: focusNode,
                         onTap: onTap,
                         onChanged: onChanged,
+                        onSubmitted: onSubmitted,
                         textInputAction: TextInputAction.search,
                         style: Theme.of(context).textTheme.bodyMedium,
                         // The caret is one of the few places the accent is

@@ -667,7 +667,14 @@ class _ChecklistLine extends StatelessWidget {
             NexSpacing.sm,
             math.max(0.0, (constraints.maxWidth - 16) / 4),
           );
+          // The line follows its own words, not the interface's language: a
+          // Persian item in an English interface (or the reverse) put the
+          // checkbox on the opposite edge from the text it belongs to, with
+          // the whole card's width of nothing between them. The words inside
+          // already lay out by their own direction; the row now agrees.
           return Row(
+            textDirection:
+                nexDirectionOf(item.text) ?? Directionality.of(context),
             children: [
               Icon(
                 item.done

@@ -229,7 +229,7 @@ void main() {
   for (final (typed, keyboard, leaves) in [
     ('', true, true),
     ('boiler', true, false),
-    ('boiler', false, true),
+    ('boiler', false, false),
     ('', false, true),
   ]) {
     final state =
@@ -311,5 +311,38 @@ void main() {
     final middle = tester.getCenter(find.byIcon(Icons.search)).dy;
     expect(tester.getCenter(find.byIcon(Icons.close)).dy, closeTo(middle, 1));
     expect(tester.getCenter(find.byIcon(Icons.tune)).dy, closeTo(middle, 1));
+  });
+
+  testWidgets("the keyboard's Search key runs the search at once", (
+    tester,
+  ) async {
+    var submitted = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              SliverPersistentHeader(
+                delegate: SearchFieldHeader(
+                  controller: TextEditingController(text: 'boiler'),
+                  focusNode: FocusNode(),
+                  searching: true,
+                  onTap: () {},
+                  onChanged: (_) {},
+                  onClear: () {},
+                  onSubmitted: (_) => submitted++,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.showKeyboard(find.byType(TextField));
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pump();
+    expect(submitted, 1);
   });
 }

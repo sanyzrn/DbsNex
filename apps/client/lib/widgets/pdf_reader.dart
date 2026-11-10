@@ -24,6 +24,16 @@ class NexPdfReader extends StatefulWidget {
   final String path;
   final VoidCallback onOpen;
 
+  /// The chevron a turning direction points with, in the interface's own
+  /// reading direction. In Persian the next page lies to the left — the
+  /// swipe already goes that way, and an arrow that pointed the other way
+  /// argued with the very gesture it sat beside. Lives here, on the public
+  /// class, because a `@visibleForTesting` member a test cannot name is not
+  /// one.
+  @visibleForTesting
+  static IconData nexPdfChevronFor(int delta, bool rtl) =>
+      ((delta > 0) != rtl) ? Icons.chevron_right : Icons.chevron_left;
+
   @override
   State<NexPdfReader> createState() => _NexPdfReaderState();
 }
@@ -176,6 +186,11 @@ class _NexPdfReaderState extends State<NexPdfReader>
     final rtl = Directionality.of(context) == TextDirection.rtl;
     return (dx < 0) != rtl ? 1 : -1;
   }
+
+  /// Whether the interface reads right to left — one place, so the capsule
+  /// and the swipe agree about which way "next" is.
+  static bool _isRtl(BuildContext context) =>
+      Directionality.of(context) == TextDirection.rtl;
 
   void _onDragUpdate(DragUpdateDetails details) {
     final delta = details.primaryDelta ?? 0;
@@ -493,7 +508,9 @@ class _NexPdfReaderState extends State<NexPdfReader>
                   tooltip: l10n.previousPdfPage,
                   visualDensity: VisualDensity.compact,
                   onPressed: _busy || _index == 0 ? null : () => _turn(-1),
-                  icon: const Icon(Icons.chevron_left),
+                  icon: Icon(
+                    NexPdfReader.nexPdfChevronFor(-1, _isRtl(context)),
+                  ),
                 ),
                 Flexible(
                   child: Tooltip(
@@ -519,7 +536,7 @@ class _NexPdfReaderState extends State<NexPdfReader>
                   onPressed: _busy || _index + 1 >= _count
                       ? null
                       : () => _turn(1),
-                  icon: const Icon(Icons.chevron_right),
+                  icon: Icon(NexPdfReader.nexPdfChevronFor(1, _isRtl(context))),
                 ),
               ],
             ),

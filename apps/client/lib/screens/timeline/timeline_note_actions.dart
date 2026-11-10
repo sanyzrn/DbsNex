@@ -147,7 +147,9 @@ extension _TimelineNoteActions on TimelineScreenState {
     nexShowBanner(
       context,
       message: l10n.groupDeleted(notes.length),
-      haptics: widget.preferences.haptics,
+      // The confirming tap above is this delete's one buzz; the banner it
+      // produced used to add a second.
+      haptics: false,
     );
   }
 

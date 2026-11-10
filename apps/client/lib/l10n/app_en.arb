@@ -1432,6 +1432,10 @@
   "@captureFailedUnreadable": {
     "description": "Capture failed because the picked file could not be read"
   },
+  "photoEditFailed": "The photo could not be edited. Nothing was changed — please try again.",
+  "@photoEditFailed": {
+    "description": "A crop or annotation change did not go through; the photo is untouched"
+  },
   "retry": "Try again",
   "@retry": {
     "description": "Action on a failure message that repeats what failed"
