@@ -164,6 +164,9 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
   @override
   void dispose() {
     _text.removeListener(_onChanged);
+    // A note can be closed before the 300 ms debounce. Persist the last
+    // pending draft and cancel its timer so recovery survives app shutdown.
+    widget.preferences.editorDrafts?.flushPending();
     _focus.dispose();
     _text.dispose();
     super.dispose();
