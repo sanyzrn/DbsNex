@@ -482,9 +482,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             Icon(
                               Icons.notifications_none,
                               size: 15,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                             const SizedBox(width: NexSpacing.xs),
                             Expanded(
@@ -493,9 +493,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                                 '${nexDueCardDescription(context, due, note.dueRepeat)}',
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
                                     ),
                               ),
                             ),
