@@ -78,4 +78,30 @@ void main() {
     );
     expect(seeks.single, closeTo(0.75, 0.01));
   });
+
+  testWidgets('the speed chip reaches the 48dp touch floor', (tester) async {
+    // A twenty-pixel chip beside the waveform is where mis-taps go to become
+    // accidental seeks; the pill stays small, the target does not.
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const Scaffold(
+          body: Padding(
+            padding: EdgeInsets.all(16),
+            child: NexVoicePlayer(
+              path: null,
+              steady: null,
+              length: Duration(seconds: 83),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(
+      tester.getSize(find.byKey(const ValueKey('voice-player-speed'))),
+      const Size(48, 48),
+    );
+  });
 }
