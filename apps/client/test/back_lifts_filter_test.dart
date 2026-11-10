@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/app.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 
 import 'support/nex_harness.dart';
