@@ -233,14 +233,44 @@ void _screenCases1() {
       await tester.pumpAndSettle();
       expect(find.text('bread'), findsOneWidget);
       expect(find.text('1,000 IRR'), findsAtLeast(1));
-      final transport = (await store.list(
-        'tx',
-      )).firstWhere((r) => r.body['category'] == 'cat-transport');
+      final transport = (await store.list('tx'))
+          .firstWhere((r) => r.body['category'] == 'cat-transport');
       expect(find.byKey(ValueKey('expenses-tx-${transport.id}')), findsNothing);
       await tester.tap(find.text('All'));
       await tester.pumpAndSettle();
       expect(
         find.byKey(ValueKey('expenses-tx-${transport.id}')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the chosen category stays in the row in a month without it', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      await addPayment(tester, amount: '1000', note: 'bread');
+      // Filter to Other — the payment chose no category, so it is the one
+      // category the month has.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(ExpensesFilterChips),
+          matching: find.text('Other'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // A month with nothing in it at all.
+      await tester.tap(find.byTooltip('Previous month'));
+      await tester.pumpAndSettle();
+      expect(find.text('Last month'), findsOneWidget);
+      expect(find.text('Nothing spent in this view'), findsOneWidget);
+      // The chosen chip is still in the row: it is the control that lifts
+      // the filter, so it cannot vanish with the month's records and leave
+      // a "nothing found" there is no way out of.
+      expect(
+        find.descendant(
+          of: find.byType(ExpensesFilterChips),
+          matching: find.text('Other'),
+        ),
         findsOneWidget,
       );
     });
