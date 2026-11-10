@@ -28,10 +28,10 @@ void main() {
     // Both notes on screen, and the tag the first one wears is a pill.
     expect(find.text('alpha carries the tag'), findsOneWidget);
     expect(find.text('beta has none at all'), findsOneWidget);
-    expect(find.text('work'), findsWidgets);
+    expect(find.text('Work'), findsWidgets);
 
     // Filtering to the tag narrows the list to its one carrier.
-    await tester.tap(find.text('work').first);
+    await tester.tap(find.text('Work').first);
     await tester.pumpAndSettle();
     expect(find.text('alpha carries the tag'), findsOneWidget);
     expect(find.text('beta has none at all'), findsNothing);
