@@ -14,7 +14,7 @@ import 'package:nex_client/widgets/copy_feedback.dart';
 void main() {
   Future<void> pump(
     WidgetTester tester,
-    void Function(BuildContext context) onCopy,
+    Future<void> Function(BuildContext context) onCopy,
   ) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -24,7 +24,7 @@ void main() {
           builder: (context) => Scaffold(
             body: Center(
               child: TextButton(
-                onPressed: () => onCopy(context),
+                onPressed: () {},
                 child: const Text('copy'),
               ),
             ),
@@ -32,9 +32,10 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.text('copy'));
-    // pumpAndSettle advances the banner's lifetime timer too, hiding the
-    // acknowledgement before it can be asserted. Observe it while visible.
+    // Test the asynchronous copy-to-clipboard boundary explicitly.
+    // A button's void callback does not await nexCopy, so the banner may
+    // not exist when pumpAndSettle decides that there are no more frames.
+    await onCopy(tester.element(find.text('copy')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 750));
   }
