@@ -2,6 +2,23 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.15
+
+- **A tap in the search field is no longer a re-run.** Touching the field to move the caret or paste no longer restarts the whole search and re-fades the results; the keyboard's Search key now actually runs the query instead of just closing the keyboard.
+- **Leaving search keeps your words.** With text typed, a touch outside the field now only lowers the keyboard — it never wipes the query. Clearing stays on the ✕ and Back.
+- **One buzz per delete.** Deleting a note used to vibrate three times in a row (gesture, action, banner). Now the one confirming buzz is the whole receipt.
+- **The assistant hold hint waits until it is true.** The "Hold + for the assistant" pill no longer appears for users whose assistant cannot answer yet.
+- **A quick double-tap on Save no longer closes the page beneath.** The checklist editor's buttons are latched during the exit animation, like the capture sheet's.
+- **Restored checklist drafts open with the caret at the end**, not in front of the first character — and swiping the editor down now asks before discarding, instead of silently keeping the text in drafts.
+- **Checklist lines follow their own language.** In mixed Persian/English lists, each checkbox now sits beside the start of its own line on cards and in the detail sheet.
+- **Enter in the assistant chat makes a new line.** The send button beside the field is the only thing that sends; on a physical keyboard Enter still sends and Shift+Enter breaks the line.
+- **A note of nothing but spaces no longer leaves a card behind.** Saving a note of nothing but spaces now discards it, instead of leaving an empty card to delete by hand.
+- **The chosen expense category stays in the row** even in a month that has none of it, so a stray filter can always be lifted.
+- **Leaving the photo cropper asks only when something changed.** Waiting for the photo to load is not an edit.
+- **Crop and annotation failures look and sound like failures** — a proper message in your language, not a success-styled banner with a raw exception in it.
+- **PDF page arrows follow the reading direction** in Persian, agreeing with the swipe instead of arguing with it.
+- **Smaller controls reach the 48dp touch floor.** The Undo banner's button and the voice speed chip now meet the app's own minimum touch size.
+
 ## v2.6.14
 
 - **Working tag filters in search.** The Tags row finally appears in the search filter sheet, typing `tag:` finds your tags, and several chosen tags now mean "any of them" — the same as the timeline's filter chips.
