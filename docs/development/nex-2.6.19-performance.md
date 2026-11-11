@@ -105,7 +105,7 @@ indexes (a content edit leaves every indexed value untouched).
 
 ### The guard that comes with the re-keying
 
-`user_version` goes 2 → 3. An older APK (2.6.18) opening a re-keyed
+`user_version` goes 2 → 3 **in the same transaction as the FTS re-key and migration marker**. This closes the crash window in which an older APK could see an upgraded search index under a stale schema stamp. An older APK (2.6.18) opening a re-keyed
 library would write index rows keyed the old way, stranding rows the new
 build can no longer address — so the older build now refuses the library,
 which is exactly what the stamp exists for (DATA-06, the Cafe Bazaar /
