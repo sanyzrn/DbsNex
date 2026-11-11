@@ -433,15 +433,18 @@ class _NexBannerState extends State<_NexBanner>
     if (status == AnimationStatus.completed) _startLife();
   }
 
+  // Overlay entries can retain an older inherited MediaQuery when the OS
+  // accessibility setting changes without navigating. Read the live platform
+  // state as well: an actionable Undo must never expire under screen readers.
+  bool get _keepActionUntilDismissed =>
+      widget.actionLabel != null &&
+      (MediaQuery.accessibleNavigationOf(context) ||
+          WidgetsBinding.instance.platformDispatcher.accessibilityFeatures
+              .accessibleNavigation);
+
   void _startLife() {
     if (_leaving || !mounted) return;
-    // A screen reader is already going to say the banner, and an actionable
-    // one is the user's only route back from something like a delete: it
-    // stays until dismissed.
-    if (MediaQuery.accessibleNavigationOf(context) &&
-        widget.actionLabel != null) {
-      return;
-    }
+    if (_keepActionUntilDismissed) return;
     _scheduleLife(_life);
   }
 
@@ -457,6 +460,11 @@ class _NexBannerState extends State<_NexBanner>
   /// relying on a frame timestamp (gestures can arrive between frames).
   void _tickLife() {
     if (_leaving || !mounted) return;
+    if (_keepActionUntilDismissed) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
     if (_lifeMs <= 0) {
       unawaited(_dismiss());
       return;
@@ -479,18 +487,14 @@ class _NexBannerState extends State<_NexBanner>
     if (!_holding) return;
     _holding = false;
     if (_leaving || !mounted) return;
-    if (MediaQuery.accessibleNavigationOf(context) &&
-        widget.actionLabel != null) {
-      return;
-    }
+    if (_keepActionUntilDismissed) return;
     _scheduleLife(Duration(milliseconds: _lifeMs));
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.accessibleNavigationOf(context) &&
-        widget.actionLabel != null) {
+    if (_keepActionUntilDismissed) {
       _timer?.cancel();
       _timer = null;
     }
