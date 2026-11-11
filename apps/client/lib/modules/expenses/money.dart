@@ -12,6 +12,8 @@
 /// default, whole tomans (1 toman = 10 rials). See the module's README.
 library;
 
+import '../module_api.dart' show nexDigits;
+
 import 'local_values.dart';
 
 /// A currency the module knows, chosen by the person explicitly.
@@ -174,10 +176,7 @@ String groupDigits(String digits, {required bool persian}) {
 
 /// `123` -> `۱۲۳`. A local equivalent of the app-wide helper, because
 /// the module API does not export it (see README Platform requests).
-String persianDigits(String text) => text.replaceAllMapped(
-  RegExp(r'[0-9]'),
-  (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-);
+String persianDigits(String text) => nexDigits(text, persian: true);
 
 /// The number part of a money display, no code: `1,250,000`,
 /// `12,000`, `12.500`, with `−` for negative. [minor] is in the minor

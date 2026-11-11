@@ -42,82 +42,120 @@ void main() {
 
   tearDown(() => harness.dispose());
 
+  test('rescue export and restore preserve a library with missing media and its safety point', () async {
+    final previousPaths = PathProviderPlatform.instance;
+    final cache = Directory(p.join(tmp.path, 'cache'))..createSync();
+    PathProviderPlatform.instance = _RescuePaths(cache.path);
+    addTearDown(() => PathProviderPlatform.instance = previousPaths);
+    final note = (await services.captureText('recoverable text'))!;
+    final database = NexDatabase.open(services.dbPath);
+    try {
+      SqliteNoteRepository(database).insert(
+        Note(
+          id: 'lost-photo',
+          type: NoteType.photo,
+          mediaUri: p.join(services.mediaDir, 'lost.jpg'),
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+          deviceId: 'test',
+          rev: 1,
+          syncState: SyncState.pending,
+        ),
+      );
+    } finally {
+      database.close();
+    }
+    await expectLater(services.backupNow(), throwsStateError);
+    final rescued = await services.exportRescueBackup();
+    expect(rescued.missing, ['lost.jpg']);
+    final result = await services.restoreBackup(File(rescued.path));
+    expect(result.error, isNull);
+    final restored = NexDatabase.open(services.dbPath);
+    try {
+      expect(
+        SqliteNoteRepository(restored).getById(note.id)!.content,
+        'recoverable text',
+      );
+    } finally {
+      restored.close();
+    }
+    final safety = Directory(p.join(services.backupDir, 'before-restore'))
+        .listSync()
+        .whereType<File>()
+        .singleWhere((file) => file.path.endsWith('.nexbak'));
+    expect(NexBackupArchive.missingMedia(safety.path), ['lost.jpg']);
+  });
   test(
-    'rescue export and restore preserve a library with missing media and its safety point',
+    'an invalid backup is rejected with the original session still usable',
     () async {
-      final previousPaths = PathProviderPlatform.instance;
-      final cache = Directory(p.join(tmp.path, 'cache'))..createSync();
-      PathProviderPlatform.instance = _RescuePaths(cache.path);
-      addTearDown(() => PathProviderPlatform.instance = previousPaths);
-      final note = (await services.captureText('recoverable text'))!;
-      final database = NexDatabase.open(services.dbPath);
-      try {
-        SqliteNoteRepository(database).insert(
-          Note(
-            id: 'lost-photo',
-            type: NoteType.photo,
-            mediaUri: p.join(services.mediaDir, 'lost.jpg'),
-            createdAt: DateTime.utc(2026),
-            updatedAt: DateTime.utc(2026),
-            deviceId: 'test',
-            rev: 1,
-            syncState: SyncState.pending,
-          ),
-        );
-      } finally {
-        database.close();
-      }
-      await expectLater(services.backupNow(), throwsStateError);
-      final rescued = await services.exportRescueBackup();
-      expect(rescued.missing, ['lost.jpg']);
-      final result = await services.restoreBackup(File(rescued.path));
-      expect(result.error, isNull);
-      final restored = NexDatabase.open(services.dbPath);
-      try {
-        expect(
-          SqliteNoteRepository(restored).getById(note.id)!.content,
-          'recoverable text',
-        );
-      } finally {
-        restored.close();
-      }
-      final safety = Directory(p.join(services.backupDir, 'before-restore'))
-          .listSync()
-          .whereType<File>()
-          .singleWhere((file) => file.path.endsWith('.nexbak'));
-      expect(NexBackupArchive.missingMedia(safety.path), ['lost.jpg']);
-    },
-  );
-  test(
-    'failed restore requests a restart and retains the original library plus a safety copy',
-    () async {
-      final note = await services.captureText('keep this note');
+      final note = (await services.captureText('keep this note'))!;
       final invalid = File(p.join(tmp.path, 'invalid.nexbak'))
         ..writeAsStringSync('not a backup');
-      final result = await services.restoreBackup(invalid);
-      expect(result.error, isNotNull);
-      final reopened = NexDatabase.open(services.dbPath);
-      try {
-        expect(
-          SqliteNoteRepository(reopened).getById(note!.id)?.content,
-          'keep this note',
-        );
-      } finally {
-        reopened.close();
-      }
-      expect(
-        Directory(
-          p.join(services.backupDir, 'before-restore'),
-        ).listSync().where((f) => f.path.endsWith('.nexbak')),
-        hasLength(1),
-      );
-      expect(
-        await services.listBackups(),
-        hasLength(1),
-        reason: 'The recovery copy must be visible and selectable in Backups.',
-      );
+      await expectLater(services.restoreBackup(invalid), throwsStateError);
+      expect((await services.getById(note.id))!.content, 'keep this note');
+      expect(await services.captureText('still writable'), isNotNull);
+      expect(await services.listBackups(), isEmpty);
     },
   );
+
+  test('failure after closing requests a restart and retains the original library plus a safety copy', () async {
+    final note = (await services.captureText('backed-up note'))!;
+    final photo = File(p.join(services.mediaDir, 'photo.jpg'))
+      ..writeAsBytesSync([1, 2, 3]);
+    await harness.db.capturePhoto(
+      mediaUri: photo.path,
+      mediaHash: (await sha256OfFile(photo.path))!,
+    );
+    // The in-process test worker normally writes self-contained format 1.
+    // Construct the compact format used by the production backup worker.
+    final database = NexDatabase.open(services.dbPath);
+    late final File snapshot;
+    try {
+      snapshot = NexBackupArchive.snapshotDatabase(
+        database: database,
+        backupDir: services.backupDir,
+      );
+    } finally {
+      database.close();
+    }
+    late final File selected;
+    try {
+      selected = NexBackupArchive.createFromSnapshot(
+        snapshotPath: snapshot.path,
+        mediaDir: services.mediaDir,
+        backupDir: services.backupDir,
+        compact: true,
+      );
+    } finally {
+      snapshot.deleteSync();
+    }
+    await services.updateNote(note.id, 'keep this newer note');
+    // Header/database preflight succeeds; materializing the staged media
+    // fails after closing the worker because this compact blob was lost.
+    Directory(p.join(services.backupDir, '.media')).deleteSync(recursive: true);
+    final result = await services.restoreBackup(selected);
+    expect(result.error, isNotNull);
+    final reopened = NexDatabase.open(services.dbPath);
+    try {
+      expect(
+        SqliteNoteRepository(reopened).getById(note.id)?.content,
+        'keep this newer note',
+      );
+    } finally {
+      reopened.close();
+    }
+    expect(
+      Directory(p.join(services.backupDir, 'before-restore'))
+          .listSync()
+          .where((f) => f.path.endsWith('.nexbak')),
+      hasLength(1),
+    );
+    expect(
+      await services.listBackups(),
+      hasLength(2),
+      reason: 'The recovery copy must be visible and selectable in Backups.',
+    );
+  });
 
   test('a brand-new install does not back up an empty library', () async {
     // Reported as "there is already a backup on a fresh install". There was:

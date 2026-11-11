@@ -200,7 +200,7 @@ extension _DetailAttachments on _NoteDetailSheetState {
             );
           }
         default:
-          final picked = await OsCaptureBridge.pickFile();
+          final picked = await nexPickAttachment(context);
           if (picked == null) return;
           final isImage =
               NexFileKinds.of(path: picked.path, mimeType: picked.mimeType) ==

@@ -27,6 +27,7 @@
 /// one filesystem and is atomic.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -49,6 +50,7 @@ final class RestoreTransaction {
       Directory('$liveDbPath.rollback.d');
   static Directory _mediaAsideOf(String mediaDir) =>
       Directory('$mediaDir.rollback');
+  static const _initialState = 'initial-state.json';
 
   /// Starts a restore of [liveDbPath], and of [mediaDir] if it will be
   /// replaced too.
@@ -61,6 +63,10 @@ final class RestoreTransaction {
     String? mediaDir,
   }) {
     recover(liveDbPath);
+    final dbAside = _dbAsideOf(liveDbPath);
+    // Opening a committed library tolerates a failed garbage sweep, but a
+    // new transaction must never reuse the previous transaction's copies.
+    if (dbAside.existsSync()) dbAside.deleteSync(recursive: true);
     if (mediaDir != null) {
       // Left by a restore that committed and was then interrupted while it
       // tidied up. Garbage by now: `recover` has just established there is
@@ -68,7 +74,20 @@ final class RestoreTransaction {
       final stale = _mediaAsideOf(mediaDir);
       if (stale.existsSync()) stale.deleteSync(recursive: true);
     }
-    File(_journalOf(liveDbPath)).writeAsStringSync(mediaDir ?? '', flush: true);
+    dbAside.createSync(recursive: true);
+    File(p.join(dbAside.path, _initialState)).writeAsStringSync(
+      jsonEncode({
+        'databaseExisted': File(liveDbPath).existsSync(),
+        'mediaExisted': mediaDir != null && Directory(mediaDir).existsSync(),
+        'mediaDir': mediaDir,
+      }),
+      flush: true,
+    );
+    // Keep the original journal format readable by existing builds.
+    final journal = File(_journalOf(liveDbPath));
+    final pending = File('${journal.path}.pending');
+    pending.writeAsStringSync(mediaDir ?? '', flush: true);
+    pending.renameSync(journal.path);
     return RestoreTransaction._(liveDbPath, mediaDir);
   }
 
@@ -108,16 +127,25 @@ final class RestoreTransaction {
   void commit() {
     File(_journalOf(liveDbPath)).deleteSync();
     final dbAside = _dbAsideOf(liveDbPath);
-    if (dbAside.existsSync()) dbAside.deleteSync(recursive: true);
+    _sweepCommitted(dbAside);
     final dir = mediaDir;
     if (dir != null) {
       final mediaAside = _mediaAsideOf(dir);
-      if (mediaAside.existsSync()) mediaAside.deleteSync(recursive: true);
+      _sweepCommitted(mediaAside);
     }
   }
 
   /// Puts back everything this restore moved aside.
   void rollBack() => recover(liveDbPath);
+
+  static void _sweepCommitted(Directory directory) {
+    try {
+      if (directory.existsSync()) directory.deleteSync(recursive: true);
+    } on FileSystemException {
+      // The journal is gone: cleanup cannot change a committed outcome or
+      // stop the app opening a healthy restored library. Retry next open.
+    }
+  }
 
   /// Undoes an unfinished restore of [liveDbPath], or tidies a finished one.
   ///
@@ -130,14 +158,18 @@ final class RestoreTransaction {
     if (!journal.existsSync()) {
       // Committed and interrupted while tidying, or never started. Either
       // way nothing here is anybody's library any more.
-      if (dbAside.existsSync()) dbAside.deleteSync(recursive: true);
+      _sweepCommitted(dbAside);
       return;
     }
 
+    final stateFile = File(p.join(dbAside.path, _initialState));
+    final initial = stateFile.existsSync()
+        ? jsonDecode(stateFile.readAsStringSync()) as Map
+        : null;
     if (dbAside.existsSync()) {
       final name = p.basename(liveDbPath);
       final asideMain = File(p.join(dbAside.path, name));
-      if (asideMain.existsSync()) {
+      if (asideMain.existsSync() || initial?['databaseExisted'] == false) {
         // The original database was moved, so whatever is at the live path
         // now — the staged copy, and the sidecars opening it produced — is
         // the restore's and goes.
@@ -149,26 +181,39 @@ final class RestoreTransaction {
       // Either way, every file that was set aside goes back to where it was.
       // When the database itself was never moved, these are only the
       // sidecars that had been moved before the interruption.
-      for (final suffix in [..._sidecars, '']) {
+      // Restore the main file first: its absence from the aside directory
+      // marks that deletion of the installed library has already finished.
+      // Retrying a recovery interrupted between sidecars must not delete a
+      // WAL that the previous attempt already put back.
+      for (final suffix in ['', ..._sidecars]) {
         final aside = File(p.join(dbAside.path, '$name$suffix'));
         if (!aside.existsSync()) continue;
         final live = File('$liveDbPath$suffix');
         if (live.existsSync()) live.deleteSync();
         aside.renameSync(live.path);
       }
-      dbAside.deleteSync(recursive: true);
     }
 
-    final mediaDir = journal.readAsStringSync();
+    // New journals keep the exact path in flushed metadata as well, so a
+    // damaged/truncated legacy path cannot target a different directory.
+    final mediaDir = initial != null && initial.containsKey('mediaDir')
+        ? initial['mediaDir'] as String? ?? ''
+        : journal.readAsStringSync();
     if (mediaDir.isNotEmpty) {
       final mediaAside = _mediaAsideOf(mediaDir);
       if (mediaAside.existsSync()) {
         final live = Directory(mediaDir);
         if (live.existsSync()) live.deleteSync(recursive: true);
         mediaAside.renameSync(mediaDir);
+      } else if (initial?['mediaExisted'] == false) {
+        final installed = Directory(mediaDir);
+        if (installed.existsSync()) installed.deleteSync(recursive: true);
       }
     }
 
+    // Keep the initial state until media recovery finishes too. It is needed
+    // when rollback itself is interrupted, especially on a first restore.
     journal.deleteSync();
+    _sweepCommitted(dbAside);
   }
 }

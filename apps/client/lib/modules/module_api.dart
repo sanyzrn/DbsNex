@@ -15,6 +15,7 @@ export '../l10n/app_localizations.dart' show AppLocalizations;
 export '../platform/display_date.dart'
     show
         nexDigits,
+        nexPad2,
         nexGregorianDate,
         nexPersianDate,
         nexPersianMonthDays,

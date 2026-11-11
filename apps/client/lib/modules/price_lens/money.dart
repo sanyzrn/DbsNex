@@ -9,6 +9,8 @@
 /// offers in different currencies are never compared.
 library;
 
+import '../module_api.dart' show nexDigits;
+
 import 'local_values.dart';
 
 /// A currency a price can be entered in.
@@ -157,10 +159,7 @@ String groupLocal(String digits, bool persian) {
   return persian ? persianLocal(reversed) : reversed;
 }
 
-String persianLocal(String text) => text.replaceAllMapped(
-  RegExp(r'[0-9]'),
-  (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-);
+String persianLocal(String text) => nexDigits(text, persian: true);
 
 Map<String, Object?> priceMetadata(String code) => {
   'currency_code': code,

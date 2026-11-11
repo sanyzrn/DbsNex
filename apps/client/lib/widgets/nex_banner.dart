@@ -187,7 +187,7 @@ void _retire(_BannerSession? session) {
   if (state != null) {
     unawaited(state._dismiss());
   } else {
-    session.entry.remove();
+    session.remove();
   }
 }
 
@@ -219,7 +219,7 @@ NexBannerHandle _insert(
         // here and only here, so nothing removes it twice. The module state
         // moves on only if this is still the showing session — a replacement
         // has already taken the slot, and a hidden one has cleaned up itself.
-        entry.remove();
+        session.remove();
         if (identical(_current, session)) {
           _current = null;
           _drainPending();
@@ -266,6 +266,15 @@ class _BannerSession {
 
   late final OverlayEntry entry;
   _NexBannerState? state;
+  final closed = Completer<void>();
+  bool _removed = false;
+
+  void remove() {
+    if (_removed) return;
+    _removed = true;
+    entry.remove();
+    if (!closed.isCompleted) closed.complete();
+  }
 }
 
 /// The parameters of a banner waiting for its turn, held as-is so what shows
@@ -307,6 +316,10 @@ class NexBannerHandle {
   final _BannerSession? _session;
   final _PendingBanner? _waiting;
 
+  /// Completes after an inserted banner leaves the overlay. Queued plain
+  /// banners have no action window and return null.
+  Future<void>? get closed => _session?.closed.future;
+
   bool get isShowing => _session != null && identical(_current, _session);
 
   void hide() {
@@ -316,9 +329,9 @@ class NexBannerHandle {
       return;
     }
     final session = _session;
-    if (session == null || !identical(_current, session)) return;
-    _current = null;
-    session.entry.remove();
+    if (session == null) return;
+    if (identical(_current, session)) _current = null;
+    session.remove();
   }
 }
 
@@ -329,7 +342,7 @@ void nexHideBanner() {
   final current = _current;
   _current = null;
   _pending = null;
-  current?.entry.remove();
+  current?.remove();
 }
 
 class _NexBanner extends StatefulWidget {
@@ -420,15 +433,21 @@ class _NexBannerState extends State<_NexBanner>
     if (status == AnimationStatus.completed) _startLife();
   }
 
+  // Overlay entries can retain an older inherited MediaQuery when the OS
+  // accessibility setting changes without navigating. Read the live platform
+  // state as well: an actionable Undo must never expire under screen readers.
+  bool get _keepActionUntilDismissed =>
+      widget.actionLabel != null &&
+      (MediaQuery.accessibleNavigationOf(context) ||
+          WidgetsBinding
+              .instance
+              .platformDispatcher
+              .accessibilityFeatures
+              .accessibleNavigation);
+
   void _startLife() {
     if (_leaving || !mounted) return;
-    // A screen reader is already going to say the banner, and an actionable
-    // one is the user's only route back from something like a delete: it
-    // stays until dismissed.
-    if (MediaQuery.accessibleNavigationOf(context) &&
-        widget.actionLabel != null) {
-      return;
-    }
+    if (_keepActionUntilDismissed) return;
     _scheduleLife(_life);
   }
 
@@ -444,6 +463,11 @@ class _NexBannerState extends State<_NexBanner>
   /// relying on a frame timestamp (gestures can arrive between frames).
   void _tickLife() {
     if (_leaving || !mounted) return;
+    if (_keepActionUntilDismissed) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
     if (_lifeMs <= 0) {
       unawaited(_dismiss());
       return;
@@ -466,18 +490,14 @@ class _NexBannerState extends State<_NexBanner>
     if (!_holding) return;
     _holding = false;
     if (_leaving || !mounted) return;
-    if (MediaQuery.accessibleNavigationOf(context) &&
-        widget.actionLabel != null) {
-      return;
-    }
+    if (_keepActionUntilDismissed) return;
     _scheduleLife(Duration(milliseconds: _lifeMs));
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.accessibleNavigationOf(context) &&
-        widget.actionLabel != null) {
+    if (_keepActionUntilDismissed) {
       _timer?.cancel();
       _timer = null;
     }

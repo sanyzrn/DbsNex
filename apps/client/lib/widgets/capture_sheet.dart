@@ -351,6 +351,8 @@ class _CaptureSheetState extends State<CaptureSheet>
   /// A single settlement for every way the sheet can close.
   /// A failed conversion preserves the draft and leaves the sheet open.
   Future<bool>? _settling;
+  ({Note note, String text, CaptureKind kind})? _conversion;
+  String _conversionKey = newUuidV7();
 
   Future<bool> _settle() => _settling ??= _settleOnce();
 
@@ -359,32 +361,51 @@ class _CaptureSheetState extends State<CaptureSheet>
     final id = noteId;
     final text = _latestText;
     final kind = _kind;
-    if (id == null || persisted != text || text.trim().isEmpty) return true;
-    if (kind == CaptureKind.note) return true;
+    if (id == null || persisted != text) return true;
+    try {
+      final pending = _conversion;
+      if (pending != null && (pending.text != text || pending.kind != kind)) {
+        await widget.services.deleteNote(pending.note.id);
+        await widget.services.purgeNote(pending.note.id);
+        _conversion = null;
+        _conversionKey = newUuidV7();
+      }
+    } catch (error) {
+      unawaited(NexCrashLog.handled('capture.conversionCleanup', error));
+      _fail();
+      return false;
+    }
+    if (text.trim().isEmpty || kind == CaptureKind.note) return true;
     Note? made;
     try {
-      switch (kind) {
-        case CaptureKind.checklist:
-          final items = parseChecklist(text);
-          if (items.isEmpty) return true;
-          made = await widget.services.captureChecklist(items);
-        case CaptureKind.link:
-          if (writtenLink(text) == null) {
-            // Not an address: the note it already is keeps it, and the
-            // person is told why it is not a link.
-            if (mounted) {
-              nexShowBanner(
-                context,
-                message: AppLocalizations.of(context).linkKeptAsNote,
-                haptics: false,
-              );
+      made = _conversion?.note;
+      if (made == null) {
+        switch (kind) {
+          case CaptureKind.checklist:
+            final items = parseChecklist(text);
+            if (items.isEmpty) return true;
+            made = await widget.services.captureChecklist(items);
+          case CaptureKind.link:
+            if (writtenLink(text) == null) {
+              // Not an address: the note it already is keeps it, and the
+              // person is told why it is not a link.
+              if (mounted) {
+                nexShowBanner(
+                  context,
+                  message: AppLocalizations.of(context).linkKeptAsNote,
+                  haptics: false,
+                );
+              }
+              return true;
             }
+            made = await widget.services.captureWrittenLink(
+              _conversionKey,
+              text,
+            );
+          case CaptureKind.note:
+          case CaptureKind.voice:
             return true;
-          }
-          made = await widget.services.captureWrittenLink(_draftId, text);
-        case CaptureKind.note:
-        case CaptureKind.voice:
-          return true;
+        }
       }
     } catch (error) {
       unawaited(NexCrashLog.handled('capture.convert', error));
@@ -394,14 +415,22 @@ class _CaptureSheetState extends State<CaptureSheet>
       _fail();
       return false;
     }
-    // The reminder set while writing goes with the words.
+    _conversion = (note: made, text: text, kind: kind);
+    // Keep the source draft until both the reminder data and alarm transfer.
     try {
       final before = await widget.services.getById(id);
-      final due = before?.dueAt;
-      if (due != null) {
-        await widget.services.setDueAt(made.id, due, repeat: before!.dueRepeat);
-      }
-    } catch (_) {}
+      if (before == null) throw StateError('Capture draft is missing');
+      await widget.services.setDueAt(
+        made.id,
+        before.dueAt,
+        repeat: before.dueRepeat,
+      );
+    } catch (error) {
+      unawaited(NexCrashLog.handled('capture.reminderTransfer', error));
+      _fail();
+      return false;
+    }
+    _conversion = null;
     // From here the sheet holds nothing: a flush that comes later — the
     // pop, `dispose` — must not write the note it is about to remove.
     debounce?.cancel();
@@ -531,7 +560,7 @@ class _CaptureSheetState extends State<CaptureSheet>
     if (_voiceOn) await _stopVoice(keep: true);
     final settled = await _settle();
     if (!mounted) return;
-    if (!settled) {
+    if (!settled || persisted != _latestText) {
       _settling = null;
       setState(() => _closing = false);
       return;

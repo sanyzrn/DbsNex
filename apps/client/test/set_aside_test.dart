@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/library_screen.dart';
+import 'package:nex_client/screens/recently_deleted_screen.dart';
 import 'package:nex_client/screens/set_aside_screen.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -196,16 +197,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(await services.deletedNotes(), hasLength(2));
 
+    // Accessibility keeps Undo available beyond the ordinary banner timer.
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(
+          accessibleNavigation: true,
+          disableAnimations: true,
+        );
+    await tester.pump();
+    expect(
+      MediaQuery.accessibleNavigationOf(
+        tester.element(find.byType(RecentlyDeletedScreen)),
+      ),
+      isTrue,
+    );
     // Deleting for good waits for its Undo, and the Undo keeps the note.
     await tester.tap(find.byKey(ValueKey('trash-purge-${first.id}')));
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('trash-${first.id}')), findsNothing);
+    await tester.pump(const Duration(seconds: 12));
+    expect(
+      (await services.deletedNotes()).map((note) => note.id),
+      contains(first.id),
+      reason: 'Undo must keep the note in trash until the banner closes',
+    );
+    expect(find.text('Undo'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 8));
     expect(await services.deletedNotes(), hasLength(2));
     expect(find.byKey(ValueKey('trash-${first.id}')), findsWidgets);
 
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    await tester.pump();
     // Left alone, it goes.
     await tester.tap(find.byKey(ValueKey('trash-purge-${first.id}')));
     await tester.pumpAndSettle();

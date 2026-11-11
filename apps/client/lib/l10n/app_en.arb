@@ -2041,6 +2041,7 @@
   "@chatSend": {
     "description": "Tooltip on the assistant's send button"
   },
+  "chatIncompleteReply": "The response was interrupted. Your message is kept; try again.",
   "chatFailed": "No answer came back. Your message is kept; try again.",
   "@chatFailed": {
     "description": "Shown in the assistant thread when a reply does not arrive"

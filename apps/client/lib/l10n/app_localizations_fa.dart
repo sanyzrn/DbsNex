@@ -810,10 +810,14 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String mergeTagDone(String target) => 'با «$target» ادغام شد';
+  String mergeTagDone(String target) {
+    return 'با «$target» ادغام شد';
+  }
 
   @override
-  String tagRemoved(String tag) => 'برچسب «$tag» برداشته شد';
+  String tagRemoved(String tag) {
+    return 'برچسب «$tag» برداشته شد';
+  }
 
   @override
   String get timelineGroupPinned => 'سنجاق‌شده';
@@ -2760,6 +2764,10 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get chatSend => 'فرستادن';
+
+  @override
+  String get chatIncompleteReply =>
+      'پاسخ ناتمام ماند. پیام شما حفظ شده؛ دوباره تلاش کنید.';
 
   @override
   String get chatFailed =>

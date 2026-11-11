@@ -189,9 +189,8 @@ class _WordsReminderRowState extends State<WordsReminderRow> {
     final reminder = _reminder;
     if (reminder == null) return const SizedBox.shrink();
     final persian = NexModuleStrings.persian(context);
-    String two(int v) => v.toString().padLeft(2, '0');
     final time = nexDigits(
-      '${two(reminder.minutes ~/ 60)}:${two(reminder.minutes % 60)}',
+      '${nexPad2(reminder.minutes ~/ 60)}:${nexPad2(reminder.minutes % 60)}',
       persian: persian,
     );
     return Column(

@@ -55,7 +55,7 @@ extension _TimelineSelection on TimelineScreenState {
       alreadyOn: onAll,
     );
     if (choices == null || choices.isEmpty || !mounted) return;
-    if (widget.preferences.haptics) HapticFeedback.lightImpact();
+    if (widget.preferences.haptics) unawaited(HapticFeedback.lightImpact());
     // The picker now hands back as many tags as were ticked; the per-note
     // rules below are the ones one choice always ran under — a tag a note
     // already carries is skipped, and a note already at the cap is left
@@ -185,7 +185,7 @@ extension _TimelineSelection on TimelineScreenState {
     final l10n = AppLocalizations.of(context);
     final notes = _selectedNotes;
     if (notes.isEmpty) return;
-    if (widget.preferences.haptics) HapticFeedback.mediumImpact();
+    if (widget.preferences.haptics) unawaited(HapticFeedback.mediumImpact());
     for (final note in notes) {
       await widget.services.deleteNote(note.id);
     }

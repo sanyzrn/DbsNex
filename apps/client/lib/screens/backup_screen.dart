@@ -1,10 +1,13 @@
 import '../platform/crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:nex_data/nex_data.dart'
+    show NexBackupArchive, NewerLibraryException;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -500,6 +503,13 @@ class _BackupScreenState extends State<BackupScreen> {
         );
       }
       restart();
+    } on NewerLibraryException {
+      if (!mounted) return;
+      nexShowBanner(
+        context,
+        message: l10n.libraryNewerVersion,
+        kind: NexBannerKind.failed,
+      );
     } on VaultAuthenticationRequired {
       return;
     } on Object catch (error) {
@@ -511,7 +521,7 @@ class _BackupScreenState extends State<BackupScreen> {
       if (!mounted) return;
       nexShowBanner(
         context,
-        message: l10n.restoreFailed(error.runtimeType.toString()),
+        message: l10n.restoreFailed(NexServices.describeFailure(error)),
         kind: NexBannerKind.failed,
       );
     }
@@ -554,7 +564,9 @@ class _BackupScreenState extends State<BackupScreen> {
     );
     if (file == null) return;
     final path = file.path;
-    if (path.toLowerCase().endsWith('.zip') && !await FullBackup.detect(path)) {
+    if (path.toLowerCase().endsWith('.zip') &&
+        !await FullBackup.detect(path) &&
+        !await NexBackupArchive.detect(path)) {
       await _import(file.path);
       return;
     }

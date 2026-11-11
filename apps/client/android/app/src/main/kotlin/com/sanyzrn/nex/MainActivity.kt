@@ -852,7 +852,7 @@ open class MainActivity : FlutterFragmentActivity() {
                 runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
                 // Start spooling immediately while the temporary grant exists.
                 // copyShared uses the same executor and reuses the finished file.
-                if ((value["size"]?.toLongOrNull() ?: -1L) <= 100L * 1024 * 1024) {
+                if ((value["size"]?.toLongOrNull() ?: -1L) <= MAX_ATTACHMENT_BYTES) {
                     ioExecutor.execute { runCatching { copySharedUri(uri, requestId) } }
                 }
             }
@@ -1123,6 +1123,11 @@ open class MainActivity : FlutterFragmentActivity() {
             ?.applicationInfo?.uid == applicationInfo.uid
         val sharedOut = if (own) ownSharedFile(uri) ?: return null else null
         val name = sharedOut?.name ?: displayName(uri) ?: "shared-${System.currentTimeMillis()}"
+        val declaredSize = sharedOut?.length() ?: sizeOf(uri)
+        if (declaredSize > MAX_ATTACHMENT_BYTES) {
+            return mapOf("error" to "too_large", "filename" to name,
+                         "size" to declaredSize.toString())
+        }
         val extension = name.substringAfterLast('.', "").takeIf { it.matches(Regex("[A-Za-z0-9]{1,10}")) }
         val out = destination ?: File(cacheDir, "shared").apply { mkdirs() }
             .resolve(UUID.randomUUID().toString() + (extension?.let { ".$it" } ?: ""))
@@ -1137,17 +1142,20 @@ open class MainActivity : FlutterFragmentActivity() {
                         val count = input.read(buffer)
                         if (count < 0) break
                         total += count
-                        if (total > 100L * 1024 * 1024) throw java.io.IOException("Attachment too large")
+                        if (total > MAX_ATTACHMENT_BYTES) {
+                            return mapOf("error" to "too_large", "filename" to name,
+                                         "size" to total.toString())
+                        }
                         output.write(buffer, 0, count)
                     }
                     output.fd.sync()
                 }
-            } ?: return null
+            } ?: return mapOf("error" to "unreadable")
             if (!partial.renameTo(out)) throw java.io.IOException("Could not retain attachment")
         } finally { partial.delete() }
         mapOf("path" to out.absolutePath, "filename" to name,
               "mimeType" to (contentResolver.getType(uri) ?: "application/octet-stream"))
-      } catch (_: Exception) { null }
+      } catch (_: Exception) { mapOf("error" to "unreadable") }
     }
 
     /**
@@ -1240,6 +1248,7 @@ open class MainActivity : FlutterFragmentActivity() {
     }
 
     companion object {
+        private const val MAX_ATTACHMENT_BYTES = 500L * 1024 * 1024
         private val inboxCopyLock = Any()
         private val inboxClaimLock = Any()
         private val claimed = mutableMapOf<String, MainActivity>()

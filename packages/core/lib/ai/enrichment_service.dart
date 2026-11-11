@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import '../models/note.dart';
@@ -145,7 +146,9 @@ class EnrichmentService {
     try {
       return await request;
     } finally {
-      if (identical(_mediaReads[noteId], request)) _mediaReads.remove(noteId);
+      if (identical(_mediaReads[noteId], request)) {
+        unawaited(_mediaReads.remove(noteId));
+      }
     }
   }
 
@@ -254,7 +257,7 @@ class EnrichmentService {
       return await request;
     } finally {
       if (identical(_summaryReads[noteId], request)) {
-        _summaryReads.remove(noteId);
+        unawaited(_summaryReads.remove(noteId));
       }
     }
   }

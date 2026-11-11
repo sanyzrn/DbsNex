@@ -100,6 +100,31 @@ void main() {
     return () => done ? result : null;
   }
 
+  testWidgets('AI undo stays reachable after the editor height shrinks', (
+    tester,
+  ) async {
+    await enableAi();
+    await open(tester, initial: 'teh draft', client: replying('the draft'));
+    // Short notes show their AI style actions directly; only expanded notes
+    // need the separate Edit with AI toggle.
+    expect(find.text('Fix writing'), findsOneWidget);
+    await tester.tap(find.text('Fix writing'));
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(900, 320);
+    await tester.pumpAndSettle();
+    final undo = find.byTooltip('Undo');
+    expect(undo.hitTestable(), findsOneWidget);
+    // Resolve the actual control for the tap: hitTestable() is a dynamic
+    // finder whose second evaluation can change during route-layout updates.
+    await tester.tap(undo);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'teh draft',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('it opens as a sheet on the text it was given', (tester) async {
     await open(tester, initial: 'the boiler is making a noise');
 
@@ -110,18 +135,15 @@ void main() {
     );
   });
 
-  testWidgets('the caret opens at the start, not after the last word', (
+  testWidgets('the shared note and caption editor opens the caret at the end', (
     tester,
   ) async {
-    // A long note used to open with the caret at its end — the native
-    // editor's fallback for a selection nobody set — so the first swipe of
-    // selection started from the bottom.
     await open(tester, initial: 'the boiler is making a noise');
     final controller = tester
         .widget<TextField>(find.byType(TextField))
         .controller!;
     expect(controller.selection.isCollapsed, isTrue);
-    expect(controller.selection.baseOffset, 0);
+    expect(controller.selection.baseOffset, controller.text.length);
   });
 
   testWidgets('a caller can place the caret where its flow needs it', (

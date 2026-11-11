@@ -382,9 +382,10 @@ void main() {
     }
     final made = repo.backup(backupDir, mediaDir: mediaDir);
     expect(made.existsSync(), isTrue);
-    final kept = Directory(backupDir).listSync().whereType<File>().where(
-      (f) => NexBackupArchive.isBackupFile(f.path),
-    );
+    final kept = Directory(backupDir)
+        .listSync()
+        .whereType<File>()
+        .where((f) => NexBackupArchive.isBackupFile(f.path));
     expect(kept.length, NexDatabase.backupRetention);
   });
 
@@ -399,9 +400,8 @@ void main() {
   test(
     'local backups reuse blobs; shared backup restores without the blob store',
     () {
-      File(
-        p.join(mediaDir, 'a.jpg'),
-      ).writeAsBytesSync(List.generate(200000, (i) => i % 251));
+      File(p.join(mediaDir, 'a.jpg'))
+          .writeAsBytesSync(List.generate(200000, (i) => i % 251));
       repo.insert(photoNote('n', 'a.jpg'));
       final snapshot = repo.backupSnapshot(backupDir);
       final first = NexBackupArchive.createFromSnapshot(
@@ -458,9 +458,10 @@ void main() {
         backupDir: backupDir,
         compact: true,
       );
-      final blob = Directory(
-        p.join(backupDir, '.media'),
-      ).listSync().whereType<File>().single;
+      final blob = Directory(p.join(backupDir, '.media'))
+          .listSync()
+          .whereType<File>()
+          .single;
       blob.writeAsBytesSync([9, 8, 7]);
       expect(
         () => NexBackupArchive.restore(
@@ -484,66 +485,60 @@ void main() {
     },
   );
 
-  test(
-    'explicit rescue keeps healthy files and records missing note/attachment media',
-    () {
-      final healthy = photoNote('healthy', 'healthy.jpg');
-      repo.insert(healthy);
-      File(healthy.mediaUri!).writeAsBytesSync([4, 5, 6]);
-      repo.insert(photoNote('missing', 'missing.jpg'));
-      final attachments = SqliteAttachmentRepository(repo, localDeviceId: 'd');
-      attachments.add(
-        'healthy',
-        kind: AttachmentKind.file,
-        mediaUri: p.join(mediaDir, 'lost.pdf'),
-        mediaHash: '',
-      );
+  test('explicit rescue keeps healthy files and records missing note/attachment media', () {
+    final healthy = photoNote('healthy', 'healthy.jpg');
+    repo.insert(healthy);
+    File(healthy.mediaUri!).writeAsBytesSync([4, 5, 6]);
+    repo.insert(photoNote('missing', 'missing.jpg'));
+    final attachments = SqliteAttachmentRepository(repo, localDeviceId: 'd');
+    attachments.add(
+      'healthy',
+      kind: AttachmentKind.file,
+      mediaUri: p.join(mediaDir, 'lost.pdf'),
+      mediaHash: '',
+    );
+    expect(() => repo.backup(backupDir, mediaDir: mediaDir), throwsStateError);
+    final rescued = repo.backup(
+      backupDir,
+      mediaDir: mediaDir,
+      allowMissingMedia: true,
+    );
+    expect(
+      NexBackupArchive.missingMedia(rescued.path),
+      containsAll(['missing.jpg', 'lost.pdf']),
+    );
+    final restored = p.join(tmp.path, 'rescued.sqlite');
+    final restoredMedia = p.join(tmp.path, 'rescued-media');
+    NexBackupArchive.restore(
+      liveDbPath: restored,
+      mediaDir: restoredMedia,
+      backupFile: rescued.path,
+    );
+    final target = NexDatabase.open(restored);
+    try {
+      final notes = SqliteNoteRepository(target);
+      expect(notes.listTimeline(), hasLength(2));
+      expect(File(notes.getById('healthy')!.mediaUri!).readAsBytesSync(), [
+        4,
+        5,
+        6,
+      ]);
       expect(
-        () => repo.backup(backupDir, mediaDir: mediaDir),
-        throwsStateError,
+        notes.getById('missing')!.mediaUri,
+        p.join(restoredMedia, 'missing.jpg'),
       );
-      final rescued = repo.backup(
-        backupDir,
-        mediaDir: mediaDir,
-        allowMissingMedia: true,
-      );
+      expect(File(notes.getById('missing')!.mediaUri!).existsSync(), isFalse);
       expect(
-        NexBackupArchive.missingMedia(rescued.path),
-        containsAll(['missing.jpg', 'lost.pdf']),
+        SqliteAttachmentRepository(
+          notes,
+          localDeviceId: 'd',
+        ).forNote('healthy').single.mediaUri,
+        p.join(restoredMedia, 'lost.pdf'),
       );
-      final restored = p.join(tmp.path, 'rescued.sqlite');
-      final restoredMedia = p.join(tmp.path, 'rescued-media');
-      NexBackupArchive.restore(
-        liveDbPath: restored,
-        mediaDir: restoredMedia,
-        backupFile: rescued.path,
-      );
-      final target = NexDatabase.open(restored);
-      try {
-        final notes = SqliteNoteRepository(target);
-        expect(notes.listTimeline(), hasLength(2));
-        expect(File(notes.getById('healthy')!.mediaUri!).readAsBytesSync(), [
-          4,
-          5,
-          6,
-        ]);
-        expect(
-          notes.getById('missing')!.mediaUri,
-          p.join(restoredMedia, 'missing.jpg'),
-        );
-        expect(File(notes.getById('missing')!.mediaUri!).existsSync(), isFalse);
-        expect(
-          SqliteAttachmentRepository(
-            notes,
-            localDeviceId: 'd',
-          ).forNote('healthy').single.mediaUri,
-          p.join(restoredMedia, 'lost.pdf'),
-        );
-      } finally {
-        target.close();
-      }
-    },
-  );
+    } finally {
+      target.close();
+    }
+  });
   test('missing referenced media refuses to publish a new backup', () {
     repo.insert(photoNote('missing', 'missing.jpg'));
     expect(() => repo.backup(backupDir, mediaDir: mediaDir), throwsStateError);
@@ -565,9 +560,10 @@ void main() {
     );
     final pin = backup.copySync(p.join(backupDir, '.restore-source-test'));
     backup.deleteSync();
-    final blob = Directory(
-      p.join(backupDir, '.media'),
-    ).listSync().whereType<File>().single;
+    final blob = Directory(p.join(backupDir, '.media'))
+        .listSync()
+        .whereType<File>()
+        .single;
     blob.setLastModifiedSync(DateTime.now().subtract(const Duration(days: 8)));
     NexBackupArchive.collectUnusedMedia(backupDir);
     expect(blob.existsSync(), isTrue);
@@ -597,9 +593,9 @@ void main() {
         throwsStateError,
       );
       expect(
-        Directory(
-          backupDir,
-        ).listSync().where((f) => f.path.endsWith('.nexbak')),
+        Directory(backupDir)
+            .listSync()
+            .where((f) => f.path.endsWith('.nexbak')),
         isEmpty,
       );
     },
@@ -630,5 +626,40 @@ void main() {
     repo = SqliteNoteRepository(db);
     expect(repo.getById('n'), isNotNull);
     expect(File(p.join(mediaDir, 'a.jpg')).readAsBytesSync(), [1, 2, 3]);
+  });
+
+  test('sharing a compact rescue preserves its missing-file inventory', () {
+    File(p.join(mediaDir, 'healthy.jpg')).writeAsBytesSync([1, 2, 3]);
+    repo.insert(photoNote('healthy', 'healthy.jpg'));
+    repo.insert(photoNote('missing', 'missing.jpg'));
+    final snapshot = repo.backupSnapshot(backupDir);
+    final compact = NexBackupArchive.createFromSnapshot(
+      snapshotPath: snapshot.path,
+      mediaDir: mediaDir,
+      backupDir: backupDir,
+      compact: true,
+      allowMissingMedia: true,
+    );
+    final portable = p.join(tmp.path, 'shared.nexbak');
+    NexBackupArchive.portable(compact.path, portable);
+    expect(NexBackupArchive.missingMedia(portable), ['missing.jpg']);
+    Directory(p.join(backupDir, '.media')).deleteSync(recursive: true);
+    final restored = p.join(tmp.path, 'rescued.sqlite');
+    NexBackupArchive.restore(
+      liveDbPath: restored,
+      mediaDir: p.join(tmp.path, 'rescued-media'),
+      backupFile: portable,
+    );
+    final target = NexDatabase.open(restored);
+    try {
+      expect(SqliteNoteRepository(target).getById('missing'), isNotNull);
+      expect(
+        File(SqliteNoteRepository(target).getById('healthy')!.mediaUri!)
+            .readAsBytesSync(),
+        [1, 2, 3],
+      );
+    } finally {
+      target.close();
+    }
   });
 }

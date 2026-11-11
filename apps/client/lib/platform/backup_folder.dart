@@ -1,3 +1,5 @@
+import 'display_date.dart' show nexPad2;
+
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -80,8 +82,7 @@ class NexBackupFolderChannel {
 
 /// The file name of an automatic backup: sortable, so the newest is last.
 String nexAutoBackupName(DateTime at) {
-  String two(int v) => v.toString().padLeft(2, '0');
   final t = at.toUtc();
-  return 'Nex-auto-${t.year}-${two(t.month)}-${two(t.day)}-'
-      '${two(t.hour)}${two(t.minute)}${two(t.second)}.nexfull';
+  return 'Nex-auto-${t.year}-${nexPad2(t.month)}-${nexPad2(t.day)}-'
+      '${nexPad2(t.hour)}${nexPad2(t.minute)}${nexPad2(t.second)}.nexfull';
 }

@@ -3,6 +3,9 @@
 // Copyright (c) 2020 Behrang Norouzinia.
 // See third_party/jalaali-js-LICENSE.txt.
 
+/// At least two digits; values wider than two digits remain intact.
+String nexPad2(int value) => value.toString().padLeft(2, '0');
+
 String nexDigits(String text, {required bool persian}) => !persian
     ? text
     : text.replaceAllMapped(

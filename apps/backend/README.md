@@ -26,3 +26,12 @@ reads fail open (06-development.md → Error Handling).
 npm run typecheck
 npm run lint
 ```
+
+## TypeScript toolchain
+
+`typescript` is intentionally aliased to `@typescript/typescript6`: ESLint's
+TypeScript parser uses this JavaScript compiler. `@typescript/native` is aliased
+to `typescript` 7 and supplies the `tsc` executable used by build/typecheck.
+Keep the aliases distinct when updating dependencies; changing either may change
+the emitted server build. CI checks both compilers with `typecheck` and
+`typecheck:eslint-ts`. Node types follow the Node 22 runtime in the Dockerfile.

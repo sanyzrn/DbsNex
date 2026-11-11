@@ -68,6 +68,7 @@ import '../widgets/empty_timeline.dart';
 import '../widgets/first_run_tour.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/attachment_picker.dart';
 import '../widgets/nex_brand.dart';
 import '../widgets/search_field_header.dart';
 import '../widgets/set_aside_flow.dart';
@@ -281,6 +282,7 @@ class TimelineScreenState extends State<TimelineScreen>
   bool _briefPreferencesQueued = false;
   String? _briefSettingsKey;
   int _setAsideTotal = 0; // read only while the home screen is empty
+  bool _recurringArrivalHeld = false;
   String? _arrivalHeld; // a note a tap named while the lock was up
   NexModuleTarget? _moduleArrivalHeld;
   Locale? _briefLocale;

@@ -86,22 +86,25 @@ void main() {
     expect(File(p.join(mediaDir, 'old.jpg')).existsSync(), isFalse);
   });
 
-  test('a restore the process died in the middle of is undone on next open', () {
-    // No rollBack, no commit: the app was killed. The journal is all that is
-    // left to say a restore was under way, and opening the database is the
-    // first thing the next launch does.
-    final staged = prepare();
-    final transaction = RestoreTransaction.begin(
-      liveDbPath: dbPath,
-      mediaDir: mediaDir,
-    );
-    transaction.installDatabase(staged.stagedDb);
-    transaction.installMedia(staged.stagedMedia);
+  test(
+    'a restore the process died in the middle of is undone on next open',
+    () {
+      // No rollBack, no commit: the app was killed. The journal is all that is
+      // left to say a restore was under way, and opening the database is the
+      // first thing the next launch does.
+      final staged = prepare();
+      final transaction = RestoreTransaction.begin(
+        liveDbPath: dbPath,
+        mediaDir: mediaDir,
+      );
+      transaction.installDatabase(staged.stagedDb);
+      transaction.installMedia(staged.stagedMedia);
 
-    expect(readNote(dbPath), 'the live edit');
-    expect(File(p.join(mediaDir, 'live.jpg')).existsSync(), isTrue);
-    expect(File('$dbPath.restore-journal').existsSync(), isFalse);
-  });
+      expect(readNote(dbPath), 'the live edit');
+      expect(File(p.join(mediaDir, 'live.jpg')).existsSync(), isTrue);
+      expect(File('$dbPath.restore-journal').existsSync(), isFalse);
+    },
+  );
 
   test('dying between the two swaps is undone too', () {
     // The exact window the audit named: the database already replaced, the
@@ -145,4 +148,96 @@ void main() {
     writeLibrary(dbPath, 'the live edit');
     expect(readNote(dbPath), 'the live edit');
   });
+
+  test(
+    'a truncated journal cannot remove a parent of a first media directory',
+    () {
+      final prefix = Directory('${tmp.path}/prefix')..createSync();
+      final keep = File('${prefix.path}/keep.txt')
+        ..writeAsStringSync('unrelated');
+      final actualMedia = '${prefix.path}/full-media';
+      RestoreTransaction.begin(liveDbPath: dbPath, mediaDir: actualMedia);
+      File('$dbPath.restore-journal').writeAsStringSync(prefix.path);
+      RestoreTransaction.recover(dbPath);
+      expect(keep.readAsStringSync(), 'unrelated');
+      expect(Directory(actualMedia).existsSync(), isFalse);
+    },
+  );
+
+  test('an interrupted first restore removes newly installed files', () {
+    final staging = Directory('${tmp.path}/first')..createSync();
+    final database = File('${staging.path}/nex.sqlite');
+    writeLibrary(database.path, 'new library');
+    final media = Directory('${staging.path}/media')..createSync();
+    File('${media.path}/a.txt').writeAsStringSync('new media');
+    RestoreTransaction.begin(liveDbPath: dbPath, mediaDir: mediaDir)
+      ..installDatabase(database)
+      ..installMedia(media);
+    RestoreTransaction.recover(dbPath);
+    expect(File(dbPath).existsSync(), isFalse);
+    expect(Directory(mediaDir).existsSync(), isFalse);
+  });
+
+  test('retrying interrupted rollback preserves sidecars already restored', () {
+    File(dbPath).writeAsStringSync('original database');
+    File('$dbPath-wal').writeAsStringSync('original WAL');
+    File('$dbPath-shm').writeAsStringSync('original SHM');
+    final staged = File('${tmp.path}/staged.sqlite')
+      ..writeAsStringSync('installed database');
+    RestoreTransaction.begin(liveDbPath: dbPath).installDatabase(staged);
+    // A filesystem failure after restoring the WAL but before the SHM. A
+    // directory at this file path cannot be replaced by File.renameSync.
+    final obstruction = Directory('$dbPath-shm')..createSync();
+    expect(
+      () => RestoreTransaction.recover(dbPath),
+      throwsA(isA<FileSystemException>()),
+    );
+    obstruction.deleteSync();
+    RestoreTransaction.recover(dbPath);
+    expect(File(dbPath).readAsStringSync(), 'original database');
+    expect(File('$dbPath-wal').readAsStringSync(), 'original WAL');
+    expect(File('$dbPath-shm').readAsStringSync(), 'original SHM');
+    expect(File('$dbPath.restore-journal').existsSync(), isFalse);
+  });
+
+  test('retrying media rollback retains its exact recovery path', () {
+    final staged = prepare();
+    RestoreTransaction.begin(liveDbPath: dbPath, mediaDir: mediaDir)
+      ..installDatabase(staged.stagedDb)
+      ..installMedia(staged.stagedMedia);
+    Directory(mediaDir).deleteSync(recursive: true);
+    final obstruction = File(mediaDir)..writeAsStringSync('cannot rename here');
+    File('$dbPath.restore-journal').writeAsStringSync(tmp.path);
+    expect(
+      () => RestoreTransaction.recover(dbPath),
+      throwsA(isA<FileSystemException>()),
+    );
+    obstruction.deleteSync();
+    RestoreTransaction.recover(dbPath);
+    expect(readNote(dbPath), 'the live edit');
+    expect(File(p.join(mediaDir, 'live.jpg')).existsSync(), isTrue);
+    expect(Directory('$mediaDir.rollback').existsSync(), isFalse);
+  });
+
+  test(
+    'cleanup failure after commit cannot fail restore or block reopening',
+    () {
+      final staged = prepare();
+      final transaction = RestoreTransaction.begin(
+        liveDbPath: dbPath,
+        mediaDir: mediaDir,
+      );
+      transaction.installDatabase(staged.stagedDb);
+      transaction.installMedia(staged.stagedMedia);
+      final aside = '$dbPath.rollback.d';
+      try {
+        expect(Process.runSync('chmod', ['u-w', aside]).exitCode, 0);
+        expect(transaction.commit, returnsNormally);
+        expect(readNote(dbPath), 'from the backup');
+      } finally {
+        Process.runSync('chmod', ['u+w', aside]);
+      }
+    },
+    skip: Platform.isWindows,
+  );
 }

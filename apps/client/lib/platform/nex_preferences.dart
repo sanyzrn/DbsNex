@@ -253,6 +253,23 @@ class NexPreferences extends _PreferencesStore
         throw const FormatException('Invalid preference value');
       }
     }
+    for (final entry in (value['preferences'] as Map).entries) {
+      if (!PortablePreferences.keys.contains(entry.key)) continue;
+      // Old enum names already have safe fallbacks in the app. Preserve them
+      // in full backups; a retired theme must not block restoring notes.
+      if (const {
+        'appearance.theme',
+        'appearance.theme_preset',
+        'appearance.locale',
+        'appearance.card_density',
+      }.contains(entry.key)) {
+        if (entry.value is! String) {
+          throw const FormatException('Invalid appearance setting');
+        }
+      } else {
+        PortablePreferences.validate({entry.key as String: entry.value});
+      }
+    }
     final keys = {
       for (final provider in AiProvider.values) provider.wireName,
       _kSecureSyncToken,
@@ -268,10 +285,15 @@ class NexPreferences extends _PreferencesStore
   Future<void> beginRestoreRecovery(
     String library, {
     bool includeVault = false,
+    String? modelId,
   }) async {
     final settings = backupSettings();
     if (includeVault) settings['vault'] = await VaultStore().backup();
-    final value = jsonEncode({'library': library, 'settings': settings});
+    final value = jsonEncode({
+      'library': library,
+      'settings': settings,
+      'modelId': ?modelId,
+    });
     await _secureStorage.write(key: _restoreRecoveryKey, value: value);
     if (await _secureStorage.read(key: _restoreRecoveryKey) != value) {
       throw StateError('Cannot protect current settings');
@@ -288,8 +310,17 @@ class NexPreferences extends _PreferencesStore
   }
 
   Future<void> finishRestoreRecovery() async {
-    await _secureStorage.delete(key: _restoreRecoveryKey);
-    await _prefs.remove('restore.in_progress');
+    // Clearing the durable marker is the commit point. Deleting the undo
+    // value first could leave an active marker with no recovery information.
+    if (!await _prefs.remove('restore.in_progress')) {
+      throw StateError('Cannot commit restored settings');
+    }
+    try {
+      await _secureStorage.delete(key: _restoreRecoveryKey);
+    } catch (_) {
+      // An encrypted stale undo value must not turn a committed restore into
+      // a reported failure. It is overwritten by the next recovery journal.
+    }
   }
 
   Future<void> restoreSettings(Map<String, dynamic> value) async {
@@ -360,10 +391,10 @@ class NexPreferences extends _PreferencesStore
         saved = await _prefs.setString(entry.key, v);
       } else if (v is bool) {
         saved = await _prefs.setBool(entry.key, v);
-      } else if (v is int) {
+      } else if (v is int && entry.key != 'appearance.ui_scale') {
         saved = await _prefs.setInt(entry.key, v);
-      } else if (v is double) {
-        saved = await _prefs.setDouble(entry.key, v);
+      } else if (v is num) {
+        saved = await _prefs.setDouble(entry.key, v.toDouble());
       } else {
         saved = await _prefs.setStringList(
           entry.key,

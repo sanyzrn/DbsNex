@@ -2,7 +2,7 @@
   "name": "@nex/backend",
   "private": true,
   "version": "0.0.1",
-  "description": "Nex minimal sync API \u2014 present from v1 as infrastructure, dormant until v2 sync ships.",
+  "description": "Nex minimal sync API — present from v1 as infrastructure, dormant until v2 sync ships.",
   "type": "module",
   "engines": {
     "node": ">=22.6"
@@ -17,7 +17,8 @@
     "migrate:dev": "tsx src/db/migrate-cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "typecheck:eslint-ts": "tsc6 --noEmit"
   },
   "dependencies": {
     "cors": "2.8.6",
@@ -32,12 +33,12 @@
     "@eslint/js": "10.0.1",
     "@types/cors": "2.8.19",
     "@types/express": "5.0.6",
-    "@types/node": "26.6.6",
+    "@types/node": "22.20.1",
     "@types/pg": "8.23.1",
-    "eslint": "10.13.0",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "eslint": "10.14.0",
     "tsx": "4.23.15",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "typescript-eslint": "8.72.1",
-    "@typescript/native": "npm:typescript@7.0.2"
+    "typescript-eslint": "8.72.2"
   }
 }

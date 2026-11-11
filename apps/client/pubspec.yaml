@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 2.6.16
+version: 2.6.17
 
 environment:
   sdk: ^3.13.0
@@ -104,8 +104,8 @@ dependencies:
   # third-party credential is not sitting in a plaintext XML or JSON file
   # anyone with ADB or filesystem access to the device can read.
   flutter_secure_storage: ^11.2.0
+  # Direct on purpose: this app owns the sqlite3 native build-hook settings.
   sqlite3: ^3.8.0
-  sqlite3_flutter_libs: ^0.6.0+eol
   uuid: ^4.5.1
   flutter_local_notifications: ^22.3.3
   timezone: ^0.11.2

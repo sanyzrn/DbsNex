@@ -109,14 +109,18 @@ abstract final class NexReminderActions {
         body ?? '',
         secret ? '1' : '0',
       ]);
-    } catch (_) {}
+    } catch (error) {
+      unawaited(NexCrashLog.handled('reminder.action', error));
+    }
   }
 
   static Future<void> forget(String noteId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_textKey(noteId));
-    } catch (_) {}
+    } catch (error) {
+      unawaited(NexCrashLog.handled('reminder.action', error));
+    }
   }
 
   /// Which language the buttons are in, for the isolate that has no locale.
@@ -124,7 +128,9 @@ abstract final class NexReminderActions {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_languageKey, persian ? 'fa' : 'en');
-    } catch (_) {}
+    } catch (error) {
+      unawaited(NexCrashLog.handled('reminder.action', error));
+    }
   }
 
   /// The notes a "Done" was pressed for while the app was not looking, read
@@ -244,7 +250,9 @@ abstract final class NexReminderActions {
       // "in an hour".
       try {
         await arm(AndroidScheduleMode.inexactAllowWhileIdle);
-      } catch (_) {}
+      } catch (error) {
+        unawaited(NexCrashLog.handled('reminder.action', error));
+      }
     }
     return noteId;
   }
@@ -264,6 +272,8 @@ Future<void> nexReminderActionInBackground(
         android: AndroidInitializationSettings('ic_stat_nex'),
       ),
     );
-  } catch (_) {}
+  } catch (error) {
+    unawaited(NexCrashLog.handled('reminder.action', error));
+  }
   await NexReminderActions.handle(response, plugin);
 }

@@ -2,6 +2,25 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.17
+
+- **Larger files, clear refusals.** Ordinary attachments now allow 500 MB; oversized or unreadable selections explain why they were not imported.
+- **Untagged appears only when useful.** The filter hides when every timeline note has tags and clears an empty active selection.
+- **Undo keeps its promise.** Permanent trash deletion waits until its Undo actually closes, and AI edits keep an Undo button in compact editors.
+- **Capture preserves unsaved work.** Failed writes stop media handoff; failed conversions keep the original reminder and retry without duplicating the converted note.
+- **Reminder taps survive the lock.** Recurring reminders open their destination after unlocking.
+
+- **Editing continues at the end.** Notes, captions and attachment captions open with the caret after the existing text.
+
+- **Assistant answers use real library totals.** Counts come from the database; internal searches stay out of replies and interrupted cloud answers get one bounded retry.
+
+- **Bottom navigation is easier to see.** A subtle outline and a distinct background separate the dock from content in Light, Dark and Night.
+- **Navigation returns quietly after capture.** Closing capture restores the dock without the rotation and zoom animation.
+- **Restore checks compatibility before changing your library.** Older supported libraries are upgraded on a temporary copy; incompatible or malformed backups leave the current library untouched.
+- **Interrupted restores keep a recovery path.** Library, media and full-backup settings can return to the previous state; cleanup failures after a successful restore no longer report failure or stop the app opening.
+- **A healthy backup can repair missing files.** Missing photos in the current library no longer prevent restoration, and the safety copy records which files were already missing.
+- **Backup files keep their meaning when shared.** A library backup renamed to `.zip` is recognized, and shared rescue backups retain their missing-file report. Invalid appearance settings are rejected before installation.
+
 ## v2.6.16
 
 - **An Undo can no longer be swallowed silently.** A plain banner arriving while an actionable one is still up waits its turn instead of eating it — and a banner replaced by a newer one leaves through the edge it came from, with its exit animation.

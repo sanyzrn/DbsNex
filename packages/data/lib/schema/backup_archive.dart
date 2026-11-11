@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:archive/archive_io.dart';
@@ -49,6 +50,53 @@ class NexBackupArchive {
   /// Both formats this app has ever written, newest first when sorted.
   static bool isBackupFile(String path) =>
       path.endsWith(extension) || path.endsWith('.sqlite');
+
+  /// Providers can rename a library backup to .zip. Inspect its entries
+  /// before routing it to the additive notes importer; restore validates it.
+  static Future<bool> detect(String source) => Isolate.run(() {
+    InputFileStream? input;
+    try {
+      input = InputFileStream(source);
+      return ZipDecoder()
+              .decodeStream(input, verify: true, throwOnError: true)
+              .findFile(_dbEntry) !=
+          null;
+    } catch (_) {
+      return false;
+    } finally {
+      input?.closeSync();
+    }
+  });
+
+  /// Preflight before the app closes its current database or changes private
+  /// settings. Test migrations on a disposable copy, never on the backup.
+  /// Media contents are verified during staged restore, before the live swap.
+  static void validate(String backupFile) {
+    final backup = File(backupFile);
+    final staging = Directory.systemTemp.createTempSync('nex-backup-check-');
+    try {
+      final stagedDb = File(p.join(staging.path, _dbEntry));
+      if (!_isZip(backup)) {
+        backup.copySync(stagedDb.path);
+      } else {
+        final input = InputFileStream(backupFile);
+        try {
+          final archive = ZipDecoder().decodeStream(
+            input,
+            verify: true,
+            throwOnError: true,
+          );
+          assertReasonableSize(archive, backup.lengthSync());
+          _extract(_validateEntries(archive), stagedDb.path);
+        } finally {
+          input.closeSync();
+        }
+      }
+      NexDatabase.prepareForRestore(stagedDb.path);
+    } finally {
+      staging.deleteSync(recursive: true);
+    }
+  }
 
   /// Writes a complete backup into [backupDir] and prunes old ones.
   static File create({
@@ -252,15 +300,10 @@ class NexBackupArchive {
         throwOnError: true,
       );
       assertReasonableSize(archive, backup.lengthSync());
-      final dbEntry = archive.files.where(
-        (file) => file.isFile && file.name == _dbEntry,
-      );
-      if (dbEntry.isEmpty) {
-        throw StateError('Backup contains no database: $backupFile');
-      }
+      final dbEntry = _validateEntries(archive);
       _restoreFrom(
         archive: archive,
-        dbEntry: dbEntry.first,
+        dbEntry: dbEntry,
         liveDbPath: liveDbPath,
         mediaDir: mediaDir,
         mediaStore: BackupMediaStore(backup.parent.path),
@@ -322,7 +365,7 @@ class NexBackupArchive {
     try {
       final stagedDb = File(p.join(staging.path, _dbEntry));
       _extract(dbEntry, stagedDb.path);
-      NexDatabase.assertRestorable(stagedDb.path);
+      NexDatabase.prepareForRestore(stagedDb.path);
 
       final manifest = _manifest(archive);
       for (final entry in manifest.entries) {
@@ -370,6 +413,14 @@ class NexBackupArchive {
       // the photos already on the device where they are.
       final stagedMedia = Directory(p.join(staging.path, 'media'));
       final replacesMedia = stagedMedia.existsSync();
+      // Resolve and rewrite paths on the staged database. Missing media or a
+      // migration failure must never install an unusable library first.
+      _remapMediaUris(
+        stagedDb.path,
+        mediaDir,
+        _recoveryMedia(archive),
+        sourceMediaDir: replacesMedia ? stagedMedia.path : null,
+      );
       final transaction = RestoreTransaction.begin(
         liveDbPath: liveDbPath,
         mediaDir: replacesMedia ? mediaDir : null,
@@ -378,16 +429,7 @@ class NexBackupArchive {
         transaction.installDatabase(stagedDb);
         if (replacesMedia) transaction.installMedia(stagedMedia);
 
-        // The backed-up database still carries whatever absolute paths the
-        // device that made it used. The files were deliberately restored
-        // relative — this sandbox's media directory is the destination — so
-        // every row pointing outside it is rewritten to where the file now
-        // actually lives. Without this, a restore onto a reinstall (which is
-        // every restore on iOS, and most of them on Android) came back with
-        // every photo and recording pointing at a path that no longer
-        // exists. Inside the transaction, because it writes to the restored
-        // database and a failure here is a failed restore like any other.
-        _remapMediaUris(liveDbPath, mediaDir, _recoveryMedia(archive));
+        // The staged database already points to the final media paths.
         transaction.commit();
       } catch (_) {
         // A rollback that itself fails must not replace the error that
@@ -435,8 +477,9 @@ class NexBackupArchive {
   static void _remapMediaUris(
     String liveDbPath,
     String mediaDir,
-    List<Map<String, String>> missing,
-  ) {
+    List<Map<String, String>> missing, {
+    String? sourceMediaDir,
+  }) {
     if (!File(liveDbPath).existsSync()) return;
     final missingById = {
       for (final entry in missing) '${entry['table']}:${entry['id']}': entry,
@@ -473,7 +516,11 @@ class NexBackupArchive {
           ]);
           continue;
         }
-        if (p.isWithin(mediaDir, stored) && File(stored).existsSync()) continue;
+        if (sourceMediaDir == null &&
+            p.isWithin(mediaDir, stored) &&
+            File(stored).existsSync()) {
+          continue;
+        }
 
         final segments = p.url.split(stored.replaceAll(r'\', '/'));
         File? candidate;
@@ -482,8 +529,9 @@ class NexBackupArchive {
         // to the media directory, so the search starts one in.
         for (var take = segments.length - 1; take >= 1; take--) {
           final tail = p.joinAll(segments.sublist(segments.length - take));
-          final file = File(p.join(mediaDir, tail));
-          if (p.isWithin(p.normalize(mediaDir), p.normalize(file.path)) &&
+          final lookup = sourceMediaDir ?? mediaDir;
+          final file = File(p.join(lookup, tail));
+          if (p.isWithin(p.normalize(lookup), p.normalize(file.path)) &&
               file.existsSync()) {
             candidate = file;
             break;
@@ -491,7 +539,10 @@ class NexBackupArchive {
         }
         if (candidate != null) {
           db.execute('UPDATE $table SET media_uri = ? WHERE id = ?', [
-            candidate.path,
+            p.join(
+              mediaDir,
+              p.relative(candidate.path, from: sourceMediaDir ?? mediaDir),
+            ),
             row['id']! as String,
           ]);
         } else {
@@ -636,13 +687,45 @@ class NexBackupArchive {
     }
     final relative = name.substring(_mediaPrefix.length).replaceAll(r'\', '/');
     if (relative.isEmpty ||
+        p.url.normalize(relative) == '.' ||
         p.url.isAbsolute(relative) ||
         p.windows.isAbsolute(relative) ||
         relative.contains(':') ||
         p.url.split(relative).contains('..')) {
       throw const FormatException('Unsafe media path');
     }
-    return relative;
+    return p.url.normalize(relative);
+  }
+
+  static ArchiveFile _validateEntries(Archive archive) {
+    final databases = archive.files
+        .where((file) => file.name == _dbEntry)
+        .toList();
+    if (databases.length != 1 ||
+        !databases.single.isFile ||
+        databases.single.isSymbolicLink) {
+      throw const FormatException('Backup must contain one Nex database');
+    }
+    final paths = <String>{};
+    String identity(String name) {
+      final safe = _safeMediaName(name);
+      return Platform.isWindows ? safe.toLowerCase() : safe;
+    }
+
+    for (final entry in _manifest(archive).entries) {
+      if (!paths.add(identity(entry.key)) ||
+          !RegExp(r'^[0-9a-f]{64}$').hasMatch(entry.value)) {
+        throw const FormatException('Invalid or duplicate backup media');
+      }
+    }
+    for (final file in archive.files) {
+      if (!file.isFile || !file.name.startsWith(_mediaPrefix)) continue;
+      if (file.isSymbolicLink || !paths.add(identity(file.name))) {
+        throw const FormatException('Invalid or duplicate backup media');
+      }
+    }
+    _recoveryMedia(archive);
+    return databases.single;
   }
 
   static Map<String, String> _manifest(Archive archive) {
@@ -672,6 +755,8 @@ class NexBackupArchive {
         verify: true,
         throwOnError: true,
       );
+      assertReasonableSize(archive, File(source).lengthSync());
+      _validateEntries(archive);
       final manifest = _manifest(archive);
       if (manifest.isEmpty) {
         File(source).copySync(output);
@@ -691,8 +776,32 @@ class NexBackupArchive {
         addBoundedZipFile(encoder, verified, entry.key);
         verified.deleteSync();
       }
+      for (final entry in archive.files) {
+        if (!entry.isFile || !entry.name.startsWith(_mediaPrefix)) continue;
+        final verified = File(p.join(staging.path, 'embedded-media'));
+        _extract(entry, verified.path);
+        addBoundedZipFile(encoder, verified, entry.name);
+        verified.deleteSync();
+      }
+      final originalMeta = archive.findFile(_metaEntry);
+      final portableMeta = originalMeta == null
+          ? <String, dynamic>{}
+          : Map<String, dynamic>.from(
+              jsonDecode(utf8.decode(originalMeta.content)) as Map,
+            );
+      portableMeta.remove('media');
       final bytes = utf8.encode(
-        jsonEncode({'format': 1, 'mediaFiles': manifest.length}),
+        jsonEncode({
+          ...portableMeta,
+          'format': 1,
+          'mediaFiles':
+              manifest.length +
+              archive.files
+                  .where(
+                    (file) => file.isFile && file.name.startsWith(_mediaPrefix),
+                  )
+                  .length,
+        }),
       );
       encoder.addArchiveFile(ArchiveFile(_metaEntry, bytes.length, bytes));
       encoder.closeSync();

@@ -24,6 +24,23 @@ void main() {
   });
 
   test(
+    'tagging the last bare note hides and clears the untagged filter',
+    () async {
+      final note = (await harness.services.captureText('bare'))!;
+      await model.load();
+      await model.loadFilterTags();
+      expect(model.hasUntagged, isTrue);
+      await model.selectUntagged(true);
+      await harness.services.addTag(noteId: note.id, name: 'work');
+      await model.load();
+      await model.loadFilterTags();
+      expect(model.hasUntagged, isFalse);
+      expect(model.onlyUntagged, isFalse);
+      expect(model.notes.single.id, note.id);
+    },
+  );
+
+  test(
     'untagged is exclusive with tags and layers with type and reminders',
     () async {
       final bare = (await harness.services.captureText('bare'))!;

@@ -24,6 +24,11 @@ import 'package:nex_client/platform/chat_history.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// The provider receives optional context before the original question.
+// A standalone lookup findings turn must never be mistaken for a question.
+String _wireQuestion(String content) =>
+    content.replaceFirst(RegExp(r'^<<<NOTES\n[\s\S]*?\nNOTES>>>\n\n'), '');
+
 void main() {
   group('assistant actions', () {
     test('one action can name several notes, and becomes one per note', () {
@@ -685,7 +690,8 @@ Sure, here you go:
 
     test('no notes shared is a working state, not a broken one', () {
       final prompt = adapter().chatSystemPrompt(const AiChatOptions());
-      expect(prompt, contains('no notes yet'));
+      expect(prompt, contains('This does not mean the library is empty'));
+      expect(prompt, isNot(contains('The user has no notes yet.')));
     });
 
     test("the user's own instruction reaches the prompt, quoted", () {
@@ -1149,7 +1155,9 @@ Sure, here you go:
         await tester.pumpAndSettle();
         expect(sent.length, 3);
         expect(
-          (sent.last['messages'] as List).last['content'],
+          _wireQuestion(
+            (sent.last['messages'] as List).last['content'] as String,
+          ),
           'when is my period?',
         );
         expect(find.text('Recovered lookup answer'), findsOneWidget);
@@ -1192,7 +1200,11 @@ Sure, here you go:
       expect(sent, hasLength(2));
       final messages = (jsonDecode(sent.last) as Map)['messages'] as List;
       expect(
-        messages.where((m) => m['content'] == 'original question'),
+        messages.where(
+          (m) =>
+              m['role'] == 'user' &&
+              _wireQuestion(m['content'] as String) == 'original question',
+        ),
         hasLength(1),
       );
       expect(tester.widget<TextField>(field).controller!.text, 'new draft');

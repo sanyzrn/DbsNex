@@ -256,7 +256,7 @@ export async function handleRequest(
     new Blob([payload.diagnostics], { type: "text/plain;charset=utf-8" }),
     "nex-diagnostics.txt",
   );
-  let attached = false;
+  let attached: boolean;
   try {
     const doc = await fetch(
       `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`,

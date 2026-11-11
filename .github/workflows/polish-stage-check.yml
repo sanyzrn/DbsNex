@@ -1,9 +1,7 @@
 name: Polish stage checks
 
 on:
-  push:
-    branches:
-      - codex/2.0-polish
+  workflow_dispatch:
 
 permissions:
   contents: read

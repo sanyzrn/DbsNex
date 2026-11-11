@@ -96,11 +96,15 @@ extension NexScheduledReminders on NexReminders {
     if (!NexReminders.supported) return;
     try {
       await NexDailyNudgeNative.cancel();
-    } catch (_) {}
+    } catch (error) {
+      onDiagnostic?.call('reminder.cancel failed: ${error.runtimeType}');
+    }
     await initialise();
     try {
       await _plugin.cancel(id: NexReminders._dailyId);
-    } catch (_) {}
+    } catch (error) {
+      onDiagnostic?.call('reminder.cancel failed: ${error.runtimeType}');
+    }
   }
 
   /// A standing obligation's own alarm, at the moment it next falls due.
@@ -165,7 +169,9 @@ extension NexScheduledReminders on NexReminders {
     await initialise();
     try {
       await _plugin.cancel(id: NexReminders.commitmentIdFor(commitmentId));
-    } catch (_) {}
+    } catch (error) {
+      onDiagnostic?.call('reminder.cancel failed: ${error.runtimeType}');
+    }
   }
 
   /// One cycle alarm at [at], or every day at [at]'s time when [daily].
@@ -247,7 +253,9 @@ extension NexScheduledReminders on NexReminders {
     for (final k in key == null ? NexReminders.cycleKeys : [key]) {
       try {
         await _plugin.cancel(id: NexReminders.cycleIdFor(k));
-      } catch (_) {}
+      } catch (error) {
+        onDiagnostic?.call('reminder.cancel failed: ${error.runtimeType}');
+      }
     }
   }
 
@@ -310,7 +318,9 @@ extension NexScheduledReminders on NexReminders {
     await initialise();
     try {
       await _plugin.cancel(id: NexReminders.arrivalIdFor(noteId));
-    } catch (_) {}
+    } catch (error) {
+      onDiagnostic?.call('reminder.cancel failed: ${error.runtimeType}');
+    }
   }
 
   Future<void> cancel(String noteId) async {
@@ -319,7 +329,9 @@ extension NexScheduledReminders on NexReminders {
     try {
       await _plugin.cancel(id: NexReminders._idFor(noteId));
       await _plugin.cancel(id: NexReminders.snoozeIdFor(noteId));
-    } catch (_) {}
+    } catch (error) {
+      onDiagnostic?.call('reminder.cancel failed: ${error.runtimeType}');
+    }
     await NexReminderActions.forget(noteId);
   }
 
@@ -375,7 +387,9 @@ extension NexScheduledReminders on NexReminders {
     try {
       await _plugin.cancel(id: NexReminders._idFor(noteId));
       await _plugin.cancel(id: NexReminders.snoozeIdFor(noteId));
-    } catch (_) {}
+    } catch (error) {
+      onDiagnostic?.call('reminder.cancel failed: ${error.runtimeType}');
+    }
     if (note != null && note.dueAt != null) await schedule(note);
   }
 
@@ -438,7 +452,9 @@ extension NexScheduledReminders on NexReminders {
         if (!wanted.contains(id)) {
           try {
             await _plugin.cancel(id: id);
-          } catch (_) {}
+          } catch (error) {
+            onDiagnostic?.call('reminder.cancel failed: ${error.runtimeType}');
+          }
         }
       }
     } catch (_) {

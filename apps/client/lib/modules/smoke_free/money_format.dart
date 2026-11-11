@@ -1,3 +1,5 @@
+import '../module_api.dart' show nexDigits;
+
 import 'currency_scales.dart';
 import 'number_input.dart';
 
@@ -53,12 +55,8 @@ String moneyInput(int minor, int digits) {
   return '$sign${value ~/ factor}${digits == 0 ? '' : '.${(value % factor).toString().padLeft(digits, '0')}'}';
 }
 
-String localDigits(String value, bool persian) => !persian
-    ? value
-    : value.replaceAllMapped(
-        RegExp(r'[0-9]'),
-        (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)],
-      );
+String localDigits(String value, bool persian) =>
+    !persian ? value : nexDigits(value, persian: true);
 
 String formatNumber(int value, bool persian) {
   final digits = value.abs().toString();

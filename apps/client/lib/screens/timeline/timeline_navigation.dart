@@ -118,9 +118,8 @@ extension _TimelineNavigation on TimelineScreenState {
     }
     if (cold) {
       unawaited(
-        Future<void>.delayed(
-          const Duration(milliseconds: 700),
-        ).then((_) => mounted ? _openArrived(noteId) : null),
+        Future<void>.delayed(const Duration(milliseconds: 700))
+            .then((_) => mounted ? _openArrived(noteId) : null),
       );
       return;
     }
@@ -162,12 +161,19 @@ extension _TimelineNavigation on TimelineScreenState {
   }
 
   /// A recurring item's reminder was tapped: its page, where it is ticked.
-  /// Behind the lock it waits like a note does, and is simply dropped — the
-  /// item is on the brief and the page either way.
+  /// Behind the lock its destination waits until the gate opens.
   Future<void> _openRecurring() async {
-    if (!mounted || widget.locked) return;
+    if (!mounted) return;
+    if (widget.locked) {
+      _recurringArrivalHeld = true;
+      return;
+    }
     await _applyMetFromShade();
     if (!mounted) return;
+    if (widget.locked) {
+      _recurringArrivalHeld = true;
+      return;
+    }
     await RecurringScreen.show(context, services: widget.services);
     await _model.loadCommitments();
   }
@@ -233,13 +239,18 @@ extension _TimelineNavigation on TimelineScreenState {
         (_) => _openModuleFromNotification(module),
       );
     }
+    if (_recurringArrivalHeld) {
+      _recurringArrivalHeld = false;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => unawaited(_openRecurring()),
+      );
+    }
     final noteId = _arrivalHeld;
     _arrivalHeld = null;
     if (noteId == null) return;
     unawaited(
-      Future<void>.delayed(
-        const Duration(milliseconds: 500),
-      ).then((_) => mounted ? _openArrived(noteId) : null),
+      Future<void>.delayed(const Duration(milliseconds: 500))
+          .then((_) => mounted ? _openArrived(noteId) : null),
     );
   }
 

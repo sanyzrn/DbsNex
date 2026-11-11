@@ -212,6 +212,7 @@ class InProcessDb implements NexDb {
   /// full disk, or the worker that has gone, that the capture sheet used to
   /// treat as saved.
   int failUpdates = 0;
+  int failReminders = 0;
 
   @override
   Future<void> deleteNote(String id) async => _repo.softDelete(id);
@@ -281,6 +282,14 @@ class InProcessDb implements NexDb {
 
   @override
   Future<int> pinnedNoteCount() async => _repo.pinnedNoteCount();
+
+  @override
+  Future<Map<String, int>> libraryNoteCounts() async =>
+      _repo.libraryNoteCounts();
+
+  @override
+  Future<bool> hasUntaggedTimelineNotes() async =>
+      _repo.hasUntaggedTimelineNotes();
 
   @override
   Future<bool> setAside(String id, {DateTime? until}) async =>
@@ -538,7 +547,13 @@ class InProcessDb implements NexDb {
     String noteId,
     DateTime? when, {
     NoteRepeat repeat = NoteRepeat.once,
-  }) async => _repo.setDueAt(noteId, when, repeat: repeat);
+  }) async {
+    if (failReminders > 0) {
+      failReminders--;
+      throw StateError('reminder write refused by the test');
+    }
+    _repo.setDueAt(noteId, when, repeat: repeat);
+  }
 
   @override
   Future<List<Note>> upcomingReminders({int limit = 200}) async =>

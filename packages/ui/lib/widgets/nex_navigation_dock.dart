@@ -30,6 +30,8 @@ class NexNavigationDock extends StatelessWidget {
     assert(leading.length == 2 && trailing.length == 2);
     final visual = context.nexVisualStyle;
     final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final highContrast = MediaQuery.highContrastOf(context);
     final viewport = MediaQuery.sizeOf(context).width;
     // On a narrow window the outer margin gives way before any 48dp target
     // does. The five controls need 256dp even at their tightest spacing.
@@ -69,33 +71,40 @@ class NexNavigationDock extends StatelessWidget {
             right: 0,
             bottom: 0,
             height: height,
-            child: DecoratedBox(
+            child: Container(
               decoration: BoxDecoration(
                 borderRadius: radius,
-                // A fine edge keeps the dock visible against the new
-                // near-matching page surface, including Minimal mode.
-                border: Border.all(
-                  color: MediaQuery.highContrastOf(context)
-                      ? scheme.outline
-                      : scheme.outlineVariant.withValues(alpha: 0.55),
-                  width: MediaQuery.highContrastOf(context) ? 1 : 0.65,
-                ),
+                // Dark and Night separate by tone; Light gets a quiet lift.
                 // Glass already paints its own optical edge and shadow.
-                // The standard and Minimal docks only need a quiet lift.
-                boxShadow: visual.liquidGlass
+                boxShadow: visual.liquidGlass || dark
                     ? null
                     : [
                         BoxShadow(
-                          color: scheme.shadow.withValues(alpha: 0.07),
-                          blurRadius: 11,
+                          color: scheme.shadow.withValues(alpha: 0.06),
+                          blurRadius: 12,
                           offset: const Offset(0, 3),
                         ),
                       ],
               ),
+              // Paint after the opaque surface so it cannot cover the edge.
+              foregroundDecoration: visual.liquidGlass
+                  ? null
+                  : BoxDecoration(
+                      borderRadius: radius,
+                      border: Border.all(
+                        color: highContrast
+                            ? scheme.outline
+                            : scheme.outlineVariant,
+                        width: highContrast ? 1 : 0.75,
+                      ),
+                    ),
               child: NexGlassSurface(
                 material: NexGlassMaterial.floating,
                 borderRadius: radius,
-                fallbackColor: scheme.surfaceContainerLowest,
+                // White in Light; the elevated neutral tone in Dark/Night.
+                fallbackColor: dark
+                    ? scheme.surfaceContainerHigh
+                    : scheme.surface,
                 child: actions,
               ),
             ),

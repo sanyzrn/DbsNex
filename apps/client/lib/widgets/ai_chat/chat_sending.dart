@@ -250,7 +250,7 @@ extension _ChatSending on _AiChatSheetState {
         final local = _adapter.localFailure;
         _failure =
             requestError ??
-            (_adapter.lastReplyTruncated ? l10n.aiIncompleteReply : null) ??
+            (_adapter.lastReplyTruncated ? l10n.chatIncompleteReply : null) ??
             (local != null
                 // The runtime's own words under the sentence: which backend,
                 // and what it said. Without them every cause of a model that
@@ -464,7 +464,11 @@ extension _ChatSending on _AiChatSheetState {
         }
         continue;
       }
-      final query = lookup.text ?? '';
+      if (lookup.text == null) {
+        findings.writeln(await _libraryStatistics());
+        continue;
+      }
+      final query = lookup.text!;
       List<Note> found;
       try {
         // The same ranked list the search field gives (W2.4): words and
@@ -517,7 +521,10 @@ extension _ChatSending on _AiChatSheetState {
       _sending = false;
       if (reply == null || reply.isEmpty) {
         _retryText = _activeQuestion;
-        _failure = AppLocalizations.of(context).chatFailed;
+        final l10n = AppLocalizations.of(context);
+        _failure = _adapter.lastReplyTruncated
+            ? l10n.chatIncompleteReply
+            : l10n.chatFailed;
         return;
       }
       _retryText = null;
@@ -584,6 +591,11 @@ extension _ChatSending on _AiChatSheetState {
       return false;
     }
     if (lookup.kind != AssistantActionKind.search) return true;
+    if (lookup.text == null &&
+        lookup.tagName == null &&
+        lookup.threadName == null) {
+      return widget.preferences.aiNotesContextCount > 0;
+    }
     final said = nexSearchFold(
       _turns
           .lastWhere(
@@ -618,7 +630,23 @@ extension _ChatSending on _AiChatSheetState {
       // Stop may arrive while local context is being refreshed, before an
       // HTTP request exists to abort. Never start that cancelled request.
       if (!mounted || generation != _sendGeneration) return null;
-      return _adapter.chat(turns, options: _options);
+      var reply = await _adapter.chat(turns, options: _options);
+      if (reply != null && hasInvalidAssistantAction(reply)) {
+        if (!mounted || generation != _sendGeneration) return null;
+        reply = await _adapter.chat([
+          ...turns,
+          const ChatMessage(
+            role: ChatRole.user,
+            content:
+                'Your last reply contained an invalid internal action. Answer the '
+                'question using the supplied facts, or emit a valid nex action. '
+                'For counts only use {"action":"search","query":""}. '
+                'Do not show internal protocol to the user.',
+          ),
+        ], options: _options);
+        if (reply != null && hasInvalidAssistantAction(reply)) return null;
+      }
+      return reply;
     }, notes: _given);
   }
 

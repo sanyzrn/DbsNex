@@ -69,6 +69,8 @@ class TimelineModel extends ChangeNotifier {
   Set<String> _selectedTagIds = const {};
   bool get onlyUntagged => _onlyUntagged;
   bool _onlyUntagged = false;
+  bool _hasUntagged = false;
+  bool get hasUntagged => _hasUntagged;
 
   NoteType? get selectedType => _selectedType;
   NoteType? _selectedType;
@@ -180,6 +182,7 @@ class TimelineModel extends ChangeNotifier {
 
   Future<void> loadFilterTags() async {
     final loaded = await services.tagUsage(timelineOnly: true);
+    final hasUntagged = await services.worker.hasUntaggedTimelineNotes();
     if (_disposed) return;
     final tags = [
       for (final usage in loaded)
@@ -191,12 +194,20 @@ class TimelineModel extends ChangeNotifier {
     };
     // Tag queries often return the same labels and counts. Do not rebuild
     // the entire home screen just to display an identical filter row.
-    if (_sameTags(_filterTags, tags) && mapEquals(_filterTagCounts, counts)) {
+    if (_sameTags(_filterTags, tags) &&
+        mapEquals(_filterTagCounts, counts) &&
+        _hasUntagged == hasUntagged) {
       return;
     }
     _filterTags = tags;
     _filterTagCounts = counts;
-    notifyListeners();
+    _hasUntagged = hasUntagged;
+    if (!hasUntagged && _onlyUntagged) {
+      _onlyUntagged = false;
+      await _applyFilters();
+    } else {
+      notifyListeners();
+    }
   }
 
   Future<void> loadCommitments({DateTime? now}) async {

@@ -52,10 +52,7 @@ class NoteEditorSheet extends StatefulWidget {
   final String initial;
 
   /// Where the caret opens on the text: an offset into [initial], clamped to
-  /// it, or null for its start. The editor used to open with the caret at
-  /// the end no matter what — the native view's fallback for a selection
-  /// that was never set — so every long note opened with the caret after
-  /// the last word and a swipe of “select all” away from the top.
+  /// it, or null for its end so typing continues after the existing words.
   /// The AI rewrite keeps its own caret placement (end of the new text) and
   /// does not pass through here.
   final int? initialSelection;
@@ -159,7 +156,7 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
         selection: TextSelection.collapsed(offset: recovered.length),
       );
     } else {
-      final offset = (widget.initialSelection ?? 0).clamp(
+      final offset = (widget.initialSelection ?? widget.initial.length).clamp(
         0,
         widget.initial.length,
       );
@@ -355,10 +352,11 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                 : MediaQuery.sizeOf(context).height * 0.85;
             final showStyles =
                 _aiAvailable && (!_expanded || _aiTrayOpen) && room > 420;
-            // The Undo bar is the same control in both sizes — it used to be
-            // a bar in the small sheet and a bare icon in the header when
-            // expanded, two shapes for one action.
-            final showUndo = _undo.isNotEmpty && room > 340;
+            // Very short windows cannot reliably hit the bottom controls;
+            // keep Undo next to the header action in that layout instead.
+            final compactControls =
+                room <= 420 || MediaQuery.sizeOf(context).height <= 420;
+            final showUndo = _undo.isNotEmpty && !compactControls;
             final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
             final chrome =
                 124.0 +
@@ -390,6 +388,12 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                                 ),
                         ),
                       ),
+                      if (_undo.isNotEmpty && compactControls)
+                        IconButton(
+                          onPressed: _running == null ? _undoLast : null,
+                          tooltip: l10n.undo,
+                          icon: const Icon(Icons.undo),
+                        ),
                       IconButton(
                         onPressed: _toggleSize,
                         tooltip: _expanded

@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'crash_reporter.dart';
+
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -383,8 +385,7 @@ String? _markdownOf(Note note) {
 
 String _stamp(DateTime at) {
   final t = at.toLocal();
-  String two(int v) => v.toString().padLeft(2, '0');
-  return '${t.year}-${two(t.month)}-${two(t.day)} ${two(t.hour)}${two(t.minute)}';
+  return '${t.year}-${nexPad2(t.month)}-${nexPad2(t.day)} ${nexPad2(t.hour)}${nexPad2(t.minute)}';
 }
 
 String _mimeFor(String ext) => switch (ext.toLowerCase()) {

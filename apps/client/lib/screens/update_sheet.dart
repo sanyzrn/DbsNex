@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import '../platform/crash_reporter.dart';
+
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -198,7 +200,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
       };
     });
     if (widget.haptics && result.status == UpdateStatus.available) {
-      HapticFeedback.lightImpact();
+      unawaited(HapticFeedback.lightImpact());
     }
   }
 
@@ -230,7 +232,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
           _downloaded = prefetched;
           _phase = _Phase.ready;
         });
-        if (widget.haptics) HapticFeedback.mediumImpact();
+        if (widget.haptics) unawaited(HapticFeedback.mediumImpact());
         await _install();
         return;
       }
@@ -266,7 +268,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
         _downloaded = file;
         _phase = _Phase.ready;
       });
-      if (widget.haptics) HapticFeedback.mediumImpact();
+      if (widget.haptics) unawaited(HapticFeedback.mediumImpact());
       await _install();
     } on SocketException catch (error) {
       _stop(error);
