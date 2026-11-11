@@ -22,7 +22,8 @@ void main() {
         expect(
           chosen,
           greaterThanOrEqualTo(4.5),
-          reason: 'card number/CVV2 ink on #$hex fell to '
+          reason:
+              'card number/CVV2 ink on #$hex fell to '
               '${chosen.toStringAsFixed(2)}:1',
         );
       }
