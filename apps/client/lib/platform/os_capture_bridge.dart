@@ -556,9 +556,11 @@ class OsCaptureBridge {
   /// working path there. `file_selector` is already a dependency and has an
   /// endorsed Windows implementation; the media picker has been using it for
   /// images all along.
-  static Future<PickedOsFile?> pickFile() async {
+  static Future<PickedOsFile?> pickFile({
+    Future<XFile?> Function()? selectFile,
+  }) async {
     if (!isSupported) {
-      final file = await openFile();
+      final file = await (selectFile ?? openFile)();
       if (file == null) return null;
       final bytes = await file.length();
       if (bytes > defaultMaxAttachmentBytes) {
