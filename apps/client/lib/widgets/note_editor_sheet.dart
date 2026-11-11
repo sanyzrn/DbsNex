@@ -352,10 +352,11 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                 : MediaQuery.sizeOf(context).height * 0.85;
             final showStyles =
                 _aiAvailable && (!_expanded || _aiTrayOpen) && room > 420;
-            // The Undo bar is the same control in both sizes — it used to be
-            // a bar in the small sheet and a bare icon in the header when
-            // expanded, two shapes for one action.
-            final showUndo = _undo.isNotEmpty && room > 340;
+            // Very short windows cannot reliably hit the bottom controls;
+            // keep Undo next to the header action in that layout instead.
+            final compactControls =
+                room <= 420 || MediaQuery.sizeOf(context).height <= 420;
+            final showUndo = _undo.isNotEmpty && !compactControls;
             final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
             final chrome =
                 124.0 +
@@ -387,6 +388,12 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                                 ),
                         ),
                       ),
+                      if (_undo.isNotEmpty && compactControls)
+                        IconButton(
+                          onPressed: _running == null ? _undoLast : null,
+                          tooltip: l10n.undo,
+                          icon: const Icon(Icons.undo),
+                        ),
                       IconButton(
                         onPressed: _toggleSize,
                         tooltip: _expanded
@@ -459,12 +466,6 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                                     color: scheme.primary,
                                   ),
                           ),
-                        ),
-                      if (_undo.isNotEmpty && !showUndo)
-                        IconButton(
-                          onPressed: _running == null ? _undoLast : null,
-                          tooltip: l10n.undo,
-                          icon: const Icon(Icons.undo),
                         ),
                       const Spacer(),
                       // The same two buttons in either size — ✕ and ✓ with
