@@ -26,6 +26,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(sed -n 's/^version: //p' apps/client/pubspec.yaml)" = '2.6.19'
+          sha256sum .smart-summary-fix.patch
+          wc -c .smart-summary-fix.patch
           echo '094e9c76b22ac4f1659053c6930075b2080f8c781de8997628b4f78657a6248f  .smart-summary-fix.patch' | sha256sum -c -
           git apply --check .smart-summary-fix.patch
           git apply .smart-summary-fix.patch
