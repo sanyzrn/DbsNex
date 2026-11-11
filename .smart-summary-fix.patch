@@ -797,7 +797,8 @@ index c8234643..03886dcb 100644
 +++ b/packages/core/lib/ai/recap_source.dart
 @@ -179,14 +179,14 @@ List<(String, String?)> _recapLines(
                  '${commitment.dueAt.isBefore(local) ? 'overdue' : 'upcoming'}|'
-                 '${_dayGap(local, zoned(commitment.dueAt))}|'                 '${_cadenceLabel(commitment)}|${commitment.timesPerDay}|'
+                 '${_dayGap(local, zoned(commitment.dueAt))}|'
+                 '${_cadenceLabel(commitment)}|${commitment.timesPerDay}|'
 -                '${commitment.metOn(local)}|${_oneLine(commitment.title, 80)}'
 +                '${commitment.metOn(local)}|${nexOneLine(commitment.title, 80)}'
            : _commitmentLine(commitment, local, zoned(commitment.dueAt)),
