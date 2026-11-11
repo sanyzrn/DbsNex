@@ -416,6 +416,10 @@ mixin _DbClient implements NexDb {
       _send<List<Note>>(_DbCommand.upcomingReminders, {'limit': limit});
 
   @override
+  Future<List<Note>> briefWaitingNotes({int limit = 200}) =>
+      _send<List<Note>>(_DbCommand.briefWaitingNotes, {'limit': limit});
+
+  @override
   Future<void> backup(
     String backupDir, {
     required String mediaDir,

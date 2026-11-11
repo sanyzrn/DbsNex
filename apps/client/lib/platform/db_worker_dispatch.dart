@@ -354,6 +354,9 @@ class _Worker {
       _DbCommand.upcomingReminders => repo.listUpcomingReminders(
         limit: arg('limit')! as int,
       ),
+      _DbCommand.briefWaitingNotes => repo.listBriefWaiting(
+        limit: arg('limit')! as int,
+      ),
       _DbCommand.backup => repo.backupSnapshot(arg('dir')! as String).path,
       _DbCommand.exportArchive => (await repo.exportArchive(
         outputPath: arg('outputPath')! as String,

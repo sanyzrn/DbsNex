@@ -179,14 +179,14 @@ List<(String, String?)> _recapLines(
                 '${commitment.dueAt.isBefore(local) ? 'overdue' : 'upcoming'}|'
                 '${_dayGap(local, zoned(commitment.dueAt))}|'
                 '${_cadenceLabel(commitment)}|${commitment.timesPerDay}|'
-                '${commitment.metOn(local)}|${_oneLine(commitment.title, 80)}'
+                '${commitment.metOn(local)}|${nexOneLine(commitment.title, 80)}'
           : _commitmentLine(commitment, local, zoned(commitment.dueAt)),
       null,
     ));
   }
 
   String? line(Note note) {
-    final text = _oneLine(
+    final text = nexOneLine(
       note.type == NoteType.text ? note.aiSourceText : note.displayText,
       maxTextLength,
     );
@@ -209,24 +209,32 @@ List<(String, String?)> _recapLines(
   for (final note in [...due, ...open]) {
     if (line(note) case final text?) pressing.add((text, note.id));
   }
-  final others = [
-    for (final note in rest)
-      if (line(note) case final text?) (text, note),
-  ];
   // The lines kept back for what was just written: never more than there
   // are recent notes to fill them, and never more than a quarter, so a
   // morning with a dozen things overdue still leads with them.
-  final recent = others
-      .where(
-        (entry) => at.difference(entry.$2.updatedAt.toUtc()) < recentWindow,
-      )
-      .length;
+  //
+  // `rest` is newest first, so the recent ones are a prefix of it: the
+  // count stops at the first note outside the window without walking the
+  // library behind it. A note with nothing readable in it was never one of
+  // the lines this count is for, so it does not count either.
+  var recent = 0;
+  for (final note in rest) {
+    if (at.difference(note.updatedAt.toUtc()) >= recentWindow) break;
+    if (_hasReadableText(note)) recent++;
+  }
   final kept = recent.clamp(0, limit ~/ 4);
-  final lines = [
-    ...pressing.take((limit - kept).clamp(0, limit)),
-    for (final entry in others) (entry.$1, entry.$2.id),
-  ];
-  final selected = lines.take(limit).toList();
+  // Only the lines that can be used are built. The old shape rendered a
+  // line for every note in the set — flattening and trimming a thousand
+  // notes to keep twenty — on a path that runs on every delivery; this
+  // stops asking as soon as the budget is full and leaves the library
+  // behind it unread. The output is the same list either way: pressing
+  // first, then the ordinary notes in their existing order, nothing beyond
+  // [limit].
+  final selected = [...pressing.take((limit - kept).clamp(0, limit))];
+  for (final note in rest) {
+    if (selected.length >= limit) break;
+    if (line(note) case final text?) selected.add((text, note.id));
+  }
   if (forFingerprint) selected.sort((a, b) => a.$1.compareTo(b.$1));
   return selected;
 }
@@ -264,7 +272,7 @@ String _commitmentLine(NexCommitment commitment, DateTime now, DateTime due) {
   final middle = tally == null
       ? cadence
       : '$cadence · ${commitment.metOn(now)} of $tally today';
-  return '$when | $middle | ${_oneLine(commitment.title, 80)}';
+  return '$when | $middle | ${nexOneLine(commitment.title, 80)}';
 }
 
 String _cadenceLabel(NexCommitment commitment) {
@@ -388,8 +396,24 @@ String _kind(Note note) {
   return left == 0 ? '$name done' : '$name $left/${items.length} left';
 }
 
-String _oneLine(String? text, int max) {
+/// One piece of text as one line of at most [max] characters.
+///
+/// Public because the brief's own surfaces share the rule: the recap's
+/// per-note cap and the headline's are the same idea — a long note must not
+/// take the budget the others were meant to share — and two private copies
+/// of one rule is how one of them ends up missing.
+String nexOneLine(String? text, int max) {
   final flat = (text ?? '').replaceAll(RegExp(r'\s+'), ' ').trim();
   if (flat.length <= max) return flat;
   return '${flat.substring(0, max).trimRight()}…';
+}
+
+/// Whether the `line` builder above would have anything to say about [note].
+///
+/// The emptiness half of that function only, and therefore cheaper than
+/// building the line to find out: the recency count walks the newest notes
+/// and must not pay to flatten text it will never show.
+bool _hasReadableText(Note note) {
+  final raw = note.type == NoteType.text ? note.aiSourceText : note.displayText;
+  return raw != null && raw.trim().isNotEmpty;
 }

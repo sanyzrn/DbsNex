@@ -97,6 +97,7 @@ part 'timeline/timeline_filter_widgets.dart';
 part 'timeline/timeline_groups.dart';
 part 'timeline/timeline_list.dart';
 part 'timeline/timeline_ai_header.dart';
+part 'timeline/timeline_brief_sources.dart';
 part 'timeline/timeline_capture.dart';
 part 'timeline/timeline_note_actions.dart';
 part 'timeline/timeline_navigation.dart';
@@ -267,8 +268,11 @@ class TimelineScreenState extends State<TimelineScreen>
   StreamSubscription<String>? _habitBriefChanges;
   bool _aiSummaryLoading = false;
 
-  /// The brief being asked for right now, so a pull that arrives while one
-  /// is running waits for it instead of being dropped.
+  /// Reminders and urgent notes beyond the timeline's loaded page.
+  /// Refreshed each brief pass before fingerprinting.
+  List<Note> _briefWaitingNotes = const [];
+
+  /// The running brief flight, shared with a manual pull.
   Future<void>? _aiSummaryInFlight;
   Timer? _aiSummaryWake;
   Timer? _ringingSync;
@@ -279,6 +283,9 @@ class TimelineScreenState extends State<TimelineScreen>
   bool _lastBriefRefreshFailed = false;
   bool _pullCancelled = false;
   bool _aiSummaryManualRequested = false;
+
+  /// Whether this flight queried a model; used to honor manual pulls.
+  bool _aiSummaryFlightAsked = false;
   bool _briefPreferencesQueued = false;
   String? _briefSettingsKey;
   int _setAsideTotal = 0; // read only while the home screen is empty
@@ -292,12 +299,8 @@ class TimelineScreenState extends State<TimelineScreen>
   String? _aiHeadlineText;
   bool _aiHeadlineLoading = false;
 
-  /// Collapsed hides the recap's *body*; the card's header row, and with it
-  /// the chevron that reopens it, stays on screen either way. It used to
-  /// collapse to nothing and reopen from a chip in the app bar — a control
-  /// nowhere near the thing it controlled.
-  ///
-  /// Remembered across launches — see [NexPreferences.daySummaryFolded].
+  /// Collapse only the recap body; keep the header and chevron visible.
+  /// Persisted in [NexPreferences.daySummaryFolded].
   late bool _aiSummaryCollapsed = widget.preferences.daySummaryFolded;
 
   /// The first real scroll collapses the card on its own, once. Touching the
@@ -659,7 +662,15 @@ class TimelineScreenState extends State<TimelineScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final locale = Localizations.localeOf(context);
-    if (_briefLocale != locale) {
+    if (_briefLocale == null) {
+      // The first resolution is where the locale becomes known, not a
+      // change to it. Seeding the key here keeps "learning the locale"
+      // from reading as "the settings moved" — which would force a fresh
+      // brief on every cold launch the moment the signature started to
+      // name the locale.
+      _briefLocale = locale;
+      _briefSettingsKey = _briefSettingsSignature();
+    } else if (_briefLocale != locale) {
       _briefLocale = locale;
       _onBriefPreferencesChanged();
     }

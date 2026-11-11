@@ -274,10 +274,12 @@ extension _TimelineBody on TimelineScreenState {
         _pullCancelled = false;
         final settings = _briefSettingsSignature();
         // Not dropped while a brief is already being written: the pull
-        // waits for that one (see [_loadAiSummary]).
+        // waits for that one (see [_loadAiSummary]), and a flight that had
+        // already decided not to ask is re-asked once it lands — the pull
+        // is manual, which is what tells them apart.
         await Future.wait<void>([
           _sponsor.refresh(manual: true),
-          _loadAiSummary(force: true),
+          _loadAiSummary(force: true, manual: true),
         ]);
         _pullCancelled = settings != _briefSettingsSignature();
         if (mounted) _rebuild(() {});
