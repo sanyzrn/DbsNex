@@ -76,7 +76,16 @@ class _ReviewBody extends StatelessWidget {
                     final t = animation.value;
                     // Each side shows only for its half of the turn.
                     if (t < 0.5) return const SizedBox.shrink();
-                    final angle = (1 - t) * math.pi;
+                    // The two quarter-turns, eased (F-21): the old card
+                    // accelerates away, the new one settles — a linear
+                    // perspective flip reads mechanical, and its midpoint
+                    // shrink had nothing masking it.
+                    final quarterTurn = math.pi / 2;
+                    final angle = incoming
+                        ? (1 - NexMotion.curve.transform(2 * t - 1)) *
+                              quarterTurn
+                        : NexMotion.exitCurve.transform(2 * (1 - t)) *
+                              quarterTurn;
                     return Transform(
                       alignment: Alignment.center,
                       transform: Matrix4.identity()

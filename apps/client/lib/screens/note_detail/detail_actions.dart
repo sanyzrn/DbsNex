@@ -182,8 +182,13 @@ extension _DetailActions on _NoteDetailSheetState {
         !items[index].done &&
         items.where((item) => !item.done).length == 1;
     await widget.services.toggleChecklistItem(note.id, index);
-    if (finishing && (widget.preferences?.haptics ?? true)) {
-      unawaited(HapticFeedback.mediumImpact());
+    // The tier vocabulary (F-03): one line crossing off is a selection
+    // moving — the cheap tick; finishing the whole list is the one
+    // completion strong enough to keep the thud it already had.
+    if (finishing) {
+      if (widget.preferences?.haptics ?? true) nexThud();
+    } else {
+      nexTick();
     }
     await _reload();
   }

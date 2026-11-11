@@ -214,7 +214,7 @@ class _GreetingPreview extends StatelessWidget {
           ),
           const SizedBox(height: NexSpacing.md),
           AnimatedSwitcher(
-            duration: NexMotion.standard,
+            duration: NexMotion.of(context, NexMotion.standard),
             child: Text(
               text,
               key: ValueKey(text),

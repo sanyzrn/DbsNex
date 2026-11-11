@@ -161,6 +161,11 @@ abstract final class NexColors {
   /// "what you typed is not valid" — two different meanings that used to
   /// render in exactly the same colour.
   static const danger = Color(0xFFC0392B);
+
+  /// [danger] for dark grounds, the same step [errorDark] takes: the light
+  /// red is 2.96:1 on the dark card, under the 3:1 floor for the badge dot —
+  /// the app's entire "something waits here" vocabulary (V-08).
+  static const dangerDark = Color(0xFFC6402F);
   static const error = Color(0xFFB3261E);
 
   /// [error] for dark grounds: #B3261E is 2.5:1 on the dark card, too dim
@@ -1098,7 +1103,11 @@ ThemeData _theme({
     // gesture is over. A ripple that fades in place keeps taps feeling
     // immediate, which is the whole promise of the capture path.
     splashFactory: InkSparkle.splashFactory,
-    textTheme: _textTheme(primary: primary, secondary: secondary),
+    textTheme: _textTheme(
+      primary: primary,
+      secondary: secondary,
+      persian: fontFamily == nexPersianFont,
+    ),
   );
 }
 
@@ -1138,105 +1147,114 @@ TextStyle _style({
 /// chosen for Roboto, applied to whatever the platform happened to load. The
 /// undefined slots also carried Material's colours rather than these, so
 /// component text and body text resolved their colour by different mechanisms.
-TextTheme _textTheme({required Color primary, required Color secondary}) =>
-    TextTheme(
-      displayLarge: _style(
-        size: 36,
-        lineHeight: 42,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      displayMedium: _style(
-        size: 32,
-        lineHeight: 38,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      displaySmall: _style(
-        size: 26,
-        lineHeight: 32,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      headlineLarge: _style(
-        size: 32,
-        lineHeight: 38,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      headlineMedium: _style(
-        size: 26,
-        lineHeight: 32,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      headlineSmall: _style(
-        size: 22,
-        lineHeight: 28,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      titleLarge: _style(
-        size: 22,
-        lineHeight: 28,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      // Two points clear of [titleSmall] and four clear of body. A heading
-      // one point away from body text carries no size signal at all, so the
-      // hierarchy would rest entirely on weight.
-      titleMedium: _style(
-        size: 18,
-        lineHeight: 24,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      titleSmall: _style(
-        size: 16,
-        lineHeight: 22,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      bodyLarge: _style(
-        size: 15,
-        lineHeight: 22,
-        weight: FontWeight.w400,
-        color: primary,
-      ),
-      bodyMedium: _style(
-        size: 14,
-        lineHeight: 20,
-        weight: FontWeight.w400,
-        color: primary,
-      ),
-      // Whole points, never fractional: fractional sizes do not land on pixel
-      // boundaries, and this is the style every date, tag and storage figure
-      // is set in.
-      bodySmall: _style(
-        size: 13,
-        lineHeight: 18,
-        weight: FontWeight.w500,
-        color: secondary,
-      ),
-      labelLarge: _style(
-        size: 13,
-        lineHeight: 19,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      labelMedium: _style(
-        size: 13,
-        lineHeight: 18,
-        weight: FontWeight.w600,
-        color: primary,
-      ),
-      labelSmall: _style(
-        size: 12,
-        lineHeight: 16,
-        weight: FontWeight.w600,
-        color: secondary,
-      ),
-    );
+TextTheme _textTheme({
+  required Color primary,
+  required Color secondary,
+  bool persian = false,
+}) => TextTheme(
+  displayLarge: _style(
+    size: 36,
+    lineHeight: 42,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  displayMedium: _style(
+    size: 32,
+    lineHeight: 38,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  displaySmall: _style(
+    size: 26,
+    lineHeight: 32,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  headlineLarge: _style(
+    size: 32,
+    lineHeight: 38,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  headlineMedium: _style(
+    size: 26,
+    lineHeight: 32,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  headlineSmall: _style(
+    size: 22,
+    lineHeight: 28,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  titleLarge: _style(
+    size: 22,
+    lineHeight: 28,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  // Two points clear of [titleSmall] and four clear of body. A heading
+  // one point away from body text carries no size signal at all, so the
+  // hierarchy would rest entirely on weight.
+  titleMedium: _style(
+    size: 18,
+    lineHeight: 24,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  titleSmall: _style(
+    size: 16,
+    lineHeight: 22,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  // Measured on the shipped faces (V-05): Vazirmatn's ink exceeds a
+  // line box this tight at every style — the stacked marks (اعراب) are
+  // the first to collide — while Inter sits inside its box. The Persian
+  // ramp runs body leading at ≈1.6, which the standard card's two 24px
+  // preview rows already reserve; the compact card follows the larger
+  // value, so nothing clips — it breathes.
+  bodyLarge: _style(
+    size: 15,
+    lineHeight: persian ? 24 : 22,
+    weight: FontWeight.w400,
+    color: primary,
+  ),
+  bodyMedium: _style(
+    size: 14,
+    lineHeight: persian ? 22 : 20,
+    weight: FontWeight.w400,
+    color: primary,
+  ),
+  // Whole points, never fractional: fractional sizes do not land on pixel
+  // boundaries, and this is the style every date, tag and storage figure
+  // is set in.
+  bodySmall: _style(
+    size: 13,
+    lineHeight: 18,
+    weight: FontWeight.w500,
+    color: secondary,
+  ),
+  labelLarge: _style(
+    size: 13,
+    lineHeight: 19,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  labelMedium: _style(
+    size: 13,
+    lineHeight: 18,
+    weight: FontWeight.w600,
+    color: primary,
+  ),
+  labelSmall: _style(
+    size: 12,
+    lineHeight: 16,
+    weight: FontWeight.w600,
+    color: secondary,
+  ),
+);
 
 /// How much room the system's own bars need at the bottom of a scrolling list.
 ///
@@ -1451,7 +1469,9 @@ class NexBadgeDot extends StatelessWidget {
     width: size,
     height: size,
     decoration: BoxDecoration(
-      color: NexColors.danger,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? NexColors.dangerDark
+          : NexColors.danger,
       shape: BoxShape.circle,
       border: Border.all(
         color: Theme.of(context).colorScheme.surface,

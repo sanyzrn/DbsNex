@@ -127,6 +127,11 @@ class _AiToolChip extends StatelessWidget {
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: scheme.primary,
+                              // Frozen at half-turned under reduce-motion
+                              // (F-08).
+                              value: MediaQuery.disableAnimationsOf(context)
+                                  ? 0.5
+                                  : null,
                             ),
                           )
                         : IconTheme.merge(

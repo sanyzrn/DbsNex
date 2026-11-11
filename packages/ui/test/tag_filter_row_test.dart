@@ -44,22 +44,23 @@ void main() {
             of: label,
             matching: find.byType(NexTappable),
           );
-          final material = tester.widget<Material>(
-            find.descendant(of: pill, matching: find.byType(Material)),
+          // The pill's fill is an AnimatedContainer since the visual audit
+          // (F-18): read the target decoration straight off the widget —
+          // an implicit animation exposes what it is animating *to*.
+          final container = tester.widget<AnimatedContainer>(
+            find.descendant(of: pill, matching: find.byType(AnimatedContainer)),
           );
+          final fill = (container.decoration as BoxDecoration).color!;
           final foreground = tester.widget<Text>(label).style!.color!;
           final background = Color.alphaBlend(
-            material.color!,
+            fill,
             theme.scaffoldBackgroundColor,
           );
           expect(
             nexContrast(foreground, background),
             greaterThanOrEqualTo(4.5),
           );
-          expect(
-            material.color,
-            theme.colorScheme.primary.withValues(alpha: .12),
-          );
+          expect(fill, theme.colorScheme.primary.withValues(alpha: .12));
           expect(tester.takeException(), isNull);
         });
       }
@@ -108,7 +109,12 @@ void main() {
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
-    expect(tester.widget<Text>(find.text('4')).style?.fontSize, 10);
+    // At the theme's own caption floor with full alpha (V-10): the count is
+    // a real number a person reads to judge a filter — the 10px/60% label
+    // it was measured 2.35:1 in Light.
+    final style = tester.widget<Text>(find.text('4')).style!;
+    expect(style.fontSize, 12);
+    expect(style.color, nexLightTheme().colorScheme.onSurfaceVariant);
     expect(tester.takeException(), isNull);
   });
 

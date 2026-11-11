@@ -6,7 +6,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path_provider/path_provider.dart';
@@ -200,7 +199,9 @@ class _UpdateSheetState extends State<UpdateSheet> {
       };
     });
     if (widget.haptics && result.status == UpdateStatus.available) {
-      unawaited(HapticFeedback.lightImpact());
+      // An update being offered is something that happened — the bump tier,
+      // not the one reserved for what cannot be taken back (F-03).
+      nexBump();
     }
   }
 
@@ -232,7 +233,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
           _downloaded = prefetched;
           _phase = _Phase.ready;
         });
-        if (widget.haptics) unawaited(HapticFeedback.mediumImpact());
+        if (widget.haptics) nexBump();
         await _install();
         return;
       }
@@ -268,7 +269,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
         _downloaded = file;
         _phase = _Phase.ready;
       });
-      if (widget.haptics) unawaited(HapticFeedback.mediumImpact());
+      if (widget.haptics) nexBump();
       await _install();
     } on SocketException catch (error) {
       _stop(error);
@@ -377,7 +378,13 @@ class _UpdateSheetState extends State<UpdateSheet> {
       ),
     ],
     _Phase.checking => [
-      const Center(child: CircularProgressIndicator()),
+      Center(
+        child: CircularProgressIndicator(
+          // Frozen at half-turned under reduce-motion, the way the PDF's
+          // loading bar already handles it (F-08).
+          value: MediaQuery.disableAnimationsOf(context) ? 0.5 : null,
+        ),
+      ),
       const SizedBox(height: NexSpacing.md),
       Text(l10n.checkingForUpdate, textAlign: TextAlign.center),
     ],

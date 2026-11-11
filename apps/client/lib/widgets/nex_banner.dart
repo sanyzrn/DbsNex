@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 /// Which mark a banner leads with.
@@ -381,7 +380,10 @@ class _NexBannerState extends State<_NexBanner>
     // drop-and-spread choreography is unchanged; it just happens in half the
     // time, so the words land with the motion instead of after it.
     duration: const Duration(milliseconds: 360),
-    reverseDuration: const Duration(milliseconds: 420),
+    // Quicker out than in (F-12): the reverse-film exit used to run slower
+    // than the arrival, against the motion system's own asymmetry rule —
+    // still long enough for the thread to retract into the edge.
+    reverseDuration: const Duration(milliseconds: 300),
   );
 
   Timer? _timer;
@@ -425,8 +427,12 @@ class _NexBannerState extends State<_NexBanner>
     _controller.forward();
     // The vibration is half of what makes this read as an arrival rather than
     // as something that was always there. Gated on the same preference as
-    // every other haptic in the app.
-    if (widget.haptics) HapticFeedback.mediumImpact();
+    // every other haptic in the app, and in the tier vocabulary (F-03): a
+    // plain arrival is a bump — something happened — and only a failure,
+    // the one the person may need to act on, is a thud.
+    if (widget.haptics) {
+      widget.kind == NexBannerKind.failed ? nexThud() : nexBump();
+    }
   }
 
   void _onStatus(AnimationStatus status) {
@@ -544,7 +550,14 @@ class _NexBannerState extends State<_NexBanner>
     // and the island they grow from are: near-black on a light page, a lifted
     // graphite on a dark one, where black would disappear into the page.
     final capsule = dark ? const Color(0xFF2C2E33) : const Color(0xFF17181B);
-    final accent = dark ? scheme.primary : scheme.inversePrimary;
+    // The capsule is an inverse (dark) surface in both themes, so in Light
+    // the accent drawn for the page (inversePrimary, #006DCC) lands at
+    // 3.43:1 on the one word that is a button — usually "Undo" (V-02). The
+    // accent drawn for dark grounds reads on it everywhere: it is the same
+    // token the snackbar's action already uses for the same kind of capsule.
+    final accent = dark
+        ? scheme.primary
+        : theme.snackBarTheme.actionTextColor ?? scheme.inversePrimary;
     final top = MediaQuery.paddingOf(context).top;
     const gap = NexSpacing.sm;
 
@@ -611,7 +624,7 @@ class _NexBannerState extends State<_NexBanner>
                     // From the capsule's top edge to the top of the screen:
                     // where the island it drips from sits.
                     lift: top + gap,
-                    hairline: Colors.white.withValues(alpha: dark ? .08 : 0),
+                    hairline: Colors.white.withValues(alpha: dark ? .16 : 0),
                   ),
                   child: Opacity(
                     // The words used to wait until the capsule was 55–90% of

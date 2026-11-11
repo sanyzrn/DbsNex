@@ -465,7 +465,9 @@ extension _TimelineAiHeader on TimelineScreenState {
       );
       return;
     }
-    HapticFeedback.mediumImpact();
+    // No buzz here (F-09): the hold's own tick at the glow's start already
+    // spoke for this gesture, and the glow-to-sheet handoff confirms the
+    // trigger visually — a second haptic ~250ms after the first is noise.
     unawaited(
       AiChatSheet.show(
         context,

@@ -220,12 +220,19 @@ class _Pill extends StatelessWidget {
       shape: const StadiumBorder(),
       child: _edge(
         selected: selected,
-        child: Material(
-          color: selected ? bg : Colors.transparent,
-          shape: StadiumBorder(
-            side: selected && !context.nexVisualStyle.minimal
-                ? BorderSide(color: scheme.primary)
-                : BorderSide.none,
+        child: AnimatedContainer(
+          // The most-used control on the timeline changes state like
+          // everything else does — a 120ms fill fade rather than a hard cut
+          // in one frame (F-18). Short enough to never delay a re-filter,
+          // and instantly over for someone who asked for stillness.
+          duration: NexMotion.of(context, NexMotion.fast),
+          curve: NexMotion.curve,
+          decoration: BoxDecoration(
+            color: selected ? bg : Colors.transparent,
+            borderRadius: BorderRadius.circular(NexRadius.pill),
+            border: selected && !context.nexVisualStyle.minimal
+                ? Border.all(color: scheme.primary)
+                : Border.all(color: Colors.transparent),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -273,10 +280,13 @@ class _Pill extends StatelessWidget {
                   Text(
                     '$count',
                     textDirection: TextDirection.ltr,
+                    // A real number a person reads to judge a filter, at the
+                    // caption floor and full alpha — the 10px 60% label it
+                    // was measured 2.35:1 in Light (V-10).
                     style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.60),
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],

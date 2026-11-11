@@ -115,6 +115,21 @@ void main() {
                 greaterThanOrEqualTo(4.5),
               );
             }
+            // The toast is an inverse capsule: its action token is measured
+            // against the fill it actually sits on (V-03).
+            expect(
+              nexContrastRatio(
+                theme.snackBarTheme.actionTextColor!,
+                theme.snackBarTheme.backgroundColor!,
+              ),
+              greaterThanOrEqualTo(4.5),
+            );
+            // Stock M3 chips and segmented buttons draw their selected state
+            // from these two roles; the pair is held to the text floor.
+            expect(
+              nexContrastRatio(c.onSecondaryContainer, c.secondaryContainer),
+              greaterThanOrEqualTo(4.5),
+            );
             expect(
               nexContrastRatio(c.onPrimaryContainer, c.primaryContainer),
               greaterThanOrEqualTo(4.5),
@@ -145,4 +160,74 @@ void main() {
     );
     expect(nexSoftDarkTheme().extension<NexVisualStyle>()!.minimal, isTrue);
   });
+
+  // The Soft Dark theme the app ships carries the same edge-set guards the
+  // light and night loops above hold (the inverse-capsule action V-03, the
+  // filled-button boundary V-07, the badge dot V-08).
+  test('Soft Dark: inverse capsule action, button boundary, badge dot', () {
+    final theme = nexSoftDarkTheme();
+    final c = theme.colorScheme;
+    expect(
+      nexContrastRatio(
+        theme.snackBarTheme.actionTextColor!,
+        theme.snackBarTheme.backgroundColor!,
+      ),
+      greaterThanOrEqualTo(4.5),
+    );
+    final filled = theme.filledButtonTheme.style!.backgroundColor!;
+    expect(
+      nexContrastRatio(filled.resolve({})!, c.surfaceContainerLowest),
+      greaterThanOrEqualTo(3),
+    );
+    expect(
+      nexContrastRatio(filled.resolve({})!, c.surface),
+      greaterThanOrEqualTo(3),
+    );
+    for (final ground in [
+      NexSoftDarkColors.card,
+      NexSoftDarkColors.background,
+    ]) {
+      expect(
+        nexContrastRatio(NexColors.dangerDark, ground),
+        greaterThanOrEqualTo(3),
+        reason:
+            'the badge dot is the app\'s whole "something waits here" '
+            'vocabulary (V-08)',
+      );
+    }
+    // Night shares the dark step and the same token walk.
+    final night = nexOledNightTheme();
+    expect(
+      nexContrastRatio(
+        night.snackBarTheme.actionTextColor!,
+        night.snackBarTheme.backgroundColor!,
+      ),
+      greaterThanOrEqualTo(4.5),
+    );
+    final nightFill = night.filledButtonTheme.style!.backgroundColor!;
+    expect(
+      nexContrastRatio(nightFill.resolve({})!, NexOledNightColors.card),
+      greaterThanOrEqualTo(3),
+    );
+    expect(
+      nexContrastRatio(NexColors.dangerDark, NexOledNightColors.card),
+      greaterThanOrEqualTo(3),
+    );
+  });
+
+  // The Persian ramp runs body leading at ≈1.6 — the shipped Vazirmatn's ink
+  // exceeds a tighter line box at every style (V-05) — and the Latin ramp is
+  // unchanged.
+  test('Persian body leading breathes; Latin stays on its own ramp', () {
+    final latin = nexSoftLightTheme().textTheme;
+    final persian = nexSoftLightTheme(fontFamily: nexPersianFont).textTheme;
+    expect(latin.bodyLarge!.height, closeTo(22 / 15, 0.01));
+    expect(latin.bodyMedium!.height, closeTo(20 / 14, 0.01));
+    expect(persian.bodyLarge!.height, closeTo(24 / 15, 0.01));
+    expect(persian.bodyMedium!.height, closeTo(22 / 14, 0.01));
+    // The standard card's two preview rows already reserve exactly this.
+    expect(_previewHeight(persian.bodyLarge!), lessThanOrEqualTo(24.0));
+  });
 }
+
+double _previewHeight(TextStyle body) => body.fontSize! * body.height!;

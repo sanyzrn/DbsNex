@@ -104,7 +104,7 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 - **Decision:** Nex's UI uses a strictly black-and-white (plus grayscale) palette in both light and dark modes; tags and content types are never color-coded.
 - **Rationale:** Reinforces the "light," non-software feeling described in the UX philosophy, and prevents color from becoming an implicit, uncontrolled categorization system.
 - **Alternatives Considered:** A small palette of accent colors for tags — rejected as inconsistent with the minimal, decision-free design philosophy.
-- **Status:** Accepted, v1. Superseded in part (not retroactively) by [ADR-021](#adr-021--optional-user-chosen-tag-accent-color) — the surface remains monochrome, but tags may carry a small, optional, user-chosen accent dot.
+- **Status:** Accepted, v1. Superseded in part (not retroactively) by [ADR-021](#adr-021--optional-user-chosen-tag-accent-color) — the surface remains monochrome, but tags may carry a small, optional, user-chosen accent dot. Superseded in part again in 2.x by the **note-type fan** (`nexNoteTypeTint` in `packages/ui/lib/tokens/nex_tokens.dart`): a card's leading square now carries a hue per note type, derived from the theme's own accent by hue rotation and walked to a 3.1:1 floor against its wash — adopted because ten identical grey marks said the type only glyph-by-glyph, and the fan says it at a glance; the hue follows whatever accent the person picked rather than being a second fixed palette. This entry was not amended at the time, which this status line now closes: the *user-chosen, optional* colour rule of ADR-021 did not cover an app-chosen categorical fan, and that is what shipped.
 
 ---
 

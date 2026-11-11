@@ -301,10 +301,16 @@ List<Widget> searchResultSlivers({
                     ? null
                     : () => unawaited(search.loadMore()),
                 icon: search.loadingMore
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        // Frozen at half-turned under reduce-motion (F-08).
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          value: MediaQuery.disableAnimationsOf(context)
+                              ? 0.5
+                              : null,
+                        ),
                       )
                     : const Icon(Icons.expand_more),
                 label: Text(search.pageFailed ? l10n.retry : l10n.searchMore),

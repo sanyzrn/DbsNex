@@ -23,10 +23,26 @@ class _RingingBellState extends State<_RingingBell>
   /// The part of [_cycle] spent swinging.
   static const _swing = 0.38;
 
+  /// The swing alone, in milliseconds: the other 62% of the cycle painted
+  /// a static bell while still scheduling a frame for it (F-15).
+  static const _swingDuration = Duration(milliseconds: 836);
+
+  /// Re-arms the swing on the cycle's rhythm — same beat as a repeating
+  /// ticker, but zero frames are scheduled while the bell is at rest.
+  Timer? _rearm;
+
   late final AnimationController _clock = AnimationController(
     vsync: this,
     duration: _cycle,
   );
+
+  void _startSwing() {
+    _rearm?.cancel();
+    // Only as far as the swing goes: at 0.38 the bell is at rest, and the
+    // controller stops instead of ticking through the silent remainder.
+    unawaited(_clock.animateTo(_swing, duration: _swingDuration));
+    _rearm = Timer(_cycle, _startSwing);
+  }
 
   @override
   void didChangeDependencies() {
@@ -34,13 +50,16 @@ class _RingingBellState extends State<_RingingBell>
     if (MediaQuery.disableAnimationsOf(context)) {
       _clock.stop();
       _clock.value = 0;
-    } else if (!_clock.isAnimating) {
-      _clock.repeat();
+      _rearm?.cancel();
+      _rearm = null;
+    } else if (!_clock.isAnimating && _rearm == null) {
+      _startSwing();
     }
   }
 
   @override
   void dispose() {
+    _rearm?.cancel();
     _clock.dispose();
     super.dispose();
   }

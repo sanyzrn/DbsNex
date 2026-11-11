@@ -14,7 +14,7 @@ Guiding statement: *if a design element doesn't help the user capture or find so
 
 ## Design Language
 
-- Black and white as the primary palette in both light and dark themes; no decorative color. Any accent is reserved for state (e.g., an active capture or confirmation), never for brand or decoration.
+- A white/ink neutral base with one accent in both light and dark themes; the only decorative colour beyond it is the small set of categorical marks that carry information — a note type's fan, a tag's dot, a module's hue. The accent is otherwise reserved for state (an active capture, a confirmation), never for brand or decoration. (The pre-2.0 all-monochrome palette is recorded in [ADR-010](./10-decisions.md#adr-010--monochrome-minimal-visual-design-with-no-categorical-color-coding).)
 - Generous white space; content is never cramped against edges or against other content.
 - Highly legible typography at every size.
 - Short, purposeful motion — never decorative, never delayed.
@@ -53,9 +53,11 @@ A tag may optionally carry a single small accent color, shown only as a small do
 
 ### Comfort Mode
 
+> **Retired (2.6).** Comfort Mode shipped as an independent toggle and was later disabled end-to-end (`appearance_preferences.dart` answers `false`; the soft theme builders ignore the parameter). The `*Comfort` tokens and this section are retained historical code, not available controls — the same status the glass-era specifications hold. ADR-023 records the original decision.
+
 Dark theme alone does not solve late-night eye strain, and can make it worse. In a genuinely dark room, a very high-contrast pairing — pure white text on pure black — causes a real, well-documented perceptual effect (halation/glare): the eye perceives a glow around high-contrast edges, which is often *more* fatiguing than a well-lit screen in a well-lit room, not less. Separately, blue-heavy light in the evening suppresses melatonin production regardless of overall brightness. Neither problem is fixed by "make it dark" on its own.
 
-**Comfort Mode** is therefore an independent toggle, orthogonal to the Light/Dark theme choice — not a third theme. It can be switched on or off within either theme, in Settings, and does two things at once:
+**Comfort Mode** was an independent toggle, orthogonal to the Light/Dark theme choice — not a third theme. It could be switched on or off within either theme, in Settings, and did two things at once:
 
 1. **Lowers contrast**, moving both ends of the palette inward: background lightens toward warm off-black in Dark, or softens toward warm off-white in Light; text moves away from pure `#FFFFFF`/`#000000` toward a warm off-white or warm charcoal.
 2. **Shifts color temperature warmer** (reduces the blue channel across backgrounds and text), the same principle behind Night Shift / f.lux, to reduce blue-light exposure during evening and night capture.
@@ -166,16 +168,14 @@ Each Timeline card supports a horizontal swipe to reveal one quick action per ed
 
 ## Icons
 
-A single, consistent icon set (line-style, uniform stroke width) is used throughout — no mixing of filled and outlined families. Icons are used only where they communicate faster than text (capture types, play/stop, search, filters) — never as decoration. Every icon-only control has an accessible label.
+Two families, one per job, both line-style with a uniform stroke weight: **outlined for objects** (a note type, an attachment, a link) and **rounded for state** (a done check, a star, a bell that has rung) — the softening the status marks get is deliberate and is the only place it happens. Icons are used only where they communicate faster than text (capture types, play/stop, search, filters) — never as decoration. Every icon-only control has an accessible label.
 
 ---
 
 ## Animations
 
-Animation exists only to **confirm**, never to **delight for its own sake**.
+Animation exists only to **confirm**, never to **delight for its own sake**. Durations and curves are the `NexMotion` tokens in `packages/ui` — fast 120 / standard 180 / slow 320 / enter 300 / exit 220 (ms; exits always shorter than entrances), ease-out entrances, ease-in exits — not free numbers.
 
-- **Duration:** 120–200 ms for micro-interactions (button press, chip add/remove); 200–300 ms for sheet transitions.
-- **Easing:** standard ease-out for entrances, ease-in for exits.
 - **Purposeful motion only:** the Capture Sheet slides/fades in to confirm readiness; a saved note animates briefly into position at the top of the Timeline to confirm "it's there"; voice recording uses a live waveform as continuous, functional motion.
 - **No motion that delays interaction.** Nothing animates *before* becoming interactive.
 - **Respects reduced-motion settings** at the OS level — non-essential transitions become instant state changes.

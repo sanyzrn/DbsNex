@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'package:nex_ui/nex_ui.dart';
+
 import 'dismiss_on_overscroll.dart';
 
 export 'package:nex_ui/nex_ui.dart' show NexAlertDialog;
@@ -200,7 +201,13 @@ Future<T?> nexShowSheet<T>({
       )
     : showModalBottomSheet<T>(
         context: context,
-        sheetAnimationStyle: nexSheetRise,
+        // A sheet is the most-executed animation in the app, and the one
+        // container that ignored "remove animations": docs/16 §6 promises
+        // "appear in place" (F-01). Content is interactive from frame one
+        // either way — nothing waits on the rise.
+        sheetAnimationStyle: MediaQuery.disableAnimationsOf(context)
+            ? AnimationStyle.noAnimation
+            : nexSheetRise,
         // This shared wrapper supplies the glass material itself. An opaque modal
         // sheet behind it would leave the backdrop filter nothing to sample.
         // The route keeps this colour for its lifetime. If it starts transparent
@@ -236,9 +243,8 @@ Future<T?> nexShowSheet<T>({
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.55),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

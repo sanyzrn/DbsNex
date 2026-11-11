@@ -91,24 +91,22 @@ class _CardStatusMarks extends StatelessWidget {
       if (note.isUrgent)
         (
           id: 'urgent',
+          // The card's readout already announces urgency, so the glyph stays
+          // out of semantics — its job is to be *legible*: one outlined glyph
+          // at 16px on every platform (the emoji rendered per-OEM at 14, and
+          // its Linux fallback carried a hex) in the theme's error colour
+          // (V-21).
           child: ExcludeSemantics(
             child: SizedBox(
               key: const ValueKey('note-urgent-mark'),
-              width: 14,
-              height: 14,
+              width: 16,
+              height: 16,
               child: Center(
-                // Android draws the requested coloured emoji. Linux test and
-                // desktop fonts may not include it; keep a visible fallback.
-                child: Platform.isLinux
-                    ? const Icon(
-                        Icons.local_fire_department_rounded,
-                        size: 14,
-                        color: Color(0xFFE95432),
-                      )
-                    : const Text(
-                        '🔥',
-                        style: TextStyle(fontSize: 14, height: 1),
-                      ),
+                child: Icon(
+                  Icons.local_fire_department_outlined,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.error,
+                ),
               ),
             ),
           ),

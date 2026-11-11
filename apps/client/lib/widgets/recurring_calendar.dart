@@ -128,9 +128,8 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
       final (en, fa) = _persianMonths[p.month - 1];
       return '${_persianDigits ? fa : en} ${_digits(p.year)}';
     }
-    return MaterialLocalizations.of(
-      context,
-    ).formatMonthYear(_month ? _anchor : start);
+    return MaterialLocalizations.of(context)
+        .formatMonthYear(_month ? _anchor : start);
   }
 
   int _dayNumber(DateTime day) =>
@@ -348,7 +347,9 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
                   _digits(count),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: scheme.primary,
-                    fontSize: 10,
+                    // The theme's own caption floor — nothing is smaller
+                    // (V-18).
+                    fontSize: 12,
                   ),
                 ),
             ],
@@ -362,9 +363,8 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
     final theme = Theme.of(context);
     final c = occurrence.commitment;
     final at = occurrence.at;
-    final time = MaterialLocalizations.of(
-      context,
-    ).formatTimeOfDay(TimeOfDay.fromDateTime(at));
+    final time = MaterialLocalizations.of(context)
+        .formatTimeOfDay(TimeOfDay.fromDateTime(at));
     final isNext = at == c.dueAt;
     return ListTile(
       dense: true,
