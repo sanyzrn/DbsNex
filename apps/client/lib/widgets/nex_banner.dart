@@ -439,7 +439,10 @@ class _NexBannerState extends State<_NexBanner>
   bool get _keepActionUntilDismissed =>
       widget.actionLabel != null &&
       (MediaQuery.accessibleNavigationOf(context) ||
-          WidgetsBinding.instance.platformDispatcher.accessibilityFeatures
+          WidgetsBinding
+              .instance
+              .platformDispatcher
+              .accessibilityFeatures
               .accessibleNavigation);
 
   void _startLife() {
