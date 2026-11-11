@@ -215,7 +215,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('trash-${first.id}')), findsNothing);
     await tester.pump(const Duration(seconds: 12));
-    expect(await services.getById(first.id), isNotNull);
+    expect(
+      (await services.deletedNotes()).map((note) => note.id),
+      contains(first.id),
+      reason: 'Undo must keep the note in trash until the banner closes',
+    );
     expect(find.text('Undo'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
