@@ -7,9 +7,12 @@ import '../platform/os_capture_bridge.dart';
 import 'nex_banner.dart';
 
 /// Cancellation is quiet; refusals explain why the file was not imported.
-Future<PickedOsFile?> nexPickAttachment(BuildContext context) async {
+Future<PickedOsFile?> nexPickAttachment(
+  BuildContext context, {
+  Future<PickedOsFile?> Function()? pickFile,
+}) async {
   try {
-    return await OsCaptureBridge.pickFile();
+    return await (pickFile ?? OsCaptureBridge.pickFile)();
   } on AttachmentSizeException catch (error) {
     if (context.mounted) nexShowAttachmentTooLarge(context, error.rejection);
   } catch (_) {
