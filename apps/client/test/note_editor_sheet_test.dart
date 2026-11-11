@@ -105,8 +105,9 @@ void main() {
   ) async {
     await enableAi();
     await open(tester, initial: 'teh draft', client: replying('the draft'));
-    await tester.tap(find.byTooltip('Edit with AI'));
-    await tester.pumpAndSettle();
+    // Short notes show their AI style actions directly; only expanded notes
+    // need the separate Edit with AI toggle.
+    expect(find.text('Fix writing'), findsOneWidget);
     await tester.tap(find.text('Fix writing'));
     await tester.pumpAndSettle();
     tester.view.physicalSize = const Size(900, 320);
