@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/library_screen.dart';
+import 'package:nex_client/screens/recently_deleted_screen.dart';
 import 'package:nex_client/screens/set_aside_screen.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -202,6 +203,13 @@ void main() {
           accessibleNavigation: true,
           disableAnimations: true,
         );
+    await tester.pump();
+    expect(
+      MediaQuery.accessibleNavigationOf(
+        tester.element(find.byType(RecentlyDeletedScreen)),
+      ),
+      isTrue,
+    );
     // Deleting for good waits for its Undo, and the Undo keeps the note.
     await tester.tap(find.byKey(ValueKey('trash-purge-${first.id}')));
     await tester.pumpAndSettle();
