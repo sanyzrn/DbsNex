@@ -15,3 +15,5 @@ If any test fails, keep the PR unmerged and document the device, Android version
 
 ## Audit scope
 This patch addresses 14 visual and 14 motion findings; larger structural refactors explicitly excluded by the source audit are not included. The baseline application revision is `85fcb427`.
+
+The visual and motion guard tests were formatted against Dart 3.13.7 before the final PR CI run.
