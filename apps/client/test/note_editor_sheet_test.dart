@@ -111,8 +111,10 @@ void main() {
     await tester.pumpAndSettle();
     tester.view.physicalSize = const Size(900, 320);
     await tester.pumpAndSettle();
-    final undo = find.byTooltip('Undo').hitTestable();
-    expect(undo, findsOneWidget);
+    final undo = find.byTooltip('Undo');
+    expect(undo.hitTestable(), findsOneWidget);
+    // Resolve the actual control for the tap: hitTestable() is a dynamic
+    // finder whose second evaluation can change during route-layout updates.
     await tester.tap(undo);
     await tester.pumpAndSettle();
     expect(
