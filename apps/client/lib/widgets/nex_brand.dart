@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 /// Nex's mark and wordmark, drawn from the designer's own vectors.
 ///
@@ -364,7 +364,9 @@ class _NexLivingLogotypeState extends State<NexLivingLogotype>
       return;
     }
     _timer?.cancel();
-    HapticFeedback.selectionClick();
+    // Through the global gate every other haptic answers (F-09): this was
+    // the one raw selectionClick that bypassed the preference.
+    nexTick();
     _play();
   }
 

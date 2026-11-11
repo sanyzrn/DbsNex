@@ -43,8 +43,12 @@ const List<String> tagAccentPalette = [
 ///
 /// Five alone ran out fast. A library with a dozen tags had every colour two
 /// or three times over, so colour stopped telling tags apart — which is the
-/// only thing it is for. These are mid tones chosen to read on both the light
-/// and the dark card; the colour picker still offers the five as its starters.
+/// only thing it is for. Mid tones, so they read as *dots on the dark card*
+/// (4.8–8:1) and are recognisable at a glance on the light one — where
+/// several sit in the 1.8–3:1 band. That is the ADR-021 trade-off: the dot is
+/// a recognition aid only, never the carrier of the tag's name, and it is
+/// the name that has to carry the information. The picker still offers the
+/// five as its starters.
 const List<String> tagAutoPalette = [
   ...tagAccentPalette,
   '#E8684A', // coral

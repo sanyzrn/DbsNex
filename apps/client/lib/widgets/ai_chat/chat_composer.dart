@@ -253,10 +253,16 @@ class _VoiceBarState extends State<_VoiceBar> {
               child: recorder == null
                   ? Row(
                       children: [
-                        const SizedBox(
+                        SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          // Frozen at half-turned under reduce-motion (F-08).
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            value: MediaQuery.disableAnimationsOf(context)
+                                ? 0.5
+                                : null,
+                          ),
                         ),
                         const SizedBox(width: NexSpacing.sm),
                         Expanded(

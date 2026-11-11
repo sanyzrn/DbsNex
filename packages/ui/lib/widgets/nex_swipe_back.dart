@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransition;
 import 'package:flutter/material.dart';
+
 import '../tokens/nex_tokens.dart';
 import 'nex_desktop_scope.dart';
 
@@ -21,6 +22,12 @@ class NexPageRoute<T> extends PageRoute<T> {
   final bool swipeBackEnabled;
   bool _opaque = false;
 
+  /// Captured when the route is installed: the person asked the system to
+  /// remove animations, so the page appears in place instead of sliding in
+  /// over the one below it (F-02). The back-swipe gesture itself still
+  /// tracks the finger — that is the user's own movement, not the app's.
+  bool _still = false;
+
   @override
   bool get opaque => _opaque;
 
@@ -37,13 +44,17 @@ class NexPageRoute<T> extends PageRoute<T> {
   bool get maintainState => true;
 
   @override
-  Duration get transitionDuration => NexMotion.enter;
+  Duration get transitionDuration => _still ? Duration.zero : NexMotion.enter;
 
   @override
-  Duration get reverseTransitionDuration => NexMotion.exit;
+  Duration get reverseTransitionDuration =>
+      _still ? Duration.zero : NexMotion.exit;
 
   @override
   void install() {
+    // Before super: the animation controller is created from these durations
+    // during install, so the gate has to be known by then.
+    _still = MediaQuery.maybeDisableAnimationsOf(navigator!.context) ?? false;
     super.install();
     animation?.addStatusListener(_handleAnimationStatus);
   }
@@ -89,6 +100,14 @@ class NexPageRoute<T> extends PageRoute<T> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    // Appears in place (F-02): no slide, no fade — but the full-width
+    // back-swipe recogniser stays on the page, for the same reason the
+    // swipeable card's gesture survives reduce-motion.
+    if (_still) {
+      return NexDesktopScope.isDesktop(context) || !swipeBackEnabled
+          ? child
+          : _NexSwipeBack(child: child);
+    }
     // A desktop page fades in; the slide and the edge swipe are a thumb's.
     if (NexDesktopScope.isDesktop(context)) {
       return FadeTransition(

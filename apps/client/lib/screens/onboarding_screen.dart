@@ -92,7 +92,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _advance() async {
     if (!_onSetup) {
-      await _pages.nextPage(duration: NexMotion.slow, curve: NexMotion.curve);
+      // A page turn is a container: it appears in place for someone who
+      // asked for stillness (F-06) — the scenes already settle instantly.
+      await _pages.nextPage(
+        duration: NexMotion.of(context, NexMotion.slow),
+        curve: NexMotion.curve,
+      );
       return;
     }
     await _finish();
@@ -112,8 +117,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     await widget.preferences.completeOnboarding();
   }
 
-  Future<void> _back() =>
-      _pages.previousPage(duration: NexMotion.slow, curve: NexMotion.curve);
+  Future<void> _back() => _pages.previousPage(
+    duration: NexMotion.of(context, NexMotion.slow),
+    curve: NexMotion.curve,
+  );
 
   /// Finishes. Skip means skip: someone who taps it is saying "let me in",
   /// and every choice on the last page is in Settings under the same labels.
@@ -333,7 +340,7 @@ class _Progress extends StatelessWidget {
                           color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
                         ),
                         AnimatedFractionallySizedBox(
-                          duration: NexMotion.slow,
+                          duration: NexMotion.of(context, NexMotion.slow),
                           curve: NexMotion.curve,
                           alignment: AlignmentDirectional.centerStart,
                           widthFactor: i <= page ? 1 : 0,

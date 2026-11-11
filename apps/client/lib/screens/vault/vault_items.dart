@@ -400,9 +400,12 @@ extension _VaultItems on _VaultScreenState {
     final second = chosen == null
         ? theme.colorScheme.secondaryContainer
         : Color.lerp(chosen, Colors.black, 0.35)!;
-    final ink =
-        ThemeData.estimateBrightnessForColor(Color.lerp(base, second, .5)!) ==
-            Brightness.dark
+    // The number, holder, CVV2 and expiry all sit on the gradient's brighter
+    // end, so the ink is chosen by measured contrast against it — not the
+    // midpoint brightness estimator, which declares every mid-tone "dark" and
+    // hands white ink to faces white cannot read on (2.0–2.8:1 on all five
+    // shipped faces; the dark ink clears 6.4–9.0) (V-01).
+    final ink = nexContrastRatio(Colors.white, base) >= 4.5
         ? Colors.white
         : const Color(0xFF14161A);
     final foreground = chosen == null

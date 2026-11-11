@@ -139,23 +139,28 @@ class _FoldingRowState extends State<_FoldingRow>
     // down a few pixels and up to full size, rather than being uncovered by
     // a hard edge.
     final settle = curved.drive(CurveTween(curve: const Interval(0.3, 1)));
-    return SizeTransition(
-      sizeFactor: curved,
-      alignment: Alignment.topCenter,
-      child: AnimatedBuilder(
-        animation: settle,
-        builder: (context, child) => Opacity(
-          opacity: settle.value,
-          child: Transform.translate(
-            offset: Offset(0, -10 * (1 - settle.value)),
-            child: Transform.scale(
-              scale: 0.96 + 0.04 * settle.value,
-              alignment: Alignment.topCenter,
-              child: child,
+    // A repaint boundary per folding row (F-04): every mounted row folds
+    // at once on a pinch, and without one each row's opacity layer dirties
+    // the viewport's layer too — the measured 761ms trigger frame.
+    return RepaintBoundary(
+      child: SizeTransition(
+        sizeFactor: curved,
+        alignment: Alignment.topCenter,
+        child: AnimatedBuilder(
+          animation: settle,
+          builder: (context, child) => Opacity(
+            opacity: settle.value,
+            child: Transform.translate(
+              offset: Offset(0, -10 * (1 - settle.value)),
+              child: Transform.scale(
+                scale: 0.96 + 0.04 * settle.value,
+                alignment: Alignment.topCenter,
+                child: child,
+              ),
             ),
           ),
+          child: widget.child,
         ),
-        child: widget.child,
       ),
     );
   }
@@ -246,9 +251,10 @@ class _GroupHeader extends StatelessWidget {
                       style: compact
                           // The desktop's: small, quiet, in capitals where
                           // the script has them (letter-spacing would pull
-                          // Persian apart).
+                          // Persian apart). At the theme's own caption floor —
+                          // nothing in the app is smaller (V-18).
                           ? theme.textTheme.labelSmall?.copyWith(
-                              fontSize: 11,
+                              fontSize: 12,
                               letterSpacing: persian ? 0 : 0.8,
                               fontWeight: FontWeight.w600,
                               color: theme.colorScheme.onSurfaceVariant,

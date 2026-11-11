@@ -10,13 +10,20 @@ import 'package:nex_ui/nex_ui.dart';
 Color nexModuleAccent(BuildContext context, String moduleId) {
   final hue = _moduleHues[moduleId];
   if (hue == null) return Theme.of(context).colorScheme.primary;
-  final dark = Theme.of(context).brightness == Brightness.dark;
-  return HSLColor.fromAHSL(
+  final theme = Theme.of(context);
+  final dark = theme.brightness == Brightness.dark;
+  final raw = HSLColor.fromAHSL(
     1,
     hue,
     dark ? 0.68 : 0.58,
     dark ? 0.68 : 0.40,
   ).toColor();
+  // The hue paints the icon and hero of a tile a person taps by, so it is
+  // held to 3:1 against the card it sits on — the same walk the note-type
+  // fan already uses, rather than one lightness formula tuned by eye. On the
+  // shipped set only smoke_free, expenses and price_lens move in Light (V-06);
+  // the dark hues already clear and come back unchanged.
+  return nexReadableOn(raw, theme.colorScheme.surfaceContainerLowest, ratio: 3);
 }
 
 const _moduleHues = <String, double>{

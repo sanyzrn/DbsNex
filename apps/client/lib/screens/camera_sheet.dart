@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show DeviceOrientation;
 import 'package:nex_ui/nex_ui.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart' show ImagePicker, ImageSource;
 
 import '../l10n/app_localizations.dart';
@@ -34,14 +34,19 @@ Future<XFile?> showNexCamera(
   }
   if (found.isEmpty) throw const NexCameraUnavailable();
   if (!context.mounted) return null;
+  // Every other signature piece gates itself on "remove animations"; the
+  // camera is the one that did not (F-05). The route appears in place, and
+  // the shutter haptic plus the saved-photo receipt still confirm the
+  // capture — nothing informational is lost.
+  final still = MediaQuery.disableAnimationsOf(context);
   final result = await Navigator.of(context).push<Object>(
     PageRouteBuilder<Object>(
       opaque: false,
       barrierDismissible: true,
       barrierColor: Colors.black38,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      transitionDuration: NexMotion.enter,
-      reverseTransitionDuration: NexMotion.exit,
+      transitionDuration: still ? Duration.zero : NexMotion.enter,
+      reverseTransitionDuration: still ? Duration.zero : NexMotion.exit,
       pageBuilder: (_, _, _) => NexCameraSheet(cameras: found),
       transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(
@@ -232,10 +237,13 @@ class _NexCameraSheetState extends State<NexCameraSheet>
     }
     setState(() {
       _taking = true;
-      _blink = true;
+      // A screen-flash is exactly what a photosensitive person asked the
+      // system to prevent (F-05): the blink is skipped under reduce-motion.
+      if (!MediaQuery.disableAnimationsOf(context)) _blink = true;
       _menuOpen = false;
     });
-    unawaited(HapticFeedback.lightImpact());
+    // Through the global gate every other haptic answers (F-09).
+    nexBump();
     unawaited(
       Future<void>.delayed(const Duration(milliseconds: 90), () {
         if (mounted) setState(() => _blink = false);
@@ -291,7 +299,9 @@ class _NexCameraSheetState extends State<NexCameraSheet>
           }
         },
         child: AnimatedContainer(
-          duration: _drag == 0 ? NexMotion.standard : Duration.zero,
+          duration: _drag == 0
+              ? NexMotion.of(context, NexMotion.standard)
+              : Duration.zero,
           curve: NexMotion.curve,
           transform: Matrix4.translationValues(0, _drag, 0),
           height: height,
@@ -485,11 +495,11 @@ class _NexCameraSheetState extends State<NexCameraSheet>
                 alignment: Directionality.of(context) == TextDirection.rtl
                     ? Alignment.bottomLeft
                     : Alignment.bottomRight,
-                duration: NexMotion.standard,
+                duration: NexMotion.of(context, NexMotion.standard),
                 curve: NexMotion.curve,
                 child: AnimatedOpacity(
                   opacity: _menuOpen ? 1 : 0,
-                  duration: NexMotion.fast,
+                  duration: NexMotion.of(context, NexMotion.fast),
                   child: _Menu(
                     children: [
                       if (widget.cameras.length > 1)
@@ -585,7 +595,7 @@ class _ShutterState extends State<_Shutter> {
       onTap: widget.enabled ? widget.onPressed : null,
       child: AnimatedScale(
         scale: _down ? .9 : 1,
-        duration: NexMotion.fast,
+        duration: NexMotion.of(context, NexMotion.fast),
         child: Container(
           width: 78,
           height: 78,
@@ -595,7 +605,7 @@ class _ShutterState extends State<_Shutter> {
             color: Colors.black.withValues(alpha: .55),
           ),
           child: AnimatedContainer(
-            duration: NexMotion.fast,
+            duration: NexMotion.of(context, NexMotion.fast),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: widget.enabled ? Colors.white : Colors.white54,

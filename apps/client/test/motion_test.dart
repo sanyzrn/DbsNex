@@ -26,10 +26,16 @@ void main() {
   });
 
   test('every sheet rises the same way', () {
+    // The reduce-motion gate (F-01) may wrap the shared rise — the canonical
+    // form only, so anything else naming another style still flags.
+    final gate = RegExp(
+      r'MediaQuery\.disableAnimationsOf\(context\)\s*\?\s*'
+      r'AnimationStyle\.noAnimation\s*:\s*',
+    );
     final style = RegExp(r'sheetAnimationStyle:\s*([\w.]+)');
     final offenders = [
       for (final (path, source) in sources())
-        for (final match in style.allMatches(source))
+        for (final match in style.allMatches(source.replaceAll(gate, '')))
           if (!const {
             'nexSheetRise',
             'NexMotion.sheet',
@@ -101,5 +107,91 @@ void main() {
     Navigator.of(host).pop('answer');
     await tester.pumpAndSettle();
     expect(await closed, 'answer');
+  });
+
+  testWidgets('a sheet appears in place under reduce motion (F-01)', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    late BuildContext host;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            host = context;
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+    late ModalRoute<Object?> route;
+    final opened = nexShowSheet<void>(
+      context: host,
+      builder: (context) {
+        route = ModalRoute.of(context)!;
+        return const SizedBox(height: 100);
+      },
+    );
+    await tester.pump();
+    // Not rising: the most-executed animation in the app honours the
+    // system's "remove animations" — it was still at 0.5 at 150ms before.
+    expect(route.animation!.value, 1);
+    expect(route.transitionDuration, Duration.zero);
+    await tester.pumpAndSettle();
+    Navigator.of(host).pop();
+    await opened;
+  });
+
+  testWidgets('a page appears in place under reduce motion (F-02)', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    late BuildContext host;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            host = context;
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+    final route = NexPageRoute<void>(builder: (context) => const Text('next'));
+    final pushed = Navigator.of(host).push<void>(route);
+    await tester.pump();
+    expect(route.transitionDuration, Duration.zero);
+    expect(route.animation!.value, 1);
+    await tester.pumpAndSettle();
+    Navigator.of(host).pop();
+    await pushed;
+  });
+
+  testWidgets('a page still slides at the token durations normally', (
+    tester,
+  ) async {
+    late BuildContext host;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            host = context;
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+    final route = NexPageRoute<void>(builder: (context) => const Text('next'));
+    final pushed = Navigator.of(host).push<void>(route);
+    await tester.pump();
+    expect(route.transitionDuration, NexMotion.enter);
+    expect(route.reverseTransitionDuration, NexMotion.exit);
+    await tester.pumpAndSettle();
+    Navigator.of(host).pop();
+    await pushed;
   });
 }

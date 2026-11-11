@@ -8,7 +8,10 @@ abstract final class NexSoftLightColors {
   static const card = Color(0xFFF4F5F8);
   static const elevated = Color(0xFFE9ECF1);
   static const text = Color(0xFF14171C);
-  static const muted = Color(0xFF626B7A);
+  // A step of real margin rather than the 4.54 the old grey scraped past
+  // the elevated container with: the tightest pair in the Light theme
+  // clears AA on every ground now, not just the card (V-15).
+  static const muted = Color(0xFF5F6876);
   static const line = Color(0xFFE6E9EE);
   static const outline = Color(0xFF737C8C);
   static const accent = Color(0xFF0084F7);
@@ -111,7 +114,13 @@ ThemeData nexOledNightTheme({
     accent: accent,
     accentStrong: filled,
     onAccent: const Color(0xFF0B0A09),
-    accentOnInverse: custom?.strongLight ?? NexColors.accentStrongLight,
+    // See NexSoftDarkColors: the dark snackbar's fill is the light text
+    // colour, so the accent drawn for light cards has to be walked against
+    // it (V-03).
+    accentOnInverse: nexReadableOn(
+      custom?.strongLight ?? NexColors.accentStrongLight,
+      NexOledNightColors.text,
+    ),
     fontFamily: fontFamily ?? nexLatinFont,
     liquidGlass: liquidGlass,
     transparentScaffold: transparentScaffold,

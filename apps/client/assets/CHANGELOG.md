@@ -2,6 +2,13 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.18
+
+- **More readable surfaces.** Stronger contrast for vault bank cards, banners, module icons, tags, switches and urgent markers across Light, Dark and Night.
+- **Better Persian typography.** More comfortable line height, legible counters and consistently sized attachment badges.
+- **Quieter motion when requested.** Reduced-motion settings now apply to pages, sheets, camera, onboarding and loading indicators.
+- **Clearer, gentler feedback.** Unified touch feedback for reminders, checklists and switches; faster banner exits, smoother filters and more efficient reminder-bell animation.
+
 ## v2.6.17
 
 - **Larger files, clear refusals.** Ordinary attachments now allow 500 MB; oversized or unreadable selections explain why they were not imported.

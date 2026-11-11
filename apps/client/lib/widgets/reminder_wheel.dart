@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -110,6 +112,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
 
   @override
   void dispose() {
+    _programmatic?.cancel();
     _dayController.dispose();
     _hourController.dispose();
     _minuteController.dispose();
@@ -135,8 +138,18 @@ class _ReminderWheelState extends State<ReminderWheel> {
 
   /// Drives the wheels from a shortcut, so the shortcut and the wheels are
   /// never showing different answers.
+  ///
+  /// While these programmatic turns run, the wheels stay silent: a haptic is
+  /// for the finger that caused the movement, and the shortcut's own tap
+  /// already ticked (F-10).
+  Timer? _programmatic;
   void _goTo(DateTime when) {
     final day = _dayOffset(when);
+    _programmatic?.cancel();
+    _programmatic = Timer(
+      NexMotion.standard + const Duration(milliseconds: 50),
+      () => _programmatic = null,
+    );
     _dayController.animateToItem(
       day,
       duration: MediaQuery.disableAnimationsOf(context)
@@ -333,6 +346,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
                 controller: _dayController,
                 itemExtent: itemExtent,
                 count: widget._dayCount,
+                userDriven: () => _programmatic == null,
                 onChanged: (index) => setState(() => _day = index),
                 builder: (context, index) => _dayLabel(context, index),
               ),
@@ -343,6 +357,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
                 itemExtent: itemExtent,
                 count: 24,
                 looping: true,
+                userDriven: () => _programmatic == null,
                 onChanged: (index) => setState(() => _hour = index % 24),
                 builder: (context, index) => material.formatHour(
                   TimeOfDay(hour: index, minute: 0),
@@ -356,6 +371,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
                 itemExtent: itemExtent,
                 count: 60,
                 looping: true,
+                userDriven: () => _programmatic == null,
                 onChanged: (index) => setState(() => _minute = index % 60),
                 builder: (context, index) =>
                     material.formatMinute(TimeOfDay(hour: 0, minute: index)),
@@ -385,7 +401,11 @@ class _ReminderWheelState extends State<ReminderWheel> {
               // does not exist.
               onPressed: _isPast
                   ? null
-                  : () => widget.onSubmit(_chosen, _repeat),
+                  : () {
+                      // Confirming is something that happened (F-10).
+                      nexBump();
+                      widget.onSubmit(_chosen, _repeat);
+                    },
               child: Text(_isPast ? l10n.remindPast : _action(context)),
             ),
           ),
@@ -477,6 +497,7 @@ class _Wheel extends StatelessWidget {
     required this.count,
     required this.onChanged,
     required this.builder,
+    required this.userDriven,
     this.looping = false,
   });
 
@@ -486,6 +507,10 @@ class _Wheel extends StatelessWidget {
   final int count;
   final ValueChanged<int> onChanged;
   final String Function(BuildContext context, int index) builder;
+
+  /// Whether a finger (or its momentum) is driving the wheel right now —
+  /// false while a shortcut's programmatic turn is running (F-10).
+  final bool Function() userDriven;
 
   /// Hours and minutes wrap; days do not. Scrolling past 23:59 back to 00:00
   /// is how every clock behaves, and stopping dead at the end of a list of
@@ -515,7 +540,14 @@ class _Wheel extends StatelessWidget {
         perspective: 0.002,
         diameterRatio: 2.2,
         overAndUnderCenterOpacity: 0.45,
-        onSelectedItemChanged: onChanged,
+        onSelectedItemChanged: (value) {
+          // A picker landing on a value is the tick tier's own documented job
+          // — the one wheel control the token file names had no haptic at
+          // all (F-10). Only a finger or its momentum ticks; wheels turned
+          // by a shortcut stay silent, and so does the initial layout.
+          if (userDriven()) nexTick();
+          onChanged(value);
+        },
         childDelegate: looping
             ? ListWheelChildLoopingListDelegate(
                 children: [

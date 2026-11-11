@@ -65,7 +65,9 @@ class NexShelfHeading extends StatelessWidget {
 /// Each tool's own colour, so the shelf reads at a glance — the key is
 /// amber, the cards teal — rather than as a row of identical boxes.
 enum NexHue {
-  amber(Color(0xFFB7791F), Color(0xFFF2C46D)),
+  // Amber is a step darker than it looks: on its own 16% wash it measured
+  // 2.82:1 as an icon (V-06) — the one hue under the 3:1 graphic floor.
+  amber(Color(0xFFAE731E), Color(0xFFF2C46D)),
   teal(Color(0xFF1F8A7A), Color(0xFF6FD3C2)),
   violet(Color(0xFF6B4FC8), Color(0xFFB7A4F4)),
   rose(Color(0xFFC2456A), Color(0xFFF29AB3)),

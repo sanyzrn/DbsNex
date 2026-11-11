@@ -11,7 +11,9 @@ abstract final class NexSoftDarkColors {
   static const accent = Color(0xFF0084F7);
   static const accentText = Color(0xFF5AB0FF);
   static const accentContainer = Color(0xFF16304D);
-  static const accentFilled = Color(0xFF0069C4);
+  // 3.30:1 against the dark card (the old 3:1-missing fill was 2.93), with
+  // white ink at 4.88 — both floors cleared (V-07). Same step for Night.
+  static const accentFilled = Color(0xFF0A73C8);
   static const line = Color(0xFF2D3443);
   // Functional focus/high-contrast outlines remain visible.
   static const outline = Color(0xFF7F8AA0);
@@ -27,7 +29,7 @@ abstract final class NexNightColors {
   static const accent = Color(0xFF0084F7);
   static const accentText = Color(0xFF5AB0FF);
   static const accentContainer = Color(0xFF0F2A47);
-  static const accentFilled = Color(0xFF0069C4);
+  static const accentFilled = NexSoftDarkColors.accentFilled;
   static const line = Color(0xFF24272E);
   // Focus and high-contrast outlines remain available even with flat cards.
   static const outline = Color(0xFF7F8AA0);
@@ -74,7 +76,14 @@ ThemeData nexSoftDarkTheme({
     accent: accent,
     accentStrong: filled,
     onAccent: const Color(0xFF0B0A09),
-    accentOnInverse: custom?.strongLight ?? NexColors.accentStrongLight,
+    // The dark snackbar is an inverse surface filled with the light text
+    // colour, so the strong-light accent has to be re-walked against that
+    // fill — measured against the light card it landed at 3.80:1 on the one
+    // word in the toast that is a button (V-03).
+    accentOnInverse: nexReadableOn(
+      custom?.strongLight ?? NexColors.accentStrongLight,
+      NexSoftDarkColors.text,
+    ),
     fontFamily: fontFamily ?? nexLatinFont,
     liquidGlass: liquidGlass,
     transparentScaffold: transparentScaffold,

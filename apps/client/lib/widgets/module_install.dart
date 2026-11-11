@@ -252,7 +252,7 @@ class ModuleInstallProgress extends StatelessWidget {
                     children: [
                       Expanded(
                         child: AnimatedSwitcher(
-                          duration: NexMotion.standard,
+                          duration: NexMotion.of(context, NexMotion.standard),
                           switchInCurve: NexMotion.curve,
                           switchOutCurve: NexMotion.exitCurve,
                           layoutBuilder: (current, previous) => Stack(

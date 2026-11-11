@@ -262,7 +262,9 @@ class _Kind extends StatelessWidget {
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: scheme.primary,
                       fontWeight: FontWeight.w700,
-                      fontSize: 9,
+                      // Nothing in the app is set below the theme's own
+                      // 12px caption floor (V-18).
+                      fontSize: 12,
                       height: 1.3,
                     ),
                   ),
@@ -372,11 +374,15 @@ class _RenderedState extends State<_Rendered> {
                   color: Theme.of(context).colorScheme.error,
                   borderRadius: BorderRadius.circular(NexRadius.xs),
                 ),
-                child: const Text(
+                // onError, not a pinned white: in the dark themes error is
+                // the light #F2B8B5, and white on it measured 1.5:1 — the
+                // ink that belongs to this fill was sitting in the scheme
+                // all along (caught during audit verification).
+                child: Text(
                   'PDF',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
+                    color: Theme.of(context).colorScheme.onError,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
