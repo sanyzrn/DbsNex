@@ -63,7 +63,13 @@ class NexDatabase {
   /// instead of writing to it with an older idea of its tables — Cafe Bazaar
   /// and Myket both let someone install an older APK over a newer one.
   /// Libraries from before the stamp read as 0 and are simply upgraded.
-  static const schemaVersion = 2;
+  ///
+  /// 3 (2.6.19): a note's search row is keyed by the note's `notes.rowid`
+  /// (see [_alignFtsRowids]) rather than carrying an arbitrary FTS-assigned
+  /// one. An older build's index writes key rows by label instead, so an
+  /// older APK writing into a re-keyed library would strand rows the newer
+  /// build can no longer address — the build refuses the library instead.
+  static const schemaVersion = 3;
 
   void _migrate() {
     final stamped = db.select('PRAGMA user_version').first.values.first as int;
@@ -143,15 +149,7 @@ CREATE TABLE IF NOT EXISTS note_tags (
     // Prefix indexes for one to three characters make those lookups direct:
     // at 50,000 notes a two-letter prefix went from 150 ms to under 40.
     final zwnj = String.fromCharCode(0x200C);
-    String ftsTable(String name) =>
-        '''
-CREATE VIRTUAL TABLE IF NOT EXISTS $name USING fts5(
-  note_id UNINDEXED,
-  content,
-  tokenize = "unicode61 remove_diacritics 2 separators ' $zwnj'",
-  prefix = '1 2 3'
-);
-''';
+    String ftsTable(String name) => _ftsTable(name, zwnj);
     db.execute(ftsTable('notes_fts'));
     // Libraries indexed before the prefix option: rebuilt once, in one
     // transaction, from the index's own content.
@@ -264,6 +262,24 @@ CREATE VIRTUAL TABLE IF NOT EXISTS $name USING fts5(
     } else {
       db.execute(timelineIndex);
     }
+
+    // The tag-usage count and the untagged filter (PERF-08): both join every
+    // note_tags row to its note to ask three flag questions — deleted, and
+    // the two set-aside columns. The join went through the notes primary
+    // key, which reads the whole note row, content and transcripts
+    // included, once per tagged note; at 20,000 notes the query the timeline
+    // runs after every delivery was 43 ms of full-row reads. This index
+    // covers the join by `id` — the entry holds exactly those flags — so
+    // the probe is a narrow index seek and the row is never read.
+    //
+    // Entries change only when a note is written, deleted, restored or set
+    // aside — the writes that already maintain this table's other indexes —
+    // and an ordinary content edit leaves every indexed value untouched,
+    // so the index is not rewritten for one.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_notes_home ON notes('
+      'id, deleted_at, set_aside_at, set_aside_until);',
+    );
 
     // Tags get the outbox notes have always had.
     //
@@ -529,6 +545,7 @@ CREATE TABLE IF NOT EXISTS memory_records (
 
     _seedStarterTags();
     _foldSearchIndex();
+    _alignFtsRowids();
     if (stamped != schemaVersion) {
       db.execute('PRAGMA user_version = $schemaVersion');
     }
@@ -563,6 +580,83 @@ CREATE TABLE IF NOT EXISTS memory_records (
         "VALUES ('search_index_folded', ?)",
         [DateTime.now().toUtc().toIso8601String()],
       );
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
+  /// The FTS5 shape every `notes_fts` in this app takes — same options for
+  /// the original table and for the rebuilt copies the migrations below
+  /// swap in under it.
+  static String _ftsTable(String name, String zwnj) =>
+      '''
+CREATE VIRTUAL TABLE IF NOT EXISTS $name USING fts5(
+  note_id UNINDEXED,
+  content,
+  tokenize = "unicode61 remove_diacritics 2 separators ' $zwnj'",
+  prefix = '1 2 3'
+);
+''';
+
+  /// Re-keys the search index onto the notes table's own rowids, once
+  /// (2.6.19).
+  ///
+  /// `note_id` is UNINDEXED in `notes_fts`, so three things that name a
+  /// note's row — removing it before writing another one, and the startup
+  /// repair's two membership questions — had to scan the whole index and
+  /// read each row to find the one they meant. That is linear in the
+  /// library on every capture, edit, reindex and delete (4.4 ms at 20,000
+  /// notes on a desktop-class core; proportionally more on a phone, and
+  /// 10 ms+ at 50,000), and again at every open.
+  ///
+  /// An FTS5 table's own rowid is its *docid*, which the index keeps a
+  /// B-tree on. From here on a note's search row carries the note's
+  /// `notes.rowid`: writers delete by it in one lookup, and the repair's
+  /// membership questions are answered in docids without reading the
+  /// indexed words at all.
+  ///
+  /// Re-keyed from the index's own content, never recomputed from the
+  /// notes — the words are already folded and correct; only the key
+  /// changes, so a 50,000-row index re-keys in one pass rather than the
+  /// ~100 seconds re-deriving every note's text would take. A search row
+  /// whose note is gone is dropped here (the repair pass below would drop
+  /// it anyway); a note without a search row keeps having none.
+  ///
+  /// `notes.rowid` is stable for the life of this schema: assigned at
+  /// INSERT, rewritten by nothing. No in-place VACUUM — backups copy out
+  /// with `VACUUM INTO`, restores replace the file whole — and the one
+  /// table rebuild ([_dropLegacyTypeCheck]) happens earlier in this same
+  /// migration, before the index is re-derived by the repository's repair
+  /// pass. A mid-migration crash leaves the old table untouched: the swap
+  /// below is one transaction, and the marker is written inside it.
+  void _alignFtsRowids() {
+    final done = db.select(
+      "SELECT value FROM nex_meta WHERE key = 'fts_rowid_aligned'",
+    );
+    if (done.isNotEmpty) return;
+    final zwnj = String.fromCharCode(0x200C);
+    db.beginImmediate();
+    try {
+      db.execute('DROP TABLE IF EXISTS notes_fts_realigned');
+      db.execute(_ftsTable('notes_fts_realigned', zwnj));
+      db.execute('''
+INSERT INTO notes_fts_realigned (rowid, note_id, content)
+SELECT n.rowid, f.note_id, f.content
+FROM notes_fts f INNER JOIN notes n ON n.id = f.note_id
+''');
+      db.execute('DROP TABLE notes_fts');
+      db.execute('ALTER TABLE notes_fts_realigned RENAME TO notes_fts');
+      db.execute(
+        "INSERT OR REPLACE INTO nex_meta (key, value) "
+        "VALUES ('fts_rowid_aligned', ?)",
+        [DateTime.now().toUtc().toIso8601String()],
+      );
+      // Stamp inside the same transaction as the re-key. If the app is
+      // interrupted, an older APK must never see a re-keyed FTS index
+      // still labelled schema 2.
+      db.execute('PRAGMA user_version = $schemaVersion');
       db.execute('COMMIT');
     } catch (_) {
       db.execute('ROLLBACK');

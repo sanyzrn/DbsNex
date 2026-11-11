@@ -2,6 +2,13 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.19
+
+- **A snappier library at every size.** Saving, editing and deleting a note no longer rereads the whole search index to find the one row it is changing, so every write — a capture, an edit, a tag, a reminder — costs the same on a large library as on a small one.
+- **The home screen settles sooner after each change.** The tag filter row's live counts, and what is due back from Set aside, are answered from a narrow index built for exactly those questions, rather than by rereading every note in the library.
+- **Opening a large library is faster.** The index check each open makes now asks its questions of the index's own keys instead of reading every indexed note, and the one-time reorganisation an upgrading library performs takes seconds where it took minutes.
+- **Tag-filtered lists and reminders release on time.** Lists narrowed by a tag read the tag's own index, and Set-aside notes returning on schedule hand their list back sooner.
+
 ## v2.6.18
 
 - **More readable surfaces.** Stronger contrast for vault bank cards, banners, module icons, tags, switches and urgent markers across Light, Dark and Night.
