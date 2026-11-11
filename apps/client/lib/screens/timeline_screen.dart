@@ -97,6 +97,7 @@ part 'timeline/timeline_filter_widgets.dart';
 part 'timeline/timeline_groups.dart';
 part 'timeline/timeline_list.dart';
 part 'timeline/timeline_ai_header.dart';
+part 'timeline/timeline_brief_sources.dart';
 part 'timeline/timeline_capture.dart';
 part 'timeline/timeline_note_actions.dart';
 part 'timeline/timeline_navigation.dart';
@@ -267,18 +268,11 @@ class TimelineScreenState extends State<TimelineScreen>
   StreamSubscription<String>? _habitBriefChanges;
   bool _aiSummaryLoading = false;
 
-  /// The notes beyond the timeline window that the brief must still see:
-  /// reminders and urgent ones, chosen by what is on them rather than by
-  /// when they were last touched — see [NexServices.briefWaitingNotes].
-  ///
-  /// Held the way the commitments are: refreshed by each brief pass, read
-  /// by the synchronous parts (the fingerprint) that cannot await a query.
-  /// Until the first pass it is empty, and the brief sees the window alone —
-  /// exactly what it saw before the query existed.
+  /// Reminders and urgent notes beyond the timeline's loaded page.
+  /// Refreshed each brief pass before fingerprinting.
   List<Note> _briefWaitingNotes = const [];
 
-  /// The brief being asked for right now, so a pull that arrives while one
-  /// is running waits for it instead of being dropped.
+  /// The running brief flight, shared with a manual pull.
   Future<void>? _aiSummaryInFlight;
   Timer? _aiSummaryWake;
   Timer? _ringingSync;
@@ -290,11 +284,7 @@ class TimelineScreenState extends State<TimelineScreen>
   bool _pullCancelled = false;
   bool _aiSummaryManualRequested = false;
 
-  /// Whether the flight in progress actually asked a provider for words —
-  /// set inside the request closure, which is the one place that knows. A
-  /// manual pull that joined a flight which never asked must not read as a
-  /// completed refresh; this is how the completion handler tells the two
-  /// apart. See [_loadAiSummary].
+  /// Whether this flight queried a model; used to honor manual pulls.
   bool _aiSummaryFlightAsked = false;
   bool _briefPreferencesQueued = false;
   String? _briefSettingsKey;
@@ -309,12 +299,8 @@ class TimelineScreenState extends State<TimelineScreen>
   String? _aiHeadlineText;
   bool _aiHeadlineLoading = false;
 
-  /// Collapsed hides the recap's *body*; the card's header row, and with it
-  /// the chevron that reopens it, stays on screen either way. It used to
-  /// collapse to nothing and reopen from a chip in the app bar — a control
-  /// nowhere near the thing it controlled.
-  ///
-  /// Remembered across launches — see [NexPreferences.daySummaryFolded].
+  /// Collapse only the recap body; keep the header and chevron visible.
+  /// Persisted in [NexPreferences.daySummaryFolded].
   late bool _aiSummaryCollapsed = widget.preferences.daySummaryFolded;
 
   /// The first real scroll collapses the card on its own, once. Touching the
