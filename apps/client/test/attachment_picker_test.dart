@@ -24,9 +24,8 @@ void main() {
       handle.truncateSync(500 * 1024 * 1024);
       handle.closeSync();
       final accepted = await tester.runAsync(
-        () => OsCaptureBridge.pickFile(
-          selectFile: () async => XFile(file.path),
-        ),
+        () =>
+            OsCaptureBridge.pickFile(selectFile: () async => XFile(file.path)),
       );
       expect(accepted?.path, file.path);
       final larger = file.openSync(mode: FileMode.append);
