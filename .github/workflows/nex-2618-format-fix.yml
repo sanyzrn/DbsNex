@@ -1,0 +1,32 @@
+name: Nex 2.6.18 one-time Dart formatting fix
+
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - '.github/workflows/nex-2618-format-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/nex-2.6.18-audit'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.13.7'
+      - name: Format audited test and push clean branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format apps/client/test/visual_audit_guards_test.dart
+          rm .github/workflows/nex-2618-format-fix.yml
+          git add -A
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "style: format Nex 2.6.18 contrast guard"
+          git push origin HEAD:fix/nex-2.6.18-audit
