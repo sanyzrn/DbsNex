@@ -31,6 +31,19 @@ void main() {
       final larger = file.openSync(mode: FileMode.append);
       larger.truncateSync(500 * 1024 * 1024 + 1);
       larger.closeSync();
+      // Verify the real size boundary outside fake async. The widget below
+      // tests only the resulting localized refusal, with no filesystem I/O
+      // running in the widget callback.
+      Future<XFile?> chooseFile() async => XFile(file.path);
+      final refusal = await tester.runAsync(() async {
+        try {
+          await OsCaptureBridge.pickFile(selectFile: chooseFile);
+        } on AttachmentSizeException catch (error) {
+          return error;
+        }
+        return null;
+      });
+      expect(refusal, isNotNull);
       Future<PickedOsFile?>? selection;
       await tester.pumpWidget(
         MaterialApp(
@@ -42,9 +55,7 @@ void main() {
                 onPressed: () {
                   selection = nexPickAttachment(
                     context,
-                    pickFile: () => OsCaptureBridge.pickFile(
-                      selectFile: () async => XFile(file.path),
-                    ),
+                    pickFile: () async => throw refusal!,
                   );
                 },
                 child: const Text('pick'),
@@ -54,7 +65,8 @@ void main() {
         ),
       );
       await tester.tap(find.text('pick'));
-      expect(await tester.runAsync(() => selection!), isNull);
+      await tester.pump();
+      expect(await selection, isNull);
       await tester.pumpAndSettle();
       expect(find.textContaining('500.0 MB'), findsOneWidget);
       expect(
