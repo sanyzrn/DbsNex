@@ -560,6 +560,10 @@ class InProcessDb implements NexDb {
       _repo.listUpcomingReminders(limit: limit);
 
   @override
+  Future<List<Note>> briefWaitingNotes({int limit = 200}) async =>
+      _repo.listBriefWaiting(limit: limit);
+
+  @override
   Future<void> backup(
     String backupDir, {
     required String mediaDir,

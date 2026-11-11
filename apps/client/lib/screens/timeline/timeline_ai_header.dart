@@ -9,7 +9,15 @@ extension _TimelineAiHeader on TimelineScreenState {
       source:
           '${config.provider.wireName}|${config.resolvedBaseUrl}|'
           '${config.resolvedModel}|${prefs.aiEnabled}|'
-          '${prefs.aiSummaryUnlimited}|${prefs.locale}|${prefs.briefHabitsAllowed}',
+          '${prefs.aiSummaryUnlimited}|${prefs.locale}|${prefs.briefHabitsAllowed}'
+          // The interface locale, which the report's own lines are written
+          // in. `prefs.locale` alone cannot say it: null means "follow the
+          // system", and a system language change then moved nothing the
+          // signature named while the facts on the card changed language.
+          // Seeded with the first locale the screen resolves — see
+          // [didChangeDependencies], which keeps the learning of it from
+          // reading as a change.
+          '|${_briefLocale ?? ''}',
       style: prefs.briefStyle,
       tone: prefs.briefTone,
       length: prefs.briefLength,
@@ -23,6 +31,11 @@ extension _TimelineAiHeader on TimelineScreenState {
   /// Compare the cached text before doing work; never rebuild all note cards.
   void _refreshExternalBriefIfChanged() {
     if (!mounted) return;
+    // Only a model-written brief *is* the cache. The report style recomputes
+    // its lines from the library on every pass, so a cache written behind its
+    // back is not its business: comparing the two asks for a reload on every
+    // no-op delivery, forever, without either side ever converging.
+    if (!widget.preferences.briefStyle.usesModel) return;
     final cached = CloudAIAdapter.cleanDecorativeReply(
       widget.preferences.aiDaySummaryText,
     );
@@ -92,15 +105,31 @@ extension _TimelineAiHeader on TimelineScreenState {
   );
 
   /// All deliveries share one request, including manual taps during a flight.
-  Future<void> _loadAiSummary({bool force = false}) {
-    if (force) _aiSummaryManualRequested = true;
+  ///
+  /// [manual] is a user gesture — the pull-to-refresh — and is the only thing
+  /// that marks the flight manual. A settings change forces the same request
+  /// for its own reasons, and marking *that* manual once sent the report
+  /// style, which never asks a provider, around the completion handler's
+  /// escalation loop forever.
+  Future<void> _loadAiSummary({bool force = false, bool manual = false}) {
+    if (manual) _aiSummaryManualRequested = true;
     final pending = _aiSummaryInFlight;
     if (pending != null) return pending;
     _habitBriefDirty = false;
+    _aiSummaryFlightAsked = false;
     final settings = _briefSettingsSignature();
     final work = _askAiSummary(force: force);
     final flight = work.whenComplete(() {
       _aiSummaryInFlight = null;
+      // A manual pull that joined this flight after it had already decided
+      // not to ask — the window between the request decision and this line —
+      // must not read as a completed refresh of nothing. One more pass,
+      // forced, is what the pull asked for; when the flight did ask, the
+      // pull got its words and nothing more is spent. Only a style that
+      // asks anybody anything can be re-asked — the report style's pull is
+      // answered by its own recomputation above — and the retry itself is
+      // not manual, so a brief that still cannot ask ends the chain here.
+      final manualJoined = _aiSummaryManualRequested;
       _aiSummaryManualRequested = false;
       if (mounted) {
         if (settings != _briefSettingsSignature()) {
@@ -108,6 +137,10 @@ extension _TimelineAiHeader on TimelineScreenState {
           if (ModalRoute.of(context)?.isCurrent != false) {
             unawaited(_loadAiSummary(force: true));
           }
+        } else if (manualJoined &&
+            !_aiSummaryFlightAsked &&
+            widget.preferences.briefStyle.usesModel) {
+          unawaited(_loadAiSummary(force: true));
         } else if (_habitBriefDirty) {
           unawaited(_loadAiSummary());
         } else {
@@ -119,38 +152,71 @@ extension _TimelineAiHeader on TimelineScreenState {
     return flight;
   }
 
-  String _briefFingerprint() {
+  /// The notes the brief is written from: the timeline window — everything
+  /// recent — plus the waiting notes beyond it, merged by id with the
+  /// window's own copy of a note winning (it is the one the stream last
+  /// delivered, so it is the one the cards are showing).
+  ///
+  /// The window is a recency slice, and the brief's job is only partly about
+  /// recency. A reminder set last month for tomorrow morning is the single
+  /// most worth mentioning thing in a library, and below a few hundred newer
+  /// notes the window stopped carrying it; the waiting notes put it back in
+  /// reach of the choosing in `nexRecapSource`, which is where the choosing
+  /// was always meant to happen.
+  List<Note> _briefLibrary() {
+    final window = _model.all ?? _model.notes;
+    final waiting = _briefWaitingNotes;
+    if (waiting.isEmpty) return window;
+    final seen = {for (final note in window) note.id};
+    return [
+      ...window,
+      for (final note in waiting)
+        if (!seen.contains(note.id)) note,
+    ];
+  }
+
+  /// Everything the fingerprint is hashed from, as one string. Split out of
+  /// [_briefFingerprint] because the arming pass needs the same source to
+  /// answer "is there anything to describe at all" — and building it twice
+  /// meant walking the library twice on a path that runs after every pass.
+  String _briefFingerprintSource() =>
+      '${_aiRecapSource(forFingerprint: true, notes: _briefLibrary())}\n'
+      '${widget.preferences.briefHabitsAllowed ? _habitBriefSource : ''}';
+
+  /// The signature the fingerprint hashes: settings, provider, and the
+  /// facts the report would state, laid over [stableSource]. Named so
+  /// [_briefFingerprint] and the arming pass cannot drift apart — they used
+  /// to be one method, and the arming pass rebuilt the whole thing only to
+  /// throw the facts half of it away.
+  String _briefSignatureBody(String stableSource) {
     final prefs = widget.preferences;
     final config = prefs.aiProvider;
-    final stableSource =
-        '${_aiRecapSource(forFingerprint: true)}\n${widget.preferences.briefHabitsAllowed ? _habitBriefSource : ''}';
     final budget = nexBriefLines(
       '\n'.allMatches(stableSource).length + 1,
       ceiling: prefs.briefLength.lines,
     );
     final facts = prefs.briefStyle.statesFacts
         ? nexBriefFactsSignature(
-            nexBriefFacts(
-              _model.all ?? _model.notes,
-              commitments: _model.commitments,
-            ),
+            nexBriefFacts(_briefLibrary(), commitments: _model.commitments),
             maxLines: (budget - 1).clamp(1, budget),
           )
         : '';
-    return TimelineScreenState.recapFingerprint(
-      nexBriefSignature(
-        source:
-            'brief-2.5.2|$stableSource\n$facts\n'
-            '${config.provider.wireName}|${config.resolvedBaseUrl}|${config.resolvedModel}|'
-            '${prefs.aiSummaryUnlimited}|${prefs.briefStyle.statesFacts ? Localizations.localeOf(context) : ''}',
-        style: prefs.briefStyle,
-        tone: prefs.briefTone,
-        length: prefs.briefLength,
-        language: prefs.aiOutputLanguage,
-        instruction: prefs.briefInstruction,
-      ),
+    return nexBriefSignature(
+      source:
+          'brief-2.5.2|$stableSource\n$facts\n'
+          '${config.provider.wireName}|${config.resolvedBaseUrl}|${config.resolvedModel}|'
+          '${prefs.aiSummaryUnlimited}|${prefs.briefStyle.statesFacts ? Localizations.localeOf(context) : ''}',
+      style: prefs.briefStyle,
+      tone: prefs.briefTone,
+      length: prefs.briefLength,
+      language: prefs.aiOutputLanguage,
+      instruction: prefs.briefInstruction,
     );
   }
+
+  String _briefFingerprint() => TimelineScreenState.recapFingerprint(
+    _briefSignatureBody(_briefFingerprintSource()),
+  );
 
   bool get _briefForeground {
     final lifecycle = WidgetsBinding.instance.lifecycleState;
@@ -163,11 +229,18 @@ extension _TimelineAiHeader on TimelineScreenState {
     if (!_aiHeaderAvailable ||
         !prefs.showDaySummary ||
         !prefs.briefStyle.usesModel ||
-        (_aiRecapSource().isEmpty && _habitBriefSource.isEmpty) ||
         !_briefForeground) {
       return;
     }
-    final fingerprint = _briefFingerprint();
+    // One build of the source answers both questions: whether there is
+    // anything to describe, and (through the fingerprint) whether what is
+    // on file was written from it. The fingerprint variant carries the same
+    // lines as the readable one, so its emptiness is the same emptiness.
+    final source = _briefFingerprintSource();
+    if (source.trim().isEmpty) return;
+    final fingerprint = TimelineScreenState.recapFingerprint(
+      _briefSignatureBody(source),
+    );
     // No recurring timer: unchanged information never generates another brief.
     if (prefs.aiDaySummarySource == fingerprint) return;
     final next = widget.services.briefRefresh.nextAllowedAt();
@@ -184,8 +257,15 @@ extension _TimelineAiHeader on TimelineScreenState {
     force = force || _aiSummaryManualRequested;
     final prefs = widget.preferences;
     if (!_briefAvailable || (!force && !prefs.showDaySummary)) return;
+    final usesModel = prefs.briefStyle.usesModel;
     final cached = CloudAIAdapter.cleanDecorativeReply(prefs.aiDaySummaryText);
+    // The cache is a model-written brief, and only that: the report style
+    // writes its own lines from the library on the next few lines of this
+    // very pass, so adopting a stale cache first would paint a brief that
+    // is about to be replaced — and on a library too quiet for a report
+    // would leave an old model's words standing in for arithmetic.
     if (mounted &&
+        usesModel &&
         cached != null &&
         cached.isNotEmpty &&
         cached != _aiSummaryText) {
@@ -197,6 +277,16 @@ extension _TimelineAiHeader on TimelineScreenState {
     }
     final habits = await widget.services.habitsForBrief();
     if (!mounted) return;
+    // The notes beyond the window, before anything is built from them: the
+    // source, the report and the fingerprint below all read this pass's
+    // copy, not whatever the last pass happened to leave in the field.
+    _briefWaitingNotes = await widget.services.briefWaitingNotes();
+    if (!mounted) return;
+    final briefNotes = _briefLibrary();
+    // A manual pull may have joined while the habits and the waiting notes
+    // were being read — before the request decision below, so still in
+    // time to be honoured by it.
+    force = force || _aiSummaryManualRequested;
     _habitBriefSource = prefs.briefHabitsAllowed ? habits.source : '';
     final includesHabits = _habitBriefSource.isNotEmpty;
     final habitText = includesHabits
@@ -211,7 +301,7 @@ extension _TimelineAiHeader on TimelineScreenState {
         () => _aiSummaryText = prefs.aiDaySummaryText ?? _notesOnlyBrief(),
       );
     }
-    final notesSource = _aiRecapSource();
+    final notesSource = _aiRecapSource(notes: briefNotes);
     final source = [
       notesSource,
       if (includesHabits) _habitBriefSource,
@@ -220,7 +310,7 @@ extension _TimelineAiHeader on TimelineScreenState {
     // Which notes the brief is written from, for the log of what left the
     // phone: it used to name none (1.99.96 reviews, SEC-01).
     final sourceNotes = nexRecapNoteIds(
-      _model.all ?? _model.notes,
+      briefNotes,
       commitments: _model.commitments,
     );
     final style = prefs.briefStyle;
@@ -237,14 +327,11 @@ extension _TimelineAiHeader on TimelineScreenState {
     // progress may use spare room; it never reserves a row ahead of a note.
     final noteReport = style.statesFacts
         ? nexBriefReport(
-            nexBriefFacts(
-              _model.all ?? _model.notes,
-              commitments: _model.commitments,
-            ),
+            nexBriefFacts(briefNotes, commitments: _model.commitments),
             AppLocalizations.of(context),
             maxLines: writtenBudget,
             maxWords: length.words,
-            notes: _model.all ?? _model.notes,
+            notes: briefNotes,
             clock: (local) => nexDueClock(context, local),
           )
         : null;
@@ -273,9 +360,11 @@ extension _TimelineAiHeader on TimelineScreenState {
     final refresh = widget.services.briefRefresh;
     if (!force && !refresh.needs(fingerprint)) return;
     final config = prefs.aiProvider;
+    // `notesSource` again rather than a second pass over the library: the
+    // question is only whether the model has anything to read, and the
+    // answer was settled a moment ago.
     final language =
-        prefs.aiOutputLanguage == AiOutputLanguage.auto &&
-            _aiRecapSource().isEmpty
+        prefs.aiOutputLanguage == AiOutputLanguage.auto && notesSource.isEmpty
         ? _headlineLanguage
         : prefs.aiOutputLanguage;
     final unlimited = prefs.aiSummaryUnlimited;
@@ -289,8 +378,14 @@ extension _TimelineAiHeader on TimelineScreenState {
         dateKey: _aiSummaryDateKey(),
         force: force,
         includesHabits: includesHabits,
-        notesOnlyFallback: _notesOnlyBrief(),
+        // Read by the cache only when habits were included; building the
+        // local report is a walk over the library and is not spent on the
+        // briefs that cannot use it.
+        notesOnlyFallback: includesHabits ? _notesOnlyBrief() : null,
         request: () async {
+          // Marked before anything can fail: the flag says a provider was
+          // asked, not that it answered.
+          _aiSummaryFlightAsked = true;
           if (includesHabits && !prefs.briefHabitsAllowed) return null;
           final adapter = CloudAIAdapter(
             config: config,
@@ -542,15 +637,23 @@ extension _TimelineAiHeader on TimelineScreenState {
       .where((note) => _headlineText(note).isNotEmpty);
 
   static String _headlineText(Note note) =>
-      (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim();
+      // Capped like a recap line: the greeting is a mood, and a long note
+      // takes the budget the nineteen others were meant to share — every
+      // character of it a token on a provider the user is paying for, and
+      // on a phone running a local model, context the request cannot fit.
+      nexOneLine(
+        (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim(),
+        160,
+      );
 
   /// The recap's source: the library's state, not a slice of its prose.
   ///
   /// Everything the recap can say about what is due or unfinished comes from
   /// here — see [nexRecapSource], which also explains why the twenty newest
-  /// notes were the wrong twenty. The whole list goes in rather than a
+  /// notes were the wrong twenty. The whole set goes in rather than a
   /// pre-cut slice, because the choosing is the part that matters and it
-  /// needs everything to choose from.
+  /// needs everything to choose from — see [_briefLibrary], which is more
+  /// than the timeline's window.
   /// The standing obligations, as the brief last saw them.
   ///
   /// Held in a field rather than read inside [_aiRecapSource], because that
@@ -559,11 +662,12 @@ extension _TimelineAiHeader on TimelineScreenState {
   /// put a query on a path that mostly concludes "nothing has changed". They
   /// are refreshed when the screen loads and whenever the commitments screen
   /// closes, which is every moment they can have changed.
-  String _aiRecapSource({bool forFingerprint = false}) => nexRecapSource(
-    _model.all ?? _model.notes,
-    commitments: _model.commitments,
-    forFingerprint: forFingerprint,
-  );
+  String _aiRecapSource({bool forFingerprint = false, List<Note>? notes}) =>
+      nexRecapSource(
+        notes ?? _model.all ?? _model.notes,
+        commitments: _model.commitments,
+        forFingerprint: forFingerprint,
+      );
 
   /// The screen used to seed `notes` synchronously from the repository. The
   /// stream alone is not a replacement: it is a broadcast stream, so anything
@@ -602,14 +706,11 @@ extension _TimelineAiHeader on TimelineScreenState {
 
   String _notesOnlyBrief() =>
       nexBriefReport(
-        nexBriefFacts(
-          _model.all ?? _model.notes,
-          commitments: _model.commitments,
-        ),
+        nexBriefFacts(_briefLibrary(), commitments: _model.commitments),
         AppLocalizations.of(context),
         maxLines: widget.preferences.briefLength.lines,
         maxWords: widget.preferences.briefLength.words,
-        notes: _model.all ?? _model.notes,
+        notes: _briefLibrary(),
         clock: (local) => nexDueClock(context, local),
       ) ??
       '';

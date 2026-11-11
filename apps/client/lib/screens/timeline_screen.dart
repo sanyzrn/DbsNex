@@ -267,6 +267,16 @@ class TimelineScreenState extends State<TimelineScreen>
   StreamSubscription<String>? _habitBriefChanges;
   bool _aiSummaryLoading = false;
 
+  /// The notes beyond the timeline window that the brief must still see:
+  /// reminders and urgent ones, chosen by what is on them rather than by
+  /// when they were last touched — see [NexServices.briefWaitingNotes].
+  ///
+  /// Held the way the commitments are: refreshed by each brief pass, read
+  /// by the synchronous parts (the fingerprint) that cannot await a query.
+  /// Until the first pass it is empty, and the brief sees the window alone —
+  /// exactly what it saw before the query existed.
+  List<Note> _briefWaitingNotes = const [];
+
   /// The brief being asked for right now, so a pull that arrives while one
   /// is running waits for it instead of being dropped.
   Future<void>? _aiSummaryInFlight;
@@ -279,6 +289,13 @@ class TimelineScreenState extends State<TimelineScreen>
   bool _lastBriefRefreshFailed = false;
   bool _pullCancelled = false;
   bool _aiSummaryManualRequested = false;
+
+  /// Whether the flight in progress actually asked a provider for words —
+  /// set inside the request closure, which is the one place that knows. A
+  /// manual pull that joined a flight which never asked must not read as a
+  /// completed refresh; this is how the completion handler tells the two
+  /// apart. See [_loadAiSummary].
+  bool _aiSummaryFlightAsked = false;
   bool _briefPreferencesQueued = false;
   String? _briefSettingsKey;
   int _setAsideTotal = 0; // read only while the home screen is empty
@@ -659,7 +676,15 @@ class TimelineScreenState extends State<TimelineScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final locale = Localizations.localeOf(context);
-    if (_briefLocale != locale) {
+    if (_briefLocale == null) {
+      // The first resolution is where the locale becomes known, not a
+      // change to it. Seeding the key here keeps "learning the locale"
+      // from reading as "the settings moved" — which would force a fresh
+      // brief on every cold launch the moment the signature started to
+      // name the locale.
+      _briefLocale = locale;
+      _briefSettingsKey = _briefSettingsSignature();
+    } else if (_briefLocale != locale) {
       _briefLocale = locale;
       _onBriefPreferencesChanged();
     }

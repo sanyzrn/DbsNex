@@ -299,6 +299,11 @@ abstract interface class NexDb {
 
   Future<List<Note>> upcomingReminders({int limit});
 
+  /// The live notes the daily brief reads beyond the timeline window:
+  /// reminders and urgent notes, chosen by what is on them rather than by
+  /// when they were last touched — see `NoteRepository.listBriefWaiting`.
+  Future<List<Note>> briefWaitingNotes({int limit});
+
   Future<void> backup(
     String backupDir, {
     required String mediaDir,

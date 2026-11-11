@@ -1952,6 +1952,26 @@ LIMIT ?
   }
 
   @override
+  List<Note> listBriefWaiting({int limit = 200}) {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final rows = db.select(
+      '''
+SELECT * FROM notes
+WHERE deleted_at IS NULL
+  AND $_notSetAside
+  AND (due_at IS NOT NULL OR is_urgent = 1)
+  -- Dated first and soonest first, because that is the order the brief
+  -- reads them in; the urgent undated follow, newest first. A caller
+  -- truncating by the limit keeps the front of each group.
+ORDER BY is_urgent DESC, (due_at IS NULL), due_at ASC, updated_at DESC
+LIMIT ?
+''',
+      [nowIso, limit],
+    );
+    return _withTags(rows);
+  }
+
+  @override
   List<Note> listNeedingEmbedding({int limit = 25}) {
     // Anything with words in it: a note's own text, a caption, a transcript,
     // an OCR read, or a link's headline. A photo with nothing derived from it
