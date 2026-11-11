@@ -616,7 +616,7 @@ WHERE id = ?
 ''',
         [now, if (localDeviceId != null) localDeviceId, noteId],
       );
-      db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+      deleteSearchRow(noteId);
     });
   }
 
@@ -1309,7 +1309,7 @@ WHERE id = ?
         ],
       );
     }
-    db.execute('DELETE FROM notes_fts WHERE note_id = ?', [id]);
+    deleteSearchRow(id);
     final note = Note.fromRow(
       db.select('SELECT * FROM notes WHERE id = ?', [id]).first,
     );
@@ -1447,7 +1447,7 @@ WHERE id = ? AND deleted_at IS NULL
       if (searchable != null && searchable.isNotEmpty) {
         _upsertFts(noteId, searchable);
       } else if (note?.type != NoteType.text) {
-        db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+        deleteSearchRow(noteId);
       }
     });
   }
@@ -1526,7 +1526,7 @@ WHERE id = ? AND deleted_at IS NULL
     if (note != null && searchable.isNotEmpty) {
       _upsertFts(noteId, searchable);
     } else {
-      db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+      deleteSearchRow(noteId);
     }
   }
 
@@ -1579,10 +1579,16 @@ WHERE id = ? AND deleted_at IS NULL
   }
 
   Iterable<int> _repairSearchIndexSteps() sync* {
+    // FTS rows for notes that are gone — purged, or deleted from under a
+    // crash between the paired statements. Asked on docids and answered
+    // with a probe of the notes' own B-tree per search row, where the
+    // note_id join read each surviving note in full; the `deleted_at IS
+    // NULL` arm keeps the old meaning, that a soft-deleted note's search row
+    // goes with it.
     db.execute('''
-DELETE FROM notes_fts WHERE note_id IN (
- SELECT f.note_id FROM notes_fts f LEFT JOIN notes n
- ON n.id = f.note_id AND n.deleted_at IS NULL WHERE n.id IS NULL
+DELETE FROM notes_fts WHERE rowid IN (
+ SELECT f.rowid FROM notes_fts f LEFT JOIN notes n
+ ON n.rowid = f.rowid AND n.deleted_at IS NULL WHERE n.rowid IS NULL
 )
 ''');
     final version = db.select(
@@ -1593,10 +1599,14 @@ DELETE FROM notes_fts WHERE note_id IN (
         (int.tryParse('${version.first['value']}') ?? 0) < searchTextVersion;
     var cursor = '';
     while (true) {
+      // Membership in docids: after `_alignFtsRowids` a search row's rowid
+      // *is* its note's, so this subquery reads the docid B-tree alone —
+      // where `note_id IN (SELECT note_id ...)` read every indexed word to
+      // re-derive each row's label, once per batch, on every open.
       final ids = db
           .select(
             'SELECT id FROM notes WHERE deleted_at IS NULL AND id > ? '
-            "${rebuild ? '' : 'AND id NOT IN (SELECT note_id FROM notes_fts) '}"
+            "${rebuild ? '' : 'AND rowid NOT IN (SELECT rowid FROM notes_fts) '}"
             'ORDER BY id LIMIT 200',
             [cursor],
           )
@@ -2657,15 +2667,57 @@ WHERE id = ?
     );
   }
 
+  /// Removes [noteId]'s search row by its key, not by scanning for its
+  /// label.
+  ///
+  /// `note_id` is UNINDEXED in `notes_fts`, so `DELETE ... WHERE note_id = ?`
+  /// read every indexed note to find the one being removed — linear in the
+  /// library on every capture, edit, reindex and delete. The row's key is
+  /// the note's own `notes.rowid` (see `NexDatabase._alignFtsRowids`), which
+  /// FTS5 keeps a B-tree on, so the delete is one lookup.
+  ///
+  /// Public because the scheduled-note move and this class's own writers
+  /// both need it, and because the note row must still exist at the moment
+  /// it is called — callers that delete the note row itself order the two
+  /// statements so it does.
+  void deleteSearchRow(String noteId) {
+    final rowid = _noteRowid(noteId);
+    if (rowid == null) {
+      // The note row is gone, so nothing maps its search row to a key; the
+      // scan is the only way left to find it. Rare — the purge paths that
+      // drop the row hard delete the search row inside the same
+      // transaction, ahead of it.
+      db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+      return;
+    }
+    db.execute('DELETE FROM notes_fts WHERE rowid = ?', [rowid]);
+  }
+
+  /// The `notes.rowid` a note's search row is keyed on, or null when the
+  /// note is not there.
+  int? _noteRowid(String noteId) {
+    final rows = db.select('SELECT rowid FROM notes WHERE id = ?', [noteId]);
+    return rows.isEmpty ? null : rows.first['rowid'] as int;
+  }
+
   void _upsertFts(String noteId, String content) {
-    db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+    final rowid = _noteRowid(noteId);
+    if (rowid == null) {
+      // No note, no search row — the open-time repair is what re-adds one
+      // for a note that comes back.
+      db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+      return;
+    }
+    db.execute('DELETE FROM notes_fts WHERE rowid = ?', [rowid]);
     if (content.isEmpty) return;
     // Folded, so every spelling of a word is one token
-    // (see [nexSearchIndexText]).
-    db.execute('INSERT INTO notes_fts (note_id, content) VALUES (?, ?)', [
-      noteId,
-      nexSearchIndexText(content),
-    ]);
+    // (see [nexSearchIndexText]). The rowid is the note's own — see
+    // [deleteSearchRow] for why that makes the delete above one lookup
+    // rather than a scan of the whole index.
+    db.execute(
+      'INSERT INTO notes_fts (rowid, note_id, content) VALUES (?, ?, ?)',
+      [rowid, noteId, nexSearchIndexText(content)],
+    );
   }
 
   /// Build an FTS5 MATCH query: fold it as the index is folded

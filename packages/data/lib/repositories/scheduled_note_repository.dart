@@ -49,8 +49,10 @@ class SqliteScheduledNoteRepository {
       ],
     );
     // Gone, not deleted: a soft delete would put the words in the trash,
-    // which is one more place to read them before their time.
-    db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+    // which is one more place to read them before their time. The search row
+    // goes by the note's rowid key, while the note row still exists below —
+    // a `note_id` delete here scanned the whole index to find the one row.
+    _notes.deleteSearchRow(noteId);
     db.execute('DELETE FROM capture_receipts WHERE note_id = ?', [noteId]);
     db.execute('DELETE FROM notes WHERE id = ?', [noteId]);
     return scheduled;

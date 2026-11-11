@@ -34,6 +34,9 @@ Working convention:
 
 ## Unreleased
 
+- Whole-app performance review with root-cause fixes, released as v2.6.19: search-index writes and the open-time repair are keyed by the note's own rowid instead of scanning the index (31× faster writes on a 20k library), the tag-usage count and its neighbours read from a new covering index, and the library stamp guards the re-keying against older APKs.
+  See [nex-2.6.19-performance.md](nex-2.6.19-performance.md).
+
 ## v2.6.6
 
 Applied the three open dependency groups with a matching Flutter/Dart toolchain,
