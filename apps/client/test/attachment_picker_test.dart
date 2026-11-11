@@ -18,17 +18,20 @@ void main() {
       addTearDown(() => dir.deleteSync(recursive: true));
       addTearDown(nexHideBanner);
       final file = File('${dir.path}/large.bin');
-      final handle = await file.open(mode: FileMode.write);
-      // Sparse length, no 500 MiB allocation or transfer.
-      await handle.truncate(500 * 1024 * 1024);
-      await handle.close();
-      final accepted = await OsCaptureBridge.pickFile(
-        selectFile: () async => XFile(file.path),
+      final handle = file.openSync(mode: FileMode.write);
+      // Sparse length, no 500 MiB allocation or transfer. File operations
+      // must not await real I/O inside Flutter's fake-async widget zone.
+      handle.truncateSync(500 * 1024 * 1024);
+      handle.closeSync();
+      final accepted = await tester.runAsync(
+        () => OsCaptureBridge.pickFile(
+          selectFile: () async => XFile(file.path),
+        ),
       );
       expect(accepted?.path, file.path);
-      final larger = await file.open(mode: FileMode.append);
-      await larger.truncate(500 * 1024 * 1024 + 1);
-      await larger.close();
+      final larger = file.openSync(mode: FileMode.append);
+      larger.truncateSync(500 * 1024 * 1024 + 1);
+      larger.closeSync();
       Future<PickedOsFile?>? selection;
       await tester.pumpWidget(
         MaterialApp(
@@ -56,7 +59,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('500.0 MB'), findsOneWidget);
       expect(
-        await OsCaptureBridge.pickFile(selectFile: () async => null),
+        await tester.runAsync(
+          () => OsCaptureBridge.pickFile(selectFile: () async => null),
+        ),
         isNull,
       );
     },
