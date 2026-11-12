@@ -170,11 +170,23 @@ open class MainActivity : FlutterFragmentActivity() {
             .setMethodCallHandler { call, result ->
                 try {
                     when (call.method) {
-                        "configure" -> NexDailyNudgeReceiver.configure(applicationContext, call.arguments as String)
-                        "cancel" -> NexDailyNudgeReceiver.cancel(applicationContext)
-                        else -> { result.notImplemented(); return@setMethodCallHandler }
+                        // The answer is whether the OS took the alarm, not
+                        // whether the JSON was stored: the settings screen
+                        // reports "not scheduled" on false instead of
+                        // promising a notification the phone will never post.
+                        "configure" -> result.success(
+                            NexDailyNudgeReceiver.configure(applicationContext, call.arguments as String))
+                        "cancel" -> {
+                            NexDailyNudgeReceiver.cancel(applicationContext)
+                            result.success(null)
+                        }
+                        // Failures that happened while the app was not running
+                        // — a boot whose alarm was refused, a post the shade
+                        // dropped — for the shared diagnostics file.
+                        "status" -> result.success(
+                            NexDailyNudgeReceiver.lastError(applicationContext))
+                        else -> result.notImplemented()
                     }
-                    result.success(null)
                 } catch (error: Exception) {
                     result.error("DAILY_NUDGE", error.message, null)
                 }

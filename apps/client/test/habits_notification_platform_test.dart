@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -147,6 +148,9 @@ void main() {
           plans.add(
             jsonDecode(call.arguments as String) as Map<String, dynamic>,
           );
+          // A healthy phone: the alarm is taken. This test is about habit
+          // consent in the text, not about a refused alarm.
+          return true;
         }
         return null;
       });

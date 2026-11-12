@@ -2,6 +2,10 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## Unreleased
+
+- **The daily nudge keeps saying something real.** A phone that delivers it late — an inexact alarm, a strict battery manager — no longer replaces the day's notes and reminders with a generic line, and a failed delivery no longer costs the day. The notification's channel name also follows the app's language instead of staying in the one it was created in.
+
 ## v2.6.21
 
 - **Liquid Glass, rebuilt and switched back on.** The frosted material behind the top bar, menus, sheets, dialogs and the dock is new: noticeably more of the page's colour comes through, every pane catches a light along its top edge, and Dark and Night have their own tuning so a panel is finally visible against the page behind it. Off by default — turn it on in Settings → Appearance.

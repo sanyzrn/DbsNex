@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart'
     show debugDefaultTargetPlatformOverride, TargetPlatform;
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:nex_client/platform/daily_nudge_native.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/reminders.dart';
 import 'package:nex_core/nex_core.dart';
+
 import 'support/nex_harness.dart';
 
 class _NoCalls implements AIAdapter {
@@ -62,6 +64,7 @@ void main() {
     ) async {
       if (call.method == 'configure') {
         plans.add(jsonDecode(call.arguments as String) as Map<String, dynamic>);
+        return true;
       }
       if (call.method == 'cancel') cancellations++;
       return null;
@@ -121,25 +124,73 @@ void main() {
   );
 
   test(
-    'completing a checklist rebuilds the nudge while its detail stays open',
+    'an alarm the OS refuses is reported and retried, not memorised',
     () async {
-      final note = (await h.services.captureChecklist([
-        const ChecklistItem(text: 'open-task', done: false),
-      ]))!;
+      var armed = false;
+      messenger.setMockMethodCallHandler(NexDailyNudgeNative.channel, (
+        call,
+      ) async {
+        switch (call.method) {
+          case 'configure':
+            plans.add(
+              jsonDecode(call.arguments as String) as Map<String, dynamic>,
+            );
+            return armed;
+          case 'cancel':
+            cancellations++;
+            return null;
+          default:
+            return null;
+        }
+      });
       await h.preferences.setDailyNudge(true);
-      await h.services.updateDailyNudge();
+      // A switch left on above a phone that kept no alarm is the failure this
+      // replaces, so the caller is told rather than given a quiet null.
+      expect(await h.services.updateDailyNudge(), NexDailyNudgeNative.notArmed);
       expect(plans, hasLength(1));
-      expect(jsonEncode(plans.last['days']), contains('open-task'));
-      await h.services.toggleChecklistItem(note.id, 0);
-      // No timeline refresh or navigation: the data mutation itself schedules it.
-      for (var i = 0; i < 60 && plans.length < 2; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 25));
-      }
-      expect(plans, hasLength(2));
-      expect(jsonEncode(plans.last['days']), isNot(contains('open-task')));
-      expect(ai.calls, 0);
+      expect(h.services.reminders.lastError, NexDailyNudgeNative.notArmed);
+      armed = true;
+      expect(await h.services.updateDailyNudge(), isNull);
+      expect(
+        plans,
+        hasLength(2),
+        reason: 'a refused alarm is retried, not remembered as the plan',
+      );
     },
   );
+
+  test('every planned day carries its own local delivery window', () async {
+    await h.preferences.setDailyNudge(true);
+    await h.services.updateDailyNudge();
+    final days = plans.last['days'] as Map<Object?, Object?>;
+    expect(days, isNotEmpty);
+    for (final day in days.values.cast<Map<Object?, Object?>>()) {
+      expect(day['localExpires'], isA<int>());
+      expect(
+        (day['expires'] as int) <= (day['localExpires'] as int),
+        isTrue,
+        reason: 'a recap never outlives the day it describes',
+      );
+    }
+  });
+
+  test('completing a checklist rebuilds the nudge while its detail stays open', () async {
+    final note = (await h.services.captureChecklist([
+      const ChecklistItem(text: 'open-task', done: false),
+    ]))!;
+    await h.preferences.setDailyNudge(true);
+    await h.services.updateDailyNudge();
+    expect(plans, hasLength(1));
+    expect(jsonEncode(plans.last['days']), contains('open-task'));
+    await h.services.toggleChecklistItem(note.id, 0);
+    // No timeline refresh or navigation: the data mutation itself schedules it.
+    for (var i = 0; i < 60 && plans.length < 2; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+    }
+    expect(plans, hasLength(2));
+    expect(jsonEncode(plans.last['days']), isNot(contains('open-task')));
+    expect(ai.calls, 0);
+  });
 
   for (final master in [false, true]) {
     test(
