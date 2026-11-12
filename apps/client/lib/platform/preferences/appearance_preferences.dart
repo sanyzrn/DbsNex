@@ -2,6 +2,13 @@ part of '../nex_preferences.dart';
 
 /// How the app looks and reads: theme, palette, language, calendar, scale.
 mixin _AppearancePreferences on _PreferencesStore {
+  /// The version whose opening sequence has been played in full. Any other
+  /// value — a fresh install, an update — plays it once more.
+  String? get introSeen => _prefs.getString('app.intro_seen');
+
+  Future<void> setIntroSeen(String version) =>
+      _prefs.setString('app.intro_seen', version);
+
   // Comfort Mode left Settings in 1.30.0 and nothing can turn it off any
   // more, so a stored `true` is no longer honoured. The whole-app palettes are
   // where a warmer look lives now.

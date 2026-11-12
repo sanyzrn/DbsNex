@@ -6,12 +6,17 @@ import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/nex_brand.dart';
 import 'package:nex_client/widgets/nex_splash.dart';
 
-Widget _host({bool reduceMotion = false}) => MaterialApp(
+Widget _host({
+  bool reduceMotion = false,
+  NexSplashIntro intro = NexSplashIntro.play,
+}) => MaterialApp(
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: reduceMotion),
-    child: const Scaffold(body: Center(child: NexSplash())),
+    child: Scaffold(
+      body: Center(child: NexSplash(intro: intro)),
+    ),
   ),
 );
 
@@ -86,6 +91,57 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(_host(reduceMotion: true));
+    expect(_taglineOpacity(tester), 1);
+    expect(tester.hasRunningAnimations, isFalse);
+  });
+
+  testWidgets('an everyday launch stays on the eyes while opening is quick', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_host(intro: NexSplashIntro.whenSlow));
+    await tester.pump(NexSplash.patience - const Duration(milliseconds: 50));
+    // Nothing has moved: the picture is still the one Android's splash left.
+    expect(_taglineOpacity(tester), 0);
+    expect(tester.hasRunningAnimations, isFalse);
+    // The library opened; the splash goes without its timer firing after it.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('a slow everyday launch plays the sequence after a wait', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_host(intro: NexSplashIntro.whenSlow));
+    await tester.pump(NexSplash.patience);
+    await tester.pump();
+    expect(tester.hasRunningAnimations, isTrue);
+    await tester.pump(NexSplash.duration);
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(_taglineOpacity(tester), 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('undecided, it waits; told to play, it plays at once', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_host(intro: NexSplashIntro.pending));
+    await tester.pump(const Duration(seconds: 5));
+    expect(_taglineOpacity(tester), 0);
+    expect(tester.hasRunningAnimations, isFalse);
+    await tester.pumpWidget(_host());
+    expect(tester.hasRunningAnimations, isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('with animations off a slow launch completes without motion', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(reduceMotion: true, intro: NexSplashIntro.whenSlow),
+    );
+    expect(_taglineOpacity(tester), 0);
+    await tester.pump(NexSplash.patience);
+    await tester.pump();
     expect(_taglineOpacity(tester), 1);
     expect(tester.hasRunningAnimations, isFalse);
   });
