@@ -72,8 +72,9 @@ void main() {
             final border = material.shape! as RoundedRectangleBorder;
             if (effectiveGlass || visual.minimal) {
               expect(border.side, BorderSide.none);
-              if (visual.minimal) {
-                // Still separates the opaque dialog with its scrim and tone.
+              if (!effectiveGlass && visual.minimal) {
+                // Without glass, a flat dialog still separates itself from a
+                // matching sheet behind it with its scrim and its own tone.
                 expect(material.color!.a, 1);
                 expect(theme.dialogTheme.elevation, 0);
               }

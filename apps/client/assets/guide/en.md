@@ -222,11 +222,11 @@ Cycle stays on this phone and in your backups. It never appears in your notes, s
 
 ## Appearance, language and calendar
 
-The preset palette gallery, including **Still**, is temporarily paused. Its code and your saved palette selection are kept for when the gallery returns.
+Choose among 14 redesigned palettes under **Settings → Appearance → Theme**. Each has its own light and dark surfaces, and any previously saved palette returns automatically. **Still** stays flat and glass-free. Choosing a palette resets the accent to its own colour; you can then pick a custom accent, whose hue is kept while its brightness is adjusted for readable text. Liquid Glass follows the palette’s colour. With a palette selected, **Night** uses that palette’s dark appearance; choose **Nex** to restore true OLED black.
 
 In Settings → Appearance, **Liquid glass** is a separate optional effect, off by default. It adds frosted depth to page headers, dialogs, menus, sheets, Settings groups and Tools/Library panels while keeping note cards opaque. High contrast uses solid surfaces, and reduced motion keeps swipe icons still.
 
-Appearance offers **Light**, **Dark**, **Night** and **System**. Light has a white page with gentle grey cards; Dark uses the soft blue-grey palette; Night is now true OLED black with charcoal cards and softer text. All three use flat cards without decorative borders or shadows, while text fields retain a thin visible edge. A previously selected Dark still opens as Night, now with its new OLED appearance. System follows your device, using the soft Dark palette when the device is dark. Custom accents and Liquid Glass still work in all modes. **Theme** is temporarily dimmed and unavailable: Nex uses its main palette, while the preset themes and your saved selection are retained. App icons, text size and card density remain available.
+Appearance offers **Light**, **Dark**, **Night** and **System**. Light has a white page with gentle grey cards; Dark uses the soft blue-grey palette; Night is now true OLED black with charcoal cards and softer text. All three use flat cards without decorative borders or shadows, while text fields retain a thin visible edge. A previously selected Dark still opens as Night, now with its new OLED appearance. System follows your device, using the soft Dark palette when the device is dark. Custom accents and Liquid Glass still work in all modes. **Theme** opens the palette gallery. App icons, text size and card density remain available.
 
 In **Appearance → App icon**, the picker changes the icon on your home screen to one of six — on dark, the Nex logotype (the default), the octopus and the swirl, and below them the same three on light; a home-screen shortcut may need adding again afterwards.
 

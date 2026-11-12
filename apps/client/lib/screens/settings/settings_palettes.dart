@@ -64,12 +64,16 @@ class _PaletteTile extends StatelessWidget {
   static final _schemes = <(String, Brightness), ColorScheme>{};
 
   /// The palette's colours as the app would draw them now — built once per
-  /// palette and brightness, since a whole theme is not cheap to make.
+  /// palette and brightness, since a whole theme is not cheap to make. The
+  /// bases are the ones the app itself composes presets over, so the tile
+  /// shows the look the tap will actually get.
   static ColorScheme _schemeOf(String id, Brightness brightness) =>
       _schemes.putIfAbsent(
         (id, brightness),
         () => nexApplyThemePreset(
-          brightness == Brightness.dark ? nexDarkTheme() : nexLightTheme(),
+          brightness == Brightness.dark
+              ? nexSoftDarkTheme()
+              : nexSoftLightTheme(),
           id,
           null,
         ).colorScheme,
@@ -168,11 +172,10 @@ class _PaletteTile extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: NexSpacing.sm),
-                        // A note as this palette draws one.
-                        _MiniCard(
-                          scheme: scheme,
-                          minimal: preset.id == 'still',
-                        ),
+                        // A note as this palette draws one. Every palette
+                        // rides the Soft UI structure now, so every mini
+                        // card is flat and borderless like the real thing.
+                        _MiniCard(scheme: scheme, minimal: true),
                         const Spacer(),
                         Text(
                           name,

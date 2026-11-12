@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart' show ThemeMode;
 
-/// Temporarily paused; stored palette IDs and the gallery remain intact.
-const nexThemePresetsAvailable = false;
+/// Rebuilt as Nex 2.6.25 and switched back on. Every palette kept its
+/// identity through the rebuild, so a choice stored under
+/// `appearance.theme_preset` returns with the gallery, wearing the new
+/// material — a stored ID is honoured, never rewritten.
+const nexThemePresetsAvailable = true;
 
 /// Rebuilt as Nex 2.6.21 and switched back on. A stored choice from the
 /// previous material does not carry over: the preference moved to a new key

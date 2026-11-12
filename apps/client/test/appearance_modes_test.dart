@@ -56,7 +56,9 @@ void main() {
       expect(prefs.appearanceMode, NexAppearanceMode.night);
       expect(prefs.themeMode, ThemeMode.dark);
       expect(prefs.themePreset, 'forest');
-      expect(prefs.effectiveThemePreset, 'classic');
+      // The gallery is back: a stored palette is honoured again, wearing
+      // the redesigned material.
+      expect(prefs.effectiveThemePreset, 'forest');
       expect(prefs.accentSeed, '#B61615');
       // A v2 choice does not silently switch the rebuilt material on: each
       // generation of Liquid Glass has been a fresh opt-in, and the 2.6.21
@@ -88,7 +90,7 @@ void main() {
       await prefs.restoreSettings(backup);
       expect(prefs.appearanceMode, mode);
       expect(prefs.themePreset, 'paper');
-      expect(prefs.effectiveThemePreset, 'classic');
+      expect(prefs.effectiveThemePreset, 'paper');
       PortablePreferences.validate({'appearance.theme': mode.wireName});
     }
   });
@@ -118,22 +120,21 @@ void main() {
       await tester.pumpAndSettle();
       MaterialApp app() => tester.widget<MaterialApp>(find.byType(MaterialApp));
       expect(app().themeMode, ThemeMode.system);
-      expect(
-        app().darkTheme!.colorScheme.surface,
-        NexSoftDarkColors.background,
-      );
-      expect(app().theme!.colorScheme, nexSoftLightTheme().colorScheme);
+      // A palette carries its own pages: with Paper chosen, both brightnesses
+      // show Paper's designed surfaces rather than the classic Soft ones.
+      expect(app().darkTheme!.colorScheme.surface, const Color(0xFF1A1510));
+      expect(app().theme!.colorScheme.surface, const Color(0xFFFBF7EE));
+      expect(app().theme!.colorScheme.primary, const Color(0xFF7A571C));
       await h.preferences.setAppearanceMode(NexAppearanceMode.night);
       await tester.pumpAndSettle();
       expect(app().themeMode, ThemeMode.dark);
-      expect(app().darkTheme!.colorScheme, nexOledNightTheme().colorScheme);
+      // The palette's identity wins in Night too: its own tobacco-dark page,
+      // exactly as the previous generation of palettes behaved.
+      expect(app().darkTheme!.colorScheme.surface, const Color(0xFF1A1510));
       await h.preferences.setAppearanceMode(NexAppearanceMode.dark);
       await tester.pumpAndSettle();
       expect(app().themeMode, ThemeMode.dark);
-      expect(
-        app().darkTheme!.colorScheme.surface,
-        NexSoftDarkColors.background,
-      );
+      expect(app().darkTheme!.colorScheme.surface, const Color(0xFF1A1510));
       await h.preferences.setAccentSeed('#B61615');
       await h.preferences.setLiquidGlass(true);
       await tester.pumpAndSettle();

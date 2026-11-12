@@ -10,6 +10,7 @@ import 'nex_contrast.dart';
 
 part 'nex_soft_dark.dart';
 part 'nex_soft_appearances.dart';
+part 'nex_surface_ramp.dart';
 
 /// Every colour in Nex: one neutral ramp per theme, plus one accent.
 ///
