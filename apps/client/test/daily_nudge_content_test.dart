@@ -7,6 +7,8 @@ Note note(
   String? body,
   bool urgent = false,
   DateTime? due,
+  NoteRepeat repeat = NoteRepeat.once,
+  DateTime? acked,
   NoteType type = NoteType.text,
   DateTime? updated,
   DateTime? deleted,
@@ -18,6 +20,8 @@ Note note(
   content: items == null ? body ?? id : formatChecklist(items),
   isUrgent: urgent,
   dueAt: due,
+  dueRepeat: repeat,
+  reminderAckedAt: acked,
   createdAt: DateTime(2026, 11, 1),
   updatedAt: updated ?? DateTime(2026, 11, 3),
   deletedAt: deleted,
@@ -142,6 +146,29 @@ void main() {
       expect(bodies.first, contains('bread'));
     });
   }
+  test('a Done answers its own day, not the reminder or its repeat', () {
+    final answered = note(
+      'water-plants',
+      due: DateTime(2026, 11, 3, 9),
+      repeat: NoteRepeat.daily,
+      acked: DateTime(2026, 11, 3, 10),
+    );
+    final snapshot = NexNudgeSnapshot(
+      notes: [answered],
+      commitments: const [],
+      hasData: true,
+    );
+    String day(DateTime at) =>
+        NexDailyNudgeContent.local(snapshot, at, persian: false).join(' ');
+    // The ring that was answered is not read out again on the same day...
+    expect(day(DateTime(2026, 11, 3, 12)), isNot(contains('water-plants')));
+    // ...but the reminder itself is untouched: a repeating one is back at
+    // its own time tomorrow, and the note keeps the time it was given.
+    expect(day(DateTime(2026, 11, 4, 12)), contains('water-plants'));
+    expect(answered.dueAt, DateTime(2026, 11, 3, 9));
+    expect(answered.dueRepeat, NoteRepeat.daily);
+  });
+
   for (final ai in [false, true]) {
     for (final summary in [false, true]) {
       test('AI=$ai summary=$summary gates cached text without a request', () {

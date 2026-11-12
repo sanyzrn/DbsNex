@@ -75,6 +75,7 @@ enum _DbCommand {
   setTagColor,
   backup,
   setDueAt,
+  markReminderAcked,
   upcomingReminders,
   briefWaitingNotes,
   exportArchive,

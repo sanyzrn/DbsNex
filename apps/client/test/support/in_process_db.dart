@@ -556,6 +556,10 @@ class InProcessDb implements NexDb {
   }
 
   @override
+  Future<void> markReminderAcked(String id, DateTime at) async =>
+      _repo.markReminderAcked(id, at);
+
+  @override
   Future<List<Note>> upcomingReminders({int limit = 200}) async =>
       _repo.listUpcomingReminders(limit: limit);
 

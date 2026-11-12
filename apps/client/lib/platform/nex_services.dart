@@ -138,6 +138,7 @@ class NexServices {
   String? _nudgePlanKey;
   int _nudgeEpoch = 0;
   Future<void>? _nudgeFlight;
+  Future<Set<String>>? _ackFlight;
   late final briefRefresh = NexBriefRefresh(_preferences);
   Future<HabitsBrief>? _habitBrief;
   Future<int>? _habitActionsPending;

@@ -309,6 +309,33 @@ void main() {
     }
   });
 
+  test('every glass theme carries a lit bevel, a bounce and an ambient halo', () {
+    // The depth pass is the difference between a tinted pane and a material:
+    // vibrancy in the backdrop, a bevel that reads as thickness, light
+    // bouncing off the page into the bottom edge, and a halo lifting the whole
+    // shape. A theme that loses any of them is back to a painted rectangle,
+    // and a live lerp must not drop one either.
+    for (final theme in [
+      nexLightTheme(liquidGlass: true),
+      nexLightTheme(liquidGlass: true, comfortMode: true),
+      nexSoftLightTheme(liquidGlass: true),
+      nexDarkTheme(liquidGlass: true),
+      nexSoftDarkTheme(liquidGlass: true),
+      nexOledNightTheme(liquidGlass: true),
+    ]) {
+      final visual = theme.extension<NexVisualStyle>()!;
+      expect(visual.glassVibrancy, greaterThan(1));
+      expect(visual.glassEdgeWidth, greaterThan(1));
+      expect(visual.glassBounce.a, greaterThan(0.1));
+      expect(visual.glassAura.a, greaterThan(0.02));
+      expect(visual.glassGrain, greaterThan(0));
+      expect(visual.glassAmbient, hasLength(2));
+      expect(visual.copyWith().glassBounce, visual.glassBounce);
+      expect(visual.lerp(visual, 0.5).glassAura, visual.glassAura);
+      expect(visual.lerp(visual, 0.5).glassVibrancy, visual.glassVibrancy);
+    }
+  });
+
   test('a wash interpolates with a different number of films', () {
     // Themes are lerped live during a switch, and the preset layer builds
     // washes by hand; nothing guarantees both sides carry the same film

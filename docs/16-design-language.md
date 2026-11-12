@@ -202,6 +202,29 @@ the denser panel material. High contrast stays opaque in both cases. Measure
 foreground contrast against `floatingContrastGround`, including destructive
 menu labels; keep one blur around the menu rather than one per entry.
 
+### Glass depth (2.6.24)
+
+The fourth generation keeps the opt-in and the four films, and adds the light
+that turns them into a material:
+
+- `glassVibrancy` saturates the backdrop through a colour matrix **inside the
+  same `BackdropFilter`** as the blur. The matrix preserves relative luminance,
+  which is why every ink pair the wash was solved against still holds; never
+  reach for a second filter or a destination-reading blend mode to get it.
+- `glassEdgeWidth` draws a bevel ring inside the hairline, `glassSpecular`
+  lights its top-left, and `glassBounce` lifts the bottom edge with light
+  reflected off the page. The bar uses the same trio along its one exposed
+  edge, plus a shallow status-bar scrim.
+- `glassAura` is the wide, faint halo outside the shape; `glassAmbient` carries
+  it and a contact shadow. `glassEdge` remains the four-shadow public contract
+  so a mid-switch lerp cannot change its length.
+- `glassGrain` adds deterministic frost only in a 16px edge band. It is never
+  painted under the reading area, and the pixel tests sample the centre on
+  purpose.
+
+One `BackdropFilter` per surface, and high contrast still returns a solid
+`glassOpaque` surface before any of this is built.
+
 ### Timeline changes (2.0.9)
 
 The timeline uses Flutter's lazy `SliverAnimatedList`. Keyed subsequence matching

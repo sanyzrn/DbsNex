@@ -120,17 +120,34 @@ first, so the ordinary case is unchanged.
   preferences, the habit queue is keyed per habit/day so a repeated tap is idempotent,
   and a queued habit action that cannot be written stays queued.
 
-## Known, and deliberately left alone
+### 6. One acknowledgement, two readers, and a launch race
 
-**Two readers of one acknowledgement queue.** `ringing_services.syncRinging` drains
-`reminders.acked`, and `daily_nudge_services` reads the same key while planning the nudge.
-The timeline wires `_wireRinging` in `initState`, so at launch the drain usually wins and
-the nudge may plan against a **Done** it can no longer see — mentioning, once, a reminder
-that was already answered. The two uses want different things from the same record (a
-one-shot event versus a standing fact about the day), and the honest fix is a durable
-"answered today" fact next to the note, not a third in-memory queue. That is a data-model
-change, and it would also decide whether answering a reminder clears the note's due date —
-a product decision this audit should not make silently.
+`ringing_services.syncRinging` drained `reminders.acked`, and
+`daily_nudge_services` read the same key while planning the nudge. Both run at launch:
+the timeline wires `_wireRinging` in `initState`, and the nudge is planned shortly after
+the service graph exists. Whichever ran first consumed the list, so a **Done** pressed
+before the app opened could be drained by the sweep and then planned against by the
+nudge as if it had never happened — one mention of a reminder that was already answered.
+
+The list was never the fact; it is the only thing a button handled in a background
+isolate (no database) can leave behind. There is now one reader,
+`NexRingingServices.settleReminderAcks`, and it writes the answer where the note lives:
+`notes.reminder_acked_at`, read as `Note.reminderAckedAt`. The nudge plans against that
+column, so the order of the launch sweep and the plan no longer matters. A **Done**
+delivered while the app is in front writes the same column directly.
+
+The answer is deliberately *not* a reason to clear the note's `dueAt`. That is a product
+decision about what **Done** means for a one-off reminder, and this change does not make
+it silently: the reminder stays, a repeating one comes back at its own time, and a
+future time is untouched. The daily plan leaves out only the due line for the day it was
+answered (`Note.reminderAnsweredOn`); later days still carry it. Setting a new time
+clears the acknowledgement, since that is a new request rather than an answer to the old
+one.
+
+Proved by `apps/client/test/daily_nudge_coordinator_test.dart` in both launch orders,
+and by the day/repeat case in `daily_nudge_content_test.dart`.
+
+## Known, and deliberately left alone
 
 **A download-progress tap opens the app, not the update screen.** `showDownloadProgress`
 posts id 3 with no payload; only the "ready" entry carries `nex:update`. Left as is: the

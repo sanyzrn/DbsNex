@@ -100,7 +100,11 @@ abstract final class NexDailyNudgeContent {
           text: persian ? 'فوری: $title' : 'Urgent: $title',
         ));
       }
-      if (note.dueAt case final stored?) {
+      // **Done** answers this day's occurrence, not the reminder. [dueAt]
+      // stays on the note, so a repeating reminder comes back at its own time
+      // and every later planned day still carries it; only the line for the
+      // day it was answered is left out.
+      if (note.dueAt case final stored? when !note.reminderAnsweredOn(at)) {
         final due = NexReminders.computeNextOccurrence(
           stored,
           note.dueRepeat,

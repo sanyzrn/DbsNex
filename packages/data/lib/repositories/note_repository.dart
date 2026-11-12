@@ -1284,7 +1284,11 @@ VALUES (?, ?, ?, ?, 'synced')
               'id' => copyId,
               'rev' => 1,
               'sync_state' => 'pending',
-              'pinned_at' || 'sort_order' || 'due_at' || 'due_repeat' => null,
+              'pinned_at' ||
+              'sort_order' ||
+              'due_at' ||
+              'due_repeat' ||
+              'reminder_acked_at' => null,
               _ => row[column],
             },
         ];
@@ -1964,6 +1968,20 @@ WHERE n.deleted_at IS NULL AND e.note_id IN ($placeholders)
     return _parseVector(rows.first['values_json']! as String);
   }
 
+  /// Records that **Done** was pressed for [noteId]'s reminder at [at].
+  ///
+  /// Not a rev bump and not an `updated_at` touch, for the same reason
+  /// [setDueAt] is not: this is what the device was told, not an edit to what
+  /// the note says. [Note.dueAt] is deliberately left alone — the answer is to
+  /// one ring, and clearing the time would drop a repeating reminder's next
+  /// turn and any future occurrence with it.
+  void markReminderAcked(String noteId, DateTime at) {
+    db.execute('UPDATE notes SET reminder_acked_at = ? WHERE id = ?', [
+      at.toUtc().toIso8601String(),
+      noteId,
+    ]);
+  }
+
   @override
   void setDueAt(
     String noteId,
@@ -1975,7 +1993,12 @@ WHERE n.deleted_at IS NULL AND e.note_id IN ($placeholders)
       // the user asked the app to do, not an edit to what the note says, and
       // re-sorting the timeline because someone set an alarm would move a
       // note they were not writing to.
-      'UPDATE notes SET due_at = ?, due_repeat = ? WHERE id = ?',
+      //
+      // The acknowledgement is cleared with the time. A new time is a new
+      // request, and a **Done** from the previous ring must not keep today's
+      // nudge from mentioning a reminder that was just set for today.
+      'UPDATE notes SET due_at = ?, due_repeat = ?, reminder_acked_at = NULL '
+      'WHERE id = ?',
       [
         when?.toUtc().toIso8601String(),
         // Cleared alongside the time. A repeat left behind on a note with no

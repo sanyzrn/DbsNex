@@ -148,6 +148,28 @@ abstract final class NexReminderActions {
     }
   }
 
+  /// Puts acknowledgements the library could not take yet back in the
+  /// hand-off list, for the next sync to settle.
+  ///
+  /// [takeAcknowledged] clears the list before the caller writes the durable
+  /// fact. A failed write must not lose the button's answer, which would turn
+  /// one unlucky database call into the same "already answered, mentioned
+  /// anyway" report this hand-off exists to prevent.
+  static Future<void> requeueAcknowledged(Iterable<String> ids) async {
+    if (ids.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final pending = prefs.getStringList(_ackedKey) ?? const <String>[];
+      await prefs.setStringList(_ackedKey, [
+        ...ids.where((id) => !pending.contains(id)),
+        ...pending,
+      ]);
+    } catch (error) {
+      unawaited(NexCrashLog.handled('reminder.action', error));
+    }
+  }
+
   /// The recurring items a **Done** was pressed for, with when it was
   /// pressed, read once and cleared.
   static Future<List<(String, DateTime)>> takeMet() async {
