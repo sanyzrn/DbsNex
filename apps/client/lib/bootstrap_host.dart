@@ -12,6 +12,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
+import 'app_version.dart';
 import 'l10n/app_localizations.dart';
 import 'platform/export_cache.dart';
 import 'platform/metrics.dart';
@@ -37,17 +38,18 @@ class NexBootstrapHost extends StatefulWidget {
   State<NexBootstrapHost> createState() => _NexBootstrapHostState();
 }
 
-/// Floor on how briefly the splash can appear.
+/// How long the opening sequence is kept on screen when it is played in full.
 ///
-/// A warm start resolves [_NexBootstrapHostState._start] fast enough that the
-/// brand mark was often a single flashed frame — not a deliberate choice, just
-/// whatever [NexServices.bootstrap] happened to take. This never adds latency
-/// beyond that: it races the real work against a timer and waits for whichever
-/// finishes last, so a slow cold start is never held up by it.
+/// Only on the first launch of a version (2.6.23). It used to be every launch:
+/// two seconds between tapping the icon — or the capture widget — and being
+/// able to write, in an app whose promise is that capture never waits. An
+/// everyday launch now opens the moment the library is ready; see
+/// [NexSplashIntro.whenSlow] for what it shows meanwhile.
 ///
-/// Long enough for the opening animation to finish, with a moment on its last
-/// frame: the timer starts a frame or two before the splash is first drawn.
-const _minimumSplashDuration = Duration(milliseconds: 2000);
+/// When it does apply it never adds latency beyond itself: it races the real
+/// work against a timer and waits for whichever finishes last. Long enough for
+/// the sequence to finish, with a moment on its last frame.
+const _fullIntroDuration = Duration(milliseconds: 2000);
 
 class _NexBootstrapHostState extends State<NexBootstrapHost> {
   late Future<NexBootstrapSession> _future;
@@ -62,6 +64,12 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
   /// while the question is outstanding is the one frame this exists to avoid.
   late final Future<bool> _silentFuture = NexShareWindow.isSilent();
   bool? _silent;
+
+  /// Whether the splash plays its sequence at once, only if opening is slow,
+  /// or has not been told yet. The test seam has no bootstrap to decide it.
+  late NexSplashIntro _intro = widget.load == null
+      ? NexSplashIntro.pending
+      : NexSplashIntro.play;
 
   @override
   void initState() {
@@ -82,15 +90,22 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
 
   Future<NexBootstrapSession> _start() async {
     final silent = await _silentFuture;
-    // The floor exists so a warm start does not flash the brand mark for one
-    // frame. A window that never draws has no mark to flash, and holding it
-    // open for another two seconds is two seconds before the person is told
-    // their note was saved.
-    final delay = silent
-        ? Future<void>.value()
-        : Future<void>.delayed(_minimumSplashDuration);
-
+    final opened = Stopwatch()..start();
     final preferences = await NexPreferences.load();
+    // The opening sequence is an introduction, and it is played as one: in
+    // full the first time a version runs, never as a toll on every launch
+    // after it. A window that never draws has nothing to introduce.
+    final fullIntro = !silent && preferences.introSeen != nexAppVersion;
+    if (!silent && mounted) {
+      setState(
+        () =>
+            _intro = fullIntro ? NexSplashIntro.play : NexSplashIntro.whenSlow,
+      );
+    }
+    final remaining = _fullIntroDuration - opened.elapsed;
+    final delay = fullIntro && remaining > Duration.zero
+        ? Future<void>.delayed(remaining)
+        : Future<void>.value();
     final services = await NexServices.bootstrap(
       preferences: preferences,
       recoverDrafts: !silent,
@@ -182,6 +197,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     }
 
     await delay;
+    if (fullIntro) unawaited(preferences.setIntroSeen(nexAppVersion));
     return _ready = NexBootstrapSession(preferences, services, bridge, widgets);
   }
 
@@ -268,6 +284,8 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     final previous = _ready;
     _ready = null;
     setState(() {
+      // A restart is a launch like any other: undecided until it is asked.
+      if (widget.load == null) _intro = NexSplashIntro.pending;
       _generation++;
       _future = _replace(previous);
     });
@@ -327,7 +345,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
           child: Builder(
             builder: (context) => Semantics(
               label: AppLocalizations.of(context).opening,
-              child: const NexSplash(),
+              child: NexSplash(intro: _intro),
             ),
           ),
         ),

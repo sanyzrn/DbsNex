@@ -4,6 +4,11 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.23
+
+- **Nex opens without the wait.** The opening animation used to hold every launch for two seconds, including a tap on the capture widget. It now plays in full only the first time a new version runs; every other launch goes straight from the icon to your notes the moment the library is ready.
+- **On this day.** On a day with nothing due, the daily nudge can bring back a note you wrote on the same date in an earlier year — "A year ago today you wrote…" — instead of a general line. It follows your calendar (Persian or Gregorian), never uses deleted or set-aside notes, stays entirely on the phone, and has its own switch under Settings → Reminders and notifications.
+
 ## v2.6.22
 
 - **Reminders from the modules respect the app lock too.** With the app lock on, a habit, medication, parking or appointment reminder still showed what it was about on the lock screen; only note reminders were hidden. Every reminder follows the lock now.

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -15,8 +16,29 @@ import 'nex_brand.dart';
 /// octopus makes room for the wordmark and the line it stands for.
 ///
 /// With animations turned off it shows the finished picture at once.
+/// When the opening sequence plays.
+enum NexSplashIntro {
+  /// Not decided yet: hold on the two eyes, the picture Android's own splash
+  /// leaves on screen.
+  pending,
+
+  /// Play the whole sequence now — the first launch of a version.
+  play,
+
+  /// An everyday launch. Hold on the eyes, so a library that opens quickly is
+  /// reached straight from Android's splash with nothing in between, and play
+  /// the sequence only if opening takes longer than [NexSplash.patience] — a
+  /// slow start should still not look like a frozen one.
+  whenSlow,
+}
+
 class NexSplash extends StatefulWidget {
-  const NexSplash({super.key});
+  const NexSplash({super.key, this.intro = NexSplashIntro.play});
+
+  final NexSplashIntro intro;
+
+  /// How long an everyday launch holds on the eyes before it starts to move.
+  static const patience = Duration(milliseconds: 700);
 
   /// How long the whole sequence runs. The bootstrap keeps the splash up at
   /// least this long, so a warm start still sees it to the end.
@@ -43,10 +65,36 @@ class _NexSplashState extends State<NexSplash> with TickerProviderStateMixin {
   );
 
   bool _started = false;
+  Timer? _patience;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _schedule();
+  }
+
+  @override
+  void didUpdateWidget(NexSplash oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.intro != widget.intro) _schedule();
+  }
+
+  void _schedule() {
+    if (_started) return;
+    switch (widget.intro) {
+      case NexSplashIntro.pending:
+        return;
+      case NexSplashIntro.play:
+        _patience?.cancel();
+        _start();
+      case NexSplashIntro.whenSlow:
+        _patience ??= Timer(NexSplash.patience, () {
+          if (mounted) _start();
+        });
+    }
+  }
+
+  void _start() {
     if (_started) return;
     _started = true;
     if (MediaQuery.disableAnimationsOf(context)) {
@@ -60,6 +108,7 @@ class _NexSplashState extends State<NexSplash> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _patience?.cancel();
     _intro.dispose();
     _idle.dispose();
     super.dispose();

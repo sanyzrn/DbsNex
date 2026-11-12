@@ -380,11 +380,6 @@ class NexServices {
     if (recoverDrafts) {
       await services.recoverCaptureDrafts();
       await services.recoverVoiceRecordings();
-      unawaited(
-        getTemporaryDirectory()
-            .then(cleanExportCache)
-            .catchError((Object _) {}),
-      );
       // Plain copies of private attachments left by a vault that never got
       // to lock (the app was killed while one was open).
       unawaited(VaultFiles.clearOpenCopies());

@@ -473,6 +473,15 @@ class SettingsSheet extends StatelessWidget {
             ).format(context),
             onTap: () => unawaited(_pickNudgeTime(context)),
           ),
+        if (preferences.dailyNudge)
+          _SwitchRow(
+            icon: Icons.history_outlined,
+            title: l10n.nudgeMemoriesTitle,
+            subtitle: l10n.nudgeMemoriesSubtitle,
+            value: preferences.dailyNudgeMemories,
+            onChanged: (next) =>
+                unawaited(preferences.setDailyNudgeMemories(next)),
+          ),
         // Sound, vibration and importance live on the OS side of the line —
         // see [NexNotificationSettings] for why an in-app picker would only
         // pretend to work — so these two rows are doors to the right screen

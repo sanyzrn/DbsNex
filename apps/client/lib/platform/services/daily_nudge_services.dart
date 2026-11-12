@@ -12,7 +12,8 @@ extension NexDailyNudgeServices on NexServices {
     final signature =
         '${p.dailyNudge}|${p.dailyNudgeMinutes}|${p.locale}|${p.shortDisplayName}|'
         '${p.aiEnabled}|${p.showDaySummary}|${p.aiDaySummaryAt}|'
-        '${p.briefHabitsAllowed}|${p.appLockEnabled}';
+        '${p.briefHabitsAllowed}|${p.appLockEnabled}|'
+        '${p.dailyNudgeMemories}|${p.solarCalendar}';
     if (_nudgePreferences == signature) return;
     _nudgePreferences = signature;
     _queueDailyNudge(preferencesChanged: true);
@@ -96,6 +97,10 @@ extension NexDailyNudgeServices on NexServices {
                             n.setAsideUntil?.toIso8601String(),
                           ],
                       ],
+                      'memories': [
+                        for (final n in source.memories)
+                          [n.id, n.updatedAt.toIso8601String()],
+                      ],
                       'commitments': [
                         for (final c in source.commitments)
                           [
@@ -164,6 +169,9 @@ extension NexDailyNudgeServices on NexServices {
                     .where((item) => !met.contains(item.id))
                     .toList(),
                 hasData: source.hasData,
+                memories: _preferences.dailyNudgeMemories
+                    ? source.memories
+                    : const [],
               ),
               now: now,
               minutes: _preferences.dailyNudgeMinutes,
@@ -178,6 +186,7 @@ extension NexDailyNudgeServices on NexServices {
               summary: _preferences.aiDaySummaryText,
               summaryAt: summaryAt,
               secret: _preferences.appLockEnabled,
+              solarCalendar: _preferences.solarCalendar,
             );
             final plan = await nexComputeDailyNudgePlan(input);
             plan['includesHabits'] = _preferences.aiDaySummaryIncludesHabits;

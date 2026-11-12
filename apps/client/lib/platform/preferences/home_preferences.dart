@@ -272,6 +272,18 @@ mixin _HomePreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// Whether a day with nothing due may quote a note written on the same
+  /// date in an earlier year ("on this day", 2.6.23). On with the nudge: it
+  /// replaces a line anyone could be sent with one of the person's own. A
+  /// switch of its own because not every old note is one to be met again
+  /// unasked.
+  bool get dailyNudgeMemories => _prefs.getBool('nudge.memories') ?? true;
+
+  Future<void> setDailyNudgeMemories(bool value) async {
+    await _prefs.setBool('nudge.memories', value);
+    notifyListeners();
+  }
+
   /// When it arrives, as minutes past midnight. Nine in the morning until
   /// someone says otherwise.
   int get dailyNudgeMinutes => _prefs.getInt('nudge.at') ?? 9 * 60;

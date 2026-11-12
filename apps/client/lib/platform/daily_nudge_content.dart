@@ -57,6 +57,7 @@ abstract final class NexDailyNudgeContent {
     NexNudgeSnapshot source,
     DateTime at, {
     required bool persian,
+    bool solarCalendar = false,
     Map<String, List<ChecklistItem>>? itemsById,
   }) {
     final facts = <({int rank, DateTime when, String id, String text})>[];
@@ -183,6 +184,15 @@ abstract final class NexDailyNudgeContent {
         .map((f) => f.text)
         .join(persian ? '؛ ' : '; ');
     if (picked.isEmpty) {
+      // A day with nothing due is the day for something old: a line the
+      // person wrote on this date, in place of a line anyone could be sent.
+      final memory = onThisDay(
+        source.memories,
+        at,
+        persian: persian,
+        solarCalendar: solarCalendar,
+      );
+      if (memory != null) return [memory];
       return source.hasData
           ? (persian ? quietFa : quietEn)
           : (persian ? emptyFa : emptyEn);
@@ -198,6 +208,52 @@ abstract final class NexDailyNudgeContent {
             short('A quick reminder: $picked', 210),
             short('Worth a look: $picked', 210),
           ];
+  }
+
+  /// "A year ago today you wrote …", from [memories], or null when no note
+  /// with words of its own was written on [at]'s date in an earlier year.
+  ///
+  /// The date is the one the person reads: with [solarCalendar] an
+  /// anniversary is the same day of the same Persian month, which the
+  /// Gregorian date misses by a day in some years. The nearest year wins —
+  /// last year is the memory most likely to still mean something — and the
+  /// longest note of that day, which is how the snapshot orders them.
+  static String? onThisDay(
+    List<Note> memories,
+    DateTime at, {
+    required bool persian,
+    bool solarCalendar = false,
+  }) {
+    ({int year, int month, int day}) dateOf(DateTime value) => solarCalendar
+        ? nexPersianDate(value)
+        : (year: value.year, month: value.month, day: value.day);
+    final today = dateOf(at);
+    ({int years, String text})? best;
+    for (final note in memories) {
+      if (note.isDeleted || note.isSetAside(at)) continue;
+      final text = note.displayText?.trim() ?? '';
+      if (text.isEmpty) continue;
+      final written = dateOf(
+        at.isUtc ? note.createdAt.toUtc() : note.createdAt.toLocal(),
+      );
+      final years = today.year - written.year;
+      if (years < 1 ||
+          written.month != today.month ||
+          written.day != today.day) {
+        continue;
+      }
+      if (best == null || years < best.years) best = (years: years, text: text);
+    }
+    if (best == null) return null;
+    final quote = short(best.text, 120);
+    if (persian) {
+      final ago = best.years == 1
+          ? 'پارسال'
+          : '${nexDigits('${best.years}', persian: true)} سال پیش';
+      return short('$ago، همین روز نوشتی: «$quote»', 210);
+    }
+    final ago = best.years == 1 ? 'A year ago' : '${best.years} years ago';
+    return short('$ago today you wrote: “$quote”', 210);
   }
 
   static bool canUseSummary({
@@ -230,6 +286,7 @@ abstract final class NexDailyNudgeContent {
     required String? summary,
     required DateTime? summaryAt,
     required bool secret,
+    bool solarCalendar = false,
   }) {
     final days = <String, Object?>{};
     final parsed = {
@@ -257,6 +314,7 @@ abstract final class NexDailyNudgeContent {
         source,
         at,
         persian: persian,
+        solarCalendar: solarCalendar,
         itemsById: parsed,
       );
       // Local bodies describe the day they were planned for — "tomorrow at
@@ -311,6 +369,7 @@ typedef NexNudgePlanInput = ({
   String? summary,
   DateTime? summaryAt,
   bool secret,
+  bool solarCalendar,
 });
 
 /// Isolate entry point: planning a month's text never runs on the UI thread.
@@ -327,6 +386,7 @@ Map<String, Object?> nexBuildDailyNudgePlan(NexNudgePlanInput input) =>
       summary: input.summary,
       summaryAt: input.summaryAt,
       secret: input.secret,
+      solarCalendar: input.solarCalendar,
     );
 
 Future<Map<String, Object?>> nexComputeDailyNudgePlan(

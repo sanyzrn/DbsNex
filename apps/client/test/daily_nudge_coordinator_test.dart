@@ -5,10 +5,13 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:nex_client/platform/daily_nudge_content.dart';
 import 'package:nex_client/platform/daily_nudge_native.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/reminders.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart';
 
 import 'support/nex_harness.dart';
 
@@ -158,6 +161,56 @@ void main() {
       );
     },
   );
+
+  test('a quiet day carries a note from this date last year, until On this '
+      'day is switched off', () async {
+    final now = DateTime.now();
+    // Tomorrow, or the day after when tomorrow is a leap day: 29 February
+    // has no same date in the year before.
+    var day = DateTime(now.year, now.month, now.day + 1);
+    if (day.month == 2 && day.day == 29) {
+      day = DateTime(day.year, day.month, day.day + 1);
+    }
+    final lastYear = DateTime(
+      day.year - 1,
+      day.month,
+      day.day,
+      12,
+    ).toUtc().toIso8601String();
+    // A second connection to the harness's own library: the app has no way
+    // to write a note into last year, which is the point of the feature.
+    final raw = sqlite3.open(p.join(h.root.path, 'nex.sqlite'));
+    raw.execute(
+      'INSERT INTO notes (id, type, content, created_at, updated_at, '
+      "device_id, rev, sync_state) VALUES ('memory', 'text', "
+      "'the first day of the new job', ?, ?, 'test', 1, 'synced')",
+      [lastYear, lastYear],
+    );
+    raw.close();
+    final tomorrow = NexDailyNudgeContent.dayKey(day);
+    List<Object?> bodies() =>
+        ((plans.last['days'] as Map<Object?, Object?>)[tomorrow]!
+                as Map<Object?, Object?>)['localBodies']!
+            as List<Object?>;
+
+    await h.preferences.setLocale('en');
+    await h.preferences.setSolarCalendar(false);
+    await h.preferences.setDailyNudge(true);
+    await h.services.updateDailyNudge();
+    // The coordinator wraps each body in its direction markup; the words are
+    // the planner's.
+    expect(bodies(), hasLength(1));
+    expect(
+      bodies().single,
+      contains('A year ago today you wrote: “the first day of the new job”'),
+    );
+
+    await h.preferences.setDailyNudgeMemories(false);
+    await h.services.updateDailyNudge();
+    expect(bodies(), hasLength(NexDailyNudgeContent.quietEn.length));
+    expect(bodies().join(), isNot(contains('the first day of the new job')));
+    expect(ai.calls, 0);
+  });
 
   test('every planned day carries its own local delivery window', () async {
     await h.preferences.setDailyNudge(true);

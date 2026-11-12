@@ -183,7 +183,64 @@ class SqliteNoteRepository implements NoteRepository {
       commitments: commitments,
       hasData: hasData,
       revision: revision,
+      memories: _nudgeMemories(DateTime.now()),
     );
+  }
+
+  /// How many years back "on this day" looks.
+  static const nudgeMemoryYears = 5;
+
+  /// The days around today each earlier year is read for: two behind, so a
+  /// calendar whose year is not the Gregorian one can still find its own
+  /// anniversary a day either side, and a fortnight ahead, which is as far as
+  /// the daily nudge plans a memory before the app is next opened.
+  static const nudgeMemoryDaysBehind = 2;
+  static const nudgeMemoryDaysAhead = 16;
+
+  /// Notes with words of their own, written near this time of year in each of
+  /// the last [nudgeMemoryYears] years: at most two a day, the longest first.
+  ///
+  /// One narrow range read of `idx_notes_created_at` per day rather than one
+  /// read of the whole window — a busy month is thousands of rows, and a
+  /// notification quotes one.
+  /// Public only so a test can pin its query plan. Held to the creation
+  /// index by name: the planner otherwise prefers `deleted_at IS NULL`, an
+  /// equality on another index, and reads every live note once per day asked.
+  static const nudgeMemoriesSql =
+      'SELECT * FROM notes INDEXED BY idx_notes_created_at '
+      'WHERE created_at >= ? AND created_at < ? '
+      'AND deleted_at IS NULL AND set_aside_at IS NULL '
+      "AND type IN ('text', 'photo', 'voice') "
+      "AND length(trim(coalesce(title, '') || coalesce(content, '') || "
+      "coalesce(caption, ''))) > 0 "
+      "ORDER BY length(coalesce(content, '')) DESC LIMIT 2";
+
+  List<Note> _nudgeMemories(DateTime now) {
+    final statement = db.prepare(nudgeMemoriesSql);
+    try {
+      final found = <Note>[];
+      for (var years = 1; years <= nudgeMemoryYears; years++) {
+        for (
+          var day = -nudgeMemoryDaysBehind;
+          day <= nudgeMemoryDaysAhead;
+          day++
+        ) {
+          // Local midnights: "that day" is the day it was where it was
+          // written, as nearly as this device's zone can say.
+          final from = DateTime(now.year - years, now.month, now.day + day);
+          final to = DateTime(now.year - years, now.month, now.day + day + 1);
+          for (final row in statement.select([
+            from.toUtc().toIso8601String(),
+            to.toUtc().toIso8601String(),
+          ])) {
+            found.add(Note.fromRow(row));
+          }
+        }
+      }
+      return found;
+    } finally {
+      statement.close();
+    }
   }
 
   /// Commits the note and its delivery receipt together. Re-delivery after an

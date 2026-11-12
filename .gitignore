@@ -33,6 +33,10 @@ apps/backend/dist/
 apps/feedback-worker/.dev.vars
 npm-debug.log*
 
+# Python bytecode from the tools/ scripts and their tests
+__pycache__/
+*.pyc
+
 # Env
 .env
 apps/backend/.env
