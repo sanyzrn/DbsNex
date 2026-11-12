@@ -34,6 +34,21 @@ Working convention:
 
 ## Unreleased
 
+## v2.6.20
+
+- A reply the assistant is still writing can be stopped on the phone's own
+  model too, not only on a provider: the stop button now appears for every
+  answer in flight, and a stopped on-device request drops the wait and keeps
+  the question under Retry.
+- A photo, voice or file note the chat is about, or that an answer cites, now
+  names itself by its caption — the person's own line on it — in the About
+  line and on the source chips, instead of falling back to its kind ("Photo")
+  over a note that had words.
+- A failure on the assistant's own follow-up lookup now says what actually
+  failed — rate limited, timed out, key rejected — instead of collapsing into
+  "no answer came back", which was advice for the wrong problem.
+## v2.6.19
+
 - Whole-app performance review with root-cause fixes, released as v2.6.19: search-index writes and the open-time repair are keyed by the note's own rowid instead of scanning the index (31× faster writes on a 20k library), the tag-usage count and its neighbours read from a new covering index, and the library stamp guards the re-keying against older APKs.
   See [nex-2.6.19-performance.md](nex-2.6.19-performance.md).
 

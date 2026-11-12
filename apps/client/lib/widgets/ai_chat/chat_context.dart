@@ -147,10 +147,15 @@ extension _ChatContext on _AiChatSheetState {
   /// a recording's transcript and a photo's extracted text included, because
   /// those are exactly the notes with nothing typed on them and exactly the
   /// ones someone opens this from.
+  ///
+  /// [Note.displayText] rather than a list of fields of our own: it already
+  /// knows that a photo's caption is the person's own line on it, and a
+  /// checklist's items are its words — the fields listed by hand missed the
+  /// caption, so a photo someone had captioned introduced itself as "Photo".
   String _focusLabel(Note note) {
     final source = (note.title?.trim().isNotEmpty ?? false)
         ? note.title!.trim()
-        : (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim();
+        : (note.displayText ?? '').trim();
     final line = source
         .split('\n')
         .firstWhere(
@@ -286,6 +291,12 @@ extension _ChatContext on _AiChatSheetState {
   /// every question would be a bill nobody agreed to and a prompt no model
   /// answers well; the note somebody opened the assistant *on* is the one
   /// they are asking about.
+  ///
+  /// The read stays synchronous on purpose: bounded by the size check below
+  /// and done once, at open. An awaited read was tried and reverted — real
+  /// file IO cannot complete inside a pumping test zone, and the
+  /// determinism of "the attachment is there the moment the capability
+  /// flips" is worth more than the frame it saves.
   List<NexChatAttachment> _imagesFor(Note note) {
     if (!widget.preferences.effectiveAiCapabilities.ocr ||
         !widget.preferences.aiProvider.supportsImages) {

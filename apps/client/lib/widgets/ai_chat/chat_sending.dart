@@ -510,21 +510,43 @@ extension _ChatSending on _AiChatSheetState {
         ChatMessage(role: ChatRole.user, content: '<<<NOTES\n$found\nNOTES>>>'),
       );
     });
+    final l10n = AppLocalizations.of(context);
     String? reply;
+    String? requestError;
     try {
       reply = await _ask();
-    } catch (_) {
-      reply = null;
+    } on TimeoutException {
+      requestError = l10n.chatTimeout;
+    } on SocketException {
+      requestError = l10n.chatNetworkError;
+    } on http.ClientException {
+      requestError = l10n.chatNetworkError;
+    } catch (error) {
+      unawaited(NexCrashLog.handled('chat.answer', error));
     }
     if (!mounted || generation != _sendGeneration) return;
     _rebuild(() {
       _sending = false;
       if (reply == null || reply.isEmpty) {
         _retryText = _activeQuestion;
-        final l10n = AppLocalizations.of(context);
-        _failure = _adapter.lastReplyTruncated
-            ? l10n.chatIncompleteReply
-            : l10n.chatFailed;
+        // The same words the first request of this exchange gets. The lookup
+        // round is the provider's second chance to fail, and a rate limit or
+        // a timeout there used to be called "no answer came back" — advice
+        // that sends someone hunting for a problem in the wrong place.
+        final local = _adapter.localFailure;
+        _failure =
+            requestError ??
+            (_adapter.lastReplyTruncated ? l10n.chatIncompleteReply : null) ??
+            (local != null
+                // The runtime's own words under the sentence, as above.
+                ? '${l10n.localModelLoadFailed}\n\n$local'
+                : switch (_adapter.lastFailureStatus) {
+                    413 => l10n.chatContextLimit,
+                    401 || 403 => l10n.chatAuthError,
+                    429 => l10n.chatRateLimited,
+                    final status? when status >= 500 => l10n.chatServiceError,
+                    _ => l10n.chatFailed,
+                  });
         return;
       }
       _retryText = null;
