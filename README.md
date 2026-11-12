@@ -84,7 +84,8 @@ monthly and yearly repeats; snooze or skip one occurrence, completion history wi
 and Undo, templates, and optional amounts totalled per currency for the next 30 days.
 
 **Come back to it** — a reminder on any note, one-off or repeating, and an optional daily
-nudge at an hour you pick. Both go through the OS scheduler, and when Android refuses to
+nudge at an hour you pick — which, on a day with nothing due, can bring back a note written
+on the same date in an earlier year. Both go through the OS scheduler, and when Android refuses to
 schedule one — exact alarms off, notifications denied, battery optimisation — the app says
 so in the OS's own words rather than failing quietly. A test-notification row in Settings
 splits "Nex never sent it" from "my phone swallowed it", and deleting, restoring or editing
@@ -253,6 +254,7 @@ two are worth knowing where to find.
 | [`09-ai.md`](./docs/09-ai.md) | What the intelligence layer may and may not do |
 | [`10-decisions.md`](./docs/10-decisions.md) | Decision log (`ADR-0nn`) — why things are the way they are |
 | [`11-roadmap-2.0.md`](./docs/11-roadmap-2.0.md) | The roadmap (Persian): what is next, what 2.0 is, ideas, and the owner's open decisions. What shipped is in `CHANGELOG.md` |
+| [`31-2.6.23-audit-and-roadmap.md`](./docs/31-2.6.23-audit-and-roadmap.md) | The whole-product audit of 2.6.23: the verified baseline, what changed, what was measured and left alone, and what is next |
 | [`13-sponsor-card.md`](./docs/13-sponsor-card.md) | Publishing the timeline's one sponsor card (`banner.example.json`) |
 | [`brand/`](./docs/brand) | Logo, logotype, icon and splash artwork; `tools/generate_brand_assets.py` builds the app's pictures from it |
 
