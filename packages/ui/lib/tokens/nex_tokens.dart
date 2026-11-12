@@ -964,50 +964,77 @@ ThemeData _theme({
         // Every layer uses source-over. The earlier additive and luminosity
         // steps read the destination; during a refresh or a sliver's first
         // paint that destination could be an empty layer, turning the search
-        // and brief into grey blocks until the next frame. The new tint keeps
-        // about a fifth of the blurred backdrop visible and holds its text
-        // legible across light, dark, saturated and near-black notes.
+        // and brief into grey blocks until the next frame. All four films
+        // stay state-independent — the constraint that shapes every number
+        // below.
+        //
+        // This is the third tuning of the films, and the difference from the
+        // second is how much backdrop each material lets through: the light
+        // panel shows 27% of the range behind it (was 19), the dark panel
+        // 20% (was 13), and the floating materials ~37% and ~29%. The two
+        // range-compressing films do proportionally less of the work and the
+        // anchor pins a narrower band, so a blue note behind a pane finally
+        // reads as blue *under glass* rather than as a grey panel that is
+        // technically translucent. Every floor the appearance tests hold —
+        // body ink on the worst backdrop, floating ink on its worst ground,
+        // a panel separable from its own page — was re-solved against these
+        // stacks, not adjusted around them; see the report in
+        // docs/development/nex-liquid-glass-rebuild.md.
         glassWash: dark
             ? NexGlassWash(
                 films: [
-                  Colors.white.withValues(alpha: 0.04),
-                  Colors.black.withValues(alpha: 0.60),
+                  Colors.white.withValues(alpha: 0.05),
+                  Colors.black.withValues(alpha: 0.48),
                 ],
-                lift: const Color(0xFF222222).withValues(alpha: 0.5),
-                anchor: const Color(0xFF262626).withValues(alpha: 0.30),
+                lift: const Color(0xFF23262E).withValues(alpha: 0.42),
+                // A blue-grey anchor, one step past the old neutral #262626:
+                // the Soft Dark page is itself blue-cast, and a neutral panel
+                // on it read as faintly warm rather than as the same family.
+                // Lighter than the old anchor too, because in this dark the
+                // panel was invisible against its own page (1.04:1 — under the
+                // floor the light theme is held to) and elevation in a dark
+                // theme has to be a *lighter* tone, not a border.
+                anchor: const Color(0xFF2C313E).withValues(alpha: 0.30),
               )
             : NexGlassWash(
                 films: [
-                  Colors.black.withValues(alpha: 0.10),
-                  Colors.white.withValues(alpha: 0.43),
+                  Colors.black.withValues(alpha: comfortMode ? 0.08 : 0.06),
+                  Colors.white.withValues(alpha: comfortMode ? 0.30 : 0.32),
                 ],
                 lift: Colors.white.withValues(alpha: 0.08),
-                // Cream has a lower starting luminance than the plain page,
-                // so it needs a warmer, slightly deeper anchor to keep the
-                // pane visible without turning Comfort Mode cold grey.
+                // Cream has a lower starting luminance than the plain page
+                // and its own warmer ink, which is lighter than the plain
+                // theme's — so the comfort stack carries the anchor harder
+                // than the plain one does. The warm anchor keeps the pane
+                // from turning Comfort Mode cold grey while it does it.
                 anchor:
                     (comfortMode
                             ? const Color(0xFFC9BFAF)
                             : const Color(0xFFD9DDE2))
-                        .withValues(alpha: 0.60),
+                        .withValues(alpha: comfortMode ? 0.62 : 0.54),
               ),
-        // Small menus and floating bars reveal about 27–28% of the backdrop
-        // instead of 13–19%, without changing the reading material of sheets.
+        // Menus, the dock and the selection bar: the same structure with the
+        // compressor films backed off further, so the shapes a menu floats
+        // over stay recognizable through it. In light the floor film is what
+        // carries ink legibility (the anchor is nearly gone and the dark
+        // compressor is a whisper), so the white film and lift do that work;
+        // in dark the ceiling film holds the material dark enough for the
+        // light ink while the floor films stay nearly silent.
         floatingGlassWash: dark
             ? NexGlassWash(
                 films: [
                   Colors.white.withValues(alpha: 0.02),
                   Colors.black.withValues(alpha: 0.66),
                 ],
-                lift: const Color(0xFF222222).withValues(alpha: 0.16),
-                anchor: const Color(0xFF262626).withValues(alpha: 0.05),
+                lift: const Color(0xFF23262E).withValues(alpha: 0.10),
+                anchor: const Color(0xFF2C313E).withValues(alpha: 0.02),
               )
             : NexGlassWash(
                 films: [
-                  Colors.black.withValues(alpha: 0.08),
-                  Colors.white.withValues(alpha: 0.52),
+                  Colors.black.withValues(alpha: 0.02),
+                  Colors.white.withValues(alpha: comfortMode ? 0.50 : 0.42),
                 ],
-                lift: Colors.white.withValues(alpha: 0.08),
+                lift: Colors.white.withValues(alpha: comfortMode ? 0.08 : 0.06),
                 anchor:
                     (comfortMode
                             ? const Color(0xFFC9BFAF)
@@ -1042,18 +1069,33 @@ ThemeData _theme({
         // Still a tenth of a card's, which is the line the appearance test
         // holds it to.
         glassShadow: Colors.black.withValues(alpha: dark ? 0.09 : 0.05),
+        // The inner edge optics. The specular is the cue that was missing
+        // from every earlier tuning: a hairline and a shadow make a shape,
+        // but nothing in them says a light is *on* the surface, and on the
+        // plain page — the default backdrop — there is nothing behind the
+        // glass for a blur to reveal. Bright in light (a pane catching a
+        // real light reads as a white line, not a grey one), held down in
+        // dark so it reads as a lit edge rather than a drawn outline —
+        // the same discipline as the rim.
+        glassSpecular: dark
+            ? Colors.white.withValues(alpha: 0.40)
+            : Colors.white.withValues(alpha: 0.85),
+        glassShade: dark
+            ? Colors.black.withValues(alpha: 0.28)
+            : Colors.black.withValues(alpha: 0.10),
         // The small diagonal light change makes a floating control read as a
         // curved material, especially against a plain background where blur
         // alone has nothing to reveal. It stays faint so text contrast still
         // comes from the wash, not an opaque highlight.
         glassHighlight: Colors.white.withValues(alpha: dark ? 0.12 : 0.14),
         glassDepth: Colors.black.withValues(alpha: dark ? 0.08 : 0.04),
-        // Low enough that the backdrop is still a picture and not a fog, high
-        // enough that nothing behind the glass can be read as text: a sigma
-        // of 10 smears a glyph stroke across five times its own width. The 32
-        // this replaces went with a near-opaque tint, and the two together
-        // were a painted panel wearing a blur.
-        blurSigma: 10,
+        // Twelve, up from ten, now that the washes transmit half as much
+        // again of what is behind them: the two move together, or the extra
+        // backdrop the films let through would bring readable text with it.
+        // Still a picture and not a fog — a sigma of 12 smears a glyph stroke
+        // across six times its own width — and still nowhere near the 32
+        // that went with the old near-opaque tint.
+        blurSigma: 12,
       ),
     ],
     // A capsule that floats, not a slab pinned to the bottom edge.

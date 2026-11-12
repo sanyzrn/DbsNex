@@ -7,12 +7,15 @@ mixin _AppearancePreferences on _PreferencesStore {
   // where a warmer look lives now.
   bool get comfortMode => false;
 
-  // The redesigned material is a fresh opt-in. A preference saved before
-  // glass was retired must not silently enable it after this update.
-  bool get liquidGlass => _prefs.getBool('appearance.liquid_glass_v2') ?? false;
+  // The rebuilt material is a fresh opt-in, as each generation before it
+  // was: `liquid_glass` (v1) retired with the first redesign,
+  // `liquid_glass_v2` retired with the pause, and a choice stored under
+  // either must not silently switch this materially different look on.
+  // Toggling the switch writes only the current key.
+  bool get liquidGlass => _prefs.getBool('appearance.liquid_glass_v3') ?? false;
 
-  /// The choice stays on disk while Liquid Glass is paused, but the visual
-  /// material is disabled until its switch becomes available again.
+  /// The choice stays on disk while Liquid Glass is unavailable, but the
+  /// visual material is disabled until its switch becomes available again.
   bool get effectiveLiquidGlass => nexLiquidGlassAvailable && liquidGlass;
 
   bool get editPhotoBeforeCapture =>
@@ -108,7 +111,7 @@ mixin _AppearancePreferences on _PreferencesStore {
       _setBool('appearance.comfort', value);
 
   Future<void> setLiquidGlass(bool value) =>
-      _setBool('appearance.liquid_glass_v2', value);
+      _setBool('appearance.liquid_glass_v3', value);
 
   Future<void> setBackgroundPattern(NexBackgroundPattern value) async {
     await _prefs.setString('appearance.background_pattern', value.wireName);

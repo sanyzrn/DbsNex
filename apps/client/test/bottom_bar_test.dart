@@ -220,18 +220,21 @@ void main() {
     }
   });
 
-  testWidgets('paused glass keeps the saved choice but uses standard dock', (
-    tester,
-  ) async {
+  testWidgets('the glass choice reaches the dock material', (tester) async {
     await preferences.setLiquidGlass(true);
     await open(tester);
     expect(preferences.liquidGlass, isTrue);
-    expect(preferences.effectiveLiquidGlass, isFalse);
+    expect(preferences.effectiveLiquidGlass, isTrue);
     final dockContext = tester.element(find.byType(NexNavigationDock));
-    expect(
-      Theme.of(dockContext).extension<NexVisualStyle>()!.liquidGlass,
-      isFalse,
-    );
+    final visual = Theme.of(dockContext).extension<NexVisualStyle>()!;
+    expect(visual.liquidGlass, isTrue);
+    // The dock is the floating material: more backdrop through it than a
+    // reading panel, and the lit edge that makes it read as a pane.
+    final transmission =
+        visual.floatingGlassWash.over(Colors.white).r -
+        visual.floatingGlassWash.over(Colors.black).r;
+    expect(transmission, greaterThan(0.24));
+    expect(visual.glassSpecular.a, greaterThan(0.3));
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
     expect(find.byType(BottomSheet), findsWidgets);

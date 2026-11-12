@@ -91,10 +91,22 @@ class NexGlassWash {
     return result;
   }
 
+  /// Film counts are not assumed to match: a theme built with one generation
+  /// of the material can be interpolated into the next during a live switch,
+  /// and a shorter stack holds its last film rather than throwing on an index
+  /// the other side still has.
   NexGlassWash lerp(NexGlassWash other, double t) => NexGlassWash(
     films: [
-      for (var i = 0; i < films.length; i++)
-        Color.lerp(films[i], other.films[i], t)!,
+      for (var i = 0; i < math.max(films.length, other.films.length); i++)
+        Color.lerp(
+          i < films.length
+              ? films[i]
+              : (films.isEmpty ? Colors.transparent : films.last),
+          i < other.films.length
+              ? other.films[i]
+              : (other.films.isEmpty ? Colors.transparent : other.films.last),
+          t,
+        )!,
     ],
     lift: Color.lerp(lift, other.lift, t)!,
     anchor: Color.lerp(anchor, other.anchor, t)!,
@@ -123,6 +135,8 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     required this.glassRim,
     required this.glassBorder,
     required this.glassShadow,
+    required this.glassSpecular,
+    required this.glassShade,
     required this.glassHighlight,
     required this.glassDepth,
     required this.blurSigma,
@@ -174,6 +188,24 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
   /// cards that had been blurred rather than as glass lying on the page.
   final Color glassShadow;
 
+  /// The lit inner edge along the top of a pane.
+  ///
+  /// This is what was missing from the first rebuild of the material. The
+  /// wash and the rim made a panel that was legible and had a boundary, but
+  /// on a plain page — the one backdrop every glass surface in this app is
+  /// guaranteed to sit over, because background patterns are a separate
+  /// opt-in — there was nothing catching the light, and glass without a
+  /// highlight is fog. A thick pane standing on end catches a light above
+  /// it along its top curve; this is that highlight, drawn as a short
+  /// gradient stroke inside the shape so it never enters the reading area.
+  final Color glassSpecular;
+
+  /// The shaded inner edge along the bottom of a pane, giving the same
+  /// curve a ground to settle on. With [glassSpecular] these two say
+  /// "this is a solid thing the light is moving across" without an
+  /// opaque fill anywhere.
+  final Color glassShade;
+
   /// A faint change of light across a pane. The wash makes the backdrop safe
   /// for text; these two colours make the curved surface visible without
   /// flattening the backdrop into an opaque fill.
@@ -193,6 +225,8 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     Color? glassRim,
     Color? glassBorder,
     Color? glassShadow,
+    Color? glassSpecular,
+    Color? glassShade,
     Color? glassHighlight,
     Color? glassDepth,
     double? blurSigma,
@@ -206,6 +240,8 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     glassRim: glassRim ?? this.glassRim,
     glassBorder: glassBorder ?? this.glassBorder,
     glassShadow: glassShadow ?? this.glassShadow,
+    glassSpecular: glassSpecular ?? this.glassSpecular,
+    glassShade: glassShade ?? this.glassShade,
     glassHighlight: glassHighlight ?? this.glassHighlight,
     glassDepth: glassDepth ?? this.glassDepth,
     blurSigma: blurSigma ?? this.blurSigma,
@@ -224,6 +260,8 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
       glassRim: Color.lerp(glassRim, other.glassRim, t)!,
       glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
       glassShadow: Color.lerp(glassShadow, other.glassShadow, t)!,
+      glassSpecular: Color.lerp(glassSpecular, other.glassSpecular, t)!,
+      glassShade: Color.lerp(glassShade, other.glassShade, t)!,
       glassHighlight: Color.lerp(glassHighlight, other.glassHighlight, t)!,
       glassDepth: Color.lerp(glassDepth, other.glassDepth, t)!,
       blurSigma: lerpDouble(blurSigma, other.blurSigma, t)!,
@@ -268,6 +306,8 @@ extension NexVisualStyleContext on BuildContext {
           glassRim: Colors.transparent,
           glassBorder: theme.colorScheme.outlineVariant,
           glassShadow: Colors.transparent,
+          glassSpecular: Colors.transparent,
+          glassShade: Colors.transparent,
           glassHighlight: Colors.transparent,
           glassDepth: Colors.transparent,
           blurSigma: 0,
@@ -398,17 +438,23 @@ class NexGlassSurface extends StatelessWidget {
       painter: _GlassWashPainter(
         floating ? visual.floatingGlassWash : visual.glassWash,
       ),
-      foregroundPainter: _GlassRimPainter(borderRadius, visual),
+      foregroundPainter: _GlassOpticsPainter(borderRadius, visual),
       child: DecoratedBox(
         decoration: BoxDecoration(
+          // The light has a direction: a bright band across the top-left,
+          // a clear reading band through the middle, and the depth gathering
+          // toward the bottom-right corner. The single long ramp this was
+          // tinted the whole pane evenly, which read as a filter over the
+          // blur rather than as light moving across a surface.
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            stops: const [0, 0.38, 1],
+            stops: const [0, 0.18, 0.46, 1],
             colors: [
               visual.glassHighlight.withValues(
                 alpha: visual.glassHighlight.a * opticalStrength,
               ),
+              Colors.transparent,
               Colors.transparent,
               visual.glassDepth.withValues(
                 alpha: visual.glassDepth.a * opticalStrength,
@@ -442,8 +488,20 @@ class NexGlassSurface extends StatelessWidget {
   }
 }
 
-class _GlassRimPainter extends CustomPainter {
-  const _GlassRimPainter(this.radius, this.visual);
+/// A pane's optics: the hairline, the lit top edge, and the shaded bottom.
+///
+/// Three strokes, all inside the shape, none reading the destination, so a
+/// sliver's first paint is the same as its hundredth:
+///
+/// * the hairline, a gradient round the whole shape (as before);
+/// * the specular, [NexVisualStyle.glassSpecular] fading down from the top
+///   curve — a pane catching a light above it, which is the one cue that
+///   survives even on a plain page with nothing behind the glass to blur;
+/// * the shade, [NexVisualStyle.glassShade] rising from the bottom, so the
+///   same curve has a grounded side and the surface reads as volume rather
+///   than as a flat sticker with a border.
+class _GlassOpticsPainter extends CustomPainter {
+  const _GlassOpticsPainter(this.radius, this.visual);
   final BorderRadius radius;
   final NexVisualStyle visual;
 
@@ -452,38 +510,70 @@ class _GlassRimPainter extends CustomPainter {
     if (size.isEmpty) return;
     final rect = (Offset.zero & size).deflate(0.7);
     final shape = radius.toRRect(rect);
-    final shader = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [visual.glassRim, visual.glassBorder, visual.glassDepth],
-      stops: const [0, 0.48, 1],
-    ).createShader(rect);
     canvas.drawRRect(
       shape,
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2
-        ..shader = shader,
-    );
-    // A narrow top reflection makes the curvature visible even over a quiet
-    // plain backdrop. It stays on the rim, outside the reading area.
-    canvas.save();
-    canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height * 0.48));
-    canvas.drawRRect(
-      shape,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
         ..shader = LinearGradient(
-          colors: [Colors.transparent, visual.glassRim, Colors.transparent],
-          stops: const [0.08, 0.42, 0.92],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [visual.glassRim, visual.glassBorder, visual.glassDepth],
+          stops: const [0, 0.48, 1],
         ).createShader(rect),
     );
-    canvas.restore();
+    // Both inner strokes follow a shape inset past the hairline, and each is
+    // clipped to its own end of the pane with its gradient landing on zero
+    // exactly at the clip, so the lit and shaded halves meet in the middle
+    // without a seam or a hard cut.
+    final inner = (Offset.zero & size).deflate(1.5);
+    final innerShape = radius.toRRect(inner);
+    final band = size.height * 0.62;
+    if (visual.glassSpecular.a > 0) {
+      canvas.save();
+      canvas.clipRect(Rect.fromLTWH(0, 0, size.width, band));
+      canvas.drawRRect(
+        innerShape,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              visual.glassSpecular,
+              visual.glassSpecular.withValues(alpha: 0),
+            ],
+          ).createShader(Rect.fromLTWH(0, 0, size.width, band)),
+      );
+      canvas.restore();
+    }
+    if (visual.glassShade.a > 0) {
+      canvas.save();
+      canvas.clipRect(Rect.fromLTWH(0, band, size.width, size.height - band));
+      canvas.drawRRect(
+        innerShape,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..shader =
+              LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  visual.glassShade,
+                  visual.glassShade.withValues(alpha: 0),
+                ],
+              ).createShader(
+                Rect.fromLTWH(0, band, size.width, size.height - band),
+              ),
+      );
+      canvas.restore();
+    }
   }
 
   @override
-  bool shouldRepaint(_GlassRimPainter old) =>
+  bool shouldRepaint(_GlassOpticsPainter old) =>
       old.radius != radius || old.visual != visual;
 }
 
@@ -525,28 +615,72 @@ class NexGlassBar extends StatelessWidget {
         ).withValues(alpha: 1),
       );
     }
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: visual.blurSigma,
-          sigmaY: visual.blurSigma,
-        ),
-        child: CustomPaint(
-          painter: _GlassWashPainter(visual.glassWash),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [visual.glassHighlight, visual.glassDepth],
+    // An `AppBar` hands its flexible space *loose* constraints under an
+    // `Align`, and everything inside this bar sizes to its child — the
+    // innermost `DecoratedBox` has none — so without this the whole bar
+    // collapsed to zero height and glass mode drew no bar at all. Expanded to
+    // whatever the slot offers, the bar is the height of the bar.
+    return SizedBox.expand(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: visual.blurSigma,
+            sigmaY: visual.blurSigma,
+          ),
+          child: CustomPaint(
+            painter: _GlassWashPainter(visual.glassWash),
+            foregroundPainter: _GlassBarEdgePainter(visual),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [visual.glassHighlight, visual.glassDepth],
+                ),
+                border: Border(bottom: BorderSide(color: visual.glassBorder)),
               ),
-              border: Border(bottom: BorderSide(color: visual.glassBorder)),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// The bar's one edge that faces the page: the same hairline and lit inner
+/// line every pane has, along the bottom only.
+///
+/// A bar runs off both sides of the screen, so it has no left or right edge
+/// for a rim to catch and its top sits under the status bar; the bottom is
+/// the only place this material meets the content, and it is where a pane's
+/// optics have to show up for the two to read as the same stuff.
+class _GlassBarEdgePainter extends CustomPainter {
+  const _GlassBarEdgePainter(this.visual);
+  final NexVisualStyle visual;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty || visual.glassSpecular.a == 0) return;
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height - 2.2, size.width, 1.2),
+      Paint()
+        ..shader = LinearGradient(
+          begin: AlignmentDirectional.centerStart.resolve(TextDirection.ltr),
+          end: AlignmentDirectional.centerEnd.resolve(TextDirection.ltr),
+          colors: [
+            visual.glassSpecular.withValues(alpha: visual.glassSpecular.a * 0),
+            visual.glassSpecular.withValues(
+              alpha: visual.glassSpecular.a * 0.5,
+            ),
+            visual.glassSpecular.withValues(alpha: visual.glassSpecular.a * 0),
+          ],
+          stops: const [0.05, 0.5, 0.95],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GlassBarEdgePainter old) => old.visual != visual;
 }
 
 /// Draws a glass shape's edge, and only the part of it that falls outside

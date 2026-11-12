@@ -34,6 +34,20 @@ Working convention:
 
 ## Unreleased
 
+## v2.6.21
+
+- Liquid Glass was rebuilt from the films up and switched back on: every wash
+  transmits about half as much again of the backdrop (light panels 19% → 27%,
+  dark 13% → 20%, floating ~27% → 37% light / 29% dark), each pane gained a
+  specular top edge and a shaded bottom one, the dark wash gained a
+  blue-grey anchor so a panel is separable from the Soft Dark page (1.04:1 →
+  1.11:1), the top glass bar — which had been rendering at zero height since
+  its flexible-space slot hands it loose constraints — now actually draws,
+  and the blur moved to sigma 12 to match the extra transmission. The
+  preference moved to a fresh key (`appearance.liquid_glass_v3`), so the
+  rebuilt material is an opt-in like each generation before it.
+  See [nex-liquid-glass-rebuild.md](nex-liquid-glass-rebuild.md).
+
 ## v2.6.20
 
 - A reply the assistant is still writing can be stopped on the phone's own

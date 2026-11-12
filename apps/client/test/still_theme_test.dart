@@ -20,6 +20,10 @@ void main() {
         final visual = theme.extension<NexVisualStyle>()!;
         expect(visual.minimal, isTrue);
         expect(visual.liquidGlass, isFalse);
+        // Glass is off here, so its optics go with it: no lit edge on a
+        // preset whose whole point is that nothing decorative is drawn.
+        expect(visual.glassSpecular.a, 0);
+        expect(visual.glassShade.a, 0);
         expect(nexThemeTexture('still'), NexThemeTexture.none);
         for (final surface in [
           c.surface,
@@ -34,50 +38,87 @@ void main() {
           }
         }
         expect(_contrast(c.primary, c.onPrimary), greaterThanOrEqualTo(4.5));
-        expect(_contrast(c.primaryContainer, c.onPrimaryContainer), greaterThanOrEqualTo(4.5));
+        expect(
+          _contrast(c.primaryContainer, c.onPrimaryContainer),
+          greaterThanOrEqualTo(4.5),
+        );
         expect(theme.floatingActionButtonTheme.highlightElevation, 0);
         expect(theme.dialogTheme.elevation, 0);
         expect(theme.bottomSheetTheme.modalElevation, 0);
         expect(theme.popupMenuTheme.elevation, 0);
-        expect((theme.inputDecorationTheme.enabledBorder! as OutlineInputBorder).borderSide, BorderSide.none);
-        expect((theme.inputDecorationTheme.focusedBorder! as OutlineInputBorder).borderSide.color, c.primary);
+        expect(
+          (theme.inputDecorationTheme.enabledBorder! as OutlineInputBorder)
+              .borderSide,
+          BorderSide.none,
+        );
+        expect(
+          (theme.inputDecorationTheme.focusedBorder! as OutlineInputBorder)
+              .borderSide
+              .color,
+          c.primary,
+        );
       });
 
-      testWidgets('Still $dark, glass $glass: shared panels lose decorative borders', (tester) async {
-        await tester.pumpWidget(MaterialApp(
-          theme: theme,
-          home: Scaffold(body: Column(children: [
-            NexSurface(
-              color: theme.colorScheme.surfaceContainerLow,
-              border: const BorderSide(color: Colors.red),
-              child: const Text('Panel'),
+      testWidgets(
+        'Still $dark, glass $glass: shared panels lose decorative borders',
+        (tester) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: theme,
+              home: Scaffold(
+                body: Column(
+                  children: [
+                    NexSurface(
+                      color: theme.colorScheme.surfaceContainerLow,
+                      border: const BorderSide(color: Colors.red),
+                      child: const Text('Panel'),
+                    ),
+                    NexGlassSurface(
+                      fallbackColor: theme.colorScheme.surfaceContainerLowest,
+                      child: const Text('Sheet'),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            NexGlassSurface(
-              fallbackColor: theme.colorScheme.surfaceContainerLowest,
-              child: const Text('Sheet'),
-            ),
-          ])),
-        ));
-        final panel = tester.widget<Material>(find.descendant(
-          of: find.byType(NexSurface), matching: find.byType(Material),
-        ).first);
-        expect((panel.shape! as RoundedRectangleBorder).side, BorderSide.none);
-        final sheet = tester.widget<DecoratedBox>(find.descendant(
-          of: find.byType(NexGlassSurface), matching: find.byType(DecoratedBox),
-        ).first);
-        expect((sheet.decoration as BoxDecoration).border, isNull);
-        expect((sheet.decoration as BoxDecoration).boxShadow, isNull);
-      });
+          );
+          final panel = tester.widget<Material>(
+            find
+                .descendant(
+                  of: find.byType(NexSurface),
+                  matching: find.byType(Material),
+                )
+                .first,
+          );
+          expect(
+            (panel.shape! as RoundedRectangleBorder).side,
+            BorderSide.none,
+          );
+          final sheet = tester.widget<DecoratedBox>(
+            find
+                .descendant(
+                  of: find.byType(NexGlassSurface),
+                  matching: find.byType(DecoratedBox),
+                )
+                .first,
+          );
+          expect((sheet.decoration as BoxDecoration).border, isNull);
+          expect((sheet.decoration as BoxDecoration).boxShadow, isNull);
+        },
+      );
     }
   }
-  test('other themes keep their material and Still preserves custom accents', () {
-    final base = nexLightTheme(liquidGlass: true);
-    final classic = nexApplyThemePreset(base, 'classic', null);
-    expect(classic.extension<NexVisualStyle>()!.minimal, isFalse);
-    expect(classic.extension<NexVisualStyle>()!.liquidGlass, isTrue);
-    const red = Color(0xFFD32F2F);
-    final picked = nexApplyThemePreset(base, 'still', red);
-    final hue = HSLColor.fromColor(picked.colorScheme.primary).hue;
-    expect(hue < 20 || hue > 340, isTrue);
-  });
+  test(
+    'other themes keep their material and Still preserves custom accents',
+    () {
+      final base = nexLightTheme(liquidGlass: true);
+      final classic = nexApplyThemePreset(base, 'classic', null);
+      expect(classic.extension<NexVisualStyle>()!.minimal, isFalse);
+      expect(classic.extension<NexVisualStyle>()!.liquidGlass, isTrue);
+      const red = Color(0xFFD32F2F);
+      final picked = nexApplyThemePreset(base, 'still', red);
+      final hue = HSLColor.fromColor(picked.colorScheme.primary).hue;
+      expect(hue < 20 || hue > 340, isTrue);
+    },
+  );
 }

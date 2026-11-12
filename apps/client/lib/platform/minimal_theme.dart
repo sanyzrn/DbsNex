@@ -64,6 +64,8 @@ ThemeData nexStillTheme(ThemeData theme) {
         glassBorder: Colors.transparent,
         glassRim: Colors.transparent,
         glassShadow: Colors.transparent,
+        glassSpecular: Colors.transparent,
+        glassShade: Colors.transparent,
         glassHighlight: Colors.transparent,
         glassDepth: Colors.transparent,
         blurSigma: 0,
