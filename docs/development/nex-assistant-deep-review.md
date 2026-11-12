@@ -67,3 +67,14 @@
   line, grounding chips, action-card note lists); all three read the same
   `displayText` getter the timeline cards use, so a regression there would
   be visible far outside the chat.
+
+## Nex 2.6.20 device acceptance checks
+
+1. With on-device AI selected, send a long prompt and press Stop while the response is loading. Confirm the spinner ends immediately, the stopped response never reappears, and Retry remains available. Native inference may continue until it finishes.
+2. Ask a fresh question immediately after stopping a local response. Confirm the chat stays interactive; the second response may wait for the device runtime's serialized call.
+3. Open the assistant from a captioned photo, voice recording, and file note. Confirm the About heading and cited source chips show the caption, and that uncaptained notes still have a useful fallback.
+4. Exercise invalid credentials, rate limit, network-offline, and timeout paths during both the initial answer and a subsequent assistant lookup. Confirm the message identifies the failure without exposing raw provider bodies.
+5. Check a library with over 200 notes, including an old urgent note and an old upcoming reminder. Both should appear in Smart Summary, and pull-to-refresh must work even if an automatic refresh is running.
+6. Verify Persian and English UI, app-lock return, normal note capture, and assistant history persist across an upgrade from 2.6.19 to 2.6.20.
+
+These checks complement automated Flutter tests; CI passing is not a substitute for validating native inference on an Android device.
