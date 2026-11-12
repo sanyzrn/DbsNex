@@ -6836,6 +6836,18 @@ abstract class AppLocalizations {
   /// **'One notification a day, at a time you choose'**
   String get nudgeSubtitle;
 
+  /// Settings switch under the daily nudge: allow it to quote a note written on the same date in an earlier year
+  ///
+  /// In en, this message translates to:
+  /// **'On this day'**
+  String get nudgeMemoriesTitle;
+
+  /// Explains the On this day switch of the daily nudge
+  ///
+  /// In en, this message translates to:
+  /// **'On a day with nothing due, bring back a note you wrote on this date in an earlier year'**
+  String get nudgeMemoriesSubtitle;
+
   /// The row that opens the daily nudge's time picker
   ///
   /// In en, this message translates to:

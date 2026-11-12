@@ -4350,6 +4350,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nudgeSubtitle => 'One notification a day, at a time you choose';
 
   @override
+  String get nudgeMemoriesTitle => 'On this day';
+
+  @override
+  String get nudgeMemoriesSubtitle =>
+      'On a day with nothing due, bring back a note you wrote on this date in an earlier year';
+
+  @override
   String get nudgeTime => 'Time';
 
   @override

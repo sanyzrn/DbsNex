@@ -4294,6 +4294,13 @@ class AppLocalizationsFa extends AppLocalizations {
       'روزی یک اعلان، سر ساعتی که خودتان انتخاب می‌کنید';
 
   @override
+  String get nudgeMemoriesTitle => 'در چنین روزی';
+
+  @override
+  String get nudgeMemoriesSubtitle =>
+      'روزی که چیزی سررسید ندارد، یادداشتی را که سال‌های پیش در همین تاریخ نوشته‌اید دوباره نشانتان می‌دهد';
+
+  @override
   String get nudgeTime => 'ساعت';
 
   @override

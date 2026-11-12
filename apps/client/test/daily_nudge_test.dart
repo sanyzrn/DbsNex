@@ -114,6 +114,39 @@ void main() {
       // The default, shown the way the phone writes it.
       expect(find.text('9:00 AM'), findsOneWidget);
     });
+
+    testWidgets('On this day sits under the nudge, on until switched off', (
+      tester,
+    ) async {
+      expect(preferences.dailyNudgeMemories, isTrue);
+      await openSettings(tester);
+      final category = find.byKey(
+        const ValueKey('settings-category-notifications'),
+      );
+      await scrollTo(tester, category);
+      await tester.tap(category);
+      await tester.pumpAndSettle();
+      // A switch for a notification that is not being sent has nothing
+      // behind it.
+      expect(find.text('On this day'), findsNothing);
+
+      await tester.tap(
+        find.ancestor(
+          of: find.text('Daily nudge'),
+          matching: find.byType(NexSwitchTile),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await scrollTo(tester, find.text('On this day'));
+      await tester.tap(
+        find.ancestor(
+          of: find.text('On this day'),
+          matching: find.byType(NexSwitchTile),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(preferences.dailyNudgeMemories, isFalse);
+    });
   });
 
   group('how much the assistant reads', () {

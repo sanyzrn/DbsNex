@@ -1609,6 +1609,8 @@
   "remindPast": "آن لحظه گذشته است",
   "nudgeTitle": "یادآور روزانه",
   "nudgeSubtitle": "روزی یک اعلان، سر ساعتی که خودتان انتخاب می‌کنید",
+  "nudgeMemoriesTitle": "در چنین روزی",
+  "nudgeMemoriesSubtitle": "روزی که چیزی سررسید ندارد، یادداشتی را که سال‌های پیش در همین تاریخ نوشته‌اید دوباره نشانتان می‌دهد",
   "nudgeTime": "ساعت",
   "notifications": "اعلان‌ها",
   "nudgeGreetingMorning": "صبح بخیر، {name}",
