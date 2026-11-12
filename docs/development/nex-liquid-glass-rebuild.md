@@ -185,3 +185,16 @@ the pane evenly.
   it did with glass off.
 - The preference key move means a v2-era `true` needs one tap to re-enable.
   That is deliberate (see above) and consistent with how v1 → v2 was handled.
+
+## Device acceptance before release
+
+The automated matrix validates the renderer's numeric and widget contracts; visual acceptance still requires a real Android device. Before tagging 2.6.21:
+
+1. Turn Liquid Glass **on** in Settings → Appearance. Verify the top bar, navigation dock, menus, dialogs and sheets visibly draw glass in **Light**, **Dark** and **Night**; inspect the bar while scrolling notes underneath.
+2. Compare text readability and edge separation over plain pages, photos, colored notes and busy content, including with increased font size and the phone's reduced-motion setting.
+3. Open and close sheets, change themes while glass is enabled, and exercise pull-to-refresh rapidly; ensure no transparent/gray first frame, dropped frame, layout overflow or crash.
+4. Run a longer timeline scroll and repeated opening of menus on a slower Android device to confirm the additional active bar blur does not cause noticeable jank.
+5. Upgrade an existing 2.6.20 install that had `appearance.liquid_glass_v2=true`. Confirm the new glass stays **off** until the user opts in, and that turning it on persists after restart.
+6. Confirm **legacy Theme Presets remain unavailable**, and that app-lock, backup/restore, reminders and store update routing are unchanged.
+
+Do not interpret an all-green CI as approval of visual appearance or device GPU performance; those require the phone checks above.
