@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emit the Dart NexSurfaceRamp constants for theme_presets.dart from the
+"""Emit the Dart NexSurfaceRamp constants for theme_preset_ramps.dart from the
 verified palettes, so no hex is transcribed by hand."""
 
 import palettes

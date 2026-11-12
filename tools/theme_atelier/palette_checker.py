@@ -2,7 +2,7 @@
 """Nex Theme Atelier — palette floor verifier.
 
 Mirrors the Dart colour math (WCAG luminance, HSL, alphaBlend, readableOn
-walk, glass-wash derivation) so every ramp pinned in theme_presets.dart can
+walk, glass-wash derivation) so every ramp pinned in theme_preset_ramps.dart can
 be verified against every floor the app's tests hold, before the Dart exists.
 """
 from dataclasses import dataclass

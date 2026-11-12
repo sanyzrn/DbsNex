@@ -1,7 +1,7 @@
 # The Theme Atelier — whole-app palettes, rebuilt (Nex 2.6.25)
 
 > Scope: every disabled whole-app palette, line by line — the preset layer
-> (`theme_presets.dart`, `minimal_theme.dart`), the appearance plumbing it
+> (`theme_presets.dart`, `theme_preset_ramps.dart`, `minimal_theme.dart`), the appearance plumbing it
 > rides (`appearance_mode.dart`, `appearance_preferences.dart`,
 > `settings_palettes.dart`), the new surface-ramp token it is built on
 > (`nex_surface_ramp.dart` in `packages/ui`), and every test that holds a
@@ -128,6 +128,9 @@ The supplied patch was based on `c80b467c` (2.6.23). It was reviewed and
 adapted onto `bdf0167d` (2.6.24), retaining the reminder fixes and the current
 glass renderer, including aura, bounce, vibrancy, bevel and grain. Release
 notes and version files were written separately to avoid overwriting 2.6.24.
+
+The 28 ramp constants live in `theme_preset_ramps.dart`, keeping both Dart
+files within the repository’s 800-line source limit.
 
 Additional corrections: custom accents are opaque and clear 4.5:1 on every
 ramp surface; quiet-button overrides preserve the base button geometry;
