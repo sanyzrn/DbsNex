@@ -140,6 +140,11 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     required this.glassHighlight,
     required this.glassDepth,
     required this.blurSigma,
+    this.glassAura = Colors.transparent,
+    this.glassBounce = Colors.transparent,
+    this.glassVibrancy = 1,
+    this.glassEdgeWidth = 1.2,
+    this.glassGrain = 0,
   }) : floatingGlassWash = floatingGlassWash ?? glassWash;
 
   final bool liquidGlass;
@@ -214,6 +219,36 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
 
   final double blurSigma;
 
+  /// The ambient light a pane throws on its own page: a second, wider shadow
+  /// under the contact shadow. A single tight drop makes a shape float; a
+  /// wide, very faint halo is what makes it look like it is *lit*. Transparent
+  /// disables it, which is what the still preset wants.
+  final Color glassAura;
+
+  /// The reflected line along the bottom edge — page light bouncing back into
+  /// the material. It is the cue that separates this from a tinted rectangle:
+  /// one lit edge and one bouncing edge cannot belong to a flat fill.
+  final Color glassBounce;
+
+  /// How much the backdrop's own colour is allowed to sing through the blur.
+  ///
+  /// 1.0 leaves it alone. Above 1 it is Apple's vibrancy, implemented as a
+  /// colour matrix *inside the same backdrop pass* rather than as a blend
+  /// layer reading the destination — the matrix preserves relative luminance,
+  /// so the contrast floors the wash was solved against do not move. The
+  /// earlier additive/luminosity experiments failed because they read the
+  /// layer beneath; a backdrop filter always has a backdrop to read.
+  final double glassVibrancy;
+
+  /// The width of the lit bevel ring inside the hairline, in logical pixels.
+  /// A 1px line reads as a stroke; a ring this size reads as thickness.
+  final double glassEdgeWidth;
+
+  /// Fine frost grain in the edge band, 0 disables it. Kept out of the
+  /// reading area on purpose: texture belongs where the material meets the
+  /// light, not behind a paragraph.
+  final double glassGrain;
+
   @override
   NexVisualStyle copyWith({
     bool? liquidGlass,
@@ -230,6 +265,11 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     Color? glassHighlight,
     Color? glassDepth,
     double? blurSigma,
+    Color? glassAura,
+    Color? glassBounce,
+    double? glassVibrancy,
+    double? glassEdgeWidth,
+    double? glassGrain,
   }) => NexVisualStyle(
     liquidGlass: liquidGlass ?? this.liquidGlass,
     minimal: minimal ?? this.minimal,
@@ -245,6 +285,11 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     glassHighlight: glassHighlight ?? this.glassHighlight,
     glassDepth: glassDepth ?? this.glassDepth,
     blurSigma: blurSigma ?? this.blurSigma,
+    glassAura: glassAura ?? this.glassAura,
+    glassBounce: glassBounce ?? this.glassBounce,
+    glassVibrancy: glassVibrancy ?? this.glassVibrancy,
+    glassEdgeWidth: glassEdgeWidth ?? this.glassEdgeWidth,
+    glassGrain: glassGrain ?? this.glassGrain,
   );
 
   @override
@@ -265,8 +310,27 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
       glassHighlight: Color.lerp(glassHighlight, other.glassHighlight, t)!,
       glassDepth: Color.lerp(glassDepth, other.glassDepth, t)!,
       blurSigma: lerpDouble(blurSigma, other.blurSigma, t)!,
+      glassAura: Color.lerp(glassAura, other.glassAura, t)!,
+      glassBounce: Color.lerp(glassBounce, other.glassBounce, t)!,
+      glassVibrancy: lerpDouble(glassVibrancy, other.glassVibrancy, t)!,
+      glassEdgeWidth: lerpDouble(glassEdgeWidth, other.glassEdgeWidth, t)!,
+      glassGrain: lerpDouble(glassGrain, other.glassGrain, t)!,
     );
   }
+
+  /// The wide, faint shadows painted before [glassEdge]. They are kept out of
+  /// [glassEdge] on purpose: that list is the public four-edge contract, and a
+  /// theme interpolating between generations must not change its length.
+  List<BoxShadow> get glassAmbient => [
+    BoxShadow(
+      color: glassShadow.withValues(alpha: glassShadow.a * 0.6),
+      offset: const Offset(0, 3),
+      blurRadius: 6,
+      spreadRadius: -1,
+    ),
+    if (glassAura.a > 0)
+      BoxShadow(color: glassAura, offset: const Offset(0, 14), blurRadius: 30),
+  ];
 
   /// The four shadows every glass shape carries: the two rim slivers, the
   /// hairline, and the drop.
@@ -433,42 +497,39 @@ class NexGlassSurface extends StatelessWidget {
       );
     }
     final floating = material == NexGlassMaterial.floating;
-    final opticalStrength = floating ? 0.6 : 1.0;
+    final recipe = _GlassRecipe.of(visual, floating);
     final content = CustomPaint(
       painter: _GlassWashPainter(
         floating ? visual.floatingGlassWash : visual.glassWash,
       ),
-      foregroundPainter: _GlassOpticsPainter(borderRadius, visual),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          // The light has a direction: a bright band across the top-left,
+          // The light has a direction: a bright bloom across the top-left,
           // a clear reading band through the middle, and the depth gathering
-          // toward the bottom-right corner. The single long ramp this was
-          // tinted the whole pane evenly, which read as a filter over the
-          // blur rather than as light moving across a surface.
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: const [0, 0.18, 0.46, 1],
-            colors: [
-              visual.glassHighlight.withValues(
-                alpha: visual.glassHighlight.a * opticalStrength,
-              ),
-              Colors.transparent,
-              Colors.transparent,
-              visual.glassDepth.withValues(
-                alpha: visual.glassDepth.a * opticalStrength,
-              ),
-            ],
-          ),
+          // toward the bottom-right corner. The gradient is kept under the
+          // content and out of the contrast model, so it shapes the material
+          // without changing how much ink a theme can carry.
+          gradient: _glassLightGradient(visual, recipe.optical),
         ),
-        child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+        child: CustomPaint(
+          painter: _GlassGrainPainter(
+            visual: visual,
+            radius: borderRadius,
+            amount: recipe.grain,
+          ),
+          foregroundPainter: _GlassOpticsPainter(
+            borderRadius,
+            visual,
+            floating,
+          ),
+          child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+        ),
       ),
     );
     return CustomPaint(
       painter: _GlassEdgePainter(
         shadows: showShadow
-            ? visual.glassEdge
+            ? [...visual.glassAmbient, ...visual.glassEdge]
             : visual.glassEdge.take(3).toList(),
         borderRadius: borderRadius,
       ),
@@ -476,10 +537,9 @@ class NexGlassSurface extends StatelessWidget {
         borderRadius: borderRadius,
         child: blur
             ? BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: visual.blurSigma * (floating ? 0.7 : 1),
-                  sigmaY: visual.blurSigma * (floating ? 0.7 : 1),
-                ),
+                // One pass per surface: blur and vibrancy are composed into
+                // the same backdrop filter rather than layered on top of it.
+                filter: _glassFilter(recipe),
                 child: content,
               )
             : ColoredBox(color: visual.glassOpaque, child: content),
@@ -487,6 +547,101 @@ class NexGlassSurface extends StatelessWidget {
     );
   }
 }
+
+/// The numbers a material is drawn from at a given elevation.
+///
+/// A floating surface sits above the page: it reveals a little more of what is
+/// behind it and blurs a little less, so the shapes underneath stay readable.
+/// A panel is for reading and gets the full blur and the quieter optics.
+@immutable
+class _GlassRecipe {
+  const _GlassRecipe({
+    required this.sigma,
+    required this.vibrancy,
+    required this.optical,
+    required this.grain,
+  });
+
+  factory _GlassRecipe.of(NexVisualStyle visual, bool floating) => _GlassRecipe(
+    sigma: visual.blurSigma * (floating ? 0.72 : 1),
+    vibrancy: 1 + (visual.glassVibrancy - 1) * (floating ? 1 : 0.72),
+    optical: floating ? 0.62 : 1,
+    grain: visual.glassGrain * (floating ? 1.15 : 1),
+  );
+
+  final double sigma;
+  final double vibrancy;
+  final double optical;
+  final double grain;
+}
+
+/// The gradient under the content: a lit corner, a clean reading band, and
+/// depth gathering toward the far corner.
+LinearGradient _glassLightGradient(
+  NexVisualStyle visual,
+  double strength,
+) => LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  stops: const [0, 0.16, 0.44, 0.78, 1],
+  colors: [
+    visual.glassHighlight.withValues(alpha: visual.glassHighlight.a * strength),
+    Colors.transparent,
+    Colors.transparent,
+    visual.glassDepth.withValues(alpha: visual.glassDepth.a * strength * 0.45),
+    visual.glassDepth.withValues(alpha: visual.glassDepth.a * strength),
+  ],
+);
+
+/// Blur plus vibrancy in a single backdrop pass.
+///
+/// Saturation is a luminance-preserving matrix, so everything the wash's
+/// contrast floors were solved against stays exactly where it was; what
+/// changes is that the colour of a note behind the pane arrives at full voice
+/// instead of being flattened by the frosted films.
+ImageFilter _glassFilter(_GlassRecipe recipe) {
+  final sigma = math.max(0.0, recipe.sigma);
+  final blur = ImageFilter.blur(sigmaX: sigma * 1.06, sigmaY: sigma);
+  if (recipe.vibrancy <= 1.001) return blur;
+  return ImageFilter.compose(
+    outer: _glassSaturation(recipe.vibrancy),
+    inner: blur,
+  );
+}
+
+final _saturationFilters = <int, ColorFilter>{};
+
+ColorFilter _glassSaturation(double amount) =>
+    _saturationFilters.putIfAbsent((amount * 1000).round(), () {
+      // Rec. 709 coefficients. Each output row is `s * channel + (1-s) * Y`,
+      // which leaves relative luminance untouched by construction — the one
+      // property that lets vibrancy be added without re-solving every ink
+      // pair in the material.
+      const lr = 0.2126, lg = 0.7152, lb = 0.0722;
+      final inverse = 1 - amount;
+      return ColorFilter.matrix(<double>[
+        lr * inverse + amount,
+        lg * inverse,
+        lb * inverse,
+        0,
+        0,
+        lr * inverse,
+        lg * inverse + amount,
+        lb * inverse,
+        0,
+        0,
+        lr * inverse,
+        lg * inverse,
+        lb * inverse + amount,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+      ]);
+    });
 
 /// A pane's optics: the hairline, the lit top edge, and the shaded bottom.
 ///
@@ -501,54 +656,130 @@ class NexGlassSurface extends StatelessWidget {
 ///   same curve has a grounded side and the surface reads as volume rather
 ///   than as a flat sticker with a border.
 class _GlassOpticsPainter extends CustomPainter {
-  const _GlassOpticsPainter(this.radius, this.visual);
+  const _GlassOpticsPainter(this.radius, this.visual, this.floating);
   final BorderRadius radius;
   final NexVisualStyle visual;
+  final bool floating;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     final rect = (Offset.zero & size).deflate(0.7);
     final shape = radius.toRRect(rect);
+    final specular = visual.glassSpecular;
+    final bounce = visual.glassBounce;
+    final shade = visual.glassShade;
+
+    // 1. The boundary. Five stops rather than one long ramp: the top-left
+    // catches the key light, the bottom-right carries the bounced one, and
+    // the sides fall back to the hairline. Same stroke, a real light angle.
     canvas.drawRRect(
       shape,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
+        ..strokeWidth = 1.1
         ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [visual.glassRim, visual.glassBorder, visual.glassDepth],
-          stops: const [0, 0.48, 1],
+          colors: [
+            visual.glassRim,
+            visual.glassBorder,
+            bounce.withValues(alpha: bounce.a * 0.55),
+            visual.glassBorder,
+            visual.glassRim.withValues(alpha: visual.glassRim.a * 0.55),
+          ],
+          stops: const [0, 0.30, 0.74, 0.90, 1],
         ).createShader(rect),
     );
-    // Both inner strokes follow a shape inset past the hairline, and each is
-    // clipped to its own end of the pane with its gradient landing on zero
-    // exactly at the clip, so the lit and shaded halves meet in the middle
-    // without a seam or a hard cut.
+
+    // 2. The bevel. A single pixel reads as a stroke; a ring this wide reads
+    // as material with thickness, brighter where the light enters and
+    // throwing a bounce where it leaves.
+    final bevel = visual.glassEdgeWidth;
+    if (bevel > 0) {
+      final inner = (Offset.zero & size).deflate(0.7 + bevel / 2);
+      canvas.drawRRect(
+        radius.toRRect(inner),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = bevel
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              specular.withValues(alpha: specular.a * 0.42),
+              specular.withValues(alpha: specular.a * 0.05),
+              Colors.transparent,
+              bounce.withValues(alpha: bounce.a * 0.20),
+              shade.withValues(alpha: shade.a * 0.30),
+            ],
+            stops: const [0, 0.16, 0.46, 0.86, 1],
+          ).createShader(inner),
+      );
+    }
+
+    // 3. The bloom. Light entering the top-left corner does not stop at the
+    // stroke; it spills a short way into the pane. Clipped to the shape, and
+    // far enough from the reading band to never touch a glyph.
+    if (specular.a > 0) {
+      final bloomRadius =
+          math.min(rect.width, rect.height) * (floating ? 0.38 : 0.34);
+      final centre = Offset(
+        rect.left + rect.width * 0.08,
+        rect.top + rect.height * 0.05,
+      );
+      canvas.save();
+      canvas.clipRRect(shape);
+      canvas.drawCircle(
+        centre,
+        bloomRadius,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              specular.withValues(alpha: specular.a * (floating ? 0.09 : 0.08)),
+              specular.withValues(alpha: 0),
+            ],
+          ).createShader(Rect.fromCircle(center: centre, radius: bloomRadius)),
+      );
+      canvas.restore();
+    }
+
+    // 4. The lit and shaded inner edges. Both follow a shape inset past the
+    // hairline, and each is clipped to its own end of the pane with its
+    // gradient landing on zero exactly at the clip, so the halves meet in the
+    // middle without a seam. The specular is drawn twice: a soft, blurred
+    // under-stroke and the crisp 1px arc above it — the pair is what makes it
+    // read as a curved surface rather than as a highlight drawn on a box.
     final inner = (Offset.zero & size).deflate(1.5);
     final innerShape = radius.toRRect(inner);
-    final band = size.height * 0.62;
-    if (visual.glassSpecular.a > 0) {
+    final band = size.height * (floating ? 0.9 : 0.62);
+    if (specular.a > 0) {
+      final clip = Rect.fromLTWH(0, 0, size.width, band);
+      final shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [specular, specular.withValues(alpha: 0)],
+      ).createShader(clip);
       canvas.save();
-      canvas.clipRect(Rect.fromLTWH(0, 0, size.width, band));
+      canvas.clipRect(clip);
       canvas.drawRRect(
         innerShape,
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6
-          ..shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              visual.glassSpecular,
-              visual.glassSpecular.withValues(alpha: 0),
-            ],
-          ).createShader(Rect.fromLTWH(0, 0, size.width, band)),
+          ..strokeWidth = 3.4
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5)
+          ..shader = shader,
+      );
+      canvas.drawRRect(
+        innerShape,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.05
+          ..shader = shader,
       );
       canvas.restore();
     }
-    if (visual.glassShade.a > 0) {
+    if (shade.a > 0) {
       canvas.save();
       canvas.clipRect(Rect.fromLTWH(0, band, size.width, size.height - band));
       canvas.drawRRect(
@@ -560,13 +791,54 @@ class _GlassOpticsPainter extends CustomPainter {
               LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
-                colors: [
-                  visual.glassShade,
-                  visual.glassShade.withValues(alpha: 0),
-                ],
+                colors: [shade, shade.withValues(alpha: 0)],
               ).createShader(
                 Rect.fromLTWH(0, band, size.width, size.height - band),
               ),
+      );
+      canvas.restore();
+    }
+
+    // 5. The bounce. Light comes off the page and back into the bottom edge,
+    // which is why real glass is brighter along its lower rim than its sides.
+    // A thin centre-weighted line with a short glow beneath it, both kept
+    // inside the rounded shape.
+    if (bounce.a > 0) {
+      final bounceShape = radius.toRRect((Offset.zero & size).deflate(1.2));
+      final glowHeight = math.min(18.0, size.height * 0.28);
+      final glow = Rect.fromLTWH(
+        0,
+        size.height - glowHeight,
+        size.width,
+        glowHeight,
+      );
+      canvas.save();
+      canvas.clipRRect(bounceShape);
+      canvas.drawRect(
+        glow,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              bounce.withValues(alpha: bounce.a * 0.22),
+              bounce.withValues(alpha: 0),
+            ],
+          ).createShader(glow),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(0, size.height - 2.1, size.width, 1.1),
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              bounce.withValues(alpha: 0),
+              bounce.withValues(alpha: bounce.a * 0.85),
+              bounce.withValues(alpha: 0),
+            ],
+            stops: const [0.03, 0.5, 0.97],
+          ).createShader(Offset.zero & size),
       );
       canvas.restore();
     }
@@ -574,7 +846,81 @@ class _GlassOpticsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GlassOpticsPainter old) =>
-      old.radius != radius || old.visual != visual;
+      old.radius != radius || old.visual != visual || old.floating != floating;
+}
+
+/// Frost grain, confined to the edge band.
+///
+/// The films are flat, and flat alpha over a gradient bands on an 8-bit
+/// screen — a real material always carries a little tooth. The texture is
+/// deterministic, blitted as two point clouds in one draw call each, and
+/// cached per size so a scrolling page never regenerates it. It stops short
+/// of the reading area: a paragraph is not where grain belongs.
+class _GlassGrainPainter extends CustomPainter {
+  const _GlassGrainPainter({
+    required this.visual,
+    required this.radius,
+    required this.amount,
+  });
+
+  final NexVisualStyle visual;
+  final BorderRadius radius;
+  final double amount;
+
+  static final _cache = <int, Float32List>{};
+  static const _step = 3.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strength = amount.clamp(0.0, 0.12);
+    if (strength <= 0 || size.width < 8 || size.height < 8) return;
+    final band = math.min(16.0, math.min(size.width, size.height) * 0.24);
+    final key = Object.hash(
+      (size.width * 2).round(),
+      (size.height * 2).round(),
+      (band * 4).round(),
+    );
+    if (_cache.length > 8) _cache.clear();
+    final points = _cache.putIfAbsent(key, () => _build(size, band));
+    final alpha = (visual.glassSpecular.a * strength * 0.55).clamp(0.0, 1.0);
+    if (alpha <= 0) return;
+    canvas.save();
+    canvas.clipRRect(radius.toRRect(Offset.zero & size));
+    canvas.drawRawPoints(
+      PointMode.points,
+      points,
+      Paint()
+        ..color = Colors.white.withValues(alpha: alpha)
+        ..strokeWidth = 1
+        ..isAntiAlias = false,
+    );
+    canvas.restore();
+  }
+
+  static Float32List _build(Size size, double band) {
+    final points = <double>[];
+    var seed = 0x9E3779B9;
+    double next() {
+      seed = (seed * 1664525 + 1013904223) & 0xFFFFFFFF;
+      return seed / 0xFFFFFFFF;
+    }
+
+    for (var y = 1.5; y < size.height; y += _step) {
+      final edgeRow = y < band || y > size.height - band;
+      for (var x = 1.5; x < size.width; x += _step) {
+        if (!edgeRow && x >= band && x <= size.width - band) continue;
+        points
+          ..add(x + (next() - 0.5) * _step * 0.8)
+          ..add(y + (next() - 0.5) * _step * 0.8);
+        next();
+      }
+    }
+    return Float32List.fromList(points);
+  }
+
+  @override
+  bool shouldRepaint(_GlassGrainPainter old) =>
+      old.visual != visual || old.radius != radius || old.amount != amount;
 }
 
 /// The blurred band behind a top bar, for a bar the content scrolls under.
@@ -623,10 +969,10 @@ class NexGlassBar extends StatelessWidget {
     return SizedBox.expand(
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: visual.blurSigma,
-            sigmaY: visual.blurSigma,
-          ),
+          // Same material as a pane, same single backdrop pass. The bar is
+          // read as a panel rather than as a floating control, so it keeps
+          // the panel's blur and vibrancy.
+          filter: _glassFilter(_GlassRecipe.of(visual, false)),
           child: CustomPaint(
             painter: _GlassWashPainter(visual.glassWash),
             foregroundPainter: _GlassBarEdgePainter(visual),
@@ -635,9 +981,13 @@ class NexGlassBar extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [visual.glassHighlight, visual.glassDepth],
+                  stops: const [0, 0.55, 1],
+                  colors: [
+                    visual.glassHighlight,
+                    Colors.transparent,
+                    visual.glassDepth,
+                  ],
                 ),
-                border: Border(bottom: BorderSide(color: visual.glassBorder)),
               ),
             ),
           ),
@@ -660,23 +1010,87 @@ class _GlassBarEdgePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (size.isEmpty || visual.glassSpecular.a == 0) return;
+    if (size.isEmpty) return;
+
+    // A shallow shade under the status bar. The bar is translucent, so the
+    // clock and battery can otherwise land on whatever bright note happens to
+    // be scrolling beneath them.
+    final shade = visual.glassShade;
+    if (shade.a > 0) {
+      final scrim = Rect.fromLTWH(
+        0,
+        0,
+        size.width,
+        math.min(28.0, size.height * 0.45),
+      );
+      canvas.drawRect(
+        scrim,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              shade.withValues(alpha: shade.a * 0.5),
+              shade.withValues(alpha: 0),
+            ],
+          ).createShader(scrim),
+      );
+    }
+
+    // The one edge that faces the page gets the whole optical stack: a
+    // hairline, a bounce and a lit meniscus above it. From a little distance
+    // that trio reads as the bar's thickness, not as three lines.
     canvas.drawRect(
-      Rect.fromLTWH(0, size.height - 2.2, size.width, 1.2),
-      Paint()
-        ..shader = LinearGradient(
-          begin: AlignmentDirectional.centerStart.resolve(TextDirection.ltr),
-          end: AlignmentDirectional.centerEnd.resolve(TextDirection.ltr),
-          colors: [
-            visual.glassSpecular.withValues(alpha: visual.glassSpecular.a * 0),
-            visual.glassSpecular.withValues(
-              alpha: visual.glassSpecular.a * 0.5,
-            ),
-            visual.glassSpecular.withValues(alpha: visual.glassSpecular.a * 0),
-          ],
-          stops: const [0.05, 0.5, 0.95],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+      Rect.fromLTWH(0, size.height - 1, size.width, 1),
+      Paint()..color = visual.glassBorder,
     );
+    final bounce = visual.glassBounce;
+    if (bounce.a > 0) {
+      final glow = Rect.fromLTWH(0, size.height - 12, size.width, 12);
+      canvas.drawRect(
+        glow,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              bounce.withValues(alpha: bounce.a * 0.16),
+              bounce.withValues(alpha: 0),
+            ],
+          ).createShader(glow),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(0, size.height - 2.6, size.width, 1.2),
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              bounce.withValues(alpha: 0),
+              bounce.withValues(alpha: bounce.a * 0.8),
+              bounce.withValues(alpha: 0),
+            ],
+            stops: const [0.04, 0.5, 0.96],
+          ).createShader(Offset.zero & size),
+      );
+    }
+    final specular = visual.glassSpecular;
+    if (specular.a > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(0, size.height - 4.4, size.width, 1.0),
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              specular.withValues(alpha: 0),
+              specular.withValues(alpha: specular.a * 0.5),
+              specular.withValues(alpha: 0),
+            ],
+            stops: const [0.05, 0.5, 0.95],
+          ).createShader(Offset.zero & size),
+      );
+    }
   }
 
   @override

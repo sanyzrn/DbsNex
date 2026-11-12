@@ -297,6 +297,13 @@ abstract interface class NexDb {
 
   Future<void> setDueAt(String noteId, DateTime? when, {NoteRepeat repeat});
 
+  /// Records that **Done** was pressed for [id]'s reminder at [at].
+  ///
+  /// Durable, unlike the preference hand-off written by the isolate behind
+  /// the notification's button: the daily nudge reads this, and the answer
+  /// survives the timeline consuming that hand-off.
+  Future<void> markReminderAcked(String id, DateTime at);
+
   Future<List<Note>> upcomingReminders({int limit});
 
   /// The live notes the daily brief reads beyond the timeline window:

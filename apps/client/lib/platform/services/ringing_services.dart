@@ -13,7 +13,7 @@ extension NexRingingServices on NexServices {
   /// Brings [ringing] up to date with the shade, and with any **Done**
   /// pressed while the app was away. Cheap: one read of the shade.
   Future<void> syncRinging() async {
-    final acknowledged = await reminders.takeAcknowledged();
+    final acknowledged = await settleReminderAcks();
     final shown = await reminders.shownNoteIds();
     final next = {..._preferences.ringingNotes, ...shown}
       ..removeAll(acknowledged);
@@ -25,6 +25,59 @@ extension NexRingingServices on NexServices {
       if (note == null || note.deletedAt != null) next.remove(id);
     }
     await _setRinging(next);
+  }
+
+  /// Applies the **Done** presses the notification isolate left behind to the
+  /// note itself, and answers which notes were settled.
+  ///
+  /// The preference list is a hand-off, not the fact. A button that shows no
+  /// UI is handled in an isolate with no database, so the only thing it can
+  /// do is leave the note id where the app will read it. This is that list's
+  /// one reader: it writes [Note.reminderAckedAt] once, before either the
+  /// timeline or the daily nudge looks at the note. Whichever of them runs
+  /// first can no longer decide whether an answered reminder is mentioned.
+  ///
+  /// Idempotent: callers share one flight, and a second launch that finds the
+  /// list empty has every answer already in the library.
+  Future<Set<String>> settleReminderAcks() {
+    final running = _ackFlight;
+    if (running != null) return running;
+    late final Future<Set<String>> flight;
+    flight = _applyAcknowledgements().whenComplete(() {
+      if (identical(_ackFlight, flight)) _ackFlight = null;
+    });
+    _ackFlight = flight;
+    return flight;
+  }
+
+  Future<Set<String>> _applyAcknowledgements() async {
+    final acknowledged = (await reminders.takeAcknowledged()).toSet();
+    if (acknowledged.isEmpty) return const {};
+    final at = DateTime.now().toUtc();
+    final settled = <String>{};
+    for (final id in acknowledged) {
+      try {
+        await worker.markReminderAcked(id, at);
+        settled.add(id);
+      } catch (error) {
+        unawaited(NexCrashLog.handled('reminder.ack', error));
+        // The hand-off was cleared before the write. Put this one back so the
+        // next sync can make it durable instead of losing the answer.
+        await NexReminderActions.requeueAcknowledged([id]);
+      }
+    }
+    if (settled.isEmpty) return const {};
+    // The same answer stops the card's bell, whichever consumer asked first.
+    // The persisted set is edited on its own rather than through [_setRinging]:
+    // at launch the notifier is still empty while this set may not be, and
+    // writing the notifier over it would erase the bells that are still real.
+    final persisted = _preferences.ringingNotes..removeAll(settled);
+    await _preferences.setRingingNotes(persisted);
+    final live = {...ringing.value}..removeAll(settled);
+    if (!setEquals(live, ringing.value)) {
+      ringing.value = Set.unmodifiable(live);
+    }
+    return settled;
   }
 
   /// Recurring items met with **Done** in the shade, each at the moment it
@@ -66,7 +119,21 @@ extension NexRingingServices on NexServices {
   }
 
   /// **Done** was pressed in the shade while the app was running.
+  ///
+  /// The answer is written to the note here too, rather than left to the
+  /// background isolate's hand-off: while the app is in front that button is
+  /// delivered to it directly, and a durable fact that exists only when the
+  /// other path happened to run is the same ordering bug in a new place.
   Future<void> acknowledgeRinging(String noteId) async {
+    try {
+      await worker.markReminderAcked(noteId, DateTime.now().toUtc());
+    } catch (error) {
+      unawaited(NexCrashLog.handled('reminder.ack', error));
+      // The next sync retries what this call could not write.
+      await NexReminderActions.requeueAcknowledged([noteId]);
+    }
+    // Today's plan may already be armed with a line about this reminder.
+    _queueDailyNudge();
     if (!ringing.value.contains(noteId)) return;
     await _setRinging({...ringing.value}..remove(noteId));
   }

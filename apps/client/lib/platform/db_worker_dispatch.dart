@@ -351,6 +351,12 @@ class _Worker {
           repeat: NoteRepeat.fromWire(arg('repeat') as String?),
         );
       }),
+      _DbCommand.markReminderAcked => NexDbWorker._voided(
+        () => repo.markReminderAcked(
+          arg('id')! as String,
+          DateTime.parse(arg('at')! as String),
+        ),
+      ),
       _DbCommand.upcomingReminders => repo.listUpcomingReminders(
         limit: arg('limit')! as int,
       ),

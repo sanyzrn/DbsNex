@@ -73,6 +73,11 @@ extension NexDailyNudgeServices on NexServices {
                 reminders.onDiagnostic?.call('nudge alarm: $previous');
               }
             }
+            // The nudge plans against the note, not against the hand-off list
+            // the timeline drains at launch. Writing any **Done** from the
+            // shade into the library first means the answer no longer depends
+            // on whether `syncRinging` ran before this plan.
+            await settleReminderAcks();
             final source = await worker.nudgeSnapshot();
             if (_closed || epoch != _nudgeEpoch) {
               result.complete(null);
@@ -94,6 +99,7 @@ extension NexDailyNudgeServices on NexServices {
                             n.isUrgent,
                             n.dueAt?.toIso8601String(),
                             n.dueRepeat.name,
+                            n.reminderAckedAt?.toIso8601String(),
                             n.setAsideUntil?.toIso8601String(),
                           ],
                       ],
@@ -120,8 +126,6 @@ extension NexDailyNudgeServices on NexServices {
                 .toString();
             final store = await SharedPreferences.getInstance();
             await store.reload();
-            final acknowledged =
-                (store.getStringList('reminders.acked') ?? const []).toSet();
             final met = {
               for (final item
                   in store.getStringList('reminders.met') ?? const <String>[])
@@ -140,6 +144,13 @@ extension NexDailyNudgeServices on NexServices {
               );
             }
             final now = DateTime.now();
+            // A reminder answered today is a fact about today, read from the
+            // note itself. It is not a reason to forget the reminder: a
+            // repeating one comes back at its own time, and the plan for every
+            // later day still carries it.
+            final answeredToday = source.notes.any(
+              (note) => note.reminderAnsweredOn(now),
+            );
             final localeKey =
                 _preferences.locale?.languageCode ??
                 Platform.localeName.split('_').first;
@@ -150,7 +161,7 @@ extension NexDailyNudgeServices on NexServices {
               return;
             }
             final summaryMatches =
-                acknowledged.isEmpty &&
+                !answeredToday &&
                 met.isEmpty &&
                 store.getString('dailyNudge.summarySource') == key &&
                 store.getInt('dailyNudge.summaryAt') ==
@@ -159,12 +170,7 @@ extension NexDailyNudgeServices on NexServices {
                     !_preferences.briefHabitsAllowed);
             final input = (
               source: NexNudgeSnapshot(
-                notes: [
-                  for (final note in source.notes)
-                    acknowledged.contains(note.id)
-                        ? note.copyWith(clearDueAt: true)
-                        : note,
-                ],
+                notes: source.notes,
                 commitments: source.commitments
                     .where((item) => !met.contains(item.id))
                     .toList(),

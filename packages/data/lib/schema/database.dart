@@ -208,6 +208,11 @@ CREATE TABLE IF NOT EXISTS note_tags (
     // every timeline read.
     _addColumnIfMissing('notes', 'due_at', 'TEXT');
     _addColumnIfMissing('notes', 'due_repeat', 'TEXT');
+    // When **Done** was pressed for this note's reminder. Local only, and
+    // deliberately beside the reminder rather than in a queue: the nudge
+    // reads it after the hand-off list from the notification isolate has
+    // long been drained.
+    _addColumnIfMissing('notes', 'reminder_acked_at', 'TEXT');
 
     // Local-only organisation: up to five pinned notes, and a manual
     // position set by dragging in Rearrange mode. Neither is synced or
@@ -748,6 +753,7 @@ CREATE TABLE notes_rebuilt (
   -- databases it exists to migrate.
   due_at TEXT,
   due_repeat TEXT,
+  reminder_acked_at TEXT,
   pinned_at TEXT,
   is_urgent INTEGER NOT NULL DEFAULT 0,
   set_aside_at TEXT,

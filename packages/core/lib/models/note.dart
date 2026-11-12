@@ -77,6 +77,7 @@ class Note {
     this.setAsideUntil,
     this.dueAt,
     this.dueRepeat = NoteRepeat.once,
+    this.reminderAckedAt,
     this.sortOrder,
     this.attachmentCount = 0,
   });
@@ -177,6 +178,36 @@ class Note {
   /// scheduled on *this* device's OS, so it is not something another device
   /// can honour and not something a JSON export means anything by.
   final NoteRepeat dueRepeat;
+
+  /// When **Done** was pressed for this note's reminder, stored in UTC, or
+  /// null. Local only, like [pinnedAt]: an acknowledgement is what the
+  /// notification on *this* device was answered with, not a fact another
+  /// device can produce or disagree with.
+  ///
+  /// Durable on purpose. The background isolate that receives the button has
+  /// no database, so it can only leave the id where the app will read it.
+  /// Once the app is in front, that hand-off is written here. The daily nudge
+  /// then plans against this column, not against the hand-off list, which the
+  /// timeline consumes at launch — the order in which the two run can no
+  /// longer decide whether an answered reminder is mentioned.
+  ///
+  /// It does not replace [dueAt]. Answering a reminder says what happened to
+  /// one ring, not that the note no longer has the time its owner gave it.
+  final DateTime? reminderAckedAt;
+
+  /// Whether **Done** was pressed for this note on the day [day] falls in.
+  ///
+  /// The comparison is in the person's local day, not UTC: an answer at 00:30
+  /// belongs to the day they woke up on, and a zone offset must not move it to
+  /// the previous one. A UTC [day] (as some tests use) is compared in UTC.
+  bool reminderAnsweredOn(DateTime day) {
+    final acked = reminderAckedAt;
+    if (acked == null) return false;
+    final local = day.isUtc ? acked.toUtc() : acked.toLocal();
+    return local.year == day.year &&
+        local.month == day.month &&
+        local.day == day.day;
+  }
 
   /// Manual position, set by dragging in Rearrange mode. Null means "not
   /// manually placed" — such notes sort by [updatedAt] ahead of any that
@@ -363,6 +394,7 @@ class Note {
     DateTime? dueAt,
     bool clearDueAt = false,
     NoteRepeat? dueRepeat,
+    DateTime? reminderAckedAt,
     int? sortOrder,
     bool clearSortOrder = false,
     int? attachmentCount,
@@ -412,6 +444,7 @@ class Note {
           : (setAsideUntil ?? this.setAsideUntil),
       dueAt: clearDueAt ? null : (dueAt ?? this.dueAt),
       dueRepeat: dueRepeat ?? this.dueRepeat,
+      reminderAckedAt: reminderAckedAt ?? this.reminderAckedAt,
       sortOrder: clearSortOrder ? null : (sortOrder ?? this.sortOrder),
       attachmentCount: attachmentCount ?? this.attachmentCount,
     );
@@ -473,6 +506,9 @@ class Note {
           ? DateTime.parse(row['due_at']! as String).toUtc()
           : null,
       dueRepeat: NoteRepeat.fromWire(row['due_repeat'] as String?),
+      reminderAckedAt: (row['reminder_acked_at'] as String?) != null
+          ? DateTime.parse(row['reminder_acked_at']! as String).toUtc()
+          : null,
       pinnedAt: (row['pinned_at'] as String?) != null
           ? DateTime.parse(row['pinned_at']! as String).toUtc()
           : null,
@@ -535,6 +571,7 @@ bool nexSameNote(Note a, Note b) {
       a.setAsideUntil != b.setAsideUntil ||
       a.dueAt != b.dueAt ||
       a.dueRepeat != b.dueRepeat ||
+      a.reminderAckedAt != b.reminderAckedAt ||
       a.sortOrder != b.sortOrder ||
       a.attachmentCount != b.attachmentCount) {
     return false;

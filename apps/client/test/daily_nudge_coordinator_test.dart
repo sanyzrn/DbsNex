@@ -227,6 +227,84 @@ void main() {
     }
   });
 
+  test('a Done drained at launch is still known to the nudge', () async {
+    final note = (await h.db.captureText('answered-at-launch'))!;
+    final due = DateTime.now().subtract(const Duration(hours: 1));
+    await h.db.setDueAt(note.id, due);
+    await h.services.ring(note.id);
+    expect(
+      await NexReminderActions.handle(
+        NotificationResponse(
+          notificationResponseType:
+              NotificationResponseType.selectedNotificationAction,
+          actionId: NexReminderActions.done,
+          payload: note.id,
+        ),
+        FlutterLocalNotificationsPlugin(),
+      ),
+      note.id,
+    );
+
+    // The launch order that used to lose the answer: the timeline's sweep
+    // drains the hand-off list before the nudge is planned.
+    await h.services.syncRinging();
+    expect(h.services.ringing.value, isEmpty);
+    await h.preferences.setDailyNudge(true);
+    await h.services.updateDailyNudge();
+
+    final stored = (await h.db.getById(note.id))!;
+    expect(stored.reminderAckedAt, isNotNull);
+    expect(
+      stored.dueAt!.isAtSameMomentAs(due),
+      isTrue,
+      reason: 'Done does not take the reminder away',
+    );
+    expect(await NexReminderActions.takeAcknowledged(), isEmpty);
+    expect(
+      NexDailyNudgeContent.local(
+        await h.db.nudgeSnapshot(),
+        DateTime.now(),
+        persian: false,
+      ).join(' '),
+      isNot(contains('answered-at-launch')),
+    );
+    expect(plans, isNotEmpty);
+  });
+
+  test('the nudge settles a Done even when it plans first', () async {
+    final note = (await h.db.captureText('answered-before-launch'))!;
+    final due = DateTime.now().subtract(const Duration(hours: 1));
+    await h.db.setDueAt(note.id, due);
+    await h.services.ring(note.id);
+    await NexReminderActions.handle(
+      NotificationResponse(
+        notificationResponseType:
+            NotificationResponseType.selectedNotificationAction,
+        actionId: NexReminderActions.done,
+        payload: note.id,
+      ),
+      FlutterLocalNotificationsPlugin(),
+    );
+
+    await h.preferences.setDailyNudge(true);
+    await h.services.updateDailyNudge();
+
+    expect((await h.db.getById(note.id))!.reminderAckedAt, isNotNull);
+    expect(await NexReminderActions.takeAcknowledged(), isEmpty);
+    // The strike that answers the reminder answers its bell as well, before
+    // the timeline has had a chance to run.
+    expect(h.services.ringing.value, isEmpty);
+    await h.services.syncRinging();
+    expect(
+      NexDailyNudgeContent.local(
+        await h.db.nudgeSnapshot(),
+        DateTime.now(),
+        persian: false,
+      ).join(' '),
+      isNot(contains('answered-before-launch')),
+    );
+  });
+
   test('completing a checklist rebuilds the nudge while its detail stays open', () async {
     final note = (await h.services.captureChecklist([
       const ChecklistItem(text: 'open-task', done: false),

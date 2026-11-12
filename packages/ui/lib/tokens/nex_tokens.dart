@@ -1096,6 +1096,27 @@ ThemeData _theme({
         // across six times its own width — and still nowhere near the 32
         // that went with the old near-opaque tint.
         blurSigma: 12,
+        // Gen 4 — depth. The material now has a light angle: an ambient halo
+        // that lifts it off its own page, a bounced line along the bottom,
+        // and a bevel wide enough to be thickness rather than a stroke.
+        //
+        // The aura is a cool, very faint spill in dark (a black shadow on a
+        // black page is nothing) and a warm-tinted contact in comfort, so the
+        // halo belongs to the page it falls on.
+        glassAura: dark
+            ? const Color(0xFF9CC7FF).withValues(alpha: 0.055)
+            : Colors.black.withValues(alpha: comfortMode ? 0.055 : 0.045),
+        glassBounce: dark
+            ? Colors.white.withValues(alpha: 0.22)
+            : (comfortMode ? const Color(0xFFFFF4E2) : Colors.white).withValues(
+                alpha: 0.55,
+              ),
+        // Saturation only — a luminance-preserving matrix, so the contrast
+        // floors above hold exactly. Floating chrome gets the full effect
+        // because it has the most page behind it; panels get 72% of it.
+        glassVibrancy: dark ? 1.10 : 1.14,
+        glassEdgeWidth: 1.8,
+        glassGrain: dark ? 0.06 : 0.05,
       ),
     ],
     // A capsule that floats, not a slab pinned to the bottom edge.

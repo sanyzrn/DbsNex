@@ -198,3 +198,57 @@ The automated matrix validates the renderer's numeric and widget contracts; visu
 6. Confirm **legacy Theme Presets remain unavailable**, and that app-lock, backup/restore, reminders and store update routing are unchanged.
 
 Do not interpret an all-green CI as approval of visual appearance or device GPU performance; those require the phone checks above.
+
+## Addendum — the depth pass (2.6.24)
+
+The 2.6.21 rebuild made the material legible, transmissive and visible on every
+shipped page. It still read as a *painted pane with an edge*: the films carried
+no vibrancy, the optics were two strokes, and the only shadow was one 5% drop.
+The fourth generation adds the missing light without changing the opt-in, the
+four films, or the one-backdrop-filter-per-surface budget.
+
+### What changed
+
+- **Vibrancy in the same pass.** `NexVisualStyle.glassVibrancy` (1.14 light,
+  1.10 dark) is applied as a saturation matrix composed *inside* the surface's
+  single `BackdropFilter`, around the blur. The matrix is the Rec. 709
+  luminance-preserving form (`s·C + (1−s)·Y`), so relative luminance is
+  unchanged by construction and every contrast floor the films were solved
+  against still holds. The old vibration attempt failed because it was a blend
+  layer reading the destination; a backdrop filter always has a backdrop.
+  Floating chrome gets the full matrix, panels 72% of it.
+- **A light angle.** The optics painter now draws, in order: a five-stop
+  hairline (key light top-left, bounce bottom-right), a 1.8px bevel ring, a
+  clipped corner bloom, a soft+crisp specular pair down from the top, the
+  existing bottom shade, and a centre-weighted bounce line with a short glow.
+  Together they read as thickness rather than as a border.
+- **Lift.** `glassAmbient` adds a tight contact shadow and a wide, very faint
+  halo. Dark uses a cool halo because a black shadow on a black page is
+  nothing; comfort uses a warm one. `glassEdge` is untouched at four shadows.
+- **Texture.** `glassGrain` scatters deterministic 1px frost points, cached per
+  surface size, only within a 16px band inside the edge. Nothing lands in the
+  reading area; the floating pixel test's centre samples stay identical.
+- **The bar.** It now shares the composed filter, gets a status-bar scrim, and
+  draws a hairline + bounce + lit meniscus along its one exposed edge.
+
+### Tests
+
+- New `every glass theme carries a lit bevel, a bounce and an ambient halo`:
+  the five new tokens exist and survive `copyWith`/`lerp` in Light, Dark,
+  Soft Dark and OLED Night.
+- Re-run and green: `packages/ui` 373; client glass-related suites (assistant,
+  settings panels, dialogs, context menus, bottom bar, search field, still
+  theme, appearance modes, release-two appearance) 153; whole-client suite
+  separately.
+- The existing numeric floors, pixel transmission ratios, BackdropFilter
+  counts and high-contrast fallbacks were not relaxed.
+
+### Limits
+
+The vibrancy matrix runs in the compositor's colour space, not a linear one;
+for mid-saturation colours the WCAG luminance can move by a small fraction of
+a percent even though the sRGB luma is preserved. The floors carry enough
+margin for it. Edge *displacement* refraction still needs backdrop sampling
+that `ImageFilter` does not expose, so the bevel is an optical approximation,
+not a bend. Device GPU cost of `ImageFilter.compose` was not measured here;
+the alpha and device checklist above remain the acceptance path.

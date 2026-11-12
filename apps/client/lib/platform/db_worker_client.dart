@@ -412,6 +412,12 @@ mixin _DbClient implements NexDb {
   });
 
   @override
+  Future<void> markReminderAcked(String id, DateTime at) => _send<void>(
+    _DbCommand.markReminderAcked,
+    {'id': id, 'at': at.toUtc().toIso8601String()},
+  );
+
+  @override
   Future<List<Note>> upcomingReminders({int limit = 200}) =>
       _send<List<Note>>(_DbCommand.upcomingReminders, {'limit': limit});
 
