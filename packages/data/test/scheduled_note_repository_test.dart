@@ -53,6 +53,44 @@ void main() {
     expect(notes.listTimeline(), isEmpty);
   });
 
+  test('the title and tags waiting with a note come back with it', () {
+    final note = capture.submitTextCapture('a note with a heading')!;
+    notes.setTitle(note.id, 'The heading');
+    final tag = notes.upsertTag(name: 'future');
+    notes.attachTag(noteId: note.id, tagId: tag.id);
+
+    expect(scheduled.schedule(note.id, later), isNotNull);
+    expect(notes.getById(note.id), isNull);
+
+    final arrived = scheduled
+        .releaseDue(later.add(const Duration(hours: 1)))
+        .single;
+    expect(arrived.content, 'a note with a heading');
+    expect(arrived.title, 'The heading');
+    expect(arrived.tags.map((t) => t.name), ['future']);
+    // The heading is searchable again too, not only present on the card.
+    expect(
+      notes.search(const SearchFilters(query: 'heading')).single.id,
+      note.id,
+    );
+  });
+
+  test('a note with attachments is not scheduled away from them', () {
+    final note = capture.submitTextCapture('a note with a document')!;
+    final document = File(p.join(tmp.path, 'document.pdf'))
+      ..writeAsBytesSync([1, 2, 3]);
+    SqliteAttachmentRepository(notes, localDeviceId: 'd').add(
+      note.id,
+      kind: AttachmentKind.file,
+      mediaUri: document.path,
+      mediaHash: 'hash',
+    );
+
+    expect(scheduled.schedule(note.id, later), isNull);
+    expect(notes.getById(note.id)?.attachmentCount, 1);
+    expect(document.existsSync(), isTrue);
+  });
+
   test('at its time it arrives as an ordinary note, under the same id', () {
     final note = capture.submitTextCapture('a letter to myself')!;
     scheduled.schedule(note.id, later);

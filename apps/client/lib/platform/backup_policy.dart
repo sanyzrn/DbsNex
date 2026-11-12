@@ -18,7 +18,12 @@ class BackupPolicy {
     if (last == null) return true;
 
     final elapsed = DateTime.now().millisecondsSinceEpoch - last;
-    return elapsed >= interval.inMilliseconds;
+    // A clock that moved backwards (a dead RTC, a network time correction,
+    // a user changing the date) makes `elapsed` negative. Without this the
+    // policy would answer "not due" for as long as it takes the clock to
+    // climb back past the old stamp — days or years — and no automatic
+    // backup would run in the meantime.
+    return elapsed < 0 || elapsed >= interval.inMilliseconds;
   }
 
   Future<void> markDone() =>

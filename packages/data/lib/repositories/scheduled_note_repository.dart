@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:nex_core/nex_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -13,6 +15,15 @@ import 'note_repository.dart';
 /// and embedding by cascade — and keeps the words here; [releaseDue] puts
 /// them back as a new note under the same id once the time has come. Both
 /// are one transaction each, so a note is always in exactly one place.
+///
+/// What waits is the whole note, not just its body. A title, the text a
+/// model read out of it and the tags it was filed under are kept in
+/// [metadata] and [tag_ids] and put back on arrival. They used to be
+/// dropped with the row: the note came back looking right — it had its
+/// words — while everything else about it had silently gone. The reminder
+/// is the one thing deliberately not carried: it was an alarm on a note
+/// that is not in the library, and the service cancels it when the note is
+/// scheduled.
 class SqliteScheduledNoteRepository {
   SqliteScheduledNoteRepository(this._db, this._notes);
 
@@ -21,31 +32,70 @@ class SqliteScheduledNoteRepository {
 
   Database get db => _db.db;
 
+  /// The note columns worth carrying across the wait. Everything derived
+  /// from the words is here because the words do not change while it waits;
+  /// `due_at` is not, by design (see the class comment).
+  static const _preservedColumns = [
+    'title',
+    'caption',
+    'summary_text',
+    'ocr_text',
+    'transcript_text',
+    'link_excerpt',
+    'mime_type',
+    'is_urgent',
+  ];
+
   /// Moves the live text note [noteId] out of the library until
   /// [releaseAt]. Null when there is no such note, or it is not text.
+  ///
+  /// Also null when the note carries attachments. A file cannot wait in the
+  /// scheduled table, and deleting the note row would cascade its attachment
+  /// rows away and hand the files to the orphan sweep — the note would come
+  /// back without its photos and nothing would say so. Refusing is the only
+  /// answer that does not lose them until files can wait too.
   ScheduledNote? schedule(String noteId, DateTime releaseAt) => db.together(() {
     final rows = db.select(
-      "SELECT content, created_at FROM notes "
+      "SELECT * FROM notes "
       "WHERE id = ? AND deleted_at IS NULL AND type = 'text'",
       [noteId],
     );
     if (rows.isEmpty) return null;
-    final content = rows.first['content'] as String? ?? '';
+    final row = rows.first;
+    final content = row['content'] as String? ?? '';
     if (content.trim().isEmpty) return null;
+    final attached = db.select(
+      'SELECT 1 FROM note_attachments '
+      'WHERE note_id = ? AND deleted_at IS NULL LIMIT 1',
+      [noteId],
+    );
+    if (attached.isNotEmpty) return null;
     final scheduled = ScheduledNote(
       id: noteId,
       content: content,
       releaseAt: releaseAt.toUtc(),
-      writtenAt: DateTime.parse(rows.first['created_at'] as String),
+      writtenAt: DateTime.parse(row['created_at'] as String),
     );
     db.execute(
       'INSERT OR REPLACE INTO scheduled_notes '
-      '(id, content, release_at, written_at) VALUES (?, ?, ?, ?)',
+      '(id, content, release_at, written_at, metadata, tag_ids) '
+      'VALUES (?, ?, ?, ?, ?, ?)',
       [
         scheduled.id,
         scheduled.content,
         scheduled.releaseAt.toIso8601String(),
         scheduled.writtenAt.toUtc().toIso8601String(),
+        jsonEncode({
+          for (final column in _preservedColumns)
+            if (row[column] != null) column: row[column],
+        }),
+        jsonEncode([
+          for (final tag in db.select(
+            'SELECT tag_id FROM note_tags WHERE note_id = ? ORDER BY rowid',
+            [noteId],
+          ))
+            tag['tag_id'] as String,
+        ]),
       ],
     );
     // Gone, not deleted: a soft delete would put the words in the trash,
@@ -110,16 +160,31 @@ class SqliteScheduledNoteRepository {
       db.execute('DELETE FROM scheduled_notes WHERE id = ?', [id]);
 
   Note _release(ScheduledNote scheduled) {
+    // The row is read before it is deleted: it holds what the words alone do
+    // not — title, derived text, urgency and tag ids.
+    final rows = db.select('SELECT * FROM scheduled_notes WHERE id = ?', [
+      scheduled.id,
+    ]);
+    final waiting = rows.isEmpty ? null : rows.first;
     db.execute('DELETE FROM scheduled_notes WHERE id = ?', [scheduled.id]);
     // The same id cannot be live already — [schedule] removed it — but a
     // restored backup can hold both; the library's copy wins.
     final existing = _notes.getById(scheduled.id, includeDeleted: true);
     if (existing != null) return existing;
-    return _notes.insert(
+    final metadata = _metadata(waiting?['metadata']);
+    final note = _notes.insert(
       Note(
         id: scheduled.id,
         type: NoteType.text,
         content: scheduled.content,
+        title: _text(metadata, 'title'),
+        caption: _text(metadata, 'caption'),
+        summaryText: _text(metadata, 'summary_text'),
+        ocrText: _text(metadata, 'ocr_text'),
+        transcriptText: _text(metadata, 'transcript_text'),
+        linkExcerpt: _text(metadata, 'link_excerpt'),
+        mimeType: _text(metadata, 'mime_type'),
+        isUrgent: metadata['is_urgent'] == 1,
         createdAt: scheduled.releaseAt,
         updatedAt: scheduled.releaseAt,
         deviceId: _notes.localDeviceId ?? '',
@@ -127,6 +192,48 @@ class SqliteScheduledNoteRepository {
         syncState: SyncState.pending,
       ),
     );
+    _restoreTags(note.id, _tagIds(waiting?['tag_ids']));
+    return _notes.getById(note.id)!;
+  }
+
+  /// Puts back the tags that still exist. A tag deleted while the note was
+  /// waiting is gone for good, which is what deleting it meant.
+  void _restoreTags(String noteId, List<String> tagIds) {
+    for (final tagId in tagIds) {
+      db.execute(
+        'INSERT OR IGNORE INTO note_tags (note_id, tag_id) '
+        'SELECT ?, id FROM tags WHERE id = ?',
+        [noteId, tagId],
+      );
+    }
+  }
+
+  /// Parsed defensively: a row written by a build without these columns, or
+  /// a damaged backup, must still deliver the words rather than throw the
+  /// note away.
+  static Map<String, Object?> _metadata(Object? raw) {
+    if (raw is! String || raw.isEmpty) return const {};
+    try {
+      final value = jsonDecode(raw);
+      return value is Map ? Map<String, Object?>.from(value) : const {};
+    } on FormatException {
+      return const {};
+    }
+  }
+
+  static List<String> _tagIds(Object? raw) {
+    if (raw is! String || raw.isEmpty) return const [];
+    try {
+      final value = jsonDecode(raw);
+      return value is List ? value.whereType<String>().toList() : const [];
+    } on FormatException {
+      return const [];
+    }
+  }
+
+  static String? _text(Map<String, Object?> metadata, String key) {
+    final value = metadata[key];
+    return value is String ? value : null;
   }
 
   static ScheduledNote _fromRow(Row row) => ScheduledNote(

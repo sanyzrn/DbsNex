@@ -5,6 +5,9 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## Unreleased
 
 - **Liquid Glass now has depth.** With the material on, each pane is lit rather than merely tinted: the page's own colour comes through more vividly, a bevel catches the light along the top edge, a soft bounce lifts the bottom edge, and the top bar, dock, menus, dialogs and sheets throw a faint halo onto the page. Dark and Night have their own bounce and warmth, and high contrast still falls back to a solid surface.
+- **A scheduled note comes back whole.** Sending a note later used to return only its words: the title and the tags it was filed under were dropped while it waited. They come back with it now, and a note that carries files stays in the library instead of being scheduled away from them.
+- **Backups survive a wrong clock.** If the phone's date moved backwards, automatic backups stopped for as long as it took the clock to catch up, and the copy just written could be treated as the oldest and pruned. Both now behave.
+- **A backup missing its media stops before the library is touched.** Restoring one no longer closes the open library first, only to fail on a file that was never there. And a complete restore that fails no longer leaves a hidden undo step that would roll the library — and everything written after it — back on the next launch.
 - **A reminder marked Done stays answered.** If you press **Done** on a reminder before opening Nex, the daily nudge no longer brings that reminder back on the same day, even when the plan is built as the app starts. The note keeps its due date, so a repeating or future reminder still arrives on time.
 
 ## v2.6.23

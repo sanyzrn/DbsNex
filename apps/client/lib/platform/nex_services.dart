@@ -298,7 +298,14 @@ class NexServices {
         await (await NexModelStore.open()).select(previousModel);
       }
       await preferences.finishRestoreRecovery();
+      // The undo copy has done its job. Left behind, a full library copy
+      // would sit in the backups folder forever, listed by nothing and
+      // counted by no retention sweep.
+      await _discardFullRestoreCopy(p.dirname(library));
     }
+    // A restore killed after its commit left its safety copy behind. No
+    // journal can point at it now, so it is garbage.
+    await _sweepFullRestoreCopies(backupDir);
     await preferences.attachProfileMirror(mediaDir);
     // Old exports and the file picker's copies of chosen files (SEC-01):
     // cleared on every launch, not only when the next export happens.

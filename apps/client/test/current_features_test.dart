@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:crypto/crypto.dart';
 import 'package:archive/archive_io.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,36 +18,33 @@ import 'package:nex_client/platform/full_backup.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  test(
-    'settings restore and undo journal retain device identity and remove newer credentials',
-    () async {
-      SharedPreferences.setMockInitialValues({});
-      FlutterSecureStorage.setMockInitialValues({});
-      final prefs = await NexPreferences.load();
-      final id = await prefs.stableDeviceId();
-      await prefs.setDisplayName('Original');
-      final old = prefs.backupSettings();
-      await prefs.beginRestoreRecovery('/backups/safety.nexbak');
-      await prefs.setDisplayName('Changed');
-      await prefs.setAiProvider(
-        const AiProviderConfig(
-          provider: AiProvider.openai,
-          apiKey: 'private-key',
-        ),
-      );
-      final pending = await prefs.pendingRestoreRecovery();
-      expect(pending?['settings'], old);
-      await prefs.restoreSettings(
-        Map<String, dynamic>.from(pending!['settings'] as Map),
-      );
-      expect(prefs.displayName, 'Original');
-      expect(prefs.configFor(AiProvider.openai).apiKey, isEmpty);
-      expect(await prefs.stableDeviceId(), id);
-      expect(await prefs.pendingRestoreRecovery(), isNotNull);
-      await prefs.finishRestoreRecovery();
-      expect(await prefs.pendingRestoreRecovery(), isNull);
-    },
-  );
+  test('settings restore and undo journal retain device identity and remove newer credentials', () async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final prefs = await NexPreferences.load();
+    final id = await prefs.stableDeviceId();
+    await prefs.setDisplayName('Original');
+    final old = prefs.backupSettings();
+    await prefs.beginRestoreRecovery('/backups/safety.nexbak');
+    await prefs.setDisplayName('Changed');
+    await prefs.setAiProvider(
+      const AiProviderConfig(
+        provider: AiProvider.openai,
+        apiKey: 'private-key',
+      ),
+    );
+    final pending = await prefs.pendingRestoreRecovery();
+    expect(pending?['settings'], old);
+    await prefs.restoreSettings(
+      Map<String, dynamic>.from(pending!['settings'] as Map),
+    );
+    expect(prefs.displayName, 'Original');
+    expect(prefs.configFor(AiProvider.openai).apiKey, isEmpty);
+    expect(await prefs.stableDeviceId(), id);
+    expect(await prefs.pendingRestoreRecovery(), isNotNull);
+    await prefs.finishRestoreRecovery();
+    expect(await prefs.pendingRestoreRecovery(), isNull);
+  });
 
   testWidgets(
     'birthday calendar chooses the Persian date and returns the civil day',
@@ -184,6 +182,65 @@ void main() {
       );
     },
   );
+  test(
+    'a complete backup refuses vault files the settings do not describe',
+    () {
+      final root = Directory.systemTemp.createTempSync('nex-full-vault-');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final library = File('${root.path}/library')
+        ..writeAsStringSync('library');
+      final vaultFiles = File('${root.path}/vault-files.zip')
+        ..writeAsBytesSync([1, 2, 3]);
+      final key = FullBackup.newKey();
+      const base = {
+        'version': 1,
+        'preferences': <String, dynamic>{},
+        'credentials': <String, String>{},
+      };
+
+      // Files without the settings that describe them, and settings that
+      // claim a vault no file carries. Either produced a backup whose
+      // restore could only fail, on the device that no longer has the
+      // original.
+      for (final (settings, files) in [
+        (base, vaultFiles.path),
+        (
+          <String, dynamic>{
+            ...base,
+            'vault': <String, dynamic>{},
+            'vaultFilesKey': FullBackup.newKey(),
+            'vaultFilesSha256': '0' * 64,
+          },
+          null,
+        ),
+      ]) {
+        final output = '${root.path}/refused-${files == null}.nexfull';
+        expect(
+          () => FullBackup.create(
+            library: library.path,
+            output: output,
+            settings: settings,
+            key: key,
+            vaultFiles: files,
+          ),
+          throwsFormatException,
+        );
+        expect(File(output).existsSync(), isFalse);
+      }
+
+      // A vault that holds only passwords has no attachment archive, and a
+      // complete backup of it must still be written.
+      final withoutFiles = '${root.path}/vault-no-files.nexfull';
+      FullBackup.create(
+        library: library.path,
+        output: withoutFiles,
+        settings: {...base, 'vault': <String, dynamic>{}},
+        key: key,
+      );
+      expect(FullBackup.isFullBackup(withoutFiles), isTrue);
+    },
+  );
+
   test(
     'complete backup restores model bytes and rejects a checksum mismatch',
     () {
