@@ -61,6 +61,32 @@ void main() {
     expect(find.text('Glass'), findsOneWidget);
   });
 
+  testWidgets('the glass bar fills the app bar slot it is handed', (
+    tester,
+  ) async {
+    // An `AppBar`'s flexible space is laid out under an `Align` with loose
+    // constraints, and the bar's innermost child is a childless
+    // `DecoratedBox` — a widget with no size of its own. Before the 2.6.21
+    // rebuild the bar collapsed to zero height there and glass mode drew no
+    // bar at all: the title and actions sat straight on the scrolling notes.
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexDarkTheme(liquidGlass: true),
+        home: const Scaffold(
+          appBar: NexAppBar(title: Text('Tools')),
+          body: SizedBox.expand(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final bar = tester.renderObject<RenderBox>(find.byType(NexGlassBar).first);
+    final appBar = tester.renderObject<RenderBox>(find.byType(AppBar).first);
+    expect(bar.size, appBar.size);
+    expect(bar.size.height, greaterThan(0));
+    expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   test('the preset list only ever grows', () {
     // Wire names are stored, so a rename or a reorder that changes one turns
     // every device already carrying it back to Plain on the next launch.
@@ -141,11 +167,17 @@ void main() {
       Color(0xFFFFFFFF),
     ];
 
+    // The two dark themes the app actually ships — Soft Dark and OLED Night
+    // — were missing from this matrix until the 2.6.21 rebuild: it covered
+    // only the classic dark theme, so a wash tuned into invisibility on the
+    // shipped pages (1.04:1 panel on Soft Dark) passed every check here.
     for (final (theme, floor) in [
       (nexLightTheme(liquidGlass: true), 4.9),
       (nexLightTheme(liquidGlass: true, comfortMode: true), 4.6),
       (nexDarkTheme(liquidGlass: true), 4.5),
       (nexDarkTheme(liquidGlass: true, comfortMode: true), 4.5),
+      (nexSoftDarkTheme(liquidGlass: true), 4.5),
+      (nexOledNightTheme(liquidGlass: true), 4.5),
     ]) {
       final wash = theme.extension<NexVisualStyle>()!.glassWash;
       final ink = theme.colorScheme.onSurface;
@@ -162,38 +194,35 @@ void main() {
     }
   });
 
-  test(
-    'floating glass reveals more backdrop and keeps normal and destructive ink readable',
-    () {
-      for (final theme in [
-        nexLightTheme(liquidGlass: true),
-        nexLightTheme(liquidGlass: true, comfortMode: true),
-        nexDarkTheme(liquidGlass: true),
-        nexDarkTheme(liquidGlass: true, comfortMode: true),
-      ]) {
-        final visual = theme.extension<NexVisualStyle>()!;
-        double transmission(NexGlassWash wash) =>
-            wash.over(Colors.white).r - wash.over(Colors.black).r;
-        expect(
-          transmission(visual.floatingGlassWash),
-          greaterThan(transmission(visual.glassWash) * 1.35),
-        );
-        final ground = visual.floatingContrastGround(theme.brightness);
-        expect(
-          nexContrast(theme.colorScheme.onSurface, ground),
-          greaterThanOrEqualTo(4.5),
-        );
-        final destructive = nexReadableOn(theme.colorScheme.error, ground);
-        expect(nexContrast(destructive, ground), greaterThanOrEqualTo(4.5));
-        // Copies and theme interpolation must not silently lose the new material.
-        expect(visual.copyWith().floatingGlassWash, visual.floatingGlassWash);
-        expect(
-          visual.lerp(visual, 0.5).floatingGlassWash,
-          visual.floatingGlassWash,
-        );
-      }
-    },
-  );
+  test('floating glass reveals more backdrop and keeps normal and destructive ink readable', () {
+    for (final theme in [
+      nexLightTheme(liquidGlass: true),
+      nexLightTheme(liquidGlass: true, comfortMode: true),
+      nexDarkTheme(liquidGlass: true),
+      nexDarkTheme(liquidGlass: true, comfortMode: true),
+    ]) {
+      final visual = theme.extension<NexVisualStyle>()!;
+      double transmission(NexGlassWash wash) =>
+          wash.over(Colors.white).r - wash.over(Colors.black).r;
+      expect(
+        transmission(visual.floatingGlassWash),
+        greaterThan(transmission(visual.glassWash) * 1.35),
+      );
+      final ground = visual.floatingContrastGround(theme.brightness);
+      expect(
+        nexContrast(theme.colorScheme.onSurface, ground),
+        greaterThanOrEqualTo(4.5),
+      );
+      final destructive = nexReadableOn(theme.colorScheme.error, ground);
+      expect(nexContrast(destructive, ground), greaterThanOrEqualTo(4.5));
+      // Copies and theme interpolation must not silently lose the new material.
+      expect(visual.copyWith().floatingGlassWash, visual.floatingGlassWash);
+      expect(
+        visual.lerp(visual, 0.5).floatingGlassWash,
+        visual.floatingGlassWash,
+      );
+    }
+  });
 
   test('a glass panel can be seen against the page it floats on', () {
     // The failure this exists for does not show up in any contrast check:
@@ -205,16 +234,23 @@ void main() {
     // A panel is a shape lying on the page. Anything that floats has to be
     // distinguishable from what it floats on, and the floor is the presence
     // the dark theme already had, which is the one nobody complained about.
-    for (final theme in [
-      nexLightTheme(liquidGlass: true),
-      nexLightTheme(liquidGlass: true, comfortMode: true),
-      nexDarkTheme(liquidGlass: true),
-      nexDarkTheme(liquidGlass: true, comfortMode: true),
+    //
+    // Every page the app ships, not only the classic pair: the Soft Dark
+    // page carried a 1.04:1 panel through the 2.6.20 material because this
+    // test never looked at it.
+    for (final (theme, page) in [
+      (nexLightTheme(liquidGlass: true), NexColors.bgPrimaryLight),
+      (
+        nexLightTheme(liquidGlass: true, comfortMode: true),
+        NexColors.bgPrimaryLightComfort,
+      ),
+      (nexDarkTheme(liquidGlass: true), NexColors.bgPrimaryDark),
+      (nexSoftDarkTheme(liquidGlass: true), NexSoftDarkColors.background),
+      (nexOledNightTheme(liquidGlass: true), NexNightColors.background),
     ]) {
       final visual = theme.extension<NexVisualStyle>()!;
       // What a panel actually sits over: the page, which is the one backdrop
       // guaranteed to be behind every piece of glass in the app.
-      final page = visual.baseColor;
       final panel = _compose(visual.glassWash, page);
       expect(
         _contrast(panel, page),
@@ -225,6 +261,75 @@ void main() {
             'it is lying on',
       );
     }
+  });
+
+  test('the rebuilt material transmits more of what is behind it', () {
+    // The 2.6.20 material was legible and invisible in equal measure: a
+    // fifth of the backdrop's range came through the light panel, and the
+    // rest was grey. The rebuild's point is that a blue note behind the
+    // glass reads as blue under glass, so both directions of every theme
+    // carry a floor on how much backdrop survives the films — paired with
+    // the legibility floors above, which are what keep the extra backdrop
+    // from becoming extra text.
+    for (final (theme, panelFloor, floatingFloor) in [
+      (nexLightTheme(liquidGlass: true), 0.24, 0.32),
+      (nexLightTheme(liquidGlass: true, comfortMode: true), 0.20, 0.28),
+      (nexDarkTheme(liquidGlass: true), 0.17, 0.24),
+      (nexSoftDarkTheme(liquidGlass: true), 0.17, 0.24),
+      (nexOledNightTheme(liquidGlass: true), 0.17, 0.24),
+    ]) {
+      final visual = theme.extension<NexVisualStyle>()!;
+      double transmission(NexGlassWash wash) =>
+          wash.over(Colors.white).r - wash.over(Colors.black).r;
+      expect(transmission(visual.glassWash), greaterThanOrEqualTo(panelFloor));
+      expect(
+        transmission(visual.floatingGlassWash),
+        greaterThanOrEqualTo(floatingFloor),
+      );
+    }
+  });
+
+  test('the pane carries a lit edge and a shaded one', () {
+    // The specular is the cue that makes the material read as glass on the
+    // plain page, where there is nothing behind the blur to reveal. It and
+    // the shade have to be present in every theme that draws glass, and
+    // a lerp between two glass themes must not lose them. (The still
+    // preset's zeroing of both is held in the client's still_theme_test.)
+    for (final theme in [
+      nexLightTheme(liquidGlass: true),
+      nexDarkTheme(liquidGlass: true),
+      nexSoftDarkTheme(liquidGlass: true),
+      nexOledNightTheme(liquidGlass: true),
+    ]) {
+      final visual = theme.extension<NexVisualStyle>()!;
+      expect(visual.glassSpecular.a, greaterThan(0.3));
+      expect(visual.glassShade.a, greaterThan(0.05));
+      expect(visual.copyWith().glassSpecular, visual.glassSpecular);
+      expect(visual.lerp(visual, 0.5).glassShade, visual.glassShade);
+    }
+  });
+
+  test('a wash interpolates with a different number of films', () {
+    // Themes are lerped live during a switch, and the preset layer builds
+    // washes by hand; nothing guarantees both sides carry the same film
+    // count. The shorter side holds its last film rather than throwing.
+    const two = NexGlassWash(
+      films: [Colors.transparent, Colors.black],
+      lift: Colors.transparent,
+      anchor: Colors.transparent,
+    );
+    const three = NexGlassWash(
+      films: [Colors.transparent, Colors.white, Colors.red],
+      lift: Colors.transparent,
+      anchor: Colors.transparent,
+    );
+    final mid = two.lerp(three, 0.5);
+    expect(mid.films, hasLength(3));
+    expect(mid.films[2], Color.lerp(Colors.black, Colors.red, 0.5));
+    expect(
+      three.lerp(two, 0.5).films[2],
+      Color.lerp(Colors.black, Colors.red, 0.5),
+    );
   });
 
   test('the glass edge is four shadows and none of them is a slab', () {

@@ -58,11 +58,15 @@ void main() {
       expect(prefs.themePreset, 'forest');
       expect(prefs.effectiveThemePreset, 'classic');
       expect(prefs.accentSeed, '#B61615');
-      expect(prefs.liquidGlass, isTrue);
+      // A v2 choice does not silently switch the rebuilt material on: each
+      // generation of Liquid Glass has been a fresh opt-in, and the 2.6.21
+      // material is a different look, not a repair of the paused one.
+      expect(prefs.liquidGlass, isFalse);
       expect(prefs.effectiveLiquidGlass, isFalse);
       final raw = await SharedPreferences.getInstance();
       expect(raw.getString('appearance.theme'), 'dark');
       expect(raw.getString('appearance.theme_preset'), 'forest');
+      expect(raw.getBool('appearance.liquid_glass_v2'), isTrue);
     },
   );
 
@@ -137,12 +141,12 @@ void main() {
         app().darkTheme!.colorScheme.primary,
         isNot(NexSoftDarkColors.accentText),
       );
+      // The switch is live again: the choice reaches both themes, and the
+      // dock, the bar and every sheet follow it.
       expect(h.preferences.liquidGlass, isTrue);
-      expect(h.preferences.effectiveLiquidGlass, isFalse);
-      expect(
-        app().darkTheme!.extension<NexVisualStyle>()!.liquidGlass,
-        isFalse,
-      );
+      expect(h.preferences.effectiveLiquidGlass, isTrue);
+      expect(app().darkTheme!.extension<NexVisualStyle>()!.liquidGlass, isTrue);
+      expect(app().theme!.extension<NexVisualStyle>()!.liquidGlass, isTrue);
       await h.preferences.setAppearanceMode(NexAppearanceMode.system);
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       await tester.pumpAndSettle();

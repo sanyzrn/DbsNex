@@ -2,6 +2,11 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.21
+
+- **Liquid Glass, rebuilt and switched back on.** The frosted material behind the top bar, menus, sheets, dialogs and the dock is new: noticeably more of the page's colour comes through, every pane catches a light along its top edge, and Dark and Night have their own tuning so a panel is finally visible against the page behind it. Off by default — turn it on in Settings → Appearance.
+- **The glass top bar finally draws.** In the retired material the frosted strip behind the title silently rendered at zero height, so the title sat straight on the scrolling notes. It is a real band now, with the same hairline the panes carry.
+
 ## v2.6.20
 
 - **Important notes reach Smart Summary.** Older urgent notes and reminders are considered even when they fall outside the timeline's newest 200 notes.

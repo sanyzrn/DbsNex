@@ -190,31 +190,31 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('paused glass does not interrupt the theme with a reveal', (
+  testWidgets('switching glass on opens out from the tap that asked for it', (
     tester,
   ) async {
     final h = await open(tester);
     await tester.pumpWidget(h.app());
     await tester.pumpAndSettle();
-    final before = tester
-        .widget<NexThemeReveal>(find.byType(NexThemeReveal))
-        .signature;
     Finder overlay() => find.byWidgetPredicate(
       (w) =>
           w is CustomPaint &&
           w.painter.runtimeType.toString() == '_RevealPainter',
     );
-    for (final enabled in [true, false]) {
-      await h.preferences.setLiquidGlass(enabled);
-      await tester.pump();
-      expect(h.preferences.effectiveLiquidGlass, isFalse);
-      expect(overlay(), findsNothing);
-      await tester.pumpAndSettle();
-    }
-    expect(
-      tester.widget<NexThemeReveal>(find.byType(NexThemeReveal)).signature,
-      before,
-    );
+    // On: the material change is a theme change, and it arrives as a reveal.
+    await h.preferences.setLiquidGlass(true);
+    await tester.pump();
+    expect(h.preferences.effectiveLiquidGlass, isTrue);
+    expect(overlay(), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(overlay(), findsNothing);
+    // Off: the same, in reverse.
+    await h.preferences.setLiquidGlass(false);
+    await tester.pump();
+    expect(h.preferences.effectiveLiquidGlass, isFalse);
+    expect(overlay(), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(overlay(), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
