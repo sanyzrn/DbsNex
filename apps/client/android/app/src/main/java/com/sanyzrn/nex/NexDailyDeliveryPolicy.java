@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.TreeSet;
 
 /** Pure scheduling policy: no Android, Flutter, database or network dependency. */
 public final class NexDailyDeliveryPolicy {
@@ -21,17 +22,32 @@ public final class NexDailyDeliveryPolicy {
         minutes = Math.max(0, Math.min(1439, minutes));
         Calendar date = Calendar.getInstance(zone, Locale.ROOT);
         date.setTimeInMillis(now);
-        date.set(Calendar.HOUR_OF_DAY, Math.max(0, Math.min(1439, minutes)) / 60);
-        date.set(Calendar.MINUTE, Math.max(0, Math.min(1439, minutes)) % 60);
+        date.set(Calendar.HOUR_OF_DAY, minutes / 60);
+        date.set(Calendar.MINUTE, minutes % 60);
         date.set(Calendar.SECOND, 0);
         date.set(Calendar.MILLISECOND, 0);
-        while (date.getTimeInMillis() <= now || delivered.contains(day(date.getTimeInMillis(), zone))) {
-            // Calendar arithmetic preserves the selected clock time over DST.
+        // Bounded rather than a while loop: a receipt set corrupted by a
+        // clock moved far forward and back must cost a skipped slot, not a
+        // hung broadcast receiver. Calendar arithmetic preserves the selected
+        // clock time over DST.
+        for (int attempt = 0; attempt < 400; attempt++) {
+            if (date.getTimeInMillis() > now
+                && !delivered.contains(day(date.getTimeInMillis(), zone))) {
+                return date.getTimeInMillis();
+            }
             date.add(Calendar.DAY_OF_MONTH, 1);
             date.set(Calendar.HOUR_OF_DAY, minutes / 60);
             date.set(Calendar.MINUTE, minutes % 60);
         }
         return date.getTimeInMillis();
+    }
+
+    /** The newest [keep] delivery dates, so the receipt set cannot grow forever. */
+    public static Set<String> recent(Set<String> delivered, int keep) {
+        TreeSet<String> ordered = new TreeSet<>(delivered);
+        int limit = Math.max(1, keep);
+        while (ordered.size() > limit) ordered.pollFirst();
+        return ordered;
     }
 
     public static String choose(List<String> choices, String previous, int turn) {

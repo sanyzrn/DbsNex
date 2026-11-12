@@ -48,6 +48,32 @@ public final class NexDailyDeliveryPolicyTest {
         }
         check(all.size() == 5, "all five prompts rotate");
         check(!NexDailyDeliveryPolicy.choose(messages, "one", 0).equals("one"), "avoid same text after reschedule/restart");
+
+        // A delayed delivery still has that day's text: the window runs to
+        // the end of the day now, not one hour past the slot.
+        long slot = time(zone, 2026, 11, 3, 9, 0);
+        long dayEnd = time(zone, 2026, 11, 4, 0, 0) - 1;
+        long built = time(zone, 2026, 11, 3, 8, 0);
+        check(NexDailyDeliveryPolicy.current(slot + 8 * 3600000L, dayEnd, built, 0, 210, 210),
+            "a late local delivery still has today's text");
+        check(!NexDailyDeliveryPolicy.current(dayEnd + 1, dayEnd, built, 0, 210, 210),
+            "a local body never outlives its day");
+        check(NexDailyDeliveryPolicy.current(time(zone, 2026, 11, 3, 15, 0),
+            time(zone, 2026, 11, 3, 16, 0), built, 0, 210, 210), "a recap keeps its own window");
+
+        // Receipts are bounded, so the stored set cannot grow forever.
+        Set<String> many = new HashSet<>();
+        for (int i = 0; i < 100; i++) {
+            many.add(NexDailyDeliveryPolicy.day(early + i * 86400000L, zone));
+        }
+        Set<String> kept = NexDailyDeliveryPolicy.recent(many, 32);
+        check(kept.size() == 32, "delivery receipts are bounded");
+        check(kept.contains(NexDailyDeliveryPolicy.day(early + 99 * 86400000L, zone)),
+            "the newest receipt is kept");
+        check(!kept.contains(NexDailyDeliveryPolicy.day(early, zone)), "the oldest receipts are dropped");
+        // A corrupt receipt set cannot spin the receiver forever.
+        check(NexDailyDeliveryPolicy.next(early, zone, 540, many) > early,
+            "a corrupt receipt set still yields a future slot");
         System.out.println("Daily Nudge policy: " + checks + " assertions passed.");
     }
 }

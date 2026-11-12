@@ -120,6 +120,21 @@ void main() {
     },
   );
 
+  test('every planned day carries its own local delivery window', () async {
+    await h.preferences.setDailyNudge(true);
+    await h.services.updateDailyNudge();
+    final days = plans.last['days'] as Map<Object?, Object?>;
+    expect(days, isNotEmpty);
+    for (final day in days.values.cast<Map<Object?, Object?>>()) {
+      expect(day['localExpires'], isA<int>());
+      expect(
+        (day['expires'] as int) <= (day['localExpires'] as int),
+        isTrue,
+        reason: 'a recap never outlives the day it describes',
+      );
+    }
+  });
+
   test(
     'completing a checklist rebuilds the nudge while its detail stays open',
     () async {

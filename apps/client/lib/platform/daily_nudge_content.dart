@@ -5,6 +5,11 @@ import 'reminders.dart';
 
 /// Builds dated, local-only notification text. Native delivery chooses the
 /// matching date and never repeats a dated factual message indefinitely.
+///
+/// Each planned day carries two windows, because the two kinds of text age
+/// differently: `expires` for the recap (a sentence about now) and
+/// `localExpires` for the note-and-reminder bodies (facts about that date).
+/// The native side reads both — see `NexDailyNudgeReceiver.deliver`.
 abstract final class NexDailyNudgeContent {
   static String dayKey(DateTime at) =>
       '${at.year}-${at.month.toString().padLeft(2, '0')}-${at.day.toString().padLeft(2, '0')}';
@@ -65,25 +70,26 @@ abstract final class NexDailyNudgeContent {
           (items.isEmpty || items.every((i) => i.done))) {
         continue;
       }
-      final title = quoted(
-        note.type == NoteType.checklist
-            ? items
-                  .where((item) => !item.done)
-                  .take(3)
-                  .map((item) => item.text)
-                  .join(' · ')
-            : (note.displayText?.trim().isNotEmpty == true
-                  ? note.displayText!
-                  : note.originalFilename ??
-                        switch (note.type) {
-                          NoteType.photo =>
-                            persian ? 'یادداشت تصویری' : 'Photo note',
-                          NoteType.voice =>
-                            persian ? 'یادداشت صوتی' : 'Voice note',
-                          NoteType.file => persian ? 'فایل' : 'File',
-                          _ => persian ? 'یادداشت' : 'Note',
-                        }),
-      );
+      // What a note is called when it has no words of its own. Every branch
+      // below can come out empty — a checklist whose remaining items have
+      // blank text, a photo with no caption — and an empty quotation («»)
+      // reads as a broken notification, not as a note worth looking at.
+      final typeLabel = switch (note.type) {
+        NoteType.photo => persian ? 'یادداشت تصویری' : 'Photo note',
+        NoteType.voice => persian ? 'یادداشت صوتی' : 'Voice note',
+        NoteType.file => persian ? 'فایل' : 'File',
+        _ => persian ? 'یادداشت' : 'Note',
+      };
+      final titled = note.type == NoteType.checklist
+          ? items
+                .where((item) => !item.done && item.text.trim().isNotEmpty)
+                .take(3)
+                .map((item) => item.text)
+                .join(' · ')
+          : (note.displayText?.trim().isNotEmpty == true
+                ? note.displayText!
+                : note.originalFilename ?? '');
+      final title = quoted(titled.trim().isEmpty ? typeLabel : titled);
       if (note.isUrgent) {
         facts.add((
           rank: 0,
@@ -252,16 +258,30 @@ abstract final class NexDailyNudgeContent {
         persian: persian,
         itemsById: parsed,
       );
+      // Local bodies describe the day they were planned for — "tomorrow at
+      // 09:00", "3 unfinished items" — so they stay true until that day ends.
+      // They used to expire one hour after the slot, and an alarm Android
+      // delivers late (an inexact alarm under Doze, on a phone that refused
+      // the exact-alarm permission) then arrived with every dated body
+      // rejected: not a stale line sometimes, but the neutral rotation every
+      // day on exactly the phones that needed the nudge most.
+      final localExpires = DateTime(
+        at.year,
+        at.month,
+        at.day + 1,
+      ).millisecondsSinceEpoch - 1;
+      // A recap is a sentence about now rather than about a date, so it keeps
+      // its one-hour freshness — and never outlives the day it describes.
+      final aiExpires = ai
+          ? summaryAt!.add(const Duration(hours: 1)).millisecondsSinceEpoch
+          : localExpires;
       days[dayKey(at)] = {
         'ai': ai,
         'zone': at.timeZoneOffset.inMinutes,
         'bodies': ai ? [short(summary!, 210)] : alternatives,
         'localBodies': alternatives,
-        'expires':
-            (ai
-                    ? summaryAt!.add(const Duration(hours: 1))
-                    : at.add(const Duration(hours: 1)))
-                .millisecondsSinceEpoch,
+        'expires': aiExpires < localExpires ? aiExpires : localExpires,
+        'localExpires': localExpires,
       };
     }
     return {

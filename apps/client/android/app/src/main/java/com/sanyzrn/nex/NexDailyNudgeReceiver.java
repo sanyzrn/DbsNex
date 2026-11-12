@@ -45,7 +45,12 @@ public final class NexDailyNudgeReceiver extends BroadcastReceiver {
     public static void configure(Context context, String json) throws Exception {
         JSONObject plan = new JSONObject(json);
         if (plan.optInt("version") != 1) throw new IllegalArgumentException("Unsupported daily plan");
-        store(context).edit().putString("plan", json).commit();
+        // apply(), not commit(): the caller is a MethodChannel handler on the
+        // main thread, and this value is handed straight to schedule() below,
+        // so nothing waits on the disk write. A failure here cannot happen
+        // for a value the OS already accepted in memory, and the plan is
+        // rewritten on the next launch either way.
+        store(context).edit().putString("plan", json).apply();
         schedule(context, plan);
     }
 
@@ -59,15 +64,23 @@ public final class NexDailyNudgeReceiver extends BroadcastReceiver {
         if (!plan.optBoolean("enabled") || !flutter(context).getBoolean("flutter.nudge.on", false)) return;
         Set<String> days = store(context).getStringSet("delivered", new HashSet<>());
         int minutes = (int) flutter(context).getLong("flutter.nudge.at", plan.optInt("minutes", 540));
-        long at = NexDailyDeliveryPolicy.next(System.currentTimeMillis(), TimeZone.getDefault(), minutes, days);
         AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         PendingIntent intent = alarmIntent(context);
+        long at = NexDailyDeliveryPolicy.next(System.currentTimeMillis(),
+            TimeZone.getDefault(), minutes, days);
         // Same permission and fallback policy as the existing note reminders.
         if (Build.VERSION.SDK_INT < 31 || manager.canScheduleExactAlarms()) {
             try { manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent); return; }
             catch (SecurityException ignored) { /* permission changed concurrently */ }
+            catch (RuntimeException ignored) { /* a ROM that rejects an exact alarm outright */ }
         }
-        manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent);
+        try {
+            manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent);
+        } catch (RuntimeException ignored) {
+            // The OS refused both kinds. The stored plan and preferences stay
+            // as they are, so the next launch or boot re-arms it; throwing
+            // here would only lose the alarm that was already set.
+        }
     }
 
     @Override public void onReceive(Context context, Intent intent) {
@@ -111,46 +124,100 @@ public final class NexDailyNudgeReceiver extends BroadcastReceiver {
         TreeSet<String> delivered = new TreeSet<>(saved.getStringSet("delivered", new HashSet<>()));
         if (delivered.contains(today)) return;
         SharedPreferences prefs = flutter(context);
-        JSONArray choices = plan.optJSONArray("fallback");
         JSONObject days = plan.optJSONObject("days");
         JSONObject dated = days == null ? null : days.optJSONObject(today);
-        if (dated != null && NexDailyDeliveryPolicy.current(now, dated.optLong("expires"),
-            plan.optLong("generatedAt"), prefs.getLong("flutter.dailyNudge.invalidatedAt", 0),
-            dated.optInt("zone", plan.optInt("zone")), zone.getOffset(now) / 60000)) {
-            boolean consent = !plan.optBoolean("includesHabits")
-                || (prefs.getBoolean("flutter.brief.useHabits", false)
-                    && prefs.getBoolean("flutter.module.habits.on", false));
-            boolean ai = consent && dated.optBoolean("ai") && prefs.getBoolean("flutter.ai.enabled", false)
-                && prefs.getBoolean("flutter.home.day_summary", true);
-            choices = ai ? dated.optJSONArray("bodies") : dated.optJSONArray("localBodies");
+        long generated = plan.optLong("generatedAt");
+        long invalidated = prefs.getLong("flutter.dailyNudge.invalidatedAt", 0);
+        int plannedOffset = dated == null ? plan.optInt("zone")
+            : dated.optInt("zone", plan.optInt("zone"));
+        int actualOffset = zone.getOffset(now) / 60000;
+        List<String> pool = new ArrayList<>();
+        if (dated != null) {
+            // The plan's own text is used only for the day it describes, in
+            // the zone it was planned for, and while it is still true. Local
+            // facts hold until that day ends — an exact alarm can arrive
+            // hours late, and today's reminders are better late than replaced
+            // by a generic line. A recap keeps its one-hour freshness, and
+            // when it has expired the day's local bodies still apply.
+            long localLimit = dated.optLong("localExpires", dated.optLong("expires"));
+            if (NexDailyDeliveryPolicy.current(now, localLimit, generated, invalidated,
+                plannedOffset, actualOffset)) {
+                pool = strings(dated.optJSONArray("localBodies"));
+                boolean consent = !plan.optBoolean("includesHabits")
+                    || (prefs.getBoolean("flutter.brief.useHabits", false)
+                        && prefs.getBoolean("flutter.module.habits.on", false));
+                boolean ai = consent && dated.optBoolean("ai")
+                    && prefs.getBoolean("flutter.ai.enabled", false)
+                    && prefs.getBoolean("flutter.home.day_summary", true)
+                    && NexDailyDeliveryPolicy.current(now,
+                        dated.optLong("expires", localLimit), generated, invalidated,
+                        plannedOffset, actualOffset);
+                List<String> recap = ai
+                    ? strings(dated.optJSONArray("bodies")) : new ArrayList<String>();
+                if (!recap.isEmpty()) pool = recap;
+            }
         }
-        String body = NexDailyDeliveryPolicy.choose(strings(choices), saved.getString("lastBody", ""), saved.getInt("turn", 0));
+        if (pool.isEmpty()) pool = strings(plan.optJSONArray("fallback"));
+        String body = NexDailyDeliveryPolicy.choose(pool,
+            saved.getString("lastBody", ""), saved.getInt("turn", 0));
+        // An empty pool used to end the day in silence: nothing was posted
+        // and nothing was marked, so the alarm simply moved to tomorrow. A
+        // plan with no text at all is now the only case that does that.
         if (body.isEmpty()) return;
-        if (Build.VERSION.SDK_INT >= 26 && manager.getNotificationChannel(CHANNEL) == null) {
-            manager.createNotificationChannel(new NotificationChannel(CHANNEL,
-                plan.optString("channelName", "Daily nudge"), NotificationManager.IMPORTANCE_DEFAULT));
+        String channelName = plan.optString("channelName", "").trim();
+        if (channelName.isEmpty()) channelName = "Nex";
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel channel = manager.getNotificationChannel(CHANNEL);
+            if (channel == null) {
+                manager.createNotificationChannel(new NotificationChannel(CHANNEL,
+                    channelName, NotificationManager.IMPORTANCE_DEFAULT));
+                channel = manager.getNotificationChannel(CHANNEL);
+            } else if (!channelName.contentEquals(channel.getName())) {
+                // Android fixes a channel's sound and importance when it is
+                // created, but lets the app rename it. The plan is the only
+                // place that knows the app's language, so a channel created
+                // before a language change kept its old name for good.
+                channel.setName(channelName);
+                manager.createNotificationChannel(channel);
+            }
+            if (channel == null
+                || channel.getImportance() == NotificationManager.IMPORTANCE_NONE) return;
         }
-        if (Build.VERSION.SDK_INT >= 26 && manager.getNotificationChannel(CHANNEL).getImportance() == NotificationManager.IMPORTANCE_NONE) return;
         Intent open = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
-        if (open == null) return;
-        open.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent tap = PendingIntent.getActivity(context, 0, open,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent tap = null;
+        if (open != null) {
+            open.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            tap = PendingIntent.getActivity(context, 0, open,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        }
         int icon = context.getResources().getIdentifier("ic_stat_nex", "drawable", context.getPackageName());
         if (icon == 0) icon = context.getApplicationInfo().icon;
         Notification.Builder builder = Build.VERSION.SDK_INT >= 26
             ? new Notification.Builder(context, CHANNEL) : new Notification.Builder(context);
         builder.setSmallIcon(icon).setContentTitle(text(plan.optString("title", "Nex")))
             .setContentText(text(body)).setStyle(new Notification.BigTextStyle().bigText(text(body)))
-            .setAutoCancel(true).setContentIntent(tap).setCategory(Notification.CATEGORY_REMINDER)
+            .setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER)
             .setVisibility(prefs.getBoolean("flutter.security.app_lock", false)
                 ? Notification.VISIBILITY_SECRET : Notification.VISIBILITY_PRIVATE);
+        // A device whose launcher intent cannot be resolved still deserves
+        // the notification; it just has nothing to open.
+        if (tap != null) builder.setContentIntent(tap);
         delivered.add(today);
-        while (delivered.size() > 32) delivered.remove(delivered.first());
+        delivered = new TreeSet<>(NexDailyDeliveryPolicy.recent(delivered, 32));
         // Persist before posting: duplicate broadcasts and time changes cannot
         // emit twice for a date, even when the activity has never been opened.
         if (!saved.edit().putStringSet("delivered", delivered).putString("lastBody", body)
             .putInt("turn", saved.getInt("turn", 0) + 1).commit()) return;
-        manager.notify(0, builder.build());
+        try {
+            manager.notify(0, builder.build());
+        } catch (RuntimeException error) {
+            // Nothing reached the shade, so the day is not spent: leaving the
+            // date marked would lose the nudge until tomorrow. The rollback
+            // lets the next broadcast (a time change, a reboot, an app open)
+            // deliver it.
+            TreeSet<String> retry = new TreeSet<>(saved.getStringSet("delivered", new HashSet<>()));
+            retry.remove(today);
+            saved.edit().putStringSet("delivered", retry).commit();
+        }
     }
 }

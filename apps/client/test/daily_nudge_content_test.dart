@@ -104,6 +104,31 @@ void main() {
         );
       },
     );
+    test('$fa a plan never quotes an empty note title', () {
+      // `formatChecklist` drops blank lines, so the library cannot store one
+      // today. This pins the plan's own rule — the same fallback covers a
+      // file note whose original name is empty — so a notification can never
+      // read «» instead of naming the note it is about.
+      final bodies = NexDailyNudgeContent.local(
+        NexNudgeSnapshot(
+          notes: [
+            note('blank-list', type: NoteType.checklist, items: const []),
+          ],
+          commitments: const [],
+          hasData: true,
+        ),
+        now,
+        persian: fa,
+        itemsById: {
+          'blank-list': [const ChecklistItem(text: '   ', done: false)],
+        },
+      );
+      for (final body in bodies) {
+        expect(body, isNot(contains('«»')));
+        expect(body, isNot(contains('“”')));
+        expect(body, contains(fa ? 'یادداشت' : 'Note'));
+      }
+    });
     test('$fa recent overdue reminder and unfinished list are included', () {
       final bodies = local([
         note('late-call', due: now.subtract(const Duration(days: 1))),
@@ -165,6 +190,58 @@ void main() {
       );
     });
   }
+  test('a late delivery still has that day local text', () {
+    final plan = NexDailyNudgeContent.plan(
+      source: const NexNudgeSnapshot(
+        notes: [],
+        commitments: [],
+        hasData: false,
+      ),
+      now: now,
+      minutes: 9 * 60,
+      persian: false,
+      title: 'Nex',
+      aiEnabled: false,
+      summaryEnabled: false,
+      sourceMatches: false,
+      summary: null,
+      summaryAt: null,
+      secret: false,
+    );
+    final today = (plan['days'] as Map<String, Object?>)['2026-11-03'] as Map;
+    final dayEnd = DateTime(2026, 11, 4).millisecondsSinceEpoch - 1;
+    expect(today['localExpires'], dayEnd);
+    expect(
+      today['expires'],
+      dayEnd,
+      reason: 'local facts are true until their own day ends',
+    );
+  });
+
+  test('a recap keeps its hour and never outlives its day', () {
+    final written = DateTime(2026, 11, 3, 22);
+    final plan = NexDailyNudgeContent.plan(
+      source: const NexNudgeSnapshot(notes: [], commitments: [], hasData: true),
+      now: DateTime(2026, 11, 3, 22, 45),
+      minutes: 22 * 60 + 50,
+      persian: false,
+      title: 'Nex',
+      aiEnabled: true,
+      summaryEnabled: true,
+      sourceMatches: true,
+      summary: 'fresh',
+      summaryAt: written,
+      secret: false,
+    );
+    final today = (plan['days'] as Map<String, Object?>)['2026-11-03'] as Map;
+    expect(today['ai'], isTrue);
+    expect(today['expires'], DateTime(2026, 11, 3, 23).millisecondsSinceEpoch);
+    expect(
+      today['localExpires'],
+      DateTime(2026, 11, 4).millisecondsSinceEpoch - 1,
+    );
+  });
+
   test(
     'only a fresh matching same-day slot uses AI; future days are local',
     () {
