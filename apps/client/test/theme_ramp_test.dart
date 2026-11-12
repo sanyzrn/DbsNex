@@ -282,7 +282,11 @@ void main() {
         expect(visual.glassAura, original.glassAura, reason: preset.id);
         expect(visual.glassBounce, original.glassBounce, reason: preset.id);
         expect(visual.glassVibrancy, original.glassVibrancy, reason: preset.id);
-        expect(visual.glassEdgeWidth, original.glassEdgeWidth, reason: preset.id);
+        expect(
+          visual.glassEdgeWidth,
+          original.glassEdgeWidth,
+          reason: preset.id,
+        );
         expect(visual.glassGrain, original.glassGrain, reason: preset.id);
         expect(visual.blurSigma, original.blurSigma, reason: preset.id);
         expect(theme.textTheme.bodyLarge!.fontFamily, nexPersianFont);
