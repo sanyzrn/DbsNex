@@ -1,0 +1,492 @@
+diff --git a/apps/client/lib/widgets/ai_chat/chat_context.dart b/apps/client/lib/widgets/ai_chat/chat_context.dart
+index 23e0170f..b294b8ca 100644
+--- a/apps/client/lib/widgets/ai_chat/chat_context.dart
++++ b/apps/client/lib/widgets/ai_chat/chat_context.dart
+@@ -147,10 +147,15 @@ extension _ChatContext on _AiChatSheetState {
+   /// a recording's transcript and a photo's extracted text included, because
+   /// those are exactly the notes with nothing typed on them and exactly the
+   /// ones someone opens this from.
++  ///
++  /// [Note.displayText] rather than a list of fields of our own: it already
++  /// knows that a photo's caption is the person's own line on it, and a
++  /// checklist's items are its words — the fields listed by hand missed the
++  /// caption, so a photo someone had captioned introduced itself as "Photo".
+   String _focusLabel(Note note) {
+     final source = (note.title?.trim().isNotEmpty ?? false)
+         ? note.title!.trim()
+-        : (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim();
++        : (note.displayText ?? '').trim();
+     final line = source
+         .split('\n')
+         .firstWhere(
+@@ -286,6 +291,12 @@ extension _ChatContext on _AiChatSheetState {
+   /// every question would be a bill nobody agreed to and a prompt no model
+   /// answers well; the note somebody opened the assistant *on* is the one
+   /// they are asking about.
++  ///
++  /// The read stays synchronous on purpose: bounded by the size check below
++  /// and done once, at open. An awaited read was tried and reverted — real
++  /// file IO cannot complete inside a pumping test zone, and the
++  /// determinism of "the attachment is there the moment the capability
++  /// flips" is worth more than the frame it saves.
+   List<NexChatAttachment> _imagesFor(Note note) {
+     if (!widget.preferences.effectiveAiCapabilities.ocr ||
+         !widget.preferences.aiProvider.supportsImages) {
+diff --git a/apps/client/lib/widgets/ai_chat/chat_sending.dart b/apps/client/lib/widgets/ai_chat/chat_sending.dart
+index 85193502..91a1d9a3 100644
+--- a/apps/client/lib/widgets/ai_chat/chat_sending.dart
++++ b/apps/client/lib/widgets/ai_chat/chat_sending.dart
+@@ -510,21 +510,43 @@ extension _ChatSending on _AiChatSheetState {
+         ChatMessage(role: ChatRole.user, content: '<<<NOTES\n$found\nNOTES>>>'),
+       );
+     });
++    final l10n = AppLocalizations.of(context);
+     String? reply;
++    String? requestError;
+     try {
+       reply = await _ask();
+-    } catch (_) {
+-      reply = null;
++    } on TimeoutException {
++      requestError = l10n.chatTimeout;
++    } on SocketException {
++      requestError = l10n.chatNetworkError;
++    } on http.ClientException {
++      requestError = l10n.chatNetworkError;
++    } catch (error) {
++      unawaited(NexCrashLog.handled('chat.answer', error));
+     }
+     if (!mounted || generation != _sendGeneration) return;
+     _rebuild(() {
+       _sending = false;
+       if (reply == null || reply.isEmpty) {
+         _retryText = _activeQuestion;
+-        final l10n = AppLocalizations.of(context);
+-        _failure = _adapter.lastReplyTruncated
+-            ? l10n.chatIncompleteReply
+-            : l10n.chatFailed;
++        // The same words the first request of this exchange gets. The lookup
++        // round is the provider's second chance to fail, and a rate limit or
++        // a timeout there used to be called "no answer came back" — advice
++        // that sends someone hunting for a problem in the wrong place.
++        final local = _adapter.localFailure;
++        _failure =
++            requestError ??
++            (_adapter.lastReplyTruncated ? l10n.chatIncompleteReply : null) ??
++            (local != null
++                // The runtime's own words under the sentence, as above.
++                ? '${l10n.localModelLoadFailed}\n\n$local'
++                : switch (_adapter.lastFailureStatus) {
++                    413 => l10n.chatContextLimit,
++                    401 || 403 => l10n.chatAuthError,
++                    429 => l10n.chatRateLimited,
++                    final status? when status >= 500 => l10n.chatServiceError,
++                    _ => l10n.chatFailed,
++                  });
+         return;
+       }
+       _retryText = null;
+diff --git a/apps/client/lib/widgets/ai_chat/chat_thread.dart b/apps/client/lib/widgets/ai_chat/chat_thread.dart
+index 2b7a202d..46f79628 100644
+--- a/apps/client/lib/widgets/ai_chat/chat_thread.dart
++++ b/apps/client/lib/widgets/ai_chat/chat_thread.dart
+@@ -275,14 +275,13 @@ class _Grounding extends StatelessWidget {
+   final ValueChanged<Note> onOpenNote;
+ 
+   /// A note in a few words: the first line it has in words, or its kind.
++  ///
++  /// [Note.displayText], the same source the note's own card headlines: it
++  /// knows a photo's caption is the person's line on it and a checklist's
++  /// items are its words — the hand-listed fields missed the caption, so a
++  /// captioned photo's chip said "Photo" over a note that had words.
+   static String _label(Note note, AppLocalizations l10n) {
+-    for (final source in [
+-      note.title,
+-      note.content,
+-      note.transcriptText,
+-      note.ocrText,
+-      note.linkExcerpt,
+-    ]) {
++    for (final source in [note.title, note.displayText]) {
+       final line = (source ?? '')
+           .split('\n')
+           .map((line) => line.trim())
+diff --git a/apps/client/lib/widgets/ai_chat_sheet.dart b/apps/client/lib/widgets/ai_chat_sheet.dart
+index 9058ba42..606b0514 100644
+--- a/apps/client/lib/widgets/ai_chat_sheet.dart
++++ b/apps/client/lib/widgets/ai_chat_sheet.dart
+@@ -566,7 +566,13 @@ class _AiChatSheetState extends State<AiChatSheet> {
+                   sending: _sending,
+                   transcribing: _transcribing,
+                   onSend: () => unawaited(_send(_input.text)),
+-                  onStop: _adapter.answersOnDevice ? null : _stopSending,
++                  // Stoppable everywhere, on-device included. A cold on-device
++                  // load can hold the sheet for minutes with no way out; Stop
++                  // drops the wait (the native call itself is not cancellable,
++                  // so its reply is simply discarded when it lands — the same
++                  // abandonment closing the sheet already caused) and leaves
++                  // the question saved under a retry.
++                  onStop: _stopSending,
+                   onSpeak: _canSpeak ? () => unawaited(_speak()) : null,
+                   recorder: _voice,
+                   onVoiceDone: () => unawaited(_finishSpeaking()),
+diff --git a/apps/client/test/assistant_deep_review_test.dart b/apps/client/test/assistant_deep_review_test.dart
+new file mode 100644
+index 00000000..9e545f67
+--- /dev/null
++++ b/apps/client/test/assistant_deep_review_test.dart
+@@ -0,0 +1,238 @@
++import 'dart:async';
++import 'dart:convert';
++
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:http/http.dart' as http;
++import 'package:http/testing.dart';
++import 'package:nex_ai/cloud.dart';
++import 'package:nex_client/l10n/app_localizations.dart';
++import 'package:nex_client/widgets/ai_chat_sheet.dart';
++import 'package:nex_core/nex_core.dart';
++
++import 'support/nex_harness.dart';
++
++http.Response _reply(String content) => http.Response(
++  jsonEncode({
++    'choices': [
++      {
++        'message': {'content': content},
++      },
++    ],
++  }),
++  200,
++  headers: const {'content-type': 'application/json'},
++);
++
++/// The assistant review that shipped with Nex 2.6.20: on-device stop,
++/// caption-aware labels, and honest failure words on the lookup round.
++void main() {
++  late NexTestHarness harness;
++
++  setUp(() async {
++    harness = await NexTestHarness.create();
++    await harness.preferences.setAiEnabled(true);
++    addTearDown(() => harness.dispose());
++  });
++
++  Future<void> openSheet(
++    WidgetTester tester, {
++    required http.Client client,
++    Note? focus,
++  }) async {
++    await tester.pumpWidget(
++      MaterialApp(
++        localizationsDelegates: AppLocalizations.localizationsDelegates,
++        supportedLocales: AppLocalizations.supportedLocales,
++        home: Scaffold(
++          body: AiChatSheet(
++            preferences: harness.preferences,
++            services: harness.services,
++            history: harness.preferences.chatHistory,
++            client: client,
++            focus: focus,
++          ),
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++  }
++
++  Future<void> send(WidgetTester tester, String text) async {
++    final field = find.descendant(
++      of: find.byType(AiChatSheet),
++      matching: find.byType(TextField),
++    );
++    await tester.enterText(field, text);
++    // Let the mic→send switch finish before the tap: mid-transition the
++    // exiting mic still covers the spot, and the tap lands on it instead.
++    await tester.pumpAndSettle();
++    await tester.tap(find.byKey(const ValueKey('send')));
++    // The thinking animation never settles, so advance by hand — the same
++    // discipline assistant_cancellation_test uses.
++    for (var i = 0; i < 15; i++) {
++      await tester.pump(const Duration(milliseconds: 100));
++    }
++  }
++
++  group('an on-device answer can be stopped', () {
++    testWidgets('stop drops the wait and discards the late reply', (
++      tester,
++    ) async {
++      // No provider, a bound model: the request goes to the phone.
++      await harness.preferences.setAiProvider(const AiProviderConfig());
++      final model = _GatedModel();
++      ChatAdapterBinding.bind(model);
++      addTearDown(ChatAdapterBinding.reset);
++      // Stands in for the network; never used on this path.
++      await openSheet(
++        tester,
++        client: MockClient((_) async => _reply('unused')),
++      );
++
++      await send(tester, 'hello?');
++      expect(model.asked, 1);
++      // The one control the wait had been missing: with no provider there was
++      // no stop button at all, and a cold model held the sheet for its whole
++      // budget with no way out.
++      expect(find.byKey(const ValueKey('stop-chat')), findsOneWidget);
++      expect(find.byKey(const ValueKey('assistant-thinking')), findsOneWidget);
++
++      await tester.tap(find.byKey(const ValueKey('stop-chat')));
++      await tester.pumpAndSettle();
++      expect(find.textContaining('Response stopped'), findsOneWidget);
++      expect(find.byKey(const ValueKey('assistant-thinking')), findsNothing);
++
++      // The native call has no cancellation; when it lands anyway, its reply
++      // is dropped rather than answering a question that was abandoned.
++      model.answer('a late reply lands');
++      await tester.pumpAndSettle();
++      expect(find.textContaining('a late reply lands'), findsNothing);
++      expect(find.textContaining('Response stopped'), findsOneWidget);
++
++      // And the conversation is not wedged: a fresh question still answers.
++      await send(tester, 'again?');
++      expect(model.asked, 2);
++      model.answer('a fresh answer lands');
++      await tester.pumpAndSettle();
++      expect(find.textContaining('a fresh answer lands'), findsOneWidget);
++      expect(find.textContaining('Response stopped'), findsNothing);
++    });
++  });
++
++  group('a captioned note names itself by its caption', () {
++    testWidgets('the About line and the citation chip both use it', (
++      tester,
++    ) async {
++      await harness.preferences.setAiProvider(
++        const AiProviderConfig(provider: AiProvider.openai, apiKey: 'test'),
++      );
++      final now = DateTime.now().toUtc();
++      final note = Note(
++        id: '018f0000-0000-7000-8000-000000000001',
++        type: NoteType.photo,
++        // The person's own line on it — the only words the note has. Before
++        // this change both labels fell through to the kind name ("Photo").
++        caption: 'the whiteboard after the planning day',
++        createdAt: now,
++        updatedAt: now,
++        deviceId: 'test',
++        rev: 1,
++        syncState: SyncState.pending,
++      );
++      await openSheet(
++        tester,
++        focus: note,
++        client: MockClient(
++          (_) async => _reply(
++            'It looks full.\nSources: [018f0000-0000-7000-8000-000000000001]',
++          ),
++        ),
++      );
++
++      // The header says what the chat is about.
++      expect(
++        find.textContaining('the whiteboard after the planning day'),
++        findsWidgets,
++      );
++
++      await send(tester, 'what is on it?');
++      await tester.pumpAndSettle();
++      // The grounding chip under the answer, same words the card headlines.
++      expect(
++        find.widgetWithText(
++          ActionChip,
++          'the whiteboard after the planning day',
++        ),
++        findsOneWidget,
++      );
++      expect(find.text('It looks full.'), findsOneWidget);
++    });
++  });
++
++  group('the lookup round fails in its own words', () {
++    testWidgets('a rate limit there is called a rate limit', (tester) async {
++      await harness.preferences.setAiProvider(
++        const AiProviderConfig(provider: AiProvider.openai, apiKey: 'test'),
++      );
++      var calls = 0;
++      await openSheet(
++        tester,
++        client: MockClient((request) async {
++          calls++;
++          if (calls == 1) {
++            return _reply('```nex\n{"action":"tags"}\n```');
++          }
++          return http.Response(
++            jsonEncode({
++              'error': {'message': 'quota exceeded until tomorrow'},
++            }),
++            429,
++          );
++        }),
++      );
++
++      await send(tester, 'what tags do I have?');
++      await tester.pumpAndSettle();
++      // Two requests: the question, then the lookup it asked for.
++      expect(calls, 2);
++      // The second request's failure used to collapse into "no answer came
++      // back", which is advice for the wrong problem.
++      expect(
++        find.textContaining('The service limit was reached'),
++        findsOneWidget,
++      );
++      expect(find.textContaining('No answer came back'), findsNothing);
++      expect(
++        find.textContaining('quota exceeded until tomorrow'),
++        findsNothing,
++      );
++    });
++  });
++}
++
++/// An on-device model whose answers are handed over by the test, so a reply
++/// can be made to arrive after the person has given up on it.
++class _GatedModel implements ChatAdapter {
++  final gates = <Completer<ChatResponse>>[];
++
++  int get asked => gates.length;
++
++  void answer(String text) => gates.last.complete(ChatResponse(content: text));
++
++  @override
++  bool get available => true;
++
++  @override
++  Future<void>? warmUp() => null;
++
++  @override
++  Future<void>? release() => null;
++
++  @override
++  Future<ChatResponse>? sendMessage(List<ChatMessage> history) {
++    final gate = Completer<ChatResponse>();
++    gates.add(gate);
++    return gate.future;
++  }
++}
+diff --git a/docs/development/CHANGELOG.md b/docs/development/CHANGELOG.md
+index 807b18f2..91c615c0 100644
+--- a/docs/development/CHANGELOG.md
++++ b/docs/development/CHANGELOG.md
+@@ -34,6 +34,17 @@ Working convention:
+ 
+ ## Unreleased
+ 
++- A reply the assistant is still writing can be stopped on the phone's own
++  model too, not only on a provider: the stop button now appears for every
++  answer in flight, and a stopped on-device request drops the wait and keeps
++  the question under Retry.
++- A photo, voice or file note the chat is about, or that an answer cites, now
++  names itself by its caption — the person's own line on it — in the About
++  line and on the source chips, instead of falling back to its kind ("Photo")
++  over a note that had words.
++- A failure on the assistant's own follow-up lookup now says what actually
++  failed — rate limited, timed out, key rejected — instead of collapsing into
++  "no answer came back", which was advice for the wrong problem.
+ - Whole-app performance review with root-cause fixes, released as v2.6.19: search-index writes and the open-time repair are keyed by the note's own rowid instead of scanning the index (31× faster writes on a 20k library), the tag-usage count and its neighbours read from a new covering index, and the library stamp guards the re-keying against older APKs.
+   See [nex-2.6.19-performance.md](nex-2.6.19-performance.md).
+ 
+diff --git a/docs/development/nex-assistant-deep-review.md b/docs/development/nex-assistant-deep-review.md
+new file mode 100644
+index 00000000..e9b228d3
+--- /dev/null
++++ b/docs/development/nex-assistant-deep-review.md
+@@ -0,0 +1,69 @@
++# Assistant deep review — on top of Nex 2.6.19
++
++> Scope: the whole assistant chain, line by line — the chat sheet and its
++> seven parts, the send pipeline and its generation guards, retrieval
++> (fused search, the guide, Cycle), the three cloud wire formats and the
++> on-device LiteRT path, action parsing and execution, chat history —
++> against `main` at `83e4c52f` (PR #434).
++
++## Applied fixes
++
++- **Stop everywhere, on-device included.** The stop button only existed for
++  provider-backed answers; with the model on the phone the sheet offered no
++  way out of a wait that can run to minutes on a cold load, and the composer
++  showed a disabled button over it. Stop is now wired for every answer in
++  flight: it drops the wait, keeps the question under Retry, and the reply a
++  native call produces anyway — the runtime has no cancellation — is
++  discarded by the generation guard, the same abandonment closing the sheet
++  already caused.
++- **Captioned notes name themselves.** The About line and the citation chips
++  fell through to the note's kind when the note's only words were a caption,
++  because the labels listed fields by hand and missed it. Both now read
++  `Note.displayText` — the same source the note's own card headlines — which
++  knows a photo's caption is the person's line on it and a checklist's items
++  are its words.
++- **The lookup round fails in its own words.** A failure on the assistant's
++  follow-up lookup (the request after a `search`/`tags`/… action) collapsed
++  into "no answer came back", whatever had actually happened. It now gets
++  the same classification the first request of the exchange gets: timeout,
++  network, rate limit, key rejected, context limit, service error, and the
++  local runtime's own words for an on-device model that would not start.
++- **A stale contract comment.** The `listBriefWaiting` ordering comment still
++  described the pre-merge "dated first" order while the query (correctly,
++  since PR #434) puts urgent notes first so a limit can never drop them.
++  The comment now says what the ORDER BY does.
++
++## Reviewed and deliberately left alone
++
++- The send pipeline's generation guards, the bounded lookup rounds, the
++  invalid-action correction pass, and `ChatHistory`'s caps and atomic write.
++- The synchronous media reads at sheet open (`_imagesFor`, `_fileText`): an
++  awaited read was implemented and reverted — real file IO cannot complete
++  inside a pumping test zone, and the determinism of "the attachment is
++  there the moment the capability flips" is worth more than the frame an
++  8 MB read once cost. The size caps (8 MB image, 512 KB text) bound the
++  worst case, and a `.docx` already goes to its own isolate.
++- `_readCycleFirst`'s retry guard is effectively unreachable (a retry trims
++  back to the question before it runs); the behaviour it guards against
++  would be harmless anyway — a retry re-reads a fresh summary. Left as belt
++  and braces, noted here rather than churned.
++
++## Tests
++
++- New `assistant_deep_review_test.dart`: on-device stop (the late reply is
++  discarded and a fresh question still answers), the caption About line and
++  chip, and the rate-limited lookup failure.
++- Existing suites re-run on the patched tree: full `apps/client` suite
++  (all chunks), `packages/core` 283, `packages/data` 366 (+14 skips),
++  `packages/ai` 258; `flutter analyze` and `dart format` clean.
++
++## Risks
++
++- Stopping an on-device answer does not cancel the native call — nothing
++  can; it finishes in the background and its reply is dropped. A question
++  sent immediately after a stop queues behind that call in the adapter's
++  serial chain, as it already did after a failure.
++- The caption change touches one label source used in three places (About
++  line, grounding chips, action-card note lists); all three read the same
++  `displayText` getter the timeline cards use, so a regression there would
++  be visible far outside the chat.
+diff --git a/packages/data/lib/repositories/note_repository.dart b/packages/data/lib/repositories/note_repository.dart
+index 857506e7..d948cfc5 100644
+--- a/packages/data/lib/repositories/note_repository.dart
++++ b/packages/data/lib/repositories/note_repository.dart
+@@ -1960,9 +1960,11 @@ SELECT * FROM notes
+ WHERE deleted_at IS NULL
+   AND $_notSetAside
+   AND (due_at IS NOT NULL OR is_urgent = 1)
+-  -- Dated first and soonest first, because that is the order the brief
+-  -- reads them in; the urgent undated follow, newest first. A caller
+-  -- truncating by the limit keeps the front of each group.
++  -- Urgent first, because a caller truncating by the limit must never be
++  -- able to drop them: with dated notes ahead, a library of more than the
++  -- limit in dated reminders left every urgent note outside the cap.
++  -- Within each side: dated soonest first, then the undated newest first.
++  -- A caller truncating by the limit keeps the front of each group.
+ ORDER BY is_urgent DESC, (due_at IS NULL), due_at ASC, updated_at DESC
+ LIMIT ?
+ ''',
