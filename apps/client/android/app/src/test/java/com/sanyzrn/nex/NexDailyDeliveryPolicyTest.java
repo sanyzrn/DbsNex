@@ -74,6 +74,16 @@ public final class NexDailyDeliveryPolicyTest {
         // A corrupt receipt set cannot spin the receiver forever.
         check(NexDailyDeliveryPolicy.next(early, zone, 540, many) > early,
             "a corrupt receipt set still yields a future slot");
+        // A failed post may try again later that day — within budget, and
+        // never past midnight.
+        check(NexDailyDeliveryPolicy.retryAt(slot + 3600000L, zone, "2026-11-03", 1, 3, 900000L)
+            == slot + 3600000L + 900000L, "a failed delivery retries later the same day");
+        check(NexDailyDeliveryPolicy.retryAt(slot, zone, "2026-11-03", 3, 3, 900000L) < 0,
+            "the attempt budget is spent");
+        check(NexDailyDeliveryPolicy.retryAt(slot, zone, "2026-11-02", 1, 3, 900000L) < 0,
+            "a stale day is not retried");
+        check(NexDailyDeliveryPolicy.retryAt(time(zone, 2026, 11, 3, 23, 55), zone,
+            "2026-11-03", 1, 3, 900000L) < 0, "a retry never lands on the next day");
         System.out.println("Daily Nudge policy: " + checks + " assertions passed.");
     }
 }

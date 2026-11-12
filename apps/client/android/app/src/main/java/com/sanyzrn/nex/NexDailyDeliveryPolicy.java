@@ -42,6 +42,24 @@ public final class NexDailyDeliveryPolicy {
         return date.getTimeInMillis();
     }
 
+    /**
+     * When to try the same day's delivery again, or -1 when it is not worth it.
+     *
+     * A notification the shade never received is not a reason to lose the day,
+     * but an unbounded retry is a reason to lose the phone's battery. The
+     * budget is spent after [maxAttempts] posts, and a retry that would land on
+     * the next local day is dropped rather than posting tomorrow's text early
+     * — [plannedDay] is the date the attempt belongs to, and [attempts] counts
+     * the posts already made, this one included.
+     */
+    public static long retryAt(long now, TimeZone zone, String plannedDay,
+                               int attempts, int maxAttempts, long delay) {
+        if (plannedDay == null || !day(now, zone).equals(plannedDay)) return -1;
+        if (attempts >= Math.max(1, maxAttempts)) return -1;
+        long at = now + Math.max(1000L, delay);
+        return day(at, zone).equals(plannedDay) ? at : -1;
+    }
+
     /** The newest [keep] delivery dates, so the receipt set cannot grow forever. */
     public static Set<String> recent(Set<String> delivered, int keep) {
         TreeSet<String> ordered = new TreeSet<>(delivered);

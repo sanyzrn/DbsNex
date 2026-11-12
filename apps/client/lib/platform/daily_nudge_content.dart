@@ -1,4 +1,5 @@
 import 'package:nex_core/nex_core.dart';
+
 import 'dart:isolate';
 
 import 'reminders.dart';
@@ -15,9 +16,9 @@ abstract final class NexDailyNudgeContent {
       '${at.year}-${at.month.toString().padLeft(2, '0')}-${at.day.toString().padLeft(2, '0')}';
 
   static String short(String text, [int limit = 160]) {
-    final plain = NexMarkdownText.preview(
-      text,
-    ).replaceAll(RegExp(r'\s+'), ' ').trim();
+    final plain = NexMarkdownText.preview(text)
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
     return plain.runes.length <= limit
         ? plain
         : '${String.fromCharCodes(plain.runes.take(limit - 1))}…';
@@ -265,11 +266,8 @@ abstract final class NexDailyNudgeContent {
       // the exact-alarm permission) then arrived with every dated body
       // rejected: not a stale line sometimes, but the neutral rotation every
       // day on exactly the phones that needed the nudge most.
-      final localExpires = DateTime(
-        at.year,
-        at.month,
-        at.day + 1,
-      ).millisecondsSinceEpoch - 1;
+      final localExpires =
+          DateTime(at.year, at.month, at.day + 1).millisecondsSinceEpoch - 1;
       // A recap is a sentence about now rather than about a date, so it keeps
       // its one-hour freshness — and never outlives the day it describes.
       final aiExpires = ai

@@ -4,11 +4,13 @@
 Dart planner and coordinator, the Flutter↔Android bridge, the Android alarm and
 receiver — against `main` at `0e1a4da3`.
 
-**Result:** nine defects fixed across `daily_nudge_content.dart`,
-`NexDailyDeliveryPolicy.java` and `NexDailyNudgeReceiver.java`; the Dart
-coordinator, the bridge and the notification contract were reviewed and are
-unchanged. Tests: 34 JVM policy assertions and 30 Dart tests pass, the three
-changed Dart files analyze clean, and the Java sources parse clean.
+**Result:** eleven defects fixed across `daily_nudge_content.dart`,
+`daily_nudge_native.dart`, `services/daily_nudge_services.dart`,
+`NexDailyDeliveryPolicy.java`, `NexDailyNudgeReceiver.java` and the method
+channel in `MainActivity.kt`. Tests: 38 JVM policy assertions and 41 Dart tests
+pass, the whole client analyzes clean under the pinned Flutter 3.47.9, the
+changed Dart files match Dart 3.13.7's formatter, and the Java sources parse
+clean.
 
 خلاصهٔ فارسی در پایان همین سند آمده است.
 
@@ -84,12 +86,26 @@ that switched Nex to Persian kept an English "Daily nudge" in system settings
 forever. The channel is now renamed when `plan.channelName` differs, with its
 importance untouched.
 
-### DN-05 (medium) — a rejected alarm killed the feature until the next launch
+### DN-05 (high) — a rejected alarm was silent, and reported as success
 
-`schedule()` guarded `setExactAndAllowWhileIdle` but called
-`setAndAllowWhileIdle` outside any `try`, and `onReceive` swallowed everything.
-A ROM that refuses both left no alarm and no trace. Both paths are guarded now;
-the stored plan and preferences survive, so the next launch or boot re-arms it.
+`schedule()` called `setAndAllowWhileIdle` outside any `try`, and `onReceive`
+swallowed everything, so a ROM that refuses both kinds left no alarm and no
+trace. Worse, `configure` answered nothing: Dart returned `lastError == null`
+and the settings switch sat on above a phone that would never notify.
+
+Now the arm is a verdict rather than a side effect. `schedule()` returns whether
+the OS took the alarm, `configure()` passes that back over the channel, and
+`updateDailyNudge` turns `false` into the existing `NexReminders.lastError` (and
+the settings banner) with `the system did not keep the daily alarm` — the same
+sentence note reminders already use for the same failure. A refused alarm does
+not memoise the plan, so the next update tries again.
+
+A failure that happens while nobody is looking — a boot broadcast, a time
+change — cannot show a banner, so it is written to the receiver's own store and
+read back through a new `status` method into the shared diagnostics file that
+"Share diagnostics" sends. `Log.w` carries the same line to logcat. That is the
+architecture the rest of `NexReminders` already uses: an alarm that was not
+taken is recorded and surfaced, never assumed.
 
 ### DN-06 (low) — plan written with `commit()` on the main thread
 
@@ -104,11 +120,20 @@ receipt set was trimmed inline. A corrupt receipt set (a clock moved far forward
 and back) could spin a broadcast receiver. The loop is bounded at 400 days and
 trimming moved into `NexDailyDeliveryPolicy.recent()`, which is unit-tested.
 
-### DN-08 (low) — a failed post spent the day
+### DN-08 (medium) — a failed post spent the day, with no way back
 
-The receipt was committed before `notify()`; if `notify()` threw, the date stayed
-marked and the nudge was lost until tomorrow. The date is rolled back on failure
-so the next broadcast can deliver it.
+The receipt was committed before `notify()`; if `notify()` threw, the date
+stayed marked and the nudge was lost until tomorrow. The date is rolled back now
+— which on its own only helped if some other broadcast happened to arrive before
+midnight — and a **bounded same-day retry** finishes the job: a separate
+`PendingIntent` (its own action, request code 1) fires after 15 minutes, at most
+three posts in total, and never across midnight, decided by the pure
+`NexDailyDeliveryPolicy.retryAt`. Every retry re-checks the same once-per-day
+receipt, so a duplicate is impossible, and the attempt counter lives with the
+date it belongs to, so a shade that refuses everything cannot become a loop.
+
+The retry is cancelled by `cancel()` and cleared by a successful post, so
+turning the nudge off leaves nothing behind.
 
 ### DN-09 (low, defensive) — an empty quotation instead of a note name
 
@@ -146,8 +171,10 @@ These were checked line by line and are correct as written:
 - **Migration.** The one-time `nativeRevision` cancel removes the pre-native
   static daily repeat, so an upgrade cannot produce two notifications.
 - **Coordinator.** Epoch-based supersede, the 300 ms coalescing timer, the
-  serialised flight, the source fingerprint, and the "no provider request at
-  delivery time" rule are sound; no change needed.
+  serialised flight, the source fingerprint and the "no provider request at
+  delivery time" rule are sound and unchanged. Its only addition is the
+  verdict: a refused alarm is reported and not memoised, and a failure recorded
+  in the background is logged before the rebuild replaces the state.
 - **Content ranking.** Rank order (urgent → overdue → due soon → commitment →
   unfinished), per-note dedupe, the 7-day overdue horizon, the 30-day staleness
   cut, archived/deleted/completed exclusion and the Persian/English wording were
@@ -169,6 +196,13 @@ These were checked line by line and are correct as written:
 - With an old `days` entry whose `expires` is still the one-hour value, the fix
   degrades to exactly what shipped before rather than to nothing.
 - No new permission, notification action, channel, or preference key.
+- The method-channel protocol gained an answer: `configure` returns whether the
+  alarm was taken, and `status` returns the last recorded failure. Dart and the
+  native side ship in the same APK, and a plan stored by the previous build is
+  read exactly as before.
+- A refused **retry** alarm is recorded too, and the next boot or time change
+  re-arms the daily alarm, so a phone that rejects one kind of alarm does not
+  lose the feature — only that day's second chance.
 
 ---
 
@@ -178,12 +212,14 @@ Run in this workspace with Flutter 3.50.0 · Dart 3.14.0 · Temurin JDK 17:
 
 ```
 python3 tools/daily_nudge_native_test.py
-  → Daily Nudge policy: 34 assertions passed.        (exit 0)
+  → Daily Nudge policy: 38 assertions passed.        (exit 0)
 
 cd apps/client && flutter test \
     test/daily_nudge_content_test.dart \
-    test/daily_nudge_coordinator_test.dart
-  → All tests passed. (30 tests)                     (exit 0)
+    test/daily_nudge_coordinator_test.dart \
+    test/daily_nudge_test.dart \
+    test/habits_notification_platform_test.dart
+  → All tests passed. (41 tests)                     (exit 0)
 
 cd apps/client && flutter analyze \
     lib/platform/daily_nudge_content.dart \
@@ -193,18 +229,25 @@ cd apps/client && flutter analyze \
 
 javac (parse-only JavacTask) on the three changed Java files
   → syntax_errors=0                                  (exit 0)
+
+BASE_SHA=<main> python3 tools/check_changed_format.py   # Dart 3.13.7
+  → no output, exit 0                                (CI's own gate)
 ```
 
 New coverage:
 
 - **JVM:** a delivery eight hours late is still current; a local body is not
   current after its day; a recap keeps its own shorter window; receipts are
-  bounded and keep the newest; a corrupt receipt set still yields a future slot.
+  bounded and keep the newest; a corrupt receipt set still yields a future slot;
+  a failed post retries later the same day, stops after the budget, never
+  retries a stale day, and never crosses midnight.
 - **Dart content:** `localExpires` is the end of that local day; `expires` equals
   it for a local day; a recap keeps its hour and never outlives its day; a blank
   title never becomes an empty quotation (both languages).
 - **Dart coordinator:** every planned day carries `localExpires`, and
-  `expires <= localExpires` for all of them.
+  `expires <= localExpires` for all of them; an alarm the OS refuses is returned
+  to the caller, recorded on `lastError`, and retried by the next update instead
+  of being remembered as the finished plan.
 
 **Not run** (stated as a limitation, not a pass): the full `flutter analyze` and
 full `flutter test` suites, a Gradle/Android build, and any on-device delivery
@@ -227,9 +270,16 @@ alarm was observed firing on a phone.
    the receiver then posts nothing for that day and the next launch rewrites it.
    `commit()` would close that window by blocking the main thread — the wrong
    trade for a value that is rewritten on every launch.
-3. **Receipt rollback.** If `notify()` posts successfully and then throws, the
-   date is un-marked and a later broadcast could post twice. Practically
-   unreachable, and the alternative (losing the day) was the observed bug.
+3. **Retry ordering.** If `notify()` posts successfully and then throws, the
+   date is un-marked and the retry could post twice. Practically unreachable:
+   the throw would have to come from after the shade accepted the notification.
+   The alternative (losing the day) was the observed bug.
+7. **Formatter normalisation.** `daily_nudge_services.dart` and
+   `daily_nudge_coordinator_test.dart` were checked in under the old formatter,
+   so touching them runs Dart 3.13.7's whole-file pass. The change is
+   whitespace, not behaviour, but it makes the diff for those two files larger
+   than the edit. CI enforces it for any changed file, so it cannot be fixed in
+   one file at a time.
 4. **Device behaviour is unverified.** Doze, OEM battery managers, force-stop and
    direct-boot behaviour still need a phone. The fix removes the *content* loss
    for late delivery; it cannot make an inexact alarm punctual.
@@ -271,7 +321,20 @@ alarm was observed firing on a phone.
 جدید (`localExpires`) اضافه کرده و نسخهٔ طرح همان ۱ مانده است؛ طرح قدیمی هم
 بدون خطا خوانده می‌شود.
 
-**تست‌ها:** ۳۴ بررسی سیاست زمان‌بندی روی JVM، ۳۰ تست Dart (شامل تست‌های تازه
-برای پنجرهٔ تحویل، مرز پایان روز، خلاصهٔ منقضی و عنوان خالی)، تحلیل بدون خطای
-سه فایل Dart و بررسی نحوی سه فایل جاوا. اجرای کامل مجموعه تست‌ها، بیلد
-اندروید و آزمایش روی گوشی انجام نشده و در بخش ریسک‌ها آمده است.
+**دو اصلاح پس از بازبینی PR:** اول، اگر اندروید هر دو نوع آلارم را رد کند،
+این حالت دیگر بی‌صدا نیست: `configure` دیگر فقط ذخیره نمی‌کند و پاسخ می‌دهد که
+آیا آلارم گرفته شد یا نه؛ پاسخ منفی به همان مسیر `lastError` و بنر تنظیمات
+می‌رود و طرح «موفق» ثبت نمی‌شود تا اجرای بعدی دوباره تلاش کند. شکست‌هایی که در
+پس‌زمینه رخ می‌دهند (بوت، تغییر ساعت) در حافظهٔ گیرنده ثبت و با متد تازهٔ
+`status` به فایل اشکال‌زدایی «اشتراک‌گذاری گزارش» منتقل می‌شوند. دوم، اگر
+`notify()` شکست بخورد، همان روز حداکثر دو تلاش دیگر (هر ۱۵ دقیقه، حداکثر سه
+ارسال، هرگز پس از نیمه‌شب) انجام می‌شود؛ هر تلاش همان رسید «یک‌بار در روز» را
+می‌سنجد، پس اعلان تکراری ممکن نیست و با خاموش‌کردن یادآوری، آلارم تلاش مجدد هم
+لغو می‌شود.
+
+**تست‌ها:** ۳۸ بررسی سیاست زمان‌بندی روی JVM، ۴۱ تست Dart (شامل تست‌های تازه
+برای پنجرهٔ تحویل، مرز پایان روز، خلاصهٔ منقضی، عنوان خالی و آلارمی که سیستم
+رد می‌کند)، تحلیل کامل کلاینت با Flutter ۳.۴۷.۹ (نسخهٔ pin‌شدهٔ CI)،
+هم‌خوانی قالب با Dart ۳.۱۳.۷ از طریق همان اسکریپت CI، و بررسی نحوی سه فایل
+جاوا. اجرای کامل مجموعه تست‌ها، بیلد اندروید و آزمایش روی گوشی انجام نشده و در
+بخش ریسک‌ها آمده است.
