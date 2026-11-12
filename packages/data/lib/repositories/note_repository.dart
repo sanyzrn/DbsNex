@@ -1960,9 +1960,11 @@ SELECT * FROM notes
 WHERE deleted_at IS NULL
   AND $_notSetAside
   AND (due_at IS NOT NULL OR is_urgent = 1)
-  -- Dated first and soonest first, because that is the order the brief
-  -- reads them in; the urgent undated follow, newest first. A caller
-  -- truncating by the limit keeps the front of each group.
+  -- Urgent first, because a caller truncating by the limit must never be
+  -- able to drop them: with dated notes ahead, a library of more than the
+  -- limit in dated reminders left every urgent note outside the cap.
+  -- Within each side: dated soonest first, then the undated newest first.
+  -- A caller truncating by the limit keeps the front of each group.
 ORDER BY is_urgent DESC, (due_at IS NULL), due_at ASC, updated_at DESC
 LIMIT ?
 ''',

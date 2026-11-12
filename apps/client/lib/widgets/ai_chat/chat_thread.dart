@@ -275,14 +275,13 @@ class _Grounding extends StatelessWidget {
   final ValueChanged<Note> onOpenNote;
 
   /// A note in a few words: the first line it has in words, or its kind.
+  ///
+  /// [Note.displayText], the same source the note's own card headlines: it
+  /// knows a photo's caption is the person's line on it and a checklist's
+  /// items are its words — the hand-listed fields missed the caption, so a
+  /// captioned photo's chip said "Photo" over a note that had words.
   static String _label(Note note, AppLocalizations l10n) {
-    for (final source in [
-      note.title,
-      note.content,
-      note.transcriptText,
-      note.ocrText,
-      note.linkExcerpt,
-    ]) {
+    for (final source in [note.title, note.displayText]) {
       final line = (source ?? '')
           .split('\n')
           .map((line) => line.trim())

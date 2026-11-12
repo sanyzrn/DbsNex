@@ -2,6 +2,14 @@
 
 User-facing release notes. Detailed technical history is preserved in [the development archive](docs/development/CHANGELOG.md).
 
+## v2.6.20
+
+- **Important notes reach Smart Summary.** Older urgent notes and reminders are considered even when they fall outside the timeline's newest 200 notes.
+- **More reliable daily brief.** Pull-to-refresh is honoured during automatic updates, unnecessary refreshes are eliminated, and long notes no longer flood the greeting request.
+- **Stop an on-device assistant answer.** The Stop button now works with the phone's own model too; late results are discarded and the question remains available to retry.
+- **Clearer note names in assistant chat.** Captioned photos, recordings and files appear by their own captions in the conversation and source chips.
+- **Useful error messages.** Follow-up searches distinguish timeouts, connection issues, rate limits and rejected keys instead of a generic failed reply.
+
 ## v2.6.19
 
 - **A snappier library at every size.** Saving, editing and deleting a note no longer rereads the whole search index to find the one row it is changing, so every write — a capture, an edit, a tag, a reminder — costs the same on a large library as on a small one.

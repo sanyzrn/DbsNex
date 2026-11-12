@@ -566,7 +566,13 @@ class _AiChatSheetState extends State<AiChatSheet> {
                   sending: _sending,
                   transcribing: _transcribing,
                   onSend: () => unawaited(_send(_input.text)),
-                  onStop: _adapter.answersOnDevice ? null : _stopSending,
+                  // Stoppable everywhere, on-device included. A cold on-device
+                  // load can hold the sheet for minutes with no way out; Stop
+                  // drops the wait (the native call itself is not cancellable,
+                  // so its reply is simply discarded when it lands — the same
+                  // abandonment closing the sheet already caused) and leaves
+                  // the question saved under a retry.
+                  onStop: _stopSending,
                   onSpeak: _canSpeak ? () => unawaited(_speak()) : null,
                   recorder: _voice,
                   onVoiceDone: () => unawaited(_finishSpeaking()),
