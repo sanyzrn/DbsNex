@@ -4,6 +4,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.22
+
 - **Reminders from the modules respect the app lock too.** With the app lock on, a habit, medication, parking or appointment reminder still showed what it was about on the lock screen; only note reminders were hidden. Every reminder follows the lock now.
 - **A habit reminder ticks the right day.** One that rang between midnight and your zone's offset from UTC logged its check against the previous day — and **Done** pressed from the notification could be thrown away as "not today". The day it registers against is now the day it actually rings on.
 - **The daily nudge keeps saying something real.** A phone that delivers it late — an inexact alarm, a strict battery manager — no longer replaces the day's notes and reminders with a generic line, and a failed delivery no longer costs the day. The notification's channel name also follows the app's language instead of staying in the one it was created in.
