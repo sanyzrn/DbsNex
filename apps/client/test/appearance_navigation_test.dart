@@ -11,7 +11,7 @@ void main() {
   for (final locale in ['en', 'fa']) {
     for (final reduced in [false, true]) {
       testWidgets(
-        '$locale reduced=$reduced: Appearance preserves and pauses its theme gallery',
+        '$locale reduced=$reduced: Appearance opens its theme gallery',
         (tester) async {
           final h = await NexTestHarness.create();
           addTearDown(h.dispose);
@@ -59,12 +59,19 @@ void main() {
           final row = tester.widget<ListTile>(
             find.descendant(of: themes, matching: find.byType(ListTile)),
           );
-          expect(row.enabled, isFalse);
-          expect(row.onTap, isNull);
-          expect(find.text(l10n.themePresetsPaused), findsOneWidget);
+          // The gallery is back: the row is live and opens the palettes.
+          expect(row.enabled, isTrue);
+          expect(row.onTap, isNotNull);
           await tester.tap(themes);
           await tester.pumpAndSettle();
-          expect(find.byKey(const ValueKey('palette-classic')), findsNothing);
+          // Every palette is a window onto it: all fifteen tiles render.
+          for (final preset in nexThemePresets) {
+            expect(
+              find.byKey(ValueKey('palette-${preset.id}')),
+              findsOneWidget,
+              reason: preset.id,
+            );
+          }
           expect(nexThemePresets.length, 15);
           expect(
             nexThemePresets.map((p) => p.id).toSet().length,

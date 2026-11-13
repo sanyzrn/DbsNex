@@ -16,6 +16,7 @@ import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/os_capture_bridge.dart';
+import 'package:nex_client/platform/theme_presets.dart';
 import 'package:nex_client/screens/intelligence_screen.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
@@ -987,46 +988,52 @@ void main() {
     expect(find.text('Nex'), findsWidgets);
   });
 
-  testWidgets(
-    'Appearance owns four modes while the palette gallery is paused',
-    (tester) async {
-      tester.view.physicalSize = const Size(800, 2000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await preferences.setThemePreset('paper');
-      await tester.pumpWidget(
-        NexApp(services: services, preferences: preferences),
-      );
-      await tester.tap(find.byIcon(Icons.settings_outlined));
-      await tester.pumpAndSettle();
-      await openSettingsCategory(tester, 'appearance');
-      final themes = find.byKey(const ValueKey('appearance-themes'));
-      await tester.ensureVisible(themes);
-      await tester.pumpAndSettle();
-      final row = tester.widget<ListTile>(
-        find.descendant(of: themes, matching: find.byType(ListTile)),
-      );
-      expect(row.enabled, isFalse);
-      expect(row.onTap, isNull);
-      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-      expect(
-        app.theme!.colorScheme,
-        nexSoftLightTheme(fontFamily: nexLatinFont).colorScheme,
-      );
-      expect(preferences.themePreset, 'paper');
-      await tester.scrollUntilVisible(
-        find.text('Dark'),
-        -200,
-        scrollable: find.byType(Scrollable).last,
-      );
-      expect(find.byType(NexChoiceCards<NexAppearanceMode>), findsOneWidget);
-      expect(find.text('Night'), findsOneWidget);
-      await tester.tap(find.text('Dark'));
-      await tester.pumpAndSettle();
-      expect(preferences.appearanceMode, NexAppearanceMode.dark);
-      expect((await NexPreferences.load()).themePreset, 'paper');
-    },
-  );
+  testWidgets('Appearance owns four modes and its theme gallery', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await preferences.setThemePreset('paper');
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await openSettingsCategory(tester, 'appearance');
+    final themes = find.byKey(const ValueKey('appearance-themes'));
+    await tester.ensureVisible(themes);
+    await tester.pumpAndSettle();
+    final row = tester.widget<ListTile>(
+      find.descendant(of: themes, matching: find.byType(ListTile)),
+    );
+    // The gallery is back: the row is live, and a stored palette is the
+    // theme the app actually wears — Paper's own surfaces, not Soft
+    // Light's.
+    expect(row.enabled, isTrue);
+    expect(row.onTap, isNotNull);
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(
+      app.theme!.colorScheme,
+      nexApplyThemePreset(
+        nexSoftLightTheme(fontFamily: nexLatinFont),
+        'paper',
+        null,
+      ).colorScheme,
+    );
+    expect(preferences.themePreset, 'paper');
+    await tester.scrollUntilVisible(
+      find.text('Dark'),
+      -200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.byType(NexChoiceCards<NexAppearanceMode>), findsOneWidget);
+    expect(find.text('Night'), findsOneWidget);
+    await tester.tap(find.text('Dark'));
+    await tester.pumpAndSettle();
+    expect(preferences.appearanceMode, NexAppearanceMode.dark);
+    expect((await NexPreferences.load()).themePreset, 'paper');
+  });
 
   testWidgets('the AI output language is its own setting, not the app locale', (
     tester,

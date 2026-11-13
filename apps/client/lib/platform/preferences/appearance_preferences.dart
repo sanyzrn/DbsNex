@@ -34,9 +34,14 @@ mixin _AppearancePreferences on _PreferencesStore {
   String get themePreset =>
       _prefs.getString('appearance.theme_preset') ?? 'classic';
 
-  /// The gallery is paused without overwriting anyone's saved selection.
-  String get effectiveThemePreset =>
-      nexThemePresetsAvailable ? themePreset : 'classic';
+  /// The stored palette when it names one of the shipped ones — anything
+  /// else (a name retired from an older backup, or corruption) falls back
+  /// to the classic look rather than inventing one.
+  String get effectiveThemePreset {
+    if (!nexThemePresetsAvailable) return 'classic';
+    final id = themePreset;
+    return nexThemePresets.any((p) => p.id == id) ? id : 'classic';
+  }
 
   Future<void> setThemePreset(String value) async {
     await _prefs.setString('appearance.theme_preset', value);

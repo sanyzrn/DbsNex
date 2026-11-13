@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.25
+
+- **Redesigned themes.** Choose from 14 palettes in Settings → Appearance, each with its own light and dark colours. Your saved theme returns automatically, custom accents keep their hue with readable text, and Liquid Glass follows the palette.
+
 ## v2.6.24
 
 - **Liquid Glass now has depth.** With the material on, each pane is lit rather than merely tinted: the page's own colour comes through more vividly, a bevel catches the light along the top edge, a soft bounce lifts the bottom edge, and the top bar, dock, menus, dialogs and sheets throw a faint halo onto the page. Dark and Night have their own bounce and warmth, and high contrast still falls back to a solid surface.

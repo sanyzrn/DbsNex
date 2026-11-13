@@ -1,48 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
-/// Still uses tonal grouping instead of decorative lines or elevation.
-/// Warm, low-chroma neutrals are a design choice, not a claim that a hue
-/// treats stress. Foreground pairs are checked with WCAG relative luminance.
-ColorScheme nexStillColors(ColorScheme scheme, {required bool customAccent}) {
-  final dark = scheme.brightness == Brightness.dark;
-  final surfaces = scheme.copyWith(
-    surface: dark ? const Color(0xFF181C19) : const Color(0xFFF4F3EF),
-    surfaceDim: dark ? const Color(0xFF181C19) : const Color(0xFFD8DED4),
-    surfaceBright: dark ? const Color(0xFF3B453C) : const Color(0xFFFAFAF7),
-    surfaceContainerLowest: dark
-        ? const Color(0xFF222823)
-        : const Color(0xFFFAFAF7),
-    surfaceContainerLow: dark
-        ? const Color(0xFF202620)
-        : const Color(0xFFEEEFE9),
-    surfaceContainer: dark ? const Color(0xFF282F2A) : const Color(0xFFE8EBE4),
-    surfaceContainerHigh: dark
-        ? const Color(0xFF313A32)
-        : const Color(0xFFE1E5DD),
-    surfaceContainerHighest: dark
-        ? const Color(0xFF3B453C)
-        : const Color(0xFFD8DED4),
-    onSurface: dark ? const Color(0xFFE6E9E2) : const Color(0xFF252B27),
-    onSurfaceVariant: dark ? const Color(0xFFB8C2B8) : const Color(0xFF565F58),
-    // Keep semantic outlines usable for controls and high-contrast mode.
-    // Decorative edges are removed by the visual style, not transparent ink.
-    outline: dark ? const Color(0xFF9AA89B) : const Color(0xFF6F7A70),
-    outlineVariant: dark ? const Color(0xFF465148) : const Color(0xFFCBD2C7),
-    shadow: Colors.transparent,
-    surfaceTint: Colors.transparent,
-  );
-  if (customAccent) return surfaces;
-  return surfaces.copyWith(
-    primary: dark ? const Color(0xFFB1C9B7) : const Color(0xFF486553),
-    onPrimary: dark ? const Color(0xFF1C3427) : const Color(0xFFFFFFFF),
-    primaryContainer: dark ? const Color(0xFF344C3C) : const Color(0xFFDAE6DA),
-    onPrimaryContainer: dark
-        ? const Color(0xFFD8E8DA)
-        : const Color(0xFF233E2D),
-  );
-}
-
+/// Still's own discipline, on top of its designed ramp.
+///
+/// The ramp ([NexSurfaceRamp] in `theme_presets.dart`) carries Still's
+/// colours — warm bone neutrals and quiet sage — and, like every palette,
+/// rides the same Soft UI structure as the shipped appearances. What sets
+/// Still apart is what it refuses to draw: tonal grouping instead of
+/// decorative lines, and no glass optics at all, even when the material is
+/// switched on elsewhere. That refusal lives here, on the finished theme,
+/// so the ramp itself stays the same designed object every other palette
+/// is.
 ThemeData nexStillTheme(ThemeData theme) {
   final c = theme.colorScheme;
   final visual = theme.extension<NexVisualStyle>();

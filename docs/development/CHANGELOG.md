@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v2.6.25
+
+- Restore the 14 theme palettes using designed surface ramps; preserve the 2.6.24 glass renderer and its optics. Custom accents meet the 4.5:1 text floor on every ramp surface. Update portable colour pins, palette goldens and the appearance guide. See [nex-theme-atelier.md](nex-theme-atelier.md).
+
 ## v2.6.21
 
 - Liquid Glass was rebuilt from the films up and switched back on: every wash

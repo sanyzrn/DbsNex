@@ -1,8 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
+
 import '../widgets/feature_label.dart';
 import 'minimal_theme.dart';
 
+part 'theme_preset_ramps.dart';
+
+/// The whole-app palettes — the Theme Atelier.
+///
+/// A preset used to be a seed colour and a page tint, with every other tone
+/// derived by Material's tonal machinery. That is also why the gallery was
+/// switched off with the Soft UI work: a red picked on Paper came out brown,
+/// Graphite quietly ignored a picked colour, and the derived surfaces sat
+/// beside the shipped Soft UI surfaces like pieces of another app.
+///
+/// This is the rebuild. Each palette is now a designed [NexSurfaceRamp] —
+/// its own page, card and elevated step; its own ink, muted tone and two
+/// boundary weights; its own accent steps (a deep one that holds 4.5:1 as
+/// text, and a vibrant one the capture button wears at the 3:1 graphical
+/// floor, the same split the shipped Soft Light theme makes between
+/// `#006DCC` and `#0084F7`); its own selected-container wash; and, when
+/// Liquid Glass is on, its own glass, tinted by its own page the way the
+/// shipped appearances tint theirs. `theme_ramp_test.dart` holds every
+/// palette to every floor the shipped surfaces are held to.
+///
+/// Each palette keeps the identity it always had — Still is still the flat,
+/// glass-free one, Graphite is still grey by design — and a colour somebody
+/// picks keeps its own hue on every palette, taking the accent roles only:
+/// see [NexSurfaceRamp.withAccent].
 typedef NexThemePreset = ({
   String id,
   String en,
@@ -11,9 +36,10 @@ typedef NexThemePreset = ({
   String faDescription,
   Color seed,
   IconData icon,
-  // The page itself, light and dark. Null keeps the classic surfaces.
-  Color? light,
-  Color? dark,
+  // The palette's designed ramp, light and dark. Null keeps the classic
+  // surfaces — Nex itself, which the base appearance already is.
+  NexSurfaceRamp? light,
+  NexSurfaceRamp? dark,
 });
 
 /// The faint motif a theme draws up from the bottom of the screen. Every
@@ -55,19 +81,19 @@ const nexThemePresets = <NexThemePreset>[
     faDescription: 'خنثیِ گرم و سبز ملایم، بدون حاشیه و سایه',
     seed: Color(0xFF486553),
     icon: Icons.spa_outlined,
-    light: Color(0xFFF4F3EF),
-    dark: Color(0xFF181C19),
+    light: _stillLight,
+    dark: _stillDark,
   ),
   (
     id: 'paper',
     en: 'Paper notebook',
     fa: 'دفتر کاغذی',
-    enDescription: 'Warm cream, ink and quiet surfaces',
+    enDescription: 'Cream stock, sepia ink and quiet surfaces',
     faDescription: 'کرم گرم، جوهر و سطح‌های آرام',
-    seed: Color(0xFF8A6A36),
+    seed: Color(0xFF7A571C),
     icon: Icons.menu_book_outlined,
-    light: Color(0xFFF5EEDC),
-    dark: Color(0xFF27231C),
+    light: _paperLight,
+    dark: _paperDark,
   ),
   (
     id: 'autumn',
@@ -75,10 +101,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'پاییز',
     enDescription: 'Terracotta, amber and warm dusk',
     faDescription: 'سفالی، کهربایی و غروب گرم',
-    seed: Color(0xFFAC4F2C),
+    seed: Color(0xFFA04621),
     icon: Icons.eco_outlined,
-    light: Color(0xFFFFF0E5),
-    dark: Color(0xFF291D18),
+    light: _autumnLight,
+    dark: _autumnDark,
   ),
   (
     id: 'blossom',
@@ -86,10 +112,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'شکوفهٔ رز',
     enDescription: 'Soft rose and lilac with a feminine touch',
     faDescription: 'رز لطیف و یاسی با حال‌وهوای دخترانه',
-    seed: Color(0xFFAE497C),
+    seed: Color(0xFFA93A5E),
     icon: Icons.local_florist_outlined,
-    light: Color(0xFFFFF1F7),
-    dark: Color(0xFF291D28),
+    light: _blossomLight,
+    dark: _blossomDark,
   ),
   (
     id: 'forest',
@@ -97,10 +123,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'خلوت جنگل',
     enDescription: 'Sage green and deep woodland',
     faDescription: 'سبز مریم‌گلی و عمق جنگل',
-    seed: Color(0xFF367568),
+    seed: Color(0xFF3C6F54),
     icon: Icons.forest_outlined,
-    light: Color(0xFFEDF4EB),
-    dark: Color(0xFF172722),
+    light: _forestLight,
+    dark: _forestDark,
   ),
   (
     id: 'turquoise',
@@ -108,10 +134,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'فیروزهٔ اصفهان',
     enDescription: 'Tilework turquoise with a touch of lapis',
     faDescription: 'فیروزه‌ای کاشی با ته‌رنگ لاجورد',
-    seed: Color(0xFF00838F),
+    seed: Color(0xFF0B6E77),
     icon: Icons.mosque_outlined,
-    light: Color(0xFFE8F6F5),
-    dark: Color(0xFF0D2226),
+    light: _turquoiseLight,
+    dark: _turquoiseDark,
   ),
   (
     id: 'saffron',
@@ -119,10 +145,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'زعفران',
     enDescription: 'Golden saffron on warm ivory',
     faDescription: 'زعفرانی طلایی روی عاج گرم',
-    seed: Color(0xFFC77700),
+    seed: Color(0xFF8F5400),
     icon: Icons.spa_outlined,
-    light: Color(0xFFFFF6E6),
-    dark: Color(0xFF2A1F0E),
+    light: _saffronLight,
+    dark: _saffronDark,
   ),
   (
     id: 'midnight',
@@ -130,10 +156,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'نیمه‌شب',
     enDescription: 'Deep indigo with a violet glow',
     faDescription: 'نیلی عمیق با درخششی بنفش',
-    seed: Color(0xFF6750D8),
+    seed: Color(0xFF634CD7),
     icon: Icons.nights_stay_outlined,
-    light: Color(0xFFF1EEFC),
-    dark: Color(0xFF14112A),
+    light: _midnightLight,
+    dark: _midnightDark,
   ),
   (
     id: 'ocean',
@@ -143,8 +169,8 @@ const nexThemePresets = <NexThemePreset>[
     faDescription: 'آبی‌های خنک و شیشهٔ دریایی',
     seed: Color(0xFF1565A8),
     icon: Icons.waves,
-    light: Color(0xFFEAF2FA),
-    dark: Color(0xFF0B1A2A),
+    light: _oceanLight,
+    dark: _oceanDark,
   ),
   (
     id: 'graphite',
@@ -152,10 +178,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'گرافیت',
     enDescription: 'Pure greys and nothing else',
     faDescription: 'خاکستری خالص، بی هیچ رنگ دیگری',
-    seed: Color(0xFF5E6166),
+    seed: Color(0xFF55585D),
     icon: Icons.contrast,
-    light: Color(0xFFF1F1F1),
-    dark: Color(0xFF151515),
+    light: _graphiteLight,
+    dark: _graphiteDark,
   ),
   (
     id: 'bauhaus',
@@ -163,10 +189,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'باوهاوس',
     enDescription: 'Ink, vermilion and bold geometry',
     faDescription: 'جوهر، سرخ شنگرف و هندسهٔ جسور',
-    seed: Color(0xFFBC352C),
+    seed: Color(0xFFB83322),
     icon: Icons.category_outlined,
-    light: Color(0xFFF6F3EB),
-    dark: Color(0xFF231A18),
+    light: _bauhausLight,
+    dark: _bauhausDark,
   ),
   (
     id: 'porcelain',
@@ -174,10 +200,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'کینتسوگی',
     enDescription: 'Cool porcelain stitched with gold',
     faDescription: 'چینی خنک با رگه‌های طلایی',
-    seed: Color(0xFF8C6C22),
+    seed: Color(0xFF7C5F1C),
     icon: Icons.diamond_outlined,
-    light: Color(0xFFF3F4FA),
-    dark: Color(0xFF171D2C),
+    light: _porcelainLight,
+    dark: _porcelainDark,
   ),
   (
     id: 'circuit',
@@ -185,10 +211,10 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'مدار الکترونیک',
     enDescription: 'Precise cyan routes on a midnight board',
     faDescription: 'مسیرهای فیروزه‌ای روی برد نیمه‌شب',
-    seed: Color(0xFF007F86),
+    seed: Color(0xFF067076),
     icon: Icons.memory_outlined,
-    light: Color(0xFFEAF7F9),
-    dark: Color(0xFF071E27),
+    light: _circuitLight,
+    dark: _circuitDark,
   ),
   (
     id: 'afterimage',
@@ -196,20 +222,22 @@ const nexThemePresets = <NexThemePreset>[
     fa: 'پس‌تصویر',
     enDescription: 'Electric lime and an optical rhythm',
     faDescription: 'لیمویی الکتریکی و ریتم خطای دید',
-    seed: Color(0xFF637D00),
+    seed: Color(0xFF536D00),
     icon: Icons.blur_circular_outlined,
-    light: Color(0xFFF1F4E9),
-    dark: Color(0xFF181B10),
+    light: _afterimageLight,
+    dark: _afterimageDark,
   ),
 ];
 
-/// The seed a palette brings with it, or null for the classic look, which
-/// keeps the shipped accent.
-Color? nexThemePresetSeed(String id) => id == 'classic'
-    ? null
-    : nexThemePresets
-          .firstWhere((p) => p.id == id, orElse: () => nexThemePresets.first)
-          .seed;
+/// The seed a palette brings with it — its deep, text-safe accent step — or
+/// null for the classic look and for anything unknown, which keeps the
+/// shipped accent rather than inventing one.
+Color? nexThemePresetSeed(String id) {
+  for (final p in nexThemePresets) {
+    if (p.id == id) return p.light?.accent;
+  }
+  return null;
+}
 
 String nexThemePresetLabel(BuildContext context, String id) {
   final p = nexThemePresets.firstWhere(
@@ -234,164 +262,26 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
     (p) => p.id == id,
     orElse: () => nexThemePresets.first,
   );
-  // An accent somebody picked, as opposed to the palette's own. The palette's
-  // seed is laid out tonal-spot, muted to sit with its surfaces; a picked one
-  // was turned brown by the same treatment — a red came out #904A45 — and
-  // read as not applied at all. A picked accent keeps its own colour.
+  final ramp = base.brightness == Brightness.light ? p.light : p.dark;
+  // Classic has no ramp, and an unknown id must never invent a look.
+  if (ramp == null) return base;
+  // An accent somebody picked, as opposed to the palette's own. The palette
+  // keeps its neutrals — they are its identity — and the accent roles follow
+  // the pick at their own contrast floors: see [NexSurfaceRamp.withAccent].
   final picked = accent != null && accent.toARGB32() != p.seed.toARGB32();
-  final surface = base.brightness == Brightness.light ? p.light : p.dark;
-  var colors = ColorScheme.fromSeed(
-    seedColor: picked ? accent : p.seed,
-    brightness: base.brightness,
-    // Graphite is the one palette that is about having no colour: its tones
-    // are taken without chroma, so nothing turns faintly blue.
-    dynamicSchemeVariant: id == 'graphite'
-        ? DynamicSchemeVariant.monochrome
-        : picked ||
-              const {
-                'bauhaus',
-                'porcelain',
-                'circuit',
-                'afterimage',
-              }.contains(id)
-        ? DynamicSchemeVariant.fidelity
-        : DynamicSchemeVariant.tonalSpot,
-    surface: surface,
+  final themed = nexSoftThemeFromRamp(
+    ramp: picked ? ramp.withAccent(accent) : ramp,
+    // The palette rides the material the base already chose: glass on only
+    // when it was switched on, and the scaffold see-through only while
+    // something is behind it. Still is the one palette whose identity is
+    // that nothing decorative is drawn, glass included.
+    liquidGlass: id == 'still'
+        ? false
+        : (base.extension<NexVisualStyle>()?.liquidGlass ?? false),
+    transparentScaffold: base.scaffoldBackgroundColor.a == 0,
+    fontFamily: base.textTheme.bodyLarge?.fontFamily ?? nexLatinFont,
   );
-  if (picked && id == 'graphite') {
-    // Grey everywhere but the accent: a colour picked on Graphite is the one
-    // colour on the screen, rather than one Graphite quietly ignores.
-    final tint = ColorScheme.fromSeed(
-      seedColor: accent,
-      brightness: base.brightness,
-      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
-    );
-    colors = colors.copyWith(
-      primary: tint.primary,
-      onPrimary: tint.onPrimary,
-      primaryContainer: tint.primaryContainer,
-      onPrimaryContainer: tint.onPrimaryContainer,
-    );
-  }
-  if (id == 'still') colors = nexStillColors(colors, customAccent: picked);
-  final visual = base.extension<NexVisualStyle>();
-  final themed = base.copyWith(
-    colorScheme: colors,
-    // Transparent stays transparent. The base theme clears the scaffold
-    // whenever the app's backdrop has something to show — glass, a pattern,
-    // this theme's motif — and painting the palette's surface over it here
-    // hid all three: 1.92.0's motifs were drawn and never seen. The backdrop
-    // takes the palette's surface instead, below.
-    scaffoldBackgroundColor: base.scaffoldBackgroundColor.a == 0
-        ? Colors.transparent
-        : colors.surface,
-    extensions: [
-      ...base.extensions.values.where((e) => e is! NexVisualStyle),
-      ?visual?.copyWith(
-        baseColor: colors.surface,
-        glassOpaque: colors.surfaceContainerLow,
-        floatingGlassWash: NexGlassWash(
-          films: visual.floatingGlassWash.films,
-          lift: visual.floatingGlassWash.lift,
-          anchor: colors.surfaceContainerLow.withValues(
-            alpha: base.brightness == Brightness.dark ? 0.10 : 0.30,
-          ),
-        ),
-        glassWash: NexGlassWash(
-          films: [
-            colors.surfaceContainerLow.withValues(alpha: 0.72),
-            (base.brightness == Brightness.dark ? Colors.white : Colors.black)
-                .withValues(alpha: 0.035),
-          ],
-          lift: colors.surfaceContainerHigh.withValues(alpha: 0.2),
-          anchor: colors.surfaceContainerLow.withValues(alpha: 0.15),
-        ),
-      ),
-    ],
-    canvasColor: colors.surface,
-    cardTheme: base.cardTheme.copyWith(color: colors.surfaceContainerLow),
-    appBarTheme: base.appBarTheme.copyWith(
-      backgroundColor: colors.surface,
-      foregroundColor: colors.onSurface,
-    ),
-    bottomSheetTheme: base.bottomSheetTheme.copyWith(
-      backgroundColor: colors.surface,
-    ),
-    dialogTheme: base.dialogTheme.copyWith(
-      backgroundColor: colors.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(NexRadius.xl),
-        side: visual?.liquidGlass == true
-            ? BorderSide.none
-            : BorderSide(color: colors.outline),
-      ),
-    ),
-    dividerTheme: base.dividerTheme.copyWith(color: colors.outlineVariant),
-    floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(
-      backgroundColor: colors.primary,
-      foregroundColor: colors.onPrimary,
-    ),
-    textTheme: base.textTheme.apply(
-      bodyColor: colors.onSurface,
-      displayColor: colors.onSurface,
-    ),
-    // Text fields, switches and outlined buttons were still drawn in the
-    // classic palette's greys — a search box, the switch beside every
-    // setting, a plain button — so on Saffron or Midnight they read as
-    // pieces of another app. They take this palette's own tones.
-    inputDecorationTheme: base.inputDecorationTheme.copyWith(
-      fillColor: colors.surfaceContainerHigh,
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(NexRadius.md),
-        borderSide: BorderSide(color: colors.outlineVariant),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(NexRadius.md),
-        borderSide: BorderSide(color: colors.primary, width: nexFocusRingWidth),
-      ),
-    ),
-    switchTheme: base.switchTheme.copyWith(
-      trackOutlineColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? Colors.transparent
-            : colors.outline,
-      ),
-      trackColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? colors.primary
-            : colors.surfaceContainerHighest,
-      ),
-      thumbColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? colors.onPrimary
-            : colors.outline,
-      ),
-    ),
-    // The base theme darkens the classic accent for quiet buttons' labels
-    // (LOC-07); a palette's own primary is already a text tone, and the
-    // classic one must not leak onto it.
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: colors.primary,
-        disabledForegroundColor: colors.onSurface.withValues(alpha: 0.38),
-      ).merge(base.textButtonTheme.style),
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        backgroundColor: colors.primary,
-        foregroundColor: colors.onPrimary,
-      ).merge(base.filledButtonTheme.style),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: base.outlinedButtonTheme.style?.copyWith(
-        side: WidgetStatePropertyAll(BorderSide(color: colors.outline)),
-      ),
-    ),
-    // No colour for icons across the board. One set here won over the
-    // foreground every filled button gives its own icon, so on every palette
-    // but the classic one the capture arrow, the vault's add buttons, the
-    // saved-messages send and the voice note's play button drew a grey icon
-    // on a coloured button — about 1:1 in dark.
-  );
+  // Still keeps its own discipline on top of the ramp: borderless inputs,
+  // no glass optics, no elevation anywhere.
   return id == 'still' ? nexStillTheme(themed) : themed;
 }

@@ -92,7 +92,8 @@ void main() {
         await h.preferences.setProfileBirthday(DateTime(2000, 3, 10));
         final effective = h.preferences.effectiveThemePreset;
         expect(h.preferences.themePreset, preset.id);
-        expect(effective, 'classic');
+        // The gallery is back: the stored palette is the one in force.
+        expect(effective, preset.id);
         final theme = nexApplyThemePreset(
           dark ? nexDarkTheme() : nexLightTheme(),
           effective,

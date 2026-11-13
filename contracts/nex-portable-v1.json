@@ -37,99 +37,99 @@
     {
       "id": "still",
       "seed": "#486553",
-      "light": "#F4F3EF",
-      "dark": "#181C19",
+      "light": "#FAFAF6",
+      "dark": "#161A17",
       "texture": "none"
     },
     {
       "id": "paper",
-      "seed": "#8A6A36",
-      "light": "#F5EEDC",
-      "dark": "#27231C",
+      "seed": "#7A571C",
+      "light": "#FBF7EE",
+      "dark": "#1A1510",
       "texture": "fibre"
     },
     {
       "id": "autumn",
-      "seed": "#AC4F2C",
-      "light": "#FFF0E5",
-      "dark": "#291D18",
+      "seed": "#A04621",
+      "light": "#FCF5EF",
+      "dark": "#1D1512",
       "texture": "leaves"
     },
     {
       "id": "blossom",
-      "seed": "#AE497C",
-      "light": "#FFF1F7",
-      "dark": "#291D28",
+      "seed": "#A93A5E",
+      "light": "#FDF7F9",
+      "dark": "#1D151B",
       "texture": "petals"
     },
     {
       "id": "forest",
-      "seed": "#367568",
-      "light": "#EDF4EB",
-      "dark": "#172722",
+      "seed": "#3C6F54",
+      "light": "#F6F9F4",
+      "dark": "#121714",
       "texture": "contours"
     },
     {
       "id": "turquoise",
-      "seed": "#00838F",
-      "light": "#E8F6F5",
-      "dark": "#0D2226",
+      "seed": "#0B6E77",
+      "light": "#F4FAFA",
+      "dark": "#0B1E21",
       "texture": "girih"
     },
     {
       "id": "saffron",
-      "seed": "#C77700",
-      "light": "#FFF6E6",
-      "dark": "#2A1F0E",
+      "seed": "#8F5400",
+      "light": "#FDF8EC",
+      "dark": "#191307",
       "texture": "threads"
     },
     {
       "id": "midnight",
-      "seed": "#6750D8",
-      "light": "#F1EEFC",
-      "dark": "#14112A",
+      "seed": "#634CD7",
+      "light": "#F7F6FC",
+      "dark": "#131226",
       "texture": "stars"
     },
     {
       "id": "ocean",
       "seed": "#1565A8",
-      "light": "#EAF2FA",
-      "dark": "#0B1A2A",
+      "light": "#F5F9FC",
+      "dark": "#0A1622",
       "texture": "waves"
     },
     {
       "id": "graphite",
-      "seed": "#5E6166",
-      "light": "#F1F1F1",
-      "dark": "#151515",
+      "seed": "#55585D",
+      "light": "#F5F5F5",
+      "dark": "#121212",
       "texture": "grid"
     },
     {
       "id": "bauhaus",
-      "seed": "#BC352C",
-      "light": "#F6F3EB",
-      "dark": "#231A18",
+      "seed": "#B83322",
+      "light": "#FAFAF7",
+      "dark": "#161513",
       "texture": "bauhaus"
     },
     {
       "id": "porcelain",
-      "seed": "#8C6C22",
-      "light": "#F3F4FA",
-      "dark": "#171D2C",
+      "seed": "#7C5F1C",
+      "light": "#F9FAFC",
+      "dark": "#101623",
       "texture": "seams"
     },
     {
       "id": "circuit",
-      "seed": "#007F86",
-      "light": "#EAF7F9",
-      "dark": "#071E27",
+      "seed": "#067076",
+      "light": "#F5FAFB",
+      "dark": "#071417",
       "texture": "circuit"
     },
     {
       "id": "afterimage",
-      "seed": "#637D00",
-      "light": "#F1F4E9",
-      "dark": "#181B10",
+      "seed": "#536D00",
+      "light": "#F8FAF2",
+      "dark": "#101208",
       "texture": "halftone"
     }
   ],
