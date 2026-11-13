@@ -8330,6 +8330,24 @@ abstract class AppLocalizations {
   /// **'Card size'**
   String get cardDensity;
 
+  /// No description provided for @timelineView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get timelineView;
+
+  /// No description provided for @timelineViewList.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get timelineViewList;
+
+  /// No description provided for @timelineViewGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid'**
+  String get timelineViewGrid;
+
   /// No description provided for @cardDensityCompact.
   ///
   /// In en, this message translates to:

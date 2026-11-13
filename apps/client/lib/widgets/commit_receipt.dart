@@ -18,7 +18,12 @@ class CommitReceipt extends StatefulWidget {
     required this.active,
     required this.onDone,
     required this.child,
+    this.insets,
   });
+
+  /// Where the card's edge is inside this widget. Null is a timeline card's
+  /// gutter; the grid's tiles have none (2.6.27).
+  final EdgeInsets? insets;
 
   final bool active;
 
@@ -82,7 +87,7 @@ class _CommitReceiptState extends State<CommitReceipt>
   Widget build(BuildContext context) {
     if (!widget.active) return widget.child;
     final scheme = Theme.of(context).colorScheme;
-    final insets = nexCardInsetsFor(context);
+    final insets = widget.insets ?? nexCardInsetsFor(context);
     return Stack(
       children: [
         widget.child,

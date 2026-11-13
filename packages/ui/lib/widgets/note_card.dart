@@ -35,6 +35,7 @@ class NexCardStrings {
     this.attachedShort = _defaultAttachedShort,
     this.attachedLabel = _defaultAttachedLabel,
     this.urgentLabel = 'Urgent',
+    this.selectLabel = 'Select',
   });
 
   /// English default, for tests and for anything that has not been localised
@@ -98,6 +99,10 @@ class NexCardStrings {
   /// else, which was the report this parameter exists to answer.
   final String Function(DateTime due, NoteRepeat repeat)? dueLabel;
   final String urgentLabel;
+
+  /// What the card's icon does when it can be tapped on its own: pick the
+  /// note, as in a mail app's list.
+  final String selectLabel;
 
   /// Full schedule for the tooltip and screen reader.
   final String Function(DateTime due, NoteRepeat repeat)? dueDescription;
@@ -184,6 +189,7 @@ class NoteCard extends StatelessWidget {
     super.key,
     required this.note,
     this.onTap,
+    this.onLeadingTap,
     this.previewOverride,
     this.strings = NexCardStrings.fallback,
     this.showDue = true,
@@ -195,6 +201,14 @@ class NoteCard extends StatelessWidget {
   });
   final Note note;
   final VoidCallback? onTap;
+
+  /// A tap on the card's icon, the round type mark at its start.
+  ///
+  /// The timeline picks the note with it, the way a mail list picks a
+  /// message from its avatar (2.6.27): one touch, where the hold menu's
+  /// Select took two, and the same touch puts it back. Null leaves the icon
+  /// part of the card, so a tap on it opens the note as before.
+  final VoidCallback? onLeadingTap;
   final Widget? previewOverride;
   final NexCardStrings strings;
 
@@ -285,6 +299,7 @@ class NoteCard extends StatelessWidget {
           child: _CardBody(
             note: note,
             onTap: onTap,
+            onLeadingTap: onLeadingTap,
             previewOverride: previewOverride,
             strings: strings,
             showDue: showDue,
@@ -320,6 +335,7 @@ class _CardBody extends StatelessWidget {
   const _CardBody({
     required this.note,
     required this.onTap,
+    this.onLeadingTap,
     required this.previewOverride,
     required this.strings,
     required this.showDue,
@@ -331,6 +347,7 @@ class _CardBody extends StatelessWidget {
   final bool ringing;
   final Note note;
   final VoidCallback? onTap;
+  final VoidCallback? onLeadingTap;
   final Widget? previewOverride;
   final NexCardStrings strings;
   final bool showDue;
@@ -380,19 +397,39 @@ class _CardBody extends StatelessWidget {
                 ? CrossAxisAlignment.start
                 : CrossAxisAlignment.center,
             children: [
-              _LeadingWithPin(
-                note: note,
-                strings: strings,
-                backgroundColor: surfaceColor,
-                ringing: ringing && selected == null,
-                selected: selected,
-                showDue: showDue,
-              ),
+              _leading(context, surfaceColor),
               const SizedBox(width: NexSpacing.contentGap),
               Expanded(child: _withFootnote(context)),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+extension on _CardBody {
+  Widget _leading(BuildContext context, Color surfaceColor) {
+    final leading = _LeadingWithPin(
+      note: note,
+      strings: strings,
+      backgroundColor: surfaceColor,
+      ringing: ringing && selected == null,
+      selected: selected,
+      showDue: showDue,
+    );
+    final pick = onLeadingTap;
+    if (pick == null) return leading;
+    return Semantics(
+      button: true,
+      selected: selected ?? false,
+      label: strings.selectLabel,
+      child: InkResponse(
+        key: ValueKey('note-pick-${note.id}'),
+        onTap: pick,
+        customBorder: const CircleBorder(),
+        radius: NexCardDensity.of(context).leading / 2 + 4,
+        child: leading,
       ),
     );
   }

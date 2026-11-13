@@ -17,6 +17,7 @@ NexCardStrings nexCardStrings(BuildContext context) {
   final l10n = AppLocalizations.of(context);
   return NexCardStrings(
     urgentLabel: l10n.urgent,
+    selectLabel: l10n.selectNotes,
     tagName: (tag) => nexTagLabel(tag, l10n),
     durationLabel: (milliseconds) {
       final seconds = milliseconds ~/ 1000;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/nex_banner.dart';
+import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -297,5 +298,47 @@ void main() {
     }
     nexHideBanner();
     await tester.pumpAndSettle();
+  });
+
+  // 2.6.27: the card's round mark picks the note in one touch, the way a
+  // mail list's avatar does, and the same touch puts it back.
+  testWidgets('a tap on the icon picks the note, a second puts it back', (
+    tester,
+  ) async {
+    await open(tester);
+    final id = tester.widget<NoteCard>(card('alpha note')).note.id;
+    expect(selectedOf(tester, 'alpha note'), isNull);
+
+    await tester.tap(find.byKey(ValueKey('note-pick-$id')));
+    await tester.pumpAndSettle();
+    expect(selectedOf(tester, 'alpha note'), isTrue);
+    expect(selectedOf(tester, 'beta note'), isFalse);
+    expect(bar(), findsOneWidget);
+    // It picked; it did not open the note as well.
+    expect(find.byType(NoteCard), findsNWidgets(3));
+
+    await tester.tap(find.byKey(ValueKey('note-pick-$id')));
+    await tester.pumpAndSettle();
+    expect(selectedOf(tester, 'alpha note'), isNull);
+    expect(bar(), findsNothing);
+  });
+
+  testWidgets('the grid view shows tiles that open and pick like cards', (
+    tester,
+  ) async {
+    await harness.preferences.setTimelineGrid(true);
+    await open(tester);
+    expect(find.byType(NoteCard), findsNothing);
+    final tiles = find.byType(NexNoteGridCard);
+    expect(tiles, findsNWidgets(3));
+    final first = tester.getRect(tiles.at(0));
+    final second = tester.getRect(tiles.at(1));
+    expect(second.top, first.top, reason: 'two to a row');
+
+    final id = tester.widget<NexNoteGridCard>(tiles.first).note.id;
+    await tester.tap(find.byKey(ValueKey('note-pick-$id')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<NexNoteGridCard>(tiles.first).selected, isTrue);
+    expect(bar(), findsOneWidget);
   });
 }

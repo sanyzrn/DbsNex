@@ -6,7 +6,10 @@ part of 'nex_tokens.dart';
 abstract final class NexSoftLightColors {
   static const background = Color(0xFFFFFFFF);
   static const card = Color(0xFFF4F5F8);
-  static const elevated = Color(0xFFE9ECF1);
+  // A step lighter than the E9ECF1 it was: the accent drawn on it (a
+  // selected chip's label, a link inside a filled box) measured 4.37 there,
+  // under the 4.5 text floor every other light surface clears.
+  static const elevated = Color(0xFFEEF0F3);
   static const text = Color(0xFF14171C);
   // A step of real margin rather than the 4.54 the old grey scraped past
   // the elevated container with: the tightest pair in the Light theme
@@ -47,7 +50,13 @@ ThemeData nexSoftLightTheme({
   final palette = accentSeed == null
       ? NexColors.defaultAccent
       : nexAccentPaletteFrom(accentSeed);
-  final accent = palette.strongLight;
+  // Walked against the dimmest light ground, not just white: a bright pick
+  // (yellow, lime) cleared 4.5 on the page and fell to 4.0 on the card and
+  // the filled boxes inside it, where the accent labels chips and links.
+  final accent = nexReadableOn(
+    palette.strongLight,
+    NexSoftLightColors.elevated,
+  );
   final selected = accentSeed == null
       ? NexSoftLightColors.accentContainer
       : Color.alphaBlend(

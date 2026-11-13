@@ -53,7 +53,7 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
         : tint == null
         ? (_hover ? scheme.outline : scheme.outlineVariant)
         : tint.withValues(alpha: _hover ? 0.6 : 0.32);
-    final content = _split(note, widget.strings);
+    final content = nexSplitNoteText(note, widget.strings);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
@@ -115,7 +115,11 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
 }
 
 /// A card's title and the text under it, whatever kind of note it is.
-({String title, String body}) _split(Note note, NexCardStrings strings) {
+/// Shared by the desktop grid and the phone's grid view.
+({String title, String body}) nexSplitNoteText(
+  Note note,
+  NexCardStrings strings,
+) {
   final text = NexMarkdownText.preview(note.displayText ?? '').trim();
   final named = note.title?.trim();
   switch (note.type) {

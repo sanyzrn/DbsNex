@@ -5,6 +5,7 @@ import '../widgets/feature_label.dart';
 import 'minimal_theme.dart';
 
 part 'theme_preset_ramps.dart';
+part 'theme_preset_ramps_bold.dart';
 
 /// The whole-app palettes — the Theme Atelier.
 ///
@@ -58,6 +59,12 @@ NexThemeTexture nexThemeTexture(String presetId) => switch (presetId) {
   'porcelain' => NexThemeTexture.seams,
   'circuit' => NexThemeTexture.circuit,
   'afterimage' => NexThemeTexture.halftone,
+  'bloom' => NexThemeTexture.petals,
+  'dusk' => NexThemeTexture.stars,
+  'sunflower' => NexThemeTexture.halftone,
+  'lavender' => NexThemeTexture.petals,
+  'peach' => NexThemeTexture.fibre,
+  'coral' => NexThemeTexture.waves,
   _ => NexThemeTexture.none,
 };
 
@@ -226,6 +233,72 @@ const nexThemePresets = <NexThemePreset>[
     icon: Icons.blur_circular_outlined,
     light: _afterimageLight,
     dark: _afterimageDark,
+  ),
+  (
+    id: 'lavender',
+    en: 'Lavender',
+    fa: 'اسطوخودوس',
+    enDescription: 'Lilac pastels with a bright violet',
+    faDescription: 'یاسی‌های پاستلی با بنفشی روشن',
+    seed: Color(0xFF6E34C2),
+    icon: Icons.bubble_chart_outlined,
+    light: _lavenderLight,
+    dark: _lavenderDark,
+  ),
+  (
+    id: 'peach',
+    en: 'Peach & charcoal',
+    fa: 'هلو و زغال',
+    enDescription: 'Soft peach with confident charcoal',
+    faDescription: 'هلوییِ نرم کنار زغالیِ محکم',
+    seed: Color(0xFFA4400F),
+    icon: Icons.wb_twilight,
+    light: _peachLight,
+    dark: _peachDark,
+  ),
+  (
+    id: 'bloom',
+    en: 'Bloom',
+    fa: 'شکوفا',
+    enDescription: 'Maroon and mustard, warm and bold',
+    faDescription: 'زرشکی و خردلی، گرم و جسور',
+    seed: Color(0xFF7A1E16),
+    icon: Icons.filter_vintage_outlined,
+    light: _bloomLight,
+    dark: _bloomDark,
+  ),
+  (
+    id: 'dusk',
+    en: 'Dusk',
+    fa: 'شامگاه',
+    enDescription: 'Plum violet with a peach glow',
+    faDescription: 'بنفش آلویی با درخشش هلویی',
+    seed: Color(0xFF52438F),
+    icon: Icons.nightlight_outlined,
+    light: _duskLight,
+    dark: _duskDark,
+  ),
+  (
+    id: 'coral',
+    en: 'Coral',
+    fa: 'مرجان',
+    enDescription: 'Coral red on cool mist and charcoal',
+    faDescription: 'مرجانی روی مه خنک و زغالی',
+    seed: Color(0xFFB1323A),
+    icon: Icons.water_drop_outlined,
+    light: _coralLight,
+    dark: _coralDark,
+  ),
+  (
+    id: 'sunflower',
+    en: 'Sunflower',
+    fa: 'آفتابگردان',
+    enDescription: 'Sunny yellow and deep black',
+    faDescription: 'زرد آفتابی و مشکی عمیق',
+    seed: Color(0xFF6B4F00),
+    icon: Icons.wb_sunny_outlined,
+    light: _sunflowerLight,
+    dark: _sunflowerDark,
   ),
 ];
 

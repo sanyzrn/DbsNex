@@ -82,6 +82,16 @@ mixin _AppearancePreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// Whether the timeline shows its notes as a grid of cards, two to a row,
+  /// instead of the list (2.6.27). A way of looking, not of ordering: the
+  /// days, the pins and the folds are the same in both.
+  bool get timelineGrid => _prefs.getBool('appearance.timeline_grid') ?? false;
+
+  Future<void> setTimelineGrid(bool value) async {
+    await _prefs.setBool('appearance.timeline_grid', value);
+    notifyListeners();
+  }
+
   /// Whether Enter submits the note being typed on first capture, rather
   /// than starting a new line. Scoped to that one field on purpose — editing
   /// an existing note is a different moment, where a stray Enter should

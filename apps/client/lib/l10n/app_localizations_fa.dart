@@ -5243,6 +5243,15 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cardDensity => 'اندازهٔ کارت‌ها';
 
   @override
+  String get timelineView => 'نمایش';
+
+  @override
+  String get timelineViewList => 'فهرستی';
+
+  @override
+  String get timelineViewGrid => 'شبکه‌ای';
+
+  @override
   String get cardDensityCompact => 'فشرده';
 
   @override

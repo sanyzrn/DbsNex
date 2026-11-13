@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_client/widgets/note_spotlight.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -96,4 +97,42 @@ void main() {
       },
     );
   }
+  // 2.6.27: in the grid view a reminder's tap still finds its note and lights
+  // it. The anchor it looks for used to be put on list cards only, so the
+  // walk ran to the bottom of the grid and back without finding anything.
+  testWidgets('a reminder reveals a note far down the grid', (tester) async {
+    final h = await NexTestHarness.create();
+    addTearDown(h.dispose);
+    await h.preferences.setTimelineGrid(true);
+    final target = (await h.db.captureText('The oldest reminder target'))!;
+    for (var i = 0; i < 120; i++) {
+      await h.db.captureText('Newer note $i');
+    }
+    await h.services.refreshTimeline();
+    await tester.pumpWidget(h.app());
+    await tester.pumpAndSettle();
+    expect(find.text('The oldest reminder target'), findsNothing);
+    h.services.reminders.onOpenNote!(target.id);
+    Finder active() =>
+        find.byWidgetPredicate((w) => w is NoteSpotlight && w.active);
+    for (var i = 0; i < 150 && active().evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    expect(active(), findsOneWidget);
+    final tile = find.descendant(
+      of: active(),
+      matching: find.byWidgetPredicate(
+        (w) => w is NexNoteGridCard && w.note.id == target.id,
+      ),
+    );
+    expect(tile, findsOneWidget);
+    final rect = tester.getRect(tile);
+    expect(rect.top, greaterThanOrEqualTo(0));
+    expect(
+      rect.bottom,
+      lessThan(tester.view.physicalSize.height / tester.view.devicePixelRatio),
+    );
+    h.services.ringing.value = const {};
+    await tester.pumpWidget(const SizedBox());
+  });
 }

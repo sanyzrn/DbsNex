@@ -5308,6 +5308,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cardDensity => 'Card size';
 
   @override
+  String get timelineView => 'View';
+
+  @override
+  String get timelineViewList => 'List';
+
+  @override
+  String get timelineViewGrid => 'Grid';
+
+  @override
   String get cardDensityCompact => 'Compact';
 
   @override

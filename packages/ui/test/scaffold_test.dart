@@ -270,7 +270,13 @@ void main() {
     // NexAccentPalette) — from NexColors.accentLight itself, which is the
     // thing being guarded against regressing into a Material-generated grey.
     final scheme = nexLightTheme().colorScheme;
-    expect(scheme.inversePrimary, defaultAccent.light);
+    // The accent as the inverse capsule (Undo on a toast) reads it, not the
+    // page's: on the capsule the page's accent measured under 3:1 (2.6.27).
+    expect(scheme.inversePrimary, defaultAccent.dark);
+    expect(
+      nexContrastRatio(scheme.inversePrimary, scheme.inverseSurface),
+      greaterThanOrEqualTo(4.5),
+    );
     expect(scheme.primary, defaultAccent.light);
     expect(scheme.outline, NexColors.borderLight);
     expect(scheme.outlineVariant, NexColors.borderSoftLight);
