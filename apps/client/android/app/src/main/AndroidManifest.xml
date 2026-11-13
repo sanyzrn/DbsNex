@@ -99,6 +99,9 @@
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
+        <!-- Portrait on a phone. Android 16 ignores the fixed orientation on
+             large screens for an app targeting API 36, where Nex follows the
+             device instead (see platform/large_screen.dart). -->
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"

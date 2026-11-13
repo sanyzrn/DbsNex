@@ -117,6 +117,11 @@ jobs:
       # for; LocalAi refuses to offer the download on anything else, so a
       # 32-bit slice of this APK would be an installable app with the feature
       # permanently unavailable.
+      # The NDK and the API 37 platform the build is pinned to, installed
+      # with retries before Gradle reaches for them (as in ci.yml).
+      - name: Install the pinned Android NDK and SDK platform
+        run: bash ../../tools/install_android_ndk.sh
+
       - name: Build ai flavor APK
         run: |
           flutter build apk --release \

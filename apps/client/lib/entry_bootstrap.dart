@@ -83,6 +83,12 @@ https://github.com/google-ai-edge/LiteRT-LM''',
 
 /// Temporary portrait policy shared by both app entry points.
 ///
+/// A phone only. From Android 16, for an app targeting API 36, the system
+/// ignores this on a large screen (smallest width 600dp and up: tablets,
+/// unfolded foldables), and the app is laid out at whatever orientation the
+/// device is held in — see `platform/large_screen.dart` for the code that
+/// had assumed portrait.
+///
 /// Not for the share window: it is translucent and draws nothing, Android 8.0
 /// refuses — and crashes — a fixed orientation on a translucent activity, and
 /// on later versions it would turn the app being shared from.

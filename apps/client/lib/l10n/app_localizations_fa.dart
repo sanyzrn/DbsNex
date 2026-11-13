@@ -482,7 +482,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get notificationSoundReminders => 'صدای یادآور';
 
   @override
-  String get notificationSoundDaily => 'صدای خلاصهٔ روزانه';
+  String get notificationSoundDaily => 'صدای یادآوری روزانه';
 
   @override
   String get notificationSoundSubtitle =>
@@ -679,7 +679,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get nudgeNotScheduled =>
-      'یادآور روزانه روشن شد، ولی این گوشی آلارمش را قبول نکرد.';
+      'یادآوری روزانه روشن شد، ولی این گوشی آلارمش را قبول نکرد.';
 
   @override
   String get search => 'جست‌وجو';
@@ -4287,7 +4287,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get remindPast => 'آن لحظه گذشته است';
 
   @override
-  String get nudgeTitle => 'یادآور روزانه';
+  String get nudgeTitle => 'یادآوری روزانه';
 
   @override
   String get nudgeSubtitle =>
@@ -5424,7 +5424,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get metricsTimeline => 'باز شدن تا نمایش یادداشت‌ها';
 
   @override
-  String get metricsTimelineHint => 'شامل انیمیشن آغاز برنامه';
+  String get metricsTimelineHint =>
+      'شامل انیمیشن آغاز، که فقط اولین بار پس از هر به‌روزرسانی پخش می‌شود';
 
   @override
   String get metricsCapture => 'ثبت، از باز کردن تا ذخیره';

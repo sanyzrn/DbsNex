@@ -370,7 +370,7 @@ jobs:
       # image. Gradle installed it itself, mid-build and once only, and a
       # truncated download ("Archive is not a ZIP archive") failed 2.1.6 ten
       # minutes in. Installed here first, a bad download is retried.
-      - name: Install the pinned Android NDK
+      - name: Install the pinned Android NDK and SDK platform
         if: needs.changes.outputs.android == 'true'
         run: bash ../../tools/install_android_ndk.sh
       - run: flutter build apk --debug --flavor standard

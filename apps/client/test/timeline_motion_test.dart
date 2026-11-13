@@ -201,6 +201,15 @@ void main() {
           w is CustomPaint &&
           w.painter.runtimeType.toString() == '_RevealPainter',
     );
+    if (!nexLiquidGlassAvailable) {
+      // Paused (2.6.26): a stored choice changes nothing on screen, so there
+      // is nothing to reveal.
+      await h.preferences.setLiquidGlass(true);
+      await tester.pump();
+      expect(overlay(), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      return;
+    }
     // On: the material change is a theme change, and it arrives as a reveal.
     await h.preferences.setLiquidGlass(true);
     await tester.pump();

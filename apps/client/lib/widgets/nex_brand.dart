@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -299,30 +298,15 @@ class _LogotypePainter extends CustomPainter {
 /// palette was chosen — the one patch of colour on the screen that ignored
 /// the theme. They take the accent now, so Forest's wordmark is green.
 ///
-/// And every few seconds they move, once and briefly: a light runs along the
+/// And a touch makes them move, once and briefly: a light runs along the
 /// stroke, the way a pen would draw it, and the dot gives a small hop and
-/// lands. Seven seconds apart, under a second each, and never at all with
-/// animations turned off — a sign of life in the corner, not something
-/// competing with the notes. A touch plays it at once, and the seven
-/// seconds start again from there.
+/// lands. Never with animations turned off. Until 2.6.26 it also moved on its
+/// own every seven seconds; that is gone, because each movement was a second
+/// of full-rate frames on an otherwise still screen.
 class NexLivingLogotype extends StatefulWidget {
   const NexLivingLogotype({super.key, required this.height});
 
   final double height;
-
-  /// Between one movement and the next.
-  static const interval = Duration(seconds: 7);
-
-  /// The first one, a moment after the screen appears.
-  static const firstDelay = Duration(milliseconds: 1600);
-
-  /// Whether the movement happens at all.
-  ///
-  /// Off under `flutter test`, where the clock is fake: a test that waits for
-  /// the screen to settle in ten-second steps would find a fresh movement
-  /// started in every step and never settle. The wordmark's own test turns it
-  /// back on. Not `const` so that test can.
-  static bool enabled = !Platform.environment.containsKey('FLUTTER_TEST');
 
   @override
   State<NexLivingLogotype> createState() => _NexLivingLogotypeState();
@@ -334,45 +318,20 @@ class _NexLivingLogotypeState extends State<NexLivingLogotype>
     vsync: this,
     duration: const Duration(milliseconds: 1100),
   );
-  Timer? _timer;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _timer?.cancel();
-    _timer = null;
-    if (!NexLivingLogotype.enabled || MediaQuery.disableAnimationsOf(context)) {
-      _motion.value = 0;
-      return;
-    }
-    // A timer between movements rather than a repeating animation: nothing is
-    // ticking in the six seconds the wordmark is still, and a test that waits
-    // for the screen to settle is not waiting on a loop that never ends.
-    _timer = Timer(NexLivingLogotype.firstDelay, _play);
-  }
-
-  void _play() {
-    if (!mounted) return;
-    unawaited(_motion.forward(from: 0));
-    _timer = Timer(NexLivingLogotype.interval, _play);
-  }
-
-  /// A touch plays it now, and the seven seconds start again from here —
-  /// the next one is not due a moment after the one just asked for.
+  /// A touch plays it. Nothing else does (2.6.26): it used to move on its
+  /// own every seven seconds, and each of those movements was a second of
+  /// full-rate frames on a screen that was otherwise still.
   void _touched() {
-    if (!NexLivingLogotype.enabled || MediaQuery.disableAnimationsOf(context)) {
-      return;
-    }
-    _timer?.cancel();
+    if (MediaQuery.disableAnimationsOf(context)) return;
     // Through the global gate every other haptic answers (F-09): this was
     // the one raw selectionClick that bypassed the preference.
     nexTick();
-    _play();
+    unawaited(_motion.forward(from: 0));
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _motion.dispose();
     super.dispose();
   }
@@ -389,17 +348,22 @@ class _NexLivingLogotypeState extends State<NexLivingLogotype>
         // Not a control, so not announced as one: a small thing to find.
         excludeFromSemantics: true,
         onTap: _touched,
-        child: AnimatedBuilder(
-          animation: _motion,
-          builder: (context, _) => CustomPaint(
-            size: Size(
-              widget.height * bounds.width / bounds.height,
-              widget.height,
-            ),
-            painter: _LivingLogotypePainter(
-              ink: NexBrand.ink(theme.brightness),
-              accent: theme.colorScheme.primary,
-              t: _motion.value,
+        // Its own layer. Without it each of the movement's sixty-odd frames
+        // repainted the whole page it sits in — the app bar, the buttons,
+        // everything under the same boundary — every seven seconds.
+        child: RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _motion,
+            builder: (context, _) => CustomPaint(
+              size: Size(
+                widget.height * bounds.width / bounds.height,
+                widget.height,
+              ),
+              painter: _LivingLogotypePainter(
+                ink: NexBrand.ink(theme.brightness),
+                accent: theme.colorScheme.primary,
+                t: _motion.value,
+              ),
             ),
           ),
         ),

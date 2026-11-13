@@ -35,8 +35,16 @@ void main() {
       await tester.pumpWidget(RepaintBoundary(key: key, child: h.app()));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.byType(NexGlassBar), findsOneWidget);
-      if (output.isEmpty) return;
+      // While the material is paused (2.6.26) a stored choice draws the plain
+      // bar; the captures resume when it is back.
+      expect(
+        find.byType(NexGlassBar),
+        nexLiquidGlassAvailable ? findsOneWidget : findsNothing,
+      );
+      if (output.isEmpty || !nexLiquidGlassAvailable) {
+        await tester.pumpWidget(const SizedBox());
+        return;
+      }
       await tester.runAsync(() async {
         final image =
             await (key.currentContext!.findRenderObject()

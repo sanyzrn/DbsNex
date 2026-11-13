@@ -490,7 +490,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationSoundReminders => 'Reminder sound';
 
   @override
-  String get notificationSoundDaily => 'Daily digest sound';
+  String get notificationSoundDaily => 'Daily nudge sound';
 
   @override
   String get notificationSoundSubtitle =>
@@ -688,7 +688,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nudgeNotScheduled =>
-      'The daily note was turned on, but this phone would not take the alarm.';
+      'The daily nudge was turned on, but this phone would not take the alarm.';
 
   @override
   String get search => 'Search';
@@ -5491,7 +5491,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get metricsTimeline => 'Opening, to your notes on screen';
 
   @override
-  String get metricsTimelineHint => 'Includes the opening animation';
+  String get metricsTimelineHint =>
+      'Includes the opening animation, which plays only the first time a new version opens';
 
   @override
   String get metricsCapture => 'Capture, from opening to saved';

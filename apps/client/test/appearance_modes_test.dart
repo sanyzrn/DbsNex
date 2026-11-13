@@ -142,12 +142,19 @@ void main() {
         app().darkTheme!.colorScheme.primary,
         isNot(NexSoftDarkColors.accentText),
       );
-      // The switch is live again: the choice reaches both themes, and the
+      // The choice is kept either way. While the material is paused (2.6.26)
+      // it reaches neither theme; once it is back, it reaches both, and the
       // dock, the bar and every sheet follow it.
       expect(h.preferences.liquidGlass, isTrue);
-      expect(h.preferences.effectiveLiquidGlass, isTrue);
-      expect(app().darkTheme!.extension<NexVisualStyle>()!.liquidGlass, isTrue);
-      expect(app().theme!.extension<NexVisualStyle>()!.liquidGlass, isTrue);
+      expect(h.preferences.effectiveLiquidGlass, nexLiquidGlassAvailable);
+      expect(
+        app().darkTheme!.extension<NexVisualStyle>()!.liquidGlass,
+        nexLiquidGlassAvailable,
+      );
+      expect(
+        app().theme!.extension<NexVisualStyle>()!.liquidGlass,
+        nexLiquidGlassAvailable,
+      );
       await h.preferences.setAppearanceMode(NexAppearanceMode.system);
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       await tester.pumpAndSettle();

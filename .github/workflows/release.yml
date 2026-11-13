@@ -200,7 +200,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
 
       # Before Gradle needs it, with retries: see the same step in ci.yml.
-      - name: Install the pinned Android NDK
+      - name: Install the pinned Android NDK and SDK platform
         run: bash ../../tools/install_android_ndk.sh
 
       - name: Require Android signing secrets

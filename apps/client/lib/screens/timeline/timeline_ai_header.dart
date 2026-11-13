@@ -41,7 +41,7 @@ extension _TimelineAiHeader on TimelineScreenState {
       }
       // Settings save while typing. Apply the final choice on return instead
       // of spending a request on each edit to a custom instruction.
-      if (ModalRoute.of(context)?.isCurrent == false) return;
+      if (!_routeIsCurrent) return;
       final settings = _briefSettingsSignature();
       final changed =
           _briefSettingsKey != null && _briefSettingsKey != settings;
@@ -110,7 +110,7 @@ extension _TimelineAiHeader on TimelineScreenState {
       if (mounted) {
         if (settings != _briefSettingsSignature()) {
           // Finish the old request before asking once with the latest choice.
-          if (ModalRoute.of(context)?.isCurrent != false) {
+          if (_routeIsCurrent) {
             unawaited(_loadAiSummary(force: true));
           }
         } else if (manualJoined &&

@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 2.6.25
+version: 2.6.26
 
 environment:
   sdk: ^3.13.0
@@ -107,7 +107,7 @@ dependencies:
   # Direct on purpose: this app owns the sqlite3 native build-hook settings.
   sqlite3: ^3.8.0
   uuid: ^4.5.1
-  flutter_local_notifications: ^22.3.3
+  flutter_local_notifications: ^23.0.1
   timezone: ^0.11.2
   # Answers what `tz.local` should be. Without it the timezone database is
   # loaded and never pointed at a zone, so `tz.local` stays UTC — which makes

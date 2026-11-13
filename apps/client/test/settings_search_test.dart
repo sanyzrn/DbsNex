@@ -55,7 +55,10 @@ void main() {
     for (final query in ['accent', 'liquid glass']) {
       await tester.enterText(searchField(), query);
       await tester.pumpAndSettle();
-      expect(find.text('Theme'), findsOneWidget);
+      // Liquid Glass is not offered while it is paused (2.6.26), so its
+      // name finds nothing rather than a page without it.
+      final offered = query == 'accent' || nexLiquidGlassAvailable;
+      expect(find.text('Theme'), offered ? findsOneWidget : findsNothing);
       expect(find.text('Capture haptics'), findsNothing);
     }
   });

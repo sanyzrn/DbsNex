@@ -809,7 +809,7 @@ abstract class AppLocalizations {
   /// Settings row that opens the OS notification-channel screen for the daily digest
   ///
   /// In en, this message translates to:
-  /// **'Daily digest sound'**
+  /// **'Daily nudge sound'**
   String get notificationSoundDaily;
 
   /// Explains that the sound choice lives in the OS settings
@@ -1133,7 +1133,7 @@ abstract class AppLocalizations {
   /// No description provided for @nudgeNotScheduled.
   ///
   /// In en, this message translates to:
-  /// **'The daily note was turned on, but this phone would not take the alarm.'**
+  /// **'The daily nudge was turned on, but this phone would not take the alarm.'**
   String get nudgeNotScheduled;
 
   /// No description provided for @search.
@@ -8675,7 +8675,7 @@ abstract class AppLocalizations {
   /// No description provided for @metricsTimelineHint.
   ///
   /// In en, this message translates to:
-  /// **'Includes the opening animation'**
+  /// **'Includes the opening animation, which plays only the first time a new version opens'**
   String get metricsTimelineHint;
 
   /// No description provided for @metricsCapture.

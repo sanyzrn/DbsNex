@@ -19,7 +19,7 @@ You are a senior Flutter and Android performance engineer. You know the raster a
 **Nex** is a local-first, offline-first personal capture app. Its promise is that an idea is never lost: one tap captures it, with no mandatory fields and no Save button, and it can be found again later — by its words or by what it means. It also holds things people would never want leaked: passwords, bank cards, private messages, and the details of their menstrual cycle. This review is of **the latest version in the repository** (see *Getting the code*), a build on the way to 2.0. Your report decides what must be fixed before it ships.
 
 - **Stack:** Flutter 3.35 / Dart 3.9.
-  - **Android** is the release target: minSdk 24, targetSdk 35, arm64 for the on-device AI runtime. Two build flavors, `standard` and `ai`; `ai` is the one people install.
+  - **Android** is the release target: minSdk 24, targetSdk 36, arm64 for the on-device AI runtime. Two build flavors, `standard` and `ai`; `ai` is the one people install.
   - **Distribution:** Cafe Bazaar and Myket, plus an in-app updater that downloads the APK from GitHub Releases. **Not Google Play** for now. Judge store rules against Bazaar and Myket, not Play, unless you name the Play rule as a future concern.
   - **Windows** builds, but it is not part of this release.
 - **Languages:** Persian (`fa`, right-to-left) is the primary language and English the second. People mix the two inside one note, and in their questions to the assistant.

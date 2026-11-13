@@ -184,6 +184,26 @@ extension _CaptureModes on _CaptureSheetState {
         : data?.text ?? '';
     if (pasted.isEmpty) return;
     final value = controller.value;
+    // An address pasted into an empty note is a link someone is saving: the
+    // box becomes a link box, so it is kept as a link note — with the page's
+    // title and summary — rather than as a line of text that happens to be
+    // a URL. Only on the Paste button, which reads the clipboard only when
+    // pressed, and only into an empty box: an address pasted into words
+    // already written is part of them. The Note chip turns it back, words
+    // and all.
+    if (_kind == CaptureKind.note &&
+        value.text.trim().isEmpty &&
+        normaliseUrl(pasted) != null) {
+      final address = pasted.trim();
+      _set(() => _kind = CaptureKind.link);
+      controller.value = TextEditingValue(
+        text: address,
+        selection: TextSelection.collapsed(offset: address.length),
+      );
+      changed(address);
+      if (!_fieldFocus.hasFocus) _fieldFocus.requestFocus();
+      return;
+    }
     final selection = value.selection.isValid
         ? value.selection
         : TextSelection.collapsed(offset: value.text.length);

@@ -49,7 +49,7 @@ extension _TimelineNavigation on TimelineScreenState {
     // its stops measure `GlobalKey`s on *this* screen's widgets, which are
     // still laid out underneath, so nothing failed loudly. [didPopNext] asks
     // again when the timeline comes back.
-    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    if (!_routeIsCurrent) return;
     final l10n = AppLocalizations.of(context);
     final overlay = Overlay.maybeOf(context);
     if (overlay == null) return;
@@ -204,6 +204,20 @@ extension _TimelineNavigation on TimelineScreenState {
       }
     };
     _syncRinging();
+  }
+
+  /// Whether nothing covers the timeline. True before the route is known.
+  ///
+  /// Read from the route [NexRouteProbe] handed over rather than from
+  /// `ModalRoute.of(context)`, which would make the whole screen — every card
+  /// on it — rebuild each time anything opens or closes over the timeline.
+  bool get _routeIsCurrent => _route?.isCurrent ?? true;
+
+  void _onRoute(ModalRoute<Object?>? route) {
+    if (identical(route, _route)) return;
+    nexRouteObserver.unsubscribe(this);
+    _route = route;
+    if (route is ModalRoute<void>) nexRouteObserver.subscribe(this, route);
   }
 
   void _unwireRinging() {

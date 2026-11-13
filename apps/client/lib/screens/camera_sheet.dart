@@ -8,6 +8,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:image_picker/image_picker.dart' show ImagePicker, ImageSource;
 
 import '../l10n/app_localizations.dart';
+import '../platform/large_screen.dart';
 
 /// Thrown by [showNexCamera] when Nex's own camera cannot be used — no camera,
 /// no plugin, or the person chose the system camera instead — so the caller
@@ -171,11 +172,20 @@ class _NexCameraSheetState extends State<NexCameraSheet>
       if (current()) setState(() => _failed = true);
       return;
     }
-    try {
-      // The panel is portrait, and so are the photos taken in it.
-      await controller.lockCaptureOrientation(DeviceOrientation.portraitUp);
-    } on Object {
-      // Not every camera can; its photos are still upright on the phone.
+    // On a phone the app is held in portrait (the manifest and
+    // lockNexPhoneOrientation), so the panel is portrait and so are the
+    // photos taken in it. A tablet or an unfolded foldable is not: from
+    // Android 16 the system ignores a fixed orientation on large screens, and
+    // a capture locked upright there would save a landscape shot sideways.
+    // Left unlocked, the photo follows the way the device is held.
+    if (mounted &&
+        generation == _generation &&
+        !nexLargeScreen(MediaQuery.sizeOf(context))) {
+      try {
+        await controller.lockCaptureOrientation(DeviceOrientation.portraitUp);
+      } on Object {
+        // Not every camera can; its photos are still upright on the phone.
+      }
     }
     await _applyFlash(controller, _lastFlash);
     if (!current()) {
@@ -348,14 +358,20 @@ class _NexCameraSheetState extends State<NexCameraSheet>
       // panel then. This is the wait — faint, and saying so.
       return _failed ? const SizedBox.expand() : _waiting(context);
     }
-    // previewSize is in the sensor's landscape terms; the panel is portrait.
+    // previewSize is in the sensor's landscape terms. On a phone the panel is
+    // portrait; on a large screen it is whichever way the device is held.
     final size = controller.value.previewSize;
+    final landscape =
+        nexLargeScreen(MediaQuery.sizeOf(context)) &&
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final long = size?.width ?? 4;
+    final short = size?.height ?? 3;
     return ClipRect(
       child: FittedBox(
         fit: BoxFit.cover,
         child: SizedBox(
-          width: size?.height ?? 3,
-          height: size?.width ?? 4,
+          width: landscape ? long : short,
+          height: landscape ? short : long,
           child: CameraPreview(controller),
         ),
       ),

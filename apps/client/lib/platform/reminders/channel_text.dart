@@ -2,6 +2,11 @@ part of '../reminders.dart';
 
 /// The names and descriptions of Nex's notification channels, in one
 /// language.
+///
+/// [daily] is also the name the native daily nudge gives the same channel
+/// (`nex.daily`) when it posts — the plan carries it from here. Two names for
+/// one channel took turns: Android's settings showed "Daily digest" after the
+/// app had run and "Daily nudge" after a notification had.
 class NexChannelText {
   const NexChannelText._({
     required this.reminders,
@@ -28,7 +33,7 @@ class NexChannelText {
   static const en = NexChannelText._(
     reminders: 'Reminders',
     remindersAbout: 'Notes you asked Nex to bring back up',
-    daily: 'Daily digest',
+    daily: 'Daily nudge',
     dailyAbout: 'One reminder a day, at a time you chose',
     updates: 'Updates',
     updatesAbout: 'Downloading a new version of Nex',
@@ -39,7 +44,7 @@ class NexChannelText {
   static const fa = NexChannelText._(
     reminders: 'یادآورها',
     remindersAbout: 'یادداشت‌هایی که خواستید Nex دوباره نشانتان بدهد',
-    daily: 'خلاصهٔ روزانه',
+    daily: 'یادآوری روزانه',
     dailyAbout: 'روزی یک یادآوری، در ساعتی که خودتان انتخاب کردید',
     updates: 'به‌روزرسانی‌ها',
     updatesAbout: 'دریافت نسخهٔ تازهٔ Nex',

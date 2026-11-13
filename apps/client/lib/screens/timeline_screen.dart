@@ -16,6 +16,7 @@ import '../platform/note_copy.dart';
 import '../platform/file_opener.dart';
 import '../platform/hold_menu.dart';
 import '../widgets/nex_pull_refresh.dart';
+import '../widgets/route_probe.dart';
 import '../widgets/translate_sheet.dart';
 import '../platform/photo_encoding.dart';
 
@@ -674,9 +675,11 @@ class TimelineScreenState extends State<TimelineScreen>
       _briefLocale = locale;
       _onBriefPreferencesChanged();
     }
-    final route = ModalRoute.of(context);
-    if (route is ModalRoute<void>) nexRouteObserver.subscribe(this, route);
   }
+
+  /// This screen's route, as [NexRouteProbe] last reported it; see
+  /// `_onRoute` in timeline_navigation.dart.
+  ModalRoute<Object?>? _route;
 
   /// Something has covered the timeline — another screen, or a sheet.
   ///
@@ -769,8 +772,10 @@ class TimelineScreenState extends State<TimelineScreen>
   final _threadOffered = <String>{};
 
   @override
-  Widget build(BuildContext context) =>
-      NexTapGuard(controller: _guard, child: _screen(context));
+  Widget build(BuildContext context) => NexRouteProbe(
+    onRoute: _onRoute,
+    child: NexTapGuard(controller: _guard, child: _screen(context)),
+  );
 
   /// Wraps the timeline in a pull-to-refresh that rewrites the recap, or
   /// hands [child] straight back when there is no recap on screen.

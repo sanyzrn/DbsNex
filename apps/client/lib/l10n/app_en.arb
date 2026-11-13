@@ -148,7 +148,7 @@
   "@notificationSoundReminders": {
       "description": "Settings row that opens the OS notification-channel screen for reminders"
   },
-  "notificationSoundDaily": "Daily digest sound",
+  "notificationSoundDaily": "Daily nudge sound",
   "@notificationSoundDaily": {
       "description": "Settings row that opens the OS notification-channel screen for the daily digest"
   },
@@ -324,7 +324,7 @@
   "remindRepeatWeekly": "Every week",
   "remindRepeatingAt": "{when} · {repeat}",
   "@remindRepeatingAt": {"placeholders": {"when": {"type": "String"}, "repeat": {"type": "String"}}},
-  "nudgeNotScheduled": "The daily note was turned on, but this phone would not take the alarm.",
+  "nudgeNotScheduled": "The daily nudge was turned on, but this phone would not take the alarm.",
   "search": "Search",
   "searchHint": "Search notes…",
   "searchStart": "Start typing to find a note.",
@@ -3354,7 +3354,7 @@
   "metricsEmpty": "Nothing measured yet. Use Nex as usual and come back later.",
   "metricsLaunch": "Opening, to your library",
   "metricsTimeline": "Opening, to your notes on screen",
-  "metricsTimelineHint": "Includes the opening animation",
+  "metricsTimelineHint": "Includes the opening animation, which plays only the first time a new version opens",
   "metricsCapture": "Capture, from opening to saved",
   "metricsSearch": "Search, to opening a note",
   "metricsValue": "Usually {median} · slowest {slow}",
