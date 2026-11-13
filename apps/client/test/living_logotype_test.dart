@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/nex_brand.dart';
@@ -59,6 +61,49 @@ void main() {
     await tester.pump(NexLivingLogotype.interval);
     expect(tester.binding.hasScheduledFrame, isTrue);
     await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('waits while something else on screen is moving', (tester) async {
+    final other = AnimationController(
+      vsync: const TestVSync(),
+      duration: const Duration(seconds: 3),
+    );
+    addTearDown(other.dispose);
+    await tester.pumpWidget(app());
+    await tester.pump(const Duration(milliseconds: 100));
+    // A list in flight, say: something keeps asking for frames.
+    unawaited(other.forward());
+    await tester.pump(NexLivingLogotype.firstDelay);
+    final logotype = find.byType(NexLivingLogotype);
+    double moved() => tester
+        .widget<CustomPaint>(
+          find.descendant(of: logotype, matching: find.byType(CustomPaint)),
+        )
+        .painter
+        .hashCode
+        .toDouble();
+    final before = moved();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(moved(), before, reason: 'held while the other animation runs');
+    other.stop();
+    await tester.pumpAndSettle();
+    // Once it is quiet, the movement it owed starts within a retry.
+    await tester.pump(NexLivingLogotype.busyRetry);
+    expect(tester.binding.hasScheduledFrame, isTrue);
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('moves on a layer of its own', (tester) async {
+    await tester.pumpWidget(app());
+    expect(
+      find.descendant(
+        of: find.byType(NexLivingLogotype),
+        matching: find.byType(RepaintBoundary),
+      ),
+      findsOneWidget,
+    );
     await tester.pumpWidget(const SizedBox());
   });
 }

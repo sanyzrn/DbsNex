@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:nex_ui/nex_ui.dart';
 
 /// Nex's mark and wordmark, drawn from the designer's own vectors.
@@ -316,6 +317,9 @@ class NexLivingLogotype extends StatefulWidget {
   /// The first one, a moment after the screen appears.
   static const firstDelay = Duration(milliseconds: 1600);
 
+  /// How long a movement waits when something else on screen is moving.
+  static const busyRetry = Duration(seconds: 1);
+
   /// Whether the movement happens at all.
   ///
   /// Off under `flutter test`, where the clock is fake: a test that waits for
@@ -353,6 +357,19 @@ class _NexLivingLogotypeState extends State<NexLivingLogotype>
 
   void _play() {
     if (!mounted) return;
+    // Not over anything else that is moving: a list in flight, a page
+    // sliding in, a sheet rising. Each of its frames redraws the screen, and
+    // the wordmark's frames on top of them are frames a phone may not have —
+    // the movement waits a second and asks again instead.
+    final scheduler = SchedulerBinding.instance;
+    if (scheduler.transientCallbackCount > 0 || scheduler.hasScheduledFrame) {
+      _timer = Timer(NexLivingLogotype.busyRetry, _play);
+      return;
+    }
+    _start();
+  }
+
+  void _start() {
     unawaited(_motion.forward(from: 0));
     _timer = Timer(NexLivingLogotype.interval, _play);
   }
@@ -367,7 +384,7 @@ class _NexLivingLogotypeState extends State<NexLivingLogotype>
     // Through the global gate every other haptic answers (F-09): this was
     // the one raw selectionClick that bypassed the preference.
     nexTick();
-    _play();
+    _start();
   }
 
   @override
@@ -389,17 +406,22 @@ class _NexLivingLogotypeState extends State<NexLivingLogotype>
         // Not a control, so not announced as one: a small thing to find.
         excludeFromSemantics: true,
         onTap: _touched,
-        child: AnimatedBuilder(
-          animation: _motion,
-          builder: (context, _) => CustomPaint(
-            size: Size(
-              widget.height * bounds.width / bounds.height,
-              widget.height,
-            ),
-            painter: _LivingLogotypePainter(
-              ink: NexBrand.ink(theme.brightness),
-              accent: theme.colorScheme.primary,
-              t: _motion.value,
+        // Its own layer. Without it each of the movement's sixty-odd frames
+        // repainted the whole page it sits in — the app bar, the buttons,
+        // everything under the same boundary — every seven seconds.
+        child: RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _motion,
+            builder: (context, _) => CustomPaint(
+              size: Size(
+                widget.height * bounds.width / bounds.height,
+                widget.height,
+              ),
+              painter: _LivingLogotypePainter(
+                ink: NexBrand.ink(theme.brightness),
+                accent: theme.colorScheme.primary,
+                t: _motion.value,
+              ),
             ),
           ),
         ),
