@@ -7,6 +7,9 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## v2.6.28
 
 - **A better grid view.** Card size now applies to the grid: compact fits three tiles to a row, standard and easier to read two. Tiles show more of each note — its words, a checklist's items with their ticks, the photo itself, a voice note's length — and a reminder with its time ("in 3 hours"). Urgent notes carry the same flame as in the list, the colours are calmer, and a day folds and opens smoothly, by tap or by pinch. Show in full no longer appears in a tile's menu, where it had nothing to do.
+- **Clearer menu icons.** Urgent and Remind now look like Pin in a note's hold menu and its More actions: a filled icon while it is on, an outlined one while it is off.
+- **Choose list or grid from the start.** The last welcome page asks how you want your notes laid out, as Settings → Appearance does.
+- **Coming soon: Converter.** A new module on the way, shown under Modules: dates between the Persian, Gregorian and lunar calendars, and weights, lengths, temperatures and clothing, shoe and ring sizes between systems, offline.
 
 ## v2.6.27
 

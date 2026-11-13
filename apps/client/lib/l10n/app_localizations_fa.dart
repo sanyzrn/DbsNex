@@ -4477,6 +4477,13 @@ class AppLocalizationsFa extends AppLocalizations {
       'پیامی را به ربات تلگرام خودتان بفرستید تا به‌صورت یادداشت در Nex بنشیند. ربات و توکن مال خودتان است و مستقیم از همین گوشی خوانده می‌شود، بدون هیچ سروری از ما در میان.';
 
   @override
+  String get planConverterTitle => 'تبدیل‌گر';
+
+  @override
+  String get planConverterAbout =>
+      'تبدیل تاریخ بین شمسی، میلادی و قمری، و تبدیل وزن، طول، دما و سایز لباس، کفش و انگشتر بین سیستم‌های مختلف؛ همه بدون اینترنت و با یک لمس.';
+
+  @override
   String get planChequeManagerTitle => 'مدیریت چک';
 
   @override

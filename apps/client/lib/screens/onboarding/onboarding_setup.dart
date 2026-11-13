@@ -108,6 +108,10 @@ class _SetupPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: NexSpacing.md),
+            // How the notes will be laid out, chosen before there are any:
+            // the same control as Settings → Appearance (2.6.28).
+            NexTimelineViewPanel(preferences: preferences),
+            const SizedBox(height: NexSpacing.md),
             NexPanel(
               title: l10n.language,
               icon: Icons.translate,

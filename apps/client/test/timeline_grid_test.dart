@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/platform/hold_menu.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -128,4 +129,33 @@ void main() {
       expect(label, contains('3'));
     },
   );
+
+  // Like Pin: filled while it is on, outlined while it is off (2.6.28).
+  testWidgets('urgent and remind look on in the menu when they are on', (
+    tester,
+  ) async {
+    await harness.preferences.setHoldMenuActions([NexHoldAction.remind]);
+    await open(tester);
+    await tester.longPress(
+      find.ancestor(
+        of: find.text('urgent with time'),
+        matching: find.byType(NexNoteGridCard),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.local_fire_department), findsOneWidget);
+    expect(find.byIcon(Icons.notifications_active), findsOneWidget);
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(
+      find.ancestor(
+        of: find.text('grid note 6'),
+        matching: find.byType(NexNoteGridCard),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.local_fire_department_outlined), findsWidgets);
+    expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);
+  });
 }

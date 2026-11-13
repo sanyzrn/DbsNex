@@ -5,7 +5,7 @@
 
 Nex is the fastest way to put something down and find it again: a thought, a photo, a recording, a file or a link, all in one stream. Everything stays on this phone unless you choose otherwise, and the library works completely without AI.
 
-The first time you open Nex, four short pages show what it does, and a last one asks for your name, theme and language — with the greeting your name buys drawn above them as you type. Nothing there is required: **Skip** goes straight to the timeline, and every choice is in **Settings** later.
+The first time you open Nex, four short pages show what it does, and a last one asks for your name, theme, list or grid view and language — with the greeting your name buys drawn above them as you type. Nothing there is required: **Skip** goes straight to the timeline, and every choice is in **Settings** later.
 
 **Phone orientation.** Nex temporarily stays in portrait while the landscape layout is being redesigned.
 

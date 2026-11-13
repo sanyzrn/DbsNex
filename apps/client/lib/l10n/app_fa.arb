@@ -1666,6 +1666,8 @@
   "planTelegramTitle": "پل تلگرام",
   "@planTelegramTitle": {"description": "Planned module title: Telegram connection"},
   "planTelegramAbout": "پیامی را به ربات تلگرام خودتان بفرستید تا به‌صورت یادداشت در Nex بنشیند. ربات و توکن مال خودتان است و مستقیم از همین گوشی خوانده می‌شود، بدون هیچ سروری از ما در میان.",
+  "planConverterTitle": "تبدیل‌گر",
+  "planConverterAbout": "تبدیل تاریخ بین شمسی، میلادی و قمری، و تبدیل وزن، طول، دما و سایز لباس، کفش و انگشتر بین سیستم‌های مختلف؛ همه بدون اینترنت و با یک لمس.",
   "@planTelegramAbout": {"description": "Planned module: Telegram connection"},
   "planChequeManagerTitle": "مدیریت چک",
   "planChequeManagerAbout": "ثبت و پیگیری چک‌های دریافتی و پرداختی، سررسیدها و وضعیت وصول، با تاریخ شمسی و یادآوری؛ متناسب با نیاز بازار ایران.",
