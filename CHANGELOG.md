@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.28
+
+- **A better grid view.** Card size now applies to the grid: compact fits three tiles to a row, standard and easier to read two. Tiles show more of each note — its words, a checklist's items with their ticks, the photo itself, a voice note's length — and a reminder with its time ("in 3 hours"). Urgent notes carry the same flame as in the list, the colours are calmer, and a day folds and opens smoothly, by tap or by pinch. Show in full no longer appears in a tile's menu, where it had nothing to do.
+
 ## v2.6.27
 
 - **Six new themes.** Bolder palettes that pair a deep colour with a bright one, each in light and dark: Lavender, Peach & charcoal, Bloom (maroon and mustard), Dusk (plum and peach), Coral and Sunflower (black and yellow). Find them in Settings → Appearance → Theme.
