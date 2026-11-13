@@ -69,4 +69,20 @@ install() {
 }
 
 install "ndk;$version" "$sdk/ndk/$version" source.properties
-install "platforms;android-$platform" "$sdk/platforms/android-$platform" android.jar
+# From API 37 the SDK names platforms with a minor version: compileSdk 37 is
+# the package `platforms;android-37.0`, and `platforms;android-37` does not
+# exist ("Failed to find package", the first CI run of 2.6.26). Earlier levels
+# keep the bare name. Whichever directory holds an android.jar is the platform.
+platform_dir=""
+for name in "android-$platform" "android-$platform.0"; do
+  if [ -f "$sdk/platforms/$name/android.jar" ]; then
+    platform_dir="$name"
+  fi
+done
+if [ -n "$platform_dir" ]; then
+  echo "platforms;$platform_dir is already installed"
+elif [ "$platform" -ge 37 ]; then
+  install "platforms;android-$platform.0" "$sdk/platforms/android-$platform.0" android.jar
+else
+  install "platforms;android-$platform" "$sdk/platforms/android-$platform" android.jar
+fi
