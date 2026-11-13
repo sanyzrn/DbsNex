@@ -409,6 +409,8 @@ extension _TimelineBody on TimelineScreenState {
     return [
       if (desktop)
         ..._desktopSlivers(groups, l10n)
+      else if (widget.preferences.timelineGrid)
+        ..._gridSlivers(groups, l10n)
       else
         _TimelineList(
           rows: rows,
@@ -506,6 +508,7 @@ extension _TimelineBody on TimelineScreenState {
                           note: note,
                           strings: nexCardStrings(context),
                           onTap: () => _tapNote(note),
+                          onLeadingTap: () => _pickNote(note),
                           selected: _selecting
                               ? _selected.contains(note.id)
                               : null,

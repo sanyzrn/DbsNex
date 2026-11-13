@@ -239,6 +239,27 @@ class _ThemeScreen extends StatelessWidget {
             ),
             const SizedBox(height: NexSpacing.md),
             NexPanel(
+              title: l10n.timelineView,
+              icon: Icons.grid_view_rounded,
+              child: NexChoiceCards<bool>(
+                selected: preferences.timelineGrid,
+                onSelected: preferences.setTimelineGrid,
+                choices: [
+                  NexChoice(
+                    value: false,
+                    label: l10n.timelineViewList,
+                    preview: const Icon(Icons.view_agenda_outlined),
+                  ),
+                  NexChoice(
+                    value: true,
+                    label: l10n.timelineViewGrid,
+                    preview: const Icon(Icons.grid_view_rounded),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: NexSpacing.md),
+            NexPanel(
               title: l10n.cardDensity,
               icon: Icons.view_agenda_outlined,
               child: NexChoiceCards<NexCardDensity>(

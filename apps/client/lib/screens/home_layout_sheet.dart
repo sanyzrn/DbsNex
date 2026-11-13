@@ -129,6 +129,29 @@ class _HomeLayoutSheetState extends State<HomeLayoutSheet> {
             const SizedBox(height: NexSpacing.lg),
             Text(l10n.layoutLookSection, style: label),
             const SizedBox(height: NexSpacing.sm),
+            Text(l10n.timelineView, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: NexSpacing.sm),
+            Row(
+              children: [
+                for (final (i, grid) in const [false, true].indexed) ...[
+                  if (i > 0) const SizedBox(width: NexSpacing.sm),
+                  Expanded(
+                    child: _ToggleTile(
+                      key: ValueKey('layout-view-${grid ? 'grid' : 'list'}'),
+                      icon: grid
+                          ? Icons.grid_view_rounded
+                          : Icons.view_agenda_outlined,
+                      label: grid
+                          ? l10n.timelineViewGrid
+                          : l10n.timelineViewList,
+                      on: prefs.timelineGrid == grid,
+                      onTap: () => _then(prefs.setTimelineGrid(grid)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: NexSpacing.md),
             Text(l10n.cardDensity, style: theme.textTheme.bodyMedium),
             const SizedBox(height: NexSpacing.sm),
             Row(

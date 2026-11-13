@@ -62,6 +62,7 @@ import '../widgets/card_strings.dart';
 import '../widgets/copy_feedback.dart';
 import '../widgets/tag_label.dart';
 import '../widgets/note_context_menu.dart';
+import '../widgets/note_grid_card.dart';
 import '../widgets/commit_receipt.dart';
 import '../widgets/commitments_sheet.dart';
 import '../widgets/note_spotlight.dart';
@@ -94,6 +95,7 @@ import 'settings_sheet.dart';
 
 part 'timeline/timeline_header_widgets.dart';
 part 'timeline/timeline_desktop.dart';
+part 'timeline/timeline_grid.dart';
 part 'timeline/timeline_filter_widgets.dart';
 part 'timeline/timeline_groups.dart';
 part 'timeline/timeline_list.dart';

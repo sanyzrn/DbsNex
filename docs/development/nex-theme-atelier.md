@@ -181,3 +181,36 @@ verification of the adapted 2.6.25 tree.
   film structure; with Liquid Glass on, a palette's panels transmit like
   the shipped ones do (27% light / 20% dark), which is a change from the
   old near-opaque preset wash.
+
+## 2.6.27 — six bolder palettes, and a contrast audit
+
+The owner asked for themes in the spirit of a set of reference shots: two
+strong colours side by side rather than one accent on neutrals. Six palettes
+were added on the same ramp contract, each with its own light and dark ramp
+and a motif:
+
+| id | Light | Dark | Motif |
+| --- | --- | --- | --- |
+| `lavender` | lilac pastels, violet accent, vivid violet capture | violet night | petals |
+| `peach` | peach paper, burnt-orange marks, **charcoal capture with a peach glyph** | charcoal with peach light | fibre |
+| `bloom` | cream and mustard wash, maroon ink and marks, maroon capture with a mustard glyph | mustard on deep maroon | petals |
+| `dusk` | lilac mist, violet marks, peach selected wash | plum page, peach light | stars |
+| `coral` | cool mist, coral-red marks, coral capture with a charcoal glyph | coral on charcoal | waves |
+| `sunflower` | cream and yellow, **black capture with a yellow glyph** | yellow on black | halftone |
+
+The ramp has one ink for every surface, so a two-tone look lives in the
+capture button, the selected wash and the page, not in coloured cards with
+their own ink. Filled buttons keep `fill == accent` (`theme_accent_test`).
+Every new ramp passes `theme_ramp_test` unchanged, and the contract file
+lists them (`contracts/nex-portable-v1.json`).
+
+`theme_standards_test.dart` is new: every appearance × every palette × a few
+picked accents at the hard ends of the wheel, on the pairs the app draws
+(text 4.5:1 on each surface, boundaries and glyphs 3:1). It found and 2.6.27
+fixed: `inversePrimary` was the page's accent and measured 1.4–3.5 on the
+inverse capsule in every theme (now the ramp's `accentOnInverse`); the classic
+light filled box (`elevated`) held the accent at 4.37 (lightened to
+`#EEF0F3`); three light palettes' outlines fell to 2.93 on filled boxes
+(turquoise, ocean, circuit — each a step darker); a bright picked accent
+(yellow, lime) on the classic light card fell to 4.0 (now walked against the
+dimmest ground).

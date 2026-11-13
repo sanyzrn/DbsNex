@@ -72,7 +72,7 @@ void main() {
               reason: preset.id,
             );
           }
-          expect(nexThemePresets.length, 15);
+          expect(nexThemePresets.length, 21);
           expect(
             nexThemePresets.map((p) => p.id).toSet().length,
             nexThemePresets.length,

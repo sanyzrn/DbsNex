@@ -711,7 +711,10 @@ ThemeData _theme({
     surfaceTint: accent,
     inverseSurface: primary,
     onInverseSurface: background,
-    inversePrimary: accent,
+    // The accent as it reads on the inverse capsule (a toast, the hold
+    // hint): the page's accent there measured 1.4 to 3.5 against the
+    // capsule in every theme, on the one control that undoes or dismisses.
+    inversePrimary: accentOnInverse,
     outline: border,
     outlineVariant: borderSoft,
     shadow: const Color(0xFF000000),

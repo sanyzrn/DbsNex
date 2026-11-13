@@ -498,6 +498,13 @@ extension _TimelineNoteActions on TimelineScreenState {
     unawaited(_openNote(note));
   }
 
+  /// A tap on a card's icon: picks the note, or puts it back, whether or
+  /// not anything was being picked — a mail list's avatar (2.6.27).
+  void _pickNote(Note note) {
+    if (_claimedByOverlay()) return;
+    _toggleSelected(note);
+  }
+
   /// One note by id, the way a card tap opens it.
   ///
   /// A Timeline widget row *is* a card, so tapping it lands on the same

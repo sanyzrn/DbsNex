@@ -131,6 +131,48 @@
       "light": "#F8FAF2",
       "dark": "#101208",
       "texture": "halftone"
+    },
+    {
+      "id": "lavender",
+      "seed": "#6E34C2",
+      "light": "#F8F5FE",
+      "dark": "#17121F",
+      "texture": "petals"
+    },
+    {
+      "id": "peach",
+      "seed": "#A4400F",
+      "light": "#FFF7F1",
+      "dark": "#1C1C1F",
+      "texture": "fibre"
+    },
+    {
+      "id": "bloom",
+      "seed": "#7A1E16",
+      "light": "#FBF6EE",
+      "dark": "#2A0D0B",
+      "texture": "petals"
+    },
+    {
+      "id": "dusk",
+      "seed": "#52438F",
+      "light": "#F5F3FA",
+      "dark": "#2E2849",
+      "texture": "stars"
+    },
+    {
+      "id": "coral",
+      "seed": "#B1323A",
+      "light": "#F4F5F7",
+      "dark": "#1E1F22",
+      "texture": "waves"
+    },
+    {
+      "id": "sunflower",
+      "seed": "#6B4F00",
+      "light": "#FFFBEF",
+      "dark": "#0F0F0F",
+      "texture": "halftone"
     }
   ],
   "colors": {
