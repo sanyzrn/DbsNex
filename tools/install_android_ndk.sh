@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Installs the NDK pinned in apps/client/android/app/build.gradle.kts before
-# Gradle asks for it, and retries a bad download.
+# Installs the NDK and the SDK platform pinned in
+# apps/client/android/app/build.gradle.kts before Gradle asks for them, and
+# retries a bad download.
 #
 # Left to Gradle, a missing NDK is installed in the middle of the build and
 # tried once. On a runner that download came back truncated — "Archive is not
@@ -19,17 +20,17 @@ if [ -z "$version" ]; then
   exit 1
 fi
 
+platform="$(sed -n 's/^[[:space:]]*compileSdk = \([0-9][0-9]*\).*/\1/p' "$gradle" | head -n 1)"
+if [ -z "$platform" ]; then
+  echo "::error::no numeric compileSdk found in $gradle"
+  exit 1
+fi
+
 sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 if [ -z "$sdk" ]; then
   echo "::error::ANDROID_HOME is not set"
   exit 1
 fi
-target="$sdk/ndk/$version"
-if [ -f "$target/source.properties" ]; then
-  echo "NDK $version is already installed"
-  exit 0
-fi
-
 sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
 if [ ! -x "$sdkmanager" ]; then
   sdkmanager="$(command -v sdkmanager || true)"
@@ -39,20 +40,33 @@ if [ -z "$sdkmanager" ]; then
   exit 1
 fi
 
-for attempt in 1 2 3; do
-  # A half-unpacked NDK or a corrupt archive from the last try would be found
-  # and used again; every attempt starts clean.
-  rm -rf "$target" "$sdk/.temp"
-  # No pipefail on purpose: `yes` ends on SIGPIPE when sdkmanager is done.
-  if yes | "$sdkmanager" --install "ndk;$version" > /dev/null \
-    && [ -f "$target/source.properties" ]; then
-    echo "NDK $version installed on attempt $attempt"
-    exit 0
+# install <sdkmanager package> <directory it unpacks to> <file proving it is whole>
+install() {
+  package="$1"
+  target="$2"
+  marker="$3"
+  if [ -f "$target/$marker" ]; then
+    echo "$package is already installed"
+    return 0
   fi
-  echo "::warning::NDK $version install attempt $attempt failed"
-  if [ "$attempt" -lt 3 ]; then
-    sleep $((attempt * 20))
-  fi
-done
-echo "::error::NDK $version could not be installed after 3 attempts"
-exit 1
+  for attempt in 1 2 3; do
+    # A half-unpacked package or a corrupt archive from the last try would be
+    # found and used again; every attempt starts clean.
+    rm -rf "$target" "$sdk/.temp"
+    # No pipefail on purpose: `yes` ends on SIGPIPE when sdkmanager is done.
+    if yes | "$sdkmanager" --install "$package" > /dev/null \
+      && [ -f "$target/$marker" ]; then
+      echo "$package installed on attempt $attempt"
+      return 0
+    fi
+    echo "::warning::$package install attempt $attempt failed"
+    if [ "$attempt" -lt 3 ]; then
+      sleep $((attempt * 20))
+    fi
+  done
+  echo "::error::$package could not be installed after 3 attempts"
+  exit 1
+}
+
+install "ndk;$version" "$sdk/ndk/$version" source.properties
+install "platforms;android-$platform" "$sdk/platforms/android-$platform" android.jar

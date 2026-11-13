@@ -28,6 +28,22 @@ void main() {
     expect(RegExp(r'targetSdk = 36\b').hasMatch(gradle), isTrue);
   });
 
+  test('compileSdk is a number the CI installer can read, and covers the '
+      'plugins and the target', () {
+    // tools/install_android_ndk.sh installs this exact platform before the
+    // build; `flutter.compileSdkVersion` there would leave it nothing to read.
+    final compile = RegExp(
+      r'^\s*compileSdk = (\d+)',
+      multiLine: true,
+    ).firstMatch(gradle);
+    expect(compile, isNotNull);
+    final level = int.parse(compile!.group(1)!);
+    // flutter_local_notifications 23 compiles against API 37.
+    expect(level, greaterThanOrEqualTo(37));
+    final target = RegExp(r'targetSdk = (\d+)').firstMatch(gradle)!.group(1)!;
+    expect(level, greaterThanOrEqualTo(int.parse(target)));
+  });
+
   test('predictive back is opted into and nothing native intercepts back', () {
     final application = manifest.findAllElements('application').single;
     expect(

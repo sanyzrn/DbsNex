@@ -67,7 +67,12 @@ fun nexReleaseVersionCode(versionName: String): Int {
 
 android {
     namespace = "com.sanyzrn.nex"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned above flutter.compileSdkVersion (36), for the same reason as the
+    // NDK below: flutter_local_notifications 23 compiles against API 37 and
+    // asks the app to as well. compileSdk only chooses which APIs the build
+    // can see; what the app promises the system is targetSdk, below.
+    // tools/install_android_ndk.sh installs this platform before Gradle runs.
+    compileSdk = 37
     // Pinned above flutter.ndkVersion: shared_preferences_android and
     // sqlite3_flutter_libs both require 28.2.13676358, and the Flutter default
     // (27.0.12077973) fails the manifest merge. NDK releases are backward
