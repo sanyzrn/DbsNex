@@ -185,6 +185,7 @@ extension NexDailyNudgeServices on NexServices {
               title: DailyNudge.greeting(
                 _preferences,
                 _preferences.dailyNudgeMinutes,
+                persian: localeKey == 'fa',
               ),
               aiEnabled: _preferences.aiEnabled,
               summaryEnabled: _preferences.showDaySummary,

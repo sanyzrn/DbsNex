@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'nex_preferences.dart';
@@ -32,17 +31,22 @@ abstract final class DailyNudge {
   /// underneath never contains the name: that half comes from a model, and the
   /// model is not told who it is writing to.
   ///
-  /// Greeted in the language the name is written in rather than the interface
-  /// language, because "صبح بخیر, Saeed" and "Good morning, سعید" are both
-  /// sentences nobody writes.
-  static String greeting(NexPreferences preferences, int minutes) {
+  /// In the language of the body under it, which is the app's ([persian]).
+  /// It used to follow the script the name is written in, so Nex in Persian
+  /// with the name typed as "Saeed" opened with "Good morning, Saeed" above a
+  /// Persian body. The name is kept as written and isolated (FSI … PDI), so
+  /// a name in the other script sits whole at the end of the line.
+  static String greeting(
+    NexPreferences preferences,
+    int minutes, {
+    required bool persian,
+  }) {
     final name = preferences.shortDisplayName;
-    final l10n = nexDirectionOf(name ?? '') == TextDirection.rtl
-        ? lookupAppLocalizations(const Locale('fa'))
-        : lookupAppLocalizations(const Locale('en'));
+    final l10n = lookupAppLocalizations(Locale(persian ? 'fa' : 'en'));
     if (name == null) return l10n.nudgeGreetingPlain;
+    final isolated = '\u2068$name\u2069';
     return minutes < 12 * 60
-        ? l10n.nudgeGreetingMorning(name)
-        : l10n.nudgeGreetingDay(name);
+        ? l10n.nudgeGreetingMorning(isolated)
+        : l10n.nudgeGreetingDay(isolated);
   }
 }
