@@ -70,17 +70,40 @@ void main() {
         );
       },
     );
-    test('$fa urgent and nearby reminders have factual, compact variants', () {
+    test('$fa facts are one a line, most pressing first, with no lead-in', () {
       final bodies = local([
-        note('urgent-plan', urgent: true),
         note('call-printshop', due: now.add(const Duration(hours: 2))),
+        note('urgent-plan', urgent: true),
       ]);
-      for (final body in bodies) {
-        expect(body, contains('urgent-plan'));
-        expect(body, contains('call-printshop'));
-        expect(body.runes.length, lessThanOrEqualTo(210));
+      expect(bodies, hasLength(1));
+      final lines = bodies.single.split('\n');
+      expect(lines, hasLength(2));
+      expect(
+        lines.first,
+        fa
+            ? 'فوری: «\u2068urgent-plan\u2069»'
+            : 'Urgent: “\u2068urgent-plan\u2069”',
+      );
+      expect(
+        lines.last,
+        fa
+            ? 'امروز ساعت ۱۰:۰۰ · «\u2068call-printshop\u2069»'
+            : 'Today at 10:00 · “\u2068call-printshop\u2069”',
+      );
+      // The run-on frame this replaced: "A quick reminder: Urgent: …".
+      expect(bodies.single, isNot(contains('quick reminder')));
+      expect(bodies.single, isNot(contains('یادآوری کوتاه')));
+    });
+    test('$fa at most three facts, each kept to one short line', () {
+      final bodies = local([
+        for (var i = 0; i < 5; i++)
+          note('urgent-$i-${'x' * 120}', urgent: true),
+      ]);
+      final lines = bodies.single.split('\n');
+      expect(lines, hasLength(3));
+      for (final line in lines) {
+        expect(line.runes.length, lessThanOrEqualTo(90));
       }
-      expect(bodies.toSet(), hasLength(3));
     });
     test(
       '$fa stale, archived, deleted and completed tasks are not current',

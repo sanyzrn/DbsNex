@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.6.27
 
+- **A tidier daily nudge.** What is due now reads one item a line, the most pressing first: "Urgent: …", "Today at 10:00 · …", "Overdue: …". It used to be one run-on sentence behind a changing lead-in ("A quick reminder: Urgent: …"). A note written in the other language no longer jumbles its quotation marks, and the expanded notification no longer leaves empty lines under the text — the same goes for note reminders. The greeting above it is now in the app's language too, whatever script your name is written in.
 - **Recent searches run again.** On the search screen, touching one of your recent or kept searches closed search instead of searching for it. It now runs that search.
 - **Exported photos open as the right picture.** In a library export, two photos with the same file name were both saved, but the second note's Markdown pointed at the first one's file, so opened outside Nex it showed the wrong photo. Each note now links to its own.
 - **Every search box works the same way.** The searches in Settings, Modules, What's new, the vault, Words, tags, languages and the rest now share one design: the same look, a clear button as soon as you type that resets the list at once, and Persian or English text running the right way as you type it.
