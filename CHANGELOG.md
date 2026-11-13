@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.26
+
+- **Ready for Android 16.** Nex now targets the latest Android. On a tablet or an unfolded foldable it turns with the device instead of staying upright, with the notes kept to a comfortable reading width in landscape; photos taken there are saved the way you held the device. Phones stay in portrait as before.
+
 ## v2.6.25
 
 - **Redesigned themes.** Choose from 14 palettes in Settings → Appearance, each with its own light and dark colours. Your saved theme returns automatically, custom accents keep their hue with readable text, and Liquid Glass follows the palette.

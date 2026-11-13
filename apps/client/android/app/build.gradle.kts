@@ -91,7 +91,17 @@ android {
         // plugin raising its own floor (record 6.x needs API 23+) surfaces as a
         // clear constraint violation instead of an opaque manifest-merger error.
         minSdk = 24
-        targetSdk = 35
+        // Android 16. What changed for an app at this level, and how each
+        // is met (docs/31-2.6.23-audit-and-roadmap.md, §6 item 2):
+        // - A fixed orientation is ignored on large screens (600dp and up).
+        //   The phone layout already holds at tablet landscape widths; the
+        //   camera stops locking its photos upright there (large_screen.dart).
+        // - Predictive back is on for every activity. The manifest has opted
+        //   in since enableOnBackInvokedCallback, and no native code relies on
+        //   onBackPressed or KEYCODE_BACK.
+        // - Edge-to-edge cannot be opted out of. It never was: the app has
+        //   drawn edge to edge since API 35 (entry_bootstrap.dart).
+        targetSdk = 36
         versionCode = maxOf(flutter.versionCode, nexReleaseVersionCode(flutter.versionName))
         versionName = flutter.versionName
     }
