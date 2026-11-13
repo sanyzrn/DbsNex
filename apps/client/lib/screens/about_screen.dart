@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nex_ui/nex_ui.dart';
-
 import '../app_version.dart';
 import 'guide_screen.dart';
 import '../l10n/app_localizations.dart';
@@ -243,8 +242,9 @@ class _WhatsNewTileState extends State<_WhatsNewTile> {
               ),
               child: Text(
                 l10n.whatsNewBadge,
-                style: Theme.of(context).textTheme.labelSmall
-                    ?.copyWith(color: scheme.onPrimary),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: scheme.onPrimary),
               ),
             ),
           const Icon(Icons.chevron_right),

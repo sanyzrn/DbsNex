@@ -13,9 +13,7 @@ import '../widgets/feature_label.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_dialog.dart';
 import 'local_model_screen.dart';
-
 import 'package:nex_ai/cloud.dart';
-
 import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
 

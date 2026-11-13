@@ -254,8 +254,9 @@ class _ModeCard extends StatelessWidget {
               start: NexSpacing.md,
               child: Text(
                 name,
-                style: Theme.of(context).textTheme.labelLarge
-                    ?.copyWith(color: Colors.white),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: Colors.white),
               ),
             ),
           ],

@@ -34,14 +34,13 @@ Future<NexPinnedSummary?> nexPinnedModuleSummary({
   final store = NexModuleStore(services, id);
   switch (id) {
     case 'habits':
-      final habits = (await store.list('habit'))
-          .map(Habit.fromRecord)
-          .where((h) => !h.archived)
-          .toList();
+      final habits = (await store.list(
+        'habit',
+      )).map(Habit.fromRecord).where((h) => !h.archived).toList();
       if (habits.isEmpty) return NexPinnedSummary(l10n.pinHabitsEmpty);
-      final checks = (await store.list('check'))
-          .map(HabitCheck.fromRecord)
-          .toList();
+      final checks = (await store.list(
+        'check',
+      )).map(HabitCheck.fromRecord).toList();
       final firstDay = readFirstDay(await store.get('settings', 'week'));
       var done = 0, left = 0;
       for (final habit in habits) {
@@ -64,9 +63,9 @@ Future<NexPinnedSummary?> nexPinnedModuleSummary({
         left == 0 ? l10n.pinHabitsRest : l10n.pinHabitsLeft(left),
       );
     case 'words':
-      final cards = (await store.list('card'))
-          .map((r) => WordCard.fromRecord(r.id, r.body))
-          .toList();
+      final cards = (await store.list(
+        'card',
+      )).map((r) => WordCard.fromRecord(r.id, r.body)).toList();
       if (cards.isEmpty) return NexPinnedSummary(l10n.pinWordsEmpty);
       final settings = WordsSettings.fromRecord(
         await store.get('settings', WordsSettings.recordId) ?? const {},

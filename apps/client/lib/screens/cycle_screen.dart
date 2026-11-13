@@ -227,8 +227,9 @@ class _CycleScreenState extends State<CycleScreen> {
         centerTitle: true,
         title: Text(
           l10n.cycleTitle,
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(letterSpacing: 0.4),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(letterSpacing: 0.4),
         ),
         actions: [
           if (widget.preferences.cycleSetUp)

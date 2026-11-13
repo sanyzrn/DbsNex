@@ -6,9 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../widgets/nex_shelf.dart';
 import '../l10n/app_localizations.dart';
-
 import 'package:nex_ai/cloud.dart';
-
 import '../platform/nex_services.dart';
 import '../widgets/nex_dialog.dart';
 

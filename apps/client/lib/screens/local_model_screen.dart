@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -266,8 +265,9 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
       _install.start(
         store,
         _model,
-        noticeTitle: AppLocalizations.of(context)
-            .localModelNoticeTitle(_model.name),
+        noticeTitle: AppLocalizations.of(
+          context,
+        ).localModelNoticeTitle(_model.name),
         warmUp: widget.search ? () => _activateSearch(store) : null,
       ),
     );
