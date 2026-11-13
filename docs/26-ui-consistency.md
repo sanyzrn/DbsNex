@@ -49,14 +49,14 @@ different task".
 |---|---|---|
 | Bottom sheets | `nexShowSheet` (handle, swipe, tap outside, keyboard) | **Done** (2.1.13–14) — `sheet_swipe_test`, `sheet_scrim_test` |
 | Menus (⋮, hold, heading, picker) | `NexPopupMenuButton` + `nexMenuItem`, `nexShowContextMenu` | **Done** (2.1.15) — `menu_rule_test`; dropdown lists via `nexDropdownRadius`/`nexDropdownColor` |
-| Pickers: time, date, Jalali | `nexPickTime`, `nexPickDate`, `nexPickModuleDate` | **Done** (2.1.15) — raw pickers at 0 |
+| Pickers: time, date, Jalali | `nexPickTime`, `nexPickDate`, `nexPickModuleDate` | **Done** (2.1.15) — raw pickers at 0; the rule also counts hand-built `TimePickerDialog`/`DatePickerDialog` since 2.6.27, which found Expenses |
 | Module pages | `NexModuleHero`, `NexMoreDetails`, one empty-state button | **Done** for the 13 modules (2.1.14) |
 | Corner radii | `NexRadius` tokens | Mostly: 8 left, all 2–3 px bars/dots — ratchet |
 | Messages | `nexShowBanner` / `NexBannerHost` (top capsule) | **0 `SnackBar(` left** — shared across the app |
 | Buttons | `FilledButton` / tonal / `TextButton` | 5 stock `OutlinedButton`/`ElevatedButton` left |
 | Cards and panels | `NexPanel`, shelf widgets | 3 stock `Card(` left (vault) |
-| Dialogs | `nexShowDialog` | Done (no raw `showDialog`/`AlertDialog`) |
-| Text entry (single line / search) | `NexTextField` line + the search field header | **To audit:** per-screen `InputDecoration` copies |
+| Dialogs | `nexShowDialog` + `NexAlertDialog` | **Done** — no raw `showDialog`; stock `SimpleDialog`/`AlertDialog` at 0 since 2.6.27 (Words caps moved), ratchet in `ui_consistency_test` |
+| Text entry (single line / search) | `NexTextField` line + the search field header; outlines from `inputDecorationTheme` | **Started 2.6.27:** the theme draws resting, disabled, focus and error outlines, and the 33 `OutlineInputBorder()` overrides are gone (ratchet at 0). Still to do: about 10 hand-made outlines, and one shared search field for the ~22 search boxes |
 | Multi-line text a person writes | `NexTextField` (ADR-037) | Done |
 | Spacing literals | `NexSpacing` | **To audit:** ~110 numeric `EdgeInsets`/`SizedBox` |
 | Chips, segmented controls | one chip / segment style | **To audit** (`AdaptiveSegments` exists in 5 modules, copied) |
