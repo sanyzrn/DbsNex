@@ -7,6 +7,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## v2.6.27
 
 - **Exported photos open as the right picture.** In a library export, two photos with the same file name were both saved, but the second note's Markdown pointed at the first one's file, so opened outside Nex it showed the wrong photo. Each note now links to its own.
+- **Every search box works the same way.** The searches in Settings, Modules, What's new, the vault, Words, tags, languages and the rest now share one design: the same look, a clear button as soon as you type that resets the list at once, and Persian or English text running the right way as you type it.
 
 ## v2.6.26
 

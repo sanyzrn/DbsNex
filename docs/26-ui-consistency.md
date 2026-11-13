@@ -56,7 +56,7 @@ different task".
 | Buttons | `FilledButton` / tonal / `TextButton` | 5 stock `OutlinedButton`/`ElevatedButton` left |
 | Cards and panels | `NexPanel`, shelf widgets | 3 stock `Card(` left (vault) |
 | Dialogs | `nexShowDialog` + `NexAlertDialog` | **Done** — no raw `showDialog`; stock `SimpleDialog`/`AlertDialog` at 0 since 2.6.27 (Words caps moved), ratchet in `ui_consistency_test` |
-| Text entry (single line / search) | `NexTextField` line + the search field header; outlines from `inputDecorationTheme` | **Started 2.6.27:** the theme draws resting, disabled, focus and error outlines, and the 33 `OutlineInputBorder()` overrides are gone (ratchet at 0). Still to do: about 10 hand-made outlines, and one shared search field for the ~22 search boxes |
+| Text entry (single line / search) | `NexTextField` line + the search field header; outlines from `inputDecorationTheme` | **Started 2.6.27:** the theme draws resting, disabled, focus and error outlines, and the 33 `OutlineInputBorder()` overrides are gone (ratchet at 0). Search boxes **done** (2.6.27): `NexSearchField` for all 13, ratchet at 0, the timeline pill the exception. Still to do: about 10 hand-made outlines |
 | Multi-line text a person writes | `NexTextField` (ADR-037) | Done |
 | Spacing literals | `NexSpacing` | **To audit:** ~110 numeric `EdgeInsets`/`SizedBox` |
 | Chips, segmented controls | one chip / segment style | **To audit** (`AdaptiveSegments` exists in 5 modules, copied) |

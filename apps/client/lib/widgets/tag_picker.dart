@@ -1,5 +1,3 @@
-import 'dart:ui' show BoxWidthStyle;
-
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart' show nexMaxTagsPerNote;
 import 'package:nex_data/nex_data.dart';
@@ -179,29 +177,22 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
             ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-            child: NexAutoDirection(
+            // Finds a tag or names a new one: the shared search box, with
+            // Done making the name a tag rather than searching.
+            child: NexSearchField(
               controller: _controller,
-              builder: (context, direction) => TextField(
-                controller: _controller,
-                selectionWidthStyle: BoxWidthStyle.tight,
-                contextMenuBuilder: nexReadingMenu,
-                autofocus: !atLimit,
-                enabled: !atLimit,
-                textDirection: direction,
-                textAlign: TextAlign.start,
-                textInputAction: TextInputAction.done,
-                decoration: InputDecoration(
-                  hintText: l10n.tagName,
-                  prefixIcon: const Icon(Icons.search),
-                ),
-                onChanged: (value) => setState(() => _query = value),
-                onSubmitted: (value) {
-                  // Done on the keyboard makes the name a ticked tag — the
-                  // sheet stays open, like every other pick here — rather
-                  // than committing the whole visit.
-                  if (_canCreate) _create(value);
-                },
-              ),
+              contextMenuBuilder: nexReadingMenu,
+              autofocus: !atLimit,
+              enabled: !atLimit,
+              textInputAction: TextInputAction.done,
+              hintText: l10n.tagName,
+              onChanged: (value) => setState(() => _query = value),
+              onSubmitted: (value) {
+                // Done on the keyboard makes the name a ticked tag — the
+                // sheet stays open, like every other pick here — rather
+                // than committing the whole visit.
+                if (_canCreate) _create(value);
+              },
             ),
           ),
           const SizedBox(height: NexSpacing.sm),

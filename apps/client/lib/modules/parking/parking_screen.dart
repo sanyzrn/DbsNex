@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'local_writes.dart';
 import 'parking_repository.dart';
 
@@ -8,7 +9,6 @@ import 'package:nex_client/modules/module_api.dart';
 import 'parking_detail.dart';
 import 'parking_dialogs.dart';
 import 'parking_editor.dart';
-import 'parking_fields.dart';
 import 'parking_logic.dart';
 import 'parking_models.dart';
 import 'parking_strings.dart';
@@ -220,9 +220,8 @@ class _ParkingScreenState extends State<ParkingScreen>
     }
     await _work(() async {
       final undo = await LocalWrites.serial(widget.store, () async {
-        final closed = (await widget.store.list(
-          ParkingModels.session,
-        )).where((r) => !ParkingLogic.isActive(r.body));
+        final closed = (await widget.store.list(ParkingModels.session))
+            .where((r) => !ParkingLogic.isActive(r.body));
         return LocalWrites.apply(widget.store, [
           for (final r in closed) ...[
             (kind: 'draft', id: 'session:${r.id}', body: null),

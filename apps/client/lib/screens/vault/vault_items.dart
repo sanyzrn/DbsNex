@@ -43,28 +43,17 @@ extension _VaultItems on _VaultScreenState {
               Row(
                 children: [
                   Expanded(
-                    child: NexAutoDirection(
+                    // Private: what is searched for here is as private as
+                    // what is kept.
+                    child: NexSearchField(
                       controller: search,
-                      builder: (context, direction) => TextField(
-                        controller: search,
-                        textDirection: direction,
-                        textAlign: TextAlign.start,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        enableIMEPersonalizedLearning: false,
-                        onChanged: (_) {
-                          _touch();
-                          _rebuild(() {});
-                        },
-                        decoration: InputDecoration(
-                          isDense: true,
-                          hintText: l.vaultSearch,
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(NexRadius.lg),
-                          ),
-                        ),
-                      ),
+                      private: true,
+                      dense: true,
+                      hintText: l.vaultSearch,
+                      onChanged: (_) {
+                        _touch();
+                        _rebuild(() {});
+                      },
                     ),
                   ),
                   const SizedBox(width: NexSpacing.sm),

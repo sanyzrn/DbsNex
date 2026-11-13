@@ -111,10 +111,10 @@ extension _ParkingScreenBody on _ParkingScreenState {
         NexSpacing.md,
         NexSpacing.sm,
       ),
-      child: ParkingFields.line(
+      child: NexSearchField(
         fieldKey: const ValueKey('parking-field-search'),
         controller: _query,
-        label: strings(context, 'searchHint'),
+        labelText: strings(context, 'searchHint'),
         onSubmitted: (query) => unawaited(
           _work(
             () => ParkingWrites.rememberQuery(widget.store, _queries, query),

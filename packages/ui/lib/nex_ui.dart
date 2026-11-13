@@ -5,6 +5,7 @@ export 'widgets/nex_app_bar.dart';
 export 'widgets/nex_alert_dialog.dart';
 export 'widgets/nex_surface.dart';
 export 'widgets/nex_popup_menu.dart';
+export 'widgets/nex_search_field.dart';
 
 export 'tokens/nex_accent_palette.dart';
 export 'tokens/nex_appearance.dart';

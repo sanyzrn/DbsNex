@@ -88,6 +88,21 @@ void main() {
     );
   });
 
+  test('search boxes are NexSearchField', () {
+    // Thirteen boxes each drew their own: clear button or none, a different
+    // tooltip on it, their own idea of direction (2.6.27). The timeline's
+    // pill in the header is the deliberate exception.
+    ratchet(
+      'a hand-made search box (a search icon as a field prefix)',
+      count(
+        RegExp(r'prefixIcon:\s*(const\s+)?Icon\(\s*Icons\.search'),
+        except: {'lib/widgets/search_field_header.dart'},
+      ),
+      0,
+      'Use NexSearchField (packages/ui).',
+    );
+  });
+
   test('menus are nexMenuItem (also enforced in menu_rule_test.dart)', () {
     ratchet(
       'a stock PopupMenuButton / PopupMenuItem / showMenu',

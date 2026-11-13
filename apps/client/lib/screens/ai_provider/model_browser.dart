@@ -71,17 +71,13 @@ class _ModelBrowserState extends State<_ModelBrowser> {
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: NexSpacing.md),
-            TextField(
-              key: const ValueKey('ai-model-search'),
+            // A model id is Latin and left to right in either language.
+            NexSearchField(
+              fieldKey: const ValueKey('ai-model-search'),
               controller: _query,
-              autocorrect: false,
-              enableSuggestions: false,
+              private: true,
               textDirection: TextDirection.ltr,
-              textAlign: TextAlign.left,
-              decoration: InputDecoration(
-                hintText: l10n.aiModelBrowseSearch,
-                prefixIcon: const Icon(Icons.search),
-              ),
+              hintText: l10n.aiModelBrowseSearch,
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: NexSpacing.sm),
