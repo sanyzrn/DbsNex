@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:nex_core/nex_core.dart'
-    show Note, newUuidV7, parseChecklist, urlHost, writtenLink;
+    show Note, newUuidV7, normaliseUrl, parseChecklist, urlHost, writtenLink;
 import 'package:record/record.dart';
 
 import '../l10n/app_localizations.dart';

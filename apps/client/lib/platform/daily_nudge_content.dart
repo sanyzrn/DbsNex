@@ -352,7 +352,7 @@ abstract final class NexDailyNudgeContent {
       'secret': secret,
       'generatedAt': now.millisecondsSinceEpoch,
       'zone': now.timeZoneOffset.inMinutes,
-      'channelName': persian ? 'یادآوری روزانه' : 'Daily nudge',
+      'channelName': (persian ? NexChannelText.fa : NexChannelText.en).daily,
       'days': days,
       'fallback': source.hasData
           ? (persian ? quietFa : quietEn)

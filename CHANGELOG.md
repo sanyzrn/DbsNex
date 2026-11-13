@@ -7,6 +7,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 ## v2.6.26
 
 - **Ready for Android 16.** Nex now targets the latest Android. On a tablet or an unfolded foldable it turns with the device instead of staying upright, with the notes kept to a comfortable reading width in landscape; photos taken there are saved the way you held the device. Phones stay in portrait as before.
+- **A pasted address becomes a link.** Paste a web address into an empty note with the paste button and the note turns into a link, saved with the page's title and summary instead of as a line of text. Tap Note to keep it as plain text.
+- **One name for the daily nudge.** Settings, its sound and Android's notification settings now all call it the same thing, in both languages; Android's list no longer switches between two names.
 
 ## v2.6.25
 
