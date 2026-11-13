@@ -5,6 +5,7 @@ import '../widgets/feature_label.dart';
 import 'minimal_theme.dart';
 
 part 'theme_preset_ramps.dart';
+part 'theme_preset_ramps_bold.dart';
 
 /// The whole-app palettes — the Theme Atelier.
 ///
