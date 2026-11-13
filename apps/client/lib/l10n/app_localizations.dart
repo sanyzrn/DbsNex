@@ -830,12 +830,6 @@ abstract class AppLocalizations {
   /// **'Home screen widget'**
   String get widgetSettingsTitle;
 
-  /// Settings row subtitle for the widget screen
-  ///
-  /// In en, this message translates to:
-  /// **'What the widget shows'**
-  String get widgetSettingsSubtitle;
-
   /// Explains what the widget settings do
   ///
   /// In en, this message translates to:
@@ -1238,12 +1232,6 @@ abstract class AppLocalizations {
   /// **'Nothing close either.'**
   String get nothingClose;
 
-  /// No description provided for @semanticMatches.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing shares those words, but these are about the same thing:'**
-  String get semanticMatches;
-
   /// No description provided for @emptyPromise.
   ///
   /// In en, this message translates to:
@@ -1454,12 +1442,6 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get language;
 
-  /// No description provided for @accessibility.
-  ///
-  /// In en, this message translates to:
-  /// **'Accessibility'**
-  String get accessibility;
-
   /// No description provided for @haptics.
   ///
   /// In en, this message translates to:
@@ -1603,66 +1585,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Frosted floating controls, menus and sheets. Your theme and note readability stay intact.'**
   String get liquidGlassSubtitle;
-
-  /// No description provided for @backgroundStyle.
-  ///
-  /// In en, this message translates to:
-  /// **'Background'**
-  String get backgroundStyle;
-
-  /// No description provided for @backgroundStyleSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Minimal built-in patterns tuned for both light and dark themes'**
-  String get backgroundStyleSubtitle;
-
-  /// No description provided for @backgroundPlain.
-  ///
-  /// In en, this message translates to:
-  /// **'Plain'**
-  String get backgroundPlain;
-
-  /// No description provided for @backgroundAurora.
-  ///
-  /// In en, this message translates to:
-  /// **'Aurora'**
-  String get backgroundAurora;
-
-  /// No description provided for @backgroundRipple.
-  ///
-  /// In en, this message translates to:
-  /// **'Ripple'**
-  String get backgroundRipple;
-
-  /// No description provided for @backgroundWeave.
-  ///
-  /// In en, this message translates to:
-  /// **'Weave'**
-  String get backgroundWeave;
-
-  /// Background preset: a sparse dot grid
-  ///
-  /// In en, this message translates to:
-  /// **'Dots'**
-  String get backgroundDots;
-
-  /// Background preset: one accent wash rising off the bottom edge
-  ///
-  /// In en, this message translates to:
-  /// **'Dusk'**
-  String get backgroundDusk;
-
-  /// Background preset: contour lines
-  ///
-  /// In en, this message translates to:
-  /// **'Topography'**
-  String get backgroundTopography;
-
-  /// Background preset: wide diagonal bands of colour
-  ///
-  /// In en, this message translates to:
-  /// **'Prism'**
-  String get backgroundPrism;
 
   /// Settings row that opens the accent-colour picker
   ///
@@ -1886,12 +1808,6 @@ abstract class AppLocalizations {
   /// **'Sync now'**
   String get syncNow;
 
-  /// No description provided for @syncComplete.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync complete'**
-  String get syncComplete;
-
   /// No description provided for @export.
   ///
   /// In en, this message translates to:
@@ -2017,12 +1933,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nex {version} is here. This is what changed.'**
   String whatsNewSubtitle(String version);
-
-  /// No description provided for @whatsNewDone.
-  ///
-  /// In en, this message translates to:
-  /// **'Got it'**
-  String get whatsNewDone;
 
   /// No description provided for @shareSaved.
   ///
@@ -2198,12 +2108,6 @@ abstract class AppLocalizations {
   /// **'Caption'**
   String get caption;
 
-  /// Placeholder in the caption field
-  ///
-  /// In en, this message translates to:
-  /// **'Optional description…'**
-  String get captionHint;
-
   /// Button shown when a media note has no caption yet
   ///
   /// In en, this message translates to:
@@ -2372,12 +2276,6 @@ abstract class AppLocalizations {
   /// **'Summarize'**
   String get summarize;
 
-  /// Heading above dismissible AI tag suggestions
-  ///
-  /// In en, this message translates to:
-  /// **'Suggested tags'**
-  String get suggestedTags;
-
   /// Dismisses the tag suggestions
   ///
   /// In en, this message translates to:
@@ -2396,23 +2294,11 @@ abstract class AppLocalizations {
   /// **'Use Transcribe audio in More to make this recording searchable.'**
   String get voiceSearchHint;
 
-  /// Voice note header in the detail sheet
-  ///
-  /// In en, this message translates to:
-  /// **'Voice · {seconds}s'**
-  String voiceDuration(int seconds);
-
   /// Hint under a photo in the detail sheet
   ///
   /// In en, this message translates to:
   /// **'Tap the image to view it full screen'**
   String get tapToExpand;
-
-  /// Subtitle of a related-note row
-  ///
-  /// In en, this message translates to:
-  /// **'Similarity {score}'**
-  String similarity(String score);
 
   /// Toast after copying a note's text
   ///
@@ -2732,12 +2618,6 @@ abstract class AppLocalizations {
   /// **'Delete permanently'**
   String get deleteForever;
 
-  /// Confirmation body for a permanent delete
-  ///
-  /// In en, this message translates to:
-  /// **'This note will be gone for good. It cannot be undone.'**
-  String get deleteForeverBody;
-
   /// Hard-deletes every trashed note
   ///
   /// In en, this message translates to:
@@ -2755,12 +2635,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No app on this device can open this file.'**
   String get cannotOpen;
-
-  /// About screen row linking to the repository
-  ///
-  /// In en, this message translates to:
-  /// **'Source code'**
-  String get sourceCode;
 
   /// About screen row opening the feedback sheet
   ///
@@ -2918,12 +2792,6 @@ abstract class AppLocalizations {
   /// **'Android will ask you to confirm the install. Your notes are not touched.'**
   String get updateInstallNotice;
 
-  /// Shown when the installer download fails for any reason
-  ///
-  /// In en, this message translates to:
-  /// **'The download did not finish. Check your connection and try again.'**
-  String get updateDownloadFailed;
-
   /// Shown when the device runs out of storage mid-download
   ///
   /// In en, this message translates to:
@@ -2954,24 +2822,6 @@ abstract class AppLocalizations {
   /// **'Version {version} is available'**
   String updateAvailable(String version);
 
-  /// Heading above the inline changelog panel on the update sheet, shown regardless of update status
-  ///
-  /// In en, this message translates to:
-  /// **'Changelog'**
-  String get changelogTitle;
-
-  /// Heading above the current (not-yet-numbered) section of the changelog panel
-  ///
-  /// In en, this message translates to:
-  /// **'Latest changes'**
-  String get changelogLatestHeading;
-
-  /// Heading above one past release's notes in the changelog panel
-  ///
-  /// In en, this message translates to:
-  /// **'Version {version}'**
-  String changelogVersionHeading(String version);
-
   /// Changelog panel when the bundled CHANGELOG.md has nothing to show
   ///
   /// In en, this message translates to:
@@ -3001,12 +2851,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your name'**
   String get yourName;
-
-  /// Reassurance under the name row
-  ///
-  /// In en, this message translates to:
-  /// **'Only used to greet you, only on this device.'**
-  String get yourNameHint;
 
   /// Placeholder in the name field
   ///
@@ -3194,36 +3038,6 @@ abstract class AppLocalizations {
   /// **'Backup & restore'**
   String get exportTitle;
 
-  /// Says what an export actually contains
-  ///
-  /// In en, this message translates to:
-  /// **'Exports notes, tags and attachments as JSON and Markdown in a ZIP. To preserve reminders, commitments and assistant memory too, share a library backup below.'**
-  String get exportExplained;
-
-  /// Button that builds the archive and opens the share sheet
-  ///
-  /// In en, this message translates to:
-  /// **'Export and share'**
-  String get exportAndShare;
-
-  /// Reads an export archive back in
-  ///
-  /// In en, this message translates to:
-  /// **'Import'**
-  String get importTitle;
-
-  /// Says that import is additive and safe to repeat
-  ///
-  /// In en, this message translates to:
-  /// **'Reads a Nex export back into this library. Notes already here are left untouched, so importing the same file twice changes nothing.'**
-  String get importExplained;
-
-  /// Opens the file picker for import
-  ///
-  /// In en, this message translates to:
-  /// **'Choose a file'**
-  String get chooseFile;
-
   /// Result of an import
   ///
   /// In en, this message translates to:
@@ -3236,18 +3050,6 @@ abstract class AppLocalizations {
   /// **'That file could not be read as a Nex export. Your notes were not changed.'**
   String get importFailed;
 
-  /// Heading above the local backup list
-  ///
-  /// In en, this message translates to:
-  /// **'Backups on this device'**
-  String get localBackupsTitle;
-
-  /// Says what local backups are and are not for
-  ///
-  /// In en, this message translates to:
-  /// **'Nex backs up the library on this device. Local copies share unchanged media to save space; the listed size excludes shared files. Use Share beside a backup to keep a complete copy elsewhere, safe from losing the device.'**
-  String get localBackupsExplained;
-
   /// Takes a backup outside the daily schedule
   ///
   /// In en, this message translates to:
@@ -3259,42 +3061,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Backed up'**
   String get backupDone;
-
-  /// Explains why Sync now does nothing
-  ///
-  /// In en, this message translates to:
-  /// **'No server is set up. Sync is optional — Nex works entirely offline without it.'**
-  String get syncNotConfigured;
-
-  /// Row that holds the sync endpoint
-  ///
-  /// In en, this message translates to:
-  /// **'Sync server'**
-  String get syncServer;
-
-  /// Placeholder in the sync endpoint field
-  ///
-  /// In en, this message translates to:
-  /// **'https://…'**
-  String get syncServerHint;
-
-  /// Row that holds the sync bearer token
-  ///
-  /// In en, this message translates to:
-  /// **'Device token'**
-  String get syncToken;
-
-  /// Reveals the intelligence panel when nothing is derived yet
-  ///
-  /// In en, this message translates to:
-  /// **'See what Nex made of this'**
-  String get aiShow;
-
-  /// Reveals the intelligence panel, naming what it holds
-  ///
-  /// In en, this message translates to:
-  /// **'{what} ready'**
-  String aiReady(String what);
 
   /// Heading of the revealed intelligence panel
   ///
@@ -3740,35 +3506,11 @@ abstract class AppLocalizations {
   /// **'Chat'**
   String get chat;
 
-  /// Settings row subtitle for Chat
-  ///
-  /// In en, this message translates to:
-  /// **'Ask Nex\'s built-in assistant'**
-  String get chatSubtitle;
-
   /// Shown when no ChatAdapter is bound (Phase 1)
   ///
   /// In en, this message translates to:
   /// **'Local chat isn\'t available on this build yet.'**
   String get chatUnavailable;
-
-  /// Shown above the message field before the first message
-  ///
-  /// In en, this message translates to:
-  /// **'Ask anything — Nex answers on this device, with no internet needed.'**
-  String get chatEmptyHint;
-
-  /// Chat text field placeholder
-  ///
-  /// In en, this message translates to:
-  /// **'Message…'**
-  String get chatInputHint;
-
-  /// Send button tooltip
-  ///
-  /// In en, this message translates to:
-  /// **'Send'**
-  String get chatSendTooltip;
 
   /// Capability explanation
   ///
@@ -3818,12 +3560,6 @@ abstract class AppLocalizations {
   /// **'Recap'**
   String get aiDaySummaryTitle;
 
-  /// Small badge beside the smart summary's title when a model writes it
-  ///
-  /// In en, this message translates to:
-  /// **'AI'**
-  String get aiDaySummaryBadge;
-
   /// Screen-reader description of the AI badge on the smart summary
   ///
   /// In en, this message translates to:
@@ -3841,12 +3577,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nothing to sum up yet.'**
   String get aiDaySummaryEmpty;
-
-  /// Tooltip on the day summary card's refresh button
-  ///
-  /// In en, this message translates to:
-  /// **'Write a new summary'**
-  String get aiDaySummaryRefresh;
 
   /// Tooltip on the day summary card's chevron while the card is open
   ///
@@ -3871,12 +3601,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI output language'**
   String get aiOutputLanguage;
-
-  /// Explanation under the AI output language setting
-  ///
-  /// In en, this message translates to:
-  /// **'The language summaries and suggestions come back in'**
-  String get aiOutputLanguageSubtitle;
 
   /// AI output language option: follow whatever language the note is written in
   ///
@@ -4184,12 +3908,6 @@ abstract class AppLocalizations {
   /// **'On-device model'**
   String get localModelTitle;
 
-  /// Settings row subtitle for the local model
-  ///
-  /// In en, this message translates to:
-  /// **'Chat with no internet, once the model is downloaded'**
-  String get localModelSubtitle;
-
   /// What the on-device model is
   ///
   /// In en, this message translates to:
@@ -4388,53 +4106,11 @@ abstract class AppLocalizations {
   /// **'Your name, theme, language, backups, and the AI provider that writes your summaries.'**
   String get tourSettingsBody;
 
-  /// Tour step about gestures on a note card
-  ///
-  /// In en, this message translates to:
-  /// **'One more thing'**
-  String get tourCardsTitle;
-
-  /// Tour step body about gestures on a note card
-  ///
-  /// In en, this message translates to:
-  /// **'Swipe a note from either edge for its quick actions. Each edge is yours to set in Settings.'**
-  String get tourCardsBody;
-
-  /// No description provided for @translateSwap.
-  ///
-  /// In en, this message translates to:
-  /// **'Translate the other way'**
-  String get translateSwap;
-
-  /// No description provided for @translateAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Translate again'**
-  String get translateAgain;
-
   /// Note action that translates the note's text
   ///
   /// In en, this message translates to:
   /// **'Translate'**
   String get translate;
-
-  /// Label above the target-language picker
-  ///
-  /// In en, this message translates to:
-  /// **'Into'**
-  String get translateTo;
-
-  /// Shown while a translation is in flight
-  ///
-  /// In en, this message translates to:
-  /// **'Translating…'**
-  String get translateWorking;
-
-  /// Shown when a translation request failed or returned nothing
-  ///
-  /// In en, this message translates to:
-  /// **'The translation did not come back.'**
-  String get translateFailed;
 
   /// Button that saves the translation as a new note
   ///
@@ -4676,12 +4352,6 @@ abstract class AppLocalizations {
   /// **'Off, it will answer anything — including things it is bad at.'**
   String get assistantScopeSubtitle;
 
-  /// Free-text standing instruction for the assistant
-  ///
-  /// In en, this message translates to:
-  /// **'How it should answer'**
-  String get assistantInstruction;
-
   /// Placeholder example for the assistant instruction field
   ///
   /// In en, this message translates to:
@@ -4868,12 +4538,6 @@ abstract class AppLocalizations {
   /// **'Recurring'**
   String get commitmentsTitle;
 
-  /// Settings row subtitle
-  ///
-  /// In en, this message translates to:
-  /// **'Bills, renewals, medication — things that come back round'**
-  String get commitmentsSubtitle;
-
   /// Empty state
   ///
   /// In en, this message translates to:
@@ -4897,12 +4561,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this recurring item?'**
   String get commitmentDeleteTitle;
-
-  /// Mark-met button
-  ///
-  /// In en, this message translates to:
-  /// **'Done — roll it forward'**
-  String get commitmentMarkMet;
 
   /// Paused state
   ///
@@ -5065,12 +4723,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 day} other{{count} days}}'**
   String spanDays(int count);
-
-  /// A span in months
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 month} other{{count} months}}'**
-  String spanMonths(int count);
 
   /// Confirmation for an assistant-proposed settings change
   ///
@@ -6254,24 +5906,6 @@ abstract class AppLocalizations {
   /// **'Your daily reminder'**
   String get cycleNotifyPill;
 
-  /// No description provided for @settingsFeatures.
-  ///
-  /// In en, this message translates to:
-  /// **'Sections'**
-  String get settingsFeatures;
-
-  /// No description provided for @cycleShow.
-  ///
-  /// In en, this message translates to:
-  /// **'Show Cycle'**
-  String get cycleShow;
-
-  /// No description provided for @cycleShowSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'The menstrual cycle assistant in Tools'**
-  String get cycleShowSubtitle;
-
   /// No description provided for @cycleTurnOffTitle.
   ///
   /// In en, this message translates to:
@@ -6854,12 +6488,6 @@ abstract class AppLocalizations {
   /// **'Time'**
   String get nudgeTime;
 
-  /// Settings section for notifications
-  ///
-  /// In en, this message translates to:
-  /// **'Notifications'**
-  String get notifications;
-
   /// Notification title before noon
   ///
   /// In en, this message translates to:
@@ -6878,41 +6506,11 @@ abstract class AppLocalizations {
   /// **'Nex'**
   String get nudgeGreetingPlain;
 
-  /// Notification body when there is no recap
-  ///
-  /// In en, this message translates to:
-  /// **'A clear page. Nex is here when something comes up.'**
-  String get nudgeNothing;
-
   /// Plain-language gloss under the model's verbatim licence notice
   ///
   /// In en, this message translates to:
   /// **'In short: the model belongs to its maker, it comes with its own terms, and downloading it means accepting them.'**
   String get localModelLicenseGloss;
-
-  /// Settings row that posts a test notification
-  ///
-  /// In en, this message translates to:
-  /// **'Send a test notification'**
-  String get notificationTest;
-
-  /// Explains what the test does
-  ///
-  /// In en, this message translates to:
-  /// **'One now, and one in ten seconds'**
-  String get notificationTestHint;
-
-  /// Confirms the test notifications were posted
-  ///
-  /// In en, this message translates to:
-  /// **'Sent — one now, one in ten seconds'**
-  String get notificationTestSent;
-
-  /// The test notification failed, with the system's own message
-  ///
-  /// In en, this message translates to:
-  /// **'Could not send it — {error}'**
-  String notificationTestFailed(String error);
 
   /// Reminder countdown on a card, minutes
   ///
@@ -6961,12 +6559,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set for {when}'**
   String remindCurrent(String when);
-
-  /// Title of the picker when a reminder already exists
-  ///
-  /// In en, this message translates to:
-  /// **'Change reminder'**
-  String get remindChange;
 
   /// Hint under the no-op swipe action
   ///
@@ -7670,12 +7262,6 @@ abstract class AppLocalizations {
   /// **'That time was saved on the note, but this phone would not take the alarm.'**
   String get remindNotScheduled;
 
-  /// Confirmation after setting a reminder
-  ///
-  /// In en, this message translates to:
-  /// **'Reminder set'**
-  String get remindSet;
-
   /// Shown when notification permission is refused
   ///
   /// In en, this message translates to:
@@ -7735,12 +7321,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No summary came back for this note.'**
   String get summarizeFailed;
-
-  /// No description provided for @fullBackupExplained.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose a .nexbak library backup to restore notes, media, reminders, commitments and assistant memory. App preferences, profile and downloaded AI models are not included.'**
-  String get fullBackupExplained;
 
   /// No description provided for @unsavedChanges.
   ///
@@ -7837,12 +7417,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tools'**
   String get toolsTitle;
-
-  /// No description provided for @toolsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Your essentials, in their own space.'**
-  String get toolsSubtitle;
 
   /// No description provided for @toolsPrivateHint.
   ///
@@ -7945,12 +7519,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add bank card'**
   String get vaultAddCard;
-
-  /// No description provided for @vaultAll.
-  ///
-  /// In en, this message translates to:
-  /// **'All items'**
-  String get vaultAll;
 
   /// No description provided for @vaultFavorites.
   ///
@@ -8114,12 +7682,6 @@ abstract class AppLocalizations {
   /// **'Include symbols'**
   String get vaultSymbols;
 
-  /// No description provided for @vaultUseGenerated.
-  ///
-  /// In en, this message translates to:
-  /// **'Use this password'**
-  String get vaultUseGenerated;
-
   /// No description provided for @vaultLength.
   ///
   /// In en, this message translates to:
@@ -8137,12 +7699,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save securely'**
   String get vaultSave;
-
-  /// No description provided for @vaultSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved securely'**
-  String get vaultSaved;
 
   /// No description provided for @vaultDiscard.
   ///
@@ -8275,12 +7831,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 note} other{{count} notes}}'**
   String threadNoteCount(int count);
-
-  /// No description provided for @threadAddTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Threads'**
-  String get threadAddTo;
 
   /// No description provided for @threadEmpty.
   ///
@@ -9236,12 +8786,6 @@ abstract class AppLocalizations {
   /// **'End the session'**
   String get pauseEnd;
 
-  /// No description provided for @planPauseTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Pause'**
-  String get planPauseTitle;
-
   /// No description provided for @planPauseAbout.
   ///
   /// In en, this message translates to:
@@ -9265,24 +8809,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Image description & text'**
   String get aiImageResult;
-
-  /// No description provided for @aiMediaWorking.
-  ///
-  /// In en, this message translates to:
-  /// **'Reading media…'**
-  String get aiMediaWorking;
-
-  /// No description provided for @aiMediaFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not read this media. Your previous result is unchanged; try again.'**
-  String get aiMediaFailed;
-
-  /// No description provided for @aiMediaEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No speech or readable content was found.'**
-  String get aiMediaEmpty;
 
   /// No description provided for @aiAddToCaption.
   ///
@@ -9320,24 +8846,6 @@ abstract class AppLocalizations {
   /// **'Could not add this text to the caption.'**
   String get aiCaptionFailed;
 
-  /// No description provided for @aiTranslateTranscript.
-  ///
-  /// In en, this message translates to:
-  /// **'Translate transcript'**
-  String get aiTranslateTranscript;
-
-  /// No description provided for @aiSummarizeTranscript.
-  ///
-  /// In en, this message translates to:
-  /// **'Summarize transcript'**
-  String get aiSummarizeTranscript;
-
-  /// No description provided for @aiSummarizeImageText.
-  ///
-  /// In en, this message translates to:
-  /// **'Summarize image text'**
-  String get aiSummarizeImageText;
-
   /// No description provided for @aiReplaceCaption.
   ///
   /// In en, this message translates to:
@@ -9361,12 +8869,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Working…'**
   String get aiProcessing;
-
-  /// No description provided for @aiResultReady.
-  ///
-  /// In en, this message translates to:
-  /// **'Result ready'**
-  String get aiResultReady;
 
   /// No description provided for @aiNoResult.
   ///
@@ -9409,12 +8911,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show results'**
   String get aiShowResults;
-
-  /// No description provided for @aiSwitchResult.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch result'**
-  String get aiSwitchResult;
 
   /// No description provided for @aiExtractedText.
   ///
@@ -10046,12 +9542,6 @@ abstract class AppLocalizations {
   /// **'Back {when}'**
   String setAsideBackOn(String when);
 
-  /// No description provided for @setAsideUntilFurther.
-  ///
-  /// In en, this message translates to:
-  /// **'Until you bring it back'**
-  String get setAsideUntilFurther;
-
   /// No description provided for @setAsideMark.
   ///
   /// In en, this message translates to:
@@ -10507,6 +9997,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Missing files: {count}'**
   String rescueBackupMissing(int count);
+
+  /// A span in months
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month} other{{count} months}}'**
+  String spanMonths(int count);
 }
 
 class _AppLocalizationsDelegate

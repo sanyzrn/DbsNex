@@ -164,10 +164,6 @@
   "@widgetSettingsTitle": {
       "description": "Title of the widget settings screen and its row in Settings"
   },
-  "widgetSettingsSubtitle": "What the widget shows",
-  "@widgetSettingsSubtitle": {
-      "description": "Settings row subtitle for the widget screen"
-  },
   "widgetSettingsIntro": "By default the widget shows the top of your timeline. These narrow it down.",
   "@widgetSettingsIntro": {
       "description": "Explains what the widget settings do"
@@ -356,7 +352,6 @@
   },
   "closestThing": "The closest thing you wrote:",
   "nothingClose": "Nothing close either.",
-  "semanticMatches": "Nothing shares those words, but these are about the same thing:",
   "emptyPromise": "Anything you put here is kept.",
   "emptySupport": "Nothing else is asked.",
   "emptyType": "type",
@@ -427,7 +422,6 @@
   "recentlyDeletedEmpty": "Nothing recently deleted.",
   "appearance": "Appearance",
   "language": "Language",
-  "accessibility": "Accessibility",
   "haptics": "Capture haptics",
   "intelligence": "Intelligence",
   "about": "About Nex",
@@ -462,28 +456,6 @@
   "comfortMode": "Comfort Mode",
   "liquidGlass": "Liquid glass",
   "liquidGlassSubtitle": "Frosted floating controls, menus and sheets. Your theme and note readability stay intact.",
-  "backgroundStyle": "Background",
-  "backgroundStyleSubtitle": "Minimal built-in patterns tuned for both light and dark themes",
-  "backgroundPlain": "Plain",
-  "backgroundAurora": "Aurora",
-  "backgroundRipple": "Ripple",
-  "backgroundWeave": "Weave",
-  "backgroundDots": "Dots",
-  "@backgroundDots": {
-    "description": "Background preset: a sparse dot grid"
-  },
-  "backgroundDusk": "Dusk",
-  "@backgroundDusk": {
-    "description": "Background preset: one accent wash rising off the bottom edge"
-  },
-  "backgroundTopography": "Topography",
-  "@backgroundTopography": {
-    "description": "Background preset: contour lines"
-  },
-  "backgroundPrism": "Prism",
-  "@backgroundPrism": {
-    "description": "Background preset: wide diagonal bands of colour"
-  },
   "accentColorSetting": "Accent color",
   "@accentColorSetting": {
     "description": "Settings row that opens the accent-colour picker"
@@ -537,7 +509,6 @@
   "relatedNotes": "Related notes",
   "sync": "Sync",
   "syncNow": "Sync now",
-  "syncComplete": "Sync complete",
   "export": "Export",
   "exportedTo": "Exported to {path}",
   "@exportedTo": {
@@ -587,7 +558,6 @@
   "whatsNewTitle": "What’s new",
   "whatsNewSubtitle": "Nex {version} is here. This is what changed.",
   "@whatsNewSubtitle": {"placeholders": {"version": {"type": "String"}}},
-  "whatsNewDone": "Got it",
   "@recapRefreshFailed": {
     "description": "Banner when re-generating the daily recap fails; the old text stays on screen"
   },
@@ -710,10 +680,6 @@
   "@caption": {
     "description": "Caption section heading in the detail sheet"
   },
-  "captionHint": "Optional description…",
-  "@captionHint": {
-    "description": "Placeholder in the caption field"
-  },
   "addCaption": "Add caption",
   "@addCaption": {
     "description": "Button shown when a media note has no caption yet"
@@ -788,10 +754,6 @@
   "@summarize": {
     "description": "Detail sheet action that requests an on-demand summary"
   },
-  "suggestedTags": "Suggested tags",
-  "@suggestedTags": {
-    "description": "Heading above dismissible AI tag suggestions"
-  },
   "dismiss": "Dismiss",
   "@dismiss": {
     "description": "Dismisses the tag suggestions"
@@ -804,27 +766,9 @@
   "@voiceSearchHint": {
     "description": "FR-4.6 — voice notes are not keyword-searchable in v1"
   },
-  "voiceDuration": "Voice · {seconds}s",
-  "@voiceDuration": {
-    "description": "Voice note header in the detail sheet",
-    "placeholders": {
-      "seconds": {
-        "type": "int", "format": "decimalPattern"
-      }
-    }
-  },
   "tapToExpand": "Tap the image to view it full screen",
   "@tapToExpand": {
     "description": "Hint under a photo in the detail sheet"
-  },
-  "similarity": "Similarity {score}",
-  "@similarity": {
-    "description": "Subtitle of a related-note row",
-    "placeholders": {
-      "score": {
-        "type": "String"
-      }
-    }
   },
   "copied": "Copied",
   "@copied": {
@@ -1013,10 +957,6 @@
   "@deleteForever": {
     "description": "Hard-deletes one trashed note"
   },
-  "deleteForeverBody": "This note will be gone for good. It cannot be undone.",
-  "@deleteForeverBody": {
-    "description": "Confirmation body for a permanent delete"
-  },
   "emptyTrash": "Empty trash",
   "@emptyTrash": {
     "description": "Hard-deletes every trashed note"
@@ -1028,10 +968,6 @@
   "cannotOpen": "No app on this device can open this file.",
   "@cannotOpen": {
     "description": "Shown when the OS has no handler for the file"
-  },
-  "sourceCode": "Source code",
-  "@sourceCode": {
-    "description": "About screen row linking to the repository"
   },
   "sendFeedback": "Send feedback",
   "@sendFeedback": {
@@ -1135,10 +1071,6 @@
   "@updateInstallNotice": {
     "description": "Sets expectations before the system installer appears"
   },
-  "updateDownloadFailed": "The download did not finish. Check your connection and try again.",
-  "@updateDownloadFailed": {
-    "description": "Shown when the installer download fails for any reason"
-  },
   "updateNoSpace": "There is not enough free space to download the update.",
   "@updateNoSpace": {
     "description": "Shown when the device runs out of storage mid-download"
@@ -1169,23 +1101,6 @@
       }
     }
   },
-  "changelogTitle": "Changelog",
-  "@changelogTitle": {
-    "description": "Heading above the inline changelog panel on the update sheet, shown regardless of update status"
-  },
-  "changelogLatestHeading": "Latest changes",
-  "@changelogLatestHeading": {
-    "description": "Heading above the current (not-yet-numbered) section of the changelog panel"
-  },
-  "changelogVersionHeading": "Version {version}",
-  "@changelogVersionHeading": {
-    "description": "Heading above one past release's notes in the changelog panel",
-    "placeholders": {
-      "version": {
-        "type": "String"
-      }
-    }
-  },
   "changelogEmpty": "Changelog unavailable.",
   "@changelogEmpty": {
     "description": "Changelog panel when the bundled CHANGELOG.md has nothing to show"
@@ -1205,10 +1120,6 @@
   "yourName": "Your name",
   "@yourName": {
     "description": "Settings row that stores the name the app greets you by"
-  },
-  "yourNameHint": "Only used to greet you, only on this device.",
-  "@yourNameHint": {
-    "description": "Reassurance under the name row"
   },
   "yourNamePlaceholder": "Leave empty for no greeting",
   "@yourNamePlaceholder": {
@@ -1301,26 +1212,6 @@
   "@exportTitle": {
     "description": "Heading above export and import"
   },
-  "exportExplained": "Exports notes, tags and attachments as JSON and Markdown in a ZIP. To preserve reminders, commitments and assistant memory too, share a library backup below.",
-  "@exportExplained": {
-    "description": "Says what an export actually contains"
-  },
-  "exportAndShare": "Export and share",
-  "@exportAndShare": {
-    "description": "Button that builds the archive and opens the share sheet"
-  },
-  "importTitle": "Import",
-  "@importTitle": {
-    "description": "Reads an export archive back in"
-  },
-  "importExplained": "Reads a Nex export back into this library. Notes already here are left untouched, so importing the same file twice changes nothing.",
-  "@importExplained": {
-    "description": "Says that import is additive and safe to repeat"
-  },
-  "chooseFile": "Choose a file",
-  "@chooseFile": {
-    "description": "Opens the file picker for import"
-  },
   "importDone": "{added, plural, =0{Nothing new to add} =1{1 note added} other{{added} notes added}} · {skipped, plural, =0{} =1{1 already here} other{{skipped} already here}}",
   "@importDone": {
     "description": "Result of an import",
@@ -1333,14 +1224,6 @@
   "@importFailed": {
     "description": "Import error"
   },
-  "localBackupsTitle": "Backups on this device",
-  "@localBackupsTitle": {
-    "description": "Heading above the local backup list"
-  },
-  "localBackupsExplained": "Nex backs up the library on this device. Local copies share unchanged media to save space; the listed size excludes shared files. Use Share beside a backup to keep a complete copy elsewhere, safe from losing the device.",
-  "@localBackupsExplained": {
-    "description": "Says what local backups are and are not for"
-  },
   "backupNow": "Back up now",
   "@backupNow": {
     "description": "Takes a backup outside the daily schedule"
@@ -1348,31 +1231,6 @@
   "backupDone": "Backed up",
   "@backupDone": {
     "description": "Confirmation after a manual backup"
-  },
-  "syncNotConfigured": "No server is set up. Sync is optional — Nex works entirely offline without it.",
-  "@syncNotConfigured": {
-    "description": "Explains why Sync now does nothing"
-  },
-  "syncServer": "Sync server",
-  "@syncServer": {
-    "description": "Row that holds the sync endpoint"
-  },
-  "syncServerHint": "https://…",
-  "@syncServerHint": {
-    "description": "Placeholder in the sync endpoint field"
-  },
-  "syncToken": "Device token",
-  "@syncToken": {
-    "description": "Row that holds the sync bearer token"
-  },
-  "aiShow": "See what Nex made of this",
-  "@aiShow": {
-    "description": "Reveals the intelligence panel when nothing is derived yet"
-  },
-  "aiReady": "{what} ready",
-  "@aiReady": {
-    "description": "Reveals the intelligence panel, naming what it holds",
-    "placeholders": { "what": { "type": "String" } }
   },
   "aiSection": "Nex AI",
   "@aiSection": {
@@ -1667,25 +1525,9 @@
   "@chat": {
     "description": "Chat screen title and its Settings row title"
   },
-  "chatSubtitle": "Ask Nex's built-in assistant",
-  "@chatSubtitle": {
-    "description": "Settings row subtitle for Chat"
-  },
   "chatUnavailable": "Local chat isn't available on this build yet.",
   "@chatUnavailable": {
     "description": "Shown when no ChatAdapter is bound (Phase 1)"
-  },
-  "chatEmptyHint": "Ask anything — Nex answers on this device, with no internet needed.",
-  "@chatEmptyHint": {
-    "description": "Shown above the message field before the first message"
-  },
-  "chatInputHint": "Message…",
-  "@chatInputHint": {
-    "description": "Chat text field placeholder"
-  },
-  "chatSendTooltip": "Send",
-  "@chatSendTooltip": {
-    "description": "Send button tooltip"
   },
   "transcriptionSubtitle": "Turn audio into searchable text when you ask",
   "@transcriptionSubtitle": {
@@ -1719,10 +1561,6 @@
   "@aiDaySummaryTitle": {
     "description": "Header of the AI day summary card on the timeline"
   },
-  "aiDaySummaryBadge": "AI",
-  "@aiDaySummaryBadge": {
-    "description": "Small badge beside the smart summary's title when a model writes it"
-  },
   "aiDaySummaryByModel": "Written by AI from your notes",
   "@aiDaySummaryByModel": {
     "description": "Screen-reader description of the AI badge on the smart summary"
@@ -1734,10 +1572,6 @@
   "aiDaySummaryEmpty": "Nothing to sum up yet.",
   "@aiDaySummaryEmpty": {
     "description": "Shown in the day summary card when no summary could be generated"
-  },
-  "aiDaySummaryRefresh": "Write a new summary",
-  "@aiDaySummaryRefresh": {
-    "description": "Tooltip on the day summary card's refresh button"
   },
   "aiDaySummaryCollapse": "Hide the summary",
   "@aiDaySummaryCollapse": {
@@ -1754,10 +1588,6 @@
   "aiOutputLanguage": "AI output language",
   "@aiOutputLanguage": {
     "description": "Settings row choosing which language the AI writes in"
-  },
-  "aiOutputLanguageSubtitle": "The language summaries and suggestions come back in",
-  "@aiOutputLanguageSubtitle": {
-    "description": "Explanation under the AI output language setting"
   },
   "aiOutputLanguageAuto": "Match my notes",
   "@aiOutputLanguageAuto": {
@@ -1914,8 +1744,6 @@
   "@localModelLoadFailedDetail": {"description": "Label above the verbatim runtime error"},
   "localModelTitle": "On-device model",
   "@localModelTitle": {"description": "Screen for downloading the local AI model"},
-  "localModelSubtitle": "Chat with no internet, once the model is downloaded",
-  "@localModelSubtitle": {"description": "Settings row subtitle for the local model"},
   "localModelExplained": "Nex can run a language model on this phone, so chat works with no internet and nothing you type leaves the device. It is a large download and it stays on your phone until you remove it.",
   "@localModelExplained": {"description": "What the on-device model is"},
   "localModelQualityCaveat": "A model on the phone is small, and it never reaches the quality of a cloud model: it does well with simple requests, but with complex questions or many notes it can get things wrong or leave things out.",
@@ -1994,27 +1822,9 @@
   "@tourSettingsTitle": {"description": "Tour step pointing at the settings button"},
   "tourSettingsBody": "Your name, theme, language, backups, and the AI provider that writes your summaries.",
   "@tourSettingsBody": {"description": "Tour step body for the settings button"},
-  "tourCardsTitle": "One more thing",
-  "@tourCardsTitle": {"description": "Tour step about gestures on a note card"},
-  "tourCardsBody": "Swipe a note from either edge for its quick actions. Each edge is yours to set in Settings.",
-  "@tourCardsBody": {"description": "Tour step body about gestures on a note card"},
-  "translateSwap": "Translate the other way",
-  "translateAgain": "Translate again",
   "translate": "Translate",
   "@translate": {
     "description": "Note action that translates the note's text"
-  },
-  "translateTo": "Into",
-  "@translateTo": {
-    "description": "Label above the target-language picker"
-  },
-  "translateWorking": "Translating…",
-  "@translateWorking": {
-    "description": "Shown while a translation is in flight"
-  },
-  "translateFailed": "The translation did not come back.",
-  "@translateFailed": {
-    "description": "Shown when a translation request failed or returned nothing"
   },
   "translateSaveAsNote": "Keep as a note",
   "@translateSaveAsNote": {
@@ -2174,10 +1984,6 @@
   "@assistantScopeSubtitle": {
     "description": "Explains the notes-only switch"
   },
-  "assistantInstruction": "How it should answer",
-  "@assistantInstruction": {
-    "description": "Free-text standing instruction for the assistant"
-  },
   "assistantInstructionHint": "Answer with a bit of humour",
   "@assistantInstructionHint": {
     "description": "Placeholder example for the assistant instruction field"
@@ -2303,8 +2109,6 @@
   },
   "commitmentsTitle": "Recurring",
   "@commitmentsTitle": {"description": "Title of the recurring-obligations screen"},
-  "commitmentsSubtitle": "Bills, renewals, medication — things that come back round",
-  "@commitmentsSubtitle": {"description": "Settings row subtitle"},
   "commitmentsEmpty": "Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.",
   "@commitmentsEmpty": {"description": "Empty state"},
   "commitmentAdd": "Add a recurring item",
@@ -2313,8 +2117,6 @@
   "@commitmentEdit": {"description": "Editor title"},
   "commitmentDeleteTitle": "Delete this recurring item?",
   "@commitmentDeleteTitle": {"description": "Delete confirmation"},
-  "commitmentMarkMet": "Done — roll it forward",
-  "@commitmentMarkMet": {"description": "Mark-met button"},
   "commitmentPaused": "paused",
   "@commitmentPaused": {"description": "Paused state"},
   "commitmentTitleLabel": "What",
@@ -2367,8 +2169,6 @@
   "@spanHours": {"description": "A span in hours", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "spanDays": "{count, plural, =1{1 day} other{{count} days}}",
   "@spanDays": {"description": "A span in days", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
-  "spanMonths": "{count, plural, =1{1 month} other{{count} months}}",
-  "@spanMonths": {"description": "A span in months", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "assistantConfirmSetting": "Change this setting?",
   "@assistantConfirmSetting": {
     "description": "Confirmation for an assistant-proposed settings change"
@@ -2674,9 +2474,6 @@
   "cycleNotifySoon": "A reminder for the coming days",
   "cycleNotifyLog": "Time for today's check-in",
   "cycleNotifyPill": "Your daily reminder",
-  "settingsFeatures": "Sections",
-  "cycleShow": "Show Cycle",
-  "cycleShowSubtitle": "The menstrual cycle assistant in Tools",
   "cycleTurnOffTitle": "Turn off Cycle?",
   "cycleTurnOffBody": "Its page and reminders will be gone. Keep your cycle data for when you turn it back on, or delete it now?",
   "cycleTurnOffKeep": "Keep data",
@@ -2841,8 +2638,6 @@
   "@nudgeMemoriesSubtitle": {"description": "Explains the On this day switch of the daily nudge"},
   "nudgeTime": "Time",
   "@nudgeTime": {"description": "The row that opens the daily nudge's time picker"},
-  "notifications": "Notifications",
-  "@notifications": {"description": "Settings section for notifications"},
   "nudgeGreetingMorning": "Good morning, {name}",
   "@nudgeGreetingMorning": {
     "description": "Notification title before noon",
@@ -2855,21 +2650,8 @@
   },
   "nudgeGreetingPlain": "Nex",
   "@nudgeGreetingPlain": {"description": "Notification title when there is no name"},
-  "nudgeNothing": "A clear page. Nex is here when something comes up.",
-  "@nudgeNothing": {"description": "Notification body when there is no recap"},
   "localModelLicenseGloss": "In short: the model belongs to its maker, it comes with its own terms, and downloading it means accepting them.",
   "@localModelLicenseGloss": {"description": "Plain-language gloss under the model's verbatim licence notice"},
-  "notificationTest": "Send a test notification",
-  "@notificationTest": {"description": "Settings row that posts a test notification"},
-  "notificationTestHint": "One now, and one in ten seconds",
-  "@notificationTestHint": {"description": "Explains what the test does"},
-  "notificationTestSent": "Sent — one now, one in ten seconds",
-  "@notificationTestSent": {"description": "Confirms the test notifications were posted"},
-  "notificationTestFailed": "Could not send it — {error}",
-  "@notificationTestFailed": {
-    "description": "The test notification failed, with the system's own message",
-    "placeholders": { "error": { "type": "String" } }
-  },
   "timeMinutesShort": "{count}m",
   "@timeMinutesShort": {
     "description": "Reminder countdown on a card, minutes",
@@ -2907,8 +2689,6 @@
     "description": "Header of the reminder picker when one is already set",
     "placeholders": { "when": { "type": "String" } }
   },
-  "remindChange": "Change reminder",
-  "@remindChange": {"description": "Title of the picker when a reminder already exists"},
   "swipeNoneHint": "This edge does nothing",
   "@swipeNoneHint": {"description": "Hint under the no-op swipe action"},
   "swipeDeleteHint": "Move the note to Recently Deleted",
@@ -3156,10 +2936,6 @@
   },
   "remindNotScheduled": "That time was saved on the note, but this phone would not take the alarm.",
   "@remindNotScheduled": {"description": "Scheduling failed even though the due date was stored"},
-  "remindSet": "Reminder set",
-  "@remindSet": {
-    "description": "Confirmation after setting a reminder"
-  },
   "remindDenied": "Nex needs permission to send notifications.",
   "@remindDenied": {
     "description": "Shown when notification permission is refused"
@@ -3187,7 +2963,6 @@
   "@summarizeFailed": {
     "description": "Shown when an on-demand summary produces nothing"
   },
-  "fullBackupExplained": "Choose a .nexbak library backup to restore notes, media, reminders, commitments and assistant memory. App preferences, profile and downloaded AI models are not included.",
   "unsavedChanges": "Discard unsaved changes?",
   "keepEditing": "Keep editing",
   "checklistItemCount": "{count, plural, one{1 item} other{{count} items}}",
@@ -3206,7 +2981,6 @@
   "backupIncludeModel": "Include downloaded offline model (about 2.6 GB)",
   "backupRecoveryKey": "Enter the recovery code",
   "toolsTitle": "Tools",
-  "toolsSubtitle": "Your essentials, in their own space.",
   "toolsPrivateHint": "Separate from notes, search and AI.",
   "vaultPasswords": "Passwords",
   "vaultPasswordsHint": "Accounts, passwords and Chrome CSV import.",
@@ -3224,7 +2998,6 @@
   "vaultEmptyHint": "Add an item to keep its details private and easy to copy.",
   "vaultAddPassword": "Add password",
   "vaultAddCard": "Add bank card",
-  "vaultAll": "All items",
   "vaultFavorites": "Favorites",
   "vaultFavorite": "Favorite",
   "vaultNoResults": "No matching items",
@@ -3252,11 +3025,9 @@
   "vaultGenerate": "Generate a new password",
   "vaultGenerator": "Password generator",
   "vaultSymbols": "Include symbols",
-  "vaultUseGenerated": "Use this password",
   "vaultLength": "Length",
   "vaultEdit": "Edit item",
   "vaultSave": "Save securely",
-  "vaultSaved": "Saved securely",
   "vaultDiscard": "Discard draft",
   "vaultResume": "Continue unfinished edit",
   "vaultDelete": "Delete item",
@@ -3280,7 +3051,6 @@
   "threadRemoveNote": "Remove from thread",
   "threadNoteCount": "{count, plural, =1{1 note} other{{count} notes}}",
   "@threadNoteCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
-  "threadAddTo": "Threads",
   "threadEmpty": "No notes in this thread any more.",
   "threadSuggestJoin": "Continues “{name}”?",
   "@threadSuggestJoin": {"placeholders": {"name": {"type": "String"}}},
@@ -3522,28 +3292,20 @@
   "@pauseHapticsOff": {"description": "Pause (breathing break) module"},
   "pauseEnd": "End the session",
   "@pauseEnd": {"description": "Pause (breathing break) module"},
-  "planPauseTitle": "Pause",
   "planPauseAbout": "A brief breathing break with calm, focus and relax modes. Gentle motion follows each breath, with optional vibration and offline use.",
   "aiDescribeImage": "Describe & read image",
   "aiTranscribeAudio": "Transcribe audio",
   "aiImageResult": "Image description & text",
-  "aiMediaWorking": "Reading media…",
-  "aiMediaFailed": "Could not read this media. Your previous result is unchanged; try again.",
-  "aiMediaEmpty": "No speech or readable content was found.",
   "aiAddToCaption": "Add to caption",
   "aiAppendCaptionTitle": "This item already has a caption",
   "aiAppendCaptionBody": "Keep the existing caption and append this result, or replace the caption completely.",
   "aiAppendCaption": "Append text",
   "aiCaptionAdded": "Added to caption",
   "aiCaptionFailed": "Could not add this text to the caption.",
-  "aiTranslateTranscript": "Translate transcript",
-  "aiSummarizeTranscript": "Summarize transcript",
-  "aiSummarizeImageText": "Summarize image text",
   "aiReplaceCaption": "Replace caption",
   "aiCaptionReplaced": "Caption replaced",
   "aiCaptionChanged": "The caption changed while this dialog was open. Nothing was replaced. Try again.",
   "aiProcessing": "Working…",
-  "aiResultReady": "Result ready",
   "aiNoResult": "Choose an action to see its result here.",
   "aiTagsAction": "Suggest tags",
   "relatedNotesPaused": "Temporarily paused",
@@ -3551,7 +3313,6 @@
   "aiResultCollapse": "Collapse result",
   "aiRunAgain": "Run again",
   "aiShowResults": "Show results",
-  "aiSwitchResult": "Switch result",
   "aiExtractedText": "Extracted text",
   "chatThinking": "Thinking it through…",
   "planPersianCalendarTitle": "Persian calendar & prayer times",
@@ -3682,7 +3443,6 @@
   "setAsideEmptyBody": "Hold a note and choose Archive to keep it out of the way for now. It stays searchable and can come back on its own.",
   "setAsideBackOn": "Back {when}",
   "@setAsideBackOn": {"placeholders": {"when": {"type": "String"}}},
-  "setAsideUntilFurther": "Until you bring it back",
   "setAsideMark": "Archived",
   "setAsideCountLabel": "{count, plural, =1{1 archived note} other{{count} archived notes}}",
   "@setAsideCountLabel": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
@@ -3785,5 +3545,7 @@
         "type": "int"
       }
     }
-  }
+  },
+  "spanMonths": "{count, plural, =1{1 month} other{{count} months}}",
+  "@spanMonths": {"description": "A span in months", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}}
 }
