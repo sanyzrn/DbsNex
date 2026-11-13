@@ -275,6 +275,15 @@ class NexDbWorker
   bool _closing = false;
   Future<void>? _closeFuture;
 
+  /// Why the worker is gone, when it died on its own.
+  ///
+  /// An isolate that crashes does not make its port stop accepting sends —
+  /// they just never produce an answer. Failing only the requests that were
+  /// in flight left the next capture parked on a completer nothing would
+  /// ever complete: the app looked alive and saved nothing. Once this is
+  /// set, every new request fails at once with the real reason.
+  String? _deadReason;
+
   /// Fails everything in flight. Called when the isolate reports a fatal
   /// error or exits: a caller parked on a request that will never be
   /// answered is a caller hanging the capture sheet, the timeline, or the
@@ -293,11 +302,13 @@ class NexDbWorker
   /// An error port message is a two-element list: [error, stackTrace], both
   /// strings by the time they cross the port.
   void _onIsolateError(dynamic message) {
-    _failAllPending('nex-db worker crashed: $message');
+    _deadReason ??= 'nex-db worker crashed: $message';
+    _failAllPending(_deadReason!);
   }
 
   void _onIsolateExit(dynamic message) {
-    _failAllPending('nex-db worker has exited unexpectedly');
+    _deadReason ??= 'nex-db worker has exited unexpectedly';
+    _failAllPending(_deadReason!);
   }
 
   static Future<NexDbWorker> spawn({
@@ -394,6 +405,10 @@ class NexDbWorker
       await spawnExitSub.cancel();
       errors.close();
       exits.close();
+      // The responses port is this frame's responsibility too. Left open it
+      // stayed alive with a broadcast stream whose only listener had been
+      // cancelled — a leak on the exact path a failed launch takes.
+      responses.close();
       isolate.kill(priority: Isolate.beforeNextEvent);
       rethrow;
     }
@@ -425,6 +440,9 @@ class NexDbWorker
   ]) {
     if (_closed || (_closing && command != _DbCommand.close)) {
       throw StateError('NexDbWorker has been closed');
+    }
+    if (_deadReason case final reason?) {
+      throw StateError(reason);
     }
 
     final id = _nextId++;

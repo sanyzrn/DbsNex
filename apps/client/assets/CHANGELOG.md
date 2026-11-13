@@ -8,6 +8,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Redesigned themes.** Choose from 14 palettes in Settings → Appearance, each with its own light and dark colours. Your saved theme returns automatically, custom accents keep their hue with readable text, and Liquid Glass follows the palette.
 
+- **A scheduled note comes back whole.** Sending a note later used to return only its words: the title and the tags it was filed under were dropped while it waited. They come back with it now, and a note that carries files stays in the library instead of being scheduled away from them.
+- **Backups survive a wrong clock.** If the phone's date moved backwards, automatic backups stopped for as long as it took the clock to catch up, and the copy just written could be treated as the oldest and pruned. Both now behave.
+- **Backups without media are refused before restore.** Restoring one no longer closes the open library first, only to fail on a file that was never there. And a complete restore that fails no longer leaves a hidden undo step that would roll the library — and everything written after it — back on the next launch.
+
 ## v2.6.24
 
 - **Liquid Glass now has depth.** With the material on, each pane is lit rather than merely tinted: the page's own colour comes through more vividly, a bevel catches the light along the top edge, a soft bounce lifts the bottom edge, and the top bar, dock, menus, dialogs and sheets throw a faint halo onto the page. Dark and Night have their own bounce and warmth, and high contrast still falls back to a solid surface.

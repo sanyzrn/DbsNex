@@ -10,6 +10,7 @@ import 'package:nex_client/platform/full_backup.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_data/nex_data.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'support/nex_harness.dart';
@@ -126,6 +127,64 @@ void main() {
       },
     );
   }
+
+  test(
+    'a full restore that cannot install its library leaves no armed undo',
+    () async {
+      final image = File('${h.mediaDir}/photo.jpg')
+        ..writeAsBytesSync([1, 2, 3]);
+      final photo = await h.db.capturePhoto(
+        mediaUri: image.path,
+        mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
+      );
+      final note = (await h.services.captureText('Live note'))!;
+      final library = await h.services.portableBackup(await libraryBackup());
+      // A self-contained backup whose database still points at the photo,
+      // but which carries no media entry. Validation cannot see that — the
+      // media is only matched while staging — so this fails *after* the
+      // service has closed its database and begun the full restore, which is
+      // exactly the window the undo journal used to survive.
+      final archive = ZipDecoder().decodeBytes(File(library).readAsBytesSync());
+      final incomplete = Archive();
+      for (final entry in archive.files) {
+        if (!entry.name.startsWith('media/')) incomplete.addFile(entry);
+      }
+      final broken = File('${h.root.path}/incomplete.nexbak')
+        ..writeAsBytesSync(ZipEncoder().encode(incomplete));
+      image.deleteSync();
+      final key = FullBackup.newKey();
+      final output = '${h.root.path}/incomplete.nexfull';
+      FullBackup.create(
+        library: broken.path,
+        output: output,
+        settings: h.preferences.backupSettings(),
+        key: key,
+      );
+
+      final result = await h.services.restoreFullBackup(File(output), key);
+      expect(result.error, isNotNull);
+      // The restore transaction put the live library back; settings were
+      // never touched. Nothing is pending, so the next launch must not
+      // “roll back” to this safety copy and drop everything written since.
+      expect(await h.preferences.pendingRestoreRecovery(), isNull);
+      expect(
+        Directory(h.backupDir)
+            .listSync()
+            .whereType<Directory>()
+            .where((dir) => p.basename(dir.path).startsWith('full-restore-')),
+        isEmpty,
+        reason: 'the unused safety copy must not linger in the backups folder',
+      );
+      final reopened = NexDatabase.open(h.dbPath);
+      try {
+        final kept = SqliteNoteRepository(reopened);
+        expect(kept.getById(note.id)!.content, 'Live note');
+        expect(kept.getById(photo.id), isNotNull);
+      } finally {
+        reopened.close();
+      }
+    },
+  );
 
   test(
     'a healthy backup repairs missing live media and keeps a rescue copy',

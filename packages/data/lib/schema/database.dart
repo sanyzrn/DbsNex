@@ -419,9 +419,28 @@ CREATE TABLE IF NOT EXISTS scheduled_notes (
   id TEXT PRIMARY KEY NOT NULL,
   content TEXT NOT NULL,
   release_at TEXT NOT NULL,
-  written_at TEXT NOT NULL
+  written_at TEXT NOT NULL,
+  -- Everything about the note except its words and its reminder: a title,
+  -- derived text, urgency, and the tags it was filed under. They used to be
+  -- dropped when the note was taken out of the library, so it came back as
+  -- a bare body with no sign that anything else had ever been set.
+  metadata TEXT NOT NULL DEFAULT '{}',
+  tag_ids TEXT NOT NULL DEFAULT '[]'
 );
 ''');
+    // Databases created before the two columns above: added in place, with
+    // defaults, so a note already waiting keeps waiting and arrives as it
+    // did before.
+    _addColumnIfMissing(
+      'scheduled_notes',
+      'metadata',
+      "TEXT NOT NULL DEFAULT '{}'",
+    );
+    _addColumnIfMissing(
+      'scheduled_notes',
+      'tag_ids',
+      "TEXT NOT NULL DEFAULT '[]'",
+    );
     db.execute(
       'CREATE INDEX IF NOT EXISTS idx_scheduled_notes_release '
       'ON scheduled_notes(release_at);',
@@ -854,8 +873,18 @@ CREATE TABLE notes_rebuilt (
             .where((f) => f.path.endsWith('.sqlite'))
             .toList()
           ..sort((a, b) => b.path.compareTo(a.path));
-    for (final stale in existing.skip(backupRetention)) {
-      stale.deleteSync();
+    // The copy just written is always one of the kept ones. Without that, a
+    // clock that moved backwards made it sort oldest and it was the first
+    // thing its own retention pass deleted.
+    final kept = {p.normalize(target.absolute.path)};
+    for (final file in existing) {
+      if (kept.length >= backupRetention) break;
+      kept.add(p.normalize(file.absolute.path));
+    }
+    for (final stale in existing) {
+      if (!kept.contains(p.normalize(stale.absolute.path))) {
+        stale.deleteSync();
+      }
     }
     return target;
   }

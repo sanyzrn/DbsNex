@@ -446,6 +446,28 @@ void main() {
     },
   );
 
+  test('a compact backup copied without its blob store is refused while the library is usable', () {
+    File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync([1, 2, 3]);
+    repo.insert(photoNote('n', 'a.jpg'));
+    final snapshot = repo.backupSnapshot(backupDir);
+    final backup = NexBackupArchive.createFromSnapshot(
+      snapshotPath: snapshot.path,
+      mediaDir: mediaDir,
+      backupDir: backupDir,
+      compact: true,
+    );
+    Directory(p.join(backupDir, '.media')).deleteSync(recursive: true);
+
+    // Preflight is what runs before the service closes its database. A
+    // backup missing half of itself has to fail there, not after the swap
+    // has begun and the only way out is a restart.
+    expect(
+      () => NexBackupArchive.validate(backup.path),
+      throwsA(isA<StateError>()),
+    );
+    expect(repo.getById('n'), isNotNull);
+  });
+
   test(
     'missing and corrupt local blobs fail before replacing the live database',
     () {
