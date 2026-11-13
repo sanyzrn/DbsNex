@@ -4,6 +4,10 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.27
+
+- **Exported photos open as the right picture.** In a library export, two photos with the same file name were both saved, but the second note's Markdown pointed at the first one's file, so opened outside Nex it showed the wrong photo. Each note now links to its own.
+
 ## v2.6.26
 
 - **Ready for Android 16.** Nex now targets the latest Android. On a tablet or an unfolded foldable it turns with the device instead of staying upright, with the notes kept to a comfortable reading width in landscape; photos taken there are saved the way you held the device. Phones stay in portrait as before.

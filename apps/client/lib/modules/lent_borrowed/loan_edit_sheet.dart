@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
@@ -138,7 +139,6 @@ class _LoanEditSheetState extends State<_LoanEditSheet> with _LoanEditLogic {
                       labelText: strings(context, 'personLabel'),
                       hintText: strings(context, 'personHint'),
                       errorText: _personError,
-                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -181,7 +181,6 @@ class _LoanEditSheetState extends State<_LoanEditSheet> with _LoanEditLogic {
                         labelText: strings(context, 'whatLabel'),
                         hintText: strings(context, 'whatHint'),
                         errorText: _whatError,
-                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),

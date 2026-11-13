@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
@@ -375,7 +376,6 @@ class _HabitEditSheetState extends State<_HabitEditSheet> {
                             labelText: strings(context, 'nameLabel'),
                             hintText: strings(context, 'nameHint'),
                             errorText: _nameError,
-                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -598,7 +598,6 @@ class _HabitEditSheetState extends State<_HabitEditSheet> {
                     decoration: InputDecoration(
                       labelText: strings(context, 'unitLabel'),
                       hintText: strings(context, 'unitHint'),
-                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ],
@@ -612,7 +611,6 @@ class _HabitEditSheetState extends State<_HabitEditSheet> {
                   decoration: InputDecoration(
                     labelText: strings(context, 'noteLabel'),
                     hintText: strings(context, 'noteHint'),
-                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: NexSpacing.lg),

@@ -2376,11 +2376,11 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
       final usedMediaNames = <String>{};
 
       for (final note in noteModels) {
-        final md = _markdownFor(note);
-        final bytes = utf8.encode(md);
-        encoder.addArchiveFile(
-          ArchiveFile('markdown/${note.id}.md', bytes.length, bytes),
-        );
+        // The media entry is named before the note's Markdown is written,
+        // because the Markdown links to it. It used to link to the bare name
+        // whatever the entry was called, so of two photos with the same
+        // file name the second note's Markdown showed the first note's photo.
+        String? entryName;
         if (note.mediaUri != null) {
           final src = File(note.mediaUri!);
           if (src.existsSync()) {
@@ -2392,10 +2392,15 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
             // construction; the importer knows to look for both spellings.
             final name = nexPortableBasename(note.mediaUri!);
             final firstUse = usedMediaNames.add(name);
-            final entryName = firstUse ? name : '${note.id}-$name';
+            entryName = firstUse ? name : '${note.id}-$name';
             addBoundedZipFile(encoder, src, 'media/$entryName');
           }
         }
+        final md = _markdownFor(note, mediaName: entryName);
+        final bytes = utf8.encode(md);
+        encoder.addArchiveFile(
+          ArchiveFile('markdown/${note.id}.md', bytes.length, bytes),
+        );
       }
 
       // An attachment's file: under its own name when that is free, else
@@ -2848,7 +2853,13 @@ WHERE id = ?
     ].join(' ');
   }
 
-  String _markdownFor(Note note) {
+  /// [mediaName] is the name the note's file has under `media/` in the
+  /// archive; null when the file was not there to copy, where the bare name
+  /// still says which file the note had.
+  String _markdownFor(Note note, {String? mediaName}) {
+    final media = note.mediaUri == null
+        ? null
+        : mediaName ?? nexPortableBasename(note.mediaUri!);
     final buffer = StringBuffer()
       ..writeln('---')
       ..writeln('nex_export: 1')
@@ -2874,27 +2885,19 @@ WHERE id = ?
         if (note.durationMs != null) {
           buffer.writeln('Duration: ${note.durationMs} ms');
         }
-        if (note.mediaUri != null) {
-          buffer.writeln('Media: ${nexPortableBasename(note.mediaUri!)}');
-        }
+        if (media != null) buffer.writeln('Media: $media');
         if (note.transcriptText != null) {
           buffer.writeln('Transcript: ${note.transcriptText}');
         }
       case NoteType.photo:
         buffer.writeln('_Photo note_');
-        if (note.mediaUri != null) {
-          buffer.writeln(
-            '![photo](../media/${nexPortableBasename(note.mediaUri!)})',
-          );
-        }
+        if (media != null) buffer.writeln('![photo](../media/$media)');
         if (note.ocrText != null) {
           buffer.writeln('OCR: ${note.ocrText}');
         }
       case NoteType.file:
         buffer.writeln('_File attachment_');
-        if (note.mediaUri != null) {
-          buffer.writeln('File: ${nexPortableBasename(note.mediaUri!)}');
-        }
+        if (media != null) buffer.writeln('File: $media');
       // Written out as the markdown task list it already is, so an exported
       // checklist opens as a working checklist in any markdown editor rather
       // than as a description of one.

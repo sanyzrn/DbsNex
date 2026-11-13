@@ -504,9 +504,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get widgetSettingsTitle => 'Home screen widget';
 
   @override
-  String get widgetSettingsSubtitle => 'What the widget shows';
-
-  @override
   String get widgetSettingsIntro =>
       'By default the widget shows the top of your timeline. These narrow it down.';
 
@@ -757,10 +754,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nothingClose => 'Nothing close either.';
 
   @override
-  String get semanticMatches =>
-      'Nothing shares those words, but these are about the same thing:';
-
-  @override
   String get emptyPromise => 'Anything you put here is kept.';
 
   @override
@@ -909,9 +902,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get language => 'Language';
 
   @override
-  String get accessibility => 'Accessibility';
-
-  @override
   String get haptics => 'Capture haptics';
 
   @override
@@ -989,37 +979,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get liquidGlassSubtitle =>
       'Frosted floating controls, menus and sheets. Your theme and note readability stay intact.';
-
-  @override
-  String get backgroundStyle => 'Background';
-
-  @override
-  String get backgroundStyleSubtitle =>
-      'Minimal built-in patterns tuned for both light and dark themes';
-
-  @override
-  String get backgroundPlain => 'Plain';
-
-  @override
-  String get backgroundAurora => 'Aurora';
-
-  @override
-  String get backgroundRipple => 'Ripple';
-
-  @override
-  String get backgroundWeave => 'Weave';
-
-  @override
-  String get backgroundDots => 'Dots';
-
-  @override
-  String get backgroundDusk => 'Dusk';
-
-  @override
-  String get backgroundTopography => 'Topography';
-
-  @override
-  String get backgroundPrism => 'Prism';
 
   @override
   String get accentColorSetting => 'Accent color';
@@ -1139,9 +1098,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncNow => 'Sync now';
 
   @override
-  String get syncComplete => 'Sync complete';
-
-  @override
   String get export => 'Export';
 
   @override
@@ -1238,9 +1194,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String whatsNewSubtitle(String version) {
     return 'Nex $version is here. This is what changed.';
   }
-
-  @override
-  String get whatsNewDone => 'Got it';
 
   @override
   String get shareSaved => 'Saved to Nex.';
@@ -1345,9 +1298,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get caption => 'Caption';
 
   @override
-  String get captionHint => 'Optional description…';
-
-  @override
   String get addCaption => 'Add caption';
 
   @override
@@ -1444,9 +1394,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get summarize => 'Summarize';
 
   @override
-  String get suggestedTags => 'Suggested tags';
-
-  @override
   String get dismiss => 'Dismiss';
 
   @override
@@ -1457,21 +1404,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use Transcribe audio in More to make this recording searchable.';
 
   @override
-  String voiceDuration(int seconds) {
-    final intl.NumberFormat secondsNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String secondsString = secondsNumberFormat.format(seconds);
-
-    return 'Voice · ${secondsString}s';
-  }
-
-  @override
   String get tapToExpand => 'Tap the image to view it full screen';
-
-  @override
-  String similarity(String score) {
-    return 'Similarity $score';
-  }
 
   @override
   String get copied => 'Copied';
@@ -1665,10 +1598,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteForever => 'Delete permanently';
 
   @override
-  String get deleteForeverBody =>
-      'This note will be gone for good. It cannot be undone.';
-
-  @override
   String get emptyTrash => 'Empty trash';
 
   @override
@@ -1676,9 +1605,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cannotOpen => 'No app on this device can open this file.';
-
-  @override
-  String get sourceCode => 'Source code';
 
   @override
   String get sendFeedback => 'Send feedback';
@@ -1781,10 +1707,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Android will ask you to confirm the install. Your notes are not touched.';
 
   @override
-  String get updateDownloadFailed =>
-      'The download did not finish. Check your connection and try again.';
-
-  @override
   String get updateNoSpace =>
       'There is not enough free space to download the update.';
 
@@ -1807,17 +1729,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get changelogTitle => 'Changelog';
-
-  @override
-  String get changelogLatestHeading => 'Latest changes';
-
-  @override
-  String changelogVersionHeading(String version) {
-    return 'Version $version';
-  }
-
-  @override
   String get changelogEmpty => 'Changelog unavailable.';
 
   @override
@@ -1832,9 +1743,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get yourName => 'Your name';
-
-  @override
-  String get yourNameHint => 'Only used to greet you, only on this device.';
 
   @override
   String get yourNamePlaceholder => 'Leave empty for no greeting';
@@ -1971,23 +1879,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportTitle => 'Backup & restore';
 
   @override
-  String get exportExplained =>
-      'Exports notes, tags and attachments as JSON and Markdown in a ZIP. To preserve reminders, commitments and assistant memory too, share a library backup below.';
-
-  @override
-  String get exportAndShare => 'Export and share';
-
-  @override
-  String get importTitle => 'Import';
-
-  @override
-  String get importExplained =>
-      'Reads a Nex export back into this library. Notes already here are left untouched, so importing the same file twice changes nothing.';
-
-  @override
-  String get chooseFile => 'Choose a file';
-
-  @override
   String importDone(int added, int skipped) {
     final intl.NumberFormat addedNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -2018,38 +1909,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That file could not be read as a Nex export. Your notes were not changed.';
 
   @override
-  String get localBackupsTitle => 'Backups on this device';
-
-  @override
-  String get localBackupsExplained =>
-      'Nex backs up the library on this device. Local copies share unchanged media to save space; the listed size excludes shared files. Use Share beside a backup to keep a complete copy elsewhere, safe from losing the device.';
-
-  @override
   String get backupNow => 'Back up now';
 
   @override
   String get backupDone => 'Backed up';
-
-  @override
-  String get syncNotConfigured =>
-      'No server is set up. Sync is optional — Nex works entirely offline without it.';
-
-  @override
-  String get syncServer => 'Sync server';
-
-  @override
-  String get syncServerHint => 'https://…';
-
-  @override
-  String get syncToken => 'Device token';
-
-  @override
-  String get aiShow => 'See what Nex made of this';
-
-  @override
-  String aiReady(String what) {
-    return '$what ready';
-  }
 
   @override
   String get aiSection => 'Nex AI';
@@ -2346,21 +2209,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chat => 'Chat';
 
   @override
-  String get chatSubtitle => 'Ask Nex\'s built-in assistant';
-
-  @override
   String get chatUnavailable =>
       'Local chat isn\'t available on this build yet.';
-
-  @override
-  String get chatEmptyHint =>
-      'Ask anything — Nex answers on this device, with no internet needed.';
-
-  @override
-  String get chatInputHint => 'Message…';
-
-  @override
-  String get chatSendTooltip => 'Send';
 
   @override
   String get transcriptionSubtitle =>
@@ -2391,9 +2241,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiDaySummaryTitle => 'Recap';
 
   @override
-  String get aiDaySummaryBadge => 'AI';
-
-  @override
   String get aiDaySummaryByModel => 'Written by AI from your notes';
 
   @override
@@ -2401,9 +2248,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiDaySummaryEmpty => 'Nothing to sum up yet.';
-
-  @override
-  String get aiDaySummaryRefresh => 'Write a new summary';
 
   @override
   String get aiDaySummaryCollapse => 'Hide the summary';
@@ -2416,10 +2260,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiOutputLanguage => 'AI output language';
-
-  @override
-  String get aiOutputLanguageSubtitle =>
-      'The language summaries and suggestions come back in';
 
   @override
   String get aiOutputLanguageAuto => 'Match my notes';
@@ -2611,10 +2451,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get localModelTitle => 'On-device model';
 
   @override
-  String get localModelSubtitle =>
-      'Chat with no internet, once the model is downloaded';
-
-  @override
   String get localModelExplained =>
       'Nex can run a language model on this phone, so chat works with no internet and nothing you type leaves the device. It is a large download and it stays on your phone until you remove it.';
 
@@ -2743,29 +2579,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your name, theme, language, backups, and the AI provider that writes your summaries.';
 
   @override
-  String get tourCardsTitle => 'One more thing';
-
-  @override
-  String get tourCardsBody =>
-      'Swipe a note from either edge for its quick actions. Each edge is yours to set in Settings.';
-
-  @override
-  String get translateSwap => 'Translate the other way';
-
-  @override
-  String get translateAgain => 'Translate again';
-
-  @override
   String get translate => 'Translate';
-
-  @override
-  String get translateTo => 'Into';
-
-  @override
-  String get translateWorking => 'Translating…';
-
-  @override
-  String get translateFailed => 'The translation did not come back.';
 
   @override
   String get translateSaveAsNote => 'Keep as a note';
@@ -2906,9 +2720,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Off, it will answer anything — including things it is bad at.';
 
   @override
-  String get assistantInstruction => 'How it should answer';
-
-  @override
   String get assistantInstructionHint => 'Answer with a bit of humour';
 
   @override
@@ -3011,10 +2822,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commitmentsTitle => 'Recurring';
 
   @override
-  String get commitmentsSubtitle =>
-      'Bills, renewals, medication — things that come back round';
-
-  @override
   String get commitmentsEmpty =>
       'Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.';
 
@@ -3026,9 +2833,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commitmentDeleteTitle => 'Delete this recurring item?';
-
-  @override
-  String get commitmentMarkMet => 'Done — roll it forward';
 
   @override
   String get commitmentPaused => 'paused';
@@ -3219,21 +3023,6 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$countString days',
       one: '1 day',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String spanMonths(int count) {
-    final intl.NumberFormat countNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String countString = countNumberFormat.format(count);
-
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$countString months',
-      one: '1 month',
     );
     return '$_temp0';
   }
@@ -3989,15 +3778,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cycleNotifyPill => 'Your daily reminder';
 
   @override
-  String get settingsFeatures => 'Sections';
-
-  @override
-  String get cycleShow => 'Show Cycle';
-
-  @override
-  String get cycleShowSubtitle => 'The menstrual cycle assistant in Tools';
-
-  @override
   String get cycleTurnOffTitle => 'Turn off Cycle?';
 
   @override
@@ -4360,9 +4140,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nudgeTime => 'Time';
 
   @override
-  String get notifications => 'Notifications';
-
-  @override
   String nudgeGreetingMorning(String name) {
     return 'Good morning, $name';
   }
@@ -4376,26 +4153,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nudgeGreetingPlain => 'Nex';
 
   @override
-  String get nudgeNothing =>
-      'A clear page. Nex is here when something comes up.';
-
-  @override
   String get localModelLicenseGloss =>
       'In short: the model belongs to its maker, it comes with its own terms, and downloading it means accepting them.';
-
-  @override
-  String get notificationTest => 'Send a test notification';
-
-  @override
-  String get notificationTestHint => 'One now, and one in ten seconds';
-
-  @override
-  String get notificationTestSent => 'Sent — one now, one in ten seconds';
-
-  @override
-  String notificationTestFailed(String error) {
-    return 'Could not send it — $error';
-  }
 
   @override
   String timeMinutesShort(int count) {
@@ -4446,9 +4205,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String remindCurrent(String when) {
     return 'Set for $when';
   }
-
-  @override
-  String get remindChange => 'Change reminder';
 
   @override
   String get swipeNoneHint => 'This edge does nothing';
@@ -4891,9 +4647,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'That time was saved on the note, but this phone would not take the alarm.';
 
   @override
-  String get remindSet => 'Reminder set';
-
-  @override
   String get remindDenied => 'Nex needs permission to send notifications.';
 
   @override
@@ -4924,10 +4677,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get summarizeFailed => 'No summary came back for this note.';
-
-  @override
-  String get fullBackupExplained =>
-      'Choose a .nexbak library backup to restore notes, media, reminders, commitments and assistant memory. App preferences, profile and downloaded AI models are not included.';
 
   @override
   String get unsavedChanges => 'Discard unsaved changes?';
@@ -5004,9 +4753,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get toolsTitle => 'Tools';
 
   @override
-  String get toolsSubtitle => 'Your essentials, in their own space.';
-
-  @override
   String get toolsPrivateHint => 'Separate from notes, search and AI.';
 
   @override
@@ -5060,9 +4806,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vaultAddCard => 'Add bank card';
-
-  @override
-  String get vaultAll => 'All items';
 
   @override
   String get vaultFavorites => 'Favorites';
@@ -5147,9 +4890,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vaultSymbols => 'Include symbols';
 
   @override
-  String get vaultUseGenerated => 'Use this password';
-
-  @override
   String get vaultLength => 'Length';
 
   @override
@@ -5157,9 +4897,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vaultSave => 'Save securely';
-
-  @override
-  String get vaultSaved => 'Saved securely';
 
   @override
   String get vaultDiscard => 'Discard draft';
@@ -5247,9 +4984,6 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get threadAddTo => 'Threads';
 
   @override
   String get threadEmpty => 'No notes in this thread any more.';
@@ -5892,9 +5626,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pauseEnd => 'End the session';
 
   @override
-  String get planPauseTitle => 'Pause';
-
-  @override
   String get planPauseAbout =>
       'A brief breathing break with calm, focus and relax modes. Gentle motion follows each breath, with optional vibration and offline use.';
 
@@ -5906,16 +5637,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiImageResult => 'Image description & text';
-
-  @override
-  String get aiMediaWorking => 'Reading media…';
-
-  @override
-  String get aiMediaFailed =>
-      'Could not read this media. Your previous result is unchanged; try again.';
-
-  @override
-  String get aiMediaEmpty => 'No speech or readable content was found.';
 
   @override
   String get aiAddToCaption => 'Add to caption';
@@ -5937,15 +5658,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiCaptionFailed => 'Could not add this text to the caption.';
 
   @override
-  String get aiTranslateTranscript => 'Translate transcript';
-
-  @override
-  String get aiSummarizeTranscript => 'Summarize transcript';
-
-  @override
-  String get aiSummarizeImageText => 'Summarize image text';
-
-  @override
   String get aiReplaceCaption => 'Replace caption';
 
   @override
@@ -5957,9 +5669,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiProcessing => 'Working…';
-
-  @override
-  String get aiResultReady => 'Result ready';
 
   @override
   String get aiNoResult => 'Choose an action to see its result here.';
@@ -5981,9 +5690,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiShowResults => 'Show results';
-
-  @override
-  String get aiSwitchResult => 'Switch result';
 
   @override
   String get aiExtractedText => 'Extracted text';
@@ -6360,9 +6066,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String setAsideBackOn(String when) {
     return 'Back $when';
   }
-
-  @override
-  String get setAsideUntilFurther => 'Until you bring it back';
 
   @override
   String get setAsideMark => 'Archived';
@@ -6754,5 +6457,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String rescueBackupMissing(int count) {
     return 'Missing files: $count';
+  }
+
+  @override
+  String spanMonths(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString months',
+      one: '1 month',
+    );
+    return '$_temp0';
   }
 }

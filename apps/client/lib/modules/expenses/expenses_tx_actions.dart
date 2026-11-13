@@ -62,9 +62,8 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     final day = _typedDay;
     if (day == null) {
       _paint(() => _showErrors = true);
-      NexBannerHost.of(
-        context,
-      )?.show(message: expenseStrings(context, 'dateRequired'));
+      NexBannerHost.of(context)
+          ?.show(message: expenseStrings(context, 'dateRequired'));
       return;
     }
 
@@ -167,10 +166,11 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
   }
 
   Future<void> _pickTime() async {
-    final picked = await nexShowDialog<TimeOfDay>(
-      context: context,
-      builder: (_) =>
-          TimePickerDialog(initialTime: TimeOfDay.fromDateTime(_date)),
+    // The app's time picker, as every other module uses: the same dial,
+    // digits and 24-hour rule, where the raw dialog took the platform's.
+    final picked = await nexPickModuleTime(
+      context,
+      initial: TimeOfDay.fromDateTime(_date),
     );
     if (picked == null || !mounted) return;
     _paint(() {

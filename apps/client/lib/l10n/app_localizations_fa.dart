@@ -495,9 +495,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get widgetSettingsTitle => 'ویجت صفحهٔ خانه';
 
   @override
-  String get widgetSettingsSubtitle => 'ویجت چه چیزی نشان دهد';
-
-  @override
   String get widgetSettingsIntro =>
       'به‌طور پیش‌فرض ویجت ابتدای تایم‌لاین را نشان می‌دهد. اینها محدودش می‌کنند.';
 
@@ -748,10 +745,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get nothingClose => 'چیزی نزدیک به آن هم پیدا نشد.';
 
   @override
-  String get semanticMatches =>
-      'هیچ‌کدام همان کلمه‌ها را ندارند، اما این‌ها همین موضوع را می‌گویند:';
-
-  @override
   String get emptyPromise => 'هر چیزی که اینجا بگذارید، می‌ماند.';
 
   @override
@@ -894,9 +887,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get language => 'زبان';
 
   @override
-  String get accessibility => 'دسترس‌پذیری';
-
-  @override
   String get haptics => 'لرزش هنگام ثبت';
 
   @override
@@ -974,37 +964,6 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get liquidGlassSubtitle =>
       'جلوهٔ شیشه‌ای برای کنترل‌های شناور، منوها و شیت‌ها؛ با حفظ تم و خوانایی یادداشت‌ها.';
-
-  @override
-  String get backgroundStyle => 'پس‌زمینه';
-
-  @override
-  String get backgroundStyleSubtitle =>
-      'پترن‌های مینیمال داخلی، تنظیم‌شده برای هر دو پوستهٔ روشن و تیره';
-
-  @override
-  String get backgroundPlain => 'ساده';
-
-  @override
-  String get backgroundAurora => 'شفق';
-
-  @override
-  String get backgroundRipple => 'موج';
-
-  @override
-  String get backgroundWeave => 'بافت';
-
-  @override
-  String get backgroundDots => 'نقطه‌چین';
-
-  @override
-  String get backgroundDusk => 'شامگاه';
-
-  @override
-  String get backgroundTopography => 'توپوگرافی';
-
-  @override
-  String get backgroundPrism => 'منشور';
 
   @override
   String get accentColorSetting => 'رنگ تاکید';
@@ -1125,9 +1084,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get syncNow => 'همگام‌سازی همین حالا';
 
   @override
-  String get syncComplete => 'همگام‌سازی انجام شد';
-
-  @override
   String get export => 'خروجی گرفتن';
 
   @override
@@ -1224,9 +1180,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String whatsNewSubtitle(String version) {
     return 'نکس $version رسید. این‌ها عوض شده‌اند.';
   }
-
-  @override
-  String get whatsNewDone => 'متوجه شدم';
 
   @override
   String get shareSaved => 'در نکس ذخیره شد.';
@@ -1330,9 +1283,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get caption => 'شرح';
 
   @override
-  String get captionHint => 'توضیح دلخواه…';
-
-  @override
   String get addCaption => 'افزودن شرح';
 
   @override
@@ -1423,9 +1373,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get summarize => 'خلاصه‌سازی';
 
   @override
-  String get suggestedTags => 'برچسب‌های پیشنهادی';
-
-  @override
   String get dismiss => 'نادیده بگیر';
 
   @override
@@ -1436,21 +1383,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'از «بیشتر ← تبدیل صدا به متن» این ضبط را قابل جست‌وجو کنید.';
 
   @override
-  String voiceDuration(int seconds) {
-    final intl.NumberFormat secondsNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String secondsString = secondsNumberFormat.format(seconds);
-
-    return 'صدا · $secondsString ثانیه';
-  }
-
-  @override
   String get tapToExpand => 'برای نمایش تمام‌صفحه روی تصویر بزنید';
-
-  @override
-  String similarity(String score) {
-    return 'شباهت $score';
-  }
 
   @override
   String get copied => 'کپی شد';
@@ -1645,10 +1578,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get deleteForever => 'حذف همیشگی';
 
   @override
-  String get deleteForeverBody =>
-      'این یادداشت برای همیشه از بین می‌رود و برگشتی ندارد.';
-
-  @override
   String get emptyTrash => 'خالی کردن سطل';
 
   @override
@@ -1657,9 +1586,6 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get cannotOpen =>
       'روی این دستگاه برنامه‌ای برای باز کردن این فایل نیست.';
-
-  @override
-  String get sourceCode => 'کد منبع';
 
   @override
   String get sendFeedback => 'ارسال بازخورد';
@@ -1761,10 +1687,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'اندروید برای نصب از شما تأیید می‌گیرد. یادداشت‌های شما دست‌نخورده می‌مانند.';
 
   @override
-  String get updateDownloadFailed =>
-      'دانلود کامل نشد. اتصال را بررسی کنید و دوباره تلاش کنید.';
-
-  @override
   String get updateNoSpace => 'فضای خالی برای دانلود به‌روزرسانی کافی نیست.';
 
   @override
@@ -1786,17 +1708,6 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get changelogTitle => 'تاریخچهٔ تغییرات';
-
-  @override
-  String get changelogLatestHeading => 'جدیدترین تغییرات';
-
-  @override
-  String changelogVersionHeading(String version) {
-    return 'نسخهٔ $version';
-  }
-
-  @override
   String get changelogEmpty => 'تاریخچهٔ تغییرات در دسترس نیست.';
 
   @override
@@ -1811,9 +1722,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get yourName => 'نام شما';
-
-  @override
-  String get yourNameHint => 'فقط برای سلام گفتن، و فقط روی همین دستگاه.';
 
   @override
   String get yourNamePlaceholder => 'خالی بگذارید تا سلامی در کار نباشد';
@@ -1950,23 +1858,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get exportTitle => 'پشتیبان‌گیری و بازیابی';
 
   @override
-  String get exportExplained =>
-      'یادداشت‌ها، برچسب‌ها و پیوست‌ها را به‌صورت JSON و Markdown در فایل ZIP ذخیره می‌کند. برای حفظ یادآورها، تعهدات و حافظهٔ دستیار نیز، نسخهٔ پشتیبان کتابخانه را از بخش پایین به اشتراک بگذارید.';
-
-  @override
-  String get exportAndShare => 'خروجی گرفتن و هم‌رسانی';
-
-  @override
-  String get importTitle => 'وارد کردن';
-
-  @override
-  String get importExplained =>
-      'یک خروجی Nex را دوباره به همین کتابخانه می‌خواند. یادداشت‌هایی که از قبل اینجا هستند دست‌نخورده می‌مانند، پس وارد کردن دوبارهٔ یک فایل هیچ تغییری نمی‌دهد.';
-
-  @override
-  String get chooseFile => 'انتخاب فایل';
-
-  @override
   String importDone(int added, int skipped) {
     final intl.NumberFormat addedNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -1997,38 +1888,10 @@ class AppLocalizationsFa extends AppLocalizations {
       'این فایل به‌عنوان خروجی Nex خوانده نشد. یادداشت‌های شما تغییری نکردند.';
 
   @override
-  String get localBackupsTitle => 'پشتیبان‌های روی این دستگاه';
-
-  @override
-  String get localBackupsExplained =>
-      'نکس روی همین دستگاه از کتابخانه پشتیبان می‌گیرد. برای صرفه‌جویی در فضا، نسخه‌های محلی از فایل‌های رسانه‌ای مشترک استفاده می‌کنند؛ اندازهٔ نمایش‌داده‌شده شامل این فایل‌ها نیست. با دکمهٔ اشتراک کنار هر نسخه، یک کپی کامل در جای دیگری نگه دارید تا با گم‌شدن دستگاه از دست نرود.';
-
-  @override
   String get backupNow => 'همین حالا پشتیبان بگیر';
 
   @override
   String get backupDone => 'پشتیبان گرفته شد';
-
-  @override
-  String get syncNotConfigured =>
-      'هیچ سروری تنظیم نشده. همگام‌سازی اختیاری است — Nex بدون آن کاملاً آفلاین کار می‌کند.';
-
-  @override
-  String get syncServer => 'سرور همگام‌سازی';
-
-  @override
-  String get syncServerHint => 'https://…';
-
-  @override
-  String get syncToken => 'توکن دستگاه';
-
-  @override
-  String get aiShow => 'ببینید Nex از این چه فهمیده';
-
-  @override
-  String aiReady(String what) {
-    return '$what آماده است';
-  }
 
   @override
   String get aiSection => 'هوش مصنوعی Nex';
@@ -2326,20 +2189,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chat => 'چت';
 
   @override
-  String get chatSubtitle => 'از دستیار داخلی Nex بپرسید';
-
-  @override
   String get chatUnavailable => 'چت محلی هنوز روی این نسخه در دسترس نیست.';
-
-  @override
-  String get chatEmptyHint =>
-      'هر چیزی بپرسید — Nex همین‌جا روی گوشی، بدون نیاز به اینترنت جواب می‌دهد.';
-
-  @override
-  String get chatInputHint => 'پیام…';
-
-  @override
-  String get chatSendTooltip => 'ارسال';
 
   @override
   String get transcriptionSubtitle =>
@@ -2370,9 +2220,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiDaySummaryTitle => 'مرور';
 
   @override
-  String get aiDaySummaryBadge => 'هوش مصنوعی';
-
-  @override
   String get aiDaySummaryByModel => 'نوشتهٔ هوش مصنوعی از روی یادداشت‌های شما';
 
   @override
@@ -2380,9 +2227,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiDaySummaryEmpty => 'هنوز چیزی برای خلاصه کردن نیست.';
-
-  @override
-  String get aiDaySummaryRefresh => 'نوشتن خلاصه تازه';
 
   @override
   String get aiDaySummaryCollapse => 'بستن خلاصه';
@@ -2395,10 +2239,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiOutputLanguage => 'زبان خروجی هوش مصنوعی';
-
-  @override
-  String get aiOutputLanguageSubtitle =>
-      'زبانی که خلاصه‌ها و پیشنهادها با آن نوشته می‌شوند';
 
   @override
   String get aiOutputLanguageAuto => 'هم‌زبان با یادداشت‌هایم';
@@ -2590,9 +2430,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get localModelTitle => 'مدل روی دستگاه';
 
   @override
-  String get localModelSubtitle => 'چت بدون اینترنت، بعد از دانلود مدل';
-
-  @override
   String get localModelExplained =>
       'Nex می‌تواند یک مدل زبانی را روی همین گوشی اجرا کند، طوری که چت بدون اینترنت کار کند و هیچ‌چیزی که می‌نویسید از دستگاه بیرون نرود. حجمش زیاد است و تا وقتی خودتان پاکش نکنید روی گوشی می‌ماند.';
 
@@ -2720,29 +2557,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'اسم، پوسته، زبان، پشتیبان‌گیری، و سرویس هوشی که خلاصه‌ها را می‌نویسد.';
 
   @override
-  String get tourCardsTitle => 'یک نکتهٔ آخر';
-
-  @override
-  String get tourCardsBody =>
-      'یادداشت را از هر طرف که بکشید، کارهای سریعش می‌آید. هر طرف را در تنظیمات خودتان انتخاب می‌کنید.';
-
-  @override
-  String get translateSwap => 'ترجمه در جهت دیگر';
-
-  @override
-  String get translateAgain => 'ترجمهٔ دوباره';
-
-  @override
   String get translate => 'ترجمه';
-
-  @override
-  String get translateTo => 'به';
-
-  @override
-  String get translateWorking => 'در حال ترجمه…';
-
-  @override
-  String get translateFailed => 'ترجمه برنگشت.';
 
   @override
   String get translateSaveAsNote => 'ذخیره به‌عنوان یادداشت';
@@ -2883,9 +2698,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'خاموش باشد به هر چیزی جواب می‌دهد، از جمله چیزهایی که در آن‌ها ضعیف است.';
 
   @override
-  String get assistantInstruction => 'چطور جواب بدهد';
-
-  @override
   String get assistantInstructionHint => 'کمی طنز در جواب‌ها باشد';
 
   @override
@@ -2990,10 +2802,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get commitmentsTitle => 'موارد تکرارشونده';
 
   @override
-  String get commitmentsSubtitle =>
-      'قبض‌ها، تمدیدها، دارو — چیزهایی که دوباره برمی‌گردند';
-
-  @override
   String get commitmentsEmpty =>
       'هنوز چیزی نیست.\nبیمه، اجاره، قرص هر هشت ساعت.';
 
@@ -3005,9 +2813,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get commitmentDeleteTitle => 'این مورد تکرارشونده حذف شود؟';
-
-  @override
-  String get commitmentMarkMet => 'انجام شد — رفتن به دفعهٔ بعد';
 
   @override
   String get commitmentPaused => 'متوقف';
@@ -3195,20 +3000,6 @@ class AppLocalizationsFa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$countString روز',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String spanMonths(int count) {
-    final intl.NumberFormat countNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String countString = countNumberFormat.format(count);
-
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$countString ماه',
     );
     return '$_temp0';
   }
@@ -3945,15 +3736,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cycleNotifyPill => 'یادآور روزانهٔ شما';
 
   @override
-  String get settingsFeatures => 'بخش‌ها';
-
-  @override
-  String get cycleShow => 'نمایش چرخه';
-
-  @override
-  String get cycleShowSubtitle => 'دستیار قاعدگی در ابزارها';
-
-  @override
   String get cycleTurnOffTitle => '«چرخه» خاموش شود؟';
 
   @override
@@ -4304,9 +4086,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get nudgeTime => 'ساعت';
 
   @override
-  String get notifications => 'اعلان‌ها';
-
-  @override
   String nudgeGreetingMorning(String name) {
     return 'صبح بخیر، $name';
   }
@@ -4320,26 +4099,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get nudgeGreetingPlain => 'Nex';
 
   @override
-  String get nudgeNothing =>
-      'صفحه خالی است. هر وقت چیزی پیش آمد، Nex همین‌جاست.';
-
-  @override
   String get localModelLicenseGloss =>
       'خلاصه‌اش: مدل مال سازنده‌اش است، شرایط خودش را دارد، و دانلودش یعنی پذیرفتن آن شرایط.';
-
-  @override
-  String get notificationTest => 'ارسال اعلان آزمایشی';
-
-  @override
-  String get notificationTestHint => 'یکی همین حالا، یکی ده ثانیه دیگر';
-
-  @override
-  String get notificationTestSent => 'فرستاده شد — یکی حالا، یکی ده ثانیه دیگر';
-
-  @override
-  String notificationTestFailed(String error) {
-    return 'فرستاده نشد — $error';
-  }
 
   @override
   String timeMinutesShort(int count) {
@@ -4390,9 +4151,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String remindCurrent(String when) {
     return 'تنظیم‌شده برای $when';
   }
-
-  @override
-  String get remindChange => 'تغییر یادآور';
 
   @override
   String get swipeNoneHint => 'این لبه کاری نمی‌کند';
@@ -4835,9 +4593,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'آن زمان روی یادداشت ذخیره شد، ولی این گوشی آلارمش را قبول نکرد.';
 
   @override
-  String get remindSet => 'یادآوری تنظیم شد';
-
-  @override
   String get remindDenied => 'برای ارسال اعلان، اجازه لازم است.';
 
   @override
@@ -4868,10 +4623,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get summarizeFailed => 'برای این یادداشت خلاصه‌ای برنگشت.';
-
-  @override
-  String get fullBackupExplained =>
-      'برای بازیابی یادداشت‌ها، رسانه‌ها، یادآورها، تعهدات و حافظهٔ دستیار، فایل پشتیبان .nexbak را انتخاب کنید. تنظیمات اپ، پروفایل و مدل‌های دانلودشده در این فایل نیستند.';
 
   @override
   String get unsavedChanges => 'تغییرات ذخیره‌نشده کنار گذاشته شوند؟';
@@ -4942,9 +4693,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get toolsTitle => 'ابزارها';
 
   @override
-  String get toolsSubtitle => 'چیزهای مهم، جای خودشان.';
-
-  @override
   String get toolsPrivateHint => 'جدا از یادداشت‌ها، جست‌وجو و هوش مصنوعی.';
 
   @override
@@ -4999,9 +4747,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get vaultAddCard => 'افزودن کارت بانکی';
-
-  @override
-  String get vaultAll => 'همه';
 
   @override
   String get vaultFavorites => 'منتخب‌ها';
@@ -5086,9 +4831,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get vaultSymbols => 'استفاده از نمادها';
 
   @override
-  String get vaultUseGenerated => 'استفاده از این رمز';
-
-  @override
   String get vaultLength => 'طول';
 
   @override
@@ -5096,9 +4838,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get vaultSave => 'ذخیرهٔ امن';
-
-  @override
-  String get vaultSaved => 'با موفقیت ذخیره شد';
 
   @override
   String get vaultDiscard => 'کنارگذاشتن پیش‌نویس';
@@ -5179,9 +4918,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
     return '$countString یادداشت';
   }
-
-  @override
-  String get threadAddTo => 'رشته‌ها';
 
   @override
   String get threadEmpty => 'دیگر یادداشتی در این رشته نیست.';
@@ -5796,9 +5532,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get pauseEnd => 'پایان جلسه';
 
   @override
-  String get planPauseTitle => 'مکث';
-
-  @override
   String get planPauseAbout =>
       'وقفه‌ای کوتاه برای تنفس با حالت‌های آرامش، تمرکز و ریلکس؛ حرکت ظریف هماهنگ با نفس، ویبرهٔ اختیاری و استفادهٔ آفلاین.';
 
@@ -5810,16 +5543,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiImageResult => 'شرح و متن تصویر';
-
-  @override
-  String get aiMediaWorking => 'در حال خواندن رسانه…';
-
-  @override
-  String get aiMediaFailed =>
-      'خواندن این رسانه انجام نشد. نتیجهٔ قبلی حفظ شده؛ دوباره تلاش کنید.';
-
-  @override
-  String get aiMediaEmpty => 'گفتار یا محتوای خواندنی پیدا نشد.';
 
   @override
   String get aiAddToCaption => 'افزودن به کپشن';
@@ -5841,15 +5564,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiCaptionFailed => 'افزودن این متن به کپشن انجام نشد.';
 
   @override
-  String get aiTranslateTranscript => 'ترجمهٔ متن صوت';
-
-  @override
-  String get aiSummarizeTranscript => 'خلاصهٔ متن صوت';
-
-  @override
-  String get aiSummarizeImageText => 'خلاصهٔ متن تصویر';
-
-  @override
   String get aiReplaceCaption => 'جایگزینی کامل';
 
   @override
@@ -5861,9 +5575,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiProcessing => 'در حال پردازش…';
-
-  @override
-  String get aiResultReady => 'نتیجه آماده است';
 
   @override
   String get aiNoResult =>
@@ -5886,9 +5597,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiShowResults => 'نمایش نتیجه‌ها';
-
-  @override
-  String get aiSwitchResult => 'تغییر نتیجه';
 
   @override
   String get aiExtractedText => 'متن استخراج‌شده';
@@ -6264,9 +5972,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String setAsideBackOn(String when) {
     return 'برمی‌گردد $when';
   }
-
-  @override
-  String get setAsideUntilFurther => 'تا خودتان برش گردانید';
 
   @override
   String get setAsideMark => 'بایگانی‌شده';
@@ -6657,5 +6362,19 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String rescueBackupMissing(int count) {
     return 'فایل‌های مفقود: $count';
+  }
+
+  @override
+  String spanMonths(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString ماه',
+    );
+    return '$_temp0';
   }
 }

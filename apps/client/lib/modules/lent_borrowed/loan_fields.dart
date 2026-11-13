@@ -38,7 +38,6 @@ class LoanNumberField extends StatelessWidget {
       hintText: hint,
       errorText: errorText,
       suffixText: suffix,
-      border: const OutlineInputBorder(),
     ),
   );
 }
@@ -82,7 +81,6 @@ class LoanDueField extends StatelessWidget {
               labelText: strings(context, 'dateFieldLabel'),
               hintText: strings(context, 'dateHint'),
               errorText: errorText,
-              border: const OutlineInputBorder(),
             ),
           ),
         ),

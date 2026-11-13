@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
+
 import 'words_models.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
@@ -27,38 +29,44 @@ class _WordsDailyCapRowState extends State<WordsDailyCapRow> {
     try {
       final picked = await nexShowDialog<int>(
         context: context,
-        builder: (ctx) => SimpleDialog(
-          title: Text(
-            wordsStrings(ctx, widget.session ? 'sessionCap' : 'dailyCap'),
-          ),
-          children: [
-            for (final value
-                in widget.session
-                    ? const [10, 20, 40, 0]
-                    : const [5, 10, 20, 0])
-              SimpleDialogOption(
-                key: ValueKey(
-                  widget.session
-                      ? 'words-session-cap-$value'
-                      : 'words-cap-$value',
-                ),
-                onPressed: () => Navigator.pop(ctx, value),
-                child: Text(
-                  wordsStrings(
-                    ctx,
-                    value == 0
-                        ? widget.session
-                              ? 'sessionCapOff'
-                              : 'dailyCapOff'
-                        : widget.session
-                        ? 'sessionCount'
-                        : 'dailyPerDay',
-                    {'count': value},
-                  ),
-                ),
+        // The app's own dialog, not a stock SimpleDialog: the same corners,
+        // surface and motion as every other question Nex asks, and each
+        // choice a full-height row with the current one ticked.
+        builder: (ctx) {
+          final current = widget.session
+              ? widget.settings.sessionLimit
+              : widget.settings.newPerDay;
+          return NexAlertDialog(
+            title: Text(
+              wordsStrings(ctx, widget.session ? 'sessionCap' : 'dailyCap'),
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
+            content: NexDialogBody(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final value
+                      in widget.session
+                          ? const [10, 20, 40, 0]
+                          : const [5, 10, 20, 0])
+                    ListTile(
+                      key: ValueKey(
+                        widget.session
+                            ? 'words-session-cap-$value'
+                            : 'words-cap-$value',
+                      ),
+                      selected: value == current,
+                      title: Text(_label(ctx, value)),
+                      trailing: value == current
+                          ? const Icon(Icons.check_rounded)
+                          : null,
+                      onTap: () => Navigator.pop(ctx, value),
+                    ),
+                ],
               ),
-          ],
-        ),
+            ),
+          );
+        },
       );
       if (picked == null || !mounted) return;
       final saved = await widget.repository.updateSettings(
@@ -83,6 +91,18 @@ class _WordsDailyCapRowState extends State<WordsDailyCapRow> {
     }
   }
 
+  String _label(BuildContext context, int value) => wordsStrings(
+    context,
+    value == 0
+        ? widget.session
+              ? 'sessionCapOff'
+              : 'dailyCapOff'
+        : widget.session
+        ? 'sessionCount'
+        : 'dailyPerDay',
+    {'count': value},
+  );
+
   @override
   Widget build(BuildContext context) {
     final value = widget.session
@@ -101,19 +121,7 @@ class _WordsDailyCapRowState extends State<WordsDailyCapRow> {
             widget.session ? 'words-session-cap' : 'words-daily-cap',
           ),
           onPressed: _busy ? null : () => unawaited(_pick()),
-          child: Text(
-            wordsStrings(
-              context,
-              value == 0
-                  ? widget.session
-                        ? 'sessionCapOff'
-                        : 'dailyCapOff'
-                  : widget.session
-                  ? 'sessionCount'
-                  : 'dailyPerDay',
-              {'count': value},
-            ),
-          ),
+          child: Text(_label(context, value)),
         ),
       ],
     );
