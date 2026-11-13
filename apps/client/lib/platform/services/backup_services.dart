@@ -1,5 +1,42 @@
 part of '../nex_services.dart';
 
+/// Removes the temporary safety copy a full restore made for its undo
+/// journal, once that journal is no longer live.
+///
+/// The directory is created by [NexServices.restoreFullBackup] with a
+/// `full-restore-` prefix; anything else is left alone. Best effort: a
+/// leftover copy wastes space, but failing to delete it must never turn a
+/// committed or rolled-back restore into a reported failure.
+Future<void> _discardFullRestoreCopy(String safetyPath) async {
+  final dir = Directory(safetyPath);
+  if (!p.basename(dir.path).startsWith('full-restore-')) return;
+  try {
+    if (await dir.exists()) await dir.delete(recursive: true);
+  } catch (_) {
+    /* Swept at the next launch by [_sweepFullRestoreCopies]. */
+  }
+}
+
+/// Removes safety copies a committed restore left behind.
+///
+/// Only called at launch, after any interrupted restore has been handled, so
+/// no undo journal can still point at one. The window is small — killed
+/// between `finishRestoreRecovery` and the delete — but what it leaks is a
+/// whole copy of the library, in a folder no screen lists and no retention
+/// sweep counts.
+Future<void> _sweepFullRestoreCopies(String backupDir) async {
+  try {
+    await for (final entity in Directory(backupDir).list(followLinks: false)) {
+      if (entity is Directory &&
+          p.basename(entity.path).startsWith('full-restore-')) {
+        await entity.delete(recursive: true);
+      }
+    }
+  } catch (_) {
+    // Best effort, like every other cleanup on the launch path.
+  }
+}
+
 /// Backups, export, restore and sync — the library leaving and coming back.
 /// Split out of NexServices (REL-10).
 extension NexBackupServices on NexServices {
@@ -219,7 +256,23 @@ extension NexBackupServices on NexServices {
       );
       recoveryStarted = true;
       final result = await _restoreBackup(File(p.join(path, 'library.nexbak')));
-      if (result.error != null) return result;
+      if (result.error != null) {
+        // The library itself was not installed, or the restore transaction
+        // put the original back. Settings were never touched, so there is
+        // nothing to undo — and leaving the journal armed is worse than
+        // doing nothing: the next launch would “roll back” to this safety
+        // copy, silently discarding every note written in between. Clear
+        // the journal first (its absence is the commit point), then let the
+        // (unchanged) library stand. Only if clearing fails is the safety
+        // copy kept, because then the journal is still live.
+        try {
+          await _preferences.finishRestoreRecovery();
+        } catch (error) {
+          return RestartRequired(error: NexServices.describeFailure(error));
+        }
+        await _discardFullRestoreCopy(safety.path);
+        return result;
+      }
       try {
         await _preferences.restoreSettings(settings);
         final model = File(p.join(path, 'model.litertlm'));

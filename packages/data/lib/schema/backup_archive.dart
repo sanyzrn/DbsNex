@@ -88,6 +88,22 @@ class NexBackupArchive {
           );
           assertReasonableSize(archive, backup.lengthSync());
           _extract(_validateEntries(archive), stagedDb.path);
+          // A compact backup is only half a backup: its manifest names
+          // content-addressed blobs in `.media` beside it. Checking that
+          // they are all here now means a backup copied without its blob
+          // store is refused while the live library is still open, instead
+          // of after the service has closed it and begun a restore that can
+          // only fail. The blobs' contents are verified during the staged
+          // restore; existence is enough to fail early and cheaply.
+          final manifest = _manifest(archive);
+          if (manifest.isNotEmpty) {
+            final store = BackupMediaStore(backup.parent.path);
+            for (final digest in manifest.values) {
+              if (!store.file(digest).existsSync()) {
+                throw StateError('Backup is missing its media store');
+              }
+            }
+          }
         } finally {
           input.closeSync();
         }

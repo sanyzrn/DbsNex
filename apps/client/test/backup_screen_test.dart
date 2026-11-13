@@ -130,9 +130,16 @@ void main() {
       snapshot.deleteSync();
     }
     await services.updateNote(note.id, 'keep this newer note');
-    // Header/database preflight succeeds; materializing the staged media
-    // fails after closing the worker because this compact blob was lost.
-    Directory(p.join(services.backupDir, '.media')).deleteSync(recursive: true);
+    // Header/database preflight succeeds — the blob is there — and the
+    // staged restore fails its digest check after closing the worker,
+    // because this compact blob's bytes were damaged. A missing blob is
+    // caught earlier now, while the session is still usable; a corrupt one
+    // can only be known by hashing it, which the staged restore does.
+    Directory(p.join(services.backupDir, '.media'))
+        .listSync()
+        .whereType<File>()
+        .single
+        .writeAsBytesSync([9, 8, 7]);
     final result = await services.restoreBackup(selected);
     expect(result.error, isNotNull);
     final reopened = NexDatabase.open(services.dbPath);

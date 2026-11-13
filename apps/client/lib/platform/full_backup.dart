@@ -42,8 +42,13 @@ abstract final class FullBackup {
     }
   }
 
-  static String newKey() =>
-      base64Url.encode(List.generate(32, (_) => Random.secure().nextInt(256)));
+  static String newKey() {
+    // One secure generator for the key, not thirty-two of them. The bytes
+    // were fine either way; creating a fresh platform RNG per byte was just
+    // noise around the one call that matters.
+    final random = Random.secure();
+    return base64Url.encode(List.generate(32, (_) => random.nextInt(256)));
+  }
 
   static void create({
     required String library,
@@ -56,6 +61,26 @@ abstract final class FullBackup {
   }) {
     if (base64Url.decode(key).length != 32) {
       throw const FormatException('Recovery key');
+    }
+    // The settings and the private attachment archive have to describe the
+    // same backup. Writing a file whose encrypted settings say "vault" but
+    // whose entries carry no vault-files.zip (or the reverse) produced a
+    // backup that looked complete and could only fail at restore time, on
+    // the one device that no longer has the original. Refuse it here, while
+    // the library is still open and the error can be retried.
+    final hasVault = settings.containsKey('vault');
+    if (vaultFiles == null) {
+      // A vault of passwords and notes has no attachment archive at all,
+      // and that is the ordinary case. What is never allowed is settings
+      // describing files that are not in this backup.
+      if (settings.containsKey('vaultFilesKey') ||
+          settings.containsKey('vaultFilesSha256')) {
+        throw const FormatException('Vault files do not match settings');
+      }
+    } else if (!hasVault ||
+        settings['vaultFilesKey'] is! String ||
+        settings['vaultFilesSha256'] is! String) {
+      throw const FormatException('Vault files do not match settings');
     }
     final privateZip = Archive()
       ..addFile(ArchiveFile.string('settings.json', jsonEncode(settings)));

@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
@@ -27,6 +28,13 @@ class BackupMediaStore {
       if (expectedHash != null &&
           RegExp(r'^[0-9a-f]{64}$').hasMatch(expectedHash) &&
           file(expectedHash).existsSync()) {
+        // Both are checked, and both have to be. The source, because the
+        // manifest's digest is only trusted if the file still matches it;
+        // the blob, because a damaged blob that a new backup merely pointed
+        // at would make that backup — and every later one sharing the store
+        // — fail only when someone tried to restore it. It costs a second
+        // read of media that has not changed, which is the price of
+        // publishing a backup that has actually been verified.
         if (copyAndHash(source, null) != expectedHash ||
             copyAndHash(file(expectedHash), null) != expectedHash) {
           throw StateError('Media checksum mismatch');
