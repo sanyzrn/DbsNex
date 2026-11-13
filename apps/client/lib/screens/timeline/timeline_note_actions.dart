@@ -198,6 +198,8 @@ extension _TimelineNoteActions on TimelineScreenState {
         action,
         () => unawaited(widget.services.setUrgent(note.id, !note.isUrgent)),
         label: note.isUrgent ? l10n.removeUrgent : l10n.markUrgent,
+        // Filled while it is on, as Pin is (2.6.28).
+        icon: note.isUrgent ? Icons.local_fire_department : null,
       ),
       NexHoldAction.copy =>
         words.isEmpty
@@ -213,6 +215,7 @@ extension _TimelineNoteActions on TimelineScreenState {
         subtitle: note.dueAt == null
             ? null
             : nexDueCardDescription(menuContext, note.dueAt!, note.dueRepeat),
+        icon: note.dueAt == null ? null : Icons.notifications_active,
       ),
       NexHoldAction.share =>
         !nexCanShare
@@ -225,14 +228,17 @@ extension _TimelineNoteActions on TimelineScreenState {
         action,
         () => unawaited(_addTagTo(note)),
       ),
+      // A grid tile has one height in its row, so "Show in full" has nothing
+      // to show there (2.6.28).
       NexHoldAction.expand =>
-        !expanded &&
-                !nexNoteCanExpand(
-                  menuContext,
-                  note,
-                  cardWidth: width,
-                  strings: nexCardStrings(menuContext),
-                )
+        prefs.timelineGrid ||
+                !expanded &&
+                    !nexNoteCanExpand(
+                      menuContext,
+                      note,
+                      cardWidth: width,
+                      strings: nexCardStrings(menuContext),
+                    )
             ? null
             : NoteMenuEntry(
                 action,

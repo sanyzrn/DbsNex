@@ -56,6 +56,7 @@ import 'profile_screen.dart';
 import 'security_screen.dart';
 import 'widget_settings_screen.dart';
 import 'update_sheet.dart';
+import '../widgets/timeline_view_choice.dart';
 
 part 'settings/settings_search.dart';
 part 'settings/settings_rows.dart';

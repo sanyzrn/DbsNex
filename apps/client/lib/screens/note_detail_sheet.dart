@@ -687,8 +687,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // An archived note is off the home screen: pinning it
                       // to the top of that screen, or opening its card up
                       // there, means nothing until it is back (2.3.0).
+                      // Filled while it is on, as Pin is (2.6.28).
                       _DetailAction(
-                        icon: Icons.local_fire_department_outlined,
+                        icon: note.isUrgent
+                            ? Icons.local_fire_department
+                            : Icons.local_fire_department_outlined,
                         label: note.isUrgent
                             ? l10n.removeUrgent
                             : l10n.markUrgent,
@@ -722,6 +725,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // how hard it is to miss.
                       if (widget.preferences case final preferences?
                           when !note.isSetAside() &&
+                              // A grid tile has one height; nothing to show
+                              // in full there (2.6.28).
+                              !preferences.timelineGrid &&
                               (note.displayText != null ||
                                   note.type == NoteType.checklist))
                         _DetailAction(
@@ -739,7 +745,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           (!archived || note.dueAt != null))
                         _DetailAction(
                           icon: note.dueAt == null
-                              ? Icons.notifications_none
+                              ? Icons.notifications_outlined
                               : Icons.notifications_active,
                           label: l10n.remind,
                           onPressed: _pickReminder,

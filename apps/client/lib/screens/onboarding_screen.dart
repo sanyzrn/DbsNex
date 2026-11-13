@@ -11,6 +11,7 @@ import '../widgets/choice_cards.dart';
 import '../widgets/nex_brand.dart';
 import '../widgets/nex_shelf.dart';
 import 'guide_screen.dart';
+import '../widgets/timeline_view_choice.dart';
 
 part 'onboarding/onboarding_art.dart';
 part 'onboarding/onboarding_scenes.dart';

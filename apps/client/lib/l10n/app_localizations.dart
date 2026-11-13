@@ -7124,6 +7124,18 @@ abstract class AppLocalizations {
   /// **'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.'**
   String get planTelegramAbout;
 
+  /// No description provided for @planConverterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Converter'**
+  String get planConverterTitle;
+
+  /// No description provided for @planConverterAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'Dates between the Persian, Gregorian and lunar calendars, and weights, lengths, temperatures, and clothing, shoe and ring sizes between systems, all offline and a tap away.'**
+  String get planConverterAbout;
+
   /// Coming-soon module: Iranian cheque management
   ///
   /// In en, this message translates to:

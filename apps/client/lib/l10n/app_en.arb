@@ -2879,6 +2879,8 @@
   "planTelegramTitle": "Telegram bridge",
   "@planTelegramTitle": {"description": "Planned module title: Telegram connection"},
   "planTelegramAbout": "Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.",
+  "planConverterTitle": "Converter",
+  "planConverterAbout": "Dates between the Persian, Gregorian and lunar calendars, and weights, lengths, temperatures, and clothing, shoe and ring sizes between systems, all offline and a tap away.",
   "@planTelegramAbout": {"description": "Planned module: Telegram connection"},
   "planChequeManagerTitle": "Cheque manager",
   "@planChequeManagerTitle": {"description": "Coming-soon module: Iranian cheque management"},

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/platform/theme_presets.dart';
 import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -51,4 +52,53 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  // The wash is the kind's colour over the card; every word on a tile has to
+  // read on its strongest corner, in every appearance and palette.
+  test('a tile\'s words read on its wash in every theme', () {
+    final bad = <String>[];
+    for (final preset in nexThemePresets) {
+      for (final base in [
+        nexSoftLightTheme(),
+        nexSoftDarkTheme(),
+        nexOledNightTheme(),
+      ]) {
+        final scheme = nexApplyThemePreset(base, preset.id, null).colorScheme;
+        for (final type in NoteType.values) {
+          final tint = nexNoteTypeTint(type.wireName, scheme);
+          final dark = scheme.brightness == Brightness.dark;
+          for (final alpha in [dark ? 0.15 : 0.13, 0.26]) {
+            final wash = Color.alphaBlend(
+              tint.withValues(alpha: alpha),
+              scheme.surfaceContainerLowest,
+            );
+            for (final (name, ink) in [
+              ('title', scheme.onSurface),
+              ('words', nexReadableOn(scheme.onSurfaceVariant, wash)),
+              (
+                'reminder',
+                nexReadableOn(
+                  scheme.primary,
+                  Color.alphaBlend(
+                    scheme.primary.withValues(alpha: 0.12),
+                    wash,
+                  ),
+                ),
+              ),
+              ('kind', nexReadableOn(tint, wash)),
+            ]) {
+              final ratio = nexContrastRatio(ink, wash);
+              if (ratio < 4.5) {
+                bad.add(
+                  '${preset.id} ${scheme.brightness.name} '
+                  '${type.name} $name $alpha: ${ratio.toStringAsFixed(2)}',
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(bad, isEmpty, reason: bad.join('\n'));
+  });
 }

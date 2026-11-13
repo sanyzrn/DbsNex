@@ -302,6 +302,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(preferences.themeMode, ThemeMode.dark);
 
+    // List or grid, asked before there are any notes (2.6.28).
+    expect(preferences.timelineGrid, isFalse);
+    await tester.ensureVisible(find.text('Grid'));
+    await tester.tap(find.text('Grid'));
+    await tester.pumpAndSettle();
+    expect(preferences.timelineGrid, isTrue);
+
     await tester.tap(find.text('فارسی'));
     await tester.pumpAndSettle();
     expect(preferences.locale?.languageCode, 'fa');

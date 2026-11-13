@@ -238,7 +238,9 @@ Future<void> _until(
   bool Function() condition,
   String what,
 ) async {
-  for (var i = 0; i < 100 && !condition(); i++) {
+  // Up to ten seconds of real time: two (100 × 20ms) ran out under the full
+  // suite's parallel load, with the local server's reply still on its way.
+  for (var i = 0; i < 500 && !condition(); i++) {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );

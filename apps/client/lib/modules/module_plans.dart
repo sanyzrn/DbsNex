@@ -38,6 +38,7 @@ class NexModulePlan {
         'gold' => l10n.planGoldTitle,
         'parking' => l10n.planParkingTitle,
         'telegram' => l10n.planTelegramTitle,
+        'converter' => l10n.planConverterTitle,
         'prompt-studio' => l10n.planPromptStudioTitle,
         'cheque-manager' => l10n.planChequeManagerTitle,
         'language-learning' => l10n.planLanguageLearningTitle,
@@ -58,6 +59,7 @@ class NexModulePlan {
         'gold' => l10n.planGoldAbout,
         'parking' => l10n.planParkingAbout,
         'telegram' => l10n.planTelegramAbout,
+        'converter' => l10n.planConverterAbout,
         'prompt-studio' => l10n.planPromptStudioAbout,
         'cheque-manager' => l10n.planChequeManagerAbout,
         'language-learning' => l10n.planLanguageLearningAbout,
@@ -101,6 +103,14 @@ const List<NexModulePlan> nexModulePlans = [
     'persian-calendar',
     Icons.calendar_month_outlined,
     NexHue.sky,
+    NexModuleStage.soon,
+  ),
+  // Dates between calendars; weights, lengths, temperatures and clothing,
+  // shoe and ring sizes between systems (2.6.28).
+  NexModulePlan(
+    'converter',
+    Icons.swap_horiz_rounded,
+    NexHue.teal,
     NexModuleStage.soon,
   ),
   NexModulePlan(

@@ -4531,6 +4531,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Forward a message to your own Telegram bot and it lands in Nex as a note. Your bot and your token, read straight from this phone, with no server of ours in between.';
 
   @override
+  String get planConverterTitle => 'Converter';
+
+  @override
+  String get planConverterAbout =>
+      'Dates between the Persian, Gregorian and lunar calendars, and weights, lengths, temperatures, and clothing, shoe and ring sizes between systems, all offline and a tap away.';
+
+  @override
   String get planChequeManagerTitle => 'Cheque manager';
 
   @override
