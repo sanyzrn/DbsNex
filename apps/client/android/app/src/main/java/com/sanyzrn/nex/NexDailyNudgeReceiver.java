@@ -13,6 +13,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.text.Html;
+import android.text.Spanned;
 import android.util.Log;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -198,9 +199,17 @@ public final class NexDailyNudgeReceiver extends BroadcastReceiver {
         return values;
     }
 
+    /**
+     * The plan's HTML as notification text, without the line breaks Android
+     * appends after a paragraph: a {@code <div>} ends in two of them, and the
+     * expanded notification drew them as empty lines under the text.
+     */
     private static CharSequence text(String html) {
-        return Build.VERSION.SDK_INT >= 24
+        Spanned parsed = Build.VERSION.SDK_INT >= 24
             ? Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY) : Html.fromHtml(html);
+        int end = parsed.length();
+        while (end > 0 && Character.isWhitespace(parsed.charAt(end - 1))) end--;
+        return end == parsed.length() ? parsed : parsed.subSequence(0, end);
     }
 
     private static void deliver(Context context, JSONObject plan, boolean retry) throws Exception {

@@ -11,6 +11,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:nex_ui/widgets/nex_selection_highlight.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'support/nex_harness.dart';
 
 void main() {
@@ -236,9 +237,8 @@ void main() {
         expect(copied, 'inference.dahl.global');
         expect(
           find.text(
-            AppLocalizations.of(
-              tester.element(find.byType(AiChatSheet)),
-            ).copied,
+            AppLocalizations.of(tester.element(find.byType(AiChatSheet)))
+                .copied,
           ),
           findsOneWidget,
         );
@@ -265,6 +265,20 @@ void main() {
       contains('\u200eEnglish &lt;tag&gt; &amp; text<br>\u200fمتن فارسی'),
     );
     expect(nexAndroidNotificationText(''), '');
+    // Text that reads the phone's way is left without a paragraph: Android
+    // ends a <div> with two line breaks, drawn as blank lines under the text.
+    expect(
+      nexAndroidNotificationText('Urgent\nToday', phone: TextDirection.ltr),
+      '\u200eUrgent<br>\u200eToday',
+    );
+    expect(
+      nexAndroidNotificationText('فوری', phone: TextDirection.ltr),
+      contains('text-align:start'),
+    );
+    expect(
+      nexAndroidNotificationText('فوری', phone: TextDirection.rtl),
+      '\u200fفوری',
+    );
     final style = nexNotificationStyle('متن طولانی') as BigTextStyleInformation;
     expect(
       style.htmlFormatBigText &&

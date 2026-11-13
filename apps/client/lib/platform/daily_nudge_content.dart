@@ -61,8 +61,12 @@ abstract final class NexDailyNudgeContent {
     Map<String, List<ChecklistItem>>? itemsById,
   }) {
     final facts = <({int rank, DateTime when, String id, String text})>[];
-    String quoted(String value) =>
-        persian ? '«${short(value, 48)}»' : '“${short(value, 48)}”';
+    // The note's own words are isolated (FSI … PDI): a Persian title inside
+    // an English line, or the reverse, used to pull the quotation marks and
+    // the ellipsis to the wrong end of the line.
+    String quoted(String value) => persian
+        ? '«\u2068${short(value, 48)}\u2069»'
+        : '“\u2068${short(value, 48)}\u2069”';
     final active = source.notes.where(
       (note) => !note.isDeleted && !note.isSetAside(at),
     );
@@ -116,9 +120,7 @@ abstract final class NexDailyNudgeContent {
             rank: 1,
             when: due,
             id: note.id,
-            text: persian
-                ? 'یادآور عقب‌افتاده: $title'
-                : 'Overdue reminder: $title',
+            text: persian ? 'عقب‌افتاده: $title' : 'Overdue: $title',
           ));
         } else if (!gap.isNegative && gap <= const Duration(days: 2)) {
           final local = at.isUtc ? due.toUtc() : due.toLocal();
@@ -129,10 +131,7 @@ abstract final class NexDailyNudgeContent {
           ).difference(DateTime(at.year, at.month, at.day)).inDays;
           final word = persian
               ? ['امروز', 'فردا', 'پس‌فردا'][day.clamp(0, 2)]
-              : ['today', 'tomorrow', 'the day after tomorrow'][day.clamp(
-                  0,
-                  2,
-                )];
+              : ['Today', 'Tomorrow', 'Day after tomorrow'][day.clamp(0, 2)];
           final clock = nexDigits(
             '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
             persian: persian,
@@ -142,8 +141,8 @@ abstract final class NexDailyNudgeContent {
             when: due,
             id: note.id,
             text: persian
-                ? '$title، $word ساعت $clock'
-                : '$title, $word at $clock',
+                ? '$word ساعت $clock · $title'
+                : '$word at $clock · $title',
           ));
         }
       }
@@ -156,8 +155,8 @@ abstract final class NexDailyNudgeContent {
           when: note.updatedAt,
           id: note.id,
           text: persian
-              ? '$count مورد ناتمام در $title'
-              : '$count unfinished ${left == 1 ? 'item' : 'items'} in $title',
+              ? '$count مورد ناتمام: $title'
+              : '$count unfinished ${left == 1 ? 'item' : 'items'}: $title',
         ));
       }
     }
@@ -173,8 +172,8 @@ abstract final class NexDailyNudgeContent {
         when: item.dueAt,
         id: 'commitment:${item.id}',
         text: persian
-            ? '${gap.isNegative ? 'نوبت عقب‌افتاده' : 'نوبت پیش رو'}: $title'
-            : '${gap.isNegative ? 'Overdue' : 'Upcoming'} occurrence: $title',
+            ? '${gap.isNegative ? 'عقب‌افتاده' : 'پیش رو'}: $title'
+            : '${gap.isNegative ? 'Overdue' : 'Coming up'}: $title',
       ));
     }
     facts.sort((a, b) {
@@ -182,11 +181,10 @@ abstract final class NexDailyNudgeContent {
       return rank == 0 ? a.when.compareTo(b.when) : rank;
     });
     final seen = <String>{};
-    final picked = facts
-        .where((f) => seen.add(f.id))
-        .take(2)
-        .map((f) => f.text)
-        .join(persian ? '؛ ' : '; ');
+    final picked = [
+      for (final fact in facts.where((f) => seen.add(f.id)).take(3))
+        short(fact.text, 90),
+    ];
     if (picked.isEmpty) {
       // A day with nothing due is the day for something old: a line the
       // person wrote on this date, in place of a line anyone could be sent.
@@ -201,17 +199,11 @@ abstract final class NexDailyNudgeContent {
           ? (persian ? quietFa : quietEn)
           : (persian ? emptyFa : emptyEn);
     }
-    return persian
-        ? [
-            short(picked, 210),
-            short('یادآوری کوتاه: $picked', 210),
-            short('نگاهی به این‌ها بنداز: $picked', 210),
-          ]
-        : [
-            short(picked, 210),
-            short('A quick reminder: $picked', 210),
-            short('Worth a look: $picked', 210),
-          ];
+    // One fact a line, the most pressing first, each starting with what it
+    // is. These used to be one run-on sentence behind a rotating lead-in, so
+    // a day read "A quick reminder: Urgent: «…»; «…», tomorrow at 09:00".
+    // The facts change from day to day; the frame around them need not.
+    return [picked.join('\n')];
   }
 
   /// "A year ago today you wrote …", from [memories], or null when no note
