@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/note_search.dart';
 import 'package:nex_client/widgets/search_results.dart';
 
@@ -71,5 +72,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Recent'), findsNothing);
     expect(preferences.recentSearches, isEmpty);
+  });
+
+  testWidgets('on the search screen, a chip runs its search and stays', (
+    tester,
+  ) async {
+    // The report (2.6.27): touching a recent search closed search instead.
+    // With the field empty, a touch outside the search leaves it, and the
+    // chips were not counted as part of the search.
+    await harness.services.captureText('boiler service on Friday');
+    await harness.services.captureText('something else');
+    await harness.preferences.rememberSearch('boiler');
+    await tester.pumpWidget(harness.app());
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(TextField).first);
+    await tester.pumpAndSettle();
+    final chip = find.byKey(const ValueKey('recent-search-boiler'));
+    expect(chip, findsOneWidget);
+
+    await tester.tap(chip);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pumpAndSettle();
+
+    final field = tester.widget<TextField>(find.byType(TextField).first);
+    expect(field.controller!.text, 'boiler', reason: 'still searching');
+    expect(find.textContaining('boiler service'), findsWidgets);
+    expect(find.textContaining('something else'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
   });
 }

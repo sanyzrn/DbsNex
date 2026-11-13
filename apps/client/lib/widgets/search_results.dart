@@ -36,73 +36,80 @@ List<Widget> searchResultSlivers({
     ];
     return [
       SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(NexSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.searchStart, style: theme.textTheme.bodyMedium),
-              if (recent.isNotEmpty) ...[
-                const SizedBox(height: NexSpacing.lg),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.recentSearches,
-                        style: theme.textTheme.titleSmall,
-                      ),
-                    ),
-                    IconButton(
-                      key: const ValueKey('recent-searches-clear'),
-                      tooltip: l10n.clearRecentSearches,
-                      visualDensity: VisualDensity.compact,
-                      iconSize: 20,
-                      onPressed: () =>
-                          unawaited(preferences!.clearRecentSearches()),
-                      icon: const Icon(Icons.clear_all),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: NexSpacing.xs),
-                Wrap(
-                  spacing: NexSpacing.sm,
-                  runSpacing: NexSpacing.sm,
-                  children: [
-                    for (final query in recent)
-                      ActionChip(
-                        key: ValueKey('recent-search-$query'),
-                        avatar: const Icon(Icons.history, size: 16),
-                        label: Text(
-                          query,
-                          textDirection: nexDirectionOf(query),
+        // Part of the search, like a result card: with the field empty, a
+        // touch outside the search group leaves search on pointer-down, so a
+        // recent or kept search chip outside it closed search instead of
+        // running the search it names (2.6.27).
+        child: TapRegion(
+          groupId: nexSearchTapGroup,
+          child: Padding(
+            padding: const EdgeInsets.all(NexSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.searchStart, style: theme.textTheme.bodyMedium),
+                if (recent.isNotEmpty) ...[
+                  const SizedBox(height: NexSpacing.lg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.recentSearches,
+                          style: theme.textTheme.titleSmall,
                         ),
-                        onPressed: () => onUseSaved?.call(query),
                       ),
-                  ],
-                ),
-              ],
-              // Kept searches live here rather than behind a menu: the empty
-              // search screen is the one moment they are useful, and it is
-              // otherwise a screen with a sentence on it.
-              if (saved.isNotEmpty) ...[
-                const SizedBox(height: NexSpacing.lg),
-                Text(l10n.savedSearches, style: theme.textTheme.titleSmall),
-                const SizedBox(height: NexSpacing.sm),
-                Wrap(
-                  spacing: NexSpacing.sm,
-                  runSpacing: NexSpacing.sm,
-                  children: [
-                    for (final query in saved)
-                      InputChip(
-                        label: Text(query),
-                        onPressed: () => onUseSaved?.call(query),
-                        onDeleted: () =>
-                            unawaited(preferences!.removeSavedSearch(query)),
+                      IconButton(
+                        key: const ValueKey('recent-searches-clear'),
+                        tooltip: l10n.clearRecentSearches,
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 20,
+                        onPressed: () =>
+                            unawaited(preferences!.clearRecentSearches()),
+                        icon: const Icon(Icons.clear_all),
                       ),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: NexSpacing.xs),
+                  Wrap(
+                    spacing: NexSpacing.sm,
+                    runSpacing: NexSpacing.sm,
+                    children: [
+                      for (final query in recent)
+                        ActionChip(
+                          key: ValueKey('recent-search-$query'),
+                          avatar: const Icon(Icons.history, size: 16),
+                          label: Text(
+                            query,
+                            textDirection: nexDirectionOf(query),
+                          ),
+                          onPressed: () => onUseSaved?.call(query),
+                        ),
+                    ],
+                  ),
+                ],
+                // Kept searches live here rather than behind a menu: the empty
+                // search screen is the one moment they are useful, and it is
+                // otherwise a screen with a sentence on it.
+                if (saved.isNotEmpty) ...[
+                  const SizedBox(height: NexSpacing.lg),
+                  Text(l10n.savedSearches, style: theme.textTheme.titleSmall),
+                  const SizedBox(height: NexSpacing.sm),
+                  Wrap(
+                    spacing: NexSpacing.sm,
+                    runSpacing: NexSpacing.sm,
+                    children: [
+                      for (final query in saved)
+                        InputChip(
+                          label: Text(query),
+                          onPressed: () => onUseSaved?.call(query),
+                          onDeleted: () =>
+                              unawaited(preferences!.removeSavedSearch(query)),
+                        ),
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
