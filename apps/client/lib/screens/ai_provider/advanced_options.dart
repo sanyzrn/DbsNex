@@ -37,7 +37,6 @@ extension _ProviderAdvancedOptions on _AiProviderScreenState {
           hintText: fallback,
           helperText: fallback == null ? null : l10n.aiModelDefault(fallback),
           helperMaxLines: 2,
-          border: const OutlineInputBorder(),
         ),
         onChanged: (value) => _updateAdvanced(update(value)),
       ),

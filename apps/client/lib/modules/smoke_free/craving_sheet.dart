@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
@@ -282,7 +283,6 @@ class _CravingSheetState extends State<_CravingSheet> {
                   decoration: InputDecoration(
                     labelText: strings(context, 'noteLabel'),
                     hintText: strings(context, 'noteHint'),
-                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: NexSpacing.lg),

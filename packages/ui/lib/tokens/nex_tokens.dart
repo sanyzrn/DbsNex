@@ -848,11 +848,25 @@ ThemeData _theme({
         horizontal: NexSpacing.md,
         vertical: NexSpacing.md,
       ),
+      // The resting outline, also the fallback for any state not named
+      // below. Screens used to pass Material's own `OutlineInputBorder()` to
+      // get an outline at all, and a field that was disabled then drew that
+      // default: a 4 px corner in the default grey beside the 12 px ones.
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        borderSide: minimal
+            ? BorderSide(color: border, width: 1)
+            : BorderSide(color: borderSoft),
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(NexRadius.md),
         borderSide: minimal
             ? BorderSide(color: border, width: 1)
             : BorderSide(color: borderSoft),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        borderSide: BorderSide(color: border.withValues(alpha: 0.38)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(NexRadius.md),

@@ -20,10 +20,7 @@ class CurrencyField extends StatelessWidget {
     key: ValueKey(value),
     initialValue: value,
     isExpanded: true,
-    decoration: InputDecoration(
-      labelText: lentStrings(context, 'currency'),
-      border: const OutlineInputBorder(),
-    ),
+    decoration: InputDecoration(labelText: lentStrings(context, 'currency')),
     items: [
       for (final code in {
         'IRR',

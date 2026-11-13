@@ -274,7 +274,6 @@ class _DaySheetState extends State<_DaySheet> {
                 ),
                 decoration: InputDecoration(
                   labelText: l10n.cycleTemperature,
-                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
               ),
@@ -324,7 +323,7 @@ class _DaySheetState extends State<_DaySheet> {
               minLines: 2,
               maxLines: 5,
               maxLength: 2000,
-              decoration: const InputDecoration(border: OutlineInputBorder()),
+              decoration: const InputDecoration(),
             ),
             const SizedBox(height: NexSpacing.md),
             FilledButton(

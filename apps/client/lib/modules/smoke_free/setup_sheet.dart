@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
@@ -360,7 +361,6 @@ class _SetupSheetState extends State<_SetupSheet> {
                         labelText: strings(context, 'customName'),
                         hintText: strings(context, 'customNameHint'),
                         errorText: _nameError,
-                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),
@@ -502,7 +502,6 @@ class _SetupSheetState extends State<_SetupSheet> {
                         decoration: InputDecoration(
                           labelText: strings(context, 'whyLabel'),
                           hintText: strings(context, 'whyHint'),
-                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ],
@@ -575,7 +574,6 @@ class _NumberField extends StatelessWidget {
       hintText: hint,
       errorText: errorText,
       suffixText: suffix,
-      border: const OutlineInputBorder(),
     ),
   );
 }

@@ -56,12 +56,35 @@ void main() {
   test('times and dates are asked with the shared pickers', () {
     ratchet(
       'a raw showTimePicker / showDatePicker',
+      // The dialogs themselves too: Expenses built a TimePickerDialog by
+      // hand, which this did not see until 2.6.27.
       count(
-        RegExp(r'\bshow(Time|Date)Picker\s*\('),
+        RegExp(r'\b(show(Time|Date)Picker|(Time|Date)PickerDialog)\s*\('),
         except: {'lib/widgets/nex_time_picker.dart'},
       ),
       0,
       'Use nexPickTime / nexPickDate (Jalali-aware, platform text scale).',
+    );
+  });
+
+  test('dialogs are NexAlertDialog through nexShowDialog', () {
+    ratchet(
+      'a stock SimpleDialog( / AlertDialog(',
+      count(RegExp(r'(?<![A-Za-z_])(SimpleDialog|AlertDialog)\s*\(')),
+      0,
+      'Use NexAlertDialog (with NexDialogBody for a list of choices).',
+    );
+  });
+
+  test('text fields take their outline from the theme', () {
+    // Material's own OutlineInputBorder() — a 4 px corner in the default
+    // grey — was passed in 33 places just to get an outline, and became what
+    // every one of those fields drew when disabled (2.6.27).
+    ratchet(
+      'a default OutlineInputBorder()',
+      count(RegExp(r'OutlineInputBorder\(\s*\)')),
+      0,
+      'Leave border unset: the theme draws resting, focus, error and disabled.',
     );
   });
 

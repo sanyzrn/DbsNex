@@ -117,9 +117,9 @@ class _ReturnSheetState extends State<_ReturnSheet> {
       final body = await widget.store.get('loan', widget.loan.id);
       if (body == null) throw StateError('Missing loan');
       final fresh = Loan.fromBody(widget.loan.id, body);
-      final history = (await widget.store.list(
-        'return',
-      )).map(LoanReturn.fromRecord).toList();
+      final history = (await widget.store.list('return'))
+          .map(LoanReturn.fromRecord)
+          .toList();
       if (fresh.kind != widget.loan.kind ||
           fresh.currency != widget.loan.currency ||
           fresh.digits != widget.loan.digits ||
@@ -200,7 +200,6 @@ class _ReturnSheetState extends State<_ReturnSheet> {
                   ),
                   errorText: _amountError,
                   suffixText: isMoney ? widget.loan.currency : null,
-                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: NexSpacing.md),
@@ -221,7 +220,6 @@ class _ReturnSheetState extends State<_ReturnSheet> {
                     labelText: strings(context, 'dateFieldLabel'),
                     hintText: strings(context, 'dateHint'),
                     errorText: _dateError,
-                    border: const OutlineInputBorder(),
                   ),
                 ),
               ),

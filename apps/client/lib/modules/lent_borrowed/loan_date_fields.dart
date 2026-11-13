@@ -51,7 +51,6 @@ class LoanDateFields extends StatelessWidget {
               labelText: strings(context, 'dateFieldLabel'),
               hintText: strings(context, 'dateHint'),
               errorText: issueError,
-              border: const OutlineInputBorder(),
             ),
           ),
         ),
@@ -81,10 +80,7 @@ class LoanDateFields extends StatelessWidget {
           minLines: 2,
           maxLines: 4,
           textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            labelText: strings(context, 'noteLabel'),
-            border: const OutlineInputBorder(),
-          ),
+          decoration: InputDecoration(labelText: strings(context, 'noteLabel')),
         ),
         if (loan != null) ...[
           const SizedBox(height: NexSpacing.sm),

@@ -13,7 +13,9 @@ import '../widgets/feature_label.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_dialog.dart';
 import 'local_model_screen.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
 
@@ -438,7 +440,6 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               textAlign: TextAlign.left,
               decoration: InputDecoration(
                 labelText: l10n.apiKey,
-                border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   tooltip: l10n.apiKey,
                   icon: Icon(
@@ -478,7 +479,6 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                     'دقیقاً همان‌طور که نوشته می‌شود استفاده می‌شود و چیزی به آن اضافه نمی‌شود.',
                   ),
                   helperMaxLines: 3,
-                  border: const OutlineInputBorder(),
                 ),
                 onChanged: (_) => setState(() => _result = null),
               ),
@@ -507,7 +507,6 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                   errorText: _gatewayAcceptable(_baseUrl.text)
                       ? null
                       : l10n.aiGatewayInvalid,
-                  border: const OutlineInputBorder(),
                 ),
                 onChanged: (_) => setState(() => _result = null),
               ),
@@ -531,7 +530,6 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                     ? null
                     : l10n.aiModelDefault(provider.defaultModel),
                 helperMaxLines: 2,
-                border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   key: const ValueKey('ai-model-browse'),
                   tooltip: l10n.aiModelBrowse,

@@ -193,7 +193,6 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
                 decoration: InputDecoration(
                   hintText: l10n.tagName,
                   prefixIcon: const Icon(Icons.search),
-                  border: const OutlineInputBorder(),
                 ),
                 onChanged: (value) => setState(() => _query = value),
                 onSubmitted: (value) {

@@ -251,10 +251,7 @@ class _FeedbackSheetState extends State<FeedbackSheet>
                 autofocus: true,
                 minLines: 4,
                 maxLines: 8,
-                decoration: InputDecoration(
-                  hintText: l10n.feedbackHint,
-                  border: const OutlineInputBorder(),
-                ),
+                decoration: InputDecoration(hintText: l10n.feedbackHint),
               ),
               const SizedBox(height: NexSpacing.sm),
               TextField(
@@ -276,7 +273,6 @@ class _FeedbackSheetState extends State<FeedbackSheet>
                     'Telegram ID or email, if you want a reply',
                     'آیدی تلگرام یا ایمیل، اگر پاسخ می‌خواهید',
                   ),
-                  border: const OutlineInputBorder(),
                 ),
               ),
               if (_canAttach) ...[

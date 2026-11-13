@@ -22,7 +22,6 @@ class CurrencyField extends StatelessWidget {
     isExpanded: true,
     decoration: InputDecoration(
       labelText: smokeFreeStrings(context, 'currency'),
-      border: const OutlineInputBorder(),
     ),
     items: [
       for (final code in {

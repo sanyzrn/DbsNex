@@ -374,7 +374,6 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                       labelText: strings(context, 'titleLabel'),
                       hintText: strings(context, 'titleHint'),
                       errorText: _titleError,
-                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -425,7 +424,6 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                         decoration: InputDecoration(
                           labelText: strings(context, 'dayLabel'),
                           errorText: _dayError == null ? null : '',
-                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -439,7 +437,6 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                         isExpanded: true,
                         decoration: InputDecoration(
                           labelText: strings(context, 'monthLabel'),
-                          border: const OutlineInputBorder(),
                         ),
                         items: [
                           for (var m = 1; m <= 12; m++)
@@ -541,7 +538,6 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                           decoration: InputDecoration(
                             labelText: strings(context, 'yearLabel'),
                             errorText: _yearError,
-                            border: const OutlineInputBorder(),
                           ),
                         ),
                       const SizedBox(height: NexSpacing.md),
@@ -554,7 +550,6 @@ class _OccasionSheetState extends State<_OccasionSheet> {
                         decoration: InputDecoration(
                           labelText: strings(context, 'noteLabel'),
                           hintText: strings(context, 'noteHint'),
-                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: NexSpacing.sm),

@@ -81,7 +81,6 @@ class _ModelBrowserState extends State<_ModelBrowser> {
               decoration: InputDecoration(
                 hintText: l10n.aiModelBrowseSearch,
                 prefixIcon: const Icon(Icons.search),
-                border: const OutlineInputBorder(),
               ),
               onChanged: (_) => setState(() {}),
             ),
