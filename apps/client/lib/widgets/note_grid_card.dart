@@ -37,7 +37,7 @@ class NexNoteGridCard extends StatelessWidget {
 
   /// The height every tile in a row shares, at the reader's text size.
   static double heightFor(BuildContext context) =>
-      MediaQuery.textScalerOf(context).scale(176).clamp(176, 260);
+      MediaQuery.textScalerOf(context).scale(176).clamp(176, 300);
 
   @override
   Widget build(BuildContext context) {
@@ -123,31 +123,46 @@ class NexNoteGridCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: NexSpacing.sm),
-                if (title.isNotEmpty)
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textDirection: nexDirectionOf(title),
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      height: 1.35,
+                // The words take what the mark and the foot leave, and give
+                // way at the largest text sizes rather than overflow: a tile
+                // keeps one height in its row.
+                Expanded(
+                  child: ClipRect(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (title.isNotEmpty)
+                          Flexible(
+                            child: Text(
+                              title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textDirection: nexDirectionOf(title),
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        if (body.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Flexible(
+                            child: Text(
+                              body,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textDirection: nexDirectionOf(body),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: muted,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                if (body.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    body,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textDirection: nexDirectionOf(body),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: muted,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-                const Spacer(),
+                ),
                 Row(
                   children: [
                     if (note.dueAt != null) ...[

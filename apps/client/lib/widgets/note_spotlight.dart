@@ -18,7 +18,16 @@ class NoteSpotlight extends StatefulWidget {
     required this.active,
     required this.onDone,
     required this.child,
+    this.insets,
+    this.radius = NexRadius.lg,
   });
+
+  /// Where the card's edge is inside this widget. Null is a timeline card's
+  /// gutter; the grid's tiles have none (2.6.27).
+  final EdgeInsets? insets;
+
+  /// The card's corner, which the outline follows.
+  final double radius;
 
   final bool active;
 
@@ -95,7 +104,7 @@ class _NoteSpotlightState extends State<NoteSpotlight>
         Positioned.fill(
           child: IgnorePointer(
             child: Padding(
-              padding: nexCardInsetsFor(context),
+              padding: widget.insets ?? nexCardInsetsFor(context),
               child: FadeTransition(
                 opacity: CurvedAnimation(
                   parent: _pulseController,
@@ -103,7 +112,7 @@ class _NoteSpotlightState extends State<NoteSpotlight>
                 ),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(NexRadius.lg),
+                    borderRadius: BorderRadius.circular(widget.radius),
                     border: Border.all(color: scheme.primary, width: 2),
                   ),
                 ),

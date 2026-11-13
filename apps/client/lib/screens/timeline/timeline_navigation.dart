@@ -361,7 +361,9 @@ extension _TimelineNavigation on TimelineScreenState {
     // can only add height, then viewport steps materialize the lazy target.
     final index = _model.notes.indexWhere((n) => n.id == noteId);
     if (_spotlightAnchor.currentContext == null && index >= 0) {
-      final estimate = index * rowHeight;
+      final estimate = widget.preferences.timelineGrid
+          ? _gridOffsetEstimate(index)
+          : index * rowHeight;
       _scroll.jumpTo(estimate.clamp(0.0, _scroll.position.maxScrollExtent));
       await WidgetsBinding.instance.endOfFrame;
     }

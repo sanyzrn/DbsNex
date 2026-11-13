@@ -358,7 +358,9 @@ Settings you may change, and nothing else:
 `theme` (light/dark/night/system; night is the former dark look), `language` (en/fa/system),
 `ai_language` (auto/en/fa),
 `text_size` (small/default/large/larger),
-`palette` (classic/paper/autumn/blossom/forest/turquoise/saffron/midnight/ocean/graphite),
+`palette` (classic/still/paper/autumn/blossom/forest/turquoise/saffron/midnight/ocean/graphite/
+bauhaus/porcelain/circuit/afterimage/lavender/peach/bloom/dusk/coral/sunflower; porcelain is
+Kintsugi, peach is Peach & charcoal),
 `accent` (a `#RRGGBB` colour, or `default`), `haptics` (on/off),
 `show_greeting`, `show_digest`, `show_search`, `show_tags` (on/off),
 `daily_nudge` (on/off), `daily_nudge_time` (`HH:MM`).

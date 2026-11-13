@@ -69,4 +69,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(shown(tester), isNull, reason: 'back at the top');
   });
+
+  testWidgets('the grid view names the passing day too', (tester) async {
+    await harness.preferences.setTimelineGrid(true);
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    expect(shown(tester), isNull);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -900));
+    await tester.pumpAndSettle();
+    expect(
+      shown(tester),
+      matches(RegExp(r'^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{4}/')),
+    );
+  });
 }
