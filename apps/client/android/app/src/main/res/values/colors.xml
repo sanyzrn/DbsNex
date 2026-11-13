@@ -17,6 +17,11 @@
          Android 12+ overrides widgets with wallpaper-based Material You in
          values-v31/colors.xml and values-night-v31/colors.xml. -->
     <color name="nex_widget_accent">#006DCC</color>
+    <!-- The top end of the Capture tile's fill: the accent with a measure
+         of white worked in, the way a lit surface is lighter where it
+         faces the light. v31 takes the neighbouring system-palette step
+         instead, so a Material You tile keeps the wallpaper's own step. -->
+    <color name="nex_widget_accent_hi">#1F7ED2</color>
     <color name="nex_widget_on_accent">#FFFFFF</color>
     <color name="nex_widget_card">#F4F5F8</color>
     <color name="nex_widget_text">#14171C</color>
@@ -24,6 +29,9 @@
     <color name="nex_widget_stroke">#E9ECF1</color>
     <!-- The capture buttons' pill: the text colour at a few percent. -->
     <color name="nex_widget_action">#1014171C</color>
+    <!-- The press feedback over that pill: the same text colour at a fifth,
+         because the fill's own six percent would never be seen. -->
+    <color name="nex_widget_ripple">#2E14171C</color>
 
     <!-- Cycle's own space on the home screen (CycleWidgetProvider). -->
     <color name="nex_cycle_bg_start">#FCEAF0</color>

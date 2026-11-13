@@ -46,6 +46,7 @@
             android:layout_height="12dp"
             android:importantForAccessibility="no"
             android:src="@drawable/nex_widget_ic_mark" />
+
     </LinearLayout>
 
     <LinearLayout
@@ -192,11 +193,23 @@
         android:paddingEnd="20dp"
         android:visibility="gone">
 
+        <!-- The stream's own glyph, faded to a watermark, so the empty state
+             is a picture of what will fill it rather than two lines of text
+             in an empty box. Infinity is the timeline's catch-all mark — the
+             same shape a note of no known type carries. -->
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:alpha="0.5"
+            android:importantForAccessibility="no"
+            android:src="@drawable/nex_widget_ic_type_other" />
+
         <TextView
             android:id="@+id/nex_widget_empty_title"
             style="@style/NexWidget.EmptyTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:gravity="center" />
 
         <TextView

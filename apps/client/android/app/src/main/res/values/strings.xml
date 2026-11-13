@@ -64,6 +64,17 @@
     <string name="widget_time_months">%1$dmo</string>
     <string name="widget_time_years">%1$dy</string>
 
+    <!-- Sample words for the widget picker's static previews
+         (widget_timeline_preview.xml, widget_recap_preview.xml). Real-looking
+         content, because a preview with "Lorem ipsum" previews nothing. -->
+    <string name="widget_preview_note1">Groceries for the weekend — mint, bread, lemons</string>
+    <string name="widget_preview_note1_time">12m</string>
+    <string name="widget_preview_note2">Mom\'s birthday — call her in the evening</string>
+    <string name="widget_preview_note2_time">3h</string>
+    <string name="widget_preview_recap1">📌 Two reminders are waiting on you</string>
+    <string name="widget_preview_recap2">✅ Three of five habits done today</string>
+    <string name="widget_preview_recap3">🎂 Mom\'s birthday tomorrow</string>
+
     <!-- Quick Settings tile and the optional quick-capture notification (W5.2). -->
     <string name="tile_capture_label">Nex capture</string>
     <string name="tile_capture_subtitle">New note</string>

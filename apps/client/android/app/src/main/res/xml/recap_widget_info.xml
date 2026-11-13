@@ -16,6 +16,11 @@
   updatePeriodMillis is 0, the same as the other two and for the same
   reason: nothing here goes stale on a clock. A brief changes when the app
   writes a new one, and the app pushes it out the moment it does.
+
+  previewLayout points at a dedicated preview with three sample lines, for
+  the same reason the Timeline widget's does: the live layout's ListView
+  has no lines until a provider binds them, and the Android 12+ picker
+  would otherwise show a blank card for a widget whose whole job is lines.
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"
@@ -28,6 +33,6 @@
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_recap"
     android:previewImage="@drawable/nex_widget_preview_recap"
-    android:previewLayout="@layout/widget_recap"
+    android:previewLayout="@layout/widget_recap_preview"
     android:widgetCategory="home_screen"
     android:description="@string/widget_recap_description" />

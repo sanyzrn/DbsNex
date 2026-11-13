@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Persian halves of the widget text ramp: every style the widgets use,
+  pointed at Vazirmatn (res/font/vazirmatn.xml) with the same sizes,
+  colours and weights the defaults carry.
+
+  A values-fa-v26 override rather than a base one, for two reasons.
+  res/font exists only from API 26, and minSdk is 24 — a Persian device on
+  Android 7 keeps the platform face below rather than failing to resolve a
+  font that is not there. And the override follows the device's language,
+  which is the configuration the launcher resolves these styles under: a
+  widget's RemoteViews are inflated in the launcher's process, by the
+  launcher's Resources, with the launcher's locale — this file is the only
+  place in the app that can say "a Persian home screen draws its widgets
+  in the app's own Persian face".
+
+  The app's own language setting cannot reach this file (it would have to
+  travel through a layout XML, and RemoteViews carry no font action), so
+  a device left in English with Nex set to Persian keeps the platform
+  face for the widgets while the words themselves still arrive in
+  Persian, set programmatically from the saved locale exactly as before.
+-->
+<resources>
+    <style name="NexWidget.CaptureLabel" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/nex_widget_on_accent</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
+    <style name="NexWidget.Title" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/nex_widget_text</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
+    <style name="NexWidget.RowPreview" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/nex_widget_text</item>
+    </style>
+
+    <style name="NexWidget.RowTime" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">@color/nex_widget_text_dim</item>
+    </style>
+
+    <style name="NexWidget.Recap" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/nex_widget_text</item>
+        <item name="android:lineSpacingMultiplier">1.45</item>
+    </style>
+
+    <style name="NexWidget.Message" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/nex_widget_text_dim</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+    </style>
+
+    <style name="NexWidget.EmptyTitle" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/nex_widget_text</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="NexWidget.CycleTitle" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/nex_cycle_text_dim</item>
+    </style>
+
+    <style name="NexWidget.CycleHeadline" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:textColor">@color/nex_cycle_text</item>
+    </style>
+
+    <style name="NexWidget.CycleSubline" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/nex_cycle_text_dim</item>
+    </style>
+
+    <style name="NexWidget.CycleWhisper" parent="">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/nex_cycle_text_dim</item>
+    </style>
+</resources>

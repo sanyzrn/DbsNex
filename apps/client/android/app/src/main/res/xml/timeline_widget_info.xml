@@ -16,6 +16,12 @@
   updatePeriodMillis is 0 by design: nothing here refreshes on a timer,
   because nothing here is allowed to go stale — the app re-renders the widget
   the moment its own data moves.
+
+  previewLayout is not the live layout: on Android 12+ the picker inflates
+  this attribute in preference to the preview image, and the live layout
+  holds a ListView that binds nothing until a provider runs — the picker
+  would show the frame around a blank card. The dedicated preview layout
+  carries two sample rows instead.
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"
@@ -28,6 +34,6 @@
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_timeline"
     android:previewImage="@drawable/nex_widget_preview_timeline"
-    android:previewLayout="@layout/widget_timeline"
+    android:previewLayout="@layout/widget_timeline_preview"
     android:widgetCategory="home_screen"
     android:description="@string/widget_timeline_description" />

@@ -124,9 +124,17 @@ object NexWidgetActions {
      * Straight into one kind of capture — the Timeline widget's capture row.
      * The same action and extra as the quick-capture notification's buttons,
      * so Dart has one path for both.
+     *
+     * The request code falls back to the text-capture one rather than
+     * throwing on a mode the map has never heard of: the map is a private
+     * detail of this file, and a mode added to the row without a code added
+     * here would otherwise crash the provider mid-broadcast — every widget
+     * update, until someone found it. A fallback button that starts a text
+     * note instead of the new kind is a bug to fix in daylight; a widget
+     * that dies on redraw is an outage.
      */
     fun capture(context: Context, mode: String): PendingIntent =
-        activity(context, RC_CAPTURE.getValue(mode)) {
+        activity(context, RC_CAPTURE[mode] ?: RC_TEXT_CAPTURE) {
             textCaptureIntent(context).putExtra(NexQuickCapture.EXTRA_CAPTURE_MODE, mode)
         }
 

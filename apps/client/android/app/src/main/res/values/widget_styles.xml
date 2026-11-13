@@ -3,11 +3,14 @@
   The widget text styles, in Nex's type ramp but sized for a glance:
   one label, one title, one row of body, one of metadata.
 
-  Fonts live in res/font and load on API 26+ (see values-v26). Below that
-  the platform's own sans-serif carries the layout — the widget is a couple
-  of words at 12–16sp, and the ramp holds either way. The Persian overrides
-  are in values-fa-v26, where Vazirmatn takes over exactly as it does inside
-  the app.
+  Latin text stays on the platform's own sans-serif, which is close enough
+  to the app's Inter at the sizes a widget uses and costs the APK nothing.
+  Persian text is worth the exception: values-fa-v26 overrides every style
+  below with Vazirmatn (res/font/vazirmatn.xml), the app's own Persian
+  face, so a Persian home screen does not read the same words in a
+  different alphabet than the app inside. The overrides resolve in the
+  launcher's process with the device's configuration, which is the only
+  configuration a RemoteViews layout is ever inflated with.
 -->
 <resources>
     <style name="NexWidget.CaptureLabel" parent="">
@@ -76,5 +79,35 @@
         <item name="android:textSize">15sp</item>
         <item name="android:textColor">@color/nex_widget_text</item>
         <item name="android:gravity">center</item>
+    </style>
+
+    <!--
+        The Cycle widget's four lines. Styles rather than inline
+        fontFamily attributes on the TextViews (which an inline attribute
+        would always win over) so values-fa-v26 can carry the same lines
+        in Vazirmatn alongside every other widget word.
+    -->
+    <style name="NexWidget.CycleTitle" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/nex_cycle_text_dim</item>
+    </style>
+
+    <style name="NexWidget.CycleHeadline" parent="">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:textColor">@color/nex_cycle_text</item>
+    </style>
+
+    <style name="NexWidget.CycleSubline" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/nex_cycle_text_dim</item>
+    </style>
+
+    <style name="NexWidget.CycleWhisper" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/nex_cycle_text_dim</item>
     </style>
 </resources>

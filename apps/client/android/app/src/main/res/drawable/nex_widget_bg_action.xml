@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One capture button in the Timeline widget's capture row: a soft pill of
-     the text colour at a few percent, so the row reads as a set of controls
-     without competing with the notes under it. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="@color/nex_widget_action" />
-    <corners android:radius="14dp" />
-</shape>
+<!--
+  One capture button in the Timeline widget's capture row: a soft pill of
+  the text colour at a few percent, so the row reads as a set of controls
+  without competing with the notes under it.
+
+  The pill is the clickable view, so it carries its own ripple — the same
+  press feedback a timeline row gives through the platform's
+  selectableItemBackground. The ripple colour is the text's own colour at
+  a fifth, not the pill's fill again: the fill sits at six percent and a
+  ripple of six percent is a tap that gives no sign it landed. A <ripple>
+  is valid from API 21 and minSdk is 24, so no unqualified fallback is
+  needed.
+-->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/nex_widget_ripple">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/nex_widget_action" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+</ripple>
