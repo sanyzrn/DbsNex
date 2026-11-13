@@ -114,6 +114,14 @@ extension _TimelineCapture on TimelineScreenState {
     return ImagePicker().pickMultiImage();
   }
 
+  /// The draft keys an interrupted photo editing session leaves behind,
+  /// cleared as one set wherever the session ends.
+  static const _photoDraftKeys = [
+    'photo-new',
+    'photo-new-crop',
+    'photo-new-annotation',
+  ];
+
   Future<void> capturePhoto(ImageSource source) async {
     try {
       // Inside the try: this is the call that throws when the OS refuses the
@@ -124,80 +132,104 @@ extension _TimelineCapture on TimelineScreenState {
       final picked = all.firstOrNull;
       final more = all.skip(1).toList();
       if (recovered == null && picked == null) return;
-      final original = recovered ?? await picked!.readAsBytes();
       final editing =
           widget.preferences.editPhotoBeforeCapture || recovered != null;
-      if (editing && widget.preferences.editorDrafts != null) {
-        unawaited(
-          widget.preferences.editorDrafts!.writeImage('photo-new', original),
+      // The original bytes are read only when they are about to be edited:
+      // the straight path below copies the picker's own file and hashes it
+      // from the disk, so an unedited photo never crosses the heap at all.
+      final Uint8List? original = editing
+          ? recovered ?? await picked!.readAsBytes()
+          : null;
+      final Note note;
+      if (editing && original != null) {
+        if (widget.preferences.editorDrafts != null) {
+          unawaited(
+            widget.preferences.editorDrafts!.writeImage('photo-new', original),
+          );
+        }
+        if (!mounted) return;
+        // An interrupted editing session still gets its recovery screen.
+        final cropped = await Navigator.of(context).push<Uint8List>(
+          NexPageRoute(
+            builder: (_) => PhotoPreviewScreen(
+              image: original,
+              drafts: widget.preferences.editorDrafts,
+            ),
+          ),
+        );
+        if (cropped == null) {
+          for (final key in _photoDraftKeys) {
+            widget.preferences.editorDrafts?.clear(key);
+          }
+          return;
+        }
+        final encoded = identical(cropped, original)
+            ? cropped
+            : await compute(encodeEditedPhoto, (
+                bytes: cropped,
+                wasJpeg:
+                    original.length > 2 &&
+                    original[0] == 0xff &&
+                    original[1] == 0xd8,
+              ));
+        final isPng =
+            cropped.length >= 8 &&
+            cropped[0] == 0x89 &&
+            cropped[1] == 0x50 &&
+            cropped[2] == 0x4E &&
+            cropped[3] == 0x47;
+        final dest = p.join(
+          widget.services.mediaDir,
+          'photo-${DateTime.now().microsecondsSinceEpoch}'
+          '${identical(cropped, original) ? (isPng ? '.png' : (picked == null ? '.jpg' : p.extension(picked.path))) : photoExtension(encoded)}',
+        );
+        await File(dest).writeAsBytes(encoded, flush: true);
+        note = await widget.services.capturePhoto(
+          mediaUri: dest,
+          // The bytes are already in hand and a photo fits in memory, so hash
+          // them here rather than re-reading the file. The share path cannot:
+          // what arrives there is whatever was shared, up to a video.
+          // Off the UI isolate: megabytes of pure-Dart SHA-256 (PERF-07).
+          mediaHash: await compute(sha256OfBytes, encoded),
+        );
+      } else {
+        // Straight from the picker to the library: the bytes need no
+        // transformation, so they are copied file-to-file and hashed from
+        // the file (PERF-07) — a photo used to make three full passes over
+        // the heap on this path (read, write, isolate copy to hash) for
+        // every picture the library simply keeps as it came.
+        final pickedPath = picked!.path;
+        final pickedExtension = p.extension(pickedPath);
+        final dest = p.join(
+          widget.services.mediaDir,
+          'photo-${DateTime.now().microsecondsSinceEpoch}'
+          '${pickedExtension.isNotEmpty ? pickedExtension : '.jpg'}',
+        );
+        await File(pickedPath).copy(dest);
+        final hash = await compute(sha256OfFile, dest);
+        if (hash == null) {
+          throw StateError('the photo copy could not be read back');
+        }
+        note = await widget.services.capturePhoto(
+          mediaUri: dest,
+          mediaHash: hash,
         );
       }
-      if (!mounted) return;
-      // Capture goes straight to the library unless editing was requested.
-      // An interrupted editing session still gets its recovery screen.
-      final cropped = editing
-          ? await Navigator.of(context).push<Uint8List>(
-              NexPageRoute(
-                builder: (_) => PhotoPreviewScreen(
-                  image: original,
-                  drafts: widget.preferences.editorDrafts,
-                ),
-              ),
-            )
-          : original;
-      if (cropped == null) {
-        for (final key in [
-          'photo-new',
-          'photo-new-crop',
-          'photo-new-annotation',
-        ]) {
-          widget.preferences.editorDrafts?.clear(key);
-        }
-        return;
-      }
-      final encoded = identical(cropped, original)
-          ? cropped
-          : await compute(encodeEditedPhoto, (
-              bytes: cropped,
-              wasJpeg:
-                  original.length > 2 &&
-                  original[0] == 0xff &&
-                  original[1] == 0xd8,
-            ));
-      final isPng =
-          cropped.length >= 8 &&
-          cropped[0] == 0x89 &&
-          cropped[1] == 0x50 &&
-          cropped[2] == 0x4E &&
-          cropped[3] == 0x47;
-      final dest = p.join(
-        widget.services.mediaDir,
-        'photo-${DateTime.now().microsecondsSinceEpoch}${identical(cropped, original) ? (isPng ? '.png' : (picked == null ? '.jpg' : p.extension(picked.path))) : photoExtension(encoded)}',
-      );
-      await File(dest).writeAsBytes(encoded, flush: true);
-      final note = await widget.services.capturePhoto(
-        mediaUri: dest,
-        // The bytes are already in hand and a photo fits in memory, so hash
-        // them here rather than re-reading the file. The share path cannot:
-        // what arrives there is whatever was shared, up to a video.
-        // Off the UI isolate: megabytes of pure-Dart SHA-256 (PERF-07).
-        mediaHash: await compute(sha256OfBytes, encoded),
-      );
-      for (final key in [
-        'photo-new',
-        'photo-new-crop',
-        'photo-new-annotation',
-      ]) {
+      for (final key in _photoDraftKeys) {
         widget.preferences.editorDrafts?.clear(key);
       }
       for (final extra in more) {
-        await widget.services.attachBytes(
+        // Copied and hashed from the file, never read whole into memory: a
+        // multi-photo pick can be a dozen pictures, and each used to make
+        // two full copies of itself on this loop (read into the heap, then
+        // an isolate copy to hash).
+        await widget.services.attachFile(
           note.id,
-          await extra.readAsBytes(),
+          extra.path,
           kind: AttachmentKind.photo,
-          extension: p.extension(extra.path).isNotEmpty
-              ? p.extension(extra.path)
-              : '.jpg',
+          mimeType: extra.mimeType,
+          // The one refresh below the loop covers the whole batch.
+          refresh: false,
         );
       }
       landedId = note.id;
@@ -246,13 +278,17 @@ extension _TimelineCapture on TimelineScreenState {
   /// Retry saves the same recording again.
   Future<void> _keepVoice(String recorded, int durationMs) async {
     try {
-      // A recording this app made itself, so its length is bounded by how
-      // long someone held the button — reading it back to hash is safe here
-      // in a way it is not for a file that arrived from somewhere else.
-      final bytes = await File(recorded).readAsBytes();
+      // Hashed from the file, off the UI isolate (PERF-07): the memo used
+      // to be read whole into the heap and then copied into a second isolate
+      // to hash — twice the recording's size at the moment of saving, for a
+      // file that was already safely on disk.
+      final mediaHash = await compute(sha256OfFile, recorded);
+      if (mediaHash == null) {
+        throw StateError('the recording could not be read back');
+      }
       final note = await widget.services.captureVoice(
         mediaUri: recorded,
-        mediaHash: await compute(sha256OfBytes, bytes),
+        mediaHash: mediaHash,
         durationMs: durationMs,
       );
       landedId = note.id;
@@ -282,15 +318,55 @@ extension _TimelineCapture on TimelineScreenState {
     }
   }
 
+  /// A file from the picker, saved through the same path a shared file
+  /// takes. The picker's own failures are said by [nexPickAttachment]; a
+  /// failure *storing* what was picked — a missing copy, a full disk, a
+  /// hash that cannot be read back — used to escape as an unhandled error:
+  /// nothing on screen, no retry, and the metrics counting a capture that
+  /// never happened.
   Future<void> captureFile() async {
-    final picked = await nexPickAttachment(context);
-    if (picked == null) return;
-    await widget.osCapture?.handle({
-      'type': 'shared_file',
-      'path': picked.path,
-      'filename': picked.filename,
-      'mimeType': picked.mimeType,
-    });
-    NexMetrics.shared.markCapture();
+    try {
+      final picked = await nexPickAttachment(context);
+      if (picked == null) return;
+      final saved = await widget.osCapture?.handle({
+        'type': 'shared_file',
+        'path': picked.path,
+        'filename': picked.filename,
+        'mimeType': picked.mimeType,
+      });
+      // Refused (too large) or nothing behind the bridge: not a capture.
+      if (saved != true) return;
+      NexMetrics.shared.markCapture();
+    } catch (error) {
+      unawaited(NexCrashLog.handled('capture.file', error));
+      if (!mounted) return;
+      _reportFileCaptureFailure(error);
+    }
+  }
+
+  /// Says why a picked file was not kept, with the picker's own words for
+  /// the causes a person can act on — the same shape photo capture has.
+  void _reportFileCaptureFailure(Object error) {
+    final l10n = AppLocalizations.of(context);
+    final failure = CaptureFailure.of(error);
+    nexShowBanner(
+      context,
+      kind: NexBannerKind.failed,
+      haptics: widget.preferences.haptics,
+      message: switch (failure) {
+        CaptureFailure.permission => l10n.captureFailedPermission,
+        CaptureFailure.storage => l10n.captureFailedStorage,
+        CaptureFailure.unreadable => l10n.captureFailedUnreadable,
+        CaptureFailure.unknown => l10n.captureFailed,
+      },
+      actionLabel: failure == CaptureFailure.permission
+          ? l10n.openSettings
+          : l10n.retry,
+      onAction: () => unawaited(
+        failure == CaptureFailure.permission
+            ? openCaptureSettings()
+            : captureFile(),
+      ),
+    );
   }
 }

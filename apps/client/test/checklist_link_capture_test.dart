@@ -212,6 +212,61 @@ void main() {
     expect(await services.getById(draft.id), isNull);
   });
 
+  testWidgets('a conversion whose reply was lost makes one list, not two', (
+    tester,
+  ) async {
+    await openComposer(tester);
+    await tester.enterText(_field, 'milk\neggs');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Checklist'));
+    await tester.pumpAndSettle();
+
+    // The commit lands; the reply is lost — the shape a worker that died
+    // between the two takes in production. The sheet says the close
+    // failed and stays open over the words.
+    harness.db.failSharedReplies = 1;
+    await tester.tap(_send);
+    await tester.pumpAndSettle();
+    expect(find.byType(CaptureSheet), findsOneWidget);
+    final made = (await services.timeline(limit: 10))
+        .singleWhere((note) => note.type == NoteType.checklist);
+
+    // Sending again finds the list the first attempt already made through
+    // its receipt, rather than making a second one out of the same words.
+    await tester.tap(_send);
+    await tester.pumpAndSettle();
+    expect(find.byType(CaptureSheet), findsNothing);
+
+    final notes = await services.timeline(limit: 10);
+    final lists = notes.where((n) => n.type == NoteType.checklist).toList();
+    expect(lists, hasLength(1));
+    expect(lists.single.id, made.id);
+    expect(lists.single.checklistItems.map((i) => i.text), ['milk', 'eggs']);
+    // The draft note the words were on the way from is gone, not left
+    // behind beside its own conversion.
+    expect(notes.where((n) => n.type == NoteType.text), isEmpty);
+  });
+
+  // While the sheet is open its flushes no longer refresh the timeline; a
+  // sheet popped from outside — the camera, gallery and file buttons do —
+  // never reaches the close that refreshes once, and the timeline's own
+  // refresh can run before the last write lands. The card must still end on
+  // the last words (2.6.28).
+  testWidgets('a sheet popped from outside leaves its last words on the card', (
+    tester,
+  ) async {
+    await openComposer(tester);
+    await tester.enterText(_field, 'first');
+    await tester.pumpAndSettle(const Duration(milliseconds: 700));
+    await tester.enterText(_field, 'first, and the rest');
+    // Gone before the debounce: the last words are written by dispose.
+    Navigator.of(tester.element(find.byType(CaptureSheet))).pop();
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    expect(find.byType(CaptureSheet), findsNothing);
+    expect(find.text('first, and the rest'), findsOneWidget);
+    expect(find.text('first'), findsNothing);
+  });
+
   testWidgets('ticking an item is an ordinary edit to the note', (
     tester,
   ) async {

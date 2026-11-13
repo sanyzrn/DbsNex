@@ -121,6 +121,15 @@ class InProcessDb implements NexDb {
   @override
   Future<Note?> captureShared(Map<String, String> payload) async {
     if (captureDelay != null) await Future<void>.delayed(captureDelay!);
+    if (failSharedReplies > 0) {
+      // The commit lands; the reply does not. This is the shape a lost
+      // isolate response takes in production, and what the capture
+      // receipts exist for: a retry must find the note the commit already
+      // made rather than make a second one.
+      failSharedReplies--;
+      _repo.captureShared(payload);
+      throw StateError('reply lost by the test');
+    }
     return _repo.captureShared(payload);
   }
 
@@ -213,6 +222,10 @@ class InProcessDb implements NexDb {
   /// treat as saved.
   int failUpdates = 0;
   int failReminders = 0;
+
+  /// How many of the next [captureShared] calls commit and then throw —
+  /// the reply the sheet never heard, after the note it already made.
+  int failSharedReplies = 0;
 
   @override
   Future<void> deleteNote(String id) async => _repo.softDelete(id);

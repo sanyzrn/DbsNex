@@ -442,6 +442,10 @@ class OsCaptureBridge {
       kind: type == 'shared_photo' ? AttachmentKind.photo : AttachmentKind.file,
       name: name,
       mimeType: payload['mimeType'] as String?,
+      // The share that carries this attachment refreshes the timeline once
+      // when all of its files have landed; one read per file bought nothing
+      // the last one did not have.
+      refresh: false,
     );
     return attached != null;
   }

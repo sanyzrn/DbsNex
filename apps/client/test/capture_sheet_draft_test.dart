@@ -161,6 +161,43 @@ void main() {
     expect(services.captureJournal.pending(), isEmpty);
   });
 
+  test(
+    'startup does not recover a whitespace-only journal into a note',
+    () async {
+      // In the sheet, whitespace is emptiness with a card attached: the
+      // note is retired, not kept. A journal the process died holding at
+      // whitespace used to come back as a note of blank lines.
+      await boot();
+      await services.captureDraft('ws', 'words');
+      services.captureJournal.write('ws', '   ');
+      await services.recoverCaptureDrafts();
+      expect(await db.timeline(), isEmpty);
+      expect(services.captureJournal.pending(), isEmpty);
+    },
+  );
+
+  testWidgets('a keystroke flush reads neither the note nor the timeline', (
+    tester,
+  ) async {
+    // While the sheet is open, each debounced burst of typing used to
+    // cost a note read (to re-bake a reminder most notes do not have)
+    // and a full timeline window read — per pause in the typing, none of
+    // it visible under the sheet. The flush now writes the words and
+    // nothing else; the closing sheet refreshes once.
+    await boot();
+    await showSheet(tester);
+    final reads = db.timelineReads;
+
+    final field = find.byType(TextField);
+    await tester.enterText(field, 'first');
+    await tester.pumpAndSettle(const Duration(milliseconds: 700));
+    await tester.enterText(field, 'first, and more');
+    await tester.pumpAndSettle(const Duration(milliseconds: 700));
+
+    expect(db.timelineReads, reads);
+    expect((await db.timeline(limit: 50)).single.content, 'first, and more');
+  });
+
   testWidgets(
     'clearing and closing before first insert leaves no partial note',
     (tester) async {

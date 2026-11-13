@@ -24,6 +24,7 @@ import 'keyboard_dismisser.dart';
 
 part 'capture_sheet_modes.dart';
 part 'capture_sheet_parts.dart';
+part 'capture_sheet_settle.dart';
 
 /// What the capture sheet is making.
 enum CaptureKind { note, checklist, voice, link }
@@ -318,28 +319,33 @@ class _CaptureSheetState extends State<CaptureSheet>
     return _writes;
   }
 
-  /// The text of the most recent update sent and not yet known to have
-  /// failed. Only here so that `close`, the pop and `dispose` — which all
-  /// flush, one after another — do not queue the same write three times.
-  String? queued;
-
   /// Persist before updating the saved snapshot; failures keep the previous
   /// snapshot available for retry while the editor stays open.
+  ///
+  /// The text of the most recent update needs no second marker: [persisted]
+  /// and the ordered write chain ([_flushCurrent]) are what keep `close`,
+  /// the pop and `dispose` — which all settle through this same path — from
+  /// writing the same text twice.
   Future<void> _write(String id, String text) async {
-    queued = text;
     try {
-      await widget.services.updateNote(id, text);
+      // The light path: while the sheet is open, a keystroke flush must not
+      // read the note back or re-read the whole timeline window (see
+      // [NexServices.updateNoteContent]); the closing sheet refreshes once.
+      await widget.services.updateNoteContent(
+        id,
+        text,
+        hasReminder: hasReminder,
+      );
       // The worker runs writes in order, so a later one cannot land before
-      // this; a newer [queued] is simply still on its way.
+      // this; a newer flush is simply still on its way.
       persisted = text;
     } on Object {
-      if (queued == text) queued = null;
       _fail();
       // Still open: the next flush retries under the person's eyes. Gone:
       // one immediate retry — the services outlive the sheet.
       if (mounted) return;
       try {
-        await widget.services.updateNote(id, text);
+        await widget.services.updateNoteContent(id, text);
         persisted = text;
       } on Object {
         // Twice in a row, with no screen left to say so on. The note keeps
@@ -355,106 +361,6 @@ class _CaptureSheetState extends State<CaptureSheet>
   String _conversionKey = newUuidV7();
 
   Future<bool> _settle() => _settling ??= _settleOnce();
-
-  Future<bool> _settleOnce() async {
-    await flush();
-    final id = noteId;
-    final text = _latestText;
-    final kind = _kind;
-    if (id == null || persisted != text) return true;
-    try {
-      final pending = _conversion;
-      if (pending != null && (pending.text != text || pending.kind != kind)) {
-        await widget.services.deleteNote(pending.note.id);
-        await widget.services.purgeNote(pending.note.id);
-        _conversion = null;
-        _conversionKey = newUuidV7();
-      }
-    } catch (error) {
-      unawaited(NexCrashLog.handled('capture.conversionCleanup', error));
-      _fail();
-      return false;
-    }
-    if (text.trim().isEmpty || kind == CaptureKind.note) return true;
-    Note? made;
-    try {
-      made = _conversion?.note;
-      if (made == null) {
-        switch (kind) {
-          case CaptureKind.checklist:
-            final items = parseChecklist(text);
-            if (items.isEmpty) return true;
-            made = await widget.services.captureChecklist(items);
-          case CaptureKind.link:
-            if (writtenLink(text) == null) {
-              // Not an address: the note it already is keeps it, and the
-              // person is told why it is not a link.
-              if (mounted) {
-                nexShowBanner(
-                  context,
-                  message: AppLocalizations.of(context).linkKeptAsNote,
-                  haptics: false,
-                );
-              }
-              return true;
-            }
-            made = await widget.services.captureWrittenLink(
-              _conversionKey,
-              text,
-            );
-          case CaptureKind.note:
-          case CaptureKind.voice:
-            return true;
-        }
-      }
-    } catch (error) {
-      unawaited(NexCrashLog.handled('capture.convert', error));
-      made = null;
-    }
-    if (made == null) {
-      _fail();
-      return false;
-    }
-    _conversion = (note: made, text: text, kind: kind);
-    // Keep the source draft until both the reminder data and alarm transfer.
-    try {
-      final before = await widget.services.getById(id);
-      if (before == null) throw StateError('Capture draft is missing');
-      await widget.services.setDueAt(
-        made.id,
-        before.dueAt,
-        repeat: before.dueRepeat,
-      );
-    } catch (error) {
-      unawaited(NexCrashLog.handled('capture.reminderTransfer', error));
-      _fail();
-      return false;
-    }
-    _conversion = null;
-    // From here the sheet holds nothing: a flush that comes later — the
-    // pop, `dispose` — must not write the note it is about to remove.
-    debounce?.cancel();
-    noteId = null;
-    draft = null;
-    persisted = '';
-    _latestText = '';
-    queued = null;
-    try {
-      widget.services.captureJournal.complete(_draftId);
-    } catch (_) {}
-    // Removed outright, not sent to the trash: it was never a note of its
-    // own, only these words on their way to being a list or a link.
-    try {
-      await widget.services.deleteNote(id);
-      await widget.services.purgeNote(id);
-    } catch (_) {}
-    widget.onRetracted?.call(id);
-    widget.onCommitted?.call(made.id);
-    if (kind == CaptureKind.link && made.linkUrl != null) {
-      widget.onLinkCaptured?.call(made.id, made.linkUrl!);
-    }
-    return true;
-  }
 
   /// Adds a reminder after the first draft is saved, without blocking capture.
   /// A converted checklist or link inherits that reminder on settlement.
@@ -521,7 +427,6 @@ class _CaptureSheetState extends State<CaptureSheet>
       noteId = null;
       _latestText = '';
       persisted = '';
-      queued = null;
       draft = null;
       widget.services.captureJournal.complete(_draftId);
       nexShowBanner(
@@ -625,7 +530,21 @@ class _CaptureSheetState extends State<CaptureSheet>
     // A sheet taken away mid-recording keeps the recording, as closing it
     // any other way does.
     if (_voiceOn) unawaited(_stopVoice(keep: true));
-    unawaited(_settle());
+    final settling = _settle();
+    // A sheet swiped or backed away never reaches [close], whose refresh
+    // follows its last write; the flushes while it was open no longer
+    // refresh the timeline, and the one the timeline does when the sheet
+    // goes can run before this last write lands. So the timeline is read
+    // once more after it, or its card keeps the words from before.
+    if (!_allowClose) {
+      unawaited(
+        settling
+            .then<void>((_) => widget.services.refreshTimeline())
+            .catchError((Object _) {}),
+      );
+    } else {
+      unawaited(settling);
+    }
     debounce?.cancel();
     controller.dispose();
     _fieldFocus.dispose();

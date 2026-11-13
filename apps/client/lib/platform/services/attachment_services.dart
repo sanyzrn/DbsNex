@@ -21,12 +21,16 @@ extension NexAttachmentServices on NexServices {
       worker.attachmentsFor(noteId);
 
   /// Writes [bytes] under the media root and attaches the file to [noteId].
+  ///
+  /// [refresh] is false when the caller refreshes the timeline itself once
+  /// its whole batch of attachments has landed.
   Future<NoteAttachment?> attachBytes(
     String noteId,
     Uint8List bytes, {
     required AttachmentKind kind,
     required String extension,
     String? mimeType,
+    bool refresh = true,
   }) async {
     final dest = p.join(
       mediaDir,
@@ -43,10 +47,14 @@ extension NexAttachmentServices on NexServices {
         mediaHash: hash,
         mimeType: mimeType,
       ),
+      refresh: refresh,
     );
   }
 
   /// Copies the file at [source] under the media root and attaches it.
+  ///
+  /// [refresh] is false when the caller refreshes the timeline itself once
+  /// its whole batch of attachments has landed.
   Future<NoteAttachment?> attachFile(
     String noteId,
     String source, {
@@ -54,6 +62,7 @@ extension NexAttachmentServices on NexServices {
     String? name,
     String? mimeType,
     int? durationMs,
+    bool refresh = true,
   }) async {
     final extension = p.extension(source);
     final dest = p.join(
@@ -77,11 +86,15 @@ extension NexAttachmentServices on NexServices {
         mimeType: mimeType,
         durationMs: durationMs,
       ),
+      refresh: refresh,
     );
   }
 
   /// Attaches a file already copied under the media root — a file shared
   /// into Nex along with others.
+  ///
+  /// [refresh] is false when the caller refreshes the timeline itself once
+  /// its whole batch of attachments has landed.
   Future<NoteAttachment?> attachStored(
     String noteId, {
     required String mediaUri,
@@ -89,6 +102,7 @@ extension NexAttachmentServices on NexServices {
     required AttachmentKind kind,
     String? name,
     String? mimeType,
+    bool refresh = true,
   }) async => _attached(
     await worker.attachmentAdd(
       noteId,
@@ -98,11 +112,15 @@ extension NexAttachmentServices on NexServices {
       name: name,
       mimeType: mimeType,
     ),
+    refresh: refresh,
   );
 
-  Future<NoteAttachment?> _attached(NoteAttachment? attachment) async {
+  Future<NoteAttachment?> _attached(
+    NoteAttachment? attachment, {
+    bool refresh = true,
+  }) async {
     if (attachment == null) return null;
-    await refreshTimeline();
+    if (refresh) await refreshTimeline();
     return attachment;
   }
 
