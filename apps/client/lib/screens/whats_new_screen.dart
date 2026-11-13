@@ -290,27 +290,11 @@ class _WhatsNewScreenState extends State<WhatsNewScreen>
         NexSpacing.md,
         NexSpacing.sm,
       ),
-      child: NexAutoDirection(
+      child: NexSearchField(
+        fieldKey: const ValueKey('whats-new-search'),
         controller: _search,
-        builder: (context, direction) => TextField(
-          key: const ValueKey('whats-new-search'),
-          controller: _search,
-          textDirection: direction,
-          textInputAction: TextInputAction.search,
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            hintText: l10n.whatsNewSearchHint,
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _search.text.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: MaterialLocalizations.of(context)
-                        .deleteButtonTooltip,
-                    icon: const Icon(Icons.close),
-                    onPressed: () => setState(_search.clear),
-                  ),
-          ),
-        ),
+        hintText: l10n.whatsNewSearchHint,
+        onChanged: (_) => setState(() {}),
       ),
     );
   }

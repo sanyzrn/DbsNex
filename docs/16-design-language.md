@@ -61,6 +61,15 @@ form that is not a whole page.
 - More than one line: **`NexTextField`**. One line: inside **`NexAutoDirection`**,
   or with an explicit `textDirection` (a number, a link, a key: left to right).
 - Enforced by `test/text_field_rule_test.dart` ([ADR-037](./10-decisions.md)).
+- A box that filters a list is **`NexSearchField`** (`packages/ui`): the search
+  icon, a clear button once there is text (which resets the list at once),
+  direction from what is typed, `private` for the vault, a fixed
+  `textDirection` for ids, `ground: surface` inside a box that is already
+  drawn. Never a `TextField` with a search icon of its own
+  (`ui_consistency_test`). The timeline's pill in its header is the one
+  exception.
+- A field's outline comes from the theme in every state; do not pass
+  `OutlineInputBorder()` to get one (`ui_consistency_test`).
 
 ## 5. Space, shape and type
 
@@ -175,7 +184,7 @@ on every action line, the words in `bodyMedium`, and red for what destroys.
 - [ ] Dialogs open with `nexShowDialog`; every duration and curve is a
       `NexMotion` token, unless the piece is a signature one (§6).
 - [ ] Reduced motion leaves nothing moving.
-- [ ] New text a person writes follows §4.
+- [ ] New text a person writes follows §4; a search box is `NexSearchField`.
 - [ ] Every menu is `NexPopupMenuButton` + `nexMenuItem`, an icon on each line (Menus).
 
 ## 10. Optional glass material (2.0)

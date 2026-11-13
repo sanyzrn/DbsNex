@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'local_writes.dart';
 
 import 'package:flutter/material.dart';
@@ -186,16 +187,9 @@ class WarrantyFieldsLine extends StatelessWidget {
   final String? label;
 
   @override
-  Widget build(BuildContext context) => NexAutoDirection(
+  Widget build(BuildContext context) => NexSearchField(
+    fieldKey: const ValueKey('warranty-field-search'),
     controller: controller,
-    builder: (context, direction) => TextField(
-      key: const ValueKey('warranty-field-search'),
-      controller: controller,
-      textDirection: direction,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: const Icon(Icons.search),
-      ),
-    ),
+    labelText: label,
   );
 }

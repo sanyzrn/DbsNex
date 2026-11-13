@@ -264,27 +264,11 @@ class _WordsScreenState extends State<WordsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        NexAutoDirection(
+        NexSearchField(
+          fieldKey: const ValueKey('words-search'),
           controller: _search,
-          builder: (context, _) => TextField(
-            key: const ValueKey('words-search'),
-            controller: _search,
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: strings(context, 'searchHint'),
-              suffixIcon: _query.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: AppLocalizations.of(context).cancel,
-                      onPressed: () {
-                        _search.clear();
-                        setState(() => _query = '');
-                      },
-                      icon: const Icon(Icons.close),
-                    ),
-            ),
-            onChanged: (value) => setState(() => _query = value.trim()),
-          ),
+          hintText: strings(context, 'searchHint'),
+          onChanged: (value) => setState(() => _query = value.trim()),
         ),
         const SizedBox(height: NexSpacing.sm),
         // One row that scrolls sideways, statuses then tags: two wrapped

@@ -247,31 +247,11 @@ class _ModulesScreenState extends State<ModulesScreen>
               NexSpacing.lg + nexBottomInset(context),
             ),
             children: [
-              NexAutoDirection(
+              NexSearchField(
+                fieldKey: const ValueKey('modules-search'),
                 controller: _search,
-                builder: (context, direction) => TextField(
-                  controller: _search,
-                  textDirection: direction,
-                  key: const ValueKey('modules-search'),
-                  onChanged: (text) => setState(() => _query = text),
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: l10n.modulesSearchHint,
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _query.isEmpty
-                        ? null
-                        : IconButton(
-                            tooltip: MaterialLocalizations.of(
-                              context,
-                            ).deleteButtonTooltip,
-                            onPressed: () {
-                              _search.clear();
-                              setState(() => _query = '');
-                            },
-                            icon: const Icon(Icons.close),
-                          ),
-                  ),
-                ),
+                hintText: l10n.modulesSearchHint,
+                onChanged: (text) => setState(() => _query = text),
               ),
               const SizedBox(height: NexSpacing.md),
               Text(l10n.modulesIntro, style: theme.textTheme.bodySmall),

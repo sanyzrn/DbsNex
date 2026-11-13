@@ -207,28 +207,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 ),
                 children: [
                   if (_searching) ...[
-                    NexAutoDirection(
+                    NexSearchField(
+                      fieldKey: const ValueKey('expenses-search'),
                       controller: _search,
-                      builder: (context, direction) => TextField(
-                        key: const ValueKey('expenses-search'),
-                        controller: _search,
-                        textDirection: direction,
-                        decoration: InputDecoration(
-                          hintText: s(context, 'searchHint'),
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _search.text.isEmpty
-                              ? null
-                              : IconButton(
-                                  tooltip: s(context, 'clearFilters'),
-                                  icon: const Icon(Icons.close),
-                                  onPressed: () {
-                                    _search.clear();
-                                    setState(() {});
-                                  },
-                                ),
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
+                      hintText: s(context, 'searchHint'),
+                      onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: NexSpacing.md),
                   ],

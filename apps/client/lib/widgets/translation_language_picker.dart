@@ -48,18 +48,11 @@ class _TranslationLanguagePickerState
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: NexSpacing.md),
-            NexAutoDirection(
+            NexSearchField(
               controller: _search,
-              builder: (context, direction) => TextField(
-                controller: _search,
-                textDirection: direction,
-                key: const ValueKey('translation-language-search'),
-                onChanged: (value) => setState(() => _query = value),
-                decoration: InputDecoration(
-                  hintText: l10n.search,
-                  prefixIcon: const Icon(Icons.search),
-                ),
-              ),
+              fieldKey: const ValueKey('translation-language-search'),
+              hintText: l10n.search,
+              onChanged: (value) => setState(() => _query = value),
             ),
             const SizedBox(height: NexSpacing.sm),
             Expanded(

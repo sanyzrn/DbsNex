@@ -108,28 +108,11 @@ class _LoansScreenState extends State<LoansScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NexAutoDirection(
+          NexSearchField(
+            fieldKey: const ValueKey('loans-search'),
             controller: _search,
-            builder: (context, direction) => TextField(
-              key: const ValueKey('loans-search'),
-              controller: _search,
-              textDirection: direction,
-              textInputAction: TextInputAction.search,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: strings(context, 'searchHint'),
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _search.text.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: MaterialLocalizations.of(
-                          context,
-                        ).deleteButtonTooltip,
-                        icon: const Icon(Icons.close),
-                        onPressed: () => setState(_search.clear),
-                      ),
-              ),
-            ),
+            hintText: strings(context, 'searchHint'),
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: NexSpacing.sm),
           Wrap(

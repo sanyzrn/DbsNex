@@ -66,12 +66,7 @@ class _SettingsSearchState extends State<_SettingsSearch> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    const outline = OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(NexRadius.lg)),
-      borderSide: BorderSide.none,
-    );
     final field = Padding(
       padding: const EdgeInsets.fromLTRB(
         NexSpacing.md,
@@ -83,44 +78,15 @@ class _SettingsSearchState extends State<_SettingsSearch> {
         key: const ValueKey('settings-search-surface'),
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(NexRadius.lg),
-        child: NexAutoDirection(
+        // The same shape and fill as the cards under it, not the app's
+        // pill: a search box that is the odd one out reads as belonging to
+        // something else. The surface is the box; the field draws only focus.
+        child: NexSearchField(
           controller: _controller,
-          builder: (context, direction) => TextField(
-            controller: _controller,
-            focusNode: _focus,
-            textDirection: direction,
-            textAlign: TextAlign.start,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              isDense: true,
-              // The same shape and fill as the cards under it, not the
-              // app's pill: a search box that is the odd one out reads as
-              // belonging to something else.
-              // Keep the input transparent above its shared optical rim.
-              filled: false,
-              border: outline,
-              enabledBorder: outline,
-              focusedBorder: outline.copyWith(
-                borderSide: BorderSide(
-                  color: scheme.primary,
-                  width: nexFocusRingWidth,
-                ),
-              ),
-              prefixIcon: const Icon(Icons.search),
-              hintText: nexLabel(
-                context,
-                'Search settings',
-                'جست‌وجو در تنظیمات',
-              ),
-              suffixIcon: _controller.text.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: l10n.closeLabel,
-                      icon: const Icon(Icons.close),
-                      onPressed: _controller.clear,
-                    ),
-            ),
-          ),
+          focusNode: _focus,
+          dense: true,
+          ground: NexSearchFieldGround.surface,
+          hintText: nexLabel(context, 'Search settings', 'جست‌وجو در تنظیمات'),
         ),
       ),
     );
