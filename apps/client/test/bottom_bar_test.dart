@@ -224,10 +224,19 @@ void main() {
     await preferences.setLiquidGlass(true);
     await open(tester);
     expect(preferences.liquidGlass, isTrue);
-    expect(preferences.effectiveLiquidGlass, isTrue);
+    expect(preferences.effectiveLiquidGlass, nexLiquidGlassAvailable);
     final dockContext = tester.element(find.byType(NexNavigationDock));
     final visual = Theme.of(dockContext).extension<NexVisualStyle>()!;
-    expect(visual.liquidGlass, isTrue);
+    expect(visual.liquidGlass, nexLiquidGlassAvailable);
+    if (!nexLiquidGlassAvailable) {
+      // Paused (2.6.26): a stored choice draws the plain dock, which still
+      // opens capture.
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsWidgets);
+      expect(tester.takeException(), isNull);
+      return;
+    }
     // The dock is the floating material: more backdrop through it than a
     // reading panel, and the lit edge that makes it read as a pane.
     final transmission =

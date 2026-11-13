@@ -247,7 +247,7 @@ class SettingsSheet extends StatelessWidget {
           icon: Icons.palette_outlined,
           title: l10n.theme,
           keywords:
-              '${l10n.liquidGlass} ${l10n.liquidGlassSubtitle} dark light mode accent colour color palette text size font card size density compact app icon تم تیره روشن رنگ تأکیدی پالت اندازه متن اندازه کارت فشرده آیکون',
+              '${nexLiquidGlassAvailable ? '${l10n.liquidGlass} ${l10n.liquidGlassSubtitle} ' : ''}dark light mode accent colour color palette text size font card size density compact app icon تم تیره روشن رنگ تأکیدی پالت اندازه متن اندازه کارت فشرده آیکون',
           value: nexThemePresetLabel(context, preferences.effectiveThemePreset),
           onTap: () => Navigator.push(
             context,

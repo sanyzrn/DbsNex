@@ -376,9 +376,8 @@ class CycleBloomButton extends StatelessWidget {
       foregroundColor: Colors.white,
       minimumSize: const Size.fromHeight(56),
       shape: const StadiumBorder(),
-      textStyle: Theme.of(
-        context,
-      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      textStyle: Theme.of(context).textTheme.titleMedium
+          ?.copyWith(fontWeight: FontWeight.w600),
     );
     return DecoratedBox(
       decoration: ShapeDecoration(

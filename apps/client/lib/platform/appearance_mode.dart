@@ -6,11 +6,12 @@ import 'package:flutter/material.dart' show ThemeMode;
 /// material — a stored ID is honoured, never rewritten.
 const nexThemePresetsAvailable = true;
 
-/// Rebuilt as Nex 2.6.21 and switched back on. A stored choice from the
-/// previous material does not carry over: the preference moved to a new key
-/// (see `appearance_preferences.dart`), so the rebuilt material is a fresh
-/// opt-in exactly as each earlier generation was.
-const nexLiquidGlassAvailable = true;
+/// Paused again in 2.6.26 (owner's decision): the material was too heavy on
+/// the owner's phone, and the switch is gone from Appearance until it is
+/// reworked. Nothing is cleared: someone who had it on keeps the stored
+/// choice under `appearance.liquid_glass_v3`, and it applies again once this
+/// is true. Rebuilt as 2.6.21; each earlier generation was a fresh opt-in.
+const nexLiquidGlassAvailable = false;
 
 /// Appearance is separate from Flutter's three brightness modes. Night keeps
 /// the former Dark palette; System uses the new soft Dark when the OS is dark.

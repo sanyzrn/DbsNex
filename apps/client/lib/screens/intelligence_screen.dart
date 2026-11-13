@@ -5,7 +5,9 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -475,9 +477,8 @@ class _Heading extends StatelessWidget {
     ),
     child: Text(
       text,
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
+      style: Theme.of(context).textTheme.labelLarge
+          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
     ),
   );
 }
@@ -591,9 +592,8 @@ class _LinkRow extends StatelessWidget {
                 const SizedBox(height: NexSpacing.xs),
                 Text(
                   note!,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: scheme.primary),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: scheme.primary),
                 ),
               ],
             ),

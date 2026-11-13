@@ -262,13 +262,15 @@ class _ThemeScreen extends StatelessWidget {
             _SettingsCard(
               children: [
                 _AccentColorRow(preferences: preferences),
-                _SwitchRow(
-                  icon: Icons.blur_on_rounded,
-                  title: l10n.liquidGlass,
-                  subtitle: l10n.liquidGlassSubtitle,
-                  value: preferences.effectiveLiquidGlass,
-                  onChanged: preferences.setLiquidGlass,
-                ),
+                // Offered only while the material is (nexLiquidGlassAvailable).
+                if (nexLiquidGlassAvailable)
+                  _SwitchRow(
+                    icon: Icons.blur_on_rounded,
+                    title: l10n.liquidGlass,
+                    subtitle: l10n.liquidGlassSubtitle,
+                    value: preferences.effectiveLiquidGlass,
+                    onChanged: preferences.setLiquidGlass,
+                  ),
               ],
             ),
             const SizedBox(height: NexSpacing.md),

@@ -261,9 +261,8 @@ class _ModulesScreenState extends State<ModulesScreen>
                     suffixIcon: _query.isEmpty
                         ? null
                         : IconButton(
-                            tooltip: MaterialLocalizations.of(
-                              context,
-                            ).deleteButtonTooltip,
+                            tooltip: MaterialLocalizations.of(context)
+                                .deleteButtonTooltip,
                             onPressed: () {
                               _search.clear();
                               setState(() => _query = '');

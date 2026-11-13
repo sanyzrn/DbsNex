@@ -38,9 +38,8 @@ extension _DetailTypeBody on _NoteDetailSheetState {
       if (_playerFailed)
         Text(
           l10n.mediaUnavailable,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.error,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.error),
         )
       else if (note.transcriptText == null)
         Text(
@@ -185,9 +184,8 @@ extension _DetailTypeBody on _NoteDetailSheetState {
       else
         Text(
           l10n.noCaption,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.secondary,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.secondary),
         ),
       if (!note.isSetAside())
         Align(
