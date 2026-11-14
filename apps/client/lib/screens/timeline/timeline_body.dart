@@ -173,7 +173,14 @@ extension _TimelineBody on TimelineScreenState {
   /// into a pull.
   void _pinchLift(PointerEvent event) {
     _pinchPointers.remove(event.pointer);
-    if (_pinchPointers.isEmpty) _multiTouch = false;
+    // After this event, not during it: the scroll view ends its drag on the
+    // same lift, after this listener has seen it, and the fling it starts
+    // must still find the list held — see `_PinchHoldPhysics`.
+    if (_pinchPointers.isEmpty) {
+      scheduleMicrotask(() {
+        if (_pinchPointers.isEmpty) _multiTouch = false;
+      });
+    }
   }
 
   void _pinchMove(PointerMoveEvent event) {
@@ -191,12 +198,27 @@ extension _TimelineBody on TimelineScreenState {
     if (scale > .80 && scale < 1.25) return;
     _pinchApplied = true;
     nexBump();
+    // The headings on screen now — days, or shelves by kind or tag. It used
+    // to be a fixed list of day keys: arranged by kind or tag, a pinch in
+    // folded nothing, and a pinch out opened every shelf (2.7.1). Folds
+    // remembered for headings not on screen are left as they are.
+    final shown = {
+      for (final group in _rowsCache._groups ?? const <_NoteGroup>[]) group.key,
+      // By day, every day there can be, as before: a day that is not on
+      // screen yet is folded too, and comes in folded.
+      if (widget.preferences.timelineArrangement ==
+          NexTimelineArrangement.time) ...const {
+        'pinned',
+        'today',
+        'yesterday',
+        'week',
+        'month',
+        'older',
+      },
+    };
+    final before = _model.collapsedGroups;
     unawaited(
-      _foldAll(
-        scale < 1
-            ? const {'pinned', 'today', 'yesterday', 'week', 'month', 'older'}
-            : const {},
-      ),
+      _foldAll(scale < 1 ? {...before, ...shown} : before.difference(shown)),
     );
   }
 

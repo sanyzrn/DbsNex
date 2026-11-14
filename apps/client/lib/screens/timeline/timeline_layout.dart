@@ -203,8 +203,11 @@ extension _TimelineLayout on TimelineScreenState {
                           controller: _scroll,
                           // Always scrollable, so a short list still bounces rather
                           // than feeling locked.
-                          physics: _pullRefresh.physics(
-                            parent: const AlwaysScrollableScrollPhysics(),
+                          physics: _PinchHoldPhysics(
+                            holding: () => _multiTouch,
+                            parent: _pullRefresh.physics(
+                              parent: const AlwaysScrollableScrollPhysics(),
+                            ),
                           ),
                           slivers: [
                             // The headline and the recap card, above the search

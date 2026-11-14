@@ -320,49 +320,64 @@ class _GroupHeader extends StatelessWidget {
                       ),
                 child: Row(
                   children: [
-                    if (leading case final mark?) ...[
-                      mark,
-                      const SizedBox(width: NexSpacing.sm),
-                    ],
-                    // A day's name in the page's own ink, a step up from
-                    // the small grey label it was: the headings are how a
-                    // long timeline is read, and they were the faintest
-                    // thing on it.
-                    Flexible(
-                      child: Text(
-                        compact && !persian ? label.toUpperCase() : label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: compact
-                            // The desktop's: small, quiet, in capitals where
-                            // the script has them (letter-spacing would pull
-                            // Persian apart). At the theme's own caption floor —
-                            // nothing in the app is smaller (V-18).
-                            ? theme.textTheme.labelSmall?.copyWith(
-                                fontSize: 12,
-                                letterSpacing: persian ? 0 : 0.8,
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              )
-                            : theme.textTheme.titleSmall?.copyWith(
-                                color: theme.colorScheme.onSurface,
-                                fontWeight: FontWeight.w700,
+                    // The name and its count together, the chevron at the
+                    // far end. The name's Flexible used to share the row's
+                    // spare room with a Spacer, half each, which left every
+                    // chevron at a different place along the row (2.7.1).
+                    Expanded(
+                      child: Row(
+                        children: [
+                          if (leading case final mark?) ...[
+                            mark,
+                            const SizedBox(width: NexSpacing.sm),
+                          ],
+                          // A day's name in the page's own ink, a step up from
+                          // the small grey label it was: the headings are how a
+                          // long timeline is read, and they were the faintest
+                          // thing on it.
+                          Flexible(
+                            child: Text(
+                              compact && !persian ? label.toUpperCase() : label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: compact
+                                  // The desktop's: small, quiet, in capitals where
+                                  // the script has them (letter-spacing would pull
+                                  // Persian apart). At the theme's own caption floor —
+                                  // nothing in the app is smaller (V-18).
+                                  ? theme.textTheme.labelSmall?.copyWith(
+                                      fontSize: 12,
+                                      letterSpacing: persian ? 0 : 0.8,
+                                      fontWeight: FontWeight.w600,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    )
+                                  : theme.textTheme.titleSmall?.copyWith(
+                                      color: theme.colorScheme.onSurface,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(width: NexSpacing.sm),
+                          // Only when folded. Open, the count is the list itself, and a
+                          // number beside a heading you can already read is noise.
+                          if (collapsed || compact || alwaysCount)
+                            Text(
+                              l10n.timelineGroupCount(count),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.outline,
                               ),
+                            ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: NexSpacing.sm),
-                    // Only when folded. Open, the count is the list itself, and a
-                    // number beside a heading you can already read is noise.
-                    if (collapsed || compact || alwaysCount)
-                      Text(
-                        l10n.timelineGroupCount(count),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.outline,
-                        ),
-                      ),
-                    const Spacer(),
                     AnimatedRotation(
-                      turns: collapsed ? -0.25 : 0,
+                      // Folded, the chevron points along the line of
+                      // reading: right in English, left in Persian.
+                      turns: collapsed
+                          ? (Directionality.of(context) == TextDirection.rtl
+                                ? 0.25
+                                : -0.25)
+                          : 0,
                       duration: NexMotion.standard,
                       curve: NexMotion.curve,
                       child: Icon(
@@ -452,3 +467,30 @@ class _GroupHeader extends StatelessWidget {
 
 /// What a date heading's menu can do to the whole run under it.
 enum _GroupAction { moveUp, moveDown, ask, delete }
+
+/// The list holds still while two fingers are on it (2.7.1).
+///
+/// A pinch folds or opens every heading; it used to scroll the list too —
+/// one finger of a pinch is a drag to the scroll view — so the headings moved
+/// away under the fingers that were folding them, and the fling at the end
+/// threw the list somewhere else. While [holding], a drag moves nothing and
+/// the release flings nothing; the overscroll still settles back.
+class _PinchHoldPhysics extends ScrollPhysics {
+  const _PinchHoldPhysics({required this.holding, super.parent});
+
+  final bool Function() holding;
+
+  @override
+  _PinchHoldPhysics applyTo(ScrollPhysics? ancestor) =>
+      _PinchHoldPhysics(holding: holding, parent: buildParent(ancestor));
+
+  @override
+  double applyPhysicsToUserOffset(ScrollMetrics position, double offset) =>
+      holding() ? 0 : super.applyPhysicsToUserOffset(position, offset);
+
+  @override
+  Simulation? createBallisticSimulation(
+    ScrollMetrics position,
+    double velocity,
+  ) => super.createBallisticSimulation(position, holding() ? 0 : velocity);
+}
