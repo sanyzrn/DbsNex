@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
+import 'package:nex_client/platform/timeline_shelves.dart';
 import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_ui/nex_ui.dart';
 

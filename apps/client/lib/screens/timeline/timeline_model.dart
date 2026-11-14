@@ -5,6 +5,10 @@ import 'package:nex_core/nex_core.dart';
 
 import '../../platform/nex_preferences.dart';
 import '../../platform/nex_services.dart';
+import '../../platform/timeline_shelves.dart';
+
+// The home screen's parts read the arrangement through the model's library.
+export '../../platform/timeline_shelves.dart';
 
 /// What the timeline model last notified about, so a listener can skip work
 /// a change does not concern.

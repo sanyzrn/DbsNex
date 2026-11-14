@@ -3,6 +3,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/timeline_shelves.dart';
 import 'choice_cards.dart';
 import 'nex_shelf.dart';
 

@@ -3,6 +3,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/timeline_shelves.dart';
 
 /// What the home screen shows, and how it looks — one tap from the screen it
 /// changes (2.3.0).
