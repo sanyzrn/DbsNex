@@ -209,6 +209,10 @@ mixin _DbClient implements NexDb {
       _send<bool>(_DbCommand.hasUntaggedTimelineNotes);
 
   @override
+  Future<Map<String, int>> timelineShelfCounts() =>
+      _send<Map<String, int>>(_DbCommand.timelineShelfCounts);
+
+  @override
   Future<bool> setAside(String id, {DateTime? until}) => _send<bool>(
     _DbCommand.setAside,
     {'id': id, 'until': until?.toUtc().toIso8601String()},

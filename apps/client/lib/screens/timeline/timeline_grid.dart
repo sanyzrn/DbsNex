@@ -37,21 +37,7 @@ extension _TimelineGrid on TimelineScreenState {
       for (final group in groups)
         SliverMainAxisGroup(
           slivers: [
-            SliverToBoxAdapter(
-              child: NexTapGuarded(
-                controller: _guard,
-                child: _GroupHeader(
-                  label: group.label,
-                  count: group.notes.length,
-                  collapsed: _model.collapsedGroups.contains(group.key),
-                  onToggle: () => unawaited(_toggleGroup(group.key)),
-                  onAsk: AiChatSheet.availableFor(widget.preferences)
-                      ? () => unawaited(_askAboutGroup(group))
-                      : null,
-                  onDelete: () => unawaited(_deleteGroup(group, l10n)),
-                ),
-              ),
-            ),
+            SliverToBoxAdapter(child: _groupHeading(group, groups, l10n)),
             // A day folding or opening, by tap or by pinch: its first rows,
             // built at once, each folding a beat after the one above — the
             // list's fan, a row of tiles at a time. When the motion ends an
@@ -97,6 +83,7 @@ extension _TimelineGrid on TimelineScreenState {
                                                   group.notes[r * columns + c],
                                                   strings,
                                                   l10n,
+                                                  group,
                                                 )
                                               : const SizedBox.shrink(),
                                         ),
@@ -127,8 +114,21 @@ extension _TimelineGrid on TimelineScreenState {
                     ),
                     itemCount: group.notes.length,
                     itemBuilder: (context, i) =>
-                        _gridTile(group.notes[i], strings, l10n),
+                        _gridTile(group.notes[i], strings, l10n, group),
                   ),
+                ),
+              ),
+            // A shelf that holds more than it shows ends in "See all", open
+            // only — folded, the heading's count says it.
+            if (!group.complete &&
+                (!_model.collapsedGroups.contains(group.key) ||
+                    _closingGroups.contains(group.key)))
+              SliverToBoxAdapter(
+                child: _FoldingRow(
+                  key: ValueKey('grid-fold-more-${group.key}'),
+                  open: !_closingGroups.contains(group.key),
+                  animateIn: _openingGroups.contains(group.key),
+                  child: _shelfMore(group, l10n),
                 ),
               ),
           ],
@@ -136,53 +136,60 @@ extension _TimelineGrid on TimelineScreenState {
     ];
   }
 
-  Widget _gridTile(Note note, NexCardStrings strings, AppLocalizations l10n) =>
-      _DayMark(
-        // The day passing under the filters, named as the list names it.
-        label: _dayLabel(note, l10n),
-        marks: _dayMarks,
-        child: NexTapGuarded(
-          controller: _guard,
-          child: NoteContextMenu(
-            key: ValueKey('grid-menu-${note.id}'),
-            entriesBuilder: (menuContext, width) =>
-                _holdEntries(note, menuContext, width),
-            // The same two moments the list marks: a note asked for from
-            // outside (a reminder, a widget row) is found by this anchor and
-            // lit, and a note just captured lands with its receipt.
-            child: NoteSpotlight(
-              key: _spotlightId == note.id ? _spotlightAnchor : null,
-              active: _spotlightId == note.id && _spotlightReady,
-              insets: EdgeInsets.zero,
-              radius: NexRadius.xl,
-              onDone: () {
-                if (mounted && _spotlightId == note.id) {
-                  _rebuild(() => _spotlightId = null);
-                }
-              },
-              child: CommitReceipt(
-                key: ValueKey('grid-receipt-${note.id}'),
-                active: landedId == note.id,
-                // Off the rounded corners: the bar runs down the tile's
-                // straight edge.
-                insets: const EdgeInsets.symmetric(vertical: NexRadius.xl),
-                onDone: () {
-                  if (mounted && landedId == note.id) {
-                    _rebuild(() => landedId = null);
-                  }
-                },
-                child: NexNoteGridCard(
-                  key: ValueKey('grid-${note.id}'),
-                  note: note,
-                  strings: strings,
-                  onTap: () => _tapNote(note),
-                  onLeadingTap: () => _pickNote(note),
-                  selected: _selecting ? _selected.contains(note.id) : null,
-                  ringing: widget.services.ringing.value.contains(note.id),
-                ),
-              ),
+  Widget _gridTile(
+    Note note,
+    NexCardStrings strings,
+    AppLocalizations l10n,
+    _NoteGroup group,
+  ) => _DayMark(
+    // The day passing under the filters, named as the list names it —
+    // or, arranged, the shelf.
+    label: group.shelf != null ? group.label : _dayLabel(note, l10n),
+    marks: _dayMarks,
+    child: NexTapGuarded(
+      controller: _guard,
+      child: NoteContextMenu(
+        key: ValueKey('grid-menu-${note.id}'),
+        entriesBuilder: (menuContext, width) =>
+            _holdEntries(note, menuContext, width),
+        // The same two moments the list marks: a note asked for from
+        // outside (a reminder, a widget row) is found by this anchor and
+        // lit, and a note just captured lands with its receipt.
+        child: NoteSpotlight(
+          key: _spotlightId == note.id && !group.echoes.contains(note.id)
+              ? _spotlightAnchor
+              : null,
+          active: _spotlightId == note.id && _spotlightReady,
+          insets: EdgeInsets.zero,
+          radius: NexRadius.xl,
+          onDone: () {
+            if (mounted && _spotlightId == note.id) {
+              _rebuild(() => _spotlightId = null);
+            }
+          },
+          child: CommitReceipt(
+            key: ValueKey('grid-receipt-${note.id}'),
+            active: landedId == note.id,
+            // Off the rounded corners: the bar runs down the tile's
+            // straight edge.
+            insets: const EdgeInsets.symmetric(vertical: NexRadius.xl),
+            onDone: () {
+              if (mounted && landedId == note.id) {
+                _rebuild(() => landedId = null);
+              }
+            },
+            child: NexNoteGridCard(
+              key: ValueKey('grid-${note.id}'),
+              note: note,
+              strings: strings,
+              onTap: () => _tapNote(note),
+              onLeadingTap: () => _pickNote(note),
+              selected: _selecting ? _selected.contains(note.id) : null,
+              ringing: widget.services.ringing.value.contains(note.id),
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }

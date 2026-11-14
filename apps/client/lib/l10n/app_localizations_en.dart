@@ -6482,4 +6482,64 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get timelineArrange => 'Group by';
+
+  @override
+  String get timelineArrangeTime => 'Time';
+
+  @override
+  String get timelineArrangeType => 'Kind';
+
+  @override
+  String get timelineArrangeTag => 'Tag';
+
+  @override
+  String timelineArrangeHint(String by) {
+    String _temp0 = intl.Intl.selectLogic(by, {
+      'type':
+          'Notes on shelves by kind, the newest few of each. Pins stay on top.',
+      'tag': 'Notes on shelves by tag; a note with two tags is on both. Pins stay on top.',
+      'other': 'Notes under days, newest first.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String timelineShelfType(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'text': 'Writing',
+      'voice': 'Voice notes',
+      'photo': 'Photos',
+      'file': 'Files',
+      'checklist': 'Checklists',
+      'link': 'Links',
+      'other': 'Notes',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String shelfSeeAll(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'See all $countString',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shelfSeeAllUncounted => 'See all';
+
+  @override
+  String get groupMoveUp => 'Move up';
+
+  @override
+  String get groupMoveDown => 'Move down';
 }

@@ -155,6 +155,7 @@ enum _DbCommand {
   close,
   libraryNoteCounts,
   hasUntaggedTimelineNotes,
+  timelineShelfCounts,
 }
 
 class _DbRequest {

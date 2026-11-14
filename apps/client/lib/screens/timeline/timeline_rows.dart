@@ -1,5 +1,44 @@
 part of '../timeline_screen.dart';
 
+/// What an arranged home is sorted by, and everything that shapes its
+/// shelves (2.7.0) — compared as a whole by [_TimelineRowsCache.assemble].
+///
+/// [counts] and [tags] are compared by identity: the model replaces each
+/// whenever its contents change, as it does the notes.
+class _Arrange {
+  const _Arrange({
+    required this.by,
+    required this.counts,
+    required this.tags,
+    required this.selectedTagIds,
+    required this.onlyUntagged,
+    required this.filtering,
+    required this.order,
+  });
+
+  final NexTimelineArrangement by;
+  final Map<String, int>? counts;
+  final List<Tag> tags;
+  final Set<String> selectedTagIds;
+  final bool onlyUntagged;
+  final bool filtering;
+  final List<String> order;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _Arrange &&
+      other.by == by &&
+      identical(other.counts, counts) &&
+      identical(other.tags, tags) &&
+      setEquals(other.selectedTagIds, selectedTagIds) &&
+      other.onlyUntagged == onlyUntagged &&
+      other.filtering == filtering &&
+      listEquals(other.order, order);
+
+  @override
+  int get hashCode => Object.hash(by, filtering, onlyUntagged, order.length);
+}
+
 /// The timeline's flattened rows, built once per change rather than once per
 /// rebuild (T-01).
 ///
@@ -24,6 +63,11 @@ class _TimelineRowsCache {
   List<String>? _closing;
   List<_NoteGroup>? _groups;
   List<_TimelineRow>? _rows;
+  _Arrange? _arrange;
+
+  /// Whether the list may load older notes as it nears its end — always by
+  /// day; arranged, only while one shelf is the list ([nexShelvesGrow]).
+  bool grows = true;
 
   /// How many times the rows have actually been assembled. A test reads it
   /// through `TimelineScreenState.debugRowBuilds` to prove that a change
@@ -50,6 +94,7 @@ class _TimelineRowsCache {
     required Set<String> collapsed,
     required Set<String> closing,
     required AppLocalizations l10n,
+    _Arrange? arrange,
   }) {
     final locale = Localizations.maybeLocaleOf(context)?.toString();
     final dayKey = nexDayKey(DateTime.now());
@@ -57,6 +102,7 @@ class _TimelineRowsCache {
         identical(_notes, notes) &&
         _locale == locale &&
         _dayKey == dayKey &&
+        _arrange == arrange &&
         _sameKeyList(_collapsed, collapsed) &&
         _sameKeyList(_closing, closing)) {
       return (_groups!, _rows!);
@@ -64,24 +110,75 @@ class _TimelineRowsCache {
     _notes = notes;
     _locale = locale;
     _dayKey = dayKey;
+    _arrange = arrange;
     _collapsed = List.of(collapsed);
     _closing = List.of(closing);
-    final groups = _groupNotes(notes, l10n);
+    final groups = arrange == null
+        ? _groupNotes(notes, l10n)
+        : _shelveNotes(notes, arrange, l10n);
     final rows = <_TimelineRow>[
       for (final group in groups) ...[
         _TimelineRow.header(group),
         // A closing group keeps its rows for one animation. Without that the
         // fold was a jump cut: the rows were simply gone on the next frame,
         // which is the report this fixes. See `_toggleGroup`.
-        if (!collapsed.contains(group.key) || closing.contains(group.key))
+        if (!collapsed.contains(group.key) || closing.contains(group.key)) ...[
           for (final (i, note) in group.notes.indexed)
-            _TimelineRow.note(note, group.key, i),
+            _TimelineRow.note(
+              note,
+              group.key,
+              i,
+              primary: !group.echoes.contains(note.id),
+            ),
+          if (!group.complete) _TimelineRow.more(group, group.notes.length),
+        ],
       ],
     ];
     _groups = groups;
     _rows = rows;
     builds++;
     return (groups, rows);
+  }
+
+  /// The shelves of a home arranged by kind or tag, as groups.
+  List<_NoteGroup> _shelveNotes(
+    List<Note> notes,
+    _Arrange arrange,
+    AppLocalizations l10n,
+  ) {
+    final shelves = nexArrangeShelves(
+      notes,
+      by: arrange.by,
+      counts: arrange.counts,
+      tags: arrange.tags,
+      selectedTagIds: arrange.selectedTagIds,
+      onlyUntagged: arrange.onlyUntagged,
+      filtering: arrange.filtering,
+      order: arrange.order,
+    );
+    grows = nexShelvesGrow(shelves);
+    final seen = <String>{};
+    return [
+      for (final shelf in shelves)
+        _NoteGroup(
+          key: shelf.key,
+          label: switch (shelf.kind) {
+            NexShelfKind.pinned => l10n.timelineGroupPinned,
+            NexShelfKind.type => l10n.timelineShelfType(shelf.type!.wireName),
+            // The tag row's own words for a tag — a built-in tag reads in the
+            // reader's language there, and must read the same here.
+            NexShelfKind.tag =>
+              shelf.tag == null ? '' : nexTagLabel(shelf.tag!, l10n),
+            NexShelfKind.untagged => l10n.filterUntagged,
+          },
+          notes: shelf.notes,
+          shelf: shelf,
+          echoes: {
+            for (final note in shelf.notes)
+              if (!seen.add(note.id)) note.id,
+          },
+        ),
+    ];
   }
 
   /// Splits an already-ordered list into date runs.
@@ -96,6 +193,7 @@ class _TimelineRowsCache {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final groups = <_NoteGroup>[];
+    grows = true;
 
     for (final note in source) {
       final (key, label) = _bucketFor(note, today, l10n);
@@ -170,7 +268,12 @@ extension _TimelineRows on TimelineScreenState {
   void _onModelChange() {
     if (!mounted) return;
     final kind = _model.lastChange;
-    if (kind != TimelineChange.tags && kind != TimelineChange.commitments) {
+    // By tag, the tags are the headings: a renamed or new tag is a change to
+    // the rows, not just to the filter row.
+    final tagShelves =
+        widget.preferences.timelineArrangement == NexTimelineArrangement.tag;
+    if ((kind != TimelineChange.tags || tagShelves) &&
+        kind != TimelineChange.commitments) {
       _rebuild(() {});
       if (kind == TimelineChange.notes) {
         // Rows replaced under a list that is already scrolled: the sticky day

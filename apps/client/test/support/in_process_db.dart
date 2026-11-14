@@ -305,6 +305,10 @@ class InProcessDb implements NexDb {
       _repo.hasUntaggedTimelineNotes();
 
   @override
+  Future<Map<String, int>> timelineShelfCounts() async =>
+      _repo.timelineShelfCounts();
+
+  @override
   Future<bool> setAside(String id, {DateTime? until}) async =>
       _repo.setAside(id, until: until);
 

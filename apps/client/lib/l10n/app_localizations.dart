@@ -10021,6 +10021,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 month} other{{count} months}}'**
   String spanMonths(int count);
+
+  /// Home layout: what the headings over the notes are (2.7.0)
+  ///
+  /// In en, this message translates to:
+  /// **'Group by'**
+  String get timelineArrange;
+
+  /// No description provided for @timelineArrangeTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get timelineArrangeTime;
+
+  /// No description provided for @timelineArrangeType.
+  ///
+  /// In en, this message translates to:
+  /// **'Kind'**
+  String get timelineArrangeType;
+
+  /// No description provided for @timelineArrangeTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get timelineArrangeTag;
+
+  /// One line under the Group by choice, saying what the chosen arrangement does
+  ///
+  /// In en, this message translates to:
+  /// **'{by, select, type{Notes on shelves by kind, the newest few of each. Pins stay on top.} tag{Notes on shelves by tag; a note with two tags is on both. Pins stay on top.} other{Notes under days, newest first.}}'**
+  String timelineArrangeHint(String by);
+
+  /// Home heading over a shelf of one kind of note
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, text{Writing} voice{Voice notes} photo{Photos} file{Files} checklist{Checklists} link{Links} other{Notes}}'**
+  String timelineShelfType(String type);
+
+  /// End of a home shelf that shows only its newest notes
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{See all {count}}}'**
+  String shelfSeeAll(int count);
+
+  /// End of a home shelf while a filter makes the exact count unknown
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get shelfSeeAllUncounted;
+
+  /// Move a home shelf one place up
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get groupMoveUp;
+
+  /// Move a home shelf one place down
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get groupMoveDown;
 }
 
 class _AppLocalizationsDelegate

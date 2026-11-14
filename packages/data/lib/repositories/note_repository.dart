@@ -532,6 +532,45 @@ WHERE id = ? AND deleted_at IS NULL
       ).first['found'] ==
       1;
 
+  /// How many home-timeline notes each shelf of an arranged home holds
+  /// (2.7.0): `type:<wire name>` for each kind, `tag:<id>` for each tag and
+  /// `untagged`, all counted over the whole timeline rather than the loaded
+  /// window, so a shelf can say how much more there is than it shows.
+  ///
+  /// Pinned notes are left out: they sit on their own shelf at the top, and
+  /// a kind's "See all 12" counts the notes under that kind's own heading.
+  /// Set-aside notes are left out, as the timeline leaves them out.
+  Map<String, int> timelineShelfCounts() {
+    final now = DateTime.now().toUtc().toIso8601String();
+    const live =
+        'n.deleted_at IS NULL AND n.pinned_at IS NULL AND '
+        '(n.set_aside_at IS NULL OR '
+        '(n.set_aside_until IS NOT NULL AND n.set_aside_until <= ?))';
+    return {
+      for (final row in db.select(
+        'SELECT n.type AS type, COUNT(*) AS c FROM notes n WHERE $live '
+        'GROUP BY n.type',
+        [now],
+      ))
+        'type:${row['type']}': row['c'] as int,
+      for (final row in db.select(
+        'SELECT nt.tag_id AS tag, COUNT(DISTINCT n.id) AS c FROM note_tags nt '
+        'JOIN tags t ON t.id = nt.tag_id JOIN notes n ON n.id = nt.note_id '
+        'WHERE $live GROUP BY nt.tag_id',
+        [now],
+      ))
+        'tag:${row['tag']}': row['c'] as int,
+      'untagged':
+          db.select(
+                'SELECT COUNT(*) AS c FROM notes n WHERE $live AND NOT EXISTS('
+                'SELECT 1 FROM note_tags nt JOIN tags t ON t.id = nt.tag_id '
+                'WHERE nt.note_id = n.id)',
+                [now],
+              ).first['c']
+              as int,
+    };
+  }
+
   /// Exact live counts, including set-aside notes, without reading content.
   Map<String, int> libraryNoteCounts() => {
     for (final type in NoteType.values) type.wireName: 0,
@@ -2224,7 +2263,7 @@ n.id IN (
   /// connection next writes anything: one keystroke asks twice — the instant
   /// round, then the fused round once the meaning search answers — and the
   /// second used to run the FTS query and its whole-index substring pass
-  /// again for the same answer (2.6.30). `total_changes()` counts every row
+  /// again for the same answer (2.7.0). `total_changes()` counts every row
   /// this connection has inserted, updated or deleted, so any write at all,
   /// whichever table, makes the remembered answer stale.
   List<String> keywordRanked(SearchFilters filters, {int limit = rankedLimit}) {

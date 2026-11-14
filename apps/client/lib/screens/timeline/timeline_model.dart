@@ -14,7 +14,7 @@ import '../../platform/nex_services.dart';
 /// commitments change is the row's and the brief's own business. The kind is
 /// set immediately before each notification and read by listeners that run
 /// synchronously inside it.
-enum TimelineChange { notes, tags, commitments, folds }
+enum TimelineChange { notes, tags, commitments, folds, shelves }
 
 /// What the timeline shows, apart from how it shows it (W4.2).
 ///
@@ -113,6 +113,61 @@ class TimelineModel extends ChangeNotifier {
   Set<String> get collapsedGroups => _collapsedGroups;
   Set<String> _collapsedGroups;
 
+  /// Whole-timeline counts for an arranged home's shelves (2.7.0) — see
+  /// `timelineShelfCounts`. Null until read, and never read while the home
+  /// is arranged by day.
+  Map<String, int>? get shelfCounts => _shelfCounts;
+  Map<String, int>? _shelfCounts;
+  Future<void>? _shelfFlight;
+  bool _shelfAgain = false;
+
+  /// Reads [shelfCounts] when the home is arranged by kind or tag.
+  ///
+  /// Coalesced like [loadFilterTags], but a call that lands mid-read asks
+  /// for one more read after it: the read in flight may have started before
+  /// the write that prompted this call.
+  Future<void> loadShelfCounts() {
+    if (preferences.timelineArrangement == NexTimelineArrangement.time) {
+      return Future.value();
+    }
+    final pending = _shelfFlight;
+    if (pending != null) {
+      _shelfAgain = true;
+      return pending;
+    }
+    final flight = _readShelfCounts().whenComplete(() {
+      _shelfFlight = null;
+      if (_shelfAgain && !_disposed) {
+        _shelfAgain = false;
+        unawaited(loadShelfCounts());
+      }
+    });
+    _shelfFlight = flight;
+    return flight;
+  }
+
+  /// The first read after the home is arranged by kind or tag — once, not
+  /// again on every build while a read is out or after one failed.
+  void ensureShelfCounts() {
+    if (_shelfCounts != null || _shelfFlight != null || _shelfTried) return;
+    _shelfTried = true;
+    unawaited(loadShelfCounts());
+  }
+
+  bool _shelfTried = false;
+
+  Future<void> _readShelfCounts() async {
+    try {
+      final counts = await services.worker.timelineShelfCounts();
+      if (_disposed || mapEquals(counts, _shelfCounts)) return;
+      _shelfCounts = Map.unmodifiable(counts);
+      _notifyOf(TimelineChange.shelves);
+    } on Object {
+      // Without counts a shelf says "See all" rather than how many: true,
+      // only less exact.
+    }
+  }
+
   /// The recurring items, for the brief and the recap.
   List<NexCommitment> get commitments => _commitments;
   List<NexCommitment> _commitments = const [];
@@ -171,6 +226,7 @@ class TimelineModel extends ChangeNotifier {
       // Every mutation path already refreshes the timeline, so this is the
       // one place that has to notice.
       unawaited(loadFilterTags());
+      unawaited(loadShelfCounts());
       onDelivered(value);
     });
   }
@@ -188,6 +244,7 @@ class TimelineModel extends ChangeNotifier {
       if (_disposed) return null;
       _loadFailed = false;
       _take(loaded);
+      unawaited(loadShelfCounts());
       return loaded;
     } on Object {
       if (_disposed) return null;

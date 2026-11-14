@@ -6386,4 +6386,63 @@ class AppLocalizationsFa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get timelineArrange => 'دسته‌بندی';
+
+  @override
+  String get timelineArrangeTime => 'زمان';
+
+  @override
+  String get timelineArrangeType => 'نوع';
+
+  @override
+  String get timelineArrangeTag => 'تگ';
+
+  @override
+  String timelineArrangeHint(String by) {
+    String _temp0 = intl.Intl.selectLogic(by, {
+      'type': 'یادداشت‌ها در قفسه‌های هر نوع، با چند تای تازه‌ترِ هر کدام. سنجاق‌شده‌ها بالا می‌مانند.',
+      'tag': 'یادداشت‌ها در قفسه‌های هر تگ؛ یادداشتی با دو تگ در هر دو هست. سنجاق‌شده‌ها بالا می‌مانند.',
+      'other': 'یادداشت‌ها زیر روزها، تازه‌ترین بالا.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String timelineShelfType(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'text': 'نوشته‌ها',
+      'voice': 'صداها',
+      'photo': 'عکس‌ها',
+      'file': 'فایل‌ها',
+      'checklist': 'چک‌لیست‌ها',
+      'link': 'لینک‌ها',
+      'other': 'یادداشت‌ها',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String shelfSeeAll(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'دیدن همهٔ $countString تا',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shelfSeeAllUncounted => 'دیدن همه';
+
+  @override
+  String get groupMoveUp => 'بالاتر ببر';
+
+  @override
+  String get groupMoveDown => 'پایین‌تر ببر';
 }

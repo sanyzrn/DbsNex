@@ -4,8 +4,9 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
-## v2.6.30
+## v2.7.0
 
+- **Group the home screen by kind or by tag.** Besides time, the home screen can now sort notes onto shelves by what they are — writing, checklists, voice, photos, links, files — or by tag, so a note is found by what you remember about it. Each shelf shows its newest six and how many it holds, **See all** opens the rest, and shelves can be moved up or down. Choose it in the layout menu or under **Settings → Appearance**.
 - **Converter.** A new module: dates across the solar, Gregorian and lunar calendars, with the days between two dates and adding or taking away days; units in six categories, Iranian units included; and eight size charts for clothes, shoes and rings. Add it from **Tools → Modules**; it works fully offline.
 - **List cards in their kind's colour.** The soft wash the grid tiles carry now sits behind list cards too, so a text, a checklist or a voice note can be told apart at a glance in either layout.
 - **Search no longer loses words.** Adding a caption, or an edit arriving from another device, could drop the words read from a note's attached photo or file out of search until the note was edited again. Now nothing is dropped, and the first start after this update repairs notes affected before.

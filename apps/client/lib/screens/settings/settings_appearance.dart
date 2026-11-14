@@ -240,6 +240,8 @@ class _ThemeScreen extends StatelessWidget {
             const SizedBox(height: NexSpacing.md),
             NexTimelineViewPanel(preferences: preferences),
             const SizedBox(height: NexSpacing.md),
+            NexTimelineArrangementPanel(preferences: preferences),
+            const SizedBox(height: NexSpacing.md),
             NexPanel(
               title: l10n.cardDensity,
               icon: Icons.view_agenda_outlined,

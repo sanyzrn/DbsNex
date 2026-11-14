@@ -349,9 +349,12 @@ extension _TimelineNavigation on TimelineScreenState {
     if (!current() || !await _model.ensureLoaded(noteId) || !current()) return;
     final note = _model.byId(noteId);
     final now = DateTime.now();
+    final shelf = note == null ? null : await _revealShelf(note);
+    if (!current()) return;
     final key = note == null
         ? null
-        : _bucketFor(note, DateTime(now.year, now.month, now.day), l10n).$1;
+        : shelf ??
+              _bucketFor(note, DateTime(now.year, now.month, now.day), l10n).$1;
     if (key != null && _model.collapsedGroups.contains(key)) {
       await _toggleGroup(key);
     }

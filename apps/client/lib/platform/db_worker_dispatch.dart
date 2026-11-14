@@ -195,6 +195,7 @@ class _Worker {
       _DbCommand.pinnedNoteCount => repo.pinnedNoteCount(),
       _DbCommand.libraryNoteCounts => repo.libraryNoteCounts(),
       _DbCommand.hasUntaggedTimelineNotes => repo.hasUntaggedTimelineNotes(),
+      _DbCommand.timelineShelfCounts => repo.timelineShelfCounts(),
       _DbCommand.setAside => repo.setAside(
         arg('id')! as String,
         until: switch (arg('until')) {

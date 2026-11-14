@@ -92,6 +92,18 @@ mixin _AppearancePreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// What the home screen's headings are: days, kinds or tags (2.7.0). The
+  /// list and the grid both follow it.
+  NexTimelineArrangement get timelineArrangement =>
+      NexTimelineArrangement.fromWire(
+        _prefs.getString('appearance.timeline_arrange'),
+      );
+
+  Future<void> setTimelineArrangement(NexTimelineArrangement value) async {
+    await _prefs.setString('appearance.timeline_arrange', value.name);
+    notifyListeners();
+  }
+
   /// Whether Enter submits the note being typed on first capture, rather
   /// than starting a new line. Scoped to that one field on purpose — editing
   /// an existing note is a different moment, where a stray Enter should
