@@ -252,4 +252,67 @@ void main() {
       );
     });
   });
+
+  group('a date written the other ways people write one (2.7.1)', () {
+    ConverterDate? solar(String text) =>
+        ConverterDate.parse(text, ConverterCalendar.solar);
+
+    test('an old solar date, in any digits', () {
+      for (final text in ['1365/11/27', '۱۳۶۵/۱۱/۲۷', '١٣٦٥-١١-٢٧']) {
+        expect(solar(text)?.civilDay, DateTime(1987, 2, 16), reason: text);
+      }
+    });
+
+    test('the day first, as on an ID card', () {
+      expect(solar('27/11/1365')?.numeric, '1365/11/27');
+      expect(
+        ConverterDate.parse('16.02.1987', ConverterCalendar.gregorian)?.numeric,
+        '1987/02/16',
+      );
+    });
+
+    test('the month by its name', () {
+      expect(solar('۲۷ بهمن ۱۳۶۵')?.numeric, '1365/11/27');
+      expect(solar('27 Bahman 1365')?.numeric, '1365/11/27');
+      expect(solar('۱۳۶۵ بهمن ۲۷')?.numeric, '1365/11/27');
+      expect(solar('۱ دی ۱۴۰۰')?.numeric, '1400/10/01');
+      expect(solar('۱ مهر ۱۴۰۰')?.numeric, '1400/07/01', reason: 'not مه');
+      expect(
+        ConverterDate.parse(
+          '16 Feb 1987',
+          ConverterCalendar.gregorian,
+        )?.numeric,
+        '1987/02/16',
+      );
+      expect(
+        ConverterDate.parse('March 3, 2026', ConverterCalendar.gregorian),
+        isNull,
+        reason: 'the month first is not a form the field reads',
+      );
+      expect(
+        ConverterDate.parse(
+          '3 March 2026',
+          ConverterCalendar.gregorian,
+        )?.numeric,
+        '2026/03/03',
+      );
+    });
+
+    test('lunar names with spaces, half-spaces and Arabic letters', () {
+      ConverterDate? lunar(String text) =>
+          ConverterDate.parse(text, ConverterCalendar.lunar);
+      expect(lunar('۱۲ ربیع‌الاول ۱۴۴۷')?.month, 3);
+      expect(lunar('۱۲ ربیع الاول ۱۴۴۷')?.month, 3);
+      expect(lunar('12 Rabi II 1447')?.month, 4);
+      expect(lunar('12 Rabi I 1447')?.month, 3);
+      expect(lunar('۱ ذي‌الحجه ۱۴۴۶')?.month, 12);
+    });
+
+    test('still nothing for what is not a date', () {
+      expect(solar('۲۷ بهمن'), isNull);
+      expect(solar('بهمن ۲۷ ۱۳۶۵'), isNull);
+      expect(solar('1365/13/01'), isNull);
+      expect(solar('hello world now'), isNull);
+    });
+  });
 }

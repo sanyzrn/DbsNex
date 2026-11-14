@@ -55,19 +55,88 @@ class ConverterDate {
   /// A date typed as `year/month/day`, in [calendar], or null when it is not
   /// a real day. Persian, Arabic and Latin digits all read; `/`, `-`, `.` and
   /// a space all separate.
+  ///
+  /// Also the other ways a date is written (2.7.1): the day first, as on an
+  /// ID card or a Gregorian form (`27/11/1365`), and the month by its name,
+  /// in Persian or English (`۲۷ بهمن ۱۳۶۵`, `16 Feb 1987`). The year is the
+  /// part with three or more digits, or past 31; with neither, year first,
+  /// as the field's hint shows.
   static ConverterDate? parse(String text, ConverterCalendar calendar) {
-    final parts = converterLatinDigits(text)
+    var latin = converterLatinDigits(text)
+        .replaceAll('\u060C', ' ')
+        .replaceAll(',', ' ');
+    // Names first, before the separators split «ربیع الاول» or "Rabi I" in
+    // two: each becomes one token, `@3`, that the split leaves whole.
+    for (final (index, pattern) in _monthPatterns(calendar).indexed) {
+      latin = latin.replaceAll(pattern, ' @${index + 1} ');
+    }
+    final parts = latin
         .trim()
         .split(RegExp(r'[/\-.\s]+'))
         .where((part) => part.isNotEmpty)
         .toList();
     if (parts.length != 3) return null;
-    final year = int.tryParse(parts[0]);
-    final month = int.tryParse(parts[1]);
-    final day = int.tryParse(parts[2]);
+    int? year, month, day;
+    if (parts[1].startsWith('@')) {
+      month = int.tryParse(parts[1].substring(1));
+      final a = int.tryParse(parts[0]);
+      final b = int.tryParse(parts[2]);
+      if (a == null || b == null) return null;
+      final yearFirst = parts[0].length >= 3 || a > 31;
+      year = yearFirst ? a : b;
+      day = yearFirst ? b : a;
+    } else {
+      final numbers = [for (final part in parts) int.tryParse(part)];
+      if (numbers.any((n) => n == null)) return null;
+      final dayFirst =
+          parts[0].length <= 2 &&
+          numbers[0]! <= 31 &&
+          (parts[2].length >= 3 || numbers[2]! > 31);
+      year = dayFirst ? numbers[2] : numbers[0];
+      month = numbers[1];
+      day = dayFirst ? numbers[0] : numbers[2];
+    }
     if (year == null || month == null || day == null) return null;
     final candidate = ConverterDate(calendar, year, month, day);
     return candidate.civilDay == null ? null : candidate;
+  }
+
+  /// One pattern per month of [calendar], matching any of its names as a
+  /// whole word: any case; a space, half-space or hyphen inside a name, or
+  /// none; the Arabic ي and ك for ی and ک.
+  static List<RegExp> _monthPatterns(ConverterCalendar calendar) =>
+      _patterns[calendar] ??= [
+        for (final spellings in switch (calendar) {
+          ConverterCalendar.solar => _solarNames,
+          ConverterCalendar.gregorian => _gregorianNames,
+          ConverterCalendar.lunar => _lunarNames,
+        })
+          RegExp(
+            '(?<!\\p{L})(?:${_alternatives(spellings)})(?!\\p{L})',
+            caseSensitive: false,
+            unicode: true,
+          ),
+      ];
+
+  static final _patterns = <ConverterCalendar, List<RegExp>>{};
+
+  /// The longest spelling first, so "March" is not read as "Mar" and a dot.
+  static String _alternatives(List<String> spellings) => ([
+    ...spellings,
+  ]..sort((a, b) => b.length - a.length)).map(_spellingPattern).join('|');
+
+  static String _spellingPattern(String spelling) {
+    final out = StringBuffer();
+    for (final char in spelling.split('')) {
+      out.write(switch (char) {
+        ' ' || '\u200c' || '-' => '[\\s\u200c\\-]?',
+        "'" => "['’ʿ]?",
+        'ی' => '[یي]',
+        'ک' => '[کك]',
+        _ => RegExp.escape(char),
+      });
+    }
+    return out.toString();
   }
 
   final ConverterCalendar calendar;
@@ -174,6 +243,50 @@ class ConverterDate {
   @override
   String toString() => '${calendar.name} $numeric';
 }
+
+/// Month names the field reads, in each calendar's order.
+const _solarNames = [
+  ['فروردین', 'Farvardin'],
+  ['اردیبهشت', 'Ordibehesht'],
+  ['خرداد', 'Khordad'],
+  ['تیر', 'Tir'],
+  ['مرداد', 'امرداد', 'Mordad'],
+  ['شهریور', 'Shahrivar'],
+  ['مهر', 'Mehr'],
+  ['آبان', 'Aban'],
+  ['آذر', 'Azar'],
+  ['دی', 'Dey', 'Dei'],
+  ['بهمن', 'Bahman'],
+  ['اسفند', 'Esfand'],
+];
+const _gregorianNames = [
+  ['ژانویه', 'January', 'Jan'],
+  ['فوریه', 'February', 'Feb'],
+  ['مارس', 'March', 'Mar'],
+  ['آوریل', 'April', 'Apr'],
+  ['مه', 'می', 'May'],
+  ['ژوئن', 'June', 'Jun'],
+  ['ژوئیه', 'جولای', 'July', 'Jul'],
+  ['اوت', 'آگوست', 'August', 'Aug'],
+  ['سپتامبر', 'September', 'Sept', 'Sep'],
+  ['اکتبر', 'October', 'Oct'],
+  ['نوامبر', 'November', 'Nov'],
+  ['دسامبر', 'December', 'Dec'],
+];
+const _lunarNames = [
+  ['محرم', 'Muharram'],
+  ['صفر', 'Safar'],
+  ['ربیع‌الاول', 'Rabi I', "Rabi' al-Awwal"],
+  ['ربیع‌الثانی', 'ربیع‌الآخر', 'Rabi II', "Rabi' al-Thani"],
+  ['جمادی‌الاول', 'جمادی‌الاولی', 'Jumada I'],
+  ['جمادی‌الثانی', 'جمادی‌الآخر', 'Jumada II'],
+  ['رجب', 'Rajab'],
+  ['شعبان', "Sha'ban"],
+  ['رمضان', 'Ramadan', 'Ramazan'],
+  ['شوال', 'Shawwal'],
+  ['ذی‌القعده', "Dhu al-Qi'dah"],
+  ['ذی‌الحجه', 'Dhu al-Hijjah'],
+];
 
 /* -------------------------------------------------------------------------
  * The lunar (qamari) calendar.
