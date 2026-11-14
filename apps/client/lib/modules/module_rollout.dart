@@ -15,8 +15,16 @@ import 'package:flutter/foundation.dart'
 /// A module that is not listed here is Soon: no install, open or reminders.
 /// Rollout never changes saved installation choices or data.
 /// Birthdays & occasions and Word by Word are the first of them back,
-/// finished and redesigned in 2.4.0. Habits returns in 2.4.1.
-const nexAvailableModuleIds = {'cycle', 'pause', 'occasions', 'words', 'habits'};
+/// finished and redesigned in 2.4.0. Habits returns in 2.4.1, and Converter
+/// (dates, units and sizes, added in 2.6.29) in 2.7.0.
+const nexAvailableModuleIds = {
+  'cycle',
+  'pause',
+  'occasions',
+  'words',
+  'habits',
+  'converter',
+};
 
 /// Windows, Linux and macOS. The modules are made for the phone; the desktop
 /// has none of them for now (its own tools are to come, `docs/27-desktop.md`),
@@ -31,4 +39,3 @@ bool get nexDesktopPlatform => switch (defaultTargetPlatform) {
 
 bool nexModuleAvailable(String id) =>
     !nexDesktopPlatform && nexAvailableModuleIds.contains(id);
-

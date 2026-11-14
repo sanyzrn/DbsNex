@@ -3550,5 +3550,22 @@
     }
   },
   "spanMonths": "{count, plural, =1{1 month} other{{count} months}}",
-  "@spanMonths": {"description": "A span in months", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}}
+  "@spanMonths": {"description": "A span in months", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "timelineArrange": "Group by",
+  "@timelineArrange": {"description": "Home layout: what the headings over the notes are (2.7.0)"},
+  "timelineArrangeTime": "Time",
+  "timelineArrangeType": "Kind",
+  "timelineArrangeTag": "Tag",
+  "timelineArrangeHint": "{by, select, type{Notes on shelves by kind, the newest few of each. Pins stay on top.} tag{Notes on shelves by tag; a note with two tags is on both. Pins stay on top.} other{Notes under days, newest first.}}",
+  "@timelineArrangeHint": {"description": "One line under the Group by choice, saying what the chosen arrangement does", "placeholders": {"by": {"type": "String"}}},
+  "timelineShelfType": "{type, select, text{Writing} voice{Voice notes} photo{Photos} file{Files} checklist{Checklists} link{Links} other{Notes}}",
+  "@timelineShelfType": {"description": "Home heading over a shelf of one kind of note", "placeholders": {"type": {"type": "String"}}},
+  "shelfSeeAll": "{count, plural, other{See all {count}}}",
+  "@shelfSeeAll": {"description": "End of a home shelf that shows only its newest notes", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "shelfSeeAllUncounted": "See all",
+  "@shelfSeeAllUncounted": {"description": "End of a home shelf while a filter makes the exact count unknown"},
+  "groupMoveUp": "Move up",
+  "@groupMoveUp": {"description": "Move a home shelf one place up"},
+  "groupMoveDown": "Move down",
+  "@groupMoveDown": {"description": "Move a home shelf one place down"}
 }

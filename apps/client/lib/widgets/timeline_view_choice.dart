@@ -3,6 +3,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/timeline_shelves.dart';
 import 'choice_cards.dart';
 import 'nex_shelf.dart';
 
@@ -100,6 +101,141 @@ class _ViewPreview extends StatelessWidget {
                   Expanded(child: box('checklist')),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+/// Time, kind or tag: what the home screen's headings are (2.7.0).
+///
+/// Beside list or grid, and drawn the same way: each card a small picture of
+/// the headings it makes — days, a kind's coloured mark, a tag's dot — with
+/// one line under the cards saying what the chosen one does.
+class NexTimelineArrangementPanel extends StatelessWidget {
+  const NexTimelineArrangementPanel({super.key, required this.preferences});
+
+  final NexPreferences preferences;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final by = preferences.timelineArrangement;
+    return NexPanel(
+      title: l10n.timelineArrange,
+      icon: Icons.view_day_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          NexChoiceCards<NexTimelineArrangement>(
+            selected: by,
+            onSelected: preferences.setTimelineArrangement,
+            choices: [
+              for (final value in NexTimelineArrangement.values)
+                NexChoice(
+                  value: value,
+                  label: switch (value) {
+                    NexTimelineArrangement.time => l10n.timelineArrangeTime,
+                    NexTimelineArrangement.type => l10n.timelineArrangeType,
+                    NexTimelineArrangement.tag => l10n.timelineArrangeTag,
+                  },
+                  preview: NexArrangementPreview(by: value),
+                ),
+            ],
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Text(
+            l10n.timelineArrangeHint(by.name),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Two headings and the rows under them, in miniature: a plain bar for a
+/// day, a kind's coloured square, a tag's dot.
+class NexArrangementPreview extends StatelessWidget {
+  const NexArrangementPreview({super.key, required this.by});
+
+  final NexTimelineArrangement by;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    Color wash(String type) => Color.alphaBlend(
+      nexNoteTypeTint(type, scheme).withValues(alpha: 0.22),
+      scheme.surfaceContainerLowest,
+    );
+    Widget mark(int i, String type) => switch (by) {
+      NexTimelineArrangement.time => const SizedBox.shrink(),
+      NexTimelineArrangement.type => Container(
+        width: 6,
+        height: 6,
+        margin: const EdgeInsetsDirectional.only(end: 3),
+        decoration: BoxDecoration(
+          color: nexNoteTypeTint(type, scheme),
+          borderRadius: BorderRadius.circular(NexRadius.xs),
+        ),
+      ),
+      NexTimelineArrangement.tag => Container(
+        width: 6,
+        height: 6,
+        margin: const EdgeInsetsDirectional.only(end: 3),
+        decoration: BoxDecoration(
+          color: i == 0 ? scheme.primary : scheme.tertiary,
+          shape: BoxShape.circle,
+        ),
+      ),
+    };
+    Widget heading(int i, String type) => Row(
+      children: [
+        mark(i, type),
+        Container(
+          width: 16,
+          height: 3,
+          decoration: BoxDecoration(
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(NexRadius.xs),
+          ),
+        ),
+      ],
+    );
+    Widget row(String type) => Expanded(
+      child: Container(
+        decoration: BoxDecoration(
+          // By day the rows are every kind mixed; on a shelf, all one.
+          color: wash(type),
+          borderRadius: BorderRadius.circular(NexRadius.xs),
+        ),
+      ),
+    );
+    const gap = SizedBox(height: 2);
+    final first = by == NexTimelineArrangement.time ? 'voice' : 'text';
+    final second = by == NexTimelineArrangement.time ? 'checklist' : 'photo';
+    return ExcludeSemantics(
+      child: SizedBox(
+        width: 48,
+        height: 36,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            heading(0, 'text'),
+            gap,
+            row('text'),
+            gap,
+            row(first),
+            const SizedBox(height: 3),
+            heading(1, 'photo'),
+            gap,
+            row(second),
+            gap,
+            row('photo'),
+          ],
+        ),
       ),
     );
   }

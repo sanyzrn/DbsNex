@@ -1,4 +1,5 @@
 import 'note.dart';
+import '../search/search_fold.dart';
 
 /// A typed search string, split into what it filters by and what it looks for.
 ///
@@ -98,18 +99,39 @@ List<String> _tokenise(String raw) {
 }
 
 NoteType? _typeNamed(String value) {
-  final wanted = value.toLowerCase();
+  // Folded, like every other word the box is compared on: a type name typed
+  // with Arabic yeh or kaf — the spelling Windows-1256 text and some
+  // keyboards produce — is still the Persian word it means.
+  final wanted = nexSearchFold(value).toLowerCase();
   for (final type in NoteType.values) {
     if (type.wireName == wanted) return type;
   }
-  // The plurals people actually type.
+  // The plurals people actually type — in both languages the app runs in,
+  // written as the fold leaves them (no half-space: it is taken out above).
+  // The Persian words were missing, so `type:عکس` was not a filter but a
+  // search for the words "type" and "عکس", and a person asking for their
+  // photos in their own language was told nothing matched.
   return switch (wanted) {
-    'notes' || 'note' => NoteType.text,
-    'photos' || 'image' || 'images' => NoteType.photo,
-    'voices' || 'audio' => NoteType.voice,
-    'files' => NoteType.file,
-    'checklists' || 'todo' || 'todos' => NoteType.checklist,
-    'links' || 'url' => NoteType.link,
+    'notes' || 'note' || 'یادداشت' || 'یادداشتها' || 'متن' => NoteType.text,
+    'photos' ||
+    'image' ||
+    'images' ||
+    'عکس' ||
+    'عکسها' ||
+    'تصویر' => NoteType.photo,
+    'voices' ||
+    'audio' ||
+    'صدا' ||
+    'صداها' ||
+    'صوتی' ||
+    'ضبط' => NoteType.voice,
+    'files' || 'فایل' || 'فایلها' || 'سند' => NoteType.file,
+    'checklists' ||
+    'todo' ||
+    'todos' ||
+    'چکلیست' ||
+    'فهرست' => NoteType.checklist,
+    'links' || 'url' || 'لینک' || 'لینکها' || 'پیوند' => NoteType.link,
     _ => null,
   };
 }

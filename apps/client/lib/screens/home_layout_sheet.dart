@@ -3,6 +3,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/timeline_shelves.dart';
 
 /// What the home screen shows, and how it looks — one tap from the screen it
 /// changes (2.3.0).
@@ -150,6 +151,41 @@ class _HomeLayoutSheetState extends State<HomeLayoutSheet> {
                   ),
                 ],
               ],
+            ),
+            const SizedBox(height: NexSpacing.md),
+            Text(l10n.timelineArrange, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: NexSpacing.sm),
+            Row(
+              children: [
+                for (final (i, by)
+                    in NexTimelineArrangement.values.indexed) ...[
+                  if (i > 0) const SizedBox(width: NexSpacing.sm),
+                  Expanded(
+                    child: _ToggleTile(
+                      key: ValueKey('layout-arrange-${by.name}'),
+                      icon: switch (by) {
+                        NexTimelineArrangement.time => Icons.schedule_rounded,
+                        NexTimelineArrangement.type => Icons.category_outlined,
+                        NexTimelineArrangement.tag => Icons.sell_outlined,
+                      },
+                      label: switch (by) {
+                        NexTimelineArrangement.time => l10n.timelineArrangeTime,
+                        NexTimelineArrangement.type => l10n.timelineArrangeType,
+                        NexTimelineArrangement.tag => l10n.timelineArrangeTag,
+                      },
+                      on: prefs.timelineArrangement == by,
+                      onTap: () => _then(prefs.setTimelineArrangement(by)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: NexSpacing.xs),
+            Text(
+              l10n.timelineArrangeHint(prefs.timelineArrangement.name),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: NexSpacing.md),
             Text(l10n.cardDensity, style: theme.textTheme.bodyMedium),

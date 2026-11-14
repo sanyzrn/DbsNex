@@ -155,6 +155,7 @@ enum _DbCommand {
   close,
   libraryNoteCounts,
   hasUntaggedTimelineNotes,
+  timelineShelfCounts,
 }
 
 class _DbRequest {
@@ -510,11 +511,18 @@ class NexDbWorker
   /// Keyword matches and meaning matches, fused (W2.2). The meaning half
   /// waits on the provider, which is why this runs off the queue; the ranking
   /// itself is a few hundred rows and happens after the wait.
+  ///
+  /// The keyword half is not run twice for one keystroke: the instant round
+  /// just ranked the same filters, and the repository keeps that answer
+  /// until the library next changes (`keywordRanked`). A query with no words
+  /// to rank by falls back to the plain filtered list — [rankedSearch] has
+  /// nothing to rank and used to answer nothing for a search of filters only.
   static Future<List<Note>> _fusedSearch(
     SqliteNoteRepository repo,
     EnrichmentService enrichment,
     SearchFilters filters,
   ) async {
+    if (filters.query.trim().isEmpty) return repo.search(filters);
     final hits = await enrichment.semanticSearch(filters.query, limit: 100);
     return repo.rankedSearch(
       filters,

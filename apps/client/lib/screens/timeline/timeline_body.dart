@@ -392,10 +392,12 @@ extension _TimelineBody on TimelineScreenState {
     // used to replace the whole body whenever a filter matched nothing, taking
     // the filter row with it — so the filter that caused it could not be
     // cleared without restarting the app.
-    // Grouped by date, and only by date. Manual arrangement is gone (the
+    // Grouped by date — or, when the reader chose it, onto shelves by kind
+    // or tag (2.7.0, ADR-043). Never by hand: manual arrangement is gone (the
     // repository's ORDER BY says why): a heading that says "Yesterday" has to
     // be telling the truth about every row beneath it, and a hand-placed note
-    // lands wherever it was dropped.
+    // lands wherever it was dropped. A shelf's order can move; a note's
+    // place inside it cannot.
     //
     // The rows come from the cache: the same list instance until the notes,
     // the folds or the day move, so an unrelated rebuild costs neither the
@@ -407,7 +409,10 @@ extension _TimelineBody on TimelineScreenState {
       collapsed: _model.collapsedGroups,
       closing: _closingGroups,
       l10n: l10n,
+      arrange: _arrangeNow(),
     );
+    final labels = {for (final group in groups) group.key: group.label};
+    final arranged = groups.firstOrNull?.shelf != null;
     // One set of card strings per body build, not one per row: the list's
     // builder used to make a fresh `NexCardStrings` — ten closures deep — for
     // every card it laid out, on every rebuild.
@@ -424,14 +429,16 @@ extension _TimelineBody on TimelineScreenState {
           rows: rows,
           revision: _model.notes,
           removedBuilder: (context, row) {
+            if (row.moreOf case final group?) return _shelfMore(group, l10n);
             if (row.group case final group?) {
               return _GroupHeader(
                 label: group.label,
-                count: group.notes.length,
+                count: group.count,
                 collapsed: _model.collapsedGroups.contains(group.key),
+                leading: _shelfMark(group),
                 onToggle: () {},
                 onAsk: null,
-                onDelete: () {},
+                onDelete: null,
               );
             }
             return NoteCard(
@@ -441,23 +448,20 @@ extension _TimelineBody on TimelineScreenState {
             );
           },
           builder: (context, row, index) {
+            if (row.moreOf case final group?) {
+              return _FoldingRow(
+                key: ValueKey('fold-more-${group.key}'),
+                open: !_closingGroups.contains(group.key),
+                animateIn: _openingGroups.contains(group.key),
+                order: row.indexInGroup,
+                child: _shelfMore(group, l10n),
+              );
+            }
             if (row.group case final group?) {
               // Inert while a card is open: the fold, the menu and Ask all sit
               // in the same list as the swiped card, and the tap that puts it
               // away must not also do one of them.
-              return NexTapGuarded(
-                controller: _guard,
-                child: _GroupHeader(
-                  label: group.label,
-                  count: group.notes.length,
-                  collapsed: _model.collapsedGroups.contains(group.key),
-                  onToggle: () => unawaited(_toggleGroup(group.key)),
-                  onAsk: AiChatSheet.availableFor(widget.preferences)
-                      ? () => unawaited(_askAboutGroup(group))
-                      : null,
-                  onDelete: () => unawaited(_deleteGroup(group, l10n)),
-                ),
-              );
+              return _groupHeading(group, groups, l10n);
             }
             final note = row.note!;
             // Neighbours under the same heading are joined — see
@@ -468,7 +472,11 @@ extension _TimelineBody on TimelineScreenState {
                 rows[at].note != null &&
                 rows[at].groupKey == row.groupKey;
             return _DayMark(
-              label: _dayLabel(note, l10n),
+              // Arranged, the line under the filters names the shelf being
+              // read, as by day it names the day.
+              label: arranged
+                  ? labels[row.groupKey] ?? ''
+                  : _dayLabel(note, l10n),
               marks: _dayMarks,
               child: _FoldingRow(
                 // Keyed on the note so the controller survives a rebuild of the
@@ -478,7 +486,9 @@ extension _TimelineBody on TimelineScreenState {
                 animateIn: _openingGroups.contains(row.groupKey),
                 order: row.indexInGroup,
                 child: NoteSpotlight(
-                  key: _spotlightId == note.id ? _spotlightAnchor : null,
+                  key: _spotlightId == note.id && row.primary
+                      ? _spotlightAnchor
+                      : null,
                   active: _spotlightId == note.id && _spotlightReady,
                   onDone: () {
                     if (mounted && _spotlightId == note.id) {

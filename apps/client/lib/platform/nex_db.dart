@@ -114,6 +114,10 @@ abstract interface class NexDb {
   Future<Map<String, int>> libraryNoteCounts();
   Future<bool> hasUntaggedTimelineNotes();
 
+  /// Whole-timeline counts per kind, tag and untagged, for the arranged home
+  /// (2.7.0) — see `SqliteNoteRepository.timelineShelfCounts`.
+  Future<Map<String, int>> timelineShelfCounts();
+
   /// Puts a note to one side: off the home timeline, still searchable. A null
   /// [until] means until it is brought back. False when the note is gone or
   /// [until] is not in the future.

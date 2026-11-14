@@ -305,6 +305,10 @@ class InProcessDb implements NexDb {
       _repo.hasUntaggedTimelineNotes();
 
   @override
+  Future<Map<String, int>> timelineShelfCounts() async =>
+      _repo.timelineShelfCounts();
+
+  @override
   Future<bool> setAside(String id, {DateTime? until}) async =>
       _repo.setAside(id, until: until);
 
@@ -715,6 +719,7 @@ class InProcessDb implements NexDb {
 
   @override
   Future<List<Note>> fusedSearch(SearchFilters filters) async {
+    if (filters.query.trim().isEmpty) return _repo.search(filters);
     final hits = await _enrichment.semanticSearch(filters.query, limit: 100);
     return _repo.rankedSearch(
       filters,

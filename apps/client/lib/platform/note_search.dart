@@ -178,12 +178,23 @@ class NoteSearchController extends ChangeNotifier {
   static const _noSuchTag = '\u0000no-such-tag';
 
   String? _tagIdNamed(String name) {
-    final wanted = name.trim().toLowerCase();
+    // Folded and run together, the way every other word the box is compared
+    // on is folded: a tag written with Arabic yeh or kaf — the spelling
+    // Windows-1256 text and some keyboards produce — the same name typed
+    // without the half-space, or with spaces where the name has none, are
+    // all one tag. `toLowerCase` alone saw them all as strangers, and a
+    // `tag:` for a tag the sheet plainly lists answered "nothing found".
+    final wanted = _tagKey(name);
     for (final tag in allTags) {
-      if (tag.name.toLowerCase() == wanted) return tag.id;
+      if (_tagKey(tag.name) == wanted) return tag.id;
     }
     return null;
   }
+
+  /// A tag name as the `tag:` operator sees it: folded, lower-cased, spaces
+  /// gone — «كار‌های شخصي», «کارهای شخصی» and «کارهای‌شخصی» are one key.
+  static String _tagKey(String name) =>
+      nexSearchFold(name.trim().toLowerCase()).replaceAll(RegExp(r'\s+'), '');
 
   /// Reads the tag list the sheet and the `tag:` operator resolve against.
   ///
@@ -252,6 +263,23 @@ class NoteSearchController extends ChangeNotifier {
       pageSize: typed.text.trim().isEmpty ? _pageSize + 1 : null,
     );
     final trimmed = typed.text.trim();
+    // A query with no words in it — only quotes, stars or the half-space —
+    // and no tag or type operator either: nothing to look for and nothing
+    // for the meaning round to embed. It used to reach the substring pass as
+    // an empty needle, which matched every note in the library; a lone quote
+    // read as no query at all and showed the newest notes as if searching.
+    if (query.text.trim().isNotEmpty &&
+        nexSearchTokens(typed.text).isEmpty &&
+        typed.tagNames.isEmpty &&
+        typed.types.isEmpty) {
+      results = const [];
+      meaningOnly = const {};
+      nearest = null;
+      _failure = null;
+      _hasRun = true;
+      notifyListeners();
+      return;
+    }
     try {
       // Keyword matches first, ranked: they come straight from the local
       // index, so they are on screen while the meaning search is still

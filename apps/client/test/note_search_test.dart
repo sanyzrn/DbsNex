@@ -194,4 +194,48 @@ void main() {
     expect(search.results.first.id, dinner.id);
     expect(search.meaningOnly, {meal.id});
   });
+
+  test('a tag named in the query resolves across Persian spellings', () async {
+    // Written with Arabic kaf and a half-space, the way Windows-1256 text
+    // and some keyboards produce it.
+    final note = await services.captureText('متن یادداشت');
+    await services.addTag(noteId: note!.id, name: 'كار‌های شخصي');
+    final search = NoteSearchController(services: services);
+    await search.loadTags();
+    addTearDown(search.dispose);
+
+    // Typed with Persian letters and no half-space: one tag, three ways.
+    search.query.text = 'tag:کارهای‌شخصی';
+    await search.run();
+    expect(search.results.map((n) => n.id), [note.id]);
+
+    // Quoted, as a name with a space in it has to be.
+    search.query.text = 'tag:"كار‌های شخصي"';
+    await search.run();
+    expect(search.results.map((n) => n.id), [note.id]);
+
+    // And a tag that really does not exist still finds nothing, rather
+    // than silently showing every note.
+    search.query.text = 'tag:هیچ‌جا';
+    await search.run();
+    expect(search.results, isEmpty);
+  });
+
+  test('a query of only the half-space or quotes matches nothing', () async {
+    await services.captureText('a real note');
+    final search = NoteSearchController(services: services);
+    addTearDown(search.dispose);
+
+    // Shift+Space on a Persian keyboard, alone: not a word, and not — as it
+    // used to be — a match for every note in the library.
+    search.query.text = '‌‌‌';
+    await search.run();
+    expect(search.results, isEmpty);
+    expect(search.hasRun, isTrue);
+    expect(search.failure, isNull);
+
+    search.query.text = '"';
+    await search.run();
+    expect(search.results, isEmpty);
+  });
 }

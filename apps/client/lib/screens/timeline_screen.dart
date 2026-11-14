@@ -6,7 +6,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
-import 'package:flutter/foundation.dart' show ValueListenable, compute;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, compute, listEquals, setEquals;
 
 import '../documents/text_import.dart';
 import '../platform/cycle_reminders.dart';
@@ -110,6 +111,7 @@ part 'timeline/timeline_body.dart';
 part 'timeline/timeline_selection.dart';
 part 'timeline/timeline_commands.dart';
 part 'timeline/timeline_rows.dart';
+part 'timeline/timeline_shelves.dart';
 
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({
@@ -663,7 +665,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// Not while searching — search results are their own query, not
   /// [NexServices.loadMoreTimeline]'s window.
   void _maybeLoadMore() {
-    if (_searching) return;
+    if (_searching || !_rowsCache.grows) return;
     _model.loadMore();
   }
 

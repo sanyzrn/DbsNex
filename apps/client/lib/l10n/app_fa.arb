@@ -2225,5 +2225,15 @@
       }
     }
   },
-  "spanMonths": "{count, plural, other{{count} ماه}}"
+  "spanMonths": "{count, plural, other{{count} ماه}}",
+  "timelineArrange": "دسته‌بندی",
+  "timelineArrangeTime": "زمان",
+  "timelineArrangeType": "نوع",
+  "timelineArrangeTag": "تگ",
+  "timelineArrangeHint": "{by, select, type{یادداشت‌ها در قفسه‌های هر نوع، با چند تای تازه‌ترِ هر کدام. سنجاق‌شده‌ها بالا می‌مانند.} tag{یادداشت‌ها در قفسه‌های هر تگ؛ یادداشتی با دو تگ در هر دو هست. سنجاق‌شده‌ها بالا می‌مانند.} other{یادداشت‌ها زیر روزها، تازه‌ترین بالا.}}",
+  "timelineShelfType": "{type, select, text{نوشته‌ها} voice{صداها} photo{عکس‌ها} file{فایل‌ها} checklist{چک‌لیست‌ها} link{لینک‌ها} other{یادداشت‌ها}}",
+  "shelfSeeAll": "{count, plural, other{دیدن همهٔ {count} تا}}",
+  "shelfSeeAllUncounted": "دیدن همه",
+  "groupMoveUp": "بالاتر ببر",
+  "groupMoveDown": "پایین‌تر ببر"
 }

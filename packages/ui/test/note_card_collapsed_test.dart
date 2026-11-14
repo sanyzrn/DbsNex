@@ -171,12 +171,16 @@ void main() {
               reason: 'badge center sits on the main circle circumference',
             );
             final halo = tester.widget<Container>(badge(id));
-            expect(
-              (halo.decoration! as BoxDecoration).color,
-              Theme.of(tester.element(badge(id)))
-                  .colorScheme
-                  .surfaceContainerLowest,
-            );
+            // The halo is the card's own fill, which is the kind's wash
+            // where the badge sits (2.7.0), not the plain card colour.
+            final fill = tester
+                .widget<Material>(
+                  find
+                      .ancestor(of: badge(id), matching: find.byType(Material))
+                      .first,
+                )
+                .color;
+            expect((halo.decoration! as BoxDecoration).color, fill);
             // A badge painted outside the stack cannot receive a long press.
             // Fixed center means bottom badges can project below the orbit
             // square, but they remain within the padded card material.

@@ -328,32 +328,88 @@ class LibraryMaintenance {
   void deleteTag(String id) =>
       repo.db.execute('DELETE FROM tags WHERE id = ?', [id]);
 
+  /// The closest thing to a query that found nothing, offered as "the
+  /// closest thing you actually wrote" — or null when nothing is close.
+  ///
+  /// Scored word against word, not query against whole note: the old
+  /// whole-string dice was diluted by every word the note had beyond the
+  /// query's (a five-letter query buried in a two-hundred-letter note scored
+  /// 0.04 however well it matched), so the offer only ever appeared for
+  /// very short notes. Persian is folded the way search folds it
+  /// ([nexSearchFold]) — Arabic yeh and kaf, the half-space, harakat and the
+  /// three digit sets — so a spelling variant of a word that is there reads
+  /// as one.
   Note? nearestMiss(String query) {
-    final needle = _normal(query);
+    final needle = _searchWords(query);
     if (needle.isEmpty) return null;
     Note? best;
     var score = 0.0;
     for (final row in repo.db.select(
-      '''SELECT * FROM notes WHERE deleted_at IS NULL
-                                        AND content IS NOT NULL ORDER BY created_at DESC LIMIT 500''',
+      '''SELECT * FROM notes WHERE deleted_at IS NULL AND (
+            content IS NOT NULL OR title IS NOT NULL OR caption IS NOT NULL
+            OR transcript_text IS NOT NULL OR ocr_text IS NOT NULL)
+          ORDER BY created_at DESC LIMIT 500''',
     )) {
       final note = Note.fromRow(row, tags: const []);
-      final candidate = _dice(
+      final candidate = _closeness(
         needle,
-        _normal(note.searchableDerivedText ?? ''),
+        _searchWords(note.searchableDerivedText ?? ''),
       );
       if (candidate > score) {
         score = candidate;
         best = note;
       }
     }
-    return score >= 0.22 && best != null ? repo.getById(best.id) : null;
+    return score >= _minCloseness && best != null
+        ? repo.getById(best.id)
+        : null;
   }
 
-  static String _normal(String value) => value
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ')
-      .trim();
+  /// How close a query that matched nothing has to be before it is offered
+  /// as "the closest thing". An exact word scores 1; an affix or spelling
+  /// variant around 0.5-0.8; one shared letter-pair between otherwise
+  /// unrelated words around 0.25-0.4 — under the line, which is the point.
+  static const _minCloseness = 0.45;
+
+  /// [text] as the words search compares: folded, lower-cased, split on
+  /// everything that is not a letter or a digit.
+  static List<String> _searchWords(String text) => [
+    for (final word in nexSearchFold(
+      text,
+    ).toLowerCase().split(RegExp(r'[^\p{L}\p{N}]+', unicode: true)))
+      if (word.isNotEmpty) word,
+  ];
+
+  /// The best word of [haystack] for each word of [needle], blended half and
+  /// half with their average: a note that shares most of the query's words
+  /// scores above one that merely has one word close to one of them, while a
+  /// single very close word still clears the bar on its own.
+  static double _closeness(List<String> needle, List<String> haystack) {
+    if (needle.isEmpty || haystack.isEmpty) return 0;
+    var total = 0.0;
+    var best = 0.0;
+    for (final word in needle) {
+      var wordBest = 0.0;
+      for (final candidate in haystack) {
+        if (candidate == word) {
+          wordBest = 1;
+          break;
+        }
+        if (word.length < 2 || candidate.length < 2) continue;
+        // The dice of any pairing is at most this, however the letters fall:
+        // skip the bigram work when that ceiling is already under the bar.
+        final shorter = math.min(word.length, candidate.length);
+        final ceiling =
+            2 * (shorter - 1) / (word.length + candidate.length - 2);
+        if (ceiling < _minCloseness) continue;
+        final dice = _dice(word, candidate);
+        if (dice > wordBest) wordBest = dice;
+      }
+      total += wordBest;
+      if (wordBest > best) best = wordBest;
+    }
+    return (best + total / needle.length) / 2;
+  }
 
   static double _dice(String a, String b) {
     if (a.length < 2 || b.length < 2) return a == b ? 1 : 0;

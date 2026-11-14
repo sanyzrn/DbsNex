@@ -8,6 +8,7 @@ import 'package:nex_core/nex_core.dart';
 import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
+import '../tokens/nex_note_wash.dart';
 import '../tokens/nex_appearance.dart';
 
 part 'note_card_bell.dart';
@@ -358,13 +359,17 @@ class _CardBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final picked = selected ?? false;
-    final surfaceColor = picked
-        ? Color.alphaBlend(
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
-            theme.colorScheme.surfaceContainerLowest,
-          )
-        : theme.colorScheme.surfaceContainerLowest;
-    return Material(
+    // The same wash of the kind's colour as a grid tile (2.7.0), so the two
+    // layouts are one look: the kind is seen at a glance, quietly.
+    final wash = nexNoteWash(
+      note.type.wireName,
+      theme.colorScheme,
+      picked: picked,
+    );
+    // What sits right on the card — the halo round the badges and the tag
+    // dots — matches the wash where it sits, at the starting corner.
+    final surfaceColor = wash.from;
+    final card = Material(
       // The card's own fill, not the page's. They used to be the same
       // colour, which left a 1.2:1 hairline as the only thing marking the
       // boundary of the app's main tap target.
@@ -388,22 +393,48 @@ class _CardBody extends StatelessWidget {
               ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.all(NexCardDensity.of(context).inset),
-          child: Row(
-            crossAxisAlignment: expanded
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.center,
-            children: [
-              _leading(context, surfaceColor),
-              const SizedBox(width: NexSpacing.contentGap),
-              Expanded(child: _withFootnote(context)),
-            ],
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: AlignmentDirectional.topStart,
+            end: AlignmentDirectional.bottomEnd,
+            colors: [wash.from, wash.to],
+          ),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.all(NexCardDensity.of(context).inset),
+            child: Row(
+              crossAxisAlignment: expanded
+                  ? CrossAxisAlignment.start
+                  : CrossAxisAlignment.center,
+              children: [
+                _leading(context, surfaceColor),
+                const SizedBox(width: NexSpacing.contentGap),
+                Expanded(child: _withFootnote(context)),
+              ],
+            ),
           ),
         ),
       ),
+    );
+    // The quiet words inside — dates, previews, checklist lines — read the
+    // theme's muted tones; on a tinted card those are walked to stay at
+    // 4.5:1. When nothing needed walking the theme is left as it is.
+    final scheme = theme.colorScheme;
+    if (wash.muted == scheme.onSurfaceVariant &&
+        wash.outline == scheme.outline) {
+      return card;
+    }
+    return Theme(
+      data: theme.copyWith(
+        colorScheme: scheme.copyWith(
+          onSurfaceVariant: wash.muted,
+          outline: wash.outline,
+        ),
+      ),
+      child: card,
     );
   }
 }

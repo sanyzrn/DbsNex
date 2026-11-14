@@ -22,6 +22,17 @@ void main() {
     expect(parseSearchQuery('type:VOICE').types, [NoteType.voice]);
   });
 
+  test('a type can be named in Persian', () {
+    expect(parseSearchQuery('type:عکس').types, [NoteType.photo]);
+    expect(parseSearchQuery('type:صوتی').types, [NoteType.voice]);
+    expect(parseSearchQuery('type:لینک').types, [NoteType.link]);
+    expect(parseSearchQuery('type:چک‌لیست').types, [NoteType.checklist]);
+    // The half-space is folded away, so both spellings are the operator.
+    expect(parseSearchQuery('type:فایل‌ها').types, [NoteType.file]);
+    // An Arabic-script spelling still names the type.
+    expect(parseSearchQuery('type:تصویر').types, [NoteType.photo]);
+  });
+
   // A search box is not a syntax exam. Anything that is not exactly an
   // operator with a value is what the user is looking for.
   test('near-misses stay ordinary search terms', () {

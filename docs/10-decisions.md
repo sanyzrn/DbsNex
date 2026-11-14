@@ -528,6 +528,29 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
   build or a substitute for device tests. See `docs/19-magnifier-test.md`.
 - **Status:** Experimental, accepted for the 2.0.6 test build at the owner's request.
 
+## ADR-043 — The home can be shelved by kind or tag; a shelf previews, "See all" filters
+
+- **Context:** The home is one stream under date headings. Owners reported that a
+  note is often remembered by what it was ("a photo", "under work") rather than
+  when, and that the date stream makes those slow to find.
+- **Decision:** A per-device setting, **Group by** (Time / Kind / Tag), shapes the
+  headings for the list, the grid and the desktop alike. Time is the default and
+  is unchanged. By kind, one shelf per note kind; by tag, one per tag plus
+  Untagged, and a note with two tags is on both. Pins keep their own shelf on top.
+- **Shelves preview, they do not page.** The timeline is a window that grows from
+  the bottom; with several shelves, older notes would grow the shelves *above* the
+  reader and push the page. So each shelf shows its newest six and ends in "See
+  all N", where N is a whole-timeline count (`timelineShelfCounts`, pinned and
+  set-aside left out). "See all" applies the existing type/tag/untagged filter;
+  with one shelf on screen it is the list, shows everything and grows as before.
+  The way back is the way back from any filter: its chip or Back.
+- **Honest headings:** a count is shown only when it is the library's (no filter);
+  a shelf showing part of itself offers no "Delete this group", which would delete
+  only what it shows.
+- **Order:** a shelf's menu moves it a step; the visible order is stored per
+  arrangement. Notes inside a shelf keep the timeline's order — still never by hand.
+- **Status:** Accepted for 2.7.0 at the owner's request.
+
 ---
 
 ## Decision-Making Heuristic

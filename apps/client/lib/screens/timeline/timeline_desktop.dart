@@ -16,20 +16,7 @@ extension _TimelineDesktop on TimelineScreenState {
           sliver: SliverMainAxisGroup(
             slivers: [
               SliverToBoxAdapter(
-                child: NexTapGuarded(
-                  controller: _guard,
-                  child: _GroupHeader(
-                    compact: true,
-                    label: group.label,
-                    count: group.notes.length,
-                    collapsed: _model.collapsedGroups.contains(group.key),
-                    onToggle: () => unawaited(_toggleGroup(group.key)),
-                    onAsk: AiChatSheet.availableFor(widget.preferences)
-                        ? () => unawaited(_askAboutGroup(group))
-                        : null,
-                    onDelete: () => unawaited(_deleteGroup(group, l10n)),
-                  ),
-                ),
+                child: _groupHeading(group, groups, l10n, compact: true),
               ),
               if (!_model.collapsedGroups.contains(group.key))
                 SliverGrid.builder(
@@ -63,6 +50,9 @@ extension _TimelineDesktop on TimelineScreenState {
                     );
                   },
                 ),
+              if (!group.complete &&
+                  !_model.collapsedGroups.contains(group.key))
+                SliverToBoxAdapter(child: _shelfMore(group, l10n)),
               const SliverToBoxAdapter(child: SizedBox(height: NexSpacing.lg)),
             ],
           ),

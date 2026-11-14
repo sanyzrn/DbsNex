@@ -19,6 +19,7 @@ import 'chat_history.dart';
 import 'editor_drafts.dart';
 import 'hold_menu.dart';
 import 'theme_presets.dart';
+import 'timeline_shelves.dart';
 import 'vault_store.dart';
 
 import 'package:uuid/uuid.dart';

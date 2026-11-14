@@ -45,4 +45,23 @@ void main() {
       expect(nexSearchIndexText('مُهَمّ ٣'), 'مهم 3');
     });
   });
+
+  group('nexSearchTokens', () {
+    test('the words of a query, folded', () {
+      expect(nexSearchTokens('كتاب‌ها را'), ['کتابها', 'را']);
+      expect(nexSearchTokens('boiler 12'), ['boiler', '12']);
+      expect(nexSearchTokens('۱۴۰۳'), ['1403']);
+    });
+
+    test('quotes and stars are not words', () {
+      expect(nexSearchTokens('"the cooler"*'), ['the', 'cooler']);
+    });
+
+    test('a query of only marks has no words', () {
+      expect(nexSearchTokens('"'), isEmpty);
+      expect(nexSearchTokens('* *'), isEmpty);
+      expect(nexSearchTokens('‌'), isEmpty);
+      expect(nexSearchTokens('‌‌ " *'), isEmpty);
+    });
+  });
 }

@@ -18,6 +18,19 @@ mixin _LibraryPreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// The reader's own order of the home's shelves, by kind or by tag
+  /// (2.7.0) — shelf keys, first to last. Empty is the default order.
+  List<String> timelineShelfOrder(NexTimelineArrangement by) =>
+      _prefs.getStringList('timeline.shelf_order.${by.name}') ?? const [];
+
+  Future<void> setTimelineShelfOrder(
+    NexTimelineArrangement by,
+    List<String> keys,
+  ) async {
+    await _prefs.setStringList('timeline.shelf_order.${by.name}', keys);
+    notifyListeners();
+  }
+
   /* ------------------------------------------------------- Expanded cards */
 
   /// Notes whose card shows all of itself instead of its first two lines.
