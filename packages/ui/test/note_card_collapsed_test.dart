@@ -172,7 +172,7 @@ void main() {
             );
             final halo = tester.widget<Container>(badge(id));
             // The halo is the card's own fill, which is the kind's wash
-            // where the badge sits (2.6.30), not the plain card colour.
+            // where the badge sits (2.7.0), not the plain card colour.
             final fill = tester
                 .widget<Material>(
                   find

@@ -38,7 +38,7 @@ void main() {
     const back = {'occasions', 'words', 'habits', 'converter'};
     expect(reviewed, back);
     expect(paused, moduleIds.difference(back));
-    // Twelve add-ons, and Converter (2.6.29), on from 2.6.30 once the owner
+    // Twelve add-ons, and Converter (2.6.29), on from 2.7.0 once the owner
     // had tried it on a phone.
     expect(moduleIds, hasLength(13));
   });

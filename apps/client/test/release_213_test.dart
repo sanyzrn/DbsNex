@@ -216,7 +216,7 @@ void main() {
       expect(h.preferences.isModuleOn('future_module'), isTrue);
       // Only Cycle was available from 2.2.0, with the add-ons Soon again;
       // Pause, Birthdays & occasions and Word by Word joined it in 2.4.0,
-      // Habits in 2.4.1 and Converter in 2.6.30.
+      // Habits in 2.4.1 and Converter in 2.7.0.
       expect(nexModules.where((m) => m.available).map((m) => m.id).toSet(), {
         'cycle',
         'pause',

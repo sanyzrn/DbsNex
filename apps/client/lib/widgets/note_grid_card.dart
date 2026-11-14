@@ -123,7 +123,7 @@ class NexNoteGridCard extends StatelessWidget {
     final dark = scheme.brightness == Brightness.dark;
     final metrics = NexGridMetrics.of(context);
     final picked = selected ?? false;
-    // The wash of the kind's colour, shared with the list card (2.6.30):
+    // The wash of the kind's colour, shared with the list card (2.7.0):
     // kept low on purpose, tinted paper rather than a fill (2.6.29).
     final wash = nexNoteWash(note.type.wireName, scheme, picked: picked);
     final (:tint, :from, :to, :muted, :outline) = wash;

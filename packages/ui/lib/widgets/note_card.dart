@@ -359,7 +359,7 @@ class _CardBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final picked = selected ?? false;
-    // The same wash of the kind's colour as a grid tile (2.6.30), so the two
+    // The same wash of the kind's colour as a grid tile (2.7.0), so the two
     // layouts are one look: the kind is seen at a glance, quietly.
     final wash = nexNoteWash(
       note.type.wireName,

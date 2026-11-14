@@ -4,7 +4,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 /// The list card sits on the same wash of its kind's colour as a grid tile
-/// (2.6.30): one look in both layouts, the kind seen at a glance.
+/// (2.7.0): one look in both layouts, the kind seen at a glance.
 void main() {
   Note note(NoteType type) => Note(
     id: 'n-${type.name}',

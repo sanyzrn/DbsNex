@@ -4,7 +4,7 @@ import 'nex_contrast.dart';
 import 'nex_tokens.dart';
 
 /// The soft wash of a note kind's own colour that a note sits on, in the list
-/// and in the grid alike (2.6.30).
+/// and in the grid alike (2.7.0).
 ///
 /// The colour gathers in the starting corner and thins out across the card,
 /// the way light falls on paper, so a screen of notes reads as colour without
