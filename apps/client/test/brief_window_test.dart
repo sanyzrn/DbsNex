@@ -167,6 +167,7 @@ void main() {
     final previousHttp = HttpOverrides.current;
     HttpOverrides.global = null;
     final requests = <Map<String, dynamic>>[];
+    var served = 0;
     late HttpServer server;
     await tester.runAsync(() async {
       server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -187,6 +188,7 @@ void main() {
           }),
         );
         await request.response.close();
+        served++;
       });
     });
     addTearDown(() async {
@@ -226,6 +228,26 @@ void main() {
     // full text is more than five thousand characters; the whole message,
     // time of day included, is a fraction of that.
     expect(sent.length, lessThan(600));
+    // The reply is real I/O outside the fake clock: wait until it has landed
+    // on screen before the tree goes away. Ending at the request left the
+    // adapter's 20-second timeout pending whenever the reply was slower than
+    // the asserts — a failure under load, not a flake.
+    await _until(
+      tester,
+      () => find.textContaining('Good morning').evaluate().isNotEmpty,
+      'the greeting reply on screen',
+    );
+    // And every request the server took has had its answer — a second one
+    // can start after the first under load. A short real-time pause lets a
+    // late one begin before the count is trusted.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await _until(
+      tester,
+      () => served == requests.length,
+      'every request answered',
+    );
     await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox());
   });
