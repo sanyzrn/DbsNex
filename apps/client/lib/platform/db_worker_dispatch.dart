@@ -195,6 +195,7 @@ class _Worker {
       _DbCommand.pinnedNoteCount => repo.pinnedNoteCount(),
       _DbCommand.libraryNoteCounts => repo.libraryNoteCounts(),
       _DbCommand.hasUntaggedTimelineNotes => repo.hasUntaggedTimelineNotes(),
+      _DbCommand.pendingSyncWork => repo.hasPendingSyncWork(),
       _DbCommand.timelineShelfCounts => repo.timelineShelfCounts(),
       _DbCommand.setAside => repo.setAside(
         arg('id')! as String,
@@ -511,6 +512,9 @@ class _Worker {
         deviceId: boot.deviceId,
         repo: repo,
         bearerToken: token,
+        // The isolate's media tree, so the cycle can move the bytes behind
+        // the hashes the notes reference (see SyncClient.mediaDir).
+        mediaDir: boot.mediaDir,
       );
       try {
         return await client.sync();

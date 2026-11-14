@@ -93,7 +93,7 @@ https://github.com/google-ai-edge/LiteRT-LM''',
 /// refuses — and crashes — a fixed orientation on a translucent activity, and
 /// on later versions it would turn the app being shared from.
 Future<void> lockNexPhoneOrientation({
-  Future<bool> Function() isShareWindow = NexShareWindow.isSilent,
+  Future<bool> Function() isShareWindow = NexShareWindow.rememberSilent,
 }) async {
   if (kIsWeb ||
       (defaultTargetPlatform != TargetPlatform.android &&

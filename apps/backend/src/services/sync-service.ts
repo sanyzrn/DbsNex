@@ -4,6 +4,7 @@ import type { PoolClient } from "pg";
 import { getPool, withTransaction } from "../db/index.ts";
 import { env } from "../env.ts";
 import { BadRequest } from "../http/errors.ts";
+import { isValidMediaHash, mediaFileExists } from "./media-store.ts";
 import {
   isDuplicateMedia,
   mergeNotes,
@@ -42,10 +43,24 @@ export type OutgoingTag = IncomingTag & { seq: string };
 
 export type TagRemap = { client_id: string; canonical_id: string };
 
+/** Why the server refused one item of a push, in the client's words. */
+export type RejectionReason = "foreign_id" | "invalid";
+
+export type Rejection = { id: string; reason: RejectionReason };
+
 export type PushResult = {
   merged: { id: string; rev: number }[];
   media_deduped: string[];
   tag_remap: TagRemap[];
+  rejected: Rejection[];
+  /**
+   * Media hashes referenced by the pushed notes whose bytes this account does
+   * not hold. A device that has the file — any device, not only the pusher —
+   * uploads against this list, which is what recovers the case a local
+   * "already sent" cache cannot see: the server lost the object while the
+   * row lived on (see mediaFileExists).
+   */
+  media_wanted: string[];
   cursor: string;
 };
 
@@ -210,6 +225,17 @@ async function insertTag(
 
 /* ----------------------------------------------------------------- notes */
 
+/**
+ * Thrown when a note id is already held by another tenant. Not an AppError:
+ * it never reaches the error middleware — the push's per-item guard turns it
+ * into a `rejected` entry so the rest of the batch still lands.
+ */
+class ForeignId extends Error {
+  constructor(readonly id: string) {
+    super(`note id ${id} belongs to another tenant`);
+  }
+}
+
 async function loadNote(
   client: PoolClient,
   userId: string,
@@ -263,9 +289,12 @@ function rowToNote(row: Record<string, unknown>): NoteRow {
 /**
  * Writes the merged note and reconciles its tag set.
  *
+ * The only rejection left is ownership: a note id that already belongs to
+ * another tenant is refused, because merging across tenants would leak data
+ * both ways. Everything else is merged — see `pushChanges`.
+ *
  * `rev` is server-authoritative: it is incremented here, never taken from the
- * client, and a stale write (client rev below stored rev) is rejected by the
- * WHERE clause. The tag reconciliation is a set difference rather than the old
+ * client. The tag reconciliation is a set difference rather than the old
  * DELETE-then-N-INSERTs, which had a destructive window on any partial failure.
  */
 async function writeNote(
@@ -298,8 +327,7 @@ async function writeNote(
             seq               = nextval('sync_seq'),
             merged_by_server  = EXCLUDED.merged_by_server
       WHERE notes.user_id = EXCLUDED.user_id
-        AND notes.rev <= EXCLUDED.rev
-     RETURNING rev, seq`,
+      RETURNING rev, seq`,
     [
       note.id,
       userId,
@@ -318,7 +346,7 @@ async function writeNote(
   );
 
   const written = rows[0];
-  if (!written) return null; // stale write rejected
+  if (!written) return null; // the id belongs to another tenant
 
   await client.query(
     `INSERT INTO note_tags (note_id, tag_id)
@@ -399,19 +427,68 @@ function differs(a: NoteRow, b: NoteRow): boolean {
 
 /* ------------------------------------------------------------------ push */
 
+/**
+ * Every write is merged, never rejected for being behind.
+ *
+ * The rev guard this replaces (`notes.rev <= EXCLUDED.rev`) meant to protect
+ * against lost updates, but combined with the pull path's echo suppression it
+ * produced a worse failure: a push whose HTTP response was lost — a timeout
+ * after the server committed — left the note pending with a rev the server had
+ * already passed, and because the pull filter never returned a device's own
+ * un-merged rows, no later cycle could heal it. The note was re-pushed and
+ * re-rejected on every sync, forever. Restoring an older backup on the same
+ * device wedged the same way.
+ *
+ * Merging is safe where rejecting was not, because `mergeNotes` is
+ * last-writer-wins on `updated_at`: a genuinely ancient push loses every field
+ * to the stored row and changes nothing. The one rejection that remains is
+ * ownership — a note id held by another tenant — reported through `rejected`
+ * so the client can surface it instead of retrying blind.
+ */
 export async function pushChanges(input: {
   user_id: string;
   device_id: string;
   notes: IncomingNote[];
   tags: IncomingTag[];
 }): Promise<PushResult> {
-  return withTransaction(async (client) => {
+  const result = await withTransaction(async (client) => {
     const merged: { id: string; rev: number }[] = [];
     const mediaDeduped: string[] = [];
+    const rejected: Rejection[] = [];
     const remap = new Map<string, string>();
 
-    const resolveTag = async (tag: IncomingTag): Promise<string> => {
-      const canonical = await upsertTag(client, input.user_id, tag);
+    // A savepoint per item, because one poison item must not cost the batch:
+    // the request used to be one transaction with one zod schema, so a single
+    // over-long tag name (the client imposes no length cap of its own)
+    // rolled back 499 good notes and every later push the same way — the
+    // device stopped sending *and*, because push ran before pull, receiving.
+    let item = 0;
+    const guard = async <T>(
+      id: string,
+      run: () => Promise<T>,
+    ): Promise<T | null> => {
+      const savepoint = `push_item_${item++}`;
+      await client.query(`SAVEPOINT ${savepoint}`);
+      try {
+        const value = await run();
+        await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+        return value;
+      } catch (error) {
+        await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+        await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+        rejected.push({
+          id,
+          reason: error instanceof ForeignId ? "foreign_id" : "invalid",
+        });
+        return null;
+      }
+    };
+
+    const resolveTag = async (tag: IncomingTag): Promise<string | null> => {
+      const canonical = await guard(tag.id, () =>
+        upsertTag(client, input.user_id, tag),
+      );
+      if (canonical === null) return null;
       if (canonical !== tag.id) remap.set(tag.id, canonical);
       return canonical;
     };
@@ -421,18 +498,32 @@ export async function pushChanges(input: {
     let cursor = "0";
 
     for (const incoming of input.notes) {
-      const tagIds: string[] = [];
-      for (const tag of incoming.tags ?? []) tagIds.push(await resolveTag(tag));
+      // Resolving a note's tags inside its own savepoint: a tag the note
+      // carries but the account cannot take fails the note alone. A note
+      // with no tags takes no savepoint for them.
+      const embeddedTags = incoming.tags ?? [];
+      let tagIds: string[] | null = embeddedTags.length === 0 ? [] : null;
+      if (embeddedTags.length > 0) {
+        await guard(incoming.id, async () => {
+          const resolved: string[] = [];
+          for (const tag of embeddedTags) {
+            const canonical = await resolveTag(tag);
+            if (canonical === null) throw new BadRequest("unresolvable tag");
+            resolved.push(canonical);
+          }
+          tagIds = resolved;
+        });
+        if (tagIds === null) continue; // already reported by the guard
+      }
 
       if (incoming.media_hash) {
         const key = incoming.media_uri ?? `hash:${incoming.media_hash}`;
-        const reg = await registerMedia(
-          client,
-          input.user_id,
-          incoming.media_hash,
-          key,
+        const reg = await guard(incoming.id, () =>
+          registerMedia(client, input.user_id, incoming.media_hash!, key),
         );
-        if (reg.deduped) mediaDeduped.push(incoming.media_hash);
+        if (reg !== null && reg.deduped) {
+          mediaDeduped.push(incoming.media_hash);
+        }
       }
 
       // Timestamps are normalised on ingress so merge comparisons are always
@@ -454,31 +545,45 @@ export async function pushChanges(input: {
         tag_ids: Array.from(new Set(tagIds)).sort(),
       };
 
-      // FOR UPDATE inside the transaction serialises concurrent pushes for the
-      // same note id.
-      const existing = await loadNote(client, input.user_id, incoming.id);
-      const resolved = existing ? mergeNotes(existing, local) : local;
+      const written = await guard(incoming.id, async () => {
+        // FOR UPDATE inside the transaction serialises concurrent pushes for
+        // the same note id.
+        const existing = await loadNote(client, input.user_id, incoming.id);
+        const resolved = existing ? mergeNotes(existing, local) : local;
 
-      if (
-        existing &&
-        isDuplicateMedia(existing.media_hash, resolved.media_hash) &&
-        existing.media_uri
-      ) {
-        resolved.media_uri = existing.media_uri;
+        if (
+          existing &&
+          isDuplicateMedia(existing.media_hash, resolved.media_hash) &&
+          existing.media_uri
+        ) {
+          resolved.media_uri = existing.media_uri;
+        }
+
+        // A re-push of what the server already stores — a lost ack, or a
+        // push the merge resolved to no change at all. Writing it anyway
+        // would mint a fresh sequence for identical bytes and re-broadcast
+        // the note to every peer; acknowledging the stored revision instead
+        // lets the client adopt it and drain its outbox.
+        if (existing && !differs(resolved, existing)) {
+          return { id: incoming.id, rev: existing.rev, seq: null };
+        }
+
+        const mergedByServer = existing !== null && differs(resolved, local);
+        const write = await writeNote(
+          client,
+          input.user_id,
+          resolved,
+          mergedByServer,
+        );
+        if (!write) throw new ForeignId(incoming.id);
+        return { id: incoming.id, rev: write.rev, seq: write.seq };
+      });
+
+      if (written === null) continue; // reported by the guard
+      merged.push({ id: written.id, rev: written.rev });
+      if (written.seq !== null && BigInt(written.seq) > BigInt(cursor)) {
+        cursor = written.seq;
       }
-
-      const mergedByServer = existing !== null && differs(resolved, local);
-
-      const written = await writeNote(
-        client,
-        input.user_id,
-        resolved,
-        mergedByServer,
-      );
-      if (!written) continue; // stale write rejected — client must pull first
-
-      merged.push({ id: incoming.id, rev: written.rev });
-      if (BigInt(written.seq) > BigInt(cursor)) cursor = written.seq;
     }
 
     return {
@@ -488,9 +593,40 @@ export async function pushChanges(input: {
         client_id,
         canonical_id,
       })),
+      rejected,
       cursor,
     };
   });
+
+  // Filesystem, not database: asking it whether each hash's bytes are present
+  // would hold the push transaction's locks over disk I/O for no benefit —
+  // nothing in the answer writes back.
+  return { ...result, media_wanted: await missingMediaFor(input.user_id, input.notes) };
+}
+
+/**
+ * Distinct media hashes among the pushed notes whose bytes are absent.
+ *
+ * Tombstones are skipped — the merger erases their payload, so their bytes are
+ * nobody's to fetch — and so are notes the push rejected, whose ids never
+ * made it to the stored row.
+ */
+async function missingMediaFor(
+  userId: string,
+  notes: IncomingNote[],
+): Promise<string[]> {
+  const hashes = new Set<string>();
+  for (const note of notes) {
+    if (note.deleted_at) continue;
+    if (note.media_hash && isValidMediaHash(note.media_hash)) {
+      hashes.add(note.media_hash);
+    }
+  }
+  const missing: string[] = [];
+  for (const hash of hashes) {
+    if (!(await mediaFileExists(userId, hash))) missing.push(hash);
+  }
+  return missing;
 }
 
 /* ------------------------------------------------------------------ pull */
@@ -510,6 +646,14 @@ export async function pullChanges(input: {
   // REPEATABLE READ so the notes page, the tags delta and the cursor all come
   // from one consistent snapshot.
   const page = await withTransaction(async (client) => {
+    // Every row past the cursor, including the caller's own writes. The
+    // filter this replaces (`device_id <> $3 OR merged_by_server`) assumed
+    // the author of a row always holds what it says — true until the ack for
+    // that write is lost (timeout after commit), or a device restores an
+    // older backup under the same device id. From then on the row was
+    // invisible to exactly the one device that needed it, and its outbox
+    // entry could never converge. The client can make the echo decision
+    // itself, against its own rows; the server cannot make it for it.
     const notesRes = await client.query(
       `SELECT n.*, COALESCE(
                 array_agg(nt.tag_id) FILTER (WHERE nt.tag_id IS NOT NULL),
@@ -519,11 +663,10 @@ export async function pullChanges(input: {
          LEFT JOIN note_tags nt ON nt.note_id = n.id
         WHERE n.user_id = $1
           AND n.seq > $2
-          AND (n.device_id <> $3 OR n.merged_by_server)
         GROUP BY n.id
         ORDER BY n.seq ASC
-        LIMIT $4`,
-      [input.user_id, sinceSeq, input.device_id, limit],
+        LIMIT $3`,
+      [input.user_id, sinceSeq, limit],
     );
 
     // Paged, like the notes query. It used to have no LIMIT at all, which is

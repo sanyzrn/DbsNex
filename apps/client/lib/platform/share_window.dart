@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// The window a share arrives through, when it is the invisible one.
@@ -20,6 +21,23 @@ abstract final class NexShareWindow {
   /// which is the honest answer there, since without one there is no
   /// `ShareActivity` and every launch is the app itself.
   static Future<bool> isSilent() => _ask('isShareWindow', const {});
+
+  /// [isSilent], asked once per engine.
+  ///
+  /// Two moments ask this during a cold start — the orientation lock before
+  /// `runApp`, and the bootstrap host's first build — and they are one launch
+  /// asking one question. Each call was its own platform-channel round trip,
+  /// and the first of them sat serially ahead of the first frame. The answer
+  /// cannot change within a window: each activity runs its own engine, so a
+  /// process reused for the other kind of window starts a fresh isolate with
+  /// an empty cache.
+  static Future<bool> rememberSilent() => _remembered ??= isSilent();
+
+  static Future<bool>? _remembered;
+
+  /// Test seam: the next [rememberSilent] asks the platform again.
+  @visibleForTesting
+  static void forgetSilent() => _remembered = null;
 
   /// Says what happened to the share, and closes the window.
   ///

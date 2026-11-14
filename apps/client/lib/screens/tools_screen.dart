@@ -60,7 +60,11 @@ class ToolsScreen extends StatelessWidget {
             ),
             const SizedBox(height: NexSpacing.sm),
             nexShelfPairs([
-              for (final tool in nexPrivateTools(context)) tile(tool),
+              for (final tool in nexPrivateTools(
+                context,
+                biometricOnly: preferences?.appLockBiometricOnly ?? false,
+              ))
+                tile(tool),
             ]),
             const SizedBox(height: NexSpacing.lg),
             NexShelfHeading(

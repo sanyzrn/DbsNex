@@ -62,7 +62,9 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
   /// anything is drawn at all — see [build]. Null until the platform has
   /// answered, which is a third state and not a default: painting the wordmark
   /// while the question is outstanding is the one frame this exists to avoid.
-  late final Future<bool> _silentFuture = NexShareWindow.isSilent();
+  /// [NexShareWindow.rememberSilent] shares the answer with the orientation
+  /// lock, which asked it before `runApp`: one launch, one round trip.
+  late final Future<bool> _silentFuture = NexShareWindow.rememberSilent();
   bool? _silent;
 
   /// Whether the splash plays its sequence at once, only if opening is slow,
@@ -110,6 +112,34 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
       preferences: preferences,
       recoverDrafts: !silent,
     );
+    // Everything below runs against a live service graph. Anything that
+    // throws from here would hand "Try again" a host whose old worker still
+    // holds the database — so a failure tears the session down before it
+    // becomes the error screen the retry starts from.
+    try {
+      return _ready = await _finishOpen(
+        services,
+        preferences,
+        silent: silent,
+        delay: delay,
+        fullIntro: fullIntro,
+      );
+    } on Object {
+      await _teardown(NexBootstrapSession(preferences, services));
+      _ready = null;
+      rethrow;
+    }
+  }
+
+  /// The half of opening that runs once the service graph exists: the parts
+  /// of [_start] whose failure must not leak that graph.
+  Future<NexBootstrapSession> _finishOpen(
+    NexServices services,
+    NexPreferences preferences, {
+    required bool silent,
+    required Future<void> delay,
+    required bool fullIntro,
+  }) async {
     services.applyAiPreferences(preferences);
     // A share's invisible window is not a launch anyone waited through, so it
     // is neither timed nor counted as a session.
@@ -128,6 +158,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     }
 
     final bridge = OsCaptureBridge(services);
+    NexWidgetBridge? widgets;
     // A share that fails must not look like a library that will not open.
     //
     // `start()` drains whatever the OS queued, and draining it means running
@@ -141,64 +172,72 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     //
     // The share is lost either way; what changes is that the app opens, and
     // the reason is written where "Share diagnostics" will find it.
-    try {
-      await bridge.start();
-    } catch (error) {
-      unawaited(
-        NexServices.noteDiagnostic(
-          'shared capture failed: ${error.runtimeType}',
-        ),
-      );
-    }
-
-    // What the home-screen widgets read. Started after the share above, so
-    // that a share which launched the app is already in the library when the
-    // first snapshot is written — and before the silent window closes, since
-    // that window's whole run is these few lines.
     //
-    // Its failures are swallowed inside it: a widget that cannot refresh is
-    // an absence on a home screen, never a reason for the app not to open.
-    // Settle where the lock stands before the first snapshot is written.
-    // The gate reaches the same answer a frame later, but the widget's file
-    // is written here — and a locked library whose notes sat in it until the
-    // first frame would be a lock with a hole in it.
-    await preferences.setAppLockClosed(nexLockClosedOnLaunch(preferences));
-    if (preferences.appLockClosed) NexMetrics.shared.skipTimeline();
-    final widgets = NexWidgetBridge(
-      services: services,
-      preferences: preferences,
-    );
+    // The try around the rest of opening is the same rule one level up: the
+    // bridges hold listeners and subscriptions, and a failure past this point
+    // takes them with it rather than leaving them attached to a session the
+    // caller is about to throw away.
     try {
-      await widgets.start();
-    } catch (error) {
-      unawaited(
-        NexServices.noteDiagnostic(
-          'widget snapshot failed: ${error.runtimeType}',
-        ),
-      );
-    }
-
-    if (silent) {
-      bridge.onSettled = () => _closeSilently(bridge, preferences);
-      await bridge.drain();
-      await _closeSilently(bridge, preferences);
-    }
-
-    // The notification plugin is otherwise brought up lazily, by the first
-    // reminder set. On a cold launch from a tapped reminder nothing had set
-    // one yet, so the tap's note was never read and the timeline opened with
-    // no idea where to point: no scroll, no blink, after the splash. Asked
-    // here, during the splash, so the answer is waiting when the timeline
-    // asks for it. It shows no prompt; failures are its own to record.
-    if (!silent) {
       try {
-        await services.reminders.initialise();
-      } catch (_) {}
-    }
+        await bridge.start();
+      } catch (error) {
+        unawaited(
+          NexServices.noteDiagnostic(
+            'shared capture failed: ${error.runtimeType}',
+          ),
+        );
+      }
 
-    await delay;
-    if (fullIntro) unawaited(preferences.setIntroSeen(nexAppVersion));
-    return _ready = NexBootstrapSession(preferences, services, bridge, widgets);
+      // What the home-screen widgets read. Started after the share above, so
+      // that a share which launched the app is already in the library when the
+      // first snapshot is written — and before the silent window closes, since
+      // that window's whole run is these few lines.
+      //
+      // Its failures are swallowed inside it: a widget that cannot refresh is
+      // an absence on a home screen, never a reason for the app not to open.
+      // Settle where the lock stands before the first snapshot is written.
+      // The gate reaches the same answer a frame later, but the widget's file
+      // is written here — and a locked library whose notes sat in it until the
+      // first frame would be a lock with a hole in it.
+      await preferences.setAppLockClosed(nexLockClosedOnLaunch(preferences));
+      if (preferences.appLockClosed) NexMetrics.shared.skipTimeline();
+      widgets = NexWidgetBridge(services: services, preferences: preferences);
+      try {
+        await widgets.start();
+      } catch (error) {
+        unawaited(
+          NexServices.noteDiagnostic(
+            'widget snapshot failed: ${error.runtimeType}',
+          ),
+        );
+      }
+
+      if (silent) {
+        bridge.onSettled = () => _closeSilently(bridge, preferences);
+        await bridge.drain();
+        await _closeSilently(bridge, preferences);
+      }
+
+      // The notification plugin is otherwise brought up lazily, by the first
+      // reminder set. On a cold launch from a tapped reminder nothing had set
+      // one yet, so the tap's note was never read and the timeline opened with
+      // no idea where to point: no scroll, no blink, after the splash. Asked
+      // here, during the splash, so the answer is waiting when the timeline
+      // asks for it. It shows no prompt; failures are its own to record.
+      if (!silent) {
+        try {
+          await services.reminders.initialise();
+        } catch (_) {}
+      }
+
+      await delay;
+      if (fullIntro) unawaited(preferences.setIntroSeen(nexAppVersion));
+      return NexBootstrapSession(preferences, services, bridge, widgets);
+    } on Object {
+      widgets?.dispose();
+      bridge.dispose();
+      rethrow;
+    }
   }
 
   /// Says what became of the share and takes the window down.
@@ -277,6 +316,12 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     // Remove the old Navigator/listeners before closing their service graph.
     await WidgetsBinding.instance.endOfFrame;
     await _teardown(previous);
+    // The host can be unmounted while that frame was waited out (a test
+    // taking the tree down, hot restart). Loading now would build a whole
+    // service graph — isolate included — that nobody will ever dispose, so
+    // the answer is no session at all: a future that never lands, into a
+    // tree that no longer asks.
+    if (!mounted) return Completer<NexBootstrapSession>().future;
     return _load();
   }
 

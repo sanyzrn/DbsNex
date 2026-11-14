@@ -28,6 +28,11 @@ COPY src/db/migrations ./dist/db/migrations
 USER node
 EXPOSE 4000
 
+# Sync media lives on disk (NEX_MEDIA_DIR, ./media by default). A volume here
+# keeps the objects a device uploaded across container rebuilds — losing it
+# strands every media note's bytes while their rows live on.
+VOLUME ["/app/media"]
+
 # Readiness, not liveness: an instance that cannot reach PostgreSQL must not be
 # reported healthy.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \

@@ -1168,6 +1168,123 @@ VALUES (?, ?, ?, ?, 'synced')
     );
   }
 
+  /* ----------------------------------------------------------- sync media */
+
+  /// Whether the outbox holds anything at all — the auto-sync scheduler's
+  /// cheap check, so an idle library costs one EXISTS probe rather than a
+  /// read of every pending row on every timeline refresh.
+  bool hasPendingSyncWork() =>
+      db
+          .select(
+            'SELECT EXISTS(SELECT 1 FROM notes WHERE sync_state = '
+            "'pending') OR EXISTS(SELECT 1 FROM tags WHERE sync_state = "
+            "'pending') AS work",
+          )
+          .first['work'] ==
+      1;
+
+  /// Live (non-tombstone) media references the server may not hold, for the
+  /// sync cycle's proactive upload pass. The same hash can appear under more
+  /// than one note's path; the caller tries each until one is a real file.
+  ///
+  /// A tombstone's media is nobody's to send: the merger erases the payload,
+  /// so a deleted note's bytes cannot be fetched by any peer regardless. A
+  /// row that names only a bare file — a peer's note whose bytes have not
+  /// been fetched yet — has nothing here to send either, and is left out so
+  /// a backlog of those cannot fill the limit ahead of real files.
+  List<({String hash, String localPath})> mediaReferencesNeedingUpload({
+    int limit = 30,
+  }) => [
+    for (final row in db.select(
+      '''
+SELECT DISTINCT media_hash, media_uri FROM notes
+WHERE media_hash IS NOT NULL
+  AND media_uri IS NOT NULL
+  AND deleted_at IS NULL
+  AND (instr(media_uri, '/') > 0 OR instr(media_uri, '\\') > 0)
+  AND media_hash NOT IN (SELECT media_hash FROM synced_media)
+LIMIT ?
+''',
+      [limit],
+    ))
+      (
+        hash: row['media_hash']! as String,
+        localPath: row['media_uri']! as String,
+      ),
+  ];
+
+  /// Every local path a given hash is filed under, newest note first.
+  List<String> mediaLocalPaths(String hash) => [
+    for (final row in db.select(
+      'SELECT media_uri FROM notes WHERE media_hash = ? AND media_uri IS NOT '
+      'NULL AND deleted_at IS NULL ORDER BY updated_at DESC',
+      [hash],
+    ))
+      row['media_uri']! as String,
+  ];
+
+  /// Records that the server holds this hash's bytes (after an upload, or a
+  /// download that proved it by serving them).
+  void markMediaSynced(String hash) => db.execute(
+    'INSERT OR IGNORE INTO synced_media (media_hash, held_since) '
+    'VALUES (?, ?)',
+    [hash, DateTime.now().toUtc().toIso8601String()],
+  );
+
+  /// Drops that record — the server said it does not have the bytes after
+  /// all, so the next cycle's upload pass may try again from any device.
+  void forgetMediaSynced(String hash) =>
+      db.execute('DELETE FROM synced_media WHERE media_hash = ?', [hash]);
+
+  /// Whether [noteId] carries a media hash whose bytes this device does not
+  /// hold — a pulled note applied with its portable wire name, or a local
+  /// file that has since gone missing. Tombstones never need their media.
+  bool noteNeedsMediaFetch(String noteId) {
+    final rows = db.select(
+      'SELECT media_hash, media_uri, deleted_at FROM notes WHERE id = ?',
+      [noteId],
+    );
+    if (rows.isEmpty) return false;
+    final row = rows.first;
+    if (row['deleted_at'] != null) return false;
+    final hash = row['media_hash'] as String?;
+    if (hash == null) return false;
+    final uri = row['media_uri'] as String?;
+    if (uri == null || !p.isAbsolute(uri)) return true;
+    return !File(uri).existsSync();
+  }
+
+  /// Points [noteId] at a media file this device now holds — the local path a
+  /// download wrote — and, with [markHeld], records the hash as present on
+  /// the server that served it.
+  void rewriteNoteMedia(
+    String noteId,
+    String localPath, {
+    bool markHeld = false,
+  }) {
+    db.together(() {
+      final rows = db.select(
+        'SELECT media_hash FROM notes WHERE id = ? AND deleted_at IS NULL',
+        [noteId],
+      );
+      if (rows.isEmpty) return;
+      db.execute('UPDATE notes SET media_uri = ? WHERE id = ?', [
+        localPath,
+        noteId,
+      ]);
+      if (markHeld) {
+        final hash = rows.first['media_hash'] as String?;
+        if (hash != null) {
+          db.execute(
+            'INSERT OR IGNORE INTO synced_media (media_hash, held_since) '
+            'VALUES (?, ?)',
+            [hash, DateTime.now().toUtc().toIso8601String()],
+          );
+        }
+      }
+    });
+  }
+
   /// Test/helper: set content with an explicit `updated_at` (sync matrix).
   void updateContentAt(String noteId, String content, DateTime updatedAt) {
     db.together(() {
@@ -1311,6 +1428,48 @@ VALUES (?, ?, ?, ?, 'synced')
     final pending =
         existing.isNotEmpty && existing.first['sync_state'] == 'pending';
     final localTags = pending ? tagsForNote(id) : const <Tag>[];
+
+    // The wire carries a portable file name, never another device's
+    // filesystem layout — so if this row already points at a real local file
+    // carrying the same hash, that path is what keeps pointing at it.
+    // Without this, an author's own echo of a note would overwrite its local
+    // absolute path with the wire's bare name and orphan the file it named.
+    var effectiveMediaUri = mediaUri;
+    if (existing.isNotEmpty) {
+      final row = existing.first;
+      final localUri = row['media_uri'] as String?;
+      if (mediaHash != null &&
+          row['media_hash'] == mediaHash &&
+          localUri != null &&
+          p.isAbsolute(localUri) &&
+          File(localUri).existsSync()) {
+        effectiveMediaUri = localUri;
+      }
+    }
+
+    // A synced row that already says exactly this — the device's own write
+    // coming back, now that the pull no longer suppresses echoes — applies
+    // as a no-op. Rewriting it anyway would churn the FTS row and the tag
+    // joins for every note on every re-delivered page.
+    if (existing.isNotEmpty &&
+        !pending &&
+        _matchesRemote(
+          existing.first,
+          type: type,
+          content: content,
+          mediaUri: effectiveMediaUri,
+          mediaHash: mediaHash,
+          durationMs: durationMs,
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+          deletedAt: deletedAt,
+          deviceId: deviceId,
+          rev: rev,
+          tagIds: tagIds,
+        )) {
+      return;
+    }
+
     if (pending) {
       final row = existing.first;
       if (row['deleted_at'] != null && deletedAt == null) {
@@ -1322,7 +1481,7 @@ VALUES (?, ?, ?, ?, 'synced')
       if (row['deleted_at'] == null &&
           (row['content'] != content ||
               row['type'] != type.wireName ||
-              row['media_uri'] != mediaUri ||
+              row['media_uri'] != effectiveMediaUri ||
               row['media_hash'] != mediaHash ||
               row['duration_ms'] != durationMs ||
               deletedAt != null)) {
@@ -1388,7 +1547,7 @@ INSERT INTO notes (
           id,
           type.wireName,
           content,
-          mediaUri,
+          effectiveMediaUri,
           mediaHash,
           durationMs,
           createdAt.toUtc().toIso8601String(),
@@ -1410,7 +1569,7 @@ WHERE id = ?
         [
           type.wireName,
           content,
-          mediaUri,
+          effectiveMediaUri,
           mediaHash,
           durationMs,
           createdAt.toUtc().toIso8601String(),
@@ -1466,6 +1625,51 @@ WHERE id = ?
       db.execute("UPDATE notes SET sync_state = 'pending' WHERE id = ?", [id]);
     }
   });
+
+  /// Whether a stored, non-pending note row already says exactly what the
+  /// incoming payload says — the echo/no-op test for [applyRemoteNote].
+  ///
+  /// Timestamps compare as instants, not text: the server normalises through
+  /// `toISOString()` (always milliseconds) while this library writes Dart's
+  /// `toIso8601String()` (which drops a zero fraction), so the same moment
+  /// has two spellings across the wire.
+  bool _matchesRemote(
+    Map<String, Object?> row, {
+    required NoteType type,
+    required String? content,
+    required String? mediaUri,
+    required String? mediaHash,
+    required int? durationMs,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    required DateTime? deletedAt,
+    required String deviceId,
+    required int rev,
+    required List<String> tagIds,
+  }) {
+    bool sameTime(Object? stored, DateTime? incoming) => incoming == null
+        ? stored == null
+        : stored != null &&
+              DateTime.parse(stored as String) == incoming.toUtc();
+    final rowDeleted = row['deleted_at'] != null;
+    if (row['type'] != type.wireName ||
+        row['content'] != content ||
+        row['media_uri'] != mediaUri ||
+        row['media_hash'] != mediaHash ||
+        row['duration_ms'] != durationMs ||
+        row['device_id'] != deviceId ||
+        row['rev'] != rev ||
+        rowDeleted != (deletedAt != null) ||
+        !sameTime(row['created_at'], createdAt) ||
+        !sameTime(row['updated_at'], updatedAt)) {
+      return false;
+    }
+    if (deletedAt != null && !sameTime(row['deleted_at'], deletedAt)) {
+      return false;
+    }
+    final local = tagsForNote(row['id']! as String).map((t) => t.id).toSet();
+    return local.length == tagIds.length && local.containsAll(tagIds);
+  }
 
   @override
   void setTagColor({required String tagId, String? color}) {

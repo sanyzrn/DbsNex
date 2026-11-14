@@ -11,6 +11,8 @@ class SyncResult {
     required this.pulled,
     this.mergedIds = const [],
     this.mediaDeduped = const [],
+    this.rejected = const [],
+    this.skippedUnknownTypes = 0,
   });
 
   final int pushed;
@@ -21,6 +23,18 @@ class SyncResult {
 
   /// Ids whose media the server recognised by hash and did not store twice.
   final List<String> mediaDeduped;
+
+  /// Ids the server refused — a note id owned by another account, or an item
+  /// it could not take. They stay in the outbox and are retried, so the count
+  /// being visible (rather than indistinguishable from success) is the only
+  /// thing that stops a permanently-stuck item from looking like a quiet life.
+  final List<String> rejected;
+
+  /// Notes the pull carried whose type this build does not know. They are
+  /// skipped rather than applied, because `NoteType.fromWire` has no
+  /// representation for them — but the cycle keeps going, so one note from a
+  /// newer peer can no longer wedge the cursor behind it forever.
+  final int skippedUnknownTypes;
 }
 
 /// Transport contract for v2 sync. Declared in core; implemented in data.

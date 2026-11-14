@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
@@ -48,6 +49,35 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     expect(model.releases, 1);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('going to the background frees the search model as well', (
+    tester,
+  ) async {
+    // The embedder's native engine lives in this process too, and is the
+    // same size of thing to be caught holding in the background (PERF-02).
+    // Its channel is asked to let go on pause, exactly like the chat model.
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    const embedder = MethodChannel('nex/embedder');
+    final released = <String>[];
+    messenger.setMockMethodCallHandler(embedder, (call) async {
+      if (call.method == 'release') released.add(call.method);
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(embedder, null));
+
+    await pumpNexApp(tester);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    expect(released, ['release']);
+
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);

@@ -125,13 +125,6 @@ extension NexDailyNudgeServices on NexServices {
                 )
                 .toString();
             final store = await SharedPreferences.getInstance();
-            await store.reload();
-            final met = {
-              for (final item
-                  in store.getStringList('reminders.met') ?? const <String>[])
-                if (item.lastIndexOf('|') case final split when split > 0)
-                  item.substring(0, split),
-            };
             final summaryAt = _preferences.aiDaySummaryAt;
             if (freshlyGeneratedSummary &&
                 _preferences.aiEnabled &&
@@ -160,6 +153,19 @@ extension NexDailyNudgeServices on NexServices {
               result.complete(null);
               return;
             }
+            // Read from disk only now that a plan really will be rebuilt.
+            // This flight runs after every debounced library change, and the
+            // common answer is "nothing moved" — the plan key above — which
+            // used to pay a full preferences re-read to find out. The keys
+            // below are written by the notification side while the app is not
+            // running, so they are exactly what the re-read is for.
+            await store.reload();
+            final met = {
+              for (final item
+                  in store.getStringList('reminders.met') ?? const <String>[])
+                if (item.lastIndexOf('|') case final split when split > 0)
+                  item.substring(0, split),
+            };
             final summaryMatches =
                 !answeredToday &&
                 met.isEmpty &&

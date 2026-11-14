@@ -27,6 +27,8 @@ packages/ai/.flutter-plugins-dependencies
 node_modules/
 dist/
 apps/backend/dist/
+# Media the sync server stores when run locally (NEX_MEDIA_DIR defaults to ./media).
+apps/backend/media/
 
 # Cloudflare Worker (apps/feedback-worker)
 .wrangler/

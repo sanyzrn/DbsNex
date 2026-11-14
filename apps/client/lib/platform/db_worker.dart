@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart'
     show BackgroundIsolateBinaryMessenger, RootIsolateToken;
 import 'package:nex_core/nex_core.dart';
@@ -152,6 +153,7 @@ enum _DbCommand {
   setAiProvider,
   setLocalEmbedder,
   sync,
+  pendingSyncWork,
   close,
   libraryNoteCounts,
   hasUntaggedTimelineNotes,
@@ -254,6 +256,8 @@ class NexDbWorker
     this._exitSub,
   ) {
     _subscription = incoming.listen(_onMessage);
+    debugLiveIsolates++;
+    _counted = true;
   }
 
   final Isolate _isolate;
@@ -284,6 +288,27 @@ class NexDbWorker
   /// ever complete: the app looked alive and saved nothing. Once this is
   /// set, every new request fails at once with the real reason.
   String? _deadReason;
+
+  /// How many workers are alive right now, for the leak tests.
+  ///
+  /// Counted from the instance's construction to the end of [close] — one
+  /// up in `spawn`, one down in `_close`. A failed launch that leaves this
+  /// above zero has left an isolate holding the database open behind the
+  /// screen that offers "Try again".
+  @visibleForTesting
+  static int debugLiveIsolates = 0;
+
+  /// Whether this instance has been counted into [debugLiveIsolates].
+  ///
+  /// The counter is decremented exactly once per counted instance: `close`
+  /// caches its future, so the paired `_uncount` runs on the first call only.
+  bool _counted = false;
+
+  void _uncount() {
+    if (!_counted) return;
+    _counted = false;
+    debugLiveIsolates--;
+  }
 
   /// Fails everything in flight. Called when the isolate reports a fatal
   /// error or exits: a caller parked on a request that will never be
@@ -370,24 +395,30 @@ class NexDbWorker
       worker?._onIsolateExit(message);
     });
 
-    final isolate = await Isolate.spawn(
-      _entryPoint,
-      _WorkerBoot(
-        responses.sendPort,
-        dbPath,
-        deviceId,
-        adapter,
-        capabilities,
-        mediaDir,
-        rootToken ?? RootIsolateToken.instance,
-      ),
-      debugName: 'nex-db',
-      errorsAreFatal: true,
-      onError: errors.sendPort,
-      onExit: exits.sendPort,
-    );
-
+    // The spawn itself can fail — a port that cannot be created, a callback
+    // that will not send — and it used to fail *around* the cleanup below:
+    // the subscriptions and ports of a launch that never happened were left
+    // open. One try around everything that can fail, one cleanup for all of
+    // it, and the instance-owning success path as the only way out the top.
+    Isolate? isolate;
     try {
+      isolate = await Isolate.spawn(
+        _entryPoint,
+        _WorkerBoot(
+          responses.sendPort,
+          dbPath,
+          deviceId,
+          adapter,
+          capabilities,
+          mediaDir,
+          rootToken ?? RootIsolateToken.instance,
+        ),
+        debugName: 'nex-db',
+        errorsAreFatal: true,
+        onError: errors.sendPort,
+        onExit: exits.sendPort,
+      );
+
       final toWorker = await ready.future;
       return worker = NexDbWorker._(
         isolate,
@@ -402,6 +433,7 @@ class NexDbWorker
     } on Object {
       // The worker never came up. The ports are this frame's problem now —
       // the instance that would own them will never exist.
+      await bootstrap.cancel();
       await spawnErrorSub.cancel();
       await spawnExitSub.cancel();
       errors.close();
@@ -410,7 +442,7 @@ class NexDbWorker
       // stayed alive with a broadcast stream whose only listener had been
       // cancelled — a leak on the exact path a failed launch takes.
       responses.close();
-      isolate.kill(priority: Isolate.beforeNextEvent);
+      isolate?.kill(priority: Isolate.beforeNextEvent);
       rethrow;
     }
   }
@@ -456,6 +488,20 @@ class NexDbWorker
   @override
   Future<void> close() => _closeFuture ??= _close();
 
+  /// How long [close] waits for the worker's reply before taking the isolate
+  /// down anyway.
+  ///
+  /// The reply comes after the worker's own serial chain drains — and a chain
+  /// command stuck on pathological I/O (an import reading a mount that went
+  /// away) never drains. The worker bounds its own shutdown the same way (see
+  /// `_closeGrace` there); this is the calling side of the same rule: a
+  /// restart must not hang forever on a worker that cannot say goodbye.
+  /// Teardown is unconditional either way — the kill below is what releases
+  /// the isolate, and the database was closed (or never will be) on the other
+  /// side.
+  @visibleForTesting
+  static Duration closeGrace = const Duration(seconds: 5);
+
   Future<void> _close() async {
     try {
       await _backupTask;
@@ -468,12 +514,16 @@ class NexDbWorker
       // The worker must serve this command before its isolate is killed.
       // Marking it closed first made `_send` reject the close request itself,
       // leaving SQLite open on Windows even though `close()` had returned.
-      await _send<void>(_DbCommand.close);
+      // Bounded by [closeGrace]: a worker that cannot serve its queue is a
+      // worker whose isolate is taken down below, not a restart parked on a
+      // splash screen forever.
+      await _send<void>(_DbCommand.close).timeout(closeGrace, onTimeout: () {});
     } catch (_) {
       // The isolate may already be gone; teardown must never throw.
     }
 
     _closed = true;
+    _uncount();
     await _subscription.cancel();
     await _errorSub.cancel();
     await _exitSub.cancel();

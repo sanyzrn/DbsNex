@@ -40,6 +40,20 @@ const schema = z.object({
   DEVICE_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(365),
   TOMBSTONE_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
   PURGE_INTERVAL_MINUTES: z.coerce.number().int().positive().default(60),
+  // Where media bytes live (see services/media-store.ts). The default sits
+  // beside the process, the way `dist/` does; a deployment mounts a volume
+  // here. Objects are addressed by (user, content hash), so the folder is
+  // append-mostly and safe to host on cheap storage.
+  NEX_MEDIA_DIR: z.string().min(1).default("./media"),
+  // The largest object PUT /sync/media/:hash accepts. Sized for a long voice
+  // note or a phone photo, not for a video library: a value nobody needs to
+  // raise is a value nobody can abuse either.
+  NEX_MEDIA_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(1_073_741_824)
+    .default(67_108_864),
   // Number of trusted reverse-proxy hops in front of this process — never a
   // bare `true`, which tells Express to trust the left-most X-Forwarded-For
   // entry from *anyone*, meaning any client can hand-write the IP the rate

@@ -214,7 +214,13 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     _graceTimer = Timer(
       Duration(seconds: widget.preferences.appLockGraceSeconds),
       () {
-        if (!_locked && widget.preferences.appLockEnabled) _lock();
+        // Timing read again at firing: it may have changed since arming, and
+        // "only when I ask" is never closed by a timer (SEC-08).
+        if (!_locked &&
+            widget.preferences.appLockEnabled &&
+            widget.preferences.appLockTiming == AppLockTiming.after) {
+          _lock();
+        }
       },
     );
   }
@@ -243,10 +249,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       widget.services.captureJournal.flushPending();
       widget.preferences.editorDrafts?.flushPending();
     }
-    // An on-device model holds gigabytes; in the background that is what
-    // gets the process killed (PERF-02). The next question loads it again.
+    // On-device models (assistant and search) hold gigabytes; in the
+    // background that gets the process killed (PERF-02). Next use reloads.
     if (state == AppLifecycleState.paused) {
       unawaited(ChatAdapterBinding.instance.release() ?? Future<void>.value());
+      unawaited(NexLocalEmbedder.release().catchError((Object _) {}));
     }
     if ((state == AppLifecycleState.paused ||
             state == AppLifecycleState.hidden) &&
@@ -283,7 +290,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       // lock ask for a fingerprint over and over: the system's own prompt
       // pauses and resumes the app, and every one of those resumes measured
       // the same long-past moment, re-locked, and prompted again.
-      unawaited(widget.preferences.setAppLockLeftAt(DateTime.now()));
+      // Only while a lock exists: with it off this was a disk flush on every
+      // return for a timestamp nothing reads.
+      if (widget.preferences.appLockEnabled) {
+        unawaited(widget.preferences.setAppLockLeftAt(DateTime.now()));
+      }
       if (_locked) unawaited(_unlock());
       unawaited(_updates.maybeCheck());
       // Each is throttled to its own interval; most returns do nothing.

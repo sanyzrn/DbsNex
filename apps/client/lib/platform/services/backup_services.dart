@@ -413,6 +413,26 @@ extension NexBackupServices on NexServices {
       );
       rethrow;
     }
+    // A cycle can succeed and still have things to say. Per-item rejections
+    // stay in the outbox and are retried, but a note id the server says
+    // belongs to another account never converges — and without a line here,
+    // a permanently stuck item is indistinguishable from a quiet life.
+    if (result.rejected.isNotEmpty) {
+      unawaited(
+        NexServices.noteDiagnostic(
+          'sync rejected ${result.rejected.length} item(s): '
+          '${result.rejected.take(5).join(', ')}',
+        ),
+      );
+    }
+    if (result.skippedUnknownTypes > 0) {
+      unawaited(
+        NexServices.noteDiagnostic(
+          'sync skipped ${result.skippedUnknownTypes} note(s) with types '
+          'this build does not know',
+        ),
+      );
+    }
     await refreshTimeline();
     return result;
   }

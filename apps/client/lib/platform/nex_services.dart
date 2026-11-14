@@ -38,6 +38,7 @@ import 'install_source.dart';
 import 'full_backup.dart';
 import 'vault_store.dart';
 import 'vault_files.dart';
+import 'vault_session.dart';
 import 'editor_drafts.dart';
 import 'capture_journal.dart';
 import 'voice_spool.dart';
@@ -70,6 +71,7 @@ part 'services/cycle_services.dart';
 part 'services/note_services.dart';
 part 'services/ringing_services.dart';
 part 'services/habit_notification_services.dart';
+part 'services/auto_sync_services.dart';
 
 /// Thrown when sync is invoked before the device has been paired with a server.
 class SyncNotConfigured implements Exception {
@@ -111,6 +113,7 @@ class NexServices {
     required this._preferences,
   }) {
     _startDailyNudge();
+    _armAutoSyncRhythm();
   }
 
   final NexDb worker;
@@ -143,6 +146,14 @@ class NexServices {
   Future<HabitsBrief>? _habitBrief;
   Future<int>? _habitActionsPending;
   String? _habitBriefDay;
+
+  /* ------------------------------------------------------------- autosync */
+
+  // The unattended sync scheduler's state — see `NexAutoSyncServices`.
+  Timer? _autoSyncTimer;
+  Timer? _autoSyncPeriodicTimer;
+  DateTime _autoSyncQuietUntil = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _autoSyncInFlight = false;
 
   Future<HabitsBrief> habitsForBrief() async {
     await applyHabitActions();
@@ -252,6 +263,12 @@ class NexServices {
   bool _closed = false;
   bool _restoring = false;
 
+  /// Test seam: makes [bootstrap]'s recovery step throw once the worker is
+  /// already up, so the disposal-on-failure contract has something to
+  /// trigger it. Never set in the app.
+  @visibleForTesting
+  static bool debugFailRecovery = false;
+
   /// [aiAdapter] is injected from Core types only. Defaults to
   /// [AIAdapterBinding.instance] (NullAIAdapter until a composition root binds
   /// an on-device or cloud adapter).
@@ -269,7 +286,6 @@ class NexServices {
     // The database worker configures the same file for its own requests.
     NexDisclosureLog.configure(support.path);
     NexAiFailureLog.sink = (message) => unawaited(noteDiagnostic(message));
-    await NexInstallSource.load();
     final mediaDir = p.join(support.path, 'media');
     final backupDir = p.join(support.path, 'backups');
     modelsRoot = p.join(support.path, 'models');
@@ -306,96 +322,134 @@ class NexServices {
     // A restore killed after its commit left its safety copy behind. No
     // journal can point at it now, so it is garbage.
     await _sweepFullRestoreCopies(backupDir);
-    await preferences.attachProfileMirror(mediaDir);
-    // Old exports and the file picker's copies of chosen files (SEC-01):
-    // cleared on every launch, not only when the next export happens.
-    unawaited(
-      getTemporaryDirectory().then(cleanExportCache).catchError((Object _) {}),
-    );
-
-    final profilePhoto = resolveProfilePhoto(
-      mediaDir,
-      preferences.profilePhotoPath,
-    );
-    if (profilePhoto != null &&
-        profilePhoto.path != preferences.profilePhotoPath) {
-      await preferences.setProfilePhotoPath(profilePhoto.path);
-    }
 
     // Stable, persisted UUID. Never Platform.localHostname, which is
     // "localhost" on Android and renameable on Windows.
     final id = deviceId ?? await preferences.stableDeviceId();
 
+    // Everything the worker does not read now overlaps its spawn. The worker
+    // is the long pole of a cold start — isolate, database open, migrations —
+    // and these used to queue in front of it, one platform round trip at a
+    // time: the installer id, the profile mirror and the profile photo are
+    // none of the worker's business, so they run beside it rather than ahead
+    // of it. Joined before the session is returned, because the profile
+    // fields they settle are read the moment the UI exists.
+    final sideWork = Future.wait<void>([
+      NexInstallSource.load(),
+      preferences.attachProfileMirror(mediaDir),
+      () async {
+        final profilePhoto = resolveProfilePhoto(
+          mediaDir,
+          preferences.profilePhotoPath,
+        );
+        if (profilePhoto != null &&
+            profilePhoto.path != preferences.profilePhotoPath) {
+          await preferences.setProfilePhotoPath(profilePhoto.path);
+        }
+      }(),
+      // Old exports and the file picker's copies of chosen files (SEC-01):
+      // cleared on every launch, not only when the next export happens.
+      getTemporaryDirectory().then(cleanExportCache).catchError((Object _) {}),
+    ]);
+
     // EnrichmentService takes the synchronous NoteRepository port, so it is
     // constructed inside the isolate, not here. The adapter has to survive the
     // hop: core's adapters are const and pure Dart, a plugin-backed one is not.
-    final worker = await NexDbWorker.spawn(
-      dbPath: dbPath,
-      deviceId: id,
-      mediaDir: mediaDir,
-      adapter: aiAdapter ?? AIAdapterBinding.instance,
-      // `effective`, not the raw switches. The raw ones are what the
-      // intelligence screen shows; they say nothing about whether the master
-      // switch is on, and reading them here handed the worker all six
-      // capabilities even with the layer turned off. The correction did
-      // arrive — `setAiCapabilities` a few lines into bootstrap — but it
-      // arrives across at least one await boundary, and a background
-      // `enrichNote` scheduled inside that window ran with everything
-      // enabled. A window is not a defence.
-      capabilities: preferences.effectiveAiCapabilities,
-    );
-
-    final services = NexServices._(
-      worker: worker,
-      mediaPicker: mediaPicker ?? PlatformMediaPicker(),
-      deviceId: id,
-      dbPath: dbPath,
-      mediaDir: mediaDir,
-      backupDir: backupDir,
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      preferences: preferences,
-    );
-
-    // The system "Alarms & reminders" screen leaves the app, so it is shown
-    // once per install — at the first reminder — and never re-shown for
-    // someone who declined. The gate latches here, where the preference
-    // store lives; the engine stays free of platform storage.
-    services.reminders
-      ..shouldRequestExactAlarms = () async {
-        return !preferences.remindersExactAlarmsAsked;
-      }
-      ..onExactAlarmsRequested = () {
-        unawaited(preferences.markRemindersExactAlarmsAsked());
-      }
-      // Into the file "Share diagnostics" sends. A reminder that arrives at
-      // the wrong hour leaves no other trace: the note keeps the time it was
-      // given, the alarm queue confirms an alarm exists but not when, and the
-      // one moment that knows what the OS was actually told is the call that
-      // told it.
-      //
-      // A block body rather than an arrow, and not a style choice:
-      // `..x = (a) => f(a)` swallows the cascade after it, because the arrow's
-      // body runs to the end of the expression and the next `..` then attaches
-      // to `f(a)`'s result instead of to the object being cascaded.
-      ..onDiagnostic = (message) {
-        unawaited(noteDiagnostic(message));
-      }
-      // Read at schedule time rather than captured once: the lock can be
-      // turned on long after a reminder was set, and every reminder is
-      // rebuilt from the library on launch.
-      ..hideOnLockScreen = () => preferences.appLockEnabled;
-
-    if (recoverDrafts) {
-      await services.recoverCaptureDrafts();
-      await services.recoverVoiceRecordings();
-      // Plain copies of private attachments left by a vault that never got
-      // to lock (the app was killed while one was open).
-      unawaited(VaultFiles.clearOpenCopies());
+    final NexDbWorker worker;
+    try {
+      worker = await NexDbWorker.spawn(
+        dbPath: dbPath,
+        deviceId: id,
+        mediaDir: mediaDir,
+        adapter: aiAdapter ?? AIAdapterBinding.instance,
+        // `effective`, not the raw switches. The raw ones are what the
+        // intelligence screen shows; they say nothing about whether the master
+        // switch is on, and reading them here handed the worker all six
+        // capabilities even with the layer turned off. The correction did
+        // arrive — `setAiCapabilities` a few lines into bootstrap — but it
+        // arrives across at least one await boundary, and a background
+        // `enrichNote` scheduled inside that window ran with everything
+        // enabled. A window is not a defence.
+        capabilities: preferences.effectiveAiCapabilities,
+      );
+    } on Object {
+      // The side work is left running when the spawn fails; its own failure,
+      // if it has one, is not the launch's — the spawn's is what is reported.
+      unawaited(sideWork.then<void>((_) {}, onError: (Object _) {}));
+      rethrow;
     }
-    unawaited(services.refreshTimeline());
-    unawaited(services._maybeBackupInBackground());
 
-    return services;
+    // From here to the return, anything that fails must take the worker with
+    // it — see the catch below.
+    NexServices? services;
+    try {
+      await sideWork;
+      services = NexServices._(
+        worker: worker,
+        mediaPicker: mediaPicker ?? PlatformMediaPicker(),
+        deviceId: id,
+        dbPath: dbPath,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+        backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
+        preferences: preferences,
+      );
+
+      // The system "Alarms & reminders" screen leaves the app, so it is shown
+      // once per install — at the first reminder — and never re-shown for
+      // someone who declined. The gate latches here, where the preference
+      // store lives; the engine stays free of platform storage.
+      services.reminders
+        ..shouldRequestExactAlarms = () async {
+          return !preferences.remindersExactAlarmsAsked;
+        }
+        ..onExactAlarmsRequested = () {
+          unawaited(preferences.markRemindersExactAlarmsAsked());
+        }
+        // Into the file "Share diagnostics" sends. A reminder that arrives at
+        // the wrong hour leaves no other trace: the note keeps the time it was
+        // given, the alarm queue confirms an alarm exists but not when, and the
+        // one moment that knows what the OS was actually told is the call that
+        // told it.
+        //
+        // A block body rather than an arrow, and not a style choice:
+        // `..x = (a) => f(a)` swallows the cascade after it, because the arrow's
+        // body runs to the end of the expression and the next `..` then attaches
+        // to `f(a)`'s result instead of to the object being cascaded.
+        ..onDiagnostic = (message) {
+          unawaited(noteDiagnostic(message));
+        }
+        // Read at schedule time rather than captured once: the lock can be
+        // turned on long after a reminder was set, and every reminder is
+        // rebuilt from the library on launch.
+        ..hideOnLockScreen = () => preferences.appLockEnabled;
+
+      if (recoverDrafts) {
+        if (debugFailRecovery) {
+          throw StateError('debug: recovery failed after the worker came up');
+        }
+        await services.recoverCaptureDrafts();
+        await services.recoverVoiceRecordings();
+        // Plain copies of private attachments left by a vault that never got
+        // to lock (the app was killed while one was open).
+        unawaited(VaultFiles.clearOpenCopies());
+      }
+      // Whatever way the vault session ends — its own lock, the app lock over
+      // it, a lapse — the decrypted copies it made in the cache go with it.
+      // Wired here because this is the one place every app start passes
+      // through, and it is a no-op the second time (SEC-02).
+      VaultFiles.followSession(VaultSession.instance);
+      unawaited(services.refreshTimeline());
+      unawaited(services._maybeBackupInBackground());
+      return services;
+    } on Object {
+      // The worker is up and holding the database open behind a bootstrap the
+      // caller is about to report as failed — and "Try again" would spawn a
+      // second one beside it. Disposed here, the failed launch leaves
+      // nothing behind: no isolate, no timer, no open handle.
+      await services?.dispose();
+      rethrow;
+    }
   }
 
   /// Appends one line to the diagnostics file, and never throws.
@@ -696,11 +750,20 @@ class NexServices {
   Future<void> dispose() async {
     _nudgeEpoch++;
     _nudgeTimer?.cancel();
+    _autoSyncTimer?.cancel();
+    _autoSyncPeriodicTimer?.cancel();
     if (_nudgePreferenceListener case final listener?) {
       _preferences.removeListener(listener);
       _nudgePreferenceListener = null;
     }
-    if (_nudgeFlight case final flight?) await flight;
+    if (_nudgeFlight case final flight?) {
+      // The flight can be holding a platform call (the native alarm
+      // configure), and teardown cannot be held hostage by one: a restart
+      // waits on this. The flight itself never throws — every path in it is
+      // caught — so walking away is safe; whatever it still owes is superseded
+      // by the epoch bump above and retried by the next session.
+      await flight.timeout(_disposeGrace, onTimeout: () {});
+    }
     _scheduledTimer?.cancel();
     await _timelineController.close();
     await _cycleController.close();
@@ -708,4 +771,7 @@ class NexServices {
     await _moduleDraftController.close();
     await _closeOnce();
   }
+
+  /// How long [dispose] waits for the in-flight daily-nudge plan.
+  static const _disposeGrace = Duration(seconds: 2);
 }

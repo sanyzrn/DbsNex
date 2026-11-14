@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -55,6 +57,23 @@ class _VaultEditorState extends State<VaultEditor> {
   /// reads a masked field no better than a blank one.
   String? _revealedSecret;
 
+  /// Puts the mask back on a revealed secret. The list gives itself four
+  /// seconds; the editor left its reveal standing until it closed, which
+  /// is weaker protection for the same secret on the same screen
+  /// (SEC-09). Four seconds here too — enough to read a value back, and
+  /// the eye is still there for another look.
+  Timer? _revealTimer;
+
+  void _revealSecret(String key) {
+    setState(() => _revealedSecret = _revealedSecret == key ? null : key);
+    _revealTimer?.cancel();
+    if (_revealedSecret != null) {
+      _revealTimer = Timer(const Duration(seconds: 4), () {
+        if (mounted) setState(() => _revealedSecret = null);
+      });
+    }
+  }
+
   /// The bank name this editor filled in by itself, so a later digit can
   /// replace it while a name the person typed is never touched.
   String? _autoBank;
@@ -98,6 +117,7 @@ class _VaultEditorState extends State<VaultEditor> {
 
   @override
   void dispose() {
+    _revealTimer?.cancel();
     fields['number']!.removeListener(_onNumberText);
     for (final c in fields.values) {
       c.dispose();
@@ -428,17 +448,12 @@ class _VaultEditorState extends State<VaultEditor> {
         labelText: label,
         counterText: '',
         // A tap on the eye is the one deliberate way to read a secret
-        // back; it lasts as long as the editor does.
+        // back; like the list, it puts the mask back by itself after a
+        // few seconds.
         suffixIcon: secret
             ? IconButton(
                 tooltip: _revealedSecret == key ? l.vaultHide : l.vaultShow,
-                onPressed: widget.busy
-                    ? null
-                    : () => setState(
-                        () => _revealedSecret = _revealedSecret == key
-                            ? null
-                            : key,
-                      ),
+                onPressed: widget.busy ? null : () => _revealSecret(key),
                 icon: Icon(
                   _revealedSecret == key
                       ? Icons.visibility

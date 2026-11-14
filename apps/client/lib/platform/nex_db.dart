@@ -407,5 +407,9 @@ abstract interface class NexDb {
 
   Future<SyncResult> sync({required String baseUrl, String? bearerToken});
 
+  /// Whether the sync outbox holds any pending note or tag — the auto-sync
+  /// scheduler's cheap check, so an idle library never pays for a cycle.
+  Future<bool> pendingSyncWork();
+
   Future<void> close();
 }

@@ -42,6 +42,33 @@ void main() {
     expect(await NexShareWindow.done('Saved to Nex.'), isFalse);
   });
 
+  test(
+    'the launch asks which window it is once, not once per caller',
+    () async {
+      // The orientation lock before `runApp` and the bootstrap host's first
+      // build are one launch asking one question; the second caller used to
+      // pay a platform round trip the answer to which was already in hand.
+      NexShareWindow.forgetSilent();
+      addTearDown(NexShareWindow.forgetSilent);
+
+      answer((_) async => true);
+      expect(await NexShareWindow.rememberSilent(), isTrue);
+      expect(await NexShareWindow.rememberSilent(), isTrue);
+      expect(
+        seen,
+        hasLength(1),
+        reason: 'the answer is remembered for the run',
+      );
+
+      // And the memory is per launch: a test (or a fresh engine, which is the
+      // same thing to these statics) re-asks.
+      NexShareWindow.forgetSilent();
+      answer((_) async => false);
+      expect(await NexShareWindow.rememberSilent(), isFalse);
+      expect(seen, hasLength(2));
+    },
+  );
+
   test('the closing message carries the text and reports the close', () async {
     // The answer is load-bearing rather than decorative: the caller only
     // treats a refusal as delivered when the window actually went, because a
