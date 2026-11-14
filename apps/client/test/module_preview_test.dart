@@ -24,7 +24,7 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('three add-ons are back, the other nine are Soon; their code stays', () {
+  test('three add-ons are back, the other ten are Soon; their code stays', () {
     // Cycle; Pause, which is first-party; and, finished and redesigned in
     // 2.4.0, Birthdays & occasions and Word by Word.
     expect(nexAvailableModuleIds, {
@@ -36,7 +36,10 @@ void main() {
     });
     expect(reviewed, {'occasions', 'words', 'habits'});
     expect(paused, moduleIds.difference({'occasions', 'words', 'habits'}));
-    expect(moduleIds, hasLength(12));
+    // Twelve add-ons, and Converter (2.6.29), built by an agent and Soon
+    // until the owner has tried it on a phone.
+    expect(moduleIds, hasLength(13));
+    expect(paused, contains('converter'));
   });
 
   test(
@@ -51,8 +54,8 @@ void main() {
     },
   );
 
-  test('all modules default off, including the twelve add-ons', () {
-    expect(moduleIds, hasLength(12));
+  test('all modules default off, including the thirteen add-ons', () {
+    expect(moduleIds, hasLength(13));
     expect(
       nexModules.whereType<NexStoredModule>().map((m) => m.id).toSet(),
       moduleIds,
