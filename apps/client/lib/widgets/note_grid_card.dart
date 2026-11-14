@@ -122,23 +122,12 @@ class NexNoteGridCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final metrics = NexGridMetrics.of(context);
-    final tint = nexNoteTypeTint(note.type.wireName, scheme);
     final picked = selected ?? false;
-    final ground = scheme.surfaceContainerLowest;
-    // Quieter than a flat wash: the kind's colour gathers in one corner and
-    // thins out across the tile, the way light falls on paper, so a screen
-    // of tiles reads as colour without shouting it.
-    Color wash(double alpha) =>
-        Color.alphaBlend(tint.withValues(alpha: alpha), ground);
-    // Kept low on purpose: a screen of tiles should read as tinted paper,
-    // the colour a hint of the kind rather than a fill (2.6.29).
-    final from = wash(picked ? 0.24 : (dark ? 0.09 : 0.07));
-    final to = wash(picked ? 0.16 : (dark ? 0.03 : 0.015));
+    // The wash of the kind's colour, shared with the list card (2.6.30):
+    // kept low on purpose, tinted paper rather than a fill (2.6.29).
+    final wash = nexNoteWash(note.type.wireName, scheme, picked: picked);
+    final (:tint, :from, :to, :muted, :outline) = wash;
     final ink = nexReadableOn(tint, from);
-    // The secondary tones, walked against this tile's own wash: the page's
-    // muted grey fell under 4.5 on a coloured tile.
-    final muted = nexReadableOn(scheme.onSurfaceVariant, from);
-    final outline = nexReadableOn(scheme.outline, from);
     final content = nexSplitNoteText(note, strings);
     final kind = AppLocalizations.of(context).noteType(note.type.wireName);
     final highContrast = MediaQuery.highContrastOf(context);

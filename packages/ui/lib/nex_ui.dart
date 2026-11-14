@@ -10,6 +10,7 @@ export 'widgets/nex_search_field.dart';
 export 'tokens/nex_accent_palette.dart';
 export 'tokens/nex_appearance.dart';
 export 'tokens/nex_contrast.dart';
+export 'tokens/nex_note_wash.dart';
 export 'tokens/nex_relative_time.dart';
 export 'tokens/nex_haptics.dart';
 export 'tokens/nex_text_direction.dart';
