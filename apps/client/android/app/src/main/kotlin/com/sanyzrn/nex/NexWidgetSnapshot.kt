@@ -62,13 +62,30 @@ data class NexWidgetSnapshot(
             return try {
                 val file = File(context.filesDir, FILE_NAME)
                 if (!file.isFile) return null
-                parse(file.readText())
+                // One push asks every provider and both list factories to
+                // look, and the answer cannot have changed between them. The
+                // parse is what is worth skipping (providers run on the main
+                // thread); the read is cheap, so the cache is keyed on the
+                // text itself. A key of (modified time, length) would serve a
+                // stale snapshot after a same-length edit inside the clock's
+                // resolution, which is a second on some Android versions.
+                val json = file.readText()
+                // One field, so the text and what was parsed from it can
+                // never be seen half-updated by two readers.
+                val hit = cache
+                if (hit != null && hit.first == json) {
+                    hit.second
+                } else {
+                    parse(json).also { cache = json to it }
+                }
             } catch (_: Exception) {
                 // A snapshot the app half wrote, or one a newer schema produced:
                 // the widget shows its empty state rather than a broken frame.
                 null
             }
         }
+
+        @Volatile private var cache: Pair<String, NexWidgetSnapshot?>? = null
 
         internal fun parse(json: String): NexWidgetSnapshot? {
             return try {

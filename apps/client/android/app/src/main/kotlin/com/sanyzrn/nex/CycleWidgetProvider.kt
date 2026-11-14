@@ -23,7 +23,7 @@ import java.time.LocalDate
 class CycleWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        for (id in ids) manager.updateAppWidget(id, views(context))
+        for (id in ids) manager.updateAppWidget(id, views(context, manager.getAppWidgetOptions(id)))
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -32,7 +32,10 @@ class CycleWidgetProvider : AppWidgetProvider() {
         id: Int,
         newOptions: Bundle?,
     ) {
-        manager.updateAppWidget(id, views(context))
+        // A resize is exactly when the ring's size changes: it is drawn to
+        // the height the launcher now reports, so the re-render this call
+        // already owed is also the moment the ring grows or shrinks.
+        manager.updateAppWidget(id, views(context, newOptions))
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -43,13 +46,24 @@ class CycleWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun views(context: Context): RemoteViews {
+    private fun views(context: Context, options: Bundle?): RemoteViews {
         val display = NexWidgetAppearance.localized(context)
         val today = NexCycleToday.of(NexCycleSnapshot.read(context), LocalDate.now())
         val (title, headline, sub, whisper) = NexCycleWidget.lines(display, today)
         val views = RemoteViews(context.packageName, R.layout.widget_cycle)
         views.setInt(R.id.nex_cycle_root, "setLayoutDirection", display.resources.configuration.layoutDirection)
-        views.setImageViewBitmap(R.id.nex_cycle_ring, NexCycleWidget.ring(display, today, 84, null))
+        // The ring follows the box: the launcher's own options say how much
+        // height there is, and the ring takes what is left after the
+        // background's padding, from the 84dp of a minimum placement to a
+        // 112dp ceiling past which the words beside it would start to lose.
+        val ringDp = NexCycleWidget.ringSizeDp(
+            options,
+            fallback = RING_DP_DEFAULT,
+            min = RING_DP_MIN,
+            max = RING_DP_MAX,
+            reserve = 28,
+        )
+        views.setImageViewBitmap(R.id.nex_cycle_ring, NexCycleWidget.ring(display, today, ringDp, null))
         views.setTextViewText(R.id.nex_cycle_title, title)
         views.setTextViewText(R.id.nex_cycle_headline, headline)
         views.setTextViewText(R.id.nex_cycle_subline, sub)
@@ -63,5 +77,12 @@ class CycleWidgetProvider : AppWidgetProvider() {
         views.setContentDescription(R.id.nex_cycle_root, "$title. $headline. $sub")
         views.setOnClickPendingIntent(R.id.nex_cycle_root, NexWidgetActions.openCycle(context))
         return views
+    }
+
+    private companion object {
+        /** The ring at a minimum (110dp) placement; the ceiling it may grow to. */
+        const val RING_DP_DEFAULT = 84
+        const val RING_DP_MIN = 64
+        const val RING_DP_MAX = 112
     }
 }

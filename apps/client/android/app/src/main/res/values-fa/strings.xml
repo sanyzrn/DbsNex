@@ -49,6 +49,14 @@
     <string name="widget_time_months">%1$d ماه قبل</string>
     <string name="widget_time_years">%1$d سال قبل</string>
 
+    <string name="widget_preview_note1">خرید آخر هفته — نعنا، نان، لیمو</string>
+    <string name="widget_preview_note1_time">۱۲ دقیقه قبل</string>
+    <string name="widget_preview_note2">تولد مامان — عصر زنگ بزن</string>
+    <string name="widget_preview_note2_time">۳ ساعت قبل</string>
+    <string name="widget_preview_recap1">📌 دو یادآور منتظرت است</string>
+    <string name="widget_preview_recap2">✅ سه عادت از پنج عادت امروز انجام شد</string>
+    <string name="widget_preview_recap3">🎂 فردا تولد مامان است</string>
+
     <string name="tile_capture_label">ثبت در Nex</string>
     <string name="tile_capture_subtitle">یادداشت تازه</string>
     <string name="quick_capture_channel">ثبت سریع</string>

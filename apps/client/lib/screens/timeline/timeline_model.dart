@@ -6,6 +6,16 @@ import 'package:nex_core/nex_core.dart';
 import '../../platform/nex_preferences.dart';
 import '../../platform/nex_services.dart';
 
+/// What the timeline model last notified about, so a listener can skip work
+/// a change does not concern.
+///
+/// The model is one `ChangeNotifier` for things a screen consumes very
+/// differently: a notes change rebuilds the cards, while a filter-row or
+/// commitments change is the row's and the brief's own business. The kind is
+/// set immediately before each notification and read by listeners that run
+/// synchronously inside it.
+enum TimelineChange { notes, tags, commitments, folds }
+
 /// What the timeline shows, apart from how it shows it (W4.2).
 ///
 /// The notes as the stream last delivered them, the filters narrowing them,
@@ -117,6 +127,20 @@ class TimelineModel extends ChangeNotifier {
   bool _loadingMore = false;
   bool _exhausted = false;
 
+  /// What the last notification was about — set by [_notifyOf] immediately
+  /// before notifying, read by listeners that run inside that notification.
+  TimelineChange get lastChange => _lastChange;
+  TimelineChange _lastChange = TimelineChange.notes;
+
+  /// Notifies with what changed. Listeners that run synchronously inside the
+  /// notification can ask and skip the work a change does not concern; a
+  /// listener that arrives between notifications sees the most recent kind,
+  /// which is the only one it can still react to.
+  void _notifyOf(TimelineChange change) {
+    _lastChange = change;
+    notifyListeners();
+  }
+
   /// The note with [id] among those delivered, if it is one of them.
   Note? byId(String id) => _all?.where((n) => n.id == id).firstOrNull;
 
@@ -168,7 +192,7 @@ class TimelineModel extends ChangeNotifier {
     } on Object {
       if (_disposed) return null;
       _loadFailed = _all == null;
-      notifyListeners();
+      _notifyOf(TimelineChange.notes);
       return null;
     }
   }
@@ -176,11 +200,30 @@ class TimelineModel extends ChangeNotifier {
   /// Clears a failed first read's state and tries it again.
   Future<List<Note>?> retry() {
     _loadFailed = false;
-    notifyListeners();
+    _notifyOf(TimelineChange.notes);
     return load();
   }
 
-  Future<void> loadFilterTags() async {
+  Future<void>? _filterTagsFlight;
+
+  /// The filter row's tags and counts, as one shared query.
+  ///
+  /// Coalesced: the stream listener, the first read, the search sheet and a
+  /// manual pull all ask for the same two queries, often within the same few
+  /// milliseconds — a burst of captures firing the stream once each used to
+  /// read the tags once each too. While one read is in flight, later callers
+  /// join it rather than queue behind it.
+  Future<void> loadFilterTags() {
+    final pending = _filterTagsFlight;
+    if (pending != null) return pending;
+    final flight = _readFilterTags().whenComplete(() {
+      _filterTagsFlight = null;
+    });
+    _filterTagsFlight = flight;
+    return flight;
+  }
+
+  Future<void> _readFilterTags() async {
     final loaded = await services.tagUsage(timelineOnly: true);
     final hasUntagged = await services.worker.hasUntaggedTimelineNotes();
     if (_disposed) return;
@@ -206,7 +249,7 @@ class TimelineModel extends ChangeNotifier {
       _onlyUntagged = false;
       await _applyFilters();
     } else {
-      notifyListeners();
+      _notifyOf(TimelineChange.tags);
     }
   }
 
@@ -222,7 +265,7 @@ class TimelineModel extends ChangeNotifier {
       }
       _commitmentsDayKey = dayKey;
       _commitments = all;
-      notifyListeners();
+      _notifyOf(TimelineChange.commitments);
     } catch (_) {
       // A brief without them is still a brief.
     }
@@ -301,7 +344,7 @@ class TimelineModel extends ChangeNotifier {
   /// Folds away or opens up date groups, and remembers it.
   void setCollapsedGroups(Set<String> keys) {
     _collapsedGroups = keys;
-    notifyListeners();
+    _notifyOf(TimelineChange.folds);
     unawaited(preferences.setCollapsedTimelineGroups(keys));
   }
 
@@ -359,7 +402,7 @@ class TimelineModel extends ChangeNotifier {
   Future<void> _applyFilters() {
     if (!_disposed) {
       _notes = visible(_all ?? const <Note>[]);
-      notifyListeners();
+      _notifyOf(TimelineChange.notes);
     }
     return Future<void>.value();
   }
@@ -373,7 +416,7 @@ class TimelineModel extends ChangeNotifier {
     final changed = _all == null || !_sameNotes(_all!, delivered);
     _all = delivered;
     _notes = visible(delivered);
-    if (changed) notifyListeners();
+    if (changed) _notifyOf(TimelineChange.notes);
     return changed;
   }
 

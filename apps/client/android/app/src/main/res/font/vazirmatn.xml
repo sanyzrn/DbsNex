@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Vazirmatn, the app's own Persian face, for the home-screen widgets.
+
+  One variable file stands in for the four weights the widget ramp asks of
+  it: the <font> entries below resolve a weight by asking the variable
+  axis (`fontVariationSettings`) and, where a build is older than that
+  mechanism, by naming the weight itself so the platform can pick the
+  entry. The cost is one 236 KB file rather than four; the fallback when a
+  weight cannot be resolved is the file's own default instance, which is
+  Regular — lighter than the style asked for, never a different alphabet.
+
+  Fonts in res/font resolve in whichever process inflates the layout,
+  which for a widget is the launcher's. The styles that point here are the
+  values-fa-v26 overrides only, so the choice follows the *device's*
+  language the way the launcher draws it — a Persian phone gets Vazirmatn
+  on every word the widgets carry, exactly as the app inside does.
+-->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <font
+        android:font="@font/vazirmatn_var"
+        android:fontStyle="normal"
+        android:fontWeight="300"
+        android:fontVariationSettings="'wght' 300" />
+    <font
+        android:font="@font/vazirmatn_var"
+        android:fontStyle="normal"
+        android:fontWeight="400" />
+    <font
+        android:font="@font/vazirmatn_var"
+        android:fontStyle="normal"
+        android:fontWeight="500"
+        android:fontVariationSettings="'wght' 500" />
+    <font
+        android:font="@font/vazirmatn_var"
+        android:fontStyle="normal"
+        android:fontWeight="700"
+        android:fontVariationSettings="'wght' 700" />
+</font-family>

@@ -273,6 +273,15 @@ class SqliteNoteRepository implements NoteRepository {
           final link? => _sharedLinkNote(capture, link.url, link.words),
           null => capture.submitTextCapture(payload['text'] ?? ''),
         },
+        // The capture sheet's words become a list when it closes. Routed
+        // through here rather than `captureChecklist` so the receipt covers
+        // it: a close that was interrupted after the commit used to make a
+        // second, identical list when it was tried again — the same
+        // protection `link-` requests already had, given to the one kind
+        // that was left without it.
+        'checklist' => capture.submitChecklistCapture(
+          parseChecklist(payload['body'] ?? ''),
+        ),
         'shared_photo' => capture.submitPhotoCapture(
           mediaUri: payload['mediaUri']!,
           mediaHash: payload['mediaHash']!,

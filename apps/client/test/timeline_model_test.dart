@@ -156,4 +156,58 @@ void main() {
       expect((await harness.services.getById(weekly.id))!.dueAt, isNotNull);
     },
   );
+
+  test('each notification says what changed', () async {
+    await harness.services.captureText('one');
+    final kinds = <TimelineChange>[];
+    model.addListener(() => kinds.add(model.lastChange));
+    await model.load();
+    await model.selectTags(const {});
+    model.setCollapsedGroups(const {});
+    expect(kinds, [
+      TimelineChange.notes,
+      TimelineChange.notes,
+      TimelineChange.folds,
+    ]);
+  });
+
+  test('a tag read that changed the row notifies as tags, not notes', () async {
+    final note = (await harness.services.captureText('to tag'))!;
+    final tag = await harness.services.addTag(noteId: note.id, name: 'work');
+    await model.load();
+    final kinds = <TimelineChange>[];
+    model.addListener(() => kinds.add(model.lastChange));
+    // A rename the notes themselves never hear about: the stream is not
+    // fired, so the next tag read is the only thing that can notice.
+    await harness.db.renameTag(tag.id, 'renamed');
+    await model.loadFilterTags();
+    expect(kinds, [TimelineChange.tags]);
+    expect(model.filterTags.single.name, 'renamed');
+    // And an unchanged read notifies nothing at all.
+    await model.loadFilterTags();
+    expect(kinds, [TimelineChange.tags]);
+  });
+
+  test(
+    'a changed commitments read notifies as commitments, not notes',
+    () async {
+      await model.load();
+      final kinds = <TimelineChange>[];
+      model.addListener(() => kinds.add(model.lastChange));
+      final day = DateTime(2026, 1, 20);
+      NexCommitment rent() => NexCommitment(
+        id: 'c-rent',
+        title: 'Rent',
+        cadence: NexCadence.months,
+        every: 1,
+        dueAt: DateTime(2026, 2, 1),
+        createdAt: day,
+        updatedAt: day,
+      );
+      await harness.services.worker.saveCommitment(rent());
+      await model.loadCommitments(now: day);
+      expect(kinds, [TimelineChange.commitments]);
+      expect(model.commitments.single.title, 'Rent');
+    },
+  );
 }

@@ -17,17 +17,25 @@ extension NexNoteServices on NexServices {
   Future<void> recoverCaptureDrafts() async {
     for (final draft in captureJournal.pending().toList()) {
       try {
+        // Whitespace is emptiness with a card attached: inside the sheet it
+        // retires the note rather than keeping one, and recovery must not
+        // make it one either. A journal left at whitespace used to come back
+        // as a note of blank lines on the next launch.
+        if (draft.text.trim().isEmpty) {
+          final existing = await worker.capturedFor('draft-${draft.id}');
+          if (existing != null && !existing.updatedAt.isAfter(draft.at)) {
+            await worker.deleteNote(existing.id);
+          }
+          captureJournal.complete(draft.id);
+          continue;
+        }
         final note = await captureDraft(draft.id, draft.text);
         // A journal write can fail while the database write of the same
         // text succeeds; a journal older than the note would then wind the
         // note back to a stale snapshot (DATA-05). The newer one wins.
         final behind = note != null && note.updatedAt.isAfter(draft.at);
-        if (note != null && !behind) {
-          if (draft.text.isEmpty) {
-            await worker.deleteNote(note.id);
-          } else if (note.content != draft.text) {
-            await worker.updateNote(note.id, draft.text);
-          }
+        if (note != null && !behind && note.content != draft.text) {
+          await worker.updateNote(note.id, draft.text);
         }
         captureJournal.complete(draft.id);
       } catch (_) {
@@ -38,6 +46,21 @@ extension NexNoteServices on NexServices {
 
   Future<Note?> captureChecklist(List<ChecklistItem> items) =>
       _afterNudgeWrite(worker.captureChecklist(items));
+
+  /// What was written in the capture sheet's checklist box, as a checklist
+  /// note. Keyed by [draftId], so a close that was interrupted after the
+  /// commit — the sheet's settle retried — still makes one list, the same
+  /// guarantee [captureWrittenLink] gives a link.
+  Future<Note?> captureWrittenChecklist(
+    String draftId,
+    List<ChecklistItem> items,
+  ) => _afterNudgeWrite(
+    worker.captureShared({
+      'requestId': 'checklist-$draftId',
+      'type': 'checklist',
+      'body': formatChecklist(items),
+    }),
+  );
 
   Future<Note?> captureLink(String url) =>
       _afterNudgeWrite(worker.captureLink(url));
@@ -143,6 +166,31 @@ extension NexNoteServices on NexServices {
     ),
   );
 
+  /// The capture sheet's own flush while the person is still typing.
+  ///
+  /// [updateNote] is an editor's save: it reads the note back to re-bake its
+  /// reminder's notification and reloads the whole timeline window. While the
+  /// sheet is open, every debounced keystroke burst used to pay for both — a
+  /// note read and a 200-note timeline read per pause in the typing, none of
+  /// it visible under the sheet. This writes the words, refreshes the
+  /// notification only when the sheet knows a reminder is on the note
+  /// ([hasReminder]), and leaves the timeline to the one refresh the sheet
+  /// already does when it closes.
+  Future<void> updateNoteContent(
+    String id,
+    String content, {
+    bool hasReminder = false,
+  }) async {
+    await worker.updateNote(id, content);
+    if (!hasReminder) return;
+    try {
+      final note = await worker.getById(id);
+      if (note != null && note.dueAt != null) {
+        await reminders.schedule(note);
+      }
+    } catch (_) {}
+  }
+
   Future<void> updateNote(String id, String content) async {
     await worker.updateNote(id, content);
     // The pending notification carries the note's text, baked in when it was
@@ -221,14 +269,20 @@ extension NexNoteServices on NexServices {
   /// tapped through to nothing, and the plugin's boot receiver re-armed it
   /// again at every reboot. Cancelling here is what makes the library the
   /// record it claims to be: if the note is not in it, no alarm exists.
-  Future<void> deleteNote(String id) async {
+  ///
+  /// [refresh] is false only on the capture sheet's way out, where several
+  /// notes are settled one after another and the single `refreshTimeline`
+  /// the closing sheet already does covers them all: three full timeline
+  /// reads in the space of one close bought nothing the last one did not
+  /// have.
+  Future<void> deleteNote(String id, {bool refresh = true}) async {
     await worker.deleteNote(id);
     // Best-effort: the row is already soft-deleted, so a failure here must
     // not roll the visible state back; the next reconcile would catch it.
     try {
       await reminders.cancel(id);
     } catch (_) {}
-    await refreshTimeline();
+    if (refresh) await refreshTimeline();
   }
 
   /// Undoes a soft delete, and re-arms the note's alarm if it has one.
@@ -251,10 +305,14 @@ extension NexNoteServices on NexServices {
   /// match. Both halves or neither: a due date with no alarm behind it is a
   /// reminder that never arrives, and an alarm with no due date is one that
   /// cannot be seen or cancelled.
+  ///
+  /// [refresh] is false only where the caller refreshes the timeline itself
+  /// immediately afterwards (the capture sheet's settlement).
   Future<void> setDueAt(
     String id,
     DateTime? when, {
     NoteRepeat repeat = NoteRepeat.once,
+    bool refresh = true,
   }) async {
     await worker.setDueAt(id, when, repeat: repeat);
     final note = await worker.getById(id);
@@ -264,7 +322,7 @@ extension NexNoteServices on NexServices {
     } else {
       await reminders.schedule(note);
     }
-    await refreshTimeline();
+    if (refresh) await refreshTimeline();
   }
 
   /// Clears a one-off reminder whose time has passed, without touching the

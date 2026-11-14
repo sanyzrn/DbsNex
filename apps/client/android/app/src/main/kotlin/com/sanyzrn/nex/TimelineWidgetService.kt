@@ -36,6 +36,14 @@ class TimelineWidgetService : RemoteViewsService() {
 
         @Volatile private var notes: List<NexWidgetSnapshot.NexWidgetNote> = emptyList()
 
+        // The localized context, made once per factory rather than once per
+        // row: every row used to build its own configuration context —
+        // fifteen rows, thirty Resources objects a bind — for the same four
+        // strings and one time label. Rebuilt on every data-set change so a
+        // language switch inside the app reaches the rows with the next
+        // bind, the same as the frame.
+        private var display: Context = NexWidgetAppearance.localized(context)
+
         override fun onCreate() {}
 
         override fun onDataSetChanged() {
@@ -45,6 +53,7 @@ class TimelineWidgetService : RemoteViewsService() {
             // home-screen glance offers.
             val snapshot = NexWidgetSnapshot.read(context)
             notes = if (snapshot == null || snapshot.appLock) emptyList() else snapshot.notes
+            display = NexWidgetAppearance.localized(context)
         }
 
         override fun onDestroy() {
@@ -64,7 +73,7 @@ class TimelineWidgetService : RemoteViewsService() {
             // doc asks of a card read-out.
             val spoken = if (preview.isEmpty()) typeLabel(note.type) else preview
             views.setTextViewText(R.id.nex_widget_row_preview, spoken)
-            val time = NexWidgetTime.label(NexWidgetAppearance.localized(context), note.updatedAt, System.currentTimeMillis())
+            val time = NexWidgetTime.label(display, note.updatedAt, System.currentTimeMillis())
             views.setTextViewText(R.id.nex_widget_row_time, time)
             views.setContentDescription(R.id.nex_widget_row_root, "$spoken, $time")
             // The note id rides the template's fill-in intent, and the
@@ -97,7 +106,7 @@ class TimelineWidgetService : RemoteViewsService() {
             else -> R.drawable.nex_widget_ic_type_other
         }
 
-        private fun typeLabel(type: String): String = NexWidgetAppearance.localized(context).getString(
+        private fun typeLabel(type: String): String = display.getString(
             when (type) {
                 "voice" -> R.string.widget_type_voice
                 "photo" -> R.string.widget_type_photo

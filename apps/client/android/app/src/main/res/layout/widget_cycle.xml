@@ -5,6 +5,12 @@
   blush-to-lavender ground so it reads as that space, not as another card.
   The texts below are what the widget picker's preview shows; the provider
   replaces every one of them.
+
+  The ring's frame wraps its content rather than holding a fixed size,
+  because the ring is drawn to the height the launcher granted: the
+  provider sizes the bitmap from the widget's own options (see
+  NexCycleWidget.ringSizeDp), and a fixed frame would clip the same ring
+  it asked for. The preview drawable holds 84dp until the provider runs.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/nex_cycle_root"
@@ -17,13 +23,13 @@
     android:background="@drawable/nex_cycle_widget_bg">
 
     <FrameLayout
-        android:layout_width="84dp"
-        android:layout_height="84dp">
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
 
         <ImageView
             android:id="@+id/nex_cycle_ring"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:importantForAccessibility="no"
             android:src="@drawable/nex_widget_preview_cycle" />
 
@@ -46,49 +52,44 @@
 
         <TextView
             android:id="@+id/nex_cycle_title"
+            style="@style/NexWidget.CycleTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:ellipsize="end"
             android:text="@string/cycle_widget_title"
-            android:textAlignment="viewStart"
-            android:textColor="@color/nex_cycle_text_dim"
-            android:textSize="12sp" />
+            android:textAlignment="viewStart" />
 
         <TextView
             android:id="@+id/nex_cycle_headline"
+            style="@style/NexWidget.CycleHeadline"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:fontFamily="sans-serif-medium"
             android:maxLines="2"
             android:ellipsize="end"
             android:text="@string/cycle_widget_preview_headline"
-            android:textAlignment="viewStart"
-            android:textColor="@color/nex_cycle_text"
-            android:textSize="17sp" />
+            android:textAlignment="viewStart" />
 
         <TextView
             android:id="@+id/nex_cycle_subline"
+            style="@style/NexWidget.CycleSubline"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:maxLines="1"
             android:ellipsize="end"
-            android:textAlignment="viewStart"
-            android:textColor="@color/nex_cycle_text_dim"
-            android:textSize="13sp" />
+            android:textAlignment="viewStart" />
 
         <TextView
             android:id="@+id/nex_cycle_whisper"
+            style="@style/NexWidget.CycleWhisper"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:maxLines="2"
             android:ellipsize="end"
             android:text="@string/cycle_widget_whisper_calm"
-            android:textAlignment="viewStart"
-            android:textColor="@color/nex_cycle_text_dim"
-            android:textSize="12sp" />
+            android:textAlignment="viewStart" />
     </LinearLayout>
 </LinearLayout>

@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One line of the Recap widget's brief. See widget_recap.xml. -->
+<!--
+  One line of the Recap widget's brief. See widget_recap.xml.
+
+  Carries the platform's own press feedback, the same ripple a Timeline
+  row has through selectableItemBackground: a line is as tappable as a
+  row is, and a tap that gives no sign it landed reads as a widget that
+  ignored the finger.
+-->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/nex_recap_row"
     style="@style/NexWidget.Recap"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content" />
+    android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground" />

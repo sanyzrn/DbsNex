@@ -4,6 +4,16 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.29
+
+- **No duplicate checklists.** If closing the capture box to save a checklist was interrupted after the list was already saved, trying again used to make a second, identical list. It now finds the one already made.
+- **A file that could not be saved says so.** Picking a file whose copy went missing, or saving onto a full phone, used to fail silently. It now says why, with a retry, as photos do.
+- **Smoother typing in the capture box.** While you type, Nex no longer reloads the whole timeline behind the box at every pause; it updates once when the box closes.
+- **Lighter photos and recordings.** Photos kept as taken, extra photos picked with them and finished recordings are saved straight from the file instead of being loaded into memory twice.
+- **Widgets in Vazirmatn.** On a Persian phone, the home-screen widgets now use the app's own Persian font. The widget picker shows real sample rows for the Timeline and Recap widgets instead of an empty card, the Cycle ring grows with the widget, and the capture buttons respond to touch.
+- **A quieter grid.** Grid tiles carry only a hint of their kind's colour now, and a day folds away with motion as well as opening with it — by tap or by pinch.
+- **A smoother timeline in a big library.** Picking a note, a reminder ringing or the daily summary arriving no longer makes Nex regroup every loaded note, and a sideways swipe along the tag row no longer folds the summary or loads older notes. The date under the filters also updates as soon as notes arrive or go.
+
 ## v2.6.28
 
 - **A better grid view.** Card size now applies to the grid: compact fits three tiles to a row, standard and easier to read two. Tiles show more of each note — its words, a checklist's items with their ticks, the photo itself, a voice note's length — and a reminder with its time ("in 3 hours"). Urgent notes carry the same flame as in the list, the colours are calmer, and a day folds and opens smoothly, by tap or by pinch. Show in full no longer appears in a tile's menu, where it had nothing to do.

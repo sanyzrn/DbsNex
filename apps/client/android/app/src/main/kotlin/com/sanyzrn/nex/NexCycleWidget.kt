@@ -1,5 +1,6 @@
 package com.sanyzrn.nex
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -11,6 +12,8 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.SweepGradient
 import android.graphics.Typeface
+import android.os.Build
+import android.os.Bundle
 import org.json.JSONObject
 import java.io.File
 import java.time.LocalDate
@@ -18,6 +21,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sin
 
 /**
@@ -50,10 +54,25 @@ data class NexCycleSnapshot(
 
         fun read(context: Context): NexCycleSnapshot? = try {
             val file = File(context.filesDir, FILE_NAME)
-            if (file.isFile) parse(file.readText()) else null
+            if (!file.isFile) null
+            else {
+                // The same cache NexWidgetSnapshot.read keeps, keyed on the
+                // text: both Cycle widgets ask on one push.
+                val json = file.readText()
+                // One field, so the text and what was parsed from it can
+                // never be seen half-updated by two readers.
+                val hit = cache
+                if (hit != null && hit.first == json) {
+                    hit.second
+                } else {
+                    parse(json).also { cache = json to it }
+                }
+            }
         } catch (_: Exception) {
             null
         }
+
+        @Volatile private var cache: Pair<String, NexCycleSnapshot?>? = null
 
         internal fun parse(json: String): NexCycleSnapshot? = try {
             val root = JSONObject(json)
@@ -192,6 +211,58 @@ object NexCycleWidget {
     }
 
     /**
+     * The ring's size for the box the launcher actually granted, in dp.
+     *
+     * The options arrive from the host: `OPTION_APPWIDGET_MIN_HEIGHT` and
+     * `OPTION_APPWIDGET_MIN_WIDTH` are the widget's current portrait size
+     * in dp. A ring of a fixed 72 or 84dp — what both widgets drew before —
+     * sits small and apologetic in a box someone stretched to two hundred.
+     * [reserve] is the padding the widget's own background eats on each
+     * side of the drawing; [fallback] is what a launcher that reports no
+     * options at all (a placement not yet measured) gets, which is the
+     * size the old fixed rings drew.
+     */
+    fun ringSizeDp(options: Bundle?, fallback: Int, min: Int, max: Int, reserve: Int): Int {
+        if (options == null) return fallback
+        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+        if (height <= 0) return fallback
+        return (height - reserve).coerceIn(min, max)
+    }
+
+    /** The same, for a widget whose ring must answer to width too. */
+    fun ringSizeDpSquare(options: Bundle?, fallback: Int, min: Int, max: Int, reserve: Int): Int {
+        if (options == null) return fallback
+        val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+        if (width <= 0 || height <= 0) return fallback
+        return (min(width, height) - reserve).coerceIn(min, max)
+    }
+
+    /**
+     * The ring's centre face: Vazirmatn on a Persian home screen, the
+     * platform's medium everywhere else. The bitmap is ours to draw, so
+     * unlike a TextView in a RemoteViews layout this one can follow the
+     * *app's* saved locale rather than the device's. The weight comes from
+     * the variable axis on API 28+, and falls back through the file's own
+     * default instance to the platform face on the way down to 24.
+     */
+    private fun centerFace(context: Context): Typeface {
+        if (context.resources.configuration.locales[0].language != "fa") {
+            return Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        }
+        val base = runCatching {
+            context.resources.getFont(R.font.vazirmatn_var)
+        }.getOrNull() ?: return Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return Typeface.create(base, 600, false)
+        }
+        return base
+    }
+
+    /**
      * The ring, as a bitmap — RemoteViews cannot hold a custom view. The
      * period in rose fading to mauve, the fertile days in teal, a pearl for
      * today, each arc with a soft glow under it; and, for the discreet
@@ -271,7 +342,7 @@ object NexCycleWidget {
                 color = if (dark) 0xFFF6EEF3.toInt() else 0xFF3A2430.toInt()
                 textSize = size * 0.28f
                 textAlign = Paint.Align.CENTER
-                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                typeface = centerFace(context)
             }
             canvas.drawText(center, cx, cy - (text.ascent() + text.descent()) / 2f, text)
         }
