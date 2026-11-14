@@ -24,6 +24,28 @@ extension _TimelineShelves on TimelineScreenState {
     );
   }
 
+  /// Fades the notes in when the list becomes a view of something else — a
+  /// filter chip, "See all", the way back from it, another arrangement —
+  /// as search fades its results in (2.7.1). It used to be a cut: one frame
+  /// the shelves, the next a different list.
+  ///
+  /// Called before the rebuild that shows the new list, so the first frame
+  /// of it is already the start of the fade. A note arriving, going or
+  /// changing is not a new view and does not fade.
+  void _fadeOnViewChange() {
+    final view = [
+      widget.preferences.timelineArrangement.name,
+      widget.preferences.timelineGrid,
+      _model.selectedType?.name,
+      (_model.selectedTagIds.toList()..sort()).join(','),
+      _model.onlyUntagged,
+      _model.onlyReminders,
+    ].join('|');
+    final before = _rowsCache.view;
+    _rowsCache.view = view;
+    if (before != null && before != view && !_searching) _fadeInBody();
+  }
+
   /// One heading, the same in the list, the grid and the desktop.
   Widget _groupHeading(
     _NoteGroup group,
@@ -148,14 +170,9 @@ extension _TimelineShelves on TimelineScreenState {
     }
     if (!mounted || !_scroll.hasClients) return;
     // The shelf was somewhere down the screen; as the whole list it starts
-    // at the top.
-    await _scroll.animateTo(
-      0,
-      duration: MediaQuery.disableAnimationsOf(context)
-          ? Duration.zero
-          : NexMotion.standard,
-      curve: NexMotion.curve,
-    );
+    // at the top. A jump, under the fade the new list comes in with — a
+    // scroll would run back through notes that are no longer the list.
+    _scroll.jumpTo(0);
   }
 
   /// Moves [group] a step among the [movable] shelves on screen.

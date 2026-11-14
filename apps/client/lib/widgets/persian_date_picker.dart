@@ -1,5 +1,6 @@
 import 'package:nex_ui/nex_ui.dart';
 import 'package:flutter/material.dart';
+
 import '../platform/display_date.dart';
 
 /// Uses civil Gregorian values at its boundary; only the calendar UI is Solar.
@@ -63,10 +64,30 @@ class _PersianDatePickerState extends State<PersianDatePicker> {
         !nexGregorianDate(y, m, 1).isAfter(DateUtils.dateOnly(widget.last));
   }
 
-  void move(int delta) => setState(() {
+  void move(int delta) {
     final index = year * 12 + month - 1 + delta;
-    year = index ~/ 12;
-    month = index % 12 + 1;
+    show(index ~/ 12, index % 12 + 1);
+  }
+
+  /// Shows [y]/[m] and takes the chosen day along with it (2.7.1).
+  ///
+  /// The day used to stay where it was: picking 1365 and Bahman from the two
+  /// lists and pressing OK gave back the day the picker opened on, because
+  /// no day in Bahman 1365 had been tapped. Now the same day of the month is
+  /// chosen in the month on show — the last day when the month is shorter,
+  /// and the nearest allowed day at the ends of the range — so the title
+  /// and OK always say the month that is on screen.
+  void show(int y, int m) => setState(() {
+    year = y;
+    month = m;
+    final want = nexPersianDate(selected).day;
+    final day = want.clamp(1, nexPersianMonthDays(y, m));
+    var date = nexGregorianDate(y, m, day);
+    final first = DateUtils.dateOnly(widget.first);
+    final last = DateUtils.dateOnly(widget.last);
+    if (date.isBefore(first)) date = first;
+    if (date.isAfter(last)) date = last;
+    selected = date;
   });
   @override
   Widget build(BuildContext context) {
@@ -104,7 +125,7 @@ class _PersianDatePickerState extends State<PersianDatePicker> {
                           ),
                       ],
                       onChanged: (m) {
-                        if (m != null) setState(() => month = m);
+                        if (m != null) show(year, m);
                       },
                     ),
                   ),
@@ -119,15 +140,19 @@ class _PersianDatePickerState extends State<PersianDatePicker> {
                 ],
               ),
               DropdownButton<int>(
+                key: const ValueKey('persian-picker-year'),
                 borderRadius: nexDropdownRadius,
                 dropdownColor: nexDropdownColor(context),
+                // Two centuries of years: a list that scrolls, opened on the
+                // year on show, rather than one taller than the screen.
+                menuMaxHeight: 320,
                 value: year,
                 items: [
                   for (var y = firstYear; y <= lastYear; y++)
                     DropdownMenuItem(value: y, child: Text(digits(y))),
                 ],
                 onChanged: (y) {
-                  if (y != null) setState(() => year = y);
+                  if (y != null) show(y, month);
                 },
               ),
               Row(

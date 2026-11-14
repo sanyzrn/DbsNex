@@ -118,16 +118,30 @@ bool converterIsFavorite(ConverterEntry entry, List<ConverterEntry> favorites) {
 }
 
 /// Keeps [entry] at the top of the recent list, removing an older copy of the
-/// same conversion and anything past [cap].
-Future<void> converterRemember(
+/// same conversion and anything past [cap]. Returns the id it is kept under.
+///
+/// [replacing] is a row this one takes the place of (2.7.1): the same thing
+/// still being changed — a date typed digit by digit, a number being
+/// corrected — is one conversion, not one row per pause.
+Future<String?> converterRemember(
   NexModuleStore store,
-  ConverterEntry entry,
-) async {
-  final records = await store.list('recent');
+  ConverterEntry entry, {
+  String? replacing,
+}) async {
+  var records = await store.list('recent');
+  if (replacing != null && records.any((r) => r.id == replacing)) {
+    await store.delete('recent', replacing);
+    records = [
+      for (final record in records)
+        if (record.id != replacing) record,
+    ];
+  }
   // Already the newest: nothing to move, and no new id to write.
   if (records.isNotEmpty) {
     final newest = _entryFrom(records.first, starred: false);
-    if (newest != null && newest.signature == entry.signature) return;
+    if (newest != null && newest.signature == entry.signature) {
+      return records.first.id;
+    }
   }
   for (final record in records) {
     final kept = _entryFrom(record, starred: false);
@@ -135,11 +149,13 @@ Future<void> converterRemember(
       await store.delete('recent', record.id);
     }
   }
-  await store.put('recent', store.newId(), entry.toBody());
+  final id = store.newId();
+  await store.put('recent', id, entry.toBody());
   final after = await store.list('recent');
   for (final stale in after.skip(_recentCap)) {
     await store.delete('recent', stale.id);
   }
+  return id;
 }
 
 /// Stars [entry], or takes the star off. Returns the favourite it wrote, so

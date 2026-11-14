@@ -65,6 +65,10 @@ class _TimelineRowsCache {
   List<_TimelineRow>? _rows;
   _Arrange? _arrange;
 
+  /// What the list is a view of — arrangement and filters — when it was last
+  /// asked; see `_fadeOnViewChange`.
+  String? view;
+
   /// Whether the list may load older notes as it nears its end — always by
   /// day; arranged, only while one shelf is the list ([nexShelvesGrow]).
   bool grows = true;
@@ -268,6 +272,7 @@ extension _TimelineRows on TimelineScreenState {
   void _onModelChange() {
     if (!mounted) return;
     final kind = _model.lastChange;
+    if (kind == TimelineChange.notes) _fadeOnViewChange();
     // By tag, the tags are the headings: a renamed or new tag is a change to
     // the rows, not just to the filter row.
     final tagShelves =

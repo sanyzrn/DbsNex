@@ -59,6 +59,20 @@ class _ConverterScreenState extends State<ConverterScreen> {
   StreamSubscription<void>? _changes;
   Timer? _settle;
 
+  /// The conversion waiting to be kept, taken when it was made — not when
+  /// the timer fires, by which time another tab may be on screen (2.7.1).
+  ConverterEntry? _pending;
+
+  /// The row the last kept conversion went to, and what it was about, so the
+  /// next change to the same thing replaces it — see [converterRemember].
+  String? _keptId;
+  String? _keptSubject;
+  DateTime? _keptAt;
+
+  /// Whether a number has been typed on the Units tab since its category was
+  /// chosen. Until then, the units on either side are only a starting point.
+  bool _unitsTyped = false;
+
   @override
   void initState() {
     super.initState();
@@ -86,8 +100,18 @@ class _ConverterScreenState extends State<ConverterScreen> {
     _settle?.cancel();
     unawaited(_changes?.cancel());
     // The last state is kept even if the screen closes mid-typing; the store
-    // is the app's, not this screen's, and outlives it.
+    // is the app's, not this screen's, and outlives it. So is a conversion
+    // made just before Back, which was waiting out its pause.
     unawaited(_saveDraft());
+    if (_pending case final entry?) {
+      unawaited(
+        converterRemember(
+          widget.store,
+          entry,
+          replacing: _keptSubject == _subjectOf(entry) ? _keptId : null,
+        ).then((_) {}, onError: (Object _) {}),
+      );
+    }
     _dateField.dispose();
     _valueField.dispose();
     super.dispose();
@@ -134,34 +158,65 @@ class _ConverterScreenState extends State<ConverterScreen> {
     }
   }
 
-  /// What the screen keeps, both as a draft and as a recent conversion, once
-  /// the person has stopped changing things for a moment — so a list does not
-  /// fill with one row per keystroke.
-  void _schedule() {
+  /// Keeps the draft once the person has stopped changing things for a
+  /// moment, and — when [keep] — the conversion as it is now, as a recent one.
+  ///
+  /// Only what the person actually converted is kept (2.7.1): a date typed or
+  /// picked, a number typed, a size chosen. Switching tabs, calendars,
+  /// categories or charts is looking around, not converting, and used to
+  /// fill Recent with the defaults each of them opens on.
+  void _schedule({bool keep = false}) {
+    if (keep) _pending = _entryNow();
     _settle?.cancel();
     _settle = Timer(
-      const Duration(milliseconds: 900),
+      const Duration(milliseconds: 1500),
       () => unawaited(_commit()),
     );
   }
 
-  Future<void> _commit() async {
+  /// The conversion on screen as an entry, or null when there is none.
+  ConverterEntry? _entryNow() {
+    final outcome = _outcome(context);
+    if (outcome == null) return null;
+    return ConverterEntry(
+      id: '',
+      tab: _tab,
+      label: outcome.label,
+      payload: outcome.payload,
+      at: DateTime.now(),
+    );
+  }
+
+  /// What a conversion is about, for telling a correction from a new one:
+  /// any date; the same category of units; the same size chart.
+  static String _subjectOf(ConverterEntry entry) => switch (entry.tab) {
+    ConverterTab.dates => 'dates',
+    ConverterTab.units => 'units:${entry.payload['cat']}',
+    ConverterTab.sizes => 'sizes:${entry.payload['chart']}',
+  };
+
+  Future<void> _commit({ConverterEntry? now}) async {
     if (!mounted) return;
     await _saveDraft();
     if (!mounted) return;
-    final outcome = _outcome(context);
-    if (outcome == null) return;
+    final entry = now ?? _pending;
+    _pending = null;
+    if (entry == null) return;
+    final subject = _subjectOf(entry);
+    final at = _keptAt;
+    final correcting =
+        _keptId != null &&
+        _keptSubject == subject &&
+        at != null &&
+        DateTime.now().difference(at) < const Duration(seconds: 45);
     try {
-      await converterRemember(
+      _keptId = await converterRemember(
         widget.store,
-        ConverterEntry(
-          id: '',
-          tab: _tab,
-          label: outcome.label,
-          payload: outcome.payload,
-          at: DateTime.now(),
-        ),
+        entry,
+        replacing: correcting ? _keptId : null,
       );
+      _keptSubject = subject;
+      _keptAt = DateTime.now();
     } catch (_) {
       // Out of space or busy: the screen is still the place to convert.
     }
@@ -194,7 +249,11 @@ class _ConverterScreenState extends State<ConverterScreen> {
       _category = category;
       _fromId = _unitIn(category, body['from'], fallback: pair.from);
       _toId = _unitIn(category, body['to'], fallback: pair.to);
-      if (value is String) _valueField.text = value;
+      if (value is String) {
+        _valueField.text = value;
+        // A number that was typed before is still a typed number.
+        _unitsTyped = value.trim().isNotEmpty && value.trim() != '1';
+      }
       if (chart != null) {
         _chartId = chart.id;
         final system = _systemIn(chart, body['sys']);
@@ -255,7 +314,7 @@ class _ConverterScreenState extends State<ConverterScreen> {
 
   void _dateChanged(String text) {
     setState(() => _date = ConverterDate.parse(text, _dateCalendar));
-    _schedule();
+    _schedule(keep: _date != null);
   }
 
   void _useToday() {
@@ -281,7 +340,7 @@ class _ConverterScreenState extends State<ConverterScreen> {
       _date = converted;
       _dateField.text = converterDateNumeric(context, converted);
     });
-    _schedule();
+    _schedule(keep: true);
   }
 
   void _setCategory(UnitCategory category) {
@@ -291,18 +350,19 @@ class _ConverterScreenState extends State<ConverterScreen> {
       _category = category;
       _fromId = pair.from;
       _toId = pair.to;
+      _unitsTyped = false;
     });
     _schedule();
   }
 
   void _setFrom(String id) {
     setState(() => _fromId = id);
-    _schedule();
+    _schedule(keep: _unitsTyped);
   }
 
   void _setTo(String id) {
     setState(() => _toId = id);
-    _schedule();
+    _schedule(keep: _unitsTyped);
   }
 
   void _swap() {
@@ -311,12 +371,12 @@ class _ConverterScreenState extends State<ConverterScreen> {
       _fromId = _toId;
       _toId = from;
     });
-    _schedule();
+    _schedule(keep: _unitsTyped);
   }
 
-  void _valueChanged(String _) {
-    setState(() {});
-    _schedule();
+  void _valueChanged(String text) {
+    setState(() => _unitsTyped = text.trim().isNotEmpty);
+    _schedule(keep: _unitsTyped);
   }
 
   void _setChart(String id) {
@@ -340,14 +400,16 @@ class _ConverterScreenState extends State<ConverterScreen> {
 
   void _setRow(int index) {
     setState(() => _sizeRow = index);
-    _schedule();
+    _schedule(keep: true);
   }
 
   Future<void> _copy(String text) async {
     await nexModuleCopyText(text);
     if (!mounted) return;
     nexShowBanner(context, message: converterText(context, 'copied'));
-    unawaited(_commit());
+    // Copying is converting, whatever was or was not typed.
+    _settle?.cancel();
+    unawaited(_commit(now: _entryNow()));
   }
 
   Future<void> _star(ConverterOutcome outcome, bool star) async {
@@ -375,6 +437,8 @@ class _ConverterScreenState extends State<ConverterScreen> {
   Future<void> _remove(ConverterEntry entry) async {
     // A conversion still waiting to be kept must not put it straight back.
     _settle?.cancel();
+    _pending = null;
+    if (entry.id == _keptId) _keptId = null;
     try {
       await converterForget(widget.store, entry);
     } catch (_) {
@@ -430,6 +494,7 @@ class _ConverterScreenState extends State<ConverterScreen> {
           _toId = _unitIn(category, to, fallback: pair.to);
           if (payload['value'] is String) {
             _valueField.text = payload['value']! as String;
+            _unitsTyped = true;
           }
         });
         break;

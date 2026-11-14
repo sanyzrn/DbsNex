@@ -4,6 +4,14 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.7.1
+
+- **Pinch works on shelves.** Arranged by kind or tag, a pinch now folds every shelf and a spread opens them all, as it does with days. The list also holds still while two fingers are on it, so a pinch no longer scrolls the page away under your fingers.
+- **Tidier shelf headings.** The fold arrow sits in the same place on every heading, and in Persian it points the way you read. Opening **See all**, coming back, choosing a filter or another arrangement now fades the list in instead of cutting to it.
+- **Older dates in the date picker.** Choosing a year and a month in the Persian calendar now moves the selected day with them, so a date like 27 Bahman 1365 can be set without hunting for the day first.
+- **Converter reads dates the way you write them.** Besides 1365/11/27, the date field accepts the day first (27/11/1365) and month names (۲۷ بهمن ۱۳۶۵, 16 Feb 1987), and a number written as ۲/۵ reads as two and a half.
+- **Recent keeps only real conversions.** Switching tabs, calendars, categories or charts no longer fills **Recent** with default values; a date or number you type is kept once, even while you are still correcting it.
+
 ## v2.7.0
 
 - **Group the home screen by kind or by tag.** Besides time, the home screen can now sort notes onto shelves by what they are — writing, checklists, voice, photos, links, files — or by tag, so a note is found by what you remember about it. Each shelf shows its newest six and how many it holds, **See all** opens the rest, and shelves can be moved up or down. Choose it in the layout menu or under **Settings → Appearance**.

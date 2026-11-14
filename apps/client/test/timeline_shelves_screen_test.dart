@@ -31,10 +31,11 @@ void main() {
 
   tearDown(() => harness.dispose());
 
-  Future<void> open(WidgetTester tester) async {
+  Future<void> open(WidgetTester tester, {bool tall = true}) async {
     tester.view.devicePixelRatio = 2.75;
-    // Tall, so every shelf is laid out at once.
-    tester.view.physicalSize = const Size(1080, 7000);
+    // Tall, so every shelf is laid out at once; a phone's height where the
+    // list has to scroll.
+    tester.view.physicalSize = Size(1080, tall ? 7000 : 2340);
     addTearDown(tester.view.reset);
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
@@ -165,5 +166,121 @@ void main() {
     expect(heading('Today'), findsOneWidget);
     expect(heading('Writing'), findsNothing);
     expect(find.byType(NoteCard), findsNWidgets(10));
+  });
+
+  group('the details, after the owner tried it on a phone (2.7.1)', () {
+    Future<void> pinch(WidgetTester tester, {required bool together}) async {
+      final point = tester.getCenter(find.byType(CustomScrollView).first);
+      final near = const Offset(35, 0), far = const Offset(95, 0);
+      final a = await tester.startGesture(
+        point - (together ? far : near),
+        pointer: together ? 11 : 13,
+      );
+      final b = await tester.startGesture(
+        point + (together ? far : near),
+        pointer: together ? 12 : 14,
+      );
+      await a.moveTo(point - (together ? near : far));
+      await b.moveTo(point + (together ? near : far));
+      await a.up();
+      await b.up();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a pinch folds the shelves and a spread opens them', (
+      tester,
+    ) async {
+      await setUpLibrary();
+      await open(tester);
+      await pinch(tester, together: true);
+      expect(
+        harness.preferences.collapsedTimelineGroups,
+        containsAll(['type:text', 'type:link']),
+      );
+      expect(find.byType(NoteCard), findsNothing);
+      await pinch(tester, together: false);
+      expect(harness.preferences.collapsedTimelineGroups, isEmpty);
+      expect(find.byType(NoteCard), findsNWidgets(8));
+    });
+
+    testWidgets('the list holds still under a pinch', (tester) async {
+      await setUpLibrary();
+      await open(tester, tall: false);
+      final scroll = tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position;
+      final before = scroll.pixels;
+      final point = tester.getCenter(find.byType(CustomScrollView).first);
+      final a = await tester.startGesture(
+        point - const Offset(0, 40),
+        pointer: 21,
+      );
+      final b = await tester.startGesture(
+        point + const Offset(0, 40),
+        pointer: 22,
+      );
+      // Both fingers travel up the screen as they come together: a drag
+      // the list used to follow.
+      for (var i = 1; i <= 6; i++) {
+        await a.moveBy(const Offset(0, -20));
+        await b.moveBy(const Offset(0, -40));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await a.up();
+      await b.up();
+      await tester.pumpAndSettle();
+      expect(scroll.pixels, before);
+    });
+
+    testWidgets('every chevron sits at the same place along its heading', (
+      tester,
+    ) async {
+      await setUpLibrary(by: NexTimelineArrangement.tag);
+      final note = (await harness.services.captureText('a long tag'))!;
+      await harness.services.addTag(
+        noteId: note.id,
+        name: 'An unusually long tag name',
+      );
+      await harness.services.refreshTimeline();
+      await open(tester);
+      final chevrons = find.byIcon(Icons.expand_more);
+      expect(chevrons, findsAtLeastNWidgets(2));
+      final xs = {
+        for (final e in chevrons.evaluate())
+          tester.getCenter(find.byWidget(e.widget)).dx.round(),
+      };
+      expect(xs, hasLength(1));
+    });
+
+    testWidgets('folded, the chevron points along the line of reading', (
+      tester,
+    ) async {
+      await setUpLibrary(preferences: {'appearance.locale': 'fa'});
+      await open(tester);
+      await tester.tap(heading('لینک‌ها'));
+      await tester.pumpAndSettle();
+      final turns = tester
+          .widgetList<AnimatedRotation>(find.byType(AnimatedRotation))
+          .map((r) => r.turns)
+          .toSet();
+      expect(turns, containsAll([0.0, 0.25]));
+      expect(turns, isNot(contains(-0.25)));
+    });
+
+    testWidgets('See all fades the shelf in instead of cutting to it', (
+      tester,
+    ) async {
+      await setUpLibrary();
+      await open(tester);
+      await tester.tap(find.byKey(const ValueKey('shelf-more-type:text')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+      final fades = tester
+          .widgetList<SliverFadeTransition>(find.byType(SliverFadeTransition))
+          .map((f) => f.opacity.value);
+      expect(fades.any((v) => v > 0 && v < 1), isTrue);
+      await tester.pumpAndSettle();
+      expect(heading('Links'), findsNothing);
+    });
   });
 }

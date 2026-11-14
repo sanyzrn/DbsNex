@@ -23,6 +23,7 @@ extension _TimelineAiHeader on TimelineScreenState {
   void _onBriefPreferencesChanged() {
     if (!mounted || _briefPreferencesQueued) return;
     _briefPreferencesQueued = true;
+    _fadeOnViewChange();
     // The timeline owns its preference-driven content (including the local
     // greeting and home layout); it no longer relies on rebuilding MaterialApp.
     _rebuild(() {});

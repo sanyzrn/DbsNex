@@ -54,7 +54,7 @@ void main() {
   }
 
   Future<void> waitForCommit(WidgetTester tester) async {
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 2));
     await settle(tester);
     await settle(tester);
   }
@@ -153,6 +153,77 @@ void main() {
       expect(field.controller!.text, '70');
     },
   );
+
+  group('Recent keeps what was converted, not where one looked (2.7.1)', () {
+    testWidgets('changing tabs, calendars and categories keeps nothing', (
+      tester,
+    ) async {
+      await pump(tester);
+      await tester.tap(find.text('Gregorian'));
+      await tester.pumpAndSettle();
+      await openUnits(tester);
+      await waitForCommit(tester);
+      await tester.tap(find.text('Sizes'));
+      await tester.pumpAndSettle();
+      await waitForCommit(tester);
+      await tester.tap(find.text('Dates'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('converter-today')));
+      await tester.pumpAndSettle();
+      await waitForCommit(tester);
+      expect(await store.list('recent'), isEmpty);
+    });
+
+    testWidgets('a date being typed is one row, kept as it ended', (
+      tester,
+    ) async {
+      await pump(tester);
+      final field = find.byKey(const ValueKey('converter-date'));
+      await tester.enterText(field, '1365/11/2');
+      await tester.pumpAndSettle();
+      await waitForCommit(tester);
+      await tester.enterText(field, '1365/11/27');
+      await tester.pumpAndSettle();
+      await waitForCommit(tester);
+      final kept = await store.list('recent');
+      expect(kept, hasLength(1));
+      expect(kept.single.body['label'], contains('27 Bahman 1365'));
+    });
+
+    testWidgets('a tab changed before the pause still keeps the date', (
+      tester,
+    ) async {
+      await pump(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('converter-date')),
+        '1365/11/27',
+      );
+      await tester.pumpAndSettle();
+      await openUnits(tester);
+      await waitForCommit(tester);
+      final kept = await store.list('recent');
+      expect(kept, hasLength(1));
+      expect(kept.single.body['tab'], 'dates');
+    });
+
+    testWidgets('units chosen before a number is typed keep nothing', (
+      tester,
+    ) async {
+      await pump(tester);
+      await openUnits(tester);
+      await tester.tap(find.byKey(const ValueKey('converter-swap')));
+      await tester.pumpAndSettle();
+      await waitForCommit(tester);
+      expect(await store.list('recent'), isEmpty);
+      await tester.enterText(
+        find.byKey(const ValueKey('converter-value')),
+        '۲/۵',
+      );
+      await tester.pumpAndSettle();
+      await waitForCommit(tester);
+      expect(await store.list('recent'), hasLength(1));
+    });
+  });
 
   testWidgets('a recent can be removed, and Undo brings it back', (
     tester,

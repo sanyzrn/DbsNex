@@ -37,6 +37,9 @@ double? converterParseNumber(String raw) {
   final text = converterLatinDigits(raw)
       .replaceAll('\u2212', '-')
       .replaceAll('\u066B', '.')
+      // «۲/۵» is how two and a half is often written in Iran, and the slash
+      // is where some Persian keyboards put the decimal key (2.7.1).
+      .replaceAll('/', '.')
       .replaceAll(RegExp(r'[\u066C\u060C,_\s\u00A0]'), '')
       .trim();
   if (text.isEmpty) return null;
