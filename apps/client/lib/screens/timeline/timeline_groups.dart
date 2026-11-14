@@ -102,7 +102,15 @@ class _FoldingRowState extends State<_FoldingRow>
       // opening and every group below it flickering.
       value: widget.animateIn ? 0 : 1,
     );
-    if (widget.open) _controller.forward();
+    if (widget.open) {
+      _controller.forward();
+    } else {
+      // Built already closing: the grid view builds its folding rows only
+      // when a day starts to fold, so a row that is born closed has to fold
+      // from where it was — full height — rather than sit there until the
+      // fold is committed and it vanishes in one frame (2.6.29).
+      _controller.reverse();
+    }
   }
 
   @override

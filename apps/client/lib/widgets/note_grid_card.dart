@@ -130,8 +130,10 @@ class NexNoteGridCard extends StatelessWidget {
     // of tiles reads as colour without shouting it.
     Color wash(double alpha) =>
         Color.alphaBlend(tint.withValues(alpha: alpha), ground);
-    final from = wash(picked ? 0.26 : (dark ? 0.15 : 0.13));
-    final to = wash(picked ? 0.18 : (dark ? 0.05 : 0.035));
+    // Kept low on purpose: a screen of tiles should read as tinted paper,
+    // the colour a hint of the kind rather than a fill (2.6.29).
+    final from = wash(picked ? 0.24 : (dark ? 0.09 : 0.07));
+    final to = wash(picked ? 0.16 : (dark ? 0.03 : 0.015));
     final ink = nexReadableOn(tint, from);
     // The secondary tones, walked against this tile's own wash: the page's
     // muted grey fell under 4.5 on a coloured tile.
@@ -170,7 +172,7 @@ class NexNoteGridCard extends StatelessWidget {
                   : highContrast
                   ? BorderSide(color: scheme.outline, width: 1.5)
                   : BorderSide(
-                      color: tint.withValues(alpha: dark ? 0.22 : 0.14),
+                      color: tint.withValues(alpha: dark ? 0.16 : 0.10),
                     ),
             ),
           ),

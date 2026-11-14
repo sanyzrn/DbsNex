@@ -77,7 +77,17 @@ void main() {
           (w.key! as ValueKey<String>).value.startsWith('grid-fold-'),
     );
     expect(folding, findsWidgets);
-    expect(find.byType(SizeTransition), findsWidgets);
+    // Part-way, not still at full height: rows built for the fold used to
+    // start closed at 1 and never move, so collapsing was a cut (2.6.29).
+    double midway() => tester
+        .widgetList<SizeTransition>(
+          find.descendant(of: folding, matching: find.byType(SizeTransition)),
+        )
+        .first
+        .sizeFactor
+        .value;
+    expect(midway(), lessThan(1));
+    expect(midway(), greaterThan(0));
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(find.byType(NexNoteGridCard), findsNothing);
@@ -86,6 +96,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 60));
     expect(folding, findsWidgets);
+    expect(midway(), lessThan(1));
+    expect(midway(), greaterThan(0));
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(folding, findsNothing, reason: 'back to the lazy grid');

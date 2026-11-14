@@ -67,7 +67,7 @@ void main() {
         for (final type in NoteType.values) {
           final tint = nexNoteTypeTint(type.wireName, scheme);
           final dark = scheme.brightness == Brightness.dark;
-          for (final alpha in [dark ? 0.15 : 0.13, 0.26]) {
+          for (final alpha in [dark ? 0.09 : 0.07, 0.24]) {
             final wash = Color.alphaBlend(
               tint.withValues(alpha: alpha),
               scheme.surfaceContainerLowest,
