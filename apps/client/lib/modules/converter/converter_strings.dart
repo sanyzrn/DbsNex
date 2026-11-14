@@ -4,7 +4,8 @@ import 'package:nex_client/modules/module_api.dart';
 /// checks that the two maps hold the same keys and that none is empty.
 ///
 /// Persian is written as a Persian reader would say it, not translated word
-/// for word: «یکا» for a unit of measure, «ذرع» for the cloth measure, and
+/// for word: «واحد» for a unit of measure (what people say; «یکا» is the
+/// Academy's word), «ذرع» for the cloth measure, and
 /// numbers arriving as `{placeholders}` so `NexModuleStrings` can set them in
 /// Persian digits.
 const converterStrings = NexModuleStrings(
@@ -221,21 +222,21 @@ const converterStrings = NexModuleStrings(
     'close': 'Close',
   },
   fa: {
-    'title': 'مبدل',
-    'tagline': 'تاریخ، یکا و سایز — بدون اینترنت',
+    'title': 'تبدیل‌گر',
+    'tagline': 'تاریخ، واحد و سایز — بدون اینترنت',
     'about':
         'تاریخ را بین تقویم شمسی، میلادی و قمری جابه‌جا کنید، اندازه را '
-        'بین یکاهای متری و انگلیسی، یا سایز را بین سیستم‌هایی که فروشگاه‌ها '
+        'بین واحدهای متری و انگلیسی، یا سایز را بین سیستم‌هایی که فروشگاه‌ها '
         'به کار می‌برند — با اندازه‌ای که پشت هر عدد است. همه‌چیز روی خود '
         'گوشی حساب می‌شود. ارز تبدیل نمی‌شود: نرخ‌ها هر روز عوض می‌شوند و '
-        'این مبدل هیچ‌وقت به اینترنت وصل نمی‌شود.',
+        'این ابزار هیچ‌وقت به اینترنت وصل نمی‌شود.',
     'point1': 'سه تقویم با هم',
-    'point2': 'یکاهای متری، انگلیسی و ایرانی',
+    'point2': 'واحدهای متری، انگلیسی و ایرانی',
     'point3': 'سایز لباس، کفش و انگشتر',
     'point4': 'چیزی به جایی فرستاده نمی‌شود',
 
     'tabDates': 'تاریخ',
-    'tabUnits': 'یکاها',
+    'tabUnits': 'واحدها',
     'tabSizes': 'سایزها',
     'more': 'بیشتر',
 
@@ -250,7 +251,7 @@ const converterStrings = NexModuleStrings(
     'dateFieldLabel': 'تاریخ (سال/ماه/روز)',
     'dateFieldHint': '۱۴۰۵/۰۸/۲۲',
     'dateInvalid': 'تاریخ را به شکل سال/ماه/روز بنویسید.',
-    'dateOutOfRange': 'این تاریخ بیرون از سال‌هایی است که این مبدل پوشش می‌دهد (۱۹۰۰ تا ۲۱۰۰).',
+    'dateOutOfRange': 'این تاریخ بیرون از سال‌هایی است که این ابزار پوشش می‌دهد (۱۹۰۰ تا ۲۱۰۰).',
     'today': 'امروز',
     'pickDay': 'انتخاب از تقویم',
     'weekday1': 'دوشنبه',

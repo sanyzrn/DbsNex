@@ -82,6 +82,54 @@ String converterUnitLabel(BuildContext context, ConverterUnit unit) {
       : name;
 }
 
+/// International unit symbols, for English after a number: "3.2808 ft",
+/// not "3.2808 Foot". Units with no common symbol (the traditional Iranian
+/// ones, the knot's plural, an acre) keep their name. Persian keeps its
+/// names after a number, which is how they are written: «۳٫۲۸۰۸ فوت».
+const _unitSymbols = {
+  'mm': 'mm',
+  'cm': 'cm',
+  'm': 'm',
+  'km': 'km',
+  'inch': 'in',
+  'foot': 'ft',
+  'yard': 'yd',
+  'mile': 'mi',
+  'nauticalMile': 'nmi',
+  'g': 'g',
+  'kg': 'kg',
+  'tonne': 't',
+  'ounce': 'oz',
+  'pound': 'lb',
+  'ml': 'ml',
+  'l': 'l',
+  'usGallon': 'US gal',
+  'ukGallon': 'UK gal',
+  'usCup': 'US cup',
+  'usFluidOunce': 'US fl oz',
+  'celsius': '°C',
+  'fahrenheit': '°F',
+  'kelvin': 'K',
+  'm2': 'm²',
+  'hectare': 'ha',
+  'acre': 'ac',
+  'ft2': 'ft²',
+  'ms': 'm/s',
+  'kmh': 'km/h',
+  'mph': 'mph',
+  'knot': 'kn',
+};
+
+/// A unit as written after a number: its symbol in English where it has
+/// one, its name otherwise and always in Persian.
+String converterUnitAfterNumber(BuildContext context, ConverterUnit unit) {
+  final symbol = converterIsPersian(context) ? null : _unitSymbols[unit.id];
+  if (symbol == null) return converterUnitLabel(context, unit);
+  return unit.approximate
+      ? '$symbol${converterText(context, 'approxSuffix')}'
+      : symbol;
+}
+
 /// A size as printed on a label, in the reader's digits.
 String converterSizeText(BuildContext context, String label) =>
     converterShowSize(label, persian: converterIsPersian(context));

@@ -107,15 +107,15 @@ void main() {
   ) async {
     await pump(tester);
     await openUnits(tester);
-    expect(find.text('3.2808 Foot'), findsOneWidget);
+    expect(find.text('3.2808 ft'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('converter-category-mass')));
     await tester.pumpAndSettle();
-    expect(find.text('2.2046 Pound'), findsOneWidget);
+    expect(find.text('2.2046 lb'), findsOneWidget);
 
     await tester.enterText(find.byKey(const ValueKey('converter-value')), '70');
     await tester.pumpAndSettle();
-    expect(find.text('154.3236 Pound'), findsOneWidget);
+    expect(find.text('154.3236 lb'), findsOneWidget);
   });
 
   testWidgets('swapping the units swaps the answer', (tester) async {
@@ -123,7 +123,7 @@ void main() {
     await openUnits(tester);
     await tester.tap(find.byKey(const ValueKey('converter-swap')));
     await tester.pumpAndSettle();
-    expect(find.text('0.3048 Metre'), findsOneWidget);
+    expect(find.text('0.3048 m'), findsOneWidget);
   });
 
   testWidgets(
@@ -138,14 +138,14 @@ void main() {
       await tester.pumpAndSettle();
       await waitForCommit(tester);
       expect(await store.list('recent'), hasLength(1));
-      expect(find.text('70 Metre = 229.6588 Foot'), findsOneWidget);
+      expect(find.text('70 m = 229.6588 ft'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const ValueKey('converter-value')),
         '7',
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('70 Metre = 229.6588 Foot'));
+      await tester.tap(find.text('70 m = 229.6588 ft'));
       await tester.pumpAndSettle();
       final field = tester.widget<TextField>(
         find.byKey(const ValueKey('converter-value')),
@@ -208,6 +208,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Days between two dates'), findsOneWidget);
     expect(find.text('The same day.'), findsOneWidget);
+    // Both ends set, so the count does not depend on the day the test runs
+    // (it assumed "today" was 22 Aban 1405 and failed the next day).
+    await tester.enterText(
+      find.byKey(const ValueKey('converter-days-from')),
+      '1405/08/22',
+    );
     await tester.enterText(
       find.byKey(const ValueKey('converter-days-to')),
       '1405/08/25',
@@ -254,7 +260,7 @@ void main() {
     tester,
   ) async {
     await pump(tester, locale: const Locale('fa'));
-    expect(find.text('مبدل'), findsOneWidget);
+    expect(find.text('تبدیل‌گر'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('converter-date')),
       '۱۴۰۵/۰۸/۲۲',

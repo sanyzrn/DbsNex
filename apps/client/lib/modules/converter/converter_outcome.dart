@@ -149,8 +149,10 @@ ConverterOutcome? converterUnitsOutcome(
   );
   final fromLabel = converterUnitLabel(context, from);
   final toLabel = converterUnitLabel(context, to);
-  final inputText = '${converterNumberText(context, value)} $fromLabel';
-  final answer = '${converterNumberText(context, result)} $toLabel';
+  final fromAfter = converterUnitAfterNumber(context, from);
+  final toAfter = converterUnitAfterNumber(context, to);
+  final inputText = '${converterNumberText(context, value)} $fromAfter';
+  final answer = '${converterNumberText(context, result)} $toAfter';
   final note = converterUnderAbsoluteZero(fromId, value)
       ? converterText(context, 'underAbsoluteZero')
       : from.noteKey != null
@@ -164,9 +166,9 @@ ConverterOutcome? converterUnitsOutcome(
     eyebrow: '$fromLabel → $toLabel',
     headline: answer,
     caption: converterText(context, 'unitBaseLine', {
-      'from': fromLabel,
+      'from': fromAfter,
       'factor': converterNumberText(context, one ?? 0),
-      'to': toLabel,
+      'to': toAfter,
     }),
     chips: const [],
     copyText: '$inputText = $answer',
