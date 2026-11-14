@@ -136,6 +136,14 @@ extension _TimelineLayout on TimelineScreenState {
               onTap: _guard.claim,
               child: NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
+                  // Only the timeline's own scroll, not a nested one. The tag
+                  // row under the pinned header scrolls horizontally, and its
+                  // notifications bubble through the viewport to here with a
+                  // depth above zero: a horizontal drag there used to collapse
+                  // the recap (its "pixels" read as the timeline's) and to
+                  // ask page after page of the timeline past the window,
+                  // because a tag row always has almost no extent left.
+                  if (notification.depth != 0) return false;
                   // Scrolling dismisses an open card, the way every list with
                   // swipe actions behaves.
                   if (notification is ScrollStartNotification) {
@@ -314,55 +322,64 @@ extension _TimelineLayout on TimelineScreenState {
                                       NexSpacing.sm,
                                   child: NexTapGuarded(
                                     controller: _guard,
-                                    child: TagFilterRow(
-                                      // Tighter above than the default: the
-                                      // search field's own padding already
-                                      // separates the two.
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: NexSpacing.md,
-                                        vertical: NexSpacing.sm,
-                                      ),
-                                      tags: _model.filterTags,
-                                      tagCounts: _model.filterTagCounts,
-                                      hasOtherFilters:
-                                          _model.selectedType != null ||
-                                          _model.onlyReminders,
-                                      activeFilterLabel: [
-                                        if (_model.selectedType != null)
-                                          l10n.noteType(
-                                            _model.selectedType!.wireName,
-                                          ),
-                                        if (_model.onlyReminders)
-                                          l10n.filterHasReminder,
-                                      ].join(' · '),
-                                      onOpenActiveFilter: () =>
-                                          unawaited(_pickFilters()),
-                                      onClearAll: () =>
-                                          unawaited(_clearFilters()),
-                                      selectedTagIds: _model.selectedTagIds,
-                                      allLabel: l10n.all,
-                                      untaggedLabel: _model.hasUntagged
-                                          ? l10n.filterUntagged
-                                          : null,
-                                      untaggedSelected: _model.onlyUntagged,
-                                      onUntagged: () {
-                                        _tick();
-                                        unawaited(
-                                          _model.selectUntagged(
-                                            !_model.onlyUntagged,
-                                          ),
-                                        );
-                                      },
-                                      tagLabel: (tag) => nexTagLabel(tag, l10n),
-                                      leading: filterBesideSearch
-                                          ? null
-                                          : _FilterButton(
-                                              active: otherFilters,
-                                              onPressed: () =>
-                                                  unawaited(_pickFilters()),
+                                    // The row listens to the model itself, so
+                                    // a tags-only change — the filter row
+                                    // refreshing after a delivery — repaints
+                                    // the pills without rebuilding every card
+                                    // on the screen with them.
+                                    child: ListenableBuilder(
+                                      listenable: _model,
+                                      builder: (context, _) => TagFilterRow(
+                                        // Tighter above than the default: the
+                                        // search field's own padding already
+                                        // separates the two.
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: NexSpacing.md,
+                                          vertical: NexSpacing.sm,
+                                        ),
+                                        tags: _model.filterTags,
+                                        tagCounts: _model.filterTagCounts,
+                                        hasOtherFilters:
+                                            _model.selectedType != null ||
+                                            _model.onlyReminders,
+                                        activeFilterLabel: [
+                                          if (_model.selectedType != null)
+                                            l10n.noteType(
+                                              _model.selectedType!.wireName,
                                             ),
-                                      onSelected: (value) =>
-                                          unawaited(_selectTags(value)),
+                                          if (_model.onlyReminders)
+                                            l10n.filterHasReminder,
+                                        ].join(' · '),
+                                        onOpenActiveFilter: () =>
+                                            unawaited(_pickFilters()),
+                                        onClearAll: () =>
+                                            unawaited(_clearFilters()),
+                                        selectedTagIds: _model.selectedTagIds,
+                                        allLabel: l10n.all,
+                                        untaggedLabel: _model.hasUntagged
+                                            ? l10n.filterUntagged
+                                            : null,
+                                        untaggedSelected: _model.onlyUntagged,
+                                        onUntagged: () {
+                                          _tick();
+                                          unawaited(
+                                            _model.selectUntagged(
+                                              !_model.onlyUntagged,
+                                            ),
+                                          );
+                                        },
+                                        tagLabel: (tag) =>
+                                            nexTagLabel(tag, l10n),
+                                        leading: filterBesideSearch
+                                            ? null
+                                            : _FilterButton(
+                                                active: otherFilters,
+                                                onPressed: () =>
+                                                    unawaited(_pickFilters()),
+                                              ),
+                                        onSelected: (value) =>
+                                            unawaited(_selectTags(value)),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -384,7 +401,13 @@ extension _TimelineLayout on TimelineScreenState {
                               SliverToBoxAdapter(
                                 child: NexRefreshCompletion(
                                   pulse: _refreshPulse,
-                                  child: _briefCard(l10n),
+                                  // The brief listens to the model for itself:
+                                  // a commitments-only change repaints the
+                                  // card without rebuilding every note with it.
+                                  child: ListenableBuilder(
+                                    listenable: _model,
+                                    builder: (context, _) => _briefCard(l10n),
+                                  ),
                                 ),
                               ),
                             // Tools pinned from the Tools page, at the top

@@ -109,6 +109,7 @@ part 'timeline/timeline_sticky_day.dart';
 part 'timeline/timeline_body.dart';
 part 'timeline/timeline_selection.dart';
 part 'timeline/timeline_commands.dart';
+part 'timeline/timeline_rows.dart';
 
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({
@@ -160,6 +161,14 @@ class TimelineScreenState extends State<TimelineScreen>
 
   @visibleForTesting
   TimelineModel get model => _model;
+
+  /// The timeline's flattened rows, assembled only when the notes, the
+  /// folds or the day actually move — see `_TimelineRowsCache`.
+  final _rowsCache = _TimelineRowsCache();
+
+  /// How many times the rows have been assembled — a test handle only.
+  @visibleForTesting
+  int get debugRowBuilds => _rowsCache.builds;
 
   /// Keeps one card open at a time and lets a scroll close it.
   final NexSwipeController _swipe = NexSwipeController();
@@ -547,13 +556,6 @@ class TimelineScreenState extends State<TimelineScreen>
     if (mounted) setState(() {});
   }
 
-  /// Marks a note as the one just captured, the way the capture paths do.
-  ///
-  /// Exposed so a test can exercise the receipt without driving the camera or
-  /// the recorder; the production callers set [landedId] directly.
-  @visibleForTesting
-  void markLanded(String id) => setState(() => landedId = id);
-
   Future<void> _loadTimeline() async {
     // Both sides of this matter and neither replaces the other: the model's
     // failure state is what a read that never returns needs, and the tour
@@ -567,13 +569,14 @@ class TimelineScreenState extends State<TimelineScreen>
     );
   }
 
-  void _onModelChanged() {
-    if (!mounted) return;
-    setState(() {});
-    if (_model.all?.isEmpty ?? false) unawaited(_countSetAside());
-    // Commitments and notes can arrive independently of the timeline stream.
-    unawaited(_loadAiSummary());
-  }
+  void _onModelChanged() => _onModelChange();
+
+  /// Marks a note as the one just captured, the way the capture paths do.
+  ///
+  /// Exposed so a test can exercise the receipt without driving the camera or
+  /// the recorder; the production callers set [landedId] directly.
+  @visibleForTesting
+  void markLanded(String id) => setState(() => landedId = id);
 
   /// [setState], for the extensions in `timeline/` that carry this screen's
   /// behaviour by topic (W4.2): an extension is not a subclass, so it cannot
@@ -612,16 +615,19 @@ class TimelineScreenState extends State<TimelineScreen>
 
   /// Where the list was when it last buzzed.
   ///
-  /// A tick every [_scrollTickDistance] of travel, which is the trick the
-  /// Windscribe app uses and the reason its lists feel attached to the
-  /// finger. Distance rather than time: a slow drag should tick slowly and a
-  /// fling should tick fast, and only distance does both without any state
-  /// machine at all.
+  /// A tick every [_scrollTickDistance] of travel — the trick the Windscribe
+  /// app uses — rather than of time: a slow drag should tick slowly and a
+  /// fling fast, and only distance does both without a state machine.
   double _lastTickOffset = 0;
   static const _scrollTickDistance = 64.0;
   static const _trimBelow = 1500.0;
 
   bool _onScroll(ScrollNotification notification) {
+    // The timeline's own scroll only: the tag row's horizontal scroll bubbles
+    // through the viewport with a depth above zero, and its metrics are not
+    // the list's — a horizontal drag used to tick, trim and re-name the
+    // sticky day as though the notes had moved.
+    if (notification.depth != 0) return false;
     // A scroll that has come to rest near the top, however it got there.
     if (notification is ScrollEndNotification &&
         notification.metrics.pixels < _trimBelow &&
@@ -779,12 +785,7 @@ class TimelineScreenState extends State<TimelineScreen>
     child: NexTapGuard(controller: _guard, child: _screen(context)),
   );
 
-  /// Wraps the timeline in a pull-to-refresh that rewrites the recap, or
-  /// hands [child] straight back when there is no recap on screen.
-  ///
-  /// The `enabled` branch is not a nicety. A pull that does nothing is worse
-  /// than no pull — this screen has the scar to prove it — so the gesture is
-  /// only attached where it has something to do.
+  /// The pinch's fingers, while they are down. See `_pinchMove`.
   final _pinchPointers = <int, Offset>{};
 
   /// More than one finger has touched the list since it was last empty of

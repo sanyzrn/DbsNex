@@ -47,6 +47,12 @@ class _TimelineListState extends State<_TimelineList> {
       _indices = _indexRows();
       return;
     }
+    // The same rows, by identity, in the same order: nothing was inserted,
+    // nothing was removed, and the mounted bookkeeping and indices are still
+    // the truth. The cache upstream hands the same list back for every
+    // rebuild that changed no note, so the diff — the key map, the stable
+    // subsequence, the splices — is skipped for all of those.
+    if (identical(widget.rows, old.rows)) return;
     final animate =
         !identical(old.revision, widget.revision) &&
         !MediaQuery.disableAnimationsOf(context);

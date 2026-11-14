@@ -226,6 +226,11 @@ extension _TimelineBody on TimelineScreenState {
       _closingGroups.removeAll(closing);
       _openingGroups.removeAll(opening);
     });
+    // Same reason as [_toggleGroup]: the cards under the filter row moved
+    // without a scroll notification to carry the sticky day along.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateStickyDay();
+    });
   }
 
   Widget _wrapInRefresh({required bool enabled, required Widget child}) {
@@ -391,19 +396,22 @@ extension _TimelineBody on TimelineScreenState {
     // repository's ORDER BY says why): a heading that says "Yesterday" has to
     // be telling the truth about every row beneath it, and a hand-placed note
     // lands wherever it was dropped.
-    final groups = _groupNotes(_model.notes, l10n);
-    final rows = <_TimelineRow>[
-      for (final group in groups) ...[
-        _TimelineRow.header(group),
-        // A closing group keeps its rows for one animation. Without that the
-        // fold was a jump cut: the rows were simply gone on the next frame,
-        // which is the report this fixes. See [_toggleGroup].
-        if (!_model.collapsedGroups.contains(group.key) ||
-            _closingGroups.contains(group.key))
-          for (final (i, note) in group.notes.indexed)
-            _TimelineRow.note(note, group.key, i),
-      ],
-    ];
+    //
+    // The rows come from the cache: the same list instance until the notes,
+    // the folds or the day move, so an unrelated rebuild costs neither the
+    // walk nor the wrappers nor the list differ's pass — see
+    // `_TimelineRowsCache`.
+    final (groups, rows) = _rowsCache.assemble(
+      context,
+      notes: _model.notes,
+      collapsed: _model.collapsedGroups,
+      closing: _closingGroups,
+      l10n: l10n,
+    );
+    // One set of card strings per body build, not one per row: the list's
+    // builder used to make a fresh `NexCardStrings` — ten closures deep — for
+    // every card it laid out, on every rebuild.
+    final cardStrings = nexCardStrings(context);
 
     final desktop = NexDesktopScope.isDesktop(context);
     return [
@@ -428,7 +436,7 @@ extension _TimelineBody on TimelineScreenState {
             }
             return NoteCard(
               note: row.note!,
-              strings: nexCardStrings(context),
+              strings: cardStrings,
               expanded: widget.preferences.isNoteExpanded(row.note!.id),
             );
           },
@@ -506,7 +514,7 @@ extension _TimelineBody on TimelineScreenState {
                             _holdEntries(note, menuContext, width),
                         child: NoteCard(
                           note: note,
-                          strings: nexCardStrings(context),
+                          strings: cardStrings,
                           onTap: () => _tapNote(note),
                           onLeadingTap: () => _pickNote(note),
                           selected: _selecting
@@ -580,51 +588,10 @@ extension _TimelineBody on TimelineScreenState {
       if (!mounted) return;
       _rebuild(() => _openingGroups.remove(key));
     }
-  }
-
-  /// Splits an already-ordered list into date runs.
-  ///
-  /// Walks the list rather than sorting it: the order is the repository's —
-  /// pinned first, then newest — and re-deriving it here would be a second
-  /// answer to the same question that could disagree with the first. A group
-  /// simply ends where the bucket changes, which only works because the list
-  /// arrives ordered, and which is why the pin gets its own group instead of
-  /// interrupting whichever day it belongs to.
-  List<_NoteGroup> _groupNotes(List<Note> source, AppLocalizations l10n) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final groups = <_NoteGroup>[];
-
-    for (final note in source) {
-      final (key, label) = _bucketFor(note, today, l10n);
-      if (groups.isEmpty || groups.last.key != key) {
-        groups.add(_NoteGroup(key: key, label: label, notes: [note]));
-      } else {
-        groups.last.notes.add(note);
-      }
-    }
-    return groups;
-  }
-
-  (String, String) _bucketFor(
-    Note note,
-    DateTime today,
-    AppLocalizations l10n,
-  ) {
-    // Pinned before dated: a pinned note is held at the top on purpose, and
-    // filing it under "Today" would put a heading over one row that then
-    // repeats itself two rows later.
-    if (note.pinnedAt != null) return ('pinned', l10n.timelineGroupPinned);
-
-    // The same timestamp the list is ordered by. Grouping by createdAt while
-    // sorting by updatedAt would scatter a group across the whole list.
-    final at = note.updatedAt.toLocal();
-    final day = DateTime(at.year, at.month, at.day);
-    final days = today.difference(day).inDays;
-    if (days <= 0) return ('today', l10n.timelineGroupToday);
-    if (days == 1) return ('yesterday', l10n.timelineGroupYesterday);
-    if (days <= 7) return ('week', l10n.timelineGroupWeek);
-    if (days <= 31) return ('month', l10n.timelineGroupMonth);
-    return ('older', l10n.timelineGroupOlder);
+    // The fold moved the cards under the filter row without a scroll to
+    // say so: the sticky day is named again against the new layout.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateStickyDay();
+    });
   }
 }

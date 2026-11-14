@@ -34,6 +34,22 @@ Working convention:
 
 ## Unreleased
 
+- Timeline rebuild discipline (`apps/client/lib/screens/timeline/`): the day
+  groups and flattened rows are memoised against the notes identity, the fold
+  sets, the locale and the local day (`_TimelineRowsCache`), so a rebuild that
+  moves no note skips the O(n) grouping walk, the per-note wrappers and the
+  `SliverAnimatedList` differ entirely. The model now says what each
+  notification is about (`TimelineChange`): a tags or commitments change
+  repaints the filter row and the brief card through their own
+  `ListenableBuilder`s instead of every card. `loadFilterTags` is single-flight.
+  Nested scrolls (the tag row) are depth-gated out of the timeline's own
+  scroll listeners, which a horizontal drag used to reach with its own metrics
+  (collapsing the recap, pulling window pages). The sticky day is re-derived
+  post-frame after a delivery or a fold under a scrolled list. Measured on a
+  300-note screen: a tags-only refresh went from ~85ms to ~10ms; a note-free
+  rebuild on a 1,300-note window dropped ~4.5ms and the saving grows with the
+  window. New tests in `timeline_rows_test.dart` and `timeline_model_test.dart`.
+
 ## v2.6.25
 
 - Restore the 14 theme palettes using designed surface ramps; preserve the 2.6.24 glass renderer and its optics. Custom accents meet the 4.5:1 text floor on every ramp surface. Update portable colour pins, palette goldens and the appearance guide. See [nex-theme-atelier.md](nex-theme-atelier.md).
