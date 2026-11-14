@@ -387,9 +387,12 @@ class _CardBody extends StatelessWidget {
             ? BorderSide(color: theme.colorScheme.primary, width: 2)
             : MediaQuery.highContrastOf(context)
             ? BorderSide(color: theme.colorScheme.outline, width: 1.5)
+            // The grid tile's own edge (2.7.2): a hairline of the kind's
+            // colour, so the two layouts draw a note the same way.
             : BorderSide(
-                color: theme.colorScheme.outline.withValues(alpha: 0.6),
-                width: 0.75,
+                color: wash.tint.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.16 : 0.10,
+                ),
               ),
       ),
       clipBehavior: Clip.antiAlias,

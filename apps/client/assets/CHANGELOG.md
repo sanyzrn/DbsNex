@@ -4,6 +4,11 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.7.2
+
+- **List cards get the grid's edge.** A list card is now outlined in a fine line of its kind's colour, the way a grid tile is, so the two layouts draw a note alike.
+- **Steady grid tiles.** Selecting a tile no longer shifts its words or drops a line, and a tile shows only whole lines — the last one is no longer cut through the middle.
+
 ## v2.7.1
 
 - **Pinch works on shelves.** Arranged by kind or tag, a pinch now folds every shelf and a spread opens them all, as it does with days. The list also holds still while two fingers are on it, so a pinch no longer scrolls the page away under your fingers.

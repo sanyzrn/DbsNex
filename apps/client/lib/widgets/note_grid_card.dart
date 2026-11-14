@@ -131,6 +131,17 @@ class NexNoteGridCard extends StatelessWidget {
     final content = nexSplitNoteText(note, strings);
     final kind = AppLocalizations.of(context).noteType(note.type.wireName);
     final highContrast = MediaQuery.highContrastOf(context);
+    // The edge sits inside the tile, and a border inside insets what it
+    // holds by its width — so the picked edge (2 px) used to move every line
+    // of a tile, and drop one, the moment it was picked (2.7.2). The
+    // padding below makes up the difference: the words sit at the same
+    // place in every state, and only the edge changes.
+    final edge = picked
+        ? BorderSide(color: scheme.primary, width: 2)
+        : highContrast
+        ? BorderSide(color: scheme.outline, width: 1.5)
+        : BorderSide(color: tint.withValues(alpha: dark ? 0.16 : 0.10));
+    const widestEdge = 2.0;
     return Semantics(
       button: true,
       selected: selected,
@@ -156,13 +167,7 @@ class NexNoteGridCard extends StatelessWidget {
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(NexRadius.xl),
-              side: picked
-                  ? BorderSide(color: scheme.primary, width: 2)
-                  : highContrast
-                  ? BorderSide(color: scheme.outline, width: 1.5)
-                  : BorderSide(
-                      color: tint.withValues(alpha: dark ? 0.16 : 0.10),
-                    ),
+              side: edge,
             ),
           ),
           child: InkWell(
@@ -171,7 +176,9 @@ class NexNoteGridCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(NexRadius.xl),
             ),
             child: Padding(
-              padding: EdgeInsets.all(metrics.padding),
+              padding: EdgeInsets.all(
+                metrics.padding + widestEdge - edge.width,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -336,9 +343,56 @@ class _Body extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final scaler = MediaQuery.textScalerOf(context);
-        double lineOf(TextStyle? style) =>
-            scaler.scale(style?.fontSize ?? 14) * (style?.height ?? 1.3);
+        final width = constraints.maxWidth;
         // Whole lines only: a line cut through the middle reads as a glitch.
+        //
+        // Measured, not estimated (2.7.2). The count used to be the height
+        // over `fontSize × height`, and a Persian line — Vazirmatn, often
+        // with a Latin word in it — lays out taller than that, so the last
+        // "whole" line was drawn half under the tile's clip. The lines are
+        // laid out here exactly as the Text below will lay them out, and
+        // only those that fit completely are kept.
+        // With the Text widget's own inputs — the inherited style, the
+        // locale that picks the fallback font, the height behaviour — so
+        // the count is for the lines it will actually draw.
+        final inherited = DefaultTextStyle.of(context).style;
+        final locale = Localizations.maybeLocaleOf(context);
+        final heightBehavior = DefaultTextHeightBehavior.maybeOf(context);
+        List<double> linesOf(String text, TextStyle? style) {
+          final painter = TextPainter(
+            text: TextSpan(text: text, style: inherited.merge(style)),
+            textDirection: nexDirectionOf(text),
+            textScaler: scaler,
+            locale: locale,
+            textHeightBehavior: heightBehavior,
+            maxLines: 40,
+          )..layout(maxWidth: width);
+          final heights = [
+            for (final line in painter.computeLineMetrics()) line.height,
+          ];
+          painter.dispose();
+          return heights;
+        }
+
+        double lineOf(TextStyle? style) {
+          final heights = linesOf('Ag آگ', style);
+          return heights.isEmpty
+              ? scaler.scale(style?.fontSize ?? 14) * (style?.height ?? 1.3)
+              : heights.first;
+        }
+
+        // How many of [text]'s lines fit [height], and the height they take.
+        (int, double) fitting(String text, TextStyle? style, double height) {
+          var used = 0.0;
+          var count = 0;
+          for (final line in linesOf(text, style)) {
+            if (used + line > height + 0.5) break;
+            used += line;
+            count++;
+          }
+          return (count, used);
+        }
+
         int fit(double height, TextStyle? style) =>
             (height / lineOf(style)).floor().clamp(1, 40);
         Widget headingText(int lines) => Text(
@@ -442,15 +496,29 @@ class _Body extends StatelessWidget {
           _ => null,
         };
         final rest = body;
+        final restStyle = heading.isEmpty
+            ? bodyStyle?.copyWith(color: scheme.onSurface)
+            : bodyStyle;
         // The heading takes up to three lines; the words under it every
         // whole line that is left.
-        final headLines = heading.isEmpty
-            ? 0
-            : fit(constraints.maxHeight, titleStyle).clamp(1, 3);
+        var headLines = 0;
+        var headHeight = 0.0;
+        if (heading.isNotEmpty) {
+          final lines = linesOf(heading, titleStyle);
+          for (final line in lines.take(3)) {
+            if (headLines > 0 && headHeight + line > constraints.maxHeight) {
+              break;
+            }
+            headHeight += line;
+            headLines++;
+          }
+        }
         final used =
-            headLines * lineOf(titleStyle) +
-            (extra == null ? 0 : lineOf(bodyStyle) + 2);
-        final restLines = fit(constraints.maxHeight - used, bodyStyle);
+            headHeight +
+            (extra == null || extra.isEmpty ? 0 : lineOf(bodyStyle) + 2);
+        final restLines = rest.isEmpty
+            ? 0
+            : fitting(rest, restStyle, constraints.maxHeight - used).$1;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -486,9 +554,7 @@ class _Body extends StatelessWidget {
                   maxLines: restLines,
                   overflow: TextOverflow.ellipsis,
                   textDirection: nexDirectionOf(rest),
-                  style: heading.isEmpty
-                      ? bodyStyle?.copyWith(color: scheme.onSurface)
-                      : bodyStyle,
+                  style: restStyle,
                 ),
               ),
           ],
