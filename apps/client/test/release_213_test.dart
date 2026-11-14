@@ -10,6 +10,7 @@ import 'package:nex_client/modules/medicine/nex_text_field.dart';
 import 'package:nex_client/widgets/nex_text_field.dart' as editor;
 import 'package:nex_client/widgets/persian_date_picker.dart';
 import 'package:nex_client/platform/reminders.dart';
+
 import 'support/nex_harness.dart';
 
 class _NonlinearScaler extends TextScaler {
@@ -144,40 +145,37 @@ void main() {
       text.dispose();
     });
 
-    test(
-      'unknown and malformed journals do not block healthy operations or replay partially',
-      () async {
-        await store.put('tx', 'healthy', {'value': 'current'});
-        await store.put('operation', 'future', {'v': 99, 'before': []});
-        await store.put('operation', 'malformed', {
-          'v': 1,
-          'before': [
-            {
-              'kind': 'tx',
-              'id': 'healthy',
-              'body': {'value': 'old'},
-            },
-            {'kind': 7, 'id': 'bad'},
-          ],
-        });
-        await store.put('operation', 'missing-body', {
-          'v': 1,
-          'before': [
-            {'kind': 'tx', 'id': 'healthy'},
-          ],
-        });
-        await LocalWrites.recover(store);
-        expect((await store.get('tx', 'healthy'))!['value'], 'current');
-        expect(await store.list('operation'), isEmpty);
-        final originals = await store.list('__recovery');
-        expect(
-          originals.map((r) => r.body['id']),
-          containsAll(['future', 'malformed', 'missing-body']),
-        );
-        await LocalWrites.patch(store, 'tx', 'healthy', {'next': true});
-        expect((await store.get('tx', 'healthy'))!['next'], isTrue);
-      },
-    );
+    test('unknown and malformed journals do not block healthy operations or replay partially', () async {
+      await store.put('tx', 'healthy', {'value': 'current'});
+      await store.put('operation', 'future', {'v': 99, 'before': []});
+      await store.put('operation', 'malformed', {
+        'v': 1,
+        'before': [
+          {
+            'kind': 'tx',
+            'id': 'healthy',
+            'body': {'value': 'old'},
+          },
+          {'kind': 7, 'id': 'bad'},
+        ],
+      });
+      await store.put('operation', 'missing-body', {
+        'v': 1,
+        'before': [
+          {'kind': 'tx', 'id': 'healthy'},
+        ],
+      });
+      await LocalWrites.recover(store);
+      expect((await store.get('tx', 'healthy'))!['value'], 'current');
+      expect(await store.list('operation'), isEmpty);
+      final originals = await store.list('__recovery');
+      expect(
+        originals.map((r) => r.body['id']),
+        containsAll(['future', 'malformed', 'missing-body']),
+      );
+      await LocalWrites.patch(store, 'tx', 'healthy', {'next': true});
+      expect((await store.get('tx', 'healthy'))!['next'], isTrue);
+    });
 
     test('bundle recovery preserves unknown versions without replay', () async {
       await store.put('operation', 'unknown-bundle', {
@@ -198,41 +196,39 @@ void main() {
       );
     });
 
-    test(
-      'a module that is not available cannot schedule reminders, and its installation choice stays',
-      () async {
-        // An id that is not available (a module still Soon, or one from the
-        // future) must stay silent.
-        await h.preferences.setModuleOn('future_module', true);
-        final future = NexModuleStore(h.services, 'future_module');
-        expect(
-          await future.setReminder(
-            'test',
-            sourceKind: 'thing',
-            sourceId: 'm',
-            at: DateTime.now().add(const Duration(days: 1)),
-            title: 'Nex',
-            body: 'Reminder',
-          ),
-          isFalse,
-        );
-        expect(await future.list('__reminder'), isEmpty);
-        expect(h.preferences.isModuleOn('future_module'), isTrue);
-        // Only Cycle was available from 2.2.0, with the add-ons Soon again;
-        // Pause, Birthdays & occasions and Word by Word joined it in 2.4.0.
-        expect(nexModules.where((m) => m.available).map((m) => m.id).toSet(), {
-          'cycle',
-          'pause',
-          'occasions',
-          'words',
-          'habits',
-        });
-        expect(
-          NexModuleAlarms.moduleId('a', 'b:c'),
-          isNot(NexModuleAlarms.moduleId('a:b', 'c')),
-        );
-      },
-    );
+    test('a module that is not available cannot schedule reminders, and its installation choice stays', () async {
+      // An id that is not available (a module still Soon, or one from the
+      // future) must stay silent.
+      await h.preferences.setModuleOn('future_module', true);
+      final future = NexModuleStore(h.services, 'future_module');
+      expect(
+        await future.setReminder(
+          'test',
+          sourceKind: 'thing',
+          sourceId: 'm',
+          at: DateTime.now().add(const Duration(days: 1)),
+          title: 'Nex',
+          body: 'Reminder',
+        ),
+        isFalse,
+      );
+      expect(await future.list('__reminder'), isEmpty);
+      expect(h.preferences.isModuleOn('future_module'), isTrue);
+      // Only Cycle was available from 2.2.0, with the add-ons Soon again;
+      // Pause, Birthdays & occasions and Word by Word joined it in 2.4.0,
+      // Habits in 2.4.1 and Converter in 2.6.30.
+      expect(nexModules.where((m) => m.available).map((m) => m.id).toSet(), {
+        'cycle',
+        'pause',
+        'occasions',
+        'words',
+        'habits',
+        'converter',
+      });
+      expect(
+        NexModuleAlarms.moduleId('a', 'b:c'),
+        isNot(NexModuleAlarms.moduleId('a:b', 'c')),
+      );
+    });
   });
 }
-
