@@ -50,6 +50,30 @@ Working convention:
   rebuild on a 1,300-note window dropped ~4.5ms and the saving grows with the
   window. New tests in `timeline_rows_test.dart` and `timeline_model_test.dart`.
 
+- Media pipeline discipline (`apps/client/lib/screens/note_detail/`,
+  `platform/services/`, `platform/sharing.dart`, `platform/voice_spool.dart`,
+  `widgets/recurring_attachments.dart`,
+  `packages/core/lib/ai/enrichment_service.dart`): photos picked onto a note
+  — camera, several at once, or a Recurring item's receipt — are copied and
+  hashed file-to-file and the timeline re-read once per batch (`attachFile`,
+  PERF-07's own path, which this screen never had); a voice clip recorded onto
+  a note writes straight into the media folder through `NexVoiceSpool` and
+  attaches through `attachStored` (now carrying `durationMs`), so a failed
+  attach no longer deletes the recording it was saving — the temp folder it
+  used to die in was cleared in a `finally`. `detail_actions._editImage`
+  hashes its megabytes off the UI isolate (`compute`), the attachments strip
+  states its byte total once per change of the list rather than statting
+  every file on every repaint, and a spool whose stream fails to start closes
+  and reclaims its file. Sharing a photo strips its metadata off the UI
+  isolate (`compute`), and a photo with nothing to strip — which the strip's
+  rebuild made of every well-formed JPEG, `identical` or not — now shares the
+  original file, staging no copy at all. `EnrichmentService`'s image and audio
+  reads stat before they read: only a file under the providers' upload
+  ceiling is loaded up front, so a share-limit-sized clip is refused for a
+  `stat` instead of a few hundred megabytes of heap the provider was about to
+  refuse anyway. New tests: `apps/client/test/attach_paths_test.dart`,
+  `packages/core/test/enrichment_media_read_test.dart`.
+
 ## v2.6.25
 
 - Restore the 14 theme palettes using designed surface ramps; preserve the 2.6.24 glass renderer and its optics. Custom accents meet the 4.5:1 text floor on every ramp surface. Update portable colour pins, palette goldens and the appearance guide. See [nex-theme-atelier.md](nex-theme-atelier.md).

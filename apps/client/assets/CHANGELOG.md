@@ -16,6 +16,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 - **Private attachments always open.** Two attachments added at the very first moment the vault was used could seal one of them under a key that was then replaced, leaving it unreadable. Both now share one key.
 - **A quicker, sturdier start.** Opening asks the system less and no longer queues the library's bookkeeping in front of the database, so the timeline is ready sooner. If the library ever fails to open, **Try again** starts clean, and a file that never answers can no longer keep a restart waiting.
 - **Lighter in the background.** With the on-device search model installed, going behind another app now releases it, as the assistant's model already was, so the system has less reason to close Nex while you are elsewhere.
+- **Lighter, safer attachments.** Picking several photos onto a note no longer loads each one whole into memory, a voice clip recorded onto a note is saved straight into the library — so a save that fails no longer loses the recording — and sharing a photo with no location in it sends the original file.
 
 ## v2.7.0
 

@@ -132,7 +132,10 @@ extension _DetailActions on _NoteDetailSheetState {
       await widget.services.updateImageMedia(
         note.id,
         dest,
-        sha256OfBytes(encoded),
+        // Off the UI isolate: megabytes of pure-Dart SHA-256 (PERF-07). The
+        // attachment-edit path already hashed this way; this one, the note's
+        // own photo, was the last full-size hash still run between frames.
+        await compute(sha256OfBytes, encoded),
       );
       widget.preferences?.editorDrafts?.clear('photo-${note.id}-crop');
       widget.preferences?.editorDrafts?.clear('photo-${note.id}-annotation');

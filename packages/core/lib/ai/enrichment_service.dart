@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../models/note.dart';
 import '../ports/note_repository.dart';
@@ -358,16 +359,43 @@ class EnrichmentService {
     String? mediaHash,
   }) async {
     if (!_capabilities.ocr) return null;
-    final file = File(mediaUri);
     final call = _adapter.ocr(
       ImageRef(
         mediaUri: mediaUri,
         mediaHash: mediaHash,
-        bytes: file.existsSync() ? file.readAsBytesSync() : null,
+        bytes: _eagerBytes(mediaUri),
       ),
     );
     if (call == null) return null;
     return (await call).text.trim();
+  }
+
+  /// The bytes to hand the adapter up front, or null to let it read the
+  /// file itself.
+  ///
+  /// An attachment is whatever the person shared in, and the share limit
+  /// admits files no provider will take: a video-adjacent audio file of
+  /// hundreds of megabytes, attached under the limit, used to be read whole
+  /// into this isolate's heap before the provider's own size check refused
+  /// it — the read spent the memory, the check spent nothing, and the words
+  /// never left the phone. The adapter reads from the path when bytes are
+  /// null, and the cloud provider stats before it reads, so the refusal
+  /// arrives for the cost of a `stat`. Under this size the eager read stays:
+  /// one pass instead of two for the files that are actually sent.
+  static const maxEagerMediaBytes = 15 * 1024 * 1024;
+
+  Uint8List? _eagerBytes(String mediaUri) {
+    try {
+      final file = File(mediaUri);
+      if (!file.existsSync() || file.lengthSync() > maxEagerMediaBytes) {
+        return null;
+      }
+      return file.readAsBytesSync();
+    } catch (_) {
+      // Unreadable now: hand the adapter the path and let it say so in its
+      // own words — a missing-file failure the UI can name, not a crash.
+      return null;
+    }
   }
 
   /// Transcribes a recording that is not a note of its own — a voice clip
@@ -379,12 +407,11 @@ class EnrichmentService {
     String? mediaHash,
   }) async {
     if (!_capabilities.transcription) return null;
-    final file = File(mediaUri);
     final call = _adapter.transcribe(
       AudioRef(
         mediaUri: mediaUri,
         mediaHash: mediaHash,
-        bytes: file.existsSync() ? file.readAsBytesSync() : null,
+        bytes: _eagerBytes(mediaUri),
       ),
     );
     if (call == null) return null;

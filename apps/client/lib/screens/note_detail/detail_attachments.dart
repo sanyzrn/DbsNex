@@ -120,10 +120,32 @@ extension _DetailAttachments on _NoteDetailSheetState {
     await _reloadAttachments();
   }
 
-  int _attachmentBytes() => _attachments.fold(0, (sum, attachment) {
-    final file = File(attachment.mediaUri);
-    return sum + (file.existsSync() ? file.lengthSync() : 0);
-  });
+  /// The bytes the note's attachments take on disk, for the strip's
+  /// heading. Stated once per change of the list, not once per rebuild:
+  /// this used to stat every file synchronously on every build, and a
+  /// dozen attachments made every sheet repaint pay a dozen disk reads on
+  /// the UI isolate. The cache fields live on the sheet's state
+  /// (`_attachmentBytesOf`, `_attachmentBytesTotal`), because an extension
+  /// cannot hold them.
+  int _attachmentBytes() {
+    final attachments = _attachments;
+    if (identical(_attachmentBytesOf, attachments)) {
+      return _attachmentBytesTotal;
+    }
+    var total = 0;
+    for (final attachment in attachments) {
+      try {
+        final file = File(attachment.mediaUri);
+        if (file.existsSync()) total += file.lengthSync();
+      } catch (_) {
+        // A file that cannot be stated right now counts as nothing; the
+        // number is for a heading, not an audit.
+      }
+    }
+    _attachmentBytesOf = attachments;
+    _attachmentBytesTotal = total;
+    return total;
+  }
 
   Future<void> _reloadAttachments() async {
     final attachments = await widget.services.attachmentsFor(widget.noteId);
@@ -183,21 +205,46 @@ extension _DetailAttachments on _NoteDetailSheetState {
       ),
     );
     if (choice == null || !mounted) return;
+    var landed = false;
     try {
       switch (choice) {
         case 'camera':
           final shot = await nexTakePhoto(context);
           if (shot == null) return;
-          await _attachPhoto(note.id, await shot.readAsBytes(), shot.path);
+          // Copied and hashed from the file, never read whole into memory —
+          // the same straight path the timeline's photo capture takes
+          // (PERF-07).
+          landed =
+              await widget.services.attachFile(
+                note.id,
+                shot.path,
+                kind: AttachmentKind.photo,
+                mimeType: shot.mimeType,
+                refresh: false,
+              ) !=
+              null;
         case 'voice':
-          await _attachVoice(note.id);
+          landed = await _attachVoice(note.id);
         case 'photos':
           for (final picked in await ImagePicker().pickMultiImage()) {
-            await _attachPhoto(
-              note.id,
-              await picked.readAsBytes(),
-              picked.path,
-            );
+            // Copied and hashed from the file, never read whole into
+            // memory: a multi-photo pick can be a dozen pictures, and each
+            // used to make two full copies of itself on this loop (read
+            // into the heap, then an isolate copy to hash) — plus a full
+            // timeline re-read per photo. The timeline's photo path stopped
+            // paying that in 2.6.10 (PERF-07); this is the same path,
+            // arrived at from the note.
+            landed =
+                await widget.services.attachFile(
+                      note.id,
+                      picked.path,
+                      kind: AttachmentKind.photo,
+                      mimeType: picked.mimeType,
+                      // The one refresh below the loop covers the whole batch.
+                      refresh: false,
+                    ) !=
+                    null ||
+                landed;
           }
         default:
           final picked = await nexPickAttachment(context);
@@ -205,16 +252,28 @@ extension _DetailAttachments on _NoteDetailSheetState {
           final isImage =
               NexFileKinds.of(path: picked.path, mimeType: picked.mimeType) ==
               NexFileKind.image;
-          await widget.services.attachFile(
-            note.id,
-            picked.path,
-            kind: isImage ? AttachmentKind.photo : AttachmentKind.file,
-            name: picked.filename,
-            mimeType: picked.mimeType,
-          );
+          landed =
+              await widget.services.attachFile(
+                note.id,
+                picked.path,
+                kind: isImage ? AttachmentKind.photo : AttachmentKind.file,
+                name: picked.filename,
+                mimeType: picked.mimeType,
+                refresh: false,
+              ) !=
+              null;
       }
     } catch (_) {
       if (mounted) _toast(l10n.attachFailed);
+    }
+    // One refresh for the whole batch — the card's paperclip count is the
+    // only thing outside this sheet that changed, and the strip itself
+    // re-reads below. The attachments are already durable: a failed
+    // refresh must not be reported as a failed attach.
+    if (landed) {
+      try {
+        await widget.services.refreshTimeline();
+      } catch (_) {}
     }
     await _reloadAttachments();
   }
@@ -222,55 +281,58 @@ extension _DetailAttachments on _NoteDetailSheetState {
   /// A spoken aside on a note — what the receipt was for, what was said in
   /// the meeting the whiteboard is from. Recorded with the same sheet as a
   /// voice note, and attached once it is kept.
-  Future<void> _attachVoice(String noteId) async {
+  ///
+  /// Recorded straight into the media folder, the way a voice note is
+  /// ([NexVoiceSpool]): the clip used to be written to a temporary folder
+  /// and copied from there, so a full disk between the two took the
+  /// recording with it — the temp folder was deleted in a `finally` whether
+  /// the copy had landed or not, and the meeting's words went with it.
+  /// Written where it belongs, a clip whose attach fails stays on disk
+  /// under the sweep's hour of grace, where Retry can find it. Whether the
+  /// clip landed.
+  Future<bool> _attachVoice(String noteId) async {
     final l10n = AppLocalizations.of(context);
     final recorder = AudioRecorder();
     try {
       if (!await recorder.hasPermission()) {
         if (mounted) _toast(l10n.micDenied);
-        return;
+        return false;
       }
-      final folder = await Directory.systemTemp.createTemp('nex-clip-');
-      final path = p.join(folder.path, 'voice.m4a');
+      final spool = await NexVoiceSpool.start(
+        recorder,
+        widget.services.mediaDir,
+      );
+      if (!mounted) {
+        await spool.discard();
+        return false;
+      }
       final started = Stopwatch()..start();
-      await recorder.start(const RecordConfig(), path: path);
-      if (!mounted) return;
       final keep = await nexShowSheet<bool>(
         context: context,
         dismissible: false,
         builder: (_) => RecordingSheet(recorder: recorder),
       );
-      final recorded = await recorder.stop();
+      final recorded = keep == true ? await spool.stop() : null;
+      if (keep != true) await spool.discard();
       started.stop();
-      try {
-        final file = File(recorded ?? path);
-        if (keep != true || !file.existsSync()) return;
-        await widget.services.attachFile(
-          noteId,
-          file.path,
-          kind: AttachmentKind.voice,
-          mimeType: 'audio/mp4',
-          durationMs: started.elapsedMilliseconds,
-        );
-      } finally {
-        await folder.delete(recursive: true);
+      if (recorded == null) return false;
+      final hash = await sha256OfFile(recorded);
+      if (hash == null) {
+        throw StateError('the recording could not be read back');
       }
+      final attached = await widget.services.attachStored(
+        noteId,
+        mediaUri: recorded,
+        mediaHash: hash,
+        kind: AttachmentKind.voice,
+        mimeType: 'audio/mp4',
+        durationMs: started.elapsedMilliseconds,
+        refresh: false,
+      );
+      return attached != null;
     } finally {
       await recorder.dispose();
     }
-  }
-
-  Future<void> _attachPhoto(String noteId, Uint8List bytes, String path) async {
-    final extension = p.extension(path).isNotEmpty
-        ? p.extension(path)
-        : photoExtension(bytes);
-    await widget.services.attachBytes(
-      noteId,
-      bytes,
-      kind: AttachmentKind.photo,
-      extension: extension,
-      mimeType: extension.toLowerCase() == '.png' ? 'image/png' : 'image/jpeg',
-    );
   }
 
   Future<void> _openAttachment(NoteAttachment attachment) async {
