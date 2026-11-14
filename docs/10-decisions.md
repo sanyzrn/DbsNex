@@ -551,6 +551,32 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
   arrangement. Notes inside a shelf keep the timeline's order — still never by hand.
 - **Status:** Accepted for 2.7.0 at the owner's request.
 
+## ADR-044 — Sync merges every push, returns a device's own writes, and moves media by hash
+
+- **Context:** A push the server judged older than its row was refused, and the
+  pull never returned a device's own writes. Together, a lost acknowledgement or
+  a restore under the same device id left a note in the outbox for ever, pushed
+  and refused every cycle. Media travelled as the author's absolute path and its
+  hash, with no way to move the bytes. One invalid item failed a whole push, and
+  a failed push stopped the pull behind it.
+- **Decision:** The server merges every push (`updated_at` LWW decides; an older
+  push loses each field and regresses nothing) and refuses only another tenant's
+  id. A merge that changes nothing writes nothing and acknowledges the stored
+  rev. The pull no longer filters a device's own writes: only the client knows
+  whether it needs them, and it applies an unchanged echo as a no-op. Each push
+  item runs in its own savepoint and is reported in `rejected`; a refused push
+  no longer stops the pull. Media moves by content hash (`PUT/GET
+  /sync/media/:hash`, stored at a path derived from user and hash, never from a
+  client-supplied key), the wire carries a file name rather than a path, and
+  the server names hashes whose bytes it lacks (`media_wanted`).
+- **Cost:** each write comes back to its device once. If that grows expensive,
+  the answer is per-note acknowledgement, not the server-side filter.
+- **Unattended sync** runs only once a server is paired: a cycle 30 s after
+  writes, a pull every 15 minutes, a 5-minute quiet period after a failure.
+  Unpaired libraries carry no sync timer at all.
+- **Status:** Accepted for 2.7.1. Pairing has no screen yet; nothing here runs
+  for a library that is not paired.
+
 ---
 
 ## Decision-Making Heuristic

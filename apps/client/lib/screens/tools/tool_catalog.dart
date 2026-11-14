@@ -41,7 +41,15 @@ class NexTool {
 }
 
 /// The private tools, behind the lock.
-List<NexTool> nexPrivateTools(BuildContext context) {
+///
+/// [biometricOnly] is the Security screen's switch of the same name, passed
+/// through so the vault asks for the fingerprint exactly when the app's own
+/// gate does — a preference the vault quietly ignored is a preference
+/// enforced nowhere (SEC-01).
+List<NexTool> nexPrivateTools(
+  BuildContext context, {
+  bool biometricOnly = false,
+}) {
   final l = AppLocalizations.of(context);
   return [
     NexTool(
@@ -51,7 +59,8 @@ List<NexTool> nexPrivateTools(BuildContext context) {
       icon: Icons.key_rounded,
       hue: NexHue.amber,
       locked: true,
-      open: (_) => const VaultScreen(kind: VaultKind.password),
+      open: (_) =>
+          VaultScreen(kind: VaultKind.password, biometricOnly: biometricOnly),
     ),
     NexTool(
       id: 'vault.card',
@@ -60,7 +69,8 @@ List<NexTool> nexPrivateTools(BuildContext context) {
       icon: Icons.credit_card_rounded,
       hue: NexHue.teal,
       locked: true,
-      open: (_) => const VaultScreen(kind: VaultKind.card),
+      open: (_) =>
+          VaultScreen(kind: VaultKind.card, biometricOnly: biometricOnly),
     ),
     NexTool(
       id: 'vault.message',
@@ -69,7 +79,8 @@ List<NexTool> nexPrivateTools(BuildContext context) {
       icon: Icons.chat_bubble_outline,
       hue: NexHue.violet,
       locked: true,
-      open: (_) => const VaultScreen(kind: VaultKind.message),
+      open: (_) =>
+          VaultScreen(kind: VaultKind.message, biometricOnly: biometricOnly),
     ),
   ];
 }
@@ -123,7 +134,10 @@ List<NexTool> nexPinnedTools(
   if (pins.isEmpty) return const [];
   final all = {
     for (final tool in [
-      ...nexPrivateTools(context),
+      ...nexPrivateTools(
+        context,
+        biometricOnly: preferences.appLockBiometricOnly,
+      ),
       ...nexEverydayTools(context),
       ...nexModuleTools(context, services: services, preferences: preferences),
     ])

@@ -91,7 +91,8 @@ extension NexAttachmentServices on NexServices {
   }
 
   /// Attaches a file already copied under the media root — a file shared
-  /// into Nex along with others.
+  /// into Nex along with others, or a recording the spool wrote straight
+  /// into the media folder.
   ///
   /// [refresh] is false when the caller refreshes the timeline itself once
   /// its whole batch of attachments has landed.
@@ -102,6 +103,7 @@ extension NexAttachmentServices on NexServices {
     required AttachmentKind kind,
     String? name,
     String? mimeType,
+    int? durationMs,
     bool refresh = true,
   }) async => _attached(
     await worker.attachmentAdd(
@@ -111,6 +113,7 @@ extension NexAttachmentServices on NexServices {
       mediaHash: mediaHash,
       name: name,
       mimeType: mimeType,
+      durationMs: durationMs,
     ),
     refresh: refresh,
   );

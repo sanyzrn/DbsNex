@@ -28,6 +28,8 @@ class PushResponse {
     required this.merged,
     required this.mediaDeduped,
     required this.tagRemap,
+    this.rejected = const [],
+    this.mediaWanted = const [],
   });
 
   factory PushResponse.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,19 @@ class PushResponse {
               canonicalId: entry['canonical_id'] as String,
             ),
       ],
+      // Optional because an older server never sends it: against one, nothing
+      // is rejected per-item anyway — the whole request would have 400'd — so
+      // "absent" and "empty" mean the same thing to this client.
+      rejected: [
+        for (final entry in (json['rejected'] as List? ?? const []))
+          if (entry is Map) entry['id'] as String,
+      ],
+      // Hashes the pushed notes referenced whose bytes the server lacks. Also
+      // optional for the same reason, and also "empty" when absent.
+      mediaWanted: [
+        for (final hash in (json['media_wanted'] as List? ?? const []))
+          hash as String,
+      ],
     );
   }
 
@@ -64,6 +79,16 @@ class PushResponse {
   final List<MergedNote> merged;
   final List<String> mediaDeduped;
   final List<TagRemapEntry> tagRemap;
+
+  /// The writes the server refused per-item (another account's id, or an item
+  /// it could not take). Unlike a stale write these are not healed by the pull
+  /// that follows, so they are reported rather than retried silently.
+  final List<String> rejected;
+
+  /// Media hashes the server says it does not hold the bytes for. This
+  /// outranks any local "already sent" cache — the server just looked at its
+  /// own disk.
+  final List<String> mediaWanted;
 
   Set<String> get acceptedIds => {for (final m in merged) m.id};
 }

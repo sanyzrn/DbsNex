@@ -73,7 +73,10 @@ void main() {
     // The assertion is the timeout itself: without one this never completes,
     // and the case fails by running out of the suite's own patience rather
     // than by this matcher.
-    await expectLater(clientFor(transport).sync(), throwsA(isA<TimeoutException>()));
+    await expectLater(
+      clientFor(transport).sync(),
+      throwsA(isA<TimeoutException>()),
+    );
     expect(
       transport.requests,
       1,
@@ -83,10 +86,14 @@ void main() {
 
   test('a pull that never answers gives up too', () async {
     final transport = _SilentClient();
-    // Nothing pending, so `sync()` reaches the pull with an empty push — and
-    // that empty push is itself a request, so the cycle stops there. Either
-    // way the property is the same one: no leg of a sync waits forever.
-    await expectLater(clientFor(transport).sync(), throwsA(isA<TimeoutException>()));
+    // Nothing pending, so the cycle skips the push outright and goes
+    // straight to the pull — the request that never answers is the only one
+    // it makes. The property is the same one either way: no leg of a sync
+    // waits forever.
+    await expectLater(
+      clientFor(transport).sync(),
+      throwsA(isA<TimeoutException>()),
+    );
     expect(transport.requests, greaterThanOrEqualTo(1));
   });
 

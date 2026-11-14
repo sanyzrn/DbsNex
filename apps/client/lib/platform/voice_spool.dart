@@ -1,4 +1,5 @@
 import 'crash_reporter.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -79,15 +80,31 @@ class NexVoiceSpool {
     final path = p.join(mediaDir, 'voice-$stamp$extension');
     final file = File(path).openSync(mode: FileMode.writeOnly);
     final spool = NexVoiceSpool._(recorder, path, file);
-    final frames = await recorder.startStream(
-      const RecordConfig(encoder: AudioEncoder.aacLc),
-    );
-    spool._frames = frames.listen(
-      spool._write,
-      onDone: spool._finish,
-      onError: (Object _) => spool._finish(),
-      cancelOnError: true,
-    );
+    try {
+      final frames = await recorder.startStream(
+        const RecordConfig(encoder: AudioEncoder.aacLc),
+      );
+      spool._frames = frames.listen(
+        spool._write,
+        onDone: spool._finish,
+        onError: (Object _) => spool._finish(),
+        cancelOnError: true,
+      );
+    } catch (_) {
+      // The recorder never started: nothing is being written, and an empty
+      // `.recording` left behind would sit out the sweep's hour of grace as
+      // a memo that never was. Closed and taken back here, so the caller's
+      // own cleanup — a discard of a spool that never spooled — has nothing
+      // half-open to fight with.
+      spool._frames = null;
+      try {
+        file.closeSync();
+      } catch (_) {}
+      try {
+        File(path).deleteSync();
+      } catch (_) {}
+      rethrow;
+    }
     return spool;
   }
 

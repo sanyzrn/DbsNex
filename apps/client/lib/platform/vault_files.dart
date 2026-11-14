@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -14,6 +15,7 @@ import 'package:nex_data/nex_data.dart' show NexBackupArchive;
 import 'package:nex_data/schema/zip_file_writer.dart';
 
 import 'vault_store.dart';
+import 'vault_session.dart';
 import 'authenticated_zip.dart';
 
 /// The voice notes, photos and files attached to private messages.
@@ -49,9 +51,30 @@ class VaultFiles {
   final FlutterSecureStorage _storage;
   final Future<Directory> Function() _root;
 
+  /// The key generation in flight, if one is. The read-then-write in
+  /// [_key] was a check-then-act race: two first calls together each read
+  /// "no key", each made one, and the second write won — leaving whatever
+  /// the first had already sealed unreadable forever, under a key nobody
+  /// held any more (SEC-03). A single shared flight — across every
+  /// [VaultFiles], because they share the store — makes the first caller
+  /// the only writer, and everyone else its reader.
+  static Future<String>? _keyFlight;
+
   Future<String> _key() async {
     final existing = await _storage.read(key: keyName);
     if (existing != null && existing.isNotEmpty) return existing;
+    final flight = _keyFlight ??= _generateKey();
+    try {
+      return await flight;
+    } finally {
+      // Cleared when the flight settles, so a later call finds the key in
+      // the store — or, after a failure, starts a fresh flight rather
+      // than replaying a lost one.
+      if (identical(_keyFlight, flight)) _keyFlight = null;
+    }
+  }
+
+  Future<String> _generateKey() async {
     final random = Random.secure();
     final key = base64Url.encode([
       for (var i = 0; i < 32; i++) random.nextInt(256),
@@ -62,6 +85,23 @@ class VaultFiles {
     }
     return key;
   }
+
+  /// Clears the plain copies [openCopy] makes whenever the vault session
+  /// ends, from wherever it ends: the vault screen's own lock, the app
+  /// lock closing over an open vault, or the lock after a lapse. The
+  /// screen used to be the only one sweeping, and a lock it did not ask
+  /// for left decrypted copies sitting in the cache (SEC-02).
+  ///
+  /// A no-op after the first call, so wiring it twice costs nothing.
+  static void followSession(VaultSession session) {
+    if (_followsSession) return;
+    _followsSession = true;
+    session.addListener(() {
+      if (!session.isOpen) unawaited(clearOpenCopies());
+    });
+  }
+
+  static bool _followsSession = false;
 
   Future<Directory> _dir() async {
     final dir = Directory(p.join((await _root()).path, 'vault_files'));

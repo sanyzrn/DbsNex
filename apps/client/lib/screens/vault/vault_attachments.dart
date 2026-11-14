@@ -123,7 +123,13 @@ extension _VaultAttachments on _VaultScreenState {
       final keep = await nexShowSheet<bool>(
         context: context,
         dismissible: false,
-        builder: (_) => RecordingSheet(recorder: recorder),
+        // Registered with the screen so the vault's lock closes a
+        // recording that was in flight: a live microphone over a locked
+        // vault is not locked (SEC-02).
+        builder: (sheetContext) {
+          _keepPrivateRoute(sheetContext);
+          return RecordingSheet(recorder: recorder);
+        },
       );
       final recorded = await recorder.stop();
       started.stop();
@@ -241,6 +247,10 @@ class _VaultAttachmentView extends StatefulWidget {
 
 class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
   Future<Uint8List>? _photo;
+
+  /// The decrypted bytes of the photo this bubble is showing, kept so the
+  /// image cache entry can be evicted on dispose (see below).
+  Uint8List? _photoBytes;
   AudioPlayer? _player;
   bool _playing = false;
   bool _failed = false;
@@ -256,11 +266,26 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
   @override
   void initState() {
     super.initState();
-    if (_kind == 'photo') _photo = widget.files.get(_id);
+    if (_kind == 'photo') {
+      _photo = widget.files.get(_id).then((bytes) {
+        _photoBytes = bytes;
+        return bytes;
+      });
+    }
   }
 
   @override
   void dispose() {
+    // A decrypted photo outlives its widget in Flutter's image cache, which
+    // would hold both the bytes and the decoded image — for a thousand
+    // images or a hundred megabytes, whichever comes first — long after the
+    // vault locked and its list was emptied (SEC-04). Evicting the provider
+    // drops both; the next look at the photo decrypts it again, which is
+    // what being locked should mean.
+    final bytes = _photoBytes;
+    if (bytes != null) {
+      PaintingBinding.instance.imageCache.evict(MemoryImage(bytes));
+    }
     unawaited(_positionSub?.cancel());
     unawaited(_stateSub?.cancel());
     unawaited(_player?.dispose());
@@ -331,12 +356,22 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
     }
   }
 
-  void _view(Uint8List bytes) => Navigator.of(context).push(
-    NexPageRoute<void>(
+  void _view(Uint8List bytes) {
+    // Pushed through the screen (SEC-02): the route shows decrypted
+    // content, and the vault's lock has to be able to close it. It is a
+    // route because a photo is zoomed full screen, not because it should
+    // outlive the unlock that decrypted it.
+    final screen = context.findAncestorStateOfType<_VaultScreenState>();
+    final route = NexPageRoute<void>(
       builder: (_) => NexPhotoViewer.memory(bytes),
       swipeBackEnabled: false,
-    ),
-  );
+    );
+    if (screen != null) {
+      screen._pushPrivate(route);
+    } else {
+      Navigator.of(context).push(route);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

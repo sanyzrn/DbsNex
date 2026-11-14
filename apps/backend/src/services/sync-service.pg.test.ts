@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { after, before, describe, test } from "node:test";
@@ -49,11 +50,14 @@ const SPEC_PATH = join(
 
 describe("sync against a real database", { skip: enabled ? false : "set NEX_PG_TESTS=1 with a migrated PostgreSQL" }, () => {
   let pushChanges: typeof import("./sync-service.ts").pushChanges;
+  let pullChanges: typeof import("./sync-service.ts").pullChanges;
+  let storeMedia: typeof import("./media-store.ts").storeMedia;
   let getPool: typeof import("../db/index.ts").getPool;
   let closePool: typeof import("../db/index.ts").closePool;
 
   before(async () => {
-    ({ pushChanges } = await import("./sync-service.ts"));
+    ({ pushChanges, pullChanges } = await import("./sync-service.ts"));
+    ({ storeMedia } = await import("./media-store.ts"));
     ({ getPool, closePool } = await import("../db/index.ts"));
 
     // Two tenants, which is the whole point: CI's sync matrix seeds one user
@@ -262,6 +266,253 @@ describe("sync against a real database", { skip: enabled ? false : "set NEX_PG_T
       rows.map((r) => r.type).sort(),
       [...spec.types].sort(),
       "a type that validated but did not persist is the same outage",
+    );
+  });
+
+  test("a behind-the-server revision is merged, not refused", async () => {
+    // The rev guard this replaces (`notes.rev <= EXCLUDED.rev`) rejected any
+    // push whose revision the stored row had passed. Combined with the pull
+    // path's echo suppression, that was a permanent wedge: the note stayed
+    // pending, was re-pushed and re-rejected on every cycle, and no pull
+    // could heal it. Merging instead lets last-writer-wins decide — and an
+    // ancient push loses that race to the stored row on every field.
+    const id = "55555555-5555-4555-8555-555555555555";
+    const now = new Date().toISOString();
+
+    const first = await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      tags: [],
+      notes: [
+        {
+          id,
+          type: "text",
+          content: "the newer version",
+          created_at: now,
+          updated_at: new Date(Date.now() + 10_000).toISOString(),
+          device_id: "pg-test-a",
+          rev: 3,
+        },
+      ],
+    });
+    assert.equal(first.merged.length, 1);
+
+    // A stale revision with an older updated_at: LWW says it loses, and the
+    // push is still acknowledged so the device can drain its outbox.
+    const stale = await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      tags: [],
+      notes: [
+        {
+          id,
+          type: "text",
+          content: "the older version",
+          created_at: now,
+          updated_at: now,
+          device_id: "pg-test-a",
+          rev: 1,
+        },
+      ],
+    });
+
+    assert.equal(
+      stale.merged.length,
+      1,
+      "a stale push is acknowledged so the outbox can drain",
+    );
+    assert.ok(stale.merged[0]!.rev >= 3, "the stored revision is not regressed");
+
+    const { rows } = await getPool().query<{ content: string }>(
+      `SELECT content FROM notes WHERE id = $1`,
+      [id],
+    );
+    assert.equal(rows[0]!.content, "the newer version");
+    assert.equal(stale.rejected.length, 0, "nothing was dropped per-item");
+  });
+
+  test("a re-push of identical bytes neither writes nor re-broadcasts", async () => {
+    // The lost-ack case: the first push committed but its response never
+    // arrived, so the device re-sends the same version. Writing it again
+    // would mint a fresh sequence and push the note to every peer for
+    // nothing; the ack must instead report the stored revision unchanged.
+    const id = "66666666-6666-4666-8666-666666666666";
+    const now = new Date().toISOString();
+    const note = {
+      id,
+      type: "text",
+      content: "re-sent after a lost response",
+      created_at: now,
+      updated_at: now,
+      device_id: "pg-test-a",
+      rev: 1,
+    };
+
+    await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      tags: [],
+      notes: [note],
+    });
+    const { rows: afterFirst } = await getPool().query<{
+      rev: string;
+      seq: string;
+    }>(`SELECT rev, seq FROM notes WHERE id = $1`, [id]);
+
+    const again = await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      tags: [],
+      notes: [note],
+    });
+    const { rows: afterAgain } = await getPool().query<{
+      rev: string;
+      seq: string;
+    }>(`SELECT rev, seq FROM notes WHERE id = $1`, [id]);
+
+    assert.equal(again.merged.length, 1, "the re-push is acknowledged");
+    assert.equal(
+      String(afterAgain[0]!.seq),
+      String(afterFirst[0]!.seq),
+      "no new sequence: the note is not re-broadcast to every peer",
+    );
+    assert.equal(Number(afterAgain[0]!.rev), Number(afterFirst[0]!.rev));
+    assert.equal(again.merged[0]!.rev, Number(afterFirst[0]!.rev));
+  });
+
+  test("pull returns a device's own writes", async () => {
+    // The echo filter this replaces (`device_id <> $3 OR merged_by_server`)
+    // assumed the author of a row always holds what it says. A lost ack or a
+    // restored backup under the same device id broke that assumption, and the
+    // one device that needed the row could never see it again. Suppression
+    // is the client's decision now — it has the local state to make it.
+    const id = "77777777-7777-4777-8777-777777777777";
+    const now = new Date().toISOString();
+
+    await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      tags: [],
+      notes: [
+        {
+          id,
+          type: "text",
+          content: "mine, but I have not seen the ack",
+          created_at: now,
+          updated_at: now,
+          device_id: "pg-test-a",
+          rev: 1,
+        },
+      ],
+    });
+
+    const page = await pullChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      since: "0",
+    });
+    assert.ok(
+      page.notes.some((n) => n.id === id),
+      "the author's own row is visible to the author",
+    );
+  });
+
+  test("a note id owned by another tenant is rejected, not merged", async () => {
+    const id = "88888888-8888-4888-8888-888888888888";
+    const now = new Date().toISOString();
+
+    await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      tags: [],
+      notes: [
+        {
+          id,
+          type: "text",
+          content: "belongs to A",
+          created_at: now,
+          updated_at: now,
+          device_id: "pg-test-a",
+          rev: 1,
+        },
+      ],
+    });
+
+    const across = await pushChanges({
+      user_id: USER_B,
+      device_id: "pg-test-b",
+      tags: [],
+      notes: [
+        {
+          id,
+          type: "text",
+          content: "B attempting to write A's note id",
+          created_at: now,
+          updated_at: now,
+          device_id: "pg-test-b",
+          rev: 2,
+        },
+      ],
+    });
+
+    assert.equal(across.merged.length, 0, "the foreign id is not taken");
+    assert.equal(across.rejected.length, 1);
+    assert.equal(across.rejected[0]!.id, id);
+    assert.equal(across.rejected[0]!.reason, "foreign_id");
+
+    const { rows } = await getPool().query<{ content: string; user_id: string }>(
+      `SELECT content, user_id FROM notes WHERE id = $1`,
+      [id],
+    );
+    assert.equal(rows[0]!.content, "belongs to A");
+    assert.equal(rows[0]!.user_id, USER_A);
+  });
+
+  test("a push names the media hashes it lacks the bytes for", async () => {
+    // media_wanted is what recovers a lost object with the row still live:
+    // the server has just looked at its own disk, which no client-side
+    // "already sent" cache can speak to.
+    const id = "99999999-9999-4999-8999-999999999999";
+    const now = new Date().toISOString();
+    const present = Buffer.from("bytes the server already has");
+    const presentHash = createHash("sha256").update(present).digest("hex");
+    const absentHash = createHash("sha256")
+      .update(Buffer.from("bytes nobody uploaded"))
+      .digest("hex");
+    await storeMedia(USER_A, presentHash, present);
+
+    const first = await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      tags: [],
+      notes: [
+        {
+          id,
+          type: "photo",
+          media_uri: "present.jpg",
+          media_hash: presentHash,
+          created_at: now,
+          updated_at: now,
+          device_id: "pg-test-a",
+          rev: 1,
+        },
+        {
+          id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          type: "photo",
+          media_uri: "absent.jpg",
+          media_hash: absentHash,
+          created_at: now,
+          updated_at: now,
+          device_id: "pg-test-a",
+          rev: 1,
+        },
+      ],
+    });
+
+    assert.deepEqual(
+      first.media_wanted,
+      [absentHash],
+      "the stored hash is not wanted; the missing one is",
     );
   });
 });

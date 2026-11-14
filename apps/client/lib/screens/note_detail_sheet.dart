@@ -146,6 +146,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   List<NoteAttachment> _attachments = const [];
   String? _previewAttachmentId;
 
+  /// The attachment list the strip's byte total was measured for, and that
+  /// total: stated once per change of the list rather than on every build,
+  /// by [_attachmentBytes] in the attachments part file.
+  List<NoteAttachment>? _attachmentBytesOf;
+  int _attachmentBytesTotal = 0;
+
   /// Whether the first read has come back, whatever it found.
   ///
   /// Separate from `_note != null`, because the interesting case is exactly

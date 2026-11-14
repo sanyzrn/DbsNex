@@ -52,12 +52,15 @@ class VaultScreen extends StatefulWidget {
     super.key,
     required this.kind,
     this.store,
+    this.files,
     this.authentication,
     this.focusId,
     this.picking = false,
+    this.biometricOnly = false,
   });
   final VaultKind kind;
   final VaultStore? store;
+  final VaultFiles? files;
   final AppLockService? authentication;
 
   /// Show only this entry — a Recurring item's linked card (W5.4). The
@@ -67,12 +70,25 @@ class VaultScreen extends StatefulWidget {
   /// Choosing a card to link: tapping one pops with its id. Nothing about
   /// the card leaves the vault; the id is all the caller keeps.
   final bool picking;
+
+  /// Whether the vault's own unlock may offer only the fingerprint, never
+  /// the device's PIN or pattern. The Security screen's "Biometrics only"
+  /// switch says the same thing for the app's gate, and the vault — the
+  /// more sensitive of the two — must not quietly ask for less
+  /// (SEC-01). A device without biometrics answers the same refusal the
+  /// gate gives; this defaults to the previous behaviour for callers that
+  /// do not say.
+  final bool biometricOnly;
   @override
   State<VaultScreen> createState() => _VaultScreenState();
 }
 
 class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   late final store = widget.store ?? VaultStore();
+
+  /// The attachments of private messages. Injectable like [store] — a
+  /// widget test runs in a fake-async zone another isolate never talks to.
+  late final _vaultFiles = widget.files ?? VaultFiles();
   late final auth = widget.authentication ?? AppLockService();
   late final Future<bool> protection;
   final session = VaultSession.instance;
@@ -93,13 +109,48 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   Timer? revealTimer;
   Timer? idle, draftTimer, copiedTimer;
   final messageInput = TextEditingController();
-  late final _vaultFiles = VaultFiles();
   int generation = 0;
 
   /// Whether the editor was open when the app went to the background, so a
   /// return inside the grace period lands back in it rather than on the list.
   bool _resumeEditing = false;
   Future<void>? _loading;
+
+  /// Routes this screen pushed that show private content in the clear: the
+  /// fullscreen photo and the recording sheet. The vault's own tree is
+  /// emptied by [_hide], but a route lives in the navigator, above this
+  /// screen, and nothing else was closing it — a locked vault could be
+  /// resumed onto a decrypted photo no prompt had been asked for
+  /// (SEC-02). They go when the unlock ends.
+  final Set<Route<void>> _privateRoutes = {};
+
+  /// Pushes [route] and remembers it for [_lock] to close.
+  void _pushPrivate(Route<void> route) {
+    _privateRoutes.add(route);
+    route.popped.whenComplete(() => _privateRoutes.remove(route));
+    Navigator.of(context).push(route);
+  }
+
+  /// Registers a route this screen did not push itself — a modal sheet —
+  /// for the same closing. The builder's context is where the route can be
+  /// found; the assignment runs again on every rebuild and is idempotent.
+  void _keepPrivateRoute(BuildContext inside) {
+    final route = ModalRoute.of(inside);
+    if (route != null) _privateRoutes.add(route);
+    route?.popped.whenComplete(() => _privateRoutes.remove(route));
+  }
+
+  /// Closes everything private this screen left above it. `removeRoute`
+  /// rather than `pop`: a pop would animate, and would run the route's own
+  /// pop logic (which for the recording sheet hands back "discarded", and
+  /// for the photo viewer runs a dismiss animation on content that must be
+  /// gone already).
+  void _closePrivateRoutes() {
+    for (final route in _privateRoutes) {
+      if (route.isActive) route.navigator?.removeRoute(route);
+    }
+    _privateRoutes.clear();
+  }
 
   @override
   void initState() {
@@ -125,6 +176,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     copiedTimer?.cancel();
     revealTimer?.cancel();
     search.dispose();
+    _removeVeil();
     unawaited(NexSecureWindow.releasePrivateSurface());
     super.dispose();
   }
@@ -186,7 +238,10 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       case AppLifecycleState.resumed:
         _veilHide?.cancel();
         _veilHide = null;
-        if (_veiled && mounted) setState(() => _veiled = false);
+        if (_veiled && mounted) {
+          setState(() => _veiled = false);
+          _syncVeil();
+        }
         if (authenticating) return;
         // The veil keeps everything — but time still passed while it was
         // up. The session's own deadline decides whether what it covered
@@ -209,7 +264,16 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   /// The privacy layer over everything private: a blur and a scrim the
   /// switcher's thumbnail and a passing glance read as nothing. Nothing
   /// beneath it is touched — that is the whole point of it.
+  ///
+  /// It lives in the **root overlay**, not in this screen's tree. The screen
+  /// only sees itself; the fullscreen photo and the recording sheet are
+  /// routes *above* it in the navigator, and a veil that was part of this
+  /// screen never covered them — the shade's glance and the switcher
+  /// thumbnail read a decrypted photo the vault believed was hidden
+  /// (SEC-02). An entry in the root overlay covers every route of this
+  /// navigator at once, whatever is pushed when the veil goes up.
   bool _veiled = false;
+  OverlayEntry? _veilEntry;
 
   /// The pause that has not yet become a real leave.
   Timer? _veilHide;
@@ -217,6 +281,37 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   void _cover() {
     if (!mounted) return;
     setState(() => _veiled = true);
+    _syncVeil();
+  }
+
+  /// Puts the veil over the whole navigator, or takes it down.
+  ///
+  /// Called from the same places that set [_veiled], so the two can never
+  /// disagree; the entry is removed exactly once by keeping it in a nullable
+  /// field. If there is no overlay to hang it on — a screen tested outside
+  /// a `WidgetsApp` — the veil inside the tree below is the fallback.
+  void _syncVeil() {
+    if (_veiled && _veilEntry == null) {
+      final overlay = Overlay.maybeOf(context, rootOverlay: true);
+      if (overlay != null) {
+        // Not opaque: an opaque entry stops what is under it from being
+        // painted at all, and the blur would have nothing to blur — the veil
+        // would become a flat grey sheet instead of the frosted cover it
+        // has always been. The blur and the scrim are what hide; the hit
+        // test is absorbed and the semantics blocked either way.
+        _veilEntry = OverlayEntry(
+          builder: (_) => const _VaultVeil(key: ValueKey('vault-veil')),
+        );
+        overlay.insert(_veilEntry!);
+      }
+    } else if (!_veiled && _veilEntry != null) {
+      _removeVeil();
+    }
+  }
+
+  void _removeVeil() {
+    _veilEntry?.remove();
+    _veilEntry = null;
   }
 
   void _flushDraft() {
@@ -245,6 +340,11 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   void _hide({bool keepPlace = true}) {
     _flushDraft();
     copiedTimer?.cancel();
+    // A copied secret has no reason to outlive the screen that copied it:
+    // the wipe that would have come at the timer's leisure comes now
+    // (SEC-05). On Android the native sweep owns this and nothing is
+    // outstanding here; on the desktop the clipboard is the only copy.
+    unawaited(PrivateClipboard.sweepNow());
     generation++;
     if (!mounted) return;
     if (unlocked) _resumeEditing = keepPlace && editing != null;
@@ -260,12 +360,17 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       revealTimer?.cancel();
       _veiled = false;
     });
+    _syncVeil();
   }
 
   /// Ends the unlock for every private tool.
   void _lock() {
     session.close();
-    // Plain copies made to play or open an attachment go with the unlock.
+    // Plain copies made to play or open an attachment go with the unlock,
+    // and so does anything they were playing or showing: a route is above
+    // this screen in the navigator, and leaving one up put a decrypted
+    // photo or a live recording over a locked vault (SEC-02).
+    _closePrivateRoutes();
     unawaited(VaultFiles.clearOpenCopies());
     idle?.cancel();
     messageInput.clear();
@@ -313,13 +418,23 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     final ticket = generation;
     try {
       if (!await protection) throw StateError('Secure window unavailable');
+      // The Security screen's "Biometrics only" switch is the user saying
+      // the device's PIN may never open what is theirs; the vault is the
+      // most private surface in the app and must not quietly ask for less
+      // (SEC-01).
       final accepted = await auth.authenticate(
         reason: l.vaultAuthReason,
-        biometricOnly: false,
+        biometricOnly: widget.biometricOnly,
       );
       if (!mounted || ticket != generation) return;
       if (!accepted) {
-        setState(() => error = l.vaultUnavailable);
+        // A plain cancel says nothing (lastFailure is null) and deserves no
+        // red text or "open settings" — an error shown for changing your
+        // mind teaches that the error can be ignored. Only a real refusal
+        // from the phone is said (SEC-07).
+        if (auth.lastFailure != null) {
+          setState(() => error = l.vaultUnavailable);
+        }
         return;
       }
       session.open();
@@ -610,29 +725,52 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-            // Over everything, including the app bar and its private title:
-            // the switcher's thumbnail and a glance from beside the phone
-            // read blur and scrim, and the form beneath is untouched.
-            if (_veiled)
+            // The fallback, for the rare embedding with no root overlay:
+            // the veil over this screen's own tree. With an overlay, the
+            // veil is an entry in it (see [_syncVeil]) and covers the
+            // routes above this screen — the fullscreen photo, the
+            // recording sheet — as well.
+            if (_veiled && _veilEntry == null)
               Positioned.fill(
                 key: const ValueKey('vault-veil'),
-                child: AbsorbPointer(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
-                    child: ColoredBox(
-                      color: theme.colorScheme.surface.withValues(alpha: 0.86),
-                      child: Center(
-                        child: Icon(
-                          Icons.lock_outline,
-                          size: 32,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                child: const _VaultVeil(),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Blur and scrim, and nothing readable under it: what the root overlay
+/// hangs over the whole navigator while the vault is covered, and what the
+/// screen itself shows when no overlay could be found. A blur rather than a
+/// blank cover, so the shape beneath stays legible as "something is there
+/// and it is none of your business".
+///
+/// [BlockSemantics] carries the covering into the screen-reader tree too:
+/// nothing beneath the veil is announced while it is up — not this screen's
+/// content, and not a route pushed above it.
+class _VaultVeil extends StatelessWidget {
+  const _VaultVeil({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AbsorbPointer(
+      child: BlockSemantics(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+          child: ColoredBox(
+            color: theme.colorScheme.surface.withValues(alpha: 0.86),
+            child: Center(
+              child: Icon(
+                Icons.lock_outline,
+                size: 32,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         ),
       ),
     );

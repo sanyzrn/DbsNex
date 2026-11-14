@@ -15,8 +15,20 @@ mixin _SecurityPreferences on _PreferencesStore {
   /// Seconds rather than minutes because the useful values are short: the
   /// case this exists for is a trip to another app and straight back, not an
   /// afternoon away.
-  int get appLockGraceSeconds =>
-      _prefs.getInt('security.lock_grace_seconds') ?? 60;
+  ///
+  /// Bound to the range the Security screen offers, on the way in and on
+  /// the way out (SEC-06): the value travels in preferences backups and a
+  /// restored file that says 68 years would have turned "after a minute"
+  /// into "never" without anything on screen looking different. A value
+  /// that is too small fails the other way — it just locks sooner — but
+  /// both are pulled into the range where the answer is one the user chose.
+  static const minGraceSeconds = 15;
+  static const maxGraceSeconds = 3600;
+
+  int get appLockGraceSeconds {
+    final value = _prefs.getInt('security.lock_grace_seconds') ?? 60;
+    return value < minGraceSeconds || value > maxGraceSeconds ? 60 : value;
+  }
 
   /// Whether the lock is currently closed, remembered across a process death.
   ///
@@ -49,6 +61,9 @@ mixin _SecurityPreferences on _PreferencesStore {
   }
 
   Future<void> setAppLockGraceSeconds(int value) async {
+    // Stored as given, read back inside the range: the Security screen only
+    // ever writes one of its own choices, and a value that did not come
+    // from there is not made canonical by rewriting it.
     await _prefs.setInt('security.lock_grace_seconds', value);
     notifyListeners();
   }
@@ -58,8 +73,14 @@ mixin _SecurityPreferences on _PreferencesStore {
   /// Deliberately silent — no [notifyListeners]. The lock gate is the thing
   /// that sets this, and telling it that something changed while it is
   /// changing it is how a rebuild loop starts.
-  Future<void> setAppLockClosed(bool value) =>
-      _prefs.setBool('security.lock_closed', value);
+  ///
+  /// A write that would say what the store already says is skipped: this is
+  /// written on every launch and every preference refresh, and a flush of
+  /// an unchanged `false` was the most regular disk write the app made.
+  Future<void> setAppLockClosed(bool value) async {
+    if (appLockClosed == value) return;
+    await _prefs.setBool('security.lock_closed', value);
+  }
 
   Future<void> setAppLockLeftAt(DateTime? value) async {
     if (value == null) {

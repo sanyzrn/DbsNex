@@ -1,7 +1,4 @@
 import 'dart:async';
-
-import 'crash_reporter.dart';
-
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -11,6 +8,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'crash_reporter.dart';
 import 'photo_metadata.dart';
 
 /// Whether this platform has a share sheet worth offering.
@@ -253,8 +251,13 @@ Future<XFile> _shareable(
   if (!photo) return original;
   try {
     final bytes = await File(path).readAsBytes();
-    final clean = jpegWithoutMetadata(bytes);
-    if (identical(clean, bytes)) return original;
+    // Off the UI isolate: the strip is a full-size copy of the photo's
+    // bytes, and a share of many photos made the UI isolate make every one
+    // of them between frames. `compute` cannot answer `identical`, so the
+    // sentinel is null for "nothing to strip" — the original goes out as it
+    // is, with no staged copy at all.
+    final clean = await compute(nexStrippedPhotoForShare, bytes);
+    if (clean == null) return original;
     final folder = await nexStagingFolder('nex-share-');
     staged.add(folder);
     final copy = File(
@@ -266,6 +269,25 @@ Future<XFile> _shareable(
   } catch (_) {
     return original;
   }
+}
+
+/// [bytes] with where and when they were taken stripped away, or null when
+/// they carry nothing to strip — the answer the caller needs to send the
+/// original file as it is, staging no copy at all.
+///
+/// Compared by content rather than `identical`: the strip rebuilds every
+/// well-formed JPEG even when it drops nothing from it, and a photo that
+/// lost no metadata can go out as the file it already is. Before this,
+/// every JPEG share paid for a staged copy — written, shared, and swept —
+/// that said exactly what the original already said.
+@visibleForTesting
+Uint8List? nexStrippedPhotoForShare(Uint8List bytes) {
+  final clean = jpegWithoutMetadata(bytes);
+  if (clean.length != bytes.length) return clean;
+  for (var i = 0; i < clean.length; i++) {
+    if (clean[i] != bytes[i]) return clean;
+  }
+  return null;
 }
 
 /// A fresh folder for a copy on its way out of the app — a photo stripped of

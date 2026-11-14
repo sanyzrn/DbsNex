@@ -67,6 +67,10 @@ describe("HTTP boundary", () => {
   for (const [method, path] of [
     ["POST", "/sync/push"],
     ["GET", "/sync/pull"],
+    // Media routes, too: the bytes behind a hash are as much the account's
+    // data as the notes referencing them.
+    ["PUT", "/sync/media/" + "0".repeat(64)],
+    ["GET", "/sync/media/" + "0".repeat(64)],
     ["GET", "/notes"],
     ["GET", "/tags"],
   ] as const) {
@@ -74,7 +78,7 @@ describe("HTTP boundary", () => {
       const res = await fetch(`${baseUrl}${path}`, {
         method,
         headers: { "content-type": "application/json" },
-        ...(method === "POST" ? { body: "{}" } : {}),
+        ...(method !== "GET" ? { body: "{}" } : {}),
       });
       assert.equal(res.status, 401);
     });
@@ -86,7 +90,7 @@ describe("HTTP boundary", () => {
           "content-type": "application/json",
           authorization: "not-a-bearer-token",
         },
-        ...(method === "POST" ? { body: "{}" } : {}),
+        ...(method !== "GET" ? { body: "{}" } : {}),
       });
       assert.equal(res.status, 401);
     });

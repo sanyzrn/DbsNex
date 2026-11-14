@@ -122,13 +122,6 @@ class _RecurringAttachmentsState extends State<RecurringAttachments> {
           : ImagePicker().pickImage(source: source);
       final picked = await taking;
       if (picked == null) return;
-      final bytes = await picked.readAsBytes();
-      // The camera's or the picker's own copy, now that it is read.
-      unawaited(
-        getTemporaryDirectory().then(
-          (cache) => discardPickedCopy(picked.path, cache),
-        ),
-      );
       final extension = p.extension(picked.path).isEmpty
           ? '.jpg'
           : p.extension(picked.path);
@@ -138,7 +131,19 @@ class _RecurringAttachmentsState extends State<RecurringAttachments> {
       );
       final dest = File(p.join(widget.services.mediaDir, relative));
       await dest.parent.create(recursive: true);
-      await dest.writeAsBytes(bytes, flush: true);
+      // Copied file-to-file rather than read into memory and written back:
+      // a receipt is a photo like any other, and the bytes never need to
+      // cross the heap to get from the picker's copy to the library — the
+      // timeline's photo path made the same move (PERF-07).
+      await File(picked.path).copy(dest.path);
+      // The camera's or the picker's own copy, now that ours is written:
+      // deleted only after the copy has landed, so a failure between the
+      // two leaves the original where a retry can still find it.
+      unawaited(
+        getTemporaryDirectory().then(
+          (cache) => discardPickedCopy(picked.path, cache),
+        ),
+      );
       widget.onChanged({
         ...widget.details,
         'receipts': [

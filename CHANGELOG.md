@@ -11,6 +11,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 - **Older dates in the date picker.** Choosing a year and a month in the Persian calendar now moves the selected day with them, so a date like 27 Bahman 1365 can be set without hunting for the day first.
 - **Converter reads dates the way you write them.** Besides 1365/11/27, the date field accepts the day first (27/11/1365) and month names (۲۷ بهمن ۱۳۶۵, 16 Feb 1987), and a number written as ۲/۵ reads as two and a half.
 - **Recent keeps only real conversions.** Switching tabs, calendars, categories or charts no longer fills **Recent** with default values; a date or number you type is kept once, even while you are still correcting it.
+- **The vault asks for what you set.** With **Fingerprint or biometrics** on, opening a private tool asks for your fingerprint or face alone, as the app lock does; cancelling the prompt is no longer shown as an error.
+- **A locked vault leaves nothing open.** When the vault locks — by its timer, by the app lock or after time away — a private photo open full screen and a recording in progress close with it, the privacy cover now covers them too, and decrypted copies of attachments are cleared. A password you copied is wiped when the vault hides, and a password shown in the editor hides itself again after a few seconds.
+- **Private attachments always open.** Two attachments added at the very first moment the vault was used could seal one of them under a key that was then replaced, leaving it unreadable. Both now share one key.
+- **A quicker, sturdier start.** Opening asks the system less and no longer queues the library's bookkeeping in front of the database, so the timeline is ready sooner. If the library ever fails to open, **Try again** starts clean, and a file that never answers can no longer keep a restart waiting.
+- **Lighter in the background.** With the on-device search model installed, going behind another app now releases it, as the assistant's model already was, so the system has less reason to close Nex while you are elsewhere.
+- **Lighter, safer attachments.** Picking several photos onto a note no longer loads each one whole into memory, a voice clip recorded onto a note is saved straight into the library — so a save that fails no longer loses the recording — and sharing a photo with no location in it sends the original file.
 
 ## v2.7.0
 

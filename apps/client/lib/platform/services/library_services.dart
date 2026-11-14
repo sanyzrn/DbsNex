@@ -427,6 +427,12 @@ extension NexLibraryServices on NexServices {
   Future<void> refreshTimeline() async {
     if (_closed || _timelineController.isClosed) return;
     _timelineReads++;
+    // Everything that changes the library funnels through here, which makes
+    // here the one place a write-triggered auto-sync can hook without
+    // threading a call through every mutation. The cycle itself re-checks
+    // the outbox before spending a round trip, so this scheduling is free
+    // for an idle library.
+    _scheduleAutoSync();
     final notes = await worker.timeline(limit: _timelineWindow);
     // A restore/restart may have closed this graph while the worker's
     // response was in flight. Its old snapshot has no listeners to update.

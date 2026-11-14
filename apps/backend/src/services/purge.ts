@@ -1,5 +1,6 @@
 import { getPool } from "../db/index.ts";
 import { env } from "../env.ts";
+import { removeMedia } from "./media-store.ts";
 
 /**
  * Phase two of the two-phase delete.
@@ -28,15 +29,25 @@ export async function purgeTombstones(): Promise<{
     [env.TOMBSTONE_RETENTION_DAYS],
   );
 
-  const mediaRes = await pool.query(
+  const mediaRes = await pool.query<{ user_id: string; media_hash: string }>(
     `DELETE FROM media_objects m
       WHERE NOT EXISTS (
         SELECT 1 FROM notes n
          WHERE n.user_id = m.user_id
            AND n.media_hash = m.media_hash
            AND n.deleted_at IS NULL
-      )`,
+      )
+      RETURNING m.user_id, m.media_hash`,
   );
+
+  // The row's bytes, when this deployment has them (see media-store.ts).
+  // Before the media endpoints existed, media_objects.storage_key held
+  // whatever the client pushed — another device's local path — so the file is
+  // removed by *deriving* its path from (user, hash), never by trusting the
+  // stored string. A path this service did not write is never unlinked.
+  for (const row of mediaRes.rows) {
+    await removeMedia(row.user_id, row.media_hash);
+  }
 
   return { notes: notesRes.rowCount ?? 0, media: mediaRes.rowCount ?? 0 };
 }

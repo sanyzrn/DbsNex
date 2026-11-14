@@ -267,7 +267,7 @@ Restoring replaces the library and restarts Nex. If a restore is interrupted, th
 
 ## Security and privacy
 
-**App lock.** Under **Settings → Security and privacy → App lock**, turn on **Device passcode** and Nex asks for your phone's own fingerprint, face, PIN, pattern or password before it shows anything. **Fingerprint or biometrics** asks for the fingerprint or face only, with no PIN in its place. Turning the lock on or off, and turning biometrics off, each ask for it first. Nex never sees or keeps your fingerprint or PIN — the phone checks them and only tells Nex yes or no — so if you can unlock your phone, you can unlock Nex; there is no separate Nex password to forget. If the phone has no screen lock yet, Nex says so and opens the phone's security settings to set one.
+**App lock.** Under **Settings → Security and privacy → App lock**, turn on **Device passcode** and Nex asks for your phone's own fingerprint, face, PIN, pattern or password before it shows anything. **Fingerprint or biometrics** asks for the fingerprint or face only, with no PIN in its place — for the app lock and for the private tools alike. Turning the lock on or off, and turning biometrics off, each ask for it first. Nex never sees or keeps your fingerprint or PIN — the phone checks them and only tells Nex yes or no — so if you can unlock your phone, you can unlock Nex; there is no separate Nex password to forget. If the phone has no screen lock yet, Nex says so and opens the phone's security settings to set one.
 
 **When it locks**, chosen under the switches:
 - **As soon as I leave** — every time Nex goes to the background.

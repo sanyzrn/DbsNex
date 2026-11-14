@@ -300,6 +300,21 @@ CREATE TABLE IF NOT EXISTS note_tags (
       "TEXT NOT NULL DEFAULT 'pending'",
     );
 
+    // Media hashes this library believes the server holds the bytes for
+    // (media-store.ts, ADR-019). One row per hash, written after a successful
+    // upload or download, so a synced photo is not re-sent on every cycle.
+    // New, so a plain IF NOT EXISTS reaches every existing library without a
+    // schema-version bump: an older build simply ignores the extra table.
+    //
+    // It is a cache, not a truth: the server's own push response says which
+    // hashes it still lacks, and that outranks whatever is stored here.
+    db.execute('''
+CREATE TABLE IF NOT EXISTS synced_media (
+  media_hash TEXT PRIMARY KEY NOT NULL,
+  held_since TEXT NOT NULL
+)
+''');
+
     db.execute('''
 CREATE TABLE IF NOT EXISTS note_embeddings (
   note_id TEXT PRIMARY KEY NOT NULL REFERENCES notes(id) ON DELETE CASCADE,

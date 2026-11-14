@@ -612,4 +612,7 @@ mixin _DbClient implements NexDb {
         'baseUrl': baseUrl,
         'bearerToken': bearerToken,
       });
+
+  @override
+  Future<bool> pendingSyncWork() => _send<bool>(_DbCommand.pendingSyncWork);
 }

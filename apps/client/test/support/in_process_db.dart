@@ -305,6 +305,9 @@ class InProcessDb implements NexDb {
       _repo.hasUntaggedTimelineNotes();
 
   @override
+  Future<bool> pendingSyncWork() async => _repo.hasPendingSyncWork();
+
+  @override
   Future<Map<String, int>> timelineShelfCounts() async =>
       _repo.timelineShelfCounts();
 
