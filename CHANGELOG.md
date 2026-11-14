@@ -4,6 +4,15 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.6.30
+
+- **Converter.** A new module: dates across the solar, Gregorian and lunar calendars, with the days between two dates and adding or taking away days; units in six categories, Iranian units included; and eight size charts for clothes, shoes and rings. Add it from **Tools → Modules**; it works fully offline.
+- **List cards in their kind's colour.** The soft wash the grid tiles carry now sits behind list cards too, so a text, a checklist or a voice note can be told apart at a glance in either layout.
+- **Search no longer loses words.** Adding a caption, or an edit arriving from another device, could drop the words read from a note's attached photo or file out of search until the note was edited again. Now nothing is dropped, and the first start after this update repairs notes affected before.
+- **Persian tags and kinds in search.** `tag:` finds a tag written with the Arabic ک or ی or with different spacing, and `type:` understands Persian names such as عکس, صوتی or چک‌لیست.
+- **A closest match for long notes too.** When nothing matches, "The closest thing you wrote" now compares word by word, so a near miss inside a long note or a voice transcript is offered as well.
+- **Steadier search results.** Searching with filters alone lists notes the way the timeline does — pinned first, then by last change — and a stray half-space or quote mark no longer brings up the whole library. Each keystroke also searches once instead of twice.
+
 ## v2.6.29
 
 - **No duplicate checklists.** If closing the capture box to save a checklist was interrupted after the list was already saved, trying again used to make a second, identical list. It now finds the one already made.
