@@ -1146,7 +1146,11 @@ WHERE id = ? AND deleted_at IS NULL
           noteId,
         ],
       );
-      _upsertFts(noteId, content);
+      // Re-derived from the whole note, as every FTS writer but this one
+      // already did: upserting the raw body dropped a titled note's title,
+      // its caption and the words of its attachments out of the search row,
+      // so a synced edit made a note harder to find than writing it had.
+      _reindex(noteId);
     });
   }
 
@@ -1380,13 +1384,13 @@ WHERE id = ?
       );
     }
     deleteSearchRow(id);
-    final note = Note.fromRow(
-      db.select('SELECT * FROM notes WHERE id = ?', [id]).first,
-    );
-    final searchable = note.searchableDerivedText;
-    if (searchable != null && searchable.isNotEmpty) {
-      _upsertFts(id, searchable);
-    }
+    // Re-derived from the written row, not just the note's own derived text:
+    // attachments never cross the sync wire, but they are already here from
+    // an earlier page or an import, and their words — a photo's read text, a
+    // clip's transcript — used to fall out of the index with every remote
+    // update of the note they hang from. A tombstone re-derives to nothing
+    // and stays out of the index (W2.2, DATA-08).
+    _reindex(id);
     db.execute('DELETE FROM note_tags WHERE note_id = ?', [id]);
     // A remote payload can name a tag this device has never seen — a peer
     // that created the tag out of order, or a server that kept the note but
@@ -1512,13 +1516,11 @@ WHERE id = ? AND deleted_at IS NULL
 ''',
         [value, now, if (localDeviceId != null) localDeviceId, noteId],
       );
-      final note = getById(noteId);
-      final searchable = note?.searchableDerivedText;
-      if (searchable != null && searchable.isNotEmpty) {
-        _upsertFts(noteId, searchable);
-      } else if (note?.type != NoteType.text) {
-        deleteSearchRow(noteId);
-      }
+      // Re-derived through the one writer every other edit goes through:
+      // this used to upsert the note's own derived text alone, so captioning
+      // a note with attachments — a photo whose read text had just made it
+      // findable — wiped the attachments' words out of its search row.
+      _reindex(noteId);
     });
   }
 
@@ -1633,7 +1635,13 @@ WHERE id = ? AND deleted_at IS NULL
   /// queries return nothing and the cost is two set lookups; on a damaged
   /// one it is the difference between a note that is findable and one that
   /// silently is not until the next time it is edited.
-  static const searchTextVersion = 1;
+  ///
+  /// Version 2 (2.6.29): every writer now derives the whole search row —
+  /// title, caption and attached files' text included — so libraries written
+  /// by versions whose `setCaption`, `updateContentAt` and `applyRemoteNote`
+  /// upserted partial rows get theirs re-derived once, on the first open
+  /// after the upgrade.
+  static const searchTextVersion = 2;
 
   /// Synchronous entry point for maintenance/tests.
   void repairSearchIndex() {
@@ -2141,11 +2149,24 @@ LIMIT ?
         filters.types.isEmpty &&
         filters.createdFrom == null &&
         filters.createdTo == null;
+    // The timeline's own order, not `created_at`: the comment above has
+    // promised it since search moved onto the timeline, and the two lists
+    // sit in the same scroll view — a note edited today but written last
+    // month was at the top of one and pages deep in the other. Pinned first,
+    // then most recently changed, with the same padded-fraction pin order
+    // `listTimeline` uses.
+    const order = '''
+ORDER BY
+  (n.pinned_at IS NOT NULL) DESC,
+  substr(replace(n.pinned_at, 'Z', '000000'), 1, 26) DESC,
+  n.updated_at DESC,
+  n.rowid DESC
+''';
     final sql =
         '''
 SELECT n.* FROM notes n
 WHERE ${where.join(' AND ')}
-ORDER BY n.created_at DESC, n.rowid DESC
+$order
 ${filters.pageSize != null
             ? 'LIMIT ${filters.pageSize!.clamp(1, 500)} OFFSET ${filters.offset < 0 ? 0 : filters.offset}'
             : unnarrowed
@@ -2198,9 +2219,41 @@ n.id IN (
 
   /// Keyword matches for [filters], best first: FTS5 matches by BM25, then
   /// the matches only a substring finds ("tor" in "Generator"), newest first.
+  ///
+  /// Remembered for the next call with the same filters until this
+  /// connection next writes anything: one keystroke asks twice — the instant
+  /// round, then the fused round once the meaning search answers — and the
+  /// second used to run the FTS query and its whole-index substring pass
+  /// again for the same answer (2.6.30). `total_changes()` counts every row
+  /// this connection has inserted, updated or deleted, so any write at all,
+  /// whichever table, makes the remembered answer stale.
   List<String> keywordRanked(SearchFilters filters, {int limit = rankedLimit}) {
+    final key =
+        '${filters.query}\u0000${filters.tagIds.join(',')}\u0000'
+        '${filters.types.map((t) => t.name).join(',')}\u0000'
+        '${filters.createdFrom?.toIso8601String()}\u0000'
+        '${filters.createdTo?.toIso8601String()}\u0000$limit';
+    final changes = db.select('SELECT total_changes() AS n').first['n']! as int;
+    final last = _lastKeyword;
+    if (last != null && last.key == key && last.changes == changes) {
+      return last.ids;
+    }
+    final ids = List<String>.unmodifiable(_keywordRanked(filters, limit));
+    _lastKeyword = (key: key, changes: changes, ids: ids);
+    return ids;
+  }
+
+  ({String key, int changes, List<String> ids})? _lastKeyword;
+
+  List<String> _keywordRanked(SearchFilters filters, int limit) {
     final q = filters.query.trim();
     if (q.isEmpty) return const [];
+    final tokens = nexSearchTokens(q);
+    // A query that folds to no words at all — only quotes, stars or the
+    // half-space — has nothing to match. It used to fall through to the
+    // substring pass with an empty needle, and `instr(content, '')` is true
+    // of every row: one stray keystroke and the whole library was the answer.
+    if (tokens.isEmpty) return const [];
     final (where, args) = _filterClause(filters);
     final filter = where.join(' AND ');
     // Deleted notes are taken out of the index when they are deleted, so a
@@ -2227,21 +2280,26 @@ WHERE notes_fts MATCH ? AND $filter
 ORDER BY bm25(notes_fts), n.created_at DESC, n.rowid DESC
 LIMIT ?
 ''',
-        [_ftsQuery(q), if (!unfiltered) ...args, limit],
+        [_ftsQuery(tokens), if (!unfiltered) ...args, limit],
       ))
         row['id']! as String,
     ];
     if (ids.length < limit) {
       final seen = ids.toSet();
+      final needle = nexSearchFold(q).toLowerCase();
+      // `lower()` is ASCII-only — and that is exactly the gap left: the fold
+      // normalises every Persian spelling but leaves Latin letters cased,
+      // and the index keeps the note's own case. Without it, "NERA" stopped
+      // finding "Generator" the moment the FTS pass missed it.
       for (final row in db.select(
         '''
 SELECT f.note_id AS id FROM notes_fts f
 JOIN notes n ON n.id = f.note_id
-WHERE instr(lower(f.content), lower(?)) > 0 AND $filter
+WHERE instr(lower(f.content), ?) > 0 AND $filter
 ORDER BY n.created_at DESC, n.rowid DESC
 LIMIT ?
 ''',
-        [nexSearchFold(q), ...args, limit],
+        [needle, ...args, limit],
       )) {
         final id = row['id']! as String;
         if (seen.add(id)) ids.add(id);
@@ -2254,13 +2312,19 @@ LIMIT ?
   /// One ranked list for [filters]: its keyword matches fused with
   /// [semantic], the ids a meaning search found, best first (W2.2). Meaning
   /// matches are held to the same filters as keyword ones.
+  ///
+  /// [keyword] is the same query's keyword matches, already computed in rank
+  /// order — the fused round that follows the instant one passes what it just
+  /// showed rather than running the FTS query and its substring pass a second
+  /// time. Null computes them, as callers outside the search flow still do.
   List<Note> rankedSearch(
     SearchFilters filters, {
     List<String> semantic = const [],
+    List<String>? keyword,
     int limit = rankedLimit,
   }) {
-    final keyword = keywordRanked(filters, limit: limit);
-    final candidates = {...keyword, ...semantic}.toList();
+    final words = keyword ?? keywordRanked(filters, limit: limit);
+    final candidates = {...words, ...semantic}.toList();
     if (candidates.isEmpty) return const [];
     final (where, args) = _filterClause(filters);
     final facts = <String, FusionFacts>{};
@@ -2288,7 +2352,7 @@ WHERE n.id IN ($placeholders) AND ${where.join(' AND ')}
       }
     }
     final ordered = FusedRanking.fuse(
-      keyword: keyword,
+      keyword: words,
       semantic: semantic,
       facts: facts,
       now: DateTime.now().toUtc(),
@@ -2836,8 +2900,8 @@ WHERE id = ?
     );
   }
 
-  /// Build an FTS5 MATCH query: fold it as the index is folded
-  /// ([nexSearchFold]), quote tokens so no character is read as FTS syntax,
+  /// Build an FTS5 MATCH query from tokens already folded
+  /// ([nexSearchTokens]): quote each so no character is read as FTS syntax,
   /// and make the final token a prefix so results narrow as the user types.
   ///
   /// Every token used to be an exact match, which meant nothing was found until
@@ -2845,16 +2909,7 @@ WHERE id = ?
   /// incrementally. Only the last token gets `*`: the earlier ones are words the
   /// user finished typing and meant literally, while the trailing one is still
   /// mid-keystroke.
-  String _ftsQuery(String raw) {
-    final cleaned = nexSearchFold(raw)
-        .replaceAll('"', ' ')
-        .replaceAll('*', ' ')
-        .trim();
-    if (cleaned.isEmpty) return '""';
-    final tokens = cleaned
-        .split(RegExp(r'\s+'))
-        .where((t) => t.isNotEmpty)
-        .toList();
+  String _ftsQuery(List<String> tokens) {
     if (tokens.isEmpty) return '""';
     return [
       for (var i = 0; i < tokens.length; i++)

@@ -715,6 +715,7 @@ class InProcessDb implements NexDb {
 
   @override
   Future<List<Note>> fusedSearch(SearchFilters filters) async {
+    if (filters.query.trim().isEmpty) return _repo.search(filters);
     final hits = await _enrichment.semanticSearch(filters.query, limit: 100);
     return _repo.rankedSearch(
       filters,

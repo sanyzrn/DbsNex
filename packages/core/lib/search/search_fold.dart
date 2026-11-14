@@ -71,3 +71,21 @@ String nexSearchIndexText(String text) {
   };
   return '$split\n${joined.join(' ')}';
 }
+
+/// The words a query actually has to look for: [nexSearchFold]ed, with the
+/// two characters FTS5 reads as syntax — the quote and the star — taken out
+/// rather than escaped, and split on whitespace.
+///
+/// One definition for every place that asks "does this query say anything?".
+/// It used to be re-derived in each, and the one in the substring pass had no
+/// answer at all: a query of only quotes, or only the half-space a Persian
+/// keyboard makes with Shift+Space, folds to nothing there, and
+/// `instr(content, '')` is true of every row — one stray keystroke listed the
+/// whole library as a match for it. An empty list is the honest answer: no
+/// words, nothing to find.
+List<String> nexSearchTokens(String text) => [
+  for (final token in nexSearchFold(
+    text,
+  ).replaceAll('"', ' ').replaceAll('*', ' ').split(RegExp(r'\s+')))
+    if (token.isNotEmpty) token,
+];
