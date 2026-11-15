@@ -212,13 +212,9 @@ version, changelog or guide is modified.
   help is optional support, not emergency or clinical care.
 - No real Android device, release APK or OS/background endurance check was
   available here. Widget renders do not establish device frame rate.
-- **Maintainer action:** `test/ui_consistency_test.dart` requires the corner-radius
-  ratchet baseline to change from 8 to 7 after this module removes its old literal
-  radius. The test fails on improvements as well as regressions. Editing that
-  shared enforcement file is outside this task's authorized paths, so it remains
-  untouched. Requested change is the `8` argument to the first `ratchet()` call
-  (line 51) → `7`; no assertion or test should be removed or bypassed.
-- Only this module's source/tests change. Registration and
+- Owner authorized the shared corner-radius ratchet adjustment on 2026-11-15.
+  Its numeric-radius baseline is now 7 instead of 8; assertions are unchanged.
+- Changes are confined to this module plus that authorized one-line test baseline. Registration and
   `nexAvailableModuleIds` are unchanged. **Soon stays Soon**; owner reviews device
   behavior before any enablement, merge or release.
 
@@ -243,11 +239,12 @@ This is a host setup detail, not a repository dependency or shipped binary.
 - Full client analyzer: **clean**, `--fatal-infos`.
 - Module Kit + this module: **190 passed**.
 - Full client run: **3796 passed, 4 existing skips, 1 failed** in 6m59s.
-  The sole failure is `ui_consistency_test.dart: corner radii come from NexRadius`:
-  the shared numeric-radius baseline must decrease **8 → 7**, as described in
-  section 7. No test was disabled or bypassed; the full suite is **not green**.
-  The final resume-path regression was then covered by the latest 190-pass
-  module/kit run; the full client run is not presented as a final all-green run.
+  This historical failure was the numeric-radius ratchet (8 → 7). The owner
+  subsequently authorized its shared test baseline update. Failed CI #1082 also
+  confirmed this was its only failure (3093 passed, 4 skipped).
+  Follow-up after the baseline fix: **198 passed**, running the UI consistency
+  tests together with Module Kit and this module. The full suite was not repeated
+  for this one-line count correction; new CI will rerun affected checks.
 - 24 language/theme/size review scenes passed; six representative PNGs inspected.
 - Changed Dart files formatted; diff whitespace/scope checks clean. No release or
   device-performance claim.
