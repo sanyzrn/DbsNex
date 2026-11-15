@@ -151,6 +151,7 @@ void main() {
       await setup(tester);
       await logCraving(tester);
 
+      await revealQuit(tester, find.text('Strong · Stress'));
       expect(find.text('Strong · Stress'), findsOneWidget);
       expect(find.text('Today'), findsOneWidget);
       expect(await store.list('craving'), hasLength(1));
@@ -168,6 +169,7 @@ void main() {
       await logCraving(tester, trigger: 'stress');
       await logCraving(tester, trigger: 'stress');
 
+      await revealQuit(tester, find.text('Most common: Stress (2 times)'));
       expect(find.text('Most common: Stress (2 times)'), findsOneWidget);
     });
 
@@ -180,6 +182,7 @@ void main() {
       await logCraving(tester, trigger: 'coffee');
 
       // Open the newest craving (first in the list) and swap its trigger.
+      await revealQuit(tester, find.text('Strong · Coffee or tea'));
       await tester.tap(find.text('Strong · Coffee or tea'));
       await tester.pumpAndSettle();
       final coffee = find.byKey(const ValueKey('craving-trigger-coffee'));
@@ -213,7 +216,7 @@ void main() {
       await logCraving(tester);
 
       final row = find.text('Strong · Stress');
-      await tester.ensureVisible(row);
+      await revealQuit(tester, row);
       await tester.pumpAndSettle();
       await tester.tap(row);
       await tester.pumpAndSettle();
@@ -229,6 +232,7 @@ void main() {
       await tester.tap(find.text('Undo'));
       await settle(tester);
       expect(await store.list('craving'), hasLength(1));
+      await revealQuit(tester, find.text('Strong · Stress'));
       expect(find.text('Strong · Stress'), findsOneWidget);
     });
   });
@@ -252,8 +256,9 @@ void main() {
       expect(quits, hasLength(2));
       expect(quits.where((q) => q.body['endedAt'] == null), hasLength(1));
       expect(find.text('Smoke-free since today'), findsOneWidget);
-      expect(find.text('Lasted 5 days'), findsOneWidget);
       expect(find.text('A new attempt started today'), findsOneWidget);
+      await revealQuit(tester, find.text('Lasted 5 days'));
+      expect(find.text('Lasted 5 days'), findsOneWidget);
     });
 
     testWidgets('a lapse without restart leaves a clear start button', (
@@ -346,6 +351,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Smoke-free for 5 days'), findsOneWidget);
+      await revealQuit(tester, find.text('Strong · Stress'));
       expect(find.text('Strong · Stress'), findsOneWidget);
     });
 
@@ -371,7 +377,12 @@ void main() {
       await logCraving(tester, trigger: 'coffee');
       await logCraving(tester, trigger: 'stress');
 
+      await revealQuit(
+        tester,
+        find.text('Most common: Coffee or tea (2 times)'),
+      );
       expect(find.text('Most common: Coffee or tea (2 times)'), findsOneWidget);
+      await revealQuit(tester, find.text('≈ 24 cigarettes not smoked'));
       expect(find.text('≈ 24 cigarettes not smoked'), findsOneWidget);
     });
   });
@@ -432,9 +443,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('smoke-confirm-restart')));
     await settle(tester);
-    final current = (await store.list(
-      'quit',
-    )).singleWhere((r) => r.body['endedAt'] == null);
+    final current = (await store.list('quit'))
+        .singleWhere((r) => r.body['endedAt'] == null);
     expect(current.body['currency'], 'USD');
     expect(current.body['pricePerPackMinor'], 650);
   });

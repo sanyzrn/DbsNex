@@ -6,6 +6,7 @@ import 'package:nex_client/modules/smoke_free/smoke_free_screen.dart';
 import 'package:nex_client/modules/smoke_free/module.dart';
 
 import '../../support/nex_harness.dart';
+import 'quit_details.dart';
 
 /// The smoke-free screen in Persian right-to-left and English left-to-right,
 /// light and dark, at text scale 2.0, and with animations off: nothing
@@ -76,6 +77,10 @@ void main() {
       );
       expect(find.text('۵ روز بدون سیگار'), findsOneWidget);
       expect(find.text('حدود ۵۰ سیگار نکشیده شده'), findsOneWidget);
+      await revealQuit(
+        tester,
+        find.text('حدود ۵۰۰٬۰۰۰ \u2066IRR\u2069 صرفه‌جویی'),
+      );
       expect(
         find.text('حدود ۵۰۰٬۰۰۰ \u2066IRR\u2069 صرفه‌جویی'),
         findsOneWidget,
@@ -93,6 +98,10 @@ void main() {
         textScale: 2.0,
       );
       expect(find.text('۵ روز بدون سیگار'), findsOneWidget);
+      await revealQuit(
+        tester,
+        find.text('حدود ۵۰۰٬۰۰۰ \u2066IRR\u2069 صرفه‌جویی'),
+      );
       expect(
         find.text('حدود ۵۰۰٬۰۰۰ \u2066IRR\u2069 صرفه‌جویی'),
         findsOneWidget,

@@ -1,4 +1,5 @@
 import 'package:nex_client/modules/module_api.dart';
+
 import 'money_format.dart';
 import 'number_input.dart';
 
@@ -25,6 +26,8 @@ class QuitAttempt {
     this.why = '',
     this.goalMinor = 0,
     this.minutesPerUnit = 0,
+    this.nextStep = '',
+    this.habitKey,
   }) : pricePerPackMinor = pricePerPackMinor ?? pricePerPackRials ?? 0;
 
   factory QuitAttempt.fromRecord(ModuleRecord record) =>
@@ -44,7 +47,7 @@ class QuitAttempt {
       startedAt:
           DateTime.tryParse('${body['startedAt'] ?? ''}') ?? DateTime.now(),
       cigarettesPerDay: whole(body['cigarettesPerDay']).clamp(0, 1000),
-      // Money is integer rials, always — never a double.
+      // Money is integer currency minor units, never a double.
       pricePerPackMinor: whole(
         body['pricePerPackMinor'] ?? body['pricePerPackRials'],
       ).clamp(0, maxMoney),
@@ -65,6 +68,13 @@ class QuitAttempt {
           : defaultHabit,
       name: body['name'] is String ? (body['name'] as String).trim() : '',
       why: body['why'] is String ? body['why'] as String : '',
+      nextStep: body['nextStep'] is String ? body['nextStep'] as String : '',
+      habitKey:
+          body['habitKey'] is String &&
+              (body['habitKey'] as String).startsWith('custom:') &&
+              (body['habitKey'] as String).length <= 512
+          ? body['habitKey'] as String
+          : null,
       goalMinor: whole(body['goalMinor']).clamp(0, maxMoney),
       minutesPerUnit: whole(body['minutesPerUnit']).clamp(0, 1440),
     );
@@ -89,9 +99,14 @@ class QuitAttempt {
   /// the person does not count it.
   final int minutesPerUnit;
 
-  /// What the habit is called in lists and on its page: the preset's own
-  /// name, or what was written for a custom one.
-  String get key => quitHabitKey(habit, name);
+  /// A small personal action for the next urge, independent of the reason.
+  final String nextStep;
+
+  /// Optional stable identity so a custom label can change without detaching
+  /// earlier attempts, craving logs or drafts.
+  final String? habitKey;
+  String get key =>
+      habit == 'custom' ? habitKey ?? quitHabitKey(habit, name) : habit;
 
   /// When this attempt began — a local instant, stored as ISO 8601.
   final DateTime startedAt;
@@ -125,12 +140,16 @@ class QuitAttempt {
         habit == defaultHabit &&
             why.isEmpty &&
             goalMinor == 0 &&
-            minutesPerUnit == 0
+            minutesPerUnit == 0 &&
+            nextStep.isEmpty &&
+            habitKey == null
         ? 2
         : 3,
     if (habit != defaultHabit) 'habit': habit,
     if (name.isNotEmpty) 'name': name,
     if (why.isNotEmpty) 'why': why,
+    if (nextStep.isNotEmpty) 'nextStep': nextStep,
+    if (habit == 'custom' && habitKey != null) 'habitKey': habitKey,
     if (goalMinor > 0) 'goalMinor': goalMinor,
     if (minutesPerUnit > 0) 'minutesPerUnit': minutesPerUnit,
     'pricePerPackMinor': pricePerPackMinor,
@@ -155,6 +174,7 @@ class Craving {
     required this.coping,
     required this.note,
     this.habit = defaultHabit,
+    this.afterIntensity,
   });
 
   factory Craving.fromRecord(ModuleRecord record) =>
@@ -180,6 +200,12 @@ class Craving {
           ? body['coping'] as String
           : null,
       note: body['note'] is String ? body['note'] as String : '',
+      afterIntensity:
+          body['afterIntensity'] is int &&
+              (body['afterIntensity'] as int) >= 1 &&
+              (body['afterIntensity'] as int) <= 3
+          ? body['afterIntensity'] as int
+          : null,
       habit: body['habit'] is String && (body['habit'] as String).isNotEmpty
           ? body['habit'] as String
           : defaultHabit,
@@ -196,6 +222,7 @@ class Craving {
   final DateTime at;
 
   final int intensity;
+  final int? afterIntensity;
 
   /// Zero or more of the known trigger keys.
   final List<String> triggers;
@@ -209,6 +236,7 @@ class Craving {
   Map<String, Object?> toJson() => {
     'at': at.toIso8601String(),
     'intensity': intensity,
+    if (afterIntensity != null) 'afterIntensity': afterIntensity,
     'triggers': triggers,
     'coping': coping,
     'note': note,
