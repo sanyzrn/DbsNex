@@ -46,7 +46,9 @@ class _HeroRecede extends StatelessWidget {
       animation: scroll,
       child: child,
       builder: (context, child) {
-        final offset = scroll.hasClients ? scroll.offset : 0.0;
+        // The first position, not `offset`: while one tree replaces another
+        // the controller briefly holds two, and `offset` asserts on that.
+        final offset = scroll.hasClients ? scroll.positions.first.pixels : 0.0;
         // At rest, and while a pull stretches the list the other way, the
         // header is itself: no layer, no clip.
         if (offset <= 0) return child!;
@@ -373,25 +375,33 @@ class _AiDaySummaryPanel extends StatelessWidget {
     // Not selectable, unlike the note body in the detail sheet: the card is
     // one button, and a `SelectionArea` would claim its tap for clearing a
     // selection.
-    return DefaultTextStyle.merge(
-      style: body,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final line in lines.take(foldedLines))
-            _line(line, folded: collapsed),
-          NexReveal(
-            visible: !collapsed && lines.length > foldedLines,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final line in lines.skip(foldedLines)) _line(line),
-              ],
+    //
+    // A refresh keeps the last successful text fully readable: the opacity
+    // is the same widget the empty state dims, held at one.
+    return AnimatedOpacity(
+      opacity: 1,
+      duration: NexMotion.of(context, NexMotion.slow),
+      curve: NexMotion.curve,
+      child: DefaultTextStyle.merge(
+        style: body,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final line in lines.take(foldedLines))
+              _line(line, folded: collapsed),
+            NexReveal(
+              visible: !collapsed && lines.length > foldedLines,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final line in lines.skip(foldedLines)) _line(line),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

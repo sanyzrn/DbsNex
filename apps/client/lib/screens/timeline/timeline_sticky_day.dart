@@ -219,6 +219,21 @@ extension _TimelineStickyDay on TimelineScreenState {
   /// the top, the group headings already say it.
   static const _showAfter = 160.0;
 
+  /// Names the day again once this frame is laid out.
+  ///
+  /// A scroll says the list has moved before anything has been laid out
+  /// where it moved to, and whether the row is held at the top is a
+  /// question about exactly that. One callback a frame, however many
+  /// notifications the frame carried.
+  void _queueStickyDay() {
+    if (_stickyQueued) return;
+    _stickyQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _stickyQueued = false;
+      if (mounted) _updateStickyDay();
+    });
+  }
+
   /// Names the day of the row that is passing under the filter row.
   void _updateStickyDay() {
     if (_searching || !_scroll.hasClients || _scroll.offset < _showAfter) {

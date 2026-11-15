@@ -249,10 +249,10 @@ extension _TimelineLayout on TimelineScreenState {
                               child: NexTapGuarded(
                                 controller: _guard,
                                 child: AnimatedSize(
-                                  duration: NexMotion.of(
-                                    context,
-                                    NexMotion.slow,
-                                  ),
+                                  // The token itself, not `NexMotion.of`:
+                                  // at zero an AnimatedSize ticks inside its
+                                  // own layout, which is an assertion.
+                                  duration: NexMotion.slow,
                                   curve: NexMotion.curve,
                                   alignment: Alignment.topCenter,
                                   child: _searching
@@ -496,107 +496,6 @@ extension _TimelineLayout on TimelineScreenState {
             ),
     );
   }
-
-  /// The home layout sheet, one tap from the screen it changes.
-  Future<void> _openHomeLayout() async {
-    if (_claimedByOverlay()) return;
-    // The sheet's own writes rebuild this screen through the preferences
-    // listener; what is left to catch is a sheet dismissed without a change,
-    // and that must not repaint every card mid sheet-close transition.
-    final prefs = widget.preferences;
-    String layout() =>
-        '${prefs.showGreeting}|${prefs.showDaySummary}|'
-        '${prefs.showSearchField}|${prefs.showTagRow}|'
-        '${prefs.pinnedTools.join(',')}';
-    final before = layout();
-    await nexShowSheet<void>(
-      context: context,
-      builder: (_) => HomeLayoutSheet(
-        preferences: widget.preferences,
-        services: widget.services,
-      ),
-    );
-    if (mounted && layout() != before) _rebuild(() {});
-  }
-
-  /// The row over the notes: what narrows them at its head, the tags along
-  /// it, and how the notes are laid out at its end.
-  ///
-  /// The view switch stands still while the tags scroll under its edge:
-  /// list or grid is asked for while looking at the notes, and it used to
-  /// be two taps and a sheet away.
-  Widget _notesToolbar(AppLocalizations l10n, bool otherFilters) => Row(
-    children: [
-      Expanded(
-        // The pills thin out as they reach the switch instead of being cut
-        // off against it. A mask over the row's own alpha, so it is right on
-        // any background the reader has chosen, where a fade painted in the
-        // page colour was a smudge across a patterned one.
-        child: ShaderMask(
-          blendMode: BlendMode.dstIn,
-          shaderCallback: (bounds) => LinearGradient(
-            begin: AlignmentDirectional.centerStart,
-            end: AlignmentDirectional.centerEnd,
-            colors: const [Colors.white, Colors.white, Colors.transparent],
-            stops: [
-              0,
-              1 - NexSpacing.lg / math.max(bounds.width, NexSpacing.lg),
-              1,
-            ],
-          ).createShader(bounds, textDirection: Directionality.of(context)),
-          // The row listens to the model itself, so a tags-only change —
-          // the filter row refreshing after a delivery — repaints the pills
-          // without rebuilding every card on the screen with them.
-          child: ListenableBuilder(
-            listenable: _model,
-            builder: (context, _) => TagFilterRow(
-              padding: const EdgeInsetsDirectional.fromSTEB(
-                NexSpacing.md,
-                NexSpacing.sm,
-                NexSpacing.md,
-                NexSpacing.sm,
-              ),
-              tags: _model.filterTags,
-              tagCounts: _model.filterTagCounts,
-              hasOtherFilters:
-                  _model.selectedType != null || _model.onlyReminders,
-              activeFilterLabel: [
-                if (_model.selectedType != null)
-                  l10n.noteType(_model.selectedType!.wireName),
-                if (_model.onlyReminders) l10n.filterHasReminder,
-              ].join(' · '),
-              onOpenActiveFilter: () => unawaited(_pickFilters()),
-              onClearAll: () => unawaited(_clearFilters()),
-              selectedTagIds: _model.selectedTagIds,
-              allLabel: l10n.all,
-              untaggedLabel: _model.hasUntagged ? l10n.filterUntagged : null,
-              untaggedSelected: _model.onlyUntagged,
-              onUntagged: () {
-                _tick();
-                unawaited(_model.selectUntagged(!_model.onlyUntagged));
-              },
-              tagLabel: (tag) => nexTagLabel(tag, l10n),
-              leading: _FilterButton(
-                active: _model.selectedType != null || _model.onlyReminders,
-                onPressed: () => unawaited(_pickFilters()),
-              ),
-              onSelected: (value) => unawaited(_selectTags(value)),
-            ),
-          ),
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsetsDirectional.only(end: NexSpacing.md),
-        child: _ViewToggle(
-          grid: widget.preferences.timelineGrid,
-          onChanged: (grid) {
-            _tick();
-            unawaited(widget.preferences.setTimelineGrid(grid));
-          },
-        ),
-      ),
-    ],
-  );
 
   /// Back with nothing open on the home screen: leave the app — except
   /// that while an update downloads, Nex goes to the background the way

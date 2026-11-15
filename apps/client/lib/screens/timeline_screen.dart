@@ -106,6 +106,7 @@ part 'timeline/timeline_capture.dart';
 part 'timeline/timeline_note_actions.dart';
 part 'timeline/timeline_navigation.dart';
 part 'timeline/timeline_layout.dart';
+part 'timeline/timeline_home_chrome.dart';
 part 'timeline/timeline_sticky_day.dart';
 part 'timeline/timeline_body.dart';
 part 'timeline/timeline_selection.dart';
@@ -272,6 +273,10 @@ class TimelineScreenState extends State<TimelineScreen>
   final Set<String> _selected = {};
   final ValueNotifier<String?> _stickyDay = ValueNotifier(null);
   final GlobalKey _stickyLine = GlobalKey();
+
+  /// A sticky-day pass is waiting for this frame's layout — see
+  /// `_queueStickyDay`.
+  bool _stickyQueued = false;
 
   /// When the current search began, for [NexMetric.searchToOpen]. Null
   /// outside a search, and after its first note has been opened: the
@@ -622,7 +627,7 @@ class TimelineScreenState extends State<TimelineScreen>
       _model.trimWindow();
     }
     if (notification is! ScrollUpdateNotification) return false;
-    _updateStickyDay();
+    _queueStickyDay();
     final offset = notification.metrics.pixels;
     // Back within a few screens of the top: the depth scrolled earlier is no
     // longer needed, so it stops costing every change a full re-read.

@@ -242,12 +242,13 @@ void main() {
     expect(tester.getSize(recap).height, closeTo(foldedHeight, 1));
     expect(preferences.daySummaryFolded, isTrue);
   });
-  // Scrolling used to fold the card on the first four pixels — less than a
-  // reading finger trembles — and worse, write the fold to the preferences
-  // for every launch after. Now it takes a real, dragged 56 pixels, and the
-  // preference belongs to the chevron alone.
-  testWidgets('a scroll folds the summary only past a real drag, and only '
-      'for the session', (tester) async {
+  // Scrolling used to fold the card — first on four pixels of travel, then
+  // on a real, dragged 56. Since 2.8.0 it does not fold it at all: the fold
+  // moved every card under a finger that was only trying to read them, and
+  // the card now changes on a tap alone.
+  testWidgets('a scroll never folds the summary; only a tap does', (
+    tester,
+  ) async {
     await preferences.setAiDaySummary(
       text: 'A calm day ahead\nCall the plumber\nFinish the draft',
       dateKey: 'cached',
@@ -268,23 +269,47 @@ void main() {
     final recap = find.byKey(const ValueKey('timeline-recap'));
     expect(recap, findsOneWidget);
     final openHeight = tester.getSize(recap).height;
+    expect(find.text('Finish the draft'), findsOneWidget);
 
-    // A drag too small to mean anything: still open, still not a setting.
-    // (Dragged on the recap itself: the row of filter pills above the list
-    // is a scrollable of its own, and not the one being tested.)
-    await tester.drag(recap, const Offset(0, -30));
-    await tester.pumpAndSettle();
-    expect(tester.getSize(recap).height, openHeight);
-    expect(preferences.daySummaryFolded, isFalse);
-
-    // A real drag folds it — for this session, not for the preference.
+    // A real drag, well past where the fold used to be. (Dragged on the
+    // recap itself: the row of filter pills is a scrollable of its own.)
     await tester.drag(recap, const Offset(0, -120));
     await tester.pumpAndSettle();
-    expect(tester.getSize(recap).height, lessThan(openHeight));
-    expect(
-      preferences.daySummaryFolded,
-      isFalse,
-      reason: 'a scroll must not write the fold to the preferences',
+    expect(tester.getSize(recap).height, openHeight);
+    expect(find.text('Finish the draft'), findsOneWidget);
+    expect(preferences.daySummaryFolded, isFalse);
+  });
+
+  testWidgets('folded, the summary keeps two lines and counts the rest', (
+    tester,
+  ) async {
+    await preferences.setAiDaySummary(
+      text: 'A calm day ahead\nCall the plumber\nFinish the draft\nRest',
+      dateKey: 'cached',
     );
+    await preferences.setDaySummaryFolded(true);
+    await services.captureText('a note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(TimelineScreen)),
+    );
+    expect(find.text('A calm day ahead'), findsOneWidget);
+    expect(find.text('Call the plumber'), findsOneWidget);
+    expect(find.text('Finish the draft'), findsNothing);
+    expect(find.text(l10n.aiDaySummaryMore(2)), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('timeline-recap')));
+    await tester.pumpAndSettle();
+    expect(find.text('Finish the draft'), findsOneWidget);
+    expect(find.text('Rest'), findsOneWidget);
+    // Open, the lines themselves are the count.
+    expect(find.text(l10n.aiDaySummaryMore(2)), findsNothing);
+    expect(preferences.daySummaryFolded, isFalse);
   });
 }
