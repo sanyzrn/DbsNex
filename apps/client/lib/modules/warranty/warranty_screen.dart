@@ -122,10 +122,13 @@ class _WarrantyScreenState extends State<WarrantyScreen>
     }
   }
 
+  /// A purchase opens as a page, with its own app bar, back gesture and
+  /// actions — it is read at a service desk, not flicked past.
   Future<void> _openDetail(ModuleRecord record) async {
-    await nexShowSheet<void>(
-      context: context,
-      builder: (_) => WarrantyDetailSheet(store: widget.store, record: record),
+    await Navigator.of(context).push(
+      NexPageRoute<void>(
+        builder: (_) => WarrantyDetailPage(store: widget.store, record: record),
+      ),
     );
   }
 

@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'editor_checkpoint.dart';
 import 'warranty_repository.dart';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
@@ -25,6 +27,7 @@ class WarrantySection extends StatelessWidget {
     required this.title,
     required this.records,
     required this.onOpen,
+    this.note,
   });
 
   final IconData icon;
@@ -32,11 +35,15 @@ class WarrantySection extends StatelessWidget {
   final List<ModuleRecord> records;
   final void Function(ModuleRecord) onOpen;
 
+  /// A short count beside the heading, so a section says how much is in it
+  /// before the person scrolls.
+  final String? note;
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      NexShelfHeading(icon: icon, title: title),
+      NexShelfHeading(icon: icon, title: title, note: note),
       const SizedBox(height: NexSpacing.sm),
       for (final record in records)
         WarrantyRow(
@@ -49,9 +56,9 @@ class WarrantySection extends StatelessWidget {
   );
 }
 
-/// One purchase in the list: the product big enough to read, the brand
-/// beside it, and the days its coverage has left — or the days since it
-/// ended.
+/// One purchase in the list: the product big enough to read, who made it
+/// or which company covers it, and the days its cover has left — or the
+/// days since it ended.
 class WarrantyRow extends StatelessWidget {
   const WarrantyRow({super.key, required this.record, required this.onOpen});
 
@@ -66,6 +73,7 @@ class WarrantyRow extends StatelessWidget {
     final body = record.body;
     final product = WarrantyModels.readString(body, 'product');
     final brand = WarrantyModels.readString(body, 'brand');
+    final company = WarrantyModels.readString(body, 'company');
     final end = WarrantyModels.readDate(body, 'coverageEnd');
     // A missing or unreadable end is "date unavailable", never expired:
     // its own glyph, its own words.
@@ -75,20 +83,14 @@ class WarrantyRow extends StatelessWidget {
 
     final days = end == null
         ? strings(context, 'unknownDate')
-        : status!.expired
-        ? (status.daysLeft == -1
-              ? strings(context, 'endedYesterday')
-              : strings(context, 'expiredDaysAgo', {'count': -status.daysLeft}))
-        : status.daysLeft == 0
-        ? strings(context, 'endsToday')
-        : status.daysLeft == 1
-        ? strings(context, 'oneDayLeft')
-        : strings(context, 'daysLeft', {'count': status.daysLeft});
+        : WarrantyFields.remaining(context, end, DateTime.now());
 
     final subtitle = [
-      if (brand.isNotEmpty)
+      if (brand.isNotEmpty || company.isNotEmpty)
         Text(
-          brand,
+          brand.isNotEmpty ? brand : company,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: theme.textTheme.bodySmall?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
@@ -156,24 +158,29 @@ class WarrantyArchivedRow extends StatelessWidget {
   final VoidCallback onOpen;
 
   @override
-  Widget build(BuildContext context) => ListTile(
-    onTap: onOpen,
-    leading: NexIconTile(
-      Icons.inventory_2_outlined,
-      color: NexHue.slate.of(Theme.of(context).brightness),
-    ),
-    title: Text(
-      WarrantyModels.readString(record.body, 'product'),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-    ),
-    trailing: TextButton(
-      key: ValueKey('warranty-unarchive-${record.id}'),
-      onPressed: onUnarchive,
-      child: Text(warrantyStrings(context, 'unarchive')),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      onTap: onOpen,
+      leading: NexIconTile(
+        Icons.inventory_2_outlined,
+        color: NexHue.slate.of(theme.brightness),
+      ),
+      title: Text(
+        WarrantyModels.readString(record.body, 'product'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.titleMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      trailing: TextButton(
+        key: ValueKey('warranty-unarchive-${record.id}'),
+        onPressed: onUnarchive,
+        child: Text(warrantyStrings(context, 'unarchive')),
+      ),
+    );
+  }
 }
 
 /// A coverage-end day on the person's saved calendar — Jalali for a
@@ -186,9 +193,8 @@ class WarrantyDateText extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     WarrantyFields.dayLabel(context, end),
-    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-    ),
+    style: Theme.of(context).textTheme.bodySmall
+        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
   );
 }
 

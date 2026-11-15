@@ -71,6 +71,72 @@ class WarrantyLogic {
     return !e.isBefore(p);
   }
 
+  /// The list split into what a person needs to act on first: ending within
+  /// the 30-day window (soonest first), still comfortably covered (soonest
+  /// first), already ended (most recently ended first) and without a
+  /// readable end. Sorting here rather than in the screen keeps the "what
+  /// runs out first" question in one tested place.
+  static ({
+    List<ModuleRecord> expiring,
+    List<ModuleRecord> covered,
+    List<ModuleRecord> expired,
+    List<ModuleRecord> unknown,
+  })
+  splitByStatus(
+    List<ModuleRecord> records,
+    DateTime now, {
+    bool sorted = false,
+  }) {
+    final expiring = <ModuleRecord>[];
+    final covered = <ModuleRecord>[];
+    final expired = <ModuleRecord>[];
+    final unknown = <ModuleRecord>[];
+    for (final record in records) {
+      final end = WarrantyModels.readDate(record.body, 'coverageEnd');
+      if (end == null) {
+        unknown.add(record);
+        continue;
+      }
+      final status = statusOf(end, now);
+      if (status.expired) {
+        expired.add(record);
+      } else if (status.expiring) {
+        expiring.add(record);
+      } else {
+        covered.add(record);
+      }
+    }
+    return (
+      // The 30-day list is always ordered by what runs out first: that is
+      // the question it answers, whatever the rest of the page is sorted by.
+      expiring: soonestEndFirst(expiring),
+      covered: sorted ? soonestEndFirst(covered) : covered,
+      // The one that ended yesterday is the one a person is still dealing
+      // with, so the most recent end comes first.
+      expired: sorted ? latestEndFirst(expired) : expired,
+      unknown: unknown,
+    );
+  }
+
+  // ------------------------------------------------------------- reminders
+
+  /// The days before the end the editor offers: thirty days, a week, a day.
+  /// They are the lead times the trackers people already use recommend.
+  static const reminderLeadDays = [30, 7, 1];
+
+  /// The moment a reminder for [end] fires when it is set [daysBefore]
+  /// days early: 09:00 local on that day, the hour the app's other
+  /// reminders use.
+  static DateTime reminderAt(DateTime end, int daysBefore, {int hour = 9}) =>
+      DateTime(end.year, end.month, end.day - daysBefore, hour);
+
+  /// The lead times still worth offering for [end] at [now]: a reminder
+  /// whose moment has already passed cannot be set and is not shown.
+  static List<int> reminderChoices(DateTime end, DateTime now) => [
+    for (final days in reminderLeadDays)
+      if (reminderAt(end, days).isAfter(now)) days,
+  ];
+
   // ------------------------------------------------------------- money
 
   /// Rials as tomans, exactly: 1 toman is 10 rials, and a number of rials
@@ -99,17 +165,20 @@ class WarrantyLogic {
     return value < 0 ? '-$buffer' : '$buffer';
   }
 
-  /// Search by product or brand, case-blind; an empty query matches all.
+  /// Search by product, brand, merchant or warranty company, case-blind;
+  /// an empty query matches all. The company is included because "which
+  /// card is this" is how a person looks for a purchase at a service desk.
   static bool matchesQuery(Map<String, Object?> body, String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) {
       return true;
     }
-    return WarrantyModels.readString(
-          body,
-          'product',
-        ).toLowerCase().contains(q) ||
-        WarrantyModels.readString(body, 'brand').toLowerCase().contains(q);
+    for (final key in const ['product', 'brand', 'merchant', 'company']) {
+      if (WarrantyModels.readString(body, key).toLowerCase().contains(q)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Purchases by soonest coverage end first — the order the "expiring"
@@ -122,6 +191,18 @@ class WarrantyLogic {
       final aEnd = WarrantyModels.readDate(a.$1.body, 'coverageEnd');
       final bEnd = WarrantyModels.readDate(b.$1.body, 'coverageEnd');
       final byEnd = (aEnd ?? _noEndDate).compareTo(bEnd ?? _noEndDate);
+      return byEnd != 0 ? byEnd : a.$2.compareTo(b.$2);
+    });
+    return [for (final pair in pairs) pair.$1];
+  }
+
+  /// Purchases by latest coverage end first, for the ones already ended.
+  static List<ModuleRecord> latestEndFirst(List<ModuleRecord> records) {
+    final pairs = [for (var i = 0; i < records.length; i++) (records[i], i)];
+    pairs.sort((a, b) {
+      final aEnd = WarrantyModels.readDate(a.$1.body, 'coverageEnd');
+      final bEnd = WarrantyModels.readDate(b.$1.body, 'coverageEnd');
+      final byEnd = (bEnd ?? _noEndDate).compareTo(aEnd ?? _noEndDate);
       return byEnd != 0 ? byEnd : a.$2.compareTo(b.$2);
     });
     return [for (final pair in pairs) pair.$1];

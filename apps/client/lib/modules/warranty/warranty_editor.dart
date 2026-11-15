@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'editor_checkpoint.dart';
 import 'warranty_repository.dart';
 
@@ -12,9 +13,11 @@ import 'warranty_logic.dart';
 import 'warranty_models.dart';
 import 'warranty_parse.dart';
 import 'warranty_editor_fields.dart';
+import 'warranty_reminder_offer.dart';
 import 'warranty_strings.dart';
 
 part 'warranty_editor_body.dart';
+part 'warranty_editor_save.dart';
 
 /// What the editor hands back: a body ready to store, and the record it
 /// belongs to when it is an edit of one that exists.
@@ -55,12 +58,30 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
   final _duration = TextEditingController();
   final _endDate = TextEditingController();
   late final TextEditingController _coverageType;
+  late final TextEditingController _company;
+  late final TextEditingController _supportPhone;
+  late final TextEditingController _cardNumber;
   late final TextEditingController _receiptRef;
   late final TextEditingController _amount;
   late final TextEditingController _note;
 
+  /// Which of the three kinds of cover this is; '' when the person has not
+  /// said. The difference matters: a company warranty, the shop's guarantee
+  /// and after-sales service are not the same promise.
+  String _coverKind = '';
+
+  /// Who the device is registered to; '' when not written down.
+  String _registry = '';
+
   /// Whether the amount is typed in tomans (true) or rials (false).
   bool _inTomans = false;
+
+  /// The reminder offered as the purchase is saved: null until the person
+  /// touches it, so a new purchase reminds by default and a saved one
+  /// leaves an existing reminder alone.
+  bool? _remind;
+  int? _remindDays;
+
   late final EditorCheckpoint _session;
   bool _dirty = false;
   bool _showErrors = false;
@@ -79,6 +100,9 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
         _model,
         _serial,
         _merchant,
+        _company,
+        _supportPhone,
+        _cardNumber,
         _receiptRef,
         _amount,
         _note,
@@ -106,6 +130,20 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
     _merchant = TextEditingController(
       text: WarrantyModels.readString(_from, 'merchant'),
     );
+    _coverageType = TextEditingController(
+      text: WarrantyModels.readString(_from, 'coverageType'),
+    );
+    _company = TextEditingController(
+      text: WarrantyModels.readString(_from, 'company'),
+    );
+    _supportPhone = TextEditingController(
+      text: WarrantyModels.readString(_from, 'supportPhone'),
+    );
+    _cardNumber = TextEditingController(
+      text: WarrantyModels.readString(_from, 'cardNumber'),
+    );
+    _coverKind = WarrantyModels.readCoverKind(_from);
+    _registry = WarrantyModels.readRegistry(_from);
     final purchased = WarrantyModels.readDate(_from, 'purchasedAt');
     _purchaseDate = TextEditingController(
       text: purchased == null ? '' : WarrantyParse.dateText(purchased),
@@ -119,9 +157,6 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
       final end = WarrantyModels.readDate(_from, 'coverageEnd');
       if (end != null) _endDate.text = WarrantyParse.dateText(end);
     }
-    _coverageType = TextEditingController(
-      text: WarrantyModels.readString(_from, 'coverageType'),
-    );
     _receiptRef = TextEditingController(
       text: WarrantyModels.readString(_from, 'receiptRef'),
     );
@@ -152,6 +187,9 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
         'model': _model,
         'serial': _serial,
         'merchant': _merchant,
+        'company': _company,
+        'supportPhone': _supportPhone,
+        'cardNumber': _cardNumber,
         'purchase': _purchaseDate,
         'duration': _duration,
         'end': _endDate,
@@ -160,9 +198,23 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
         'amount': _amount,
         'note': _note,
       },
-      () => {'inTomans': _inTomans},
+      () => {
+        'inTomans': _inTomans,
+        'coverKind': _coverKind,
+        'registry': _registry,
+        'remind': _remind,
+        'remindDays': _remindDays,
+      },
       (saved) {
         if (saved['inTomans'] is bool) _inTomans = saved['inTomans'] as bool;
+        final coverKind = saved['coverKind'];
+        if (coverKind is String) _coverKind = coverKind;
+        final registry = saved['registry'];
+        if (registry is String) _registry = registry;
+        final remind = saved['remind'];
+        if (remind is bool) _remind = remind;
+        final days = saved['remindDays'];
+        if (days is int) _remindDays = days;
       },
       () {
         if (mounted) {
@@ -180,6 +232,9 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
     _model,
     _serial,
     _merchant,
+    _company,
+    _supportPhone,
+    _cardNumber,
     _purchaseDate,
     _duration,
     _endDate,
@@ -240,150 +295,35 @@ class _WarrantyEditorSheetState extends State<WarrantyEditorSheet> {
     return _amount.text.trim().isNotEmpty && rials == null;
   }
 
-  // -------------------------------------------------------------- saving
+  // ------------------------------------------------------------ reminder
 
-  Future<void> _save() async {
-    if (_session.busy || _session.loading || _session.failed) {
-      return;
-    }
-    final purchase = _purchase;
+  /// Whether the reminder is offered at all: an end date far enough ahead
+  /// that at least one of its lead times is still in the future.
+  List<int> get _reminderChoices {
     final end = _coverageEnd;
-    final bothWays =
-        _duration.text.trim().isNotEmpty && _endDate.text.trim().isNotEmpty;
-
-    if (_product.text.trim().isEmpty ||
-        _purchaseBad ||
-        end == null ||
-        end == WarrantyParse.invalid ||
-        bothWays ||
-        _amountBad) {
-      setState(() {
-        _showErrors = true;
-        if (_amountBad) _more = true;
-      });
-      return;
-    }
-    if (!WarrantyLogic.endAfterPurchase(purchase!, end)) {
-      setState(() => _showErrors = true);
-      return;
-    }
-
-    final months = WarrantyParse.count(_duration.text);
-    final body = WarrantyModels.warrantyBody(
-      product: _product.text,
-      category: _category.text,
-      brand: _brand.text,
-      model: _model.text,
-      serial: _serial.text,
-      merchant: _merchant.text,
-      receiptRef: _receiptRef.text,
-      coverageType: _coverageType.text,
-      note: _note.text,
-      purchasedAt: purchase,
-      coverageEnd: end,
-      durationMonths: (months != null && months > 0) ? months : null,
-      amountRials: WarrantyParse.rials(_amount.text, inTomans: _inTomans),
-      archived: WarrantyModels.readArchived(_from),
-    );
-    final keys = _session.editedKeys(body, {
-      'product': ['product'],
-      'category': ['category'],
-      'brand': ['brand'],
-      'model': ['model'],
-      'serial': ['serial'],
-      'merchant': ['merchant'],
-      'coverageType': ['coverageType'],
-      'receiptRef': ['receiptRef'],
-      'note': ['note'],
-      'purchasedAt': ['purchase'],
-      'coverageEnd': ['purchase', 'duration', 'end'],
-      'durationMonths': ['duration', 'end'],
-      'amountRials': ['amount', 'inTomans'],
-    });
-    setState(() => _session.busy = true);
-    try {
-      await WarrantyRepository.save(
-        widget.store,
-        _session.recordId,
-        body,
-        keys,
-        existing: widget.existing != null,
-      );
-      await _session.draft.clear();
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-    } catch (_) {
-      _saveError();
-    } finally {
-      if (mounted) {
-        setState(() => _session.busy = false);
-      }
-    }
+    if (end == null) return const [];
+    return WarrantyLogic.reminderChoices(end, DateTime.now());
   }
 
-  // ------------------------------------------------------------ leaving
-
-  Future<void> _maybePop() async {
-    if (_session.busy) {
-      return;
-    }
-    if (!_dirty) {
-      setState(() => _session.busy = true);
-      final kept = await _session.draft.finish();
-      if (!mounted) return;
-      if (kept) {
-        Navigator.of(context).pop();
-      } else {
-        if (!_session.failed) _session.draft.resume();
-        setState(() => _session.busy = false);
-        _saveError();
-      }
-      return;
-    }
-    final leave = await WarrantyDialogs.confirmDiscard(
-      context,
-      warrantyStrings,
-    );
-    if (leave == true && mounted) {
-      setState(() => _session.busy = true);
-      if (await _session.discard() && mounted) {
-        Navigator.of(context).pop();
-      } else {
-        if (!_session.failed) _session.draft.resume();
-        setState(() => _session.busy = false);
-        _saveError();
-      }
-    }
+  /// The moment the offered reminder will ring, or null when there is
+  /// nothing left to offer (the cover ends today or has already ended).
+  DateTime? get _reminderMoment {
+    final end = _coverageEnd;
+    final choices = _reminderChoices;
+    if (end == null || choices.isEmpty) return null;
+    final days = choices.contains(_remindDays) ? _remindDays! : choices.first;
+    return WarrantyLogic.reminderAt(end, days);
   }
 
-  Future<void> _keepDraft() async {
-    if (_session.busy || _session.loading || _session.failed) {
-      return;
-    }
-    setState(() => _session.busy = true);
-    final saved = await _session.draft.finish();
-    if (!mounted) {
-      return;
-    }
-    if (saved) {
-      Navigator.of(context).pop();
-    } else {
-      _session.draft.resume();
-      setState(() => _session.busy = false);
-      _saveError();
-    }
-  }
+  /// A new purchase reminds by default — "nothing expires unnoticed" is why
+  /// the module exists — and a saved one leaves the person's existing
+  /// reminder alone unless they ask for a new one.
+  bool get _remindOn => _remind ?? (widget.existing == null);
 
-  void _saveError() {
-    if (!mounted) {
-      return;
-    }
-    NexBannerHost.of(context)?.show(
-      kind: NexBannerKind.failed,
-      message: warrantyStrings(context, 'saveFailed'),
-    );
-  }
+  /// Whether the reminder can be offered at all: there is a future moment
+  /// to set, and the platform will let this module schedule one.
+  bool get _offerReminder =>
+      widget.store.remindersEnabled && _reminderMoment != null;
 
   // -------------------------------------------------------------- build
 

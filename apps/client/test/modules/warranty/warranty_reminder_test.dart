@@ -60,7 +60,7 @@ void main() {
     await store.put('warranty', 'w1', activeBody());
     await pump(
       tester,
-      WarrantyDetailSheet(store: store, record: purchase(activeBody())),
+      WarrantyDetailPage(store: store, record: purchase(activeBody())),
     );
 
     expect(find.byKey(const ValueKey('warranty-reminders')), findsOneWidget);
@@ -86,7 +86,7 @@ void main() {
     });
     await pump(
       tester,
-      WarrantyDetailSheet(store: store, record: purchase(activeBody())),
+      WarrantyDetailPage(store: store, record: purchase(activeBody())),
     );
 
     final clear = find.text('Remove reminder');
@@ -109,7 +109,7 @@ void main() {
     await store.put('warranty', 'w1', body);
     await pump(
       tester,
-      WarrantyDetailSheet(store: store, record: purchase(body)),
+      WarrantyDetailPage(store: store, record: purchase(body)),
     );
 
     expect(find.text('Pick a time…'), findsNothing);

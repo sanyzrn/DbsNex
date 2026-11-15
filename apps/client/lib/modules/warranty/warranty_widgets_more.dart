@@ -126,7 +126,8 @@ class _WarrantyClaimSheetState extends State<WarrantyClaimSheet> {
   }
 }
 
-/// One dated claim or service note.
+/// One dated claim or service note: its day and kind first, because that is
+/// what a service desk asks for, then what the person wrote.
 class WarrantyClaimRow extends StatelessWidget {
   const WarrantyClaimRow({super.key, required this.claim, this.onDelete});
 
@@ -138,13 +139,22 @@ class WarrantyClaimRow extends StatelessWidget {
     final strings = warrantyStrings;
     final theme = Theme.of(context);
     final at = WarrantyModels.readDate(claim.body, 'at')?.toLocal();
-    final knownKind = const ['claim', 'service'].contains(claim.body['kind']);
-    final isClaim =
-        WarrantyModels.readString(claim.body, 'kind') ==
-        WarrantyModels.claimKind;
+    final kind = WarrantyModels.readString(claim.body, 'kind');
+    final knownKind = const [
+      WarrantyModels.claimKind,
+      WarrantyModels.serviceKind,
+    ].contains(kind);
+    final isClaim = kind == WarrantyModels.claimKind;
+    final label = strings(
+      context,
+      !knownKind
+          ? 'unknownLog'
+          : isClaim
+          ? 'claimed'
+          : 'serviced',
+    );
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      dense: true,
       leading: Icon(
         isClaim ? Icons.report_outlined : Icons.build_outlined,
         color: (isClaim ? NexHue.rose : NexHue.slate).of(theme.brightness),
@@ -154,16 +164,11 @@ class WarrantyClaimRow extends StatelessWidget {
         maxLines: 3,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: at == null
-          ? null
-          : Text(
-              '${strings(context, !knownKind
-                  ? 'unknownLog'
-                  : isClaim
-                  ? 'claimed'
-                  : 'serviced')} — '
-              '${WarrantyFields.instantLabel(context, at)}',
-            ),
+      subtitle: Text(
+        at == null
+            ? label
+            : '$label · ${WarrantyFields.instantLabel(context, at)}',
+      ),
       trailing: IconButton(
         key: ValueKey('warranty-claim-delete-${claim.id}'),
         tooltip: AppLocalizations.of(context).delete,
@@ -174,7 +179,7 @@ class WarrantyClaimRow extends StatelessWidget {
   }
 }
 
-/// The claims and service section of the detail sheet: the two add
+/// The claims and service section of the purchase's page: the two add
 /// actions and the dated notes under them, each deletable as a
 /// correction.
 class WarrantyClaimsSection extends StatelessWidget {
@@ -199,31 +204,29 @@ class WarrantyClaimsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                key: const ValueKey('warranty-add-claim'),
-                onPressed: () => onAdd(WarrantyModels.claimKind),
-                icon: const Icon(Icons.report_outlined),
-                label: Text(strings(context, 'addClaim')),
-              ),
-            ),
-            const SizedBox(width: NexSpacing.sm),
-            Expanded(
-              child: OutlinedButton.icon(
-                key: const ValueKey('warranty-add-service'),
-                onPressed: () => onAdd(WarrantyModels.serviceKind),
-                icon: const Icon(Icons.build_outlined),
-                label: Text(strings(context, 'addService')),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: NexSpacing.md),
         Text(
           strings(context, 'claimsTitle'),
           style: theme.textTheme.titleSmall,
+        ),
+        const SizedBox(height: NexSpacing.sm),
+        // The shared button family: a tonal fill, not an outline.
+        Wrap(
+          spacing: NexSpacing.sm,
+          runSpacing: NexSpacing.xs,
+          children: [
+            FilledButton.tonalIcon(
+              key: const ValueKey('warranty-add-claim'),
+              onPressed: () => onAdd(WarrantyModels.claimKind),
+              icon: const Icon(Icons.report_outlined),
+              label: Text(strings(context, 'addClaim')),
+            ),
+            FilledButton.tonalIcon(
+              key: const ValueKey('warranty-add-service'),
+              onPressed: () => onAdd(WarrantyModels.serviceKind),
+              icon: const Icon(Icons.build_outlined),
+              label: Text(strings(context, 'addService')),
+            ),
+          ],
         ),
         const SizedBox(height: NexSpacing.sm),
         if (claims.isEmpty)

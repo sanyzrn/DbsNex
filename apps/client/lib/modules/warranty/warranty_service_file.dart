@@ -5,11 +5,14 @@ import 'warranty_fields.dart';
 import 'warranty_models.dart';
 import 'warranty_strings.dart';
 
-/// The purchase as plain text a person can hand to a shop or a repairer:
-/// what it is, when it was bought, where, the serial and invoice reference
-/// they wrote down, when the coverage ends, and the dated claim and service
-/// notes in order. Only what is in the record — nothing is added, nothing is
-/// claimed about what the maker or the merchant will accept.
+/// The purchase as plain text a person can hand to a shop or a repairer.
+///
+/// It is ordered the way a service desk reads it: what the product is and
+/// its serial or IMEI, then who covers it and how to call them, then the
+/// card and invoice, then the dates, then the dated claim and service
+/// notes. Only what is in the record — nothing is added, and the last line
+/// says so, because this text is a copy of a person's own notes and not a
+/// claim form.
 String warrantyServiceFile(
   BuildContext context,
   Map<String, Object?> body,
@@ -17,18 +20,35 @@ String warrantyServiceFile(
 ) {
   final strings = warrantyStrings;
   String text(String key) => WarrantyModels.readString(body, key).trim();
+  final now = DateTime.now();
   final lines = <String>[text('product')];
 
   void field(String label, String value) {
     if (value.isNotEmpty) lines.add('$label: $value');
   }
 
-  field(strings(context, 'category'), text('category'));
   field(strings(context, 'brand'), text('brand'));
   field(strings(context, 'model'), text('model'));
   field(strings(context, 'serialLabel'), text('serial'));
+  field(strings(context, 'category'), text('category'));
+
+  final kind = WarrantyFields.coverKind(
+    context,
+    WarrantyModels.readCoverKind(body),
+  );
+  field(strings(context, 'kindLabel'), kind);
+  field(strings(context, 'companyLabel'), text('company'));
+  field(strings(context, 'phoneLabel'), text('supportPhone'));
+  field(strings(context, 'cardLabel'), text('cardNumber'));
+  field(
+    strings(context, 'registryValue'),
+    WarrantyFields.registry(context, WarrantyModels.readRegistry(body)),
+  );
+  field(strings(context, 'typeLabel'), text('coverageType'));
+
   field(strings(context, 'merchantLabel'), text('merchant'));
   field(strings(context, 'receiptLabel'), text('receiptRef'));
+
   final purchased = WarrantyModels.readDate(body, 'purchasedAt');
   if (purchased != null) {
     field(
@@ -38,9 +58,30 @@ String warrantyServiceFile(
   }
   final end = WarrantyModels.readDate(body, 'coverageEnd');
   if (end != null) {
-    field(strings(context, 'endsLabel'), WarrantyFields.dayLabel(context, end));
+    // The desk's first question is whether the cover is still live, so the
+    // date carries its state rather than making them work it out.
+    field(
+      strings(context, 'endsLabel'),
+      '${WarrantyFields.dayLabel(context, end)} — '
+      '${WarrantyFields.remaining(context, end, now)}',
+    );
   }
-  field(strings(context, 'typeLabel'), text('coverageType'));
+  final months = WarrantyModels.readCount(body, 'durationMonths');
+  if (months != null) {
+    field(
+      strings(context, 'durationLabel'),
+      months == 1
+          ? strings(context, 'oneMonth')
+          : strings(context, 'monthCount', {'count': months}),
+    );
+  }
+  final amount = WarrantyModels.readCount(body, 'amountRials');
+  if (amount != null) {
+    field(
+      strings(context, 'amountLabel'),
+      WarrantyFields.money(context, amount),
+    );
+  }
   field(strings(context, 'noteLabel'), text('note'));
 
   final dated =
@@ -73,5 +114,8 @@ String warrantyServiceFile(
       );
     }
   }
+  lines
+    ..add('')
+    ..add(strings(context, 'fileFooter'));
   return lines.join('\n');
 }

@@ -27,10 +27,14 @@ void main() {
       expect(find.text('2030/10/13'), findsOneWidget);
       await tester.tap(find.text('Kettle'));
       await tester.pumpAndSettle();
-      // And the detail sheet's purchased and coverage rows — the row behind
-      // the sheet still counts its own copy of the end.
+      // And the page's purchased and coverage rows, with the status card
+      // saying what the end means.
       expect(find.text('2026/10/13'), findsOneWidget);
-      expect(find.text('2030/10/13'), findsNWidgets(2));
+      expect(find.text('2030/10/13'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('warranty-status-headline')),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -61,10 +65,10 @@ void main() {
       expect(find.text('۱۴۰۹/۰۷/۲۱'), findsOneWidget);
       await tester.tap(find.text('کتری برقی'));
       await tester.pumpAndSettle();
-      // The detail's coverage row, over the row behind the sheet.
-      expect(find.text('۱۴۰۹/۰۷/۲۱'), findsNWidgets(2));
+      // The page's coverage row, on the same Jalali day.
+      expect(find.text('۱۴۰۹/۰۷/۲۱'), findsOneWidget);
       // The claim note's own day, as the local day it happened.
-      expect(find.textContaining('ادعا — ۱۴۰۵/۰۷/۲۱'), findsOneWidget);
+      expect(find.textContaining('ادعا · ۱۴۰۵/۰۷/۲۱'), findsOneWidget);
       expect(find.textContaining(RegExp('20[0-9][0-9]/')), findsNothing);
       expect(find.textContaining('میلادی'), findsNothing);
       expect(tester.takeException(), isNull);
