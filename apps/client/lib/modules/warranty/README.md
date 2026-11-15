@@ -299,10 +299,14 @@ the whole client suite was run once. No file in the module is over 400 lines;
 en/fa string parity is checked by the gate.
 
 ~~~text
-flutter test test/module_kit_test.dart test/modules/warranty
-flutter analyze --fatal-infos lib/modules/warranty test/modules/warranty
-dart format lib/modules/warranty test/modules/warranty
-flutter test
+$ flutter analyze --fatal-infos
+No issues found! (ran in 5.6s)
+
+$ flutter test test/module_kit_test.dart test/modules/warranty
+00:17 +156: All tests passed!
+
+$ flutter test
+06:41 +3580 ~4: All tests passed!
 ~~~
 
 Captured screens (`--dart-define=NEX_CAPTURE=<dir>` on
