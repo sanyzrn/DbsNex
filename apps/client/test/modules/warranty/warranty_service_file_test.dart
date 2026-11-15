@@ -81,13 +81,16 @@ void main() {
     final lines = text.split('\n');
     expect(lines.first, 'Kettle');
     expect(text, contains('Brand: Acme'));
-    expect(text, contains('Serial / invoice: SN-42'));
-    expect(text, contains('Merchant: Corner shop'));
+    expect(text, contains('Serial / IMEI: SN-42'));
+    expect(text, contains('Shop: Corner shop'));
     expect(text, contains('Purchased: 2026/10/13'));
+    // The desk's first question is whether the cover is still live, so the
+    // end date carries its state.
     expect(text, contains('Coverage ends: 2028/10/13'));
+    expect(text, contains('days left'));
     // Not written, not listed.
     expect(text, isNot(contains('Model')));
-    expect(text, isNot(contains('Receipt')));
+    expect(text, isNot(contains('Invoice')));
     // Oldest note first.
     expect(
       text.indexOf('Stopped heating'),
@@ -108,7 +111,10 @@ void main() {
         },
       ),
     );
-    expect(text, 'Lamp');
+    // Only the product, then the honest line about where this came from.
+    expect(text.split('\n').first, 'Lamp');
+    expect(text, contains('Nex does not'));
+    expect(text, isNot(contains('Claims and service')));
   });
 
   testWidgets('the detail sheet says when no invoice or serial is written', (
@@ -123,7 +129,7 @@ void main() {
     await store.put('warranty', 'w1', body);
     await pump(
       tester,
-      WarrantyDetailSheet(store: store, record: purchase(body)),
+      WarrantyDetailPage(store: store, record: purchase(body)),
     );
     expect(find.byKey(const ValueKey('warranty-no-proof')), findsOneWidget);
 
@@ -131,7 +137,7 @@ void main() {
     await store.put('warranty', 'w1', withSerial);
     await pump(
       tester,
-      WarrantyDetailSheet(store: store, record: purchase(withSerial)),
+      WarrantyDetailPage(store: store, record: purchase(withSerial)),
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('warranty-no-proof')), findsNothing);

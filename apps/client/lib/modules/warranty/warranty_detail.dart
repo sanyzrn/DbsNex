@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'local_writes.dart';
 
 import 'package:flutter/material.dart';
@@ -7,31 +8,47 @@ import 'package:nex_client/modules/module_api.dart';
 import 'warranty_dialogs.dart';
 import 'warranty_editor.dart';
 import 'warranty_fields.dart';
+import 'warranty_logic.dart';
 import 'warranty_service_file.dart';
 import 'warranty_models.dart';
 import 'warranty_strings.dart';
 import 'warranty_widgets.dart';
 
 part 'warranty_detail_body.dart';
+part 'warranty_detail_status.dart';
 
-/// One purchase, in full: everything the person wrote, the coverage
-/// period, the amount in rials or tomans as they choose to read it, and
-/// the claim and service notes under it — each dated, each manual.
-class WarrantyDetailSheet extends StatefulWidget {
-  const WarrantyDetailSheet({
+/// One purchase, in full: what it is, who covers it and how to reach them,
+/// the card and serial, the coverage period, the amount as paid, and the
+/// claim and service notes under it — each dated, each manual.
+///
+/// This is a page rather than a sheet: it holds a whole record, its own
+/// notes and its own actions, and it is read while a service desk is
+/// talking, when a back gesture and a fixed app bar help.
+class WarrantyDetailPage extends StatefulWidget {
+  const WarrantyDetailPage({
     super.key,
     required this.store,
     required this.record,
+    this.inSheet = false,
   });
 
   final NexModuleStore store;
+
+  /// Drawn without its own app bar, for the one caller that still opens a
+  /// purchase inside a sheet: the notification destination in the app's own
+  /// route resolver, which the module may not change. Everything else opens
+  /// the page.
+  final bool inSheet;
+
+  /// The row that was tapped; its id is what the page loads fresh, so a
+  /// record changed elsewhere is never shown stale.
   final ModuleRecord record;
 
   @override
-  State<WarrantyDetailSheet> createState() => _WarrantyDetailSheetState();
+  State<WarrantyDetailPage> createState() => _WarrantyDetailPageState();
 }
 
-class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
+class _WarrantyDetailPageState extends State<WarrantyDetailPage> {
   Map<String, Object?>? _body;
   List<ModuleRecord> _claims = const [];
   StreamSubscription<void>? _changes;
@@ -39,11 +56,6 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
   bool _loading = true;
   bool _loadFailed = false;
   bool _busy = false;
-
-  /// Captured during build so Undo survives the sheet closing.
-  NexBannerHost? _sheetMessenger;
-
-  NexBannerHost? _messenger() => _sheetMessenger ?? NexBannerHost.of(context);
 
   @override
   void initState() {
@@ -124,7 +136,7 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
         return;
       }
       WarrantyDialogs.offerUndo(
-        _messenger(),
+        NexBannerHost.of(context),
         warrantyStrings(context, 'claimDeleted'),
         AppLocalizations.of(context).undo,
         undo,
@@ -160,6 +172,12 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
     nexShowBanner(context, message: warrantyStrings(context, 'fileCopied'));
   }
 
+  Future<void> _copyPhone(String phone) async {
+    await nexModuleCopyText(phone);
+    if (!mounted) return;
+    nexShowBanner(context, message: warrantyStrings(context, 'phoneCopied'));
+  }
+
   Future<void> _edit() async {
     if (_body == null || _busy || _loadFailed) {
       return;
@@ -181,7 +199,7 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
     );
   }
 
-  /// Archives this purchase, with Undo shown by the screen behind it.
+  /// Archives this purchase, with Undo shown by the page behind it.
   Future<void> _archive() async {
     await _work(() async {
       await LocalWrites.patch(
@@ -190,9 +208,7 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
         widget.record.id,
         {'archived': true},
       );
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       final messenger = NexBannerHost.of(context);
       final undo = AppLocalizations.of(context).undo;
       WarrantyDialogs.offerUndo(
@@ -218,10 +234,7 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
         widget.record.id,
         {'archived': false},
       );
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       Navigator.of(context).pop();
     });
   }
@@ -249,9 +262,7 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
         children: WarrantyModels.claim,
         parentField: 'warrantyId',
       );
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       WarrantyDialogs.offerUndo(
         NexBannerHost.of(context),
         warrantyStrings(context, 'warrantyDeleted'),
@@ -264,21 +275,6 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
 
   // -------------------------------------------------------------- build
 
-  Widget _readError() => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(NexSpacing.md),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(warrantyStrings(context, 'loadFailed')),
-          TextButton(
-            onPressed: () => unawaited(_load()),
-            child: Text(warrantyStrings(context, 'retry')),
-          ),
-        ],
-      ),
-    ),
-  );
   Future<void> _work(Future<void> Function() run) async {
     if (_busy || _loading || _loadFailed) {
       return;
@@ -302,4 +298,16 @@ class _WarrantyDetailSheetState extends State<WarrantyDetailSheet> {
 
   @override
   Widget build(BuildContext context) => _view(context);
+}
+
+/// The entry point the app's notification resolver uses: a purchase opened
+/// from a reminder, inside the sheet that resolver builds. It is the same
+/// widget and the same record as [WarrantyDetailPage], without the app bar
+/// the surrounding sheet already stands in for.
+class WarrantyDetailSheet extends WarrantyDetailPage {
+  const WarrantyDetailSheet({
+    super.key,
+    required super.store,
+    required super.record,
+  }) : super(inSheet: true);
 }

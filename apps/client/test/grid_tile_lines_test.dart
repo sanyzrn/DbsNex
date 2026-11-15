@@ -132,4 +132,80 @@ void main() {
     expect(after.localToGlobal(Offset.zero), where);
     expect(after.size.height, height);
   });
+
+  Future<void> pumpNote(WidgetTester tester, Note note) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('fa'),
+        theme: nexLightTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => Center(
+            child: SizedBox(
+              width: 190,
+              height: NexNoteGridCard.heightFor(context),
+              child: NexNoteGridCard(
+                note: note,
+                strings: NexCardStrings.fallback,
+                onTap: () {},
+                onLeadingTap: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Note textNote(String content, {String? caption}) => Note(
+    id: 't',
+    type: NoteType.text,
+    content: content,
+    caption: caption,
+    createdAt: DateTime(2026),
+    updatedAt: DateTime(2026),
+    deviceId: 'd',
+    rev: 1,
+    syncState: SyncState.pending,
+  );
+
+  bool bold(WidgetTester tester, String text) => tester
+      .widgetList<Text>(find.text(text))
+      .any((t) => t.style?.fontWeight == FontWeight.w700);
+
+  testWidgets('a first line is a heading only when written as one (2.7.2)', (
+    tester,
+  ) async {
+    await pumpNote(
+      tester,
+      textNote('ورزشکار بتونه درخواست مربی بده\nفعلا اشتراک‌ها کنسل'),
+    );
+    expect(
+      find.textContaining('ورزشکار بتونه'),
+      findsOneWidget,
+      reason: 'the whole note is one text',
+    );
+    expect(
+      tester
+          .widgetList<Text>(find.textContaining('ورزشکار بتونه'))
+          .any((t) => t.style?.fontWeight == FontWeight.w700),
+      isFalse,
+    );
+
+    await pumpNote(tester, textNote('# خرید هفته\nنان و شیر'));
+    expect(bold(tester, 'خرید هفته'), isTrue);
+  });
+
+  testWidgets('a text note\'s caption shows on its tile (2.7.2)', (
+    tester,
+  ) async {
+    await pumpNote(
+      tester,
+      textNote('متن یادداشت', caption: 'توضیح زیر یادداشت'),
+    );
+    expect(find.byKey(const ValueKey('grid-caption')), findsOneWidget);
+    expect(find.text('توضیح زیر یادداشت'), findsOneWidget);
+  });
 }

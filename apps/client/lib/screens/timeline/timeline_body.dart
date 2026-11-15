@@ -486,13 +486,6 @@ extension _TimelineBody on TimelineScreenState {
               return _groupHeading(group, groups, l10n);
             }
             final note = row.note!;
-            // Neighbours under the same heading are joined — see
-            // [NoteCard.threadAbove].
-            bool sameRun(int at) =>
-                at >= 0 &&
-                at < rows.length &&
-                rows[at].note != null &&
-                rows[at].groupKey == row.groupKey;
             return _DayMark(
               // Arranged, the line under the filters names the shelf being
               // read, as by day it names the day.
@@ -553,8 +546,6 @@ extension _TimelineBody on TimelineScreenState {
                               ? _selected.contains(note.id)
                               : null,
                           expanded: widget.preferences.isNoteExpanded(note.id),
-                          threadAbove: sameRun(index - 1),
-                          threadBelow: sameRun(index + 1),
                           ringing: widget.services.ringing.value.contains(
                             note.id,
                           ),

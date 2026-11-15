@@ -5,26 +5,16 @@ import 'package:nex_client/modules/module_api.dart';
 /// out in Persian digits on the Persian side.
 const warrantyStrings = NexModuleStrings(
   en: {
-    'coverageRequired':
-        'Enter a valid end date or 1–{months} months ending by {year}.',
-    'dateHint': 'YYYY/MM/DD',
-    'unknownLog': 'Unknown record type',
-    'monthCount': '{count} months',
-    'oneMonth': '1 month',
-    'keepDraft': 'Keep draft & close',
-    'undoFailed':
-        'Could not undo. A later change may conflict; retry after checking the record.',
-    'loadFailed': 'Could not load your records. Retry before editing.',
-    'retry': 'Retry',
-    'unknownDate': 'Date unavailable',
+    // The card and the page.
     'title': 'Warranties',
-    'tagline': 'What you bought, and how long it is covered',
+    'tagline': 'What you bought, who covers it, and until when',
     'about':
-        'The products you buy, with their coverage period and the receipt '
-        'typed in as text. It does not photograph, verify or remind — and '
-        'it never promises what a merchant will accept.',
-    'point1': 'Coverage you wrote yourself',
-    'point2': 'Active, expiring, expired — on view',
+        'The products you buy, the company that honours the warranty and '
+        'its support line, the card and serial you were given, and the day '
+        'the cover ends. It records what you typed — it does not verify a '
+        'warranty, call a shop, or promise what will be accepted.',
+    'point1': 'Company, support line and card number',
+    'point2': 'What ends in 30 days, at the top',
     'point3': 'Claims kept as dated notes',
     'point4': 'Nothing leaves this phone',
 
@@ -34,18 +24,19 @@ const warrantyStrings = NexModuleStrings(
     'heroNoneCovered': 'Nothing covered',
     'heroExpiring': '{count} ending soon',
     'heroExpired': '{count} ended',
-    'moreDetails': 'Brand, shop, price and note',
-    'moreDetailsHint': 'All optional — you can add them later.',
+    'expiringTitle': 'Ending in the next 30 days',
+    'expiringNote': '{count} to deal with',
     'emptyMessage': 'Add your first purchase and its coverage.',
     'add': 'Add a purchase',
     'active': 'Covered',
     'expiring': 'Ending soon',
     'expired': 'Expired',
     'archived': 'Archived',
-    'showArchived': 'Show archived',
+    'unknownDate': 'Date unavailable',
+    'showArchived': 'Archived ({count})',
     'hideArchived': 'Hide archived',
     'unarchive': 'Back on the list',
-    'searchHint': 'Search by product or brand',
+    'searchHint': 'Product, brand, shop or company',
     'sortSoonest': 'Sort by soonest end',
     'daysLeft': '{count} days left',
     'oneDayLeft': '1 day left',
@@ -53,34 +44,66 @@ const warrantyStrings = NexModuleStrings(
     'expiredDaysAgo': 'Ended {count} days ago',
     'endedYesterday': 'Ended yesterday',
     'noResults': 'Nothing matches.',
+    'statusOn': 'until {date}',
 
     // The editor.
     'editPurchase': 'Edit purchase',
+    'addTitle': 'Add a purchase',
     'product': 'Product',
-    'productHint': 'A kettle, a phone…',
+    'productHint': 'A phone, a kettle…',
     'productRequired': 'Write what the product is.',
     'category': 'Category',
     'brand': 'Brand',
     'model': 'Model',
-    'serial': 'Serial / invoice ID',
-    'serialHint': 'From the box or the receipt',
-    'merchant': 'Merchant',
+    'serial': 'Serial / IMEI',
+    'serialHint': 'From the box or the warranty card',
+    'merchant': 'Shop',
     'purchaseDate': 'Purchase date',
     'purchaseRequired': 'Use a valid purchase date.',
     'today': 'Today',
-    'coverage': 'Coverage',
+    'coverage': 'Warranty',
     'coverageNote':
-        'The shop or maker’s own terms, written by you. Nothing is '
-        'guessed from a country-wide default.',
+        'What the shop or maker promised, in your own words. Nex adds no '
+        'default of its own.',
+    'coverKindLabel': 'What kind of cover',
+    'coverCompany': 'Company warranty',
+    'coverSeller': 'Seller’s guarantee',
+    'coverAfterSales': 'After-sales service',
+    'coverCompanyHint':
+        'A warranty company’s card, separate from the shop: it has a card '
+        'number and a support line.',
+    'coverSellerHint':
+        'The shop’s own word, usually with no company card behind it.',
+    'coverAfterSalesHint':
+        'The maker’s or importer’s service and parts promise, which runs '
+        'apart from the warranty period.',
     'durationMonths': 'Duration (months)',
     'durationHint': 'A whole number, 1 or more',
+    'commonTerms': 'Common terms',
+    'term': '{count} months',
+    'termOne': '1 month',
     'endsOn': 'Ends {date}',
     'orEndDate': 'or end date',
     'endBeforePurchase': 'The end date is before the purchase.',
     'chooseOne': 'Write a duration or an end date — not both.',
-    'coverageType': 'Coverage type',
+    'coverageType': 'Wording on the card',
     'coverageTypeHint': 'Official, shop, extended…',
-    'receiptRef': 'Receipt reference',
+    'moreDetails': 'Shop, card, price and note',
+    'moreDetailsHint': 'All optional — you can add them later.',
+    'supportTitle': 'Warranty and support',
+    'company': 'Warranty company',
+    'companyHint': 'The company whose name is on the card',
+    'supportPhone': 'Support phone',
+    'supportPhoneHint': 'The number printed on the card',
+    'cardNumber': 'Card number',
+    'cardNumberHint': 'From the warranty card, if it has one',
+    'registryLabel': 'Phone registry',
+    'registryHint':
+        'For a phone or tablet: a service centre asks for the national ID '
+        'card of whoever the device is registered to.',
+    'registryMine': 'In my name',
+    'registryOther': 'In someone else’s name',
+    'receiptRef': 'Invoice reference',
     'receiptNote':
         'Typed as text — photos and files cannot be attached in this '
         'version.',
@@ -93,35 +116,80 @@ const warrantyStrings = NexModuleStrings(
     'noteHint': 'Anything worth remembering',
     'save': 'Save purchase',
 
+    // The reminder offered at save.
+    'reminderTitle': 'Remind me before it ends',
+    'reminderLeadLabel': 'How early',
+    'reminderDays': '{count} days before',
+    'reminderOneDay': '1 day before',
+    'reminderAt': 'On {date}, at 9 in the morning',
+    'reminderOfferNote':
+        'One device alert, set by you. It goes when the purchase does, and '
+        'needs the notification permission.',
+    'reminderExistingNote':
+        'An existing reminder is left as it is. Turn this on to replace it '
+        'with the one below.',
+    'reminderNotSet':
+        'The purchase was saved, but the reminder could not be set. Check '
+        'the notification permission.',
+    'reminderBody': '“{name}” ends on {date}.',
+    'reminderTitleText': 'Warranty ending',
+
     // Details.
     'detailsTitle': 'Warranty',
     'purchasedLabel': 'Purchased',
     'endsLabel': 'Coverage ends',
     'durationLabel': 'Duration',
     'amountLabel': 'Paid',
-    'merchantLabel': 'Merchant',
-    'serialLabel': 'Serial / invoice',
-    'receiptLabel': 'Receipt',
-    'typeLabel': 'Coverage',
+    'merchantLabel': 'Shop',
+    'serialLabel': 'Serial / IMEI',
+    'cardLabel': 'Card number',
+    'companyLabel': 'Warranty company',
+    'phoneLabel': 'Support',
+    'registryValue': 'Registry',
+    'registryMineValue': 'In my name',
+    'registryOtherValue': 'In someone else’s name',
+    'receiptLabel': 'Invoice',
+    'typeLabel': 'On the card',
     'noteLabel': 'Note',
+    'kindLabel': 'Cover',
+    'identityTitle': 'Purchase and shop',
+    'copyPhone': 'Copy the number',
+    'phoneCopied': 'Phone number copied.',
+    'noProof':
+        'No invoice or receipt reference is written down for this purchase.',
     'claimsTitle': 'Claims and service',
     'copyFile': 'Copy the service file',
     'shareFile': 'Share the service file',
     'fileCopied': 'Service file copied.',
-    'noProof':
-        'No invoice or receipt reference is written down for this purchase.',
+    'fileFooter':
+        'Written from this purchase’s own record in Nex. Nex does not '
+        'confirm a warranty and does not speak for a shop.',
     'noClaims': 'No claims or service noted yet.',
-    'addClaim': 'Add a claim note',
-    'addService': 'Add a service note',
+    'addClaim': 'Claim note',
+    'addService': 'Service note',
     'claimPlaceholder': 'What happened, and what was agreed',
     'claimed': 'Claim',
     'serviced': 'Service',
+    'unknownLog': 'Unknown entry',
     'claimRequired': 'Write what the note should say.',
     'reminderNote':
-        'A device alert, set by you — for the end of the coverage or before '
-        'a claim is due. It goes when the purchase does.',
+        'A device alert, set by you — for the end of the cover or before a '
+        'claim is due. It is removed when the purchase is deleted or '
+        'archived.',
+    'archive': 'Archive',
 
-    // Questions and failures.
+    // Questions, failures and fields.
+    'coverageRequired':
+        'Enter a valid end date or 1–{months} months ending by {year}.',
+    'dateHint': 'YYYY/MM/DD',
+    'monthCount': '{count} months',
+    'oneMonth': '1 month',
+    'keepDraft': 'Keep draft & close',
+    'undoFailed':
+        'Could not undo. A later change may conflict; retry after checking '
+        'the record.',
+    'loadFailed': 'Could not load your records. Retry before editing.',
+    'retry': 'Retry',
     'deleteWarranty': 'Delete {name}?',
     'deleteWarrantyBody':
         'The purchase and its claim notes go. You can undo this for a few '
@@ -136,47 +204,38 @@ const warrantyStrings = NexModuleStrings(
     'saveFailed': 'Could not save. Nothing was lost — try again.',
   },
   fa: {
-    'coverageRequired':
-        'تاریخ پایان معتبر یا مدت ۱ تا {months} ماه، حداکثر تا سال {year} وارد کنید.',
-    'dateHint': 'سال/ماه/روز',
-    'unknownLog': 'نوع گزارش نامشخص',
-    'monthCount': '{count} ماه',
-    'oneMonth': 'یک ماه',
-    'keepDraft': 'نگهداری پیش‌نویس و بستن',
-    'undoFailed':
-        'بازگردانی انجام نشد؛ شاید اطلاعات بعداً تغییر کرده است. رکورد را بررسی کنید.',
-    'loadFailed': 'خواندن اطلاعات انجام نشد. پیش از ویرایش دوباره تلاش کنید.',
-    'retry': 'تلاش دوباره',
-    'unknownDate': 'تاریخ نامشخص',
-    'title': 'ضمانت‌نامه‌ها',
-    'tagline': 'چه خریدید، و تا کِی پوشش دارد',
+    // کارت و صفحه.
+    'title': 'گارانتی‌ها',
+    'tagline': 'چه خریدید، چه کسی پوشش می‌دهد و تا کِی',
     'about':
-        'چیزهایی که می‌خرید، با مدت گارانتی‌شان و رسیدی که به‌صورت متن '
-        'تایپ می‌شود. عکس نمی‌گیرد، تأیید نمی‌کند و یادآوری نمی‌کند — و هرگز '
-        'قول نمی‌دهد فروشنده چه چیزی را می‌پذیرد.',
-    'point1': 'پوششی که خودتان نوشته‌اید',
-    'point2': 'دارای گارانتی، در حال پایان، تمام‌شده — همان لحظهٔ نمایش',
-    'point3': 'ادعاها به‌صورت یادداشتِ تاریخ‌دار',
+        'کالاهایی که می‌خرید، شرکتی که گارانتی را پشتیبانی می‌کند و شمارهٔ '
+        'تماسش، شمارهٔ کارت و سریالی که گرفته‌اید، و روزی که پوشش تمام '
+        'می‌شود. هر چه می‌نویسید همان می‌ماند؛ نکس گارانتی را تأیید نمی‌کند، '
+        'به فروشنده زنگ نمی‌زند و قول نمی‌دهد چه چیزی پذیرفته می‌شود.',
+    'point1': 'شرکت گارانتی، شمارهٔ پشتیبانی و شمارهٔ کارت',
+    'point2': 'آنچه در ۳۰ روز آینده تمام می‌شود، بالای فهرست',
+    'point3': 'مراجعه‌ها و تعمیرها به‌صورت یادداشت تاریخ‌دار',
     'point4': 'هیچ چیزی از این گوشی بیرون نمی‌رود',
 
     // فهرست.
     'heroEyebrow': 'پوشش',
     'heroCovered': '{count} در پوشش',
     'heroNoneCovered': 'چیزی در پوشش نیست',
-    'heroExpiring': '{count} به‌زودی تمام می‌شود',
-    'heroExpired': '{count} تمام شده',
-    'moreDetails': 'برند، فروشنده، قیمت و یادداشت',
-    'moreDetailsHint': 'همه اختیاری است؛ بعداً هم می‌شود افزود.',
+    'heroExpiring': '{count} نزدیک به پایان',
+    'heroExpired': '{count} تمام‌شده',
+    'expiringTitle': 'تمام‌شدن در ۳۰ روز آینده',
+    'expiringNote': '{count} مورد برای رسیدگی',
     'emptyMessage': 'اولین خرید و گارانتی‌اش را اضافه کنید.',
     'add': 'افزودن خرید',
     'active': 'دارای گارانتی',
     'expiring': 'نزدیک به پایان',
     'expired': 'تمام‌شده',
     'archived': 'آرشیو',
-    'showArchived': 'نمایش آرشیو',
+    'unknownDate': 'تاریخ نامشخص',
+    'showArchived': 'آرشیو ({count})',
     'hideArchived': 'پنهان‌کردن آرشیو',
     'unarchive': 'بازگشت به فهرست',
-    'searchHint': 'جست‌وجو با نام کالا یا برند',
+    'searchHint': 'نام کالا، برند، فروشنده یا شرکت',
     'sortSoonest': 'مرتب‌سازی از نزدیک‌ترین پایان',
     'daysLeft': '{count} روز مانده',
     'oneDayLeft': 'یک روز مانده',
@@ -184,34 +243,64 @@ const warrantyStrings = NexModuleStrings(
     'expiredDaysAgo': '{count} روز پیش تمام شد',
     'endedYesterday': 'دیروز تمام شد',
     'noResults': 'چیزی پیدا نشد.',
+    'statusOn': 'تا {date}',
 
     // ویرایشگر.
     'editPurchase': 'ویرایش خرید',
+    'addTitle': 'افزودن خرید',
     'product': 'کالا',
-    'productHint': 'کتری، گوشی…',
+    'productHint': 'گوشی، کتری…',
     'productRequired': 'بنویسید کالا چیست.',
     'category': 'دسته',
     'brand': 'برند',
     'model': 'مدل',
-    'serial': 'شماره سریال / فاکتور',
-    'serialHint': 'از جعبه یا از رسید',
-    'merchant': 'فروشنده',
+    'serial': 'سریال / IMEI',
+    'serialHint': 'از جعبه یا از کارت گارانتی',
+    'merchant': 'فروشگاه',
     'purchaseDate': 'تاریخ خرید',
     'purchaseRequired': 'تاریخ خرید معتبر بنویسید.',
     'today': 'امروز',
     'coverage': 'گارانتی',
     'coverageNote':
-        'شرایط خودِ فروشنده یا سازنده، که خودتان می‌نویسید. هیچ حدس '
-        'کشوری‌ای به‌کار نمی‌رود.',
+        'شرایطی که فروشنده یا سازنده گفته است، به زبان خودتان. نکس چیزی از '
+        'خودش اضافه نمی‌کند.',
+    'coverKindLabel': 'این پوشش از کدام نوع است',
+    'coverCompany': 'گارانتی شرکت',
+    'coverSeller': 'ضمانت فروشنده',
+    'coverAfterSales': 'خدمات پس از فروش',
+    'coverCompanyHint':
+        'کارت یک شرکت گارانتی، جدا از فروشگاه؛ شمارهٔ کارت و خط پشتیبانی '
+        'دارد.',
+    'coverSellerHint': 'قول خودِ فروشگاه است و معمولاً کارت شرکتی پشتش نیست.',
+    'coverAfterSalesHint':
+        'تعهد سرویس و قطعات سازنده یا واردکننده، جدا از مدت گارانتی.',
     'durationMonths': 'مدت (ماه)',
     'durationHint': 'یک عدد کامل، یک یا بیشتر',
+    'commonTerms': 'مدت‌های رایج',
+    'term': '{count} ماه',
+    'termOne': 'یک ماه',
     'endsOn': 'تا {date}',
     'orEndDate': 'یا تاریخ پایان',
     'endBeforePurchase': 'تاریخ پایان قبل از خرید است.',
     'chooseOne': 'یا مدت را بنویسید یا تاریخ پایان — نه هر دو.',
-    'coverageType': 'نوع گارانتی',
+    'coverageType': 'عبارت روی کارت',
     'coverageTypeHint': 'رسمی، فروشگاهی، تمدید…',
-    'receiptRef': 'مرجع رسید',
+    'moreDetails': 'فروشگاه، کارت، قیمت و یادداشت',
+    'moreDetailsHint': 'همه اختیاری است؛ بعداً هم می‌شود افزود.',
+    'supportTitle': 'گارانتی و پشتیبانی',
+    'company': 'شرکت گارانتی',
+    'companyHint': 'شرکتی که نامش روی کارت است',
+    'supportPhone': 'تلفن پشتیبانی',
+    'supportPhoneHint': 'شماره‌ای که روی کارت چاپ شده',
+    'cardNumber': 'شمارهٔ کارت',
+    'cardNumberHint': 'اگر کارت گارانتی شماره دارد',
+    'registryLabel': 'رجیستری گوشی',
+    'registryHint':
+        'برای گوشی یا تبلت: مرکز خدمات کارت ملی کسی را می‌خواهد که دستگاه '
+        'به نامش ثبت شده است.',
+    'registryMine': 'به نام من',
+    'registryOther': 'به نام کسی دیگر',
+    'receiptRef': 'شمارهٔ فاکتور',
     'receiptNote': 'به‌صورت متن — در این نسخه عکس و فایل پیوست نمی‌شود.',
     'amount': 'مبلغ پرداختی',
     'amountHint': 'ریال کامل؛ تومان تا یک رقم اعشار',
@@ -222,37 +311,77 @@ const warrantyStrings = NexModuleStrings(
     'noteHint': 'هر چه ارزش یادآوری دارد',
     'save': 'ثبت خرید',
 
+    // یادآوری هنگام ذخیره.
+    'reminderTitle': 'قبل از پایان یادم بیاور',
+    'reminderLeadLabel': 'چند روز قبل',
+    'reminderDays': '{count} روز قبل',
+    'reminderOneDay': 'یک روز قبل',
+    'reminderAt': 'در {date}، ساعت ۹ صبح',
+    'reminderOfferNote':
+        'یک هشدار گوشی، به انتخاب خودتان. با حذف خرید برداشته می‌شود و به '
+        'مجوز اعلان نیاز دارد.',
+    'reminderExistingNote':
+        'یادآوری قبلی دست نمی‌خورد. برای جایگزین‌کردنش، این را روشن کنید.',
+    'reminderNotSet':
+        'خرید ذخیره شد، ولی یادآوری تنظیم نشد. مجوز اعلان را بررسی کنید.',
+    'reminderBody': 'گارانتی «{name}» در {date} تمام می‌شود.',
+    'reminderTitleText': 'پایان گارانتی',
+
     // جزئیات.
     'detailsTitle': 'گارانتی',
     'purchasedLabel': 'خرید',
     'endsLabel': 'پایان گارانتی',
     'durationLabel': 'مدت',
     'amountLabel': 'مبلغ',
-    'merchantLabel': 'فروشنده',
-    'serialLabel': 'سریال / فاکتور',
-    'receiptLabel': 'رسید',
-    'typeLabel': 'گارانتی',
+    'merchantLabel': 'فروشگاه',
+    'serialLabel': 'سریال / IMEI',
+    'cardLabel': 'شمارهٔ کارت',
+    'companyLabel': 'شرکت گارانتی',
+    'phoneLabel': 'پشتیبانی',
+    'registryValue': 'رجیستری',
+    'registryMineValue': 'به نام من',
+    'registryOtherValue': 'به نام کسی دیگر',
+    'receiptLabel': 'فاکتور',
+    'typeLabel': 'روی کارت',
     'noteLabel': 'یادداشت',
-    'claimsTitle': 'ادعا و خدمات',
+    'kindLabel': 'پوشش',
+    'identityTitle': 'خرید و فروشگاه',
+    'copyPhone': 'کپی شماره',
+    'phoneCopied': 'شمارهٔ تلفن کپی شد.',
+    'noProof': 'برای این خرید شمارهٔ فاکتور یا رسیدی نوشته نشده است.',
+    'claimsTitle': 'مراجعه و تعمیر',
     'copyFile': 'کپی پروندهٔ خدمات',
     'shareFile': 'اشتراک پروندهٔ خدمات',
     'fileCopied': 'پروندهٔ خدمات کپی شد.',
-    'noProof': 'برای این خرید شمارهٔ فاکتور یا رسیدی نوشته نشده است.',
-    'noClaims': 'هنوز ادعا یا خدمتی یادداشت نشده.',
-    'addClaim': 'یادداشتِ ادعا',
-    'addService': 'یادداشتِ خدمات',
+    'fileFooter':
+        'از همان اطلاعاتی نوشته شده که برای این خرید در نکس ثبت کرده‌اید. '
+        'نکس گارانتی را تأیید نمی‌کند و از قول فروشنده چیزی نمی‌گوید.',
+    'noClaims': 'هنوز مراجعه یا تعمیری ثبت نشده.',
+    'addClaim': 'ثبت مراجعه',
+    'addService': 'ثبت تعمیر یا سرویس',
     'claimPlaceholder': 'چه شد، و چه توافقی شد',
-    'claimed': 'ادعا',
-    'serviced': 'خدمات',
+    'claimed': 'مراجعه',
+    'serviced': 'تعمیر',
+    'unknownLog': 'یادداشت نامشخص',
     'claimRequired': 'بنویسید یادداشت چه بگوید.',
     'reminderNote':
         'هشدار گوشی، خودتان تنظیمش می‌کنید — برای پایان گارانتی یا سررسید '
-        'پیگیری. با رفتن خرید، آن هم می‌رود.',
+        'پیگیری. با حذف یا آرشیو خرید برداشته می‌شود.',
+    'archive': 'آرشیو کردن',
 
-    // پرسش‌ها و خطاها.
+    // پرسش‌ها، خطاها و فیلدها.
+    'coverageRequired': 'تاریخ پایان معتبر یا مدت ۱ تا {months} ماه، حداکثر تا سال {year} وارد کنید.',
+    'dateHint': 'سال/ماه/روز',
+    'monthCount': '{count} ماه',
+    'oneMonth': 'یک ماه',
+    'keepDraft': 'نگهداری پیش‌نویس و بستن',
+    'undoFailed':
+        'بازگردانی انجام نشد؛ شاید بعداً چیزی تغییر کرده است. رکورد را '
+        'بررسی کنید.',
+    'loadFailed': 'خواندن اطلاعات انجام نشد. پیش از ویرایش دوباره تلاش کنید.',
+    'retry': 'تلاش دوباره',
     'deleteWarranty': '«{name}» حذف شود؟',
-    'deleteWarrantyBody':
-        'خرید و یادداشت‌های ادعایش می‌رود. چند ثانیه می‌توانید برگردانید.',
+    'deleteWarrantyBody': 'خرید با یادداشت‌های مراجعه و تعمیرش حذف می‌شود. چند ثانیه فرصت برگرداندن دارید.',
     'warrantyDeleted': 'خرید حذف شد',
     'warrantyArchived': 'خرید آرشیو شد',
     'claimDeleted': 'یادداشت حذف شد',

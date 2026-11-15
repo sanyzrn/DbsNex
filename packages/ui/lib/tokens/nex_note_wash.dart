@@ -28,6 +28,30 @@ NexNoteWash nexNoteWash(
   ColorScheme scheme, {
   bool picked = false,
 }) {
+  // Remembered: every card and tile asks this on every build, and the two
+  // readable tones are each a contrast search — on a scrolling grid of
+  // tiles that was the same few answers worked out again for every tile
+  // that came into view (2.7.2). The answer depends on nothing but the kind,
+  // the colours it is read from and the picked state.
+  final key = (
+    wireName,
+    picked,
+    scheme.brightness,
+    scheme.primary.toARGB32(),
+    scheme.surfaceContainerLowest.toARGB32(),
+    scheme.surfaceContainerHighest.toARGB32(),
+    scheme.onSurfaceVariant.toARGB32(),
+    scheme.outline.toARGB32(),
+  );
+  final cached = _washes[key];
+  if (cached != null) return cached;
+  if (_washes.length > 96) _washes.clear();
+  return _washes[key] = _wash(wireName, scheme, picked);
+}
+
+final _washes = <Object, NexNoteWash>{};
+
+NexNoteWash _wash(String? wireName, ColorScheme scheme, bool picked) {
   final dark = scheme.brightness == Brightness.dark;
   final tint = nexNoteTypeTint(wireName, scheme);
   Color wash(double alpha) => Color.alphaBlend(
