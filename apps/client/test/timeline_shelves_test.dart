@@ -7,6 +7,7 @@ import 'package:nex_core/nex_core.dart';
 void main() {
   final day = DateTime.utc(2026, 11, 1);
   var serial = 0;
+  setUp(() => serial = 0);
   final work = Tag(id: 'w', name: 'work', createdAt: day);
   final home = Tag(id: 'h', name: 'home', createdAt: day);
 
