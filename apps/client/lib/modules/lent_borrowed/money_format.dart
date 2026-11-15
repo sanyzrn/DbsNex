@@ -1,6 +1,8 @@
 import '../module_api.dart' show nexDigits;
 
 import 'currency_scales.dart';
+import 'irr_unit.dart';
+import 'money_words.dart';
 import 'number_input.dart';
 
 const maxMoney = 9007199254740991;
@@ -77,6 +79,92 @@ String formatMoney(int minor, String currency, int digits, bool persian) {
       : '${persian ? '٫' : '.'}${localDigits((minor.abs() % factor).toString().padLeft(digits, '0'), persian)}';
   // Isolate the code from the surrounding RTL sentence.
   return '${formatNumber(minor ~/ factor, persian)}$fraction \u2066$currency\u2069';
+}
+
+/// How many decimals the amount of [currency] is *said* with: the currency's
+/// own precision, except for the rial — where a toman is ten rials, so a
+/// toman amount can need one decimal (1,250.5 toman).
+int amountDisplayDigits(String currency, int digits, IrrUnit unit) =>
+    currency == 'IRR' ? unit.displayDigits : digits;
+
+/// The amount [minor] as a person reads it: grouped, in the display unit,
+/// with that unit said in words — «۵۰٬۰۰۰ تومان», "50,000 tomans",
+/// "1,234.56 USD". Iranian amounts never show a Latin code: people say
+/// toman or rial, so the module says what they say.
+String formatAmount(
+  int minor,
+  String currency,
+  int digits,
+  bool persian,
+  IrrUnit unit,
+) {
+  if (currency != 'IRR') {
+    // A foreign code stays isolated from an RTL sentence.
+    return formatMoney(minor, currency, digits, persian);
+  }
+  final displayDigits = amountDisplayDigits(currency, digits, unit);
+  final factor = moneyFactor(displayDigits);
+  final negative = minor < 0;
+  final value = minor.abs();
+  // A whole toman is «۵۰٬۰۰۰ تومان», not «۵۰٬۰۰۰٫۰ تومان»: the decimal
+  // exists only when the stored rials leave a remainder.
+  final rest = displayDigits == 0 ? 0 : value % factor;
+  final fraction = rest == 0
+      ? ''
+      : '${persian ? '٫' : '.'}${localDigits(rest.toString().padLeft(displayDigits, '0'), persian)}';
+  final label = currencyUnitWord(
+    currency,
+    unit,
+    persian: persian,
+    plural: value ~/ factor != 1,
+  );
+  return '${negative ? '−' : ''}${formatNumber(value ~/ factor, persian)}$fraction $label';
+}
+
+/// The same amount in words, under the digits.
+String formatAmountWords(
+  int minor,
+  String currency,
+  int digits,
+  bool persian,
+  IrrUnit unit,
+) {
+  final displayDigits = amountDisplayDigits(currency, digits, unit);
+  // A toman amount is said with one decimal (a toman is ten rials), so the
+  // stored rials already read as tomans once [displayDigits] is applied.
+  return amountInWords(
+    minor: minor,
+    digits: displayDigits,
+    persian: persian,
+    unit: currencyUnitWord(currency, unit, persian: persian),
+    unitOne: currencyUnitWord(currency, unit, persian: persian, plural: false),
+  );
+}
+
+/// Parses what a person typed into stored minor units. The typed number is
+/// in the display unit, so a toman entry becomes rials by the toman's ten.
+int? parseAmount(String raw, String currency, int digits, IrrUnit unit) {
+  final displayDigits = amountDisplayDigits(currency, digits, unit);
+  // With one decimal a typed toman is already read as its rials: 50,000
+  // tomans parses as 500,000. With whole rials it is the rials themselves.
+  final parsed = parseMoney(raw, displayDigits);
+  if (parsed == null || parsed > maxMoney) return null;
+  return parsed;
+}
+
+/// [minor] as the editor's field text, in the display unit and without
+/// grouping (the field's formatter adds that).
+String amountInput(int minor, String currency, int digits, IrrUnit unit) {
+  final displayDigits = amountDisplayDigits(currency, digits, unit);
+  final factor = moneyFactor(displayDigits);
+  final value = minor.abs();
+  final whole = value ~/ factor;
+  final fraction = value % factor;
+  final sign = minor < 0 ? '-' : '';
+  if (displayDigits == 0 || fraction == 0) return '$sign$whole';
+  final text = fraction.toString().padLeft(displayDigits, '0');
+  final trimmed = text.replaceFirst(RegExp(r'0+$'), '');
+  return '$sign$whole.${trimmed.isEmpty ? '0' : trimmed}';
 }
 
 /// Compatibility helper used by existing unit tests and legacy displays.

@@ -86,10 +86,7 @@ void main() {
       );
       expect(find.text('قرض و طلب'), findsOneWidget);
       expect(find.text('علی'), findsOneWidget);
-      expect(
-        find.textContaining('۵۰۰٬۰۰۰ \u2066IRR\u2069 هنوز مانده'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('۵۰٬۰۰۰ تومان هنوز مانده'), findsOneWidget);
       expect(find.text('۷ روز دیگر موعدش است'), findsOneWidget);
       expectNoOverflow(tester);
     });
@@ -105,10 +102,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('loans-tab-borrowed')));
       await tester.pumpAndSettle();
       expect(find.text('سارا'), findsOneWidget);
-      expect(
-        find.textContaining('۲۰۰٬۰۰۰ \u2066IRR\u2069 هنوز مانده'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('۲۰٬۰۰۰ تومان هنوز مانده'), findsOneWidget);
       expect(find.text('بدون موعد'), findsOneWidget);
       expectNoOverflow(tester);
     });
@@ -138,10 +132,7 @@ void main() {
         TextDirection.ltr,
       );
       expect(find.text('Lent & borrowed'), findsOneWidget);
-      expect(
-        find.textContaining('500,000 \u2066IRR\u2069 still out'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('50,000 tomans still out'), findsOneWidget);
       expect(find.text('Due in 7 days'), findsOneWidget);
       expectNoOverflow(tester);
     });
@@ -154,10 +145,7 @@ void main() {
         brightness: Brightness.dark,
         textScale: 2.0,
       );
-      expect(
-        find.textContaining('500,000 \u2066IRR\u2069 still out'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('50,000 tomans still out'), findsOneWidget);
       expectNoOverflow(tester);
     });
   });
@@ -190,9 +178,9 @@ void main() {
       lentStrings.text(
         lookupAppLocalizations(const Locale('fa')),
         'outstanding',
-        {'amount': '۵۰۰٬۰۰۰ \u2066IRR\u2069'},
+        {'amount': '۵۰٬۰۰۰ تومان'},
       ),
-      '۵۰۰٬۰۰۰ \u2066IRR\u2069 هنوز مانده',
+      '۵۰٬۰۰۰ تومان هنوز مانده',
     );
     expect(
       lentStrings.text(lookupAppLocalizations(const Locale('fa')), 'dueIn', {

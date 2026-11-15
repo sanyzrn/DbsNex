@@ -276,7 +276,8 @@ void main() {
       final returns = await store.list('return');
       expect(returns, hasLength(1));
       expect(returns.first.body['date'], todayKey());
-      expect(returns.first.body['amount'], 50000);
+      // 50,000 tomans is 500,000 rials, and rials are what is stored.
+      expect(returns.first.body['amount'], 500000);
     });
   });
 

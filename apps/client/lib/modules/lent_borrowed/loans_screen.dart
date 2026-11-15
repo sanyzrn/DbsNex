@@ -3,17 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'irr_unit.dart';
 import 'loan_edit_sheet.dart';
 import 'loan_filter.dart';
-import 'loan_people.dart';
-import 'loan_row.dart';
-import 'loan_summary_card.dart';
-import 'people_screen.dart';
-import 'loan_math.dart';
 import 'loan_model.dart';
+import 'loan_settings.dart';
+import 'loans_screen_body.dart';
 import 'module.dart';
-import 'store_state.dart';
+import 'people_screen.dart';
 import 'record_bundle.dart';
+import 'store_state.dart';
 
 /// The overview: Lent and Borrowed never mix, outstanding comes before
 /// settled, and a due date that has passed is said plainly, at the top,
@@ -38,6 +37,9 @@ class _LoansScreenState extends State<LoansScreen>
   int _loadToken = 0;
   bool _editorOpen = false;
   late final TabController _tabs = TabController(length: 2, vsync: this);
+
+  /// How an Iranian amount is said: toman until the person chooses rial.
+  IrrUnit _unit = IrrUnit.toman;
 
   /// How far the first tab was pulled past its start edge in this drag.
   double _edgePull = 0;
@@ -78,6 +80,7 @@ class _LoansScreenState extends State<LoansScreen>
         context,
         widget.store,
         initialDirection: direction,
+        unit: _unit,
       );
     } finally {
       _editorOpen = false;
@@ -87,13 +90,27 @@ class _LoansScreenState extends State<LoansScreen>
   Future<void> _read() async {
     await RecordBundle.recover(widget.store);
     final token = ++_loadToken;
+    final settings = await readLoanSettings(widget.store);
     final loans = await widget.store.list('loan');
     final returns = await widget.store.list('return');
     if (!mounted || token != _loadToken) return;
     setState(() {
       _loans = loans.map(Loan.fromRecord).toList();
       _returns = returns.map(LoanReturn.fromRecord).toList();
+      _unit = settings.irrUnit;
     });
+  }
+
+  /// The unit is how amounts are *said*, so changing it never touches a
+  /// record: it is one small preference, saved and read back like a record.
+  Future<void> _setUnit(IrrUnit unit) async {
+    if (unit == _unit) return;
+    final saved = await storeWrite(
+      context,
+      () => saveIrrUnit(widget.store, unit),
+    );
+    if (!mounted) return;
+    if (saved) setState(() => _unit = unit);
   }
 
   Widget _searchBar(BuildContext context) {
@@ -174,10 +191,29 @@ class _LoansScreenState extends State<LoansScreen>
               Navigator.push(
                 context,
                 NexPageRoute<void>(
-                  builder: (_) => PeopleScreen(store: widget.store),
+                  builder: (_) =>
+                      PeopleScreen(store: widget.store, unit: _unit),
                 ),
               ),
             ),
+          ),
+          NexPopupMenuButton<IrrUnit>(
+            key: const ValueKey('loans-units'),
+            tooltip: strings(context, 'unitLabel'),
+            icon: const Icon(Icons.tune),
+            onSelected: (unit) => unawaited(_setUnit(unit)),
+            itemBuilder: (context) => [
+              // A menu that chooses a value: no icons, per the design
+              // language's menu rules.
+              nexMenuItem(
+                value: IrrUnit.toman,
+                label: strings(context, 'unitToman'),
+              ),
+              nexMenuItem(
+                value: IrrUnit.rial,
+                label: strings(context, 'unitRial'),
+              ),
+            ],
           ),
         ],
         bottom: TabBar(
@@ -221,23 +257,25 @@ class _LoansScreenState extends State<LoansScreen>
                 child: TabBarView(
                   controller: _tabs,
                   children: [
-                    _LoanList(
+                    LoanListBody(
                       direction: LoanDirection.lent,
                       loans: _loans,
                       returns: _returns,
                       store: widget.store,
                       query: _search.text,
                       filter: _filter,
+                      unit: _unit,
                       onNewRecord: () =>
                           unawaited(_openEditor(LoanDirection.lent)),
                     ),
-                    _LoanList(
+                    LoanListBody(
                       direction: LoanDirection.borrowed,
                       loans: _loans,
                       returns: _returns,
                       store: widget.store,
                       query: _search.text,
                       filter: _filter,
+                      unit: _unit,
                       onNewRecord: () =>
                           unawaited(_openEditor(LoanDirection.borrowed)),
                     ),
@@ -251,155 +289,4 @@ class _LoansScreenState extends State<LoansScreen>
       ),
     );
   }
-}
-
-/// One tab: the loans of one direction, outstanding first, settled under
-/// their own quiet heading.
-class _LoanList extends StatelessWidget {
-  const _LoanList({
-    required this.direction,
-    required this.loans,
-    required this.returns,
-    required this.store,
-    required this.query,
-    required this.filter,
-    required this.onNewRecord,
-  });
-
-  final String query;
-  final LoanFilter filter;
-  final LoanDirection direction;
-  final List<Loan> loans;
-  final List<LoanReturn> returns;
-  final NexModuleStore store;
-  final VoidCallback onNewRecord;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = lentStrings;
-    final all = loans.where((l) => l.direction == direction).toList();
-    final summary = LoanSummary.of(all, returns);
-    final mine = [
-      for (final loan in all)
-        if (loanMatches(loan, query) &&
-            filter.allows(LoanMath.standing(loan, returns)))
-          loan,
-    ];
-    if (all.isEmpty) {
-      return ListView(
-        padding: const EdgeInsetsDirectional.all(NexSpacing.md),
-        children: [
-          NexEmptyState(
-            icon: Icons.swap_horiz_outlined,
-            message: strings(
-              context,
-              direction == LoanDirection.lent
-                  ? 'noLoansLent'
-                  : 'noLoansBorrowed',
-            ),
-            // Only while the library has no record at all; after that the
-            // button floating on the page does the job.
-            action: loans.isEmpty
-                ? FilledButton.icon(
-                    key: const ValueKey('loans-new'),
-                    onPressed: onNewRecord,
-                    icon: const Icon(Icons.add),
-                    label: Text(strings(context, 'newRecord')),
-                  )
-                : null,
-          ),
-        ],
-      );
-    }
-    if (mine.isEmpty) {
-      return ListView(
-        padding: const EdgeInsetsDirectional.all(NexSpacing.md),
-        children: [
-          LoanSummaryCard(
-            summary: summary,
-            owedToMe: direction == LoanDirection.lent,
-          ),
-          NexEmptyState(
-            icon: Icons.search_off_outlined,
-            message: strings(context, 'noMatches'),
-          ),
-        ],
-      );
-    }
-    final standings = {
-      for (final loan in mine) loan.id: LoanMath.standing(loan, returns),
-    };
-    // Newest saved first within a rank: the store's own order, kept stable
-    // so a reload never shuffles the loans a person was looking at.
-    final ranked =
-        [
-          for (final (index, loan) in mine.indexed)
-            if (!standings[loan.id]!.settled) (index, loan),
-        ]..sort((a, b) {
-          final rank =
-              _dueRank(standings[b.$2.id]!) - _dueRank(standings[a.$2.id]!);
-          return rank != 0 ? rank : a.$1.compareTo(b.$1);
-        });
-    final outstanding = [for (final (_, loan) in ranked) loan];
-    final settled = mine.where((l) => standings[l.id]!.settled).toList();
-
-    return ListView(
-      padding: EdgeInsetsDirectional.fromSTEB(
-        NexSpacing.md,
-        NexSpacing.sm,
-        NexSpacing.md,
-        NexSpacing.lg + nexBottomInset(context),
-      ),
-      children: [
-        LoanSummaryCard(
-          summary: summary,
-          owedToMe: direction == LoanDirection.lent,
-        ),
-        const SizedBox(height: NexSpacing.md),
-        if (outstanding.isNotEmpty) ...[
-          NexShelfHeading(
-            icon: Icons.outbox_outlined,
-            title: strings(context, 'outstandingHeading'),
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          for (final (index, loan) in outstanding.indexed)
-            LoanRow(
-              index: index,
-              count: outstanding.length,
-              loan: loan,
-              standing: standings[loan.id]!,
-              store: store,
-            ),
-        ],
-        if (settled.isNotEmpty) ...[
-          if (outstanding.isNotEmpty) const SizedBox(height: NexSpacing.lg),
-          NexShelfHeading(
-            icon: Icons.task_alt_outlined,
-            title: strings(context, 'settledHeading'),
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          for (final (index, loan) in settled.indexed)
-            LoanRow(
-              index: index,
-              count: settled.length,
-              loan: loan,
-              standing: standings[loan.id]!,
-              store: store,
-            ),
-        ],
-        const SizedBox(height: NexSpacing.xl),
-      ],
-    );
-  }
-
-  /// Overdue first, then due soon, then the rest — the loans that need
-  /// attention are the loans at the top.
-  int _dueRank(LoanStanding standing) => switch (standing.due.status) {
-    DueStatus.overdue => 5,
-    DueStatus.today => 4,
-    DueStatus.dueSoon => 3,
-    DueStatus.later => 2,
-    DueStatus.none => 1,
-    DueStatus.settled => 0,
-  };
 }

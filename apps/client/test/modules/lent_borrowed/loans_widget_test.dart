@@ -45,20 +45,19 @@ void main() {
   }
 
   /// Creates a record through the real sheet. Defaults describe a money
-  /// loan of 500,000 rials to Ali, due in 7 days.
+  /// loan of 50,000 tomans (500,000 rials) to Ali, due in 7 days.
   Future<String> createLoan(
     WidgetTester tester,
     NexModuleStore store, {
     bool borrowed = false,
     bool item = false,
     String person = 'Ali',
-    String amount = '500000',
+    String amount = '50000',
     String what = 'The blue backpack',
     String dueIn = '7',
   }) async {
     await tester.tap(find.byKey(const ValueKey('loans-new')));
     await tester.pumpAndSettle();
-    await openMoreDetails(tester, 'loan-more-toggle');
     if (borrowed) {
       await tester.tap(find.byKey(const ValueKey('loan-field-direction')));
       await tester.pumpAndSettle();
@@ -86,6 +85,7 @@ void main() {
         amount,
       );
     }
+    await openMoreDetails(tester, 'loan-more-toggle');
     if (dueIn.isNotEmpty) {
       final preset = find.byKey(ValueKey('loan-due-preset-$dueIn'));
       await tester.ensureVisible(preset);
@@ -128,10 +128,7 @@ void main() {
       await createLoan(tester, store);
 
       expect(find.text('Ali'), findsOneWidget);
-      expect(
-        find.textContaining('500,000 \u2066IRR\u2069 still out'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('50,000 tomans still out'), findsOneWidget);
       expect(find.text('Due in 7 days'), findsOneWidget);
 
       final body = (await store.list('loan')).first.body;
@@ -164,7 +161,7 @@ void main() {
       await createLoan(tester, store, item: true, amount: '2');
 
       expect(find.textContaining('The blue backpack'), findsOneWidget);
-      expect(find.textContaining('2 still out'), findsOneWidget);
+      expect(find.text('2 × The blue backpack still out'), findsOneWidget);
       final body = (await store.list('loan')).first.body;
       expect(body['type'], 'item');
       expect(body['what'], 'The blue backpack');
@@ -225,7 +222,7 @@ void main() {
       tester,
     ) async {
       final store = await pumpScreen(tester);
-      await createLoan(tester, store, person: 'Ali', amount: '300000');
+      await createLoan(tester, store, person: 'Ali', amount: '30000');
 
       // Partial, then the rest.
       await tester.tap(find.text('Ali'));
@@ -234,17 +231,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('return-field-amount')),
-        '100000',
+        '10000',
       );
       final returnSave = find.byKey(const ValueKey('return-save'));
       await tester.ensureVisible(returnSave);
       await tester.pumpAndSettle();
       await tester.tap(returnSave);
       await settle(tester);
-      expect(
-        find.textContaining('200,000 \u2066IRR\u2069 still out'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('20,000 tomans still out'), findsOneWidget);
 
       final settleAll = find.byKey(const ValueKey('loan-mark-settled'));
       await tester.ensureVisible(settleAll);
@@ -261,10 +255,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('loans-tab-borrowed')));
       await tester.pumpAndSettle();
       expect(find.text('Sara'), findsOneWidget);
-      expect(
-        find.textContaining('500,000 \u2066IRR\u2069 still out'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('50,000 tomans still out'), findsOneWidget);
     });
   });
 
