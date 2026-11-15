@@ -1280,13 +1280,13 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiEditUnchanged => 'چیزی برای تغییر نبود — همین‌طور خوب است.';
 
   @override
-  String get caption => 'شرح';
+  String get caption => 'توضیح';
 
   @override
-  String get addCaption => 'افزودن شرح';
+  String get addCaption => 'افزودن توضیح';
 
   @override
-  String get editCaption => 'ویرایش شرح';
+  String get editCaption => 'ویرایش توضیح';
 
   @override
   String get attachmentsTitle => 'پیوست‌ها';
@@ -1352,7 +1352,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get noCaption => 'بدون شرح';
+  String get noCaption => 'بدون توضیح';
 
   @override
   String get tagName => 'نام برچسب';
@@ -5554,33 +5554,33 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiImageResult => 'شرح و متن تصویر';
 
   @override
-  String get aiAddToCaption => 'افزودن به کپشن';
+  String get aiAddToCaption => 'افزودن به توضیح';
 
   @override
-  String get aiAppendCaptionTitle => 'این آیتم از قبل کپشن دارد';
+  String get aiAppendCaptionTitle => 'این آیتم از قبل توضیح دارد';
 
   @override
   String get aiAppendCaptionBody =>
-      'نتیجه به انتهای کپشن فعلی اضافه شود یا کاملاً جایگزین آن شود؟';
+      'نتیجه به انتهای توضیح فعلی اضافه شود یا کاملاً جایگزین آن شود؟';
 
   @override
   String get aiAppendCaption => 'افزودن به انتها';
 
   @override
-  String get aiCaptionAdded => 'به کپشن اضافه شد';
+  String get aiCaptionAdded => 'به توضیح اضافه شد';
 
   @override
-  String get aiCaptionFailed => 'افزودن این متن به کپشن انجام نشد.';
+  String get aiCaptionFailed => 'افزودن این متن به توضیح انجام نشد.';
 
   @override
   String get aiReplaceCaption => 'جایگزینی کامل';
 
   @override
-  String get aiCaptionReplaced => 'کپشن جایگزین شد';
+  String get aiCaptionReplaced => 'توضیح جایگزین شد';
 
   @override
   String get aiCaptionChanged =>
-      'کپشن هنگام باز بودن این پنجره تغییر کرده است؛ چیزی جایگزین نشد. دوباره تلاش کنید.';
+      'توضیح هنگام باز بودن این پنجره تغییر کرده است؛ چیزی جایگزین نشد. دوباره تلاش کنید.';
 
   @override
   String get aiProcessing => 'در حال پردازش…';

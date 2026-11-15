@@ -416,15 +416,15 @@
   "@editNote": {
     "description": "Title of the edit-note dialog"
   },
-  "caption": "شرح",
+  "caption": "توضیح",
   "@caption": {
     "description": "Caption section heading in the detail sheet"
   },
-  "addCaption": "افزودن شرح",
+  "addCaption": "افزودن توضیح",
   "@addCaption": {
     "description": "Button shown when a media note has no caption yet"
   },
-  "editCaption": "ویرایش شرح",
+  "editCaption": "ویرایش توضیح",
   "@editCaption": {
     "description": "Button shown when a media note already has a caption"
   },
@@ -466,7 +466,7 @@
   "@attachFailed": {"description": "Banner when attaching fails"},
   "attachedMore": "{count} فایل دیگر",
   "@attachedMore": {"description": "Screen reader: how many files a note carries after its own", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
-  "noCaption": "بدون شرح",
+  "noCaption": "بدون توضیح",
   "@noCaption": {
     "description": "Placeholder text where a caption would appear"
   },
@@ -1987,15 +1987,15 @@
   "aiDescribeImage": "شرح و خواندن تصویر",
   "aiTranscribeAudio": "تبدیل صدا به متن",
   "aiImageResult": "شرح و متن تصویر",
-  "aiAddToCaption": "افزودن به کپشن",
-  "aiAppendCaptionTitle": "این آیتم از قبل کپشن دارد",
-  "aiAppendCaptionBody": "نتیجه به انتهای کپشن فعلی اضافه شود یا کاملاً جایگزین آن شود؟",
+  "aiAddToCaption": "افزودن به توضیح",
+  "aiAppendCaptionTitle": "این آیتم از قبل توضیح دارد",
+  "aiAppendCaptionBody": "نتیجه به انتهای توضیح فعلی اضافه شود یا کاملاً جایگزین آن شود؟",
   "aiAppendCaption": "افزودن به انتها",
-  "aiCaptionAdded": "به کپشن اضافه شد",
-  "aiCaptionFailed": "افزودن این متن به کپشن انجام نشد.",
+  "aiCaptionAdded": "به توضیح اضافه شد",
+  "aiCaptionFailed": "افزودن این متن به توضیح انجام نشد.",
   "aiReplaceCaption": "جایگزینی کامل",
-  "aiCaptionReplaced": "کپشن جایگزین شد",
-  "aiCaptionChanged": "کپشن هنگام باز بودن این پنجره تغییر کرده است؛ چیزی جایگزین نشد. دوباره تلاش کنید.",
+  "aiCaptionReplaced": "توضیح جایگزین شد",
+  "aiCaptionChanged": "توضیح هنگام باز بودن این پنجره تغییر کرده است؛ چیزی جایگزین نشد. دوباره تلاش کنید.",
   "aiProcessing": "در حال پردازش…",
   "aiNoResult": "یک عملیات را انتخاب کنید؛ نتیجه همین‌جا نمایش داده می‌شود.",
   "aiTagsAction": "پیشنهاد برچسب",

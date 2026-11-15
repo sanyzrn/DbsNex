@@ -125,13 +125,16 @@ class _NexDesktopNoteCardState extends State<NexDesktopNoteCard> {
   switch (note.type) {
     case NoteType.text:
       if (named != null && named.isNotEmpty) return (title: named, body: text);
-      final lines = text.split('\n');
-      final first = lines.first.trim();
-      final rest = lines.skip(1).join('\n').trim();
-      // A short first line over more text is a title. A single thought is not:
-      // it is the card's text, and a title would only cut it off.
-      if (rest.isNotEmpty && first.isNotEmpty && first.length <= 60) {
-        return (title: first, body: rest);
+      // A first line is a heading only when it was written as one — a
+      // Markdown `#` — not whenever it happens to be short (2.7.2). The guess
+      // made a bold title of an ordinary first sentence, which the list card,
+      // reading the same note, never did: one note, two different looks.
+      final raw = (note.displayText ?? '').trimLeft();
+      if (raw.startsWith('#')) {
+        final lines = text.split('\n');
+        final first = lines.first.trim();
+        final rest = lines.skip(1).join('\n').trim();
+        if (first.isNotEmpty) return (title: first, body: rest);
       }
       return (title: '', body: text);
     case NoteType.file:

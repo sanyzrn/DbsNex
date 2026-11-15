@@ -170,4 +170,21 @@ void main() {
     expect(find.byIcon(Icons.local_fire_department_outlined), findsWidgets);
     expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);
   });
+
+  testWidgets('a scroll moves the tiles without rebuilding them (2.7.2)', (
+    tester,
+  ) async {
+    // Each day's grid used to sit in a SliverLayoutBuilder, which rebuilds on
+    // every frame of a scroll — and with it every tile on screen. The tile a
+    // short scroll leaves on screen must be the same widget after it.
+    await open(tester);
+    final tile = find.byType(NexNoteGridCard).first;
+    final before = tester.widget(tile);
+    await tester.drag(
+      find.byType(CustomScrollView).first,
+      const Offset(0, -24),
+    );
+    await tester.pump();
+    expect(identical(tester.widget(tile), before), isTrue);
+  });
 }

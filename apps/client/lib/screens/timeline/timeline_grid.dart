@@ -102,20 +102,21 @@ extension _TimelineGrid on TimelineScreenState {
             else if (!_model.collapsedGroups.contains(group.key))
               SliverPadding(
                 padding: padding,
-                sliver: SliverLayoutBuilder(
-                  builder: (context, constraints) => SliverGrid.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: metrics.columnsFor(
-                        constraints.crossAxisExtent,
-                      ),
-                      mainAxisExtent: height,
-                      crossAxisSpacing: NexSpacing.sm,
-                      mainAxisSpacing: NexSpacing.sm,
-                    ),
-                    itemCount: group.notes.length,
-                    itemBuilder: (context, i) =>
-                        _gridTile(group.notes[i], strings, l10n, group),
+                // The columns are chosen at layout, from the width the grid
+                // is given — not by a SliverLayoutBuilder around it. Sliver
+                // constraints change on every frame of a scroll, and the
+                // builder rebuilt each day's grid, and every tile on screen
+                // in it, on every one of them: the grid's scroll did twice
+                // the list's work (2.7.2).
+                sliver: SliverGrid.builder(
+                  gridDelegate: NexGridColumnsDelegate(
+                    columnsFor: metrics.columnsFor,
+                    metrics: metrics,
+                    mainAxisExtent: height,
                   ),
+                  itemCount: group.notes.length,
+                  itemBuilder: (context, i) =>
+                      _gridTile(group.notes[i], strings, l10n, group),
                 ),
               ),
             // A shelf that holds more than it shows ends in "See all", open
