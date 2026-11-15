@@ -140,6 +140,14 @@ void main() {
         '10000000',
       );
       await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('gold-making-percent')),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('gold-making-percent')),
+        '0',
+      );
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('gold-open-budget')));
       await tester.pumpAndSettle();
       await tester.enterText(

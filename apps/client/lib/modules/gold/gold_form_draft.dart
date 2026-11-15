@@ -13,6 +13,7 @@ Future<void> _restoreGoldDraft(
     return;
   }
   if (body != null) {
+    state._detailsOpen = true;
     state._draft!.apply(body);
     final fine = body['fineness'];
     final ref = body['rateRef'];

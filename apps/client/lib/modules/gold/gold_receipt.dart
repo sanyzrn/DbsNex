@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'gold_dates.dart';
+import 'gold_cost_lens.dart';
 import 'gold_format.dart';
 import 'gold_math.dart';
 import 'gold_strings.dart';
@@ -84,6 +85,8 @@ class GoldReceipt extends StatelessWidget {
               ),
             ),
           ),
+          GoldCostLens(input: input, result: result, showRials: showRials),
+          const SizedBox(height: NexSpacing.md),
           if (result.rateWasConverted)
             _Note(
               text: strings(context, 'rateConverted', {
