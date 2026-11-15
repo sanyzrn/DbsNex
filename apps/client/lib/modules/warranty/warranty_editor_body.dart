@@ -20,6 +20,7 @@ extension _WarrantyEditorBody on _WarrantyEditorSheetState {
         child: Padding(
           padding: EdgeInsets.only(bottom: viewInsets),
           child: SingleChildScrollView(
+            key: const ValueKey('warranty-editor-scroll'),
             padding: const EdgeInsets.all(NexSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,7 +28,7 @@ extension _WarrantyEditorBody on _WarrantyEditorSheetState {
                 Text(
                   strings(
                     context,
-                    widget.existing != null ? 'editPurchase' : 'add',
+                    widget.existing != null ? 'editPurchase' : 'addTitle',
                   ),
                   style: theme.textTheme.titleLarge,
                 ),
@@ -44,6 +45,7 @@ extension _WarrantyEditorBody on _WarrantyEditorSheetState {
                       ? strings(context, 'productRequired')
                       : null,
                 ),
+                const SizedBox(height: NexSpacing.sm),
                 NexModuleDateEntry(
                   controller: _purchaseDate,
                   child: WarrantyFields.line(
@@ -54,20 +56,22 @@ extension _WarrantyEditorBody on _WarrantyEditorSheetState {
                     helper: _showErrors && _purchaseBad
                         ? strings(context, 'purchaseRequired')
                         : null,
-                    suffix: Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                        end: NexSpacing.xs,
-                      ),
-                      child: ActionChip(
-                        key: const ValueKey('warranty-today'),
-                        label: Text(strings(context, 'today')),
-                        onPressed: () {
-                          _purchaseDate.text = WarrantyParse.dateText(
-                            DateTime.now(),
-                          );
-                        },
-                      ),
-                    ),
+                  ),
+                ),
+                // The chip used to sit inside the field, squeezing the
+                // label into "Purchase …" at twice the text size. Under the
+                // field it keeps the whole width and its own 48dp target.
+                const SizedBox(height: NexSpacing.xs),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: ActionChip(
+                    key: const ValueKey('warranty-today'),
+                    label: Text(strings(context, 'today')),
+                    onPressed: () {
+                      _purchaseDate.text = WarrantyParse.dateText(
+                        DateTime.now(),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: NexSpacing.lg),
@@ -76,9 +80,38 @@ extension _WarrantyEditorBody on _WarrantyEditorSheetState {
                   duration: _duration,
                   endDate: _endDate,
                   coverageType: _coverageType,
+                  coverKind: _coverKind,
+                  onCoverKind: (kind) {
+                    _paint(() {
+                      _coverKind = kind;
+                      _dirty = true;
+                    });
+                    _session.changed();
+                  },
                   showErrors: _showErrors,
                 ),
-                const SizedBox(height: NexSpacing.sm),
+                // The reminder is offered here, where the person is already
+                // saving an end date, rather than buried in the purchase's
+                // own page. The platform only lets an installed, available
+                // module schedule one, so the offer waits until it can keep
+                // the promise instead of failing after every save.
+                if (_offerReminder)
+                  WarrantyReminderOffer(
+                    enabled: _remindOn,
+                    onChanged: (value) {
+                      _paint(() => _remind = value);
+                      _session.changed();
+                    },
+                    moment: _reminderMoment!,
+                    choices: _reminderChoices,
+                    selectedDays: _remindDays ?? _reminderChoices.firstOrNull,
+                    onDays: (days) {
+                      _paint(() => _remindDays = days);
+                      _session.changed();
+                    },
+                    refreshing: widget.existing != null,
+                  ),
+                const SizedBox(height: NexSpacing.md),
                 NexMoreDetails(
                   toggleKey: const ValueKey('warranty-more-toggle'),
                   open: _moreOpen,
@@ -97,7 +130,21 @@ extension _WarrantyEditorBody on _WarrantyEditorSheetState {
                         merchant: _merchant,
                         showProduct: false,
                       ),
-                      const SizedBox(height: NexSpacing.sm),
+                      const SizedBox(height: NexSpacing.lg),
+                      WarrantySupportFields(
+                        company: _company,
+                        supportPhone: _supportPhone,
+                        cardNumber: _cardNumber,
+                        registryOwner: _registry,
+                        onRegistry: (owner) {
+                          _paint(() {
+                            _registry = owner;
+                            _dirty = true;
+                          });
+                          _session.changed();
+                        },
+                      ),
+                      const SizedBox(height: NexSpacing.lg),
                       WarrantyFields.line(
                         fieldKey: const ValueKey('warranty-field-receipt'),
                         controller: _receiptRef,

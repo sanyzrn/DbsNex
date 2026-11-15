@@ -363,25 +363,37 @@ Future<void> addWarranty(
   await tester.pumpAndSettle();
 }
 
-/// Drags the sheet's list until [finder] is actually tappable —
-/// `ensureVisible` can leave a button half under the screen edge.
+/// Drags the open editor or purchase page until [finder] is actually
+/// tappable — `ensureVisible` can leave a button half under the screen edge.
 Future<void> scrollWarrantyTo(WidgetTester tester, Finder finder) async {
-  // The sheet is one plain scroll view, so it can bring the target into view
-  // itself; a short drag after that clears a button left half under the
-  // screen edge.
   if (finder.evaluate().isNotEmpty) {
     await tester.ensureVisible(finder);
     await tester.pumpAndSettle();
   }
-  final sheetList = find
-      .descendant(
-        of: find.byType(SingleChildScrollView),
-        matching: find.byType(Scrollable),
-      )
-      .first;
-  for (var attempt = 0; attempt < 10; attempt++) {
+  // The editor is a sheet with one scroll view; the purchase is a page with
+  // a list. Whichever is on top (the last one built) is the one to drag.
+  final editor = find.byKey(const ValueKey('warranty-editor-scroll'));
+  final detail = find.byKey(const ValueKey('warranty-detail-scroll'));
+  final Finder target = editor.evaluate().isNotEmpty
+      ? editor.last
+      : detail.evaluate().isNotEmpty
+      ? detail.last
+      : find.byType(Scrollable).last;
+  for (var attempt = 0; attempt < 14; attempt++) {
     if (finder.hitTestable().evaluate().isNotEmpty) break;
-    await tester.drag(sheetList, const Offset(0, -120), warnIfMissed: false);
+    // A target can be above the sheet as well as below it — a field that
+    // moved up when a later section opened — so drag towards it.
+    final above =
+        finder.evaluate().isNotEmpty && tester.getRect(finder).top < 0;
+    await tester.drag(
+      target,
+      Offset(0, above ? 160 : -160),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+  }
+  if (finder.evaluate().isNotEmpty) {
+    await tester.ensureVisible(finder);
     await tester.pumpAndSettle();
   }
 }

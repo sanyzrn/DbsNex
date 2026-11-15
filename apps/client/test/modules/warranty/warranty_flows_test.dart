@@ -54,6 +54,7 @@ void main() {
       expect(claims.single.body['note'], 'Called the shop; part ordered.');
 
       // Deleting the note is a correction with Undo.
+      await scrollWarrantyTo(tester, find.byIcon(Icons.delete_outline));
       await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
       expect(await h.services.moduleRecords('warranty', 'claim'), isEmpty);
@@ -73,7 +74,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('warranty-detail-menu')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Archived'));
+      await tester.tap(find.text('Archive'));
       await tester.pumpAndSettle();
       final stored = await h.services.moduleRecords('warranty', 'warranty');
       expect(stored.single.body['archived'], isTrue);
@@ -163,7 +164,7 @@ void main() {
         WarrantyScreen(store: NexModuleStore(h.services, 'warranty')),
         locale: const Locale('fa'),
       );
-      expect(find.text('ضمانت‌نامه‌ها'), findsOneWidget);
+      expect(find.text('گارانتی‌ها'), findsOneWidget);
       expect(
         Directionality.of(tester.state(find.byType(Scaffold)).context),
         TextDirection.rtl,
@@ -184,9 +185,8 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(2)),
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(2)),
             child: child ?? const SizedBox.shrink(),
           ),
           home: WarrantyScreen(store: NexModuleStore(h.services, 'warranty')),

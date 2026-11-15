@@ -12,9 +12,6 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
         : active
               .where((r) => WarrantyLogic.matchesQuery(r.body, query))
               .toList());
-    final sorted = _sortSoonest
-        ? WarrantyLogic.soonestEndFirst(visible)
-        : visible;
 
     return Scaffold(
       appBar: NexAppBar(
@@ -42,7 +39,7 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(kToolbarHeight),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
+                  padding: const EdgeInsetsDirectional.fromSTEB(
                     NexSpacing.md,
                     0,
                     NexSpacing.md,
@@ -57,7 +54,7 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
             : null,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: NexInlineSpinner())
           : _loadFailed
           ? _readError()
           : _warranties.isEmpty
@@ -94,7 +91,7 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
                 ),
               ),
             )
-          : _list(context, strings, sorted, query),
+          : _list(context, strings, visible, query),
       floatingActionButton: _loading || _loadFailed || _warranties.isEmpty
           ? null
           : FloatingActionButton.extended(
@@ -112,29 +109,15 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
     List<ModuleRecord> visible,
     String query,
   ) {
-    final now = DateTime.now();
-    final covered = <ModuleRecord>[];
-    final expiring = <ModuleRecord>[];
-    final expired = <ModuleRecord>[];
-    final unknown = <ModuleRecord>[];
-    for (final record in visible) {
-      final end = WarrantyModels.readDate(record.body, 'coverageEnd');
-      if (end == null) {
-        unknown.add(record);
-        continue;
-      }
-      final status = WarrantyLogic.statusOf(end, now);
-      if (status.expired) {
-        expired.add(record);
-      } else if (status.expiring) {
-        expiring.add(record);
-      } else {
-        covered.add(record);
-      }
-    }
+    final split = WarrantyLogic.splitByStatus(
+      visible,
+      DateTime.now(),
+      sorted: _sortSoonest,
+    );
+    final archived = _archived();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
+      padding: const EdgeInsetsDirectional.fromSTEB(
         NexSpacing.md,
         NexSpacing.sm,
         NexSpacing.md,
@@ -146,57 +129,64 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
           moduleId: 'warranty',
           icon: Icons.verified_outlined,
           eyebrow: strings(context, 'heroEyebrow'),
-          headline: covered.length + expiring.length == 0
+          headline: split.covered.length + split.expiring.length == 0
               ? strings(context, 'heroNoneCovered')
               : strings(context, 'heroCovered', {
-                  'count': covered.length + expiring.length,
+                  'count': split.covered.length + split.expiring.length,
                 }),
           chips: [
-            if (expiring.isNotEmpty)
-              strings(context, 'heroExpiring', {'count': expiring.length}),
-            if (expired.isNotEmpty)
-              strings(context, 'heroExpired', {'count': expired.length}),
+            if (split.expiring.isNotEmpty)
+              strings(context, 'heroExpiring', {
+                'count': split.expiring.length,
+              }),
+            if (split.expired.isNotEmpty)
+              strings(context, 'heroExpired', {'count': split.expired.length}),
           ],
         ),
         const SizedBox(height: NexSpacing.md),
-        if (unknown.isNotEmpty)
+        // The 30-day list comes first: it is the reason the module exists,
+        // and it used to sit under every comfortable purchase.
+        if (split.expiring.isNotEmpty)
           WarrantySection(
-            icon: Icons.help_outline,
-            title: strings(context, 'unknownDate'),
-            records: unknown,
+            key: const ValueKey('warranty-section-expiring'),
+            icon: Icons.schedule_outlined,
+            title: strings(context, 'expiringTitle'),
+            note: strings(context, 'expiringNote', {
+              'count': split.expiring.length,
+            }),
+            records: split.expiring,
             onOpen: _openDetail,
           ),
-        if (covered.isNotEmpty)
+        if (split.covered.isNotEmpty)
           WarrantySection(
             key: const ValueKey('warranty-section-active'),
             icon: Icons.verified_outlined,
             title: strings(context, 'active'),
-            records: covered,
+            records: split.covered,
             onOpen: _openDetail,
           ),
-        if (expiring.isNotEmpty)
-          WarrantySection(
-            key: const ValueKey('warranty-section-expiring'),
-            icon: Icons.schedule_outlined,
-            title: strings(context, 'expiring'),
-            records: expiring,
-            onOpen: _openDetail,
-          ),
-        if (expired.isNotEmpty) ...[
+        if (split.expired.isNotEmpty) ...[
           NexShelfHeading(
             icon: Icons.event_busy_outlined,
             title: strings(context, 'expired'),
           ),
           const SizedBox(height: NexSpacing.sm),
-          for (final record in expired)
+          for (final record in split.expired)
             WarrantyRow(
               key: ValueKey('warranty-row-${record.id}'),
               record: record,
               onOpen: () => unawaited(_openDetail(record)),
             ),
-        ],
-        if (query.isEmpty && _archived().isNotEmpty) ...[
           const SizedBox(height: NexSpacing.md),
+        ],
+        if (split.unknown.isNotEmpty)
+          WarrantySection(
+            icon: Icons.help_outline,
+            title: strings(context, 'unknownDate'),
+            records: split.unknown,
+            onOpen: _openDetail,
+          ),
+        if (query.isEmpty && archived.isNotEmpty) ...[
           Center(
             child: TextButton.icon(
               key: const ValueKey('warranty-archived-toggle'),
@@ -208,12 +198,13 @@ extension _WarrantyScreenBody on _WarrantyScreenState {
                 strings(
                   context,
                   _showArchived ? 'hideArchived' : 'showArchived',
+                  {'count': archived.length},
                 ),
               ),
             ),
           ),
           if (_showArchived)
-            for (final record in _archived())
+            for (final record in archived)
               WarrantyArchivedRow(
                 key: ValueKey('warranty-archived-${record.id}'),
                 record: record,
