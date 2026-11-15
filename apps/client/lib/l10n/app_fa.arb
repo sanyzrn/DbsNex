@@ -2235,5 +2235,6 @@
   "shelfSeeAll": "{count, plural, other{دیدن همهٔ {count} تا}}",
   "shelfSeeAllUncounted": "دیدن همه",
   "groupMoveUp": "بالاتر ببر",
-  "groupMoveDown": "پایین‌تر ببر"
+  "groupMoveDown": "پایین‌تر ببر",
+  "moduleRemoveFailed": "رکوردهای {name} پاک نشد، پس چیزی برداشته نشد. دوباره امتحان کنید."
 }

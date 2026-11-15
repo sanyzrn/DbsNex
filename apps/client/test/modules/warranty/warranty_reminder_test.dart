@@ -74,7 +74,7 @@ void main() {
     tester,
   ) async {
     await store.put('warranty', 'w1', activeBody());
-    await store.put('__reminder', 'warranty:w1', {
+    await h.db.modulePut('warranty', '__reminder', 'warranty:w1', {
       'sourceKind': 'warranty',
       'sourceId': 'w1',
       'at': DateTime.now()

@@ -19,10 +19,27 @@ extension NexModuleServices on NexServices {
     module,
     worker.modulePut(module, kind, id, body),
     kind: kind,
+    sources: {'$kind:$id'},
   );
 
   Future<void> moduleDelete(String module, String kind, String id) =>
-      _moduleWrite(module, worker.moduleDelete(module, kind, id), kind: kind);
+      _moduleWrite(
+        module,
+        worker.moduleDelete(module, kind, id),
+        kind: kind,
+        sources: {'$kind:$id'},
+      );
+
+  /// Several of [module]'s records in one storage transaction — what a
+  /// record bundle's delete runs in place of the journal it used to keep.
+  Future<void> moduleDeleteMany(
+    String module,
+    List<({String kind, String id})> records,
+  ) => _moduleWrite(
+    module,
+    worker.moduleDeleteMany(module, records),
+    sources: {for (final record in records) '${record.kind}:${record.id}'},
+  );
 
   /// Everything [module] saved, gone — and, as with Cycle, the backups on
   /// this phone that still held it replaced by one that does not.
@@ -35,9 +52,8 @@ extension NexModuleServices on NexServices {
     await _replaceBackupsHoldingDeleted();
   }
 
-  bool moduleRemindersEnabled(String module) => nexModules.any(
-    (m) => m.id == module && m.available && m.isOn(_preferences),
-  );
+  bool moduleRemindersEnabled(String module) =>
+      nexModuleActive(module, _preferences);
 
   Future<bool> setModuleReminder(
     String module,
@@ -65,6 +81,13 @@ extension NexModuleServices on NexServices {
       'sourceKind': sourceKind,
       'sourceId': sourceId,
       'at': at.toUtc().toIso8601String(),
+      // The face of the clock the person chose, kept beside the instant.
+      // Restoring a daily reminder from the instant alone hands its hour to
+      // `at.toLocal()`, and once the zone or a daylight-saving rule has
+      // moved since it was set, nine on the wall comes back as eight. The
+      // instant stays for one-shot reminders, and for daily records written
+      // before the face was kept.
+      if (daily) 'wallMinutes': at.hour * 60 + at.minute,
       'title': title,
       'body': body,
       if (daily) 'repeat': 'daily',
@@ -107,62 +130,92 @@ extension NexModuleServices on NexServices {
         module.id,
         '__reminder',
       )) {
-        final b = record.body;
-        final daily = b['repeat'] == 'daily';
-        var at = b['at'] is String
-            ? DateTime.tryParse(b['at'] as String)
-            : null;
-        if (daily && at != null) at = nexNextDailyRing(at, DateTime.now());
-        if (at == null ||
-            b['sourceKind'] is! String ||
-            b['sourceId'] is! String ||
-            b['title'] is! String ||
-            b['body'] is! String) {
-          continue;
-        }
-        final source = await worker.moduleRecord(
-          module.id,
-          b['sourceKind'] as String,
-          b['sourceId'] as String,
-        );
-        if (source == null || source.body['archived'] == true) {
-          await reminders.cancelModule(module.id, record.id);
-          continue;
-        }
-        final target = NexModuleTarget(
-          module.id,
-          kind: b['sourceKind'] as String,
-          id: b['sourceId'] as String,
-          key: record.id,
-          day:
-              '${at.toLocal().year.toString().padLeft(4, '0')}-${at.toLocal().month.toString().padLeft(2, '0')}-${at.toLocal().day.toString().padLeft(2, '0')}',
-        );
-        if (module.id == 'habits') {
-          wanted.add(NexReminders.snoozeIdFor(target.payload));
-        }
-        // Past: it has rung, or was missed. Its notification, if showing,
-        // stays until it is tapped or dismissed (2.1.9).
-        if (!at.isAfter(DateTime.now())) {
-          await reminders.withdrawModule(module.id, record.id);
-          continue;
-        }
-        wanted.add(NexModuleAlarms.moduleId(module.id, record.id));
-        await reminders.scheduleModule(
-          module.id,
-          record.id,
-          at: at,
-          title: b['title'] as String,
-          body: b['body'] as String,
-          daily: daily,
-          sourceKind: b['sourceKind'] as String,
-          sourceId: b['sourceId'] as String,
-          habitCounted: module.id == 'habits' && b['sourceKind'] == 'habit'
-              ? source.body['goal'] is num && (source.body['goal'] as num) > 1
-              : null,
-        );
+        await _reconcileReminderRecord(module.id, record, wanted: wanted);
       }
     }
     return wanted;
+  }
+
+  /// Puts the reminders whose sources were just written back in step with
+  /// them — and nothing else. Every module write used to answer with a
+  /// rebuild of every module's every reminder: one habit checked off
+  /// rescheduled the occasions, the words and every other habit before the
+  /// check-in's own write could resolve. A reminder's source is the one
+  /// thing a write can change about it, so this reads [module]'s reminders
+  /// once and touches only those pointing at [sources] ("kind:id").
+  Future<void> _reconcileModuleSources(
+    String module,
+    Set<String> sources,
+  ) async {
+    for (final record in await worker.moduleRecords(module, '__reminder')) {
+      final body = record.body;
+      if (!sources.contains('${body['sourceKind']}:${body['sourceId']}')) {
+        continue;
+      }
+      await _reconcileReminderRecord(module, record);
+    }
+  }
+
+  /// One `__reminder` record, put back in step with its source: re-armed
+  /// when the source exists and its moment is still ahead, cancelled when
+  /// it does not, and left as a shown notice when its moment has passed.
+  /// [wanted], when given, collects the alarm ids the launch-time sweep
+  /// must leave alone.
+  Future<void> _reconcileReminderRecord(
+    String module,
+    ModuleRecord record, {
+    Set<int>? wanted,
+  }) async {
+    final b = record.body;
+    final daily = b['repeat'] == 'daily';
+    final at = nexNextDailyReminderRing(b, DateTime.now());
+    if (at == null ||
+        b['sourceKind'] is! String ||
+        b['sourceId'] is! String ||
+        b['title'] is! String ||
+        b['body'] is! String) {
+      return;
+    }
+    final source = await worker.moduleRecord(
+      module,
+      b['sourceKind'] as String,
+      b['sourceId'] as String,
+    );
+    if (source == null || source.body['archived'] == true) {
+      await reminders.cancelModule(module, record.id);
+      return;
+    }
+    if (module == 'habits') {
+      final target = NexModuleTarget(
+        module,
+        kind: b['sourceKind'] as String,
+        id: b['sourceId'] as String,
+        key: record.id,
+        day:
+            '${at.toLocal().year.toString().padLeft(4, '0')}-${at.toLocal().month.toString().padLeft(2, '0')}-${at.toLocal().day.toString().padLeft(2, '0')}',
+      );
+      wanted?.add(NexReminders.snoozeIdFor(target.payload));
+    }
+    // Past: it has rung, or was missed. Its notification, if showing,
+    // stays until it is tapped or dismissed (2.1.9).
+    if (!at.isAfter(DateTime.now())) {
+      await reminders.withdrawModule(module, record.id);
+      return;
+    }
+    wanted?.add(NexModuleAlarms.moduleId(module, record.id));
+    await reminders.scheduleModule(
+      module,
+      record.id,
+      at: at,
+      title: b['title'] as String,
+      body: b['body'] as String,
+      daily: daily,
+      sourceKind: b['sourceKind'] as String,
+      sourceId: b['sourceId'] as String,
+      habitCounted: module == 'habits' && b['sourceKind'] == 'habit'
+          ? source.body['goal'] is num && (source.body['goal'] as num) > 1
+          : null,
+    );
   }
 }
 
@@ -177,4 +230,25 @@ DateTime nexNextDailyRing(DateTime at, DateTime now) {
     next = DateTime(now.year, now.month, now.day + 1, local.hour, local.minute);
   }
   return next;
+}
+
+/// When the reminder [body] describes rings next, from [now] on.
+///
+/// A daily reminder is kept by the face of the clock it was set for
+/// (`wallMinutes`), and that face is what the next ring is read from. The
+/// stored instant alone hands its hour to `at.toLocal()`, and once the zone
+/// or a daylight-saving rule has moved since it was set, nine on the wall
+/// comes back as eight. Records written before the face was kept fall back
+/// to the instant, which is what they always did; a one-shot reminder is its
+/// instant, untouched. Null when the record holds no moment that parses.
+DateTime? nexNextDailyReminderRing(Map<String, Object?> body, DateTime now) {
+  final at = body['at'] is String
+      ? DateTime.tryParse(body['at'] as String)
+      : null;
+  if (body['repeat'] != 'daily') return at;
+  final wall = body['wallMinutes'];
+  final face = wall is int && wall >= 0 && wall < 1440
+      ? DateTime(now.year, now.month, now.day, wall ~/ 60, wall % 60)
+      : at?.toLocal();
+  return face == null ? null : nexNextDailyRing(face, now);
 }

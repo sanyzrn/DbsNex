@@ -115,6 +115,7 @@ enum _DbCommand {
   moduleRecord,
   modulePut,
   moduleDelete,
+  moduleDeleteMany,
   moduleDeleteAll,
   scheduleNote,
   scheduledNotes,

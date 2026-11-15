@@ -6445,4 +6445,9 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get groupMoveDown => 'پایین‌تر ببر';
+
+  @override
+  String moduleRemoveFailed(String name) {
+    return 'رکوردهای $name پاک نشد، پس چیزی برداشته نشد. دوباره امتحان کنید.';
+  }
 }

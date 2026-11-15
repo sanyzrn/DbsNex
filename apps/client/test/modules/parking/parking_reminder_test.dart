@@ -66,7 +66,7 @@ void main() {
       tester,
     ) async {
       await store.put('session', 's1', openSession('s1'));
-      await store.put('__reminder', 'session:s1', {
+      await h.db.modulePut('parking', '__reminder', 'session:s1', {
         'sourceKind': 'session',
         'sourceId': 's1',
         'at': DateTime.now()
@@ -124,7 +124,7 @@ void main() {
       expect(pick, findsOneWidget);
       expect(find.text('Remove reminder'), findsOneWidget);
 
-      await store.put('__reminder', 'session:s1', {
+      await h.db.modulePut('parking', '__reminder', 'session:s1', {
         'sourceKind': 'session',
         'sourceId': 's1',
         'at': DateTime.now()
@@ -159,7 +159,7 @@ void main() {
   group('when the parking ends', () {
     testWidgets('«Found my car» clears the reminder with it', (tester) async {
       await store.put('session', 's1', openSession('s1'));
-      await store.put('__reminder', 'session:s1', {
+      await h.db.modulePut('parking', '__reminder', 'session:s1', {
         'sourceKind': 'session',
         'sourceId': 's1',
         'at': DateTime.now()

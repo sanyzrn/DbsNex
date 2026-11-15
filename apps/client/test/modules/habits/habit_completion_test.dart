@@ -24,6 +24,13 @@ class MemoryHabits implements NexModuleStore {
   }
 
   @override
+  Future<void> deleteRecords(List<({String kind, String id})> doomed) async {
+    for (final record in doomed) {
+      records[record.kind]?.remove(record.id);
+    }
+  }
+
+  @override
   Future<List<ModuleRecord>> list(String kind) async => [
     for (final e in (records[kind] ?? {}).entries)
       ModuleRecord(
@@ -210,13 +217,7 @@ void main() {
       await store.put('remind', 'h', {'on': true, 'minutes': 1200});
       await store.put('draft', 'habit:h', {'name': 'Unsaved'});
       await store.put('check', 'h:2026-10-29', {'habit': 'h', 'amount': 5});
-      final bundle = await RecordBundle.capture(
-        store,
-        'habit',
-        'h',
-        'check',
-        'habit',
-      );
+      final bundle = await captureHabitBundle(store, 'h');
       await bundle.delete();
       expect(await store.get('remind', 'h'), isNull);
       await bundle.restore();

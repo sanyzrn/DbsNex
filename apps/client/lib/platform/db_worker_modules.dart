@@ -38,11 +38,25 @@ mixin _DbModuleRecords {
         'id': id,
       });
 
+  /// Several records in one storage transaction — see the repository's
+  /// `deleteMany`.
+  Future<void> moduleDeleteMany(
+    String module,
+    List<({String kind, String id})> records,
+  ) => _send<void>(_DbCommand.moduleDeleteMany, {
+    'module': module,
+    'records': records,
+  });
+
   Future<int> moduleDeleteAll(String module) =>
       _send<int>(_DbCommand.moduleDeleteAll, {'module': module});
 }
 
-/// The worker side: one module-record command, answered from [modules].
+/// The worker side: the module-record commands, answered from [modules].
+/// Anything routed here that is not one of them is a routing bug, and the
+/// answer used to be "delete everything this module owns" — the switch
+/// fell through to `deleteAll` for whatever arrived. It now says so loudly
+/// instead of wiping a shelf on a typo.
 Object? _moduleCommand(
   SqliteModuleRecordRepository modules,
   _DbCommand command,
@@ -66,6 +80,13 @@ Object? _moduleCommand(
       () =>
           modules.delete(module, arg('kind')! as String, arg('id')! as String),
     ),
-    _ => modules.deleteAll(module),
+    _DbCommand.moduleDeleteMany => NexDbWorker._voided(
+      () => modules.deleteMany(module, [
+        for (final record in arg('records')! as List)
+          record as ({String kind, String id}),
+      ]),
+    ),
+    _DbCommand.moduleDeleteAll => modules.deleteAll(module),
+    _ => throw StateError('$command is not a module command'),
   };
 }

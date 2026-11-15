@@ -2,12 +2,20 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
+
 import 'nex_module_store.dart';
 
 /// A draft uses a separate record kind and is never counted as saved data.
 /// Serial writes coalesce rapid typing; closing an editor drains the newest
 /// snapshot. A baseline fingerprint prevents stale edit drafts overriding a
 /// record that has since been saved or changed elsewhere.
+///
+/// One implementation serves both names it has shipped under: the checked
+/// variant's behaviour is the superset — an untouched form writes no
+/// checkpoint on close, `start` cannot double-listen, a failed load is
+/// visible through [loadFailed], and [clear] says whether it succeeded.
+/// (Modules that wrote against `NexCheckedModuleFormDraft` get the same
+/// class through a typedef in `module_checked_draft.dart`.)
 class NexModuleFormDraft {
   NexModuleFormDraft(
     this.store,
@@ -27,9 +35,12 @@ class NexModuleFormDraft {
   Timer? _debounce;
   bool _closed = false;
   bool _started = false;
+  bool _touched = false;
   String? _lastSnapshot;
+  bool loadFailed = false;
 
   Future<Map<String, Object?>?> load() async {
+    loadFailed = false;
     try {
       final body = await store.get('draft', id);
       if (body == null ||
@@ -38,7 +49,9 @@ class NexModuleFormDraft {
         return null;
       }
       final raw = body['fields'];
-      if (raw is! Map) return null;
+      if (raw is! Map) {
+        return null;
+      }
       final recordId = raw['recordId'];
       if (id.endsWith(':new') &&
           recordId is String &&
@@ -50,20 +63,27 @@ class NexModuleFormDraft {
           if (key is String) key: raw[key],
       };
     } catch (_) {
+      loadFailed = true;
       return null;
     }
   }
 
   void start() {
-    if (_closed) return;
+    if (_closed) {
+      return;
+    }
     _started = true;
     for (final controller in controllers.values) {
+      controller.removeListener(changed);
       controller.addListener(changed);
     }
   }
 
   void changed() {
-    if (_closed || !_started) return;
+    if (_closed || !_started) {
+      return;
+    }
+    _touched = true;
     final snapshot = <String, Object?>{
       'v': 1,
       'base': jsonEncode(base),
@@ -119,7 +139,8 @@ class NexModuleFormDraft {
   }
 
   /// Save/discard removes the checkpoint after all older writes finish.
-  Future<void> clear() async {
+  /// False when even the marker that supersedes it could not be written.
+  Future<bool> clear() async {
     _closed = true;
     _detach();
     _debounce?.cancel();
@@ -128,19 +149,23 @@ class NexModuleFormDraft {
     await _tail;
     try {
       await store.delete('draft', id);
+      return true;
     } catch (_) {
       // A successful final record remains authoritative if cleanup fails.
       try {
         await store.put('draft', id, {'v': 1, 'discarded': true});
+        return true;
       } catch (_) {
-        /* A failed store cannot acknowledge cleanup. */
+        return false;
       }
     }
   }
 
-  /// Back/swipe keeps the draft. Snapshot before controllers are disposed.
+  /// Back/swipe keeps the draft. Snapshot before controllers are disposed —
+  /// but only what was touched: a form opened and left alone writes
+  /// nothing, and its values are the ones the record already holds.
   void close() {
-    changed();
+    if (_touched) changed();
     _closed = true;
     _detach();
     _drain();

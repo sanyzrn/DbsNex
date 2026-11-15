@@ -233,13 +233,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     final errorMessage = habitsStrings(context, 'saveError');
     try {
       await _preserveReminder(habit);
-      final bundle = await RecordBundle.capture(
-        widget.store,
-        'habit',
-        habit.id,
-        'check',
-        'habit',
-      );
+      final bundle = await captureHabitBundle(widget.store, habit.id);
       await bundle.delete();
       await _clearReminder(habit.id);
       if (!mounted) return;

@@ -70,7 +70,7 @@ void main() {
     tester,
   ) async {
     await putAsset();
-    await store.put('__reminder', 'asset:car', {
+    await h.db.modulePut('maintenance', '__reminder', 'asset:car', {
       'sourceKind': 'asset',
       'sourceId': 'car',
       'at': DateTime.now()

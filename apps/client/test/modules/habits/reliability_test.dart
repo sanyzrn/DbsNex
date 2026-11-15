@@ -1,12 +1,16 @@
 import 'habits_test_tools.dart' show tapHabitControl;
+
 import 'package:nex_client/modules/habits/record_bundle.dart';
+
 import 'dart:async';
+
 import 'package:nex_client/modules/habits/module.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/habits/habits_screen.dart';
 import 'package:nex_client/modules/habits/form_draft.dart';
+
 import '../../support/nex_harness.dart';
 
 class FaultStore implements NexModuleStore {
@@ -17,15 +21,11 @@ class FaultStore implements NexModuleStore {
   int draftFailures = 0;
   Future<void>? draftGate;
   @override
-  Future<void> quarantine(ModuleRecord record) async {
-    await put('__recovery', newId(), {
-      'kind': record.kind,
-      'id': record.id,
-      'body': record.body,
-      'updatedAt': record.updatedAt.toIso8601String(),
-    });
-    await delete(record.kind, record.id);
-  }
+  Future<void> quarantine(ModuleRecord record) => inner.quarantine(record);
+
+  @override
+  Future<void> deleteRecords(List<({String kind, String id})> records) =>
+      inner.deleteRecords(records);
 
   @override
   Stream<void> get draftChanges => inner.draftChanges;

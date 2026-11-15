@@ -1,10 +1,12 @@
 import 'dart:async';
+
 import 'package:nex_client/modules/smoke_free/module.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/smoke_free/smoke_free_screen.dart';
 import 'package:nex_client/modules/smoke_free/form_draft.dart';
+
 import '../../support/nex_harness.dart';
 import 'quit_details.dart';
 
@@ -16,15 +18,11 @@ class FaultStore implements NexModuleStore {
   int draftFailures = 0;
   Future<void>? draftGate;
   @override
-  Future<void> quarantine(ModuleRecord record) async {
-    await put('__recovery', newId(), {
-      'kind': record.kind,
-      'id': record.id,
-      'body': record.body,
-      'updatedAt': record.updatedAt.toIso8601String(),
-    });
-    await delete(record.kind, record.id);
-  }
+  Future<void> quarantine(ModuleRecord record) => inner.quarantine(record);
+
+  @override
+  Future<void> deleteRecords(List<({String kind, String id})> records) =>
+      inner.deleteRecords(records);
 
   @override
   Stream<void> get draftChanges => inner.draftChanges;

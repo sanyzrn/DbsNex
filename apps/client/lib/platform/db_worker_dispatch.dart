@@ -289,6 +289,7 @@ class _Worker {
       _DbCommand.moduleRecord ||
       _DbCommand.modulePut ||
       _DbCommand.moduleDelete ||
+      _DbCommand.moduleDeleteMany ||
       _DbCommand.moduleDeleteAll => _moduleCommand(
         modules,
         message.command,
