@@ -451,8 +451,19 @@ void main() {
       VaultSession.instance.close();
       // The copy a private tool left in the cache does not outlive the
       // unlock that decrypted it — however that unlock ended.
-      await pumpEventQueue();
-      expect(copy.existsSync(), isFalse);
+      // Draining the event queue does not wait for real filesystem I/O.
+      // Observe the listener's cleanup, without calling it ourselves; a
+      // missing or broken listener must still fail this test.
+      const cleanupTimeout = Duration(seconds: 5);
+      final waiting = Stopwatch()..start();
+      while (await copy.exists() && waiting.elapsed < cleanupTimeout) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(
+        await copy.exists(),
+        isFalse,
+        reason: 'Closing the vault must remove its decrypted temporary copy',
+      );
     });
   });
 
