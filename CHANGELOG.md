@@ -6,6 +6,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## v2.7.2
 
+- **Warranties is here.** A new module for what you bought and who stands behind it: the warranty company, its support number and card number beside the shop, what ends in the next 30 days at the top, a reminder offered while you save, and a service file a repair centre can use. Add it from **Tools → Modules**.
 - **List cards get the grid's edge.** A list card is now outlined in a fine line of its kind's colour, the way a grid tile is, so the two layouts draw a note alike.
 - **Steady grid tiles.** Selecting a tile no longer shifts its words or drops a line, and a tile shows only whole lines — the last one is no longer cut through the middle.
 - **Quicker module saves.** Checking off a habit or saving in any module no longer re-arms every reminder of every module; only the reminders of what you changed are touched. A daily module reminder now keeps its clock time — 9:00 stays 9:00 — when daylight saving or your time zone changes.

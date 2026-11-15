@@ -16,7 +16,8 @@ import 'package:flutter/foundation.dart'
 /// Rollout never changes saved installation choices or data.
 /// Birthdays & occasions and Word by Word are the first of them back,
 /// finished and redesigned in 2.4.0. Habits returns in 2.4.1, and Converter
-/// (dates, units and sizes, added in 2.6.29) in 2.7.0.
+/// (dates, units and sizes, added in 2.6.29) in 2.7.0, and Warranties,
+/// completed and reviewed, in 2.7.2.
 const nexAvailableModuleIds = {
   'cycle',
   'pause',
@@ -24,6 +25,7 @@ const nexAvailableModuleIds = {
   'words',
   'habits',
   'converter',
+  'warranty',
 };
 
 /// Windows, Linux and macOS. The modules are made for the phone; the desktop

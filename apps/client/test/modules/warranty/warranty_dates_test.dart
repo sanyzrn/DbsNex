@@ -68,7 +68,7 @@ void main() {
       // The page's coverage row, on the same Jalali day.
       expect(find.text('۱۴۰۹/۰۷/۲۱'), findsOneWidget);
       // The claim note's own day, as the local day it happened.
-      expect(find.textContaining('ادعا · ۱۴۰۵/۰۷/۲۱'), findsOneWidget);
+      expect(find.textContaining('مراجعه · ۱۴۰۵/۰۷/۲۱'), findsOneWidget);
       expect(find.textContaining(RegExp('20[0-9][0-9]/')), findsNothing);
       expect(find.textContaining('میلادی'), findsNothing);
       expect(tester.takeException(), isNull);

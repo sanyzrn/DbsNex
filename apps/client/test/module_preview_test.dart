@@ -24,7 +24,7 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('four add-ons are back, the other nine are Soon; their code stays', () {
+  test('five add-ons are back, the other eight are Soon; their code stays', () {
     // Cycle; Pause, which is first-party; and, finished and redesigned in
     // 2.4.0, Birthdays & occasions and Word by Word.
     expect(nexAvailableModuleIds, {
@@ -34,8 +34,9 @@ void main() {
       'words',
       'habits',
       'converter',
+      'warranty',
     });
-    const back = {'occasions', 'words', 'habits', 'converter'};
+    const back = {'occasions', 'words', 'habits', 'converter', 'warranty'};
     expect(reviewed, back);
     expect(paused, moduleIds.difference(back));
     // Twelve add-ons, and Converter (2.6.29), on from 2.7.0 once the owner
