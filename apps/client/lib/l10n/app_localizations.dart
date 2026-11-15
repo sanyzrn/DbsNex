@@ -10081,6 +10081,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move down'**
   String get groupMoveDown;
+
+  /// Banner when removing a module and deleting its data failed; the module stays
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s records could not be deleted, so nothing was removed. Try again.'**
+  String moduleRemoveFailed(String name);
 }
 
 class _AppLocalizationsDelegate

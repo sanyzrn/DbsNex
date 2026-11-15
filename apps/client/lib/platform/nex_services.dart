@@ -235,10 +235,20 @@ class NexServices {
   final _moduleDraftController = StreamController<String>.broadcast();
   Stream<String> get moduleDraftChanges => _moduleDraftController.stream;
 
+  /// Fires the change events and the follow-up work a module write owes.
+  ///
+  /// [kind] routes the event: drafts wake draft listeners only, and journal
+  /// and recovery writes wake nobody. [sources] are the "kind:id" records
+  /// the write touched, and scope the reminder reconciliation to the
+  /// reminders that point at them — the source of a reminder is the one
+  /// thing a write can change about it. A whole-module wipe passes none:
+  /// nothing of its own is left to reconcile, and the removal cancels its
+  /// own alarms.
   Future<T> _moduleWrite<T>(
     String module,
     Future<T> write, {
     String? kind,
+    Set<String>? sources,
   }) async {
     final result = await write;
     if (module == 'habits' && kind != '__reminder' && kind != 'draft') {
@@ -249,9 +259,12 @@ class NexServices {
     } else if (kind != 'operation' && kind != '__recovery') {
       if (!_moduleController.isClosed) _moduleController.add(module);
       _queueDailyNudge();
-      if (moduleRemindersEnabled(module) && kind != '__reminder') {
+      if (moduleRemindersEnabled(module) &&
+          kind != '__reminder' &&
+          sources != null &&
+          sources.isNotEmpty) {
         try {
-          await restoreModuleReminders();
+          await _reconcileModuleSources(module, sources);
         } catch (_) {
           reminders.onDiagnostic?.call('module reminder reconciliation failed');
         }

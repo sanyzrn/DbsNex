@@ -472,8 +472,10 @@ class InProcessDb implements NexDb {
   Future<bool> attachmentPromote(String id) async => _attachments.promote(id);
 
   @override
-  Future<List<ModuleRecord>> moduleRecords(String module, String kind) async =>
-      _modules.list(module, kind);
+  Future<List<ModuleRecord>> moduleRecords(String module, String kind) async {
+    moduleRecordsCalls.add('$module/$kind');
+    return _modules.list(module, kind);
+  }
 
   @override
   Future<ModuleRecord?> moduleRecord(
@@ -491,12 +493,43 @@ class InProcessDb implements NexDb {
   ) async => _modules.put(module, kind, id, body);
 
   @override
-  Future<void> moduleDelete(String module, String kind, String id) async =>
-      _modules.delete(module, kind, id);
+  Future<void> moduleDelete(String module, String kind, String id) async {
+    _modules.delete(module, kind, id);
+  }
+
+  /// Calls this test has seen, as 'module/kind' — what the scoped reminder
+  /// reconciliation reads, so a test can tell one module's business from
+  /// every module's.
+  final moduleRecordsCalls = <String>[];
+
+  /// How many of the next [failModuleDeleteMany] bulk deletes throw after
+  /// touching nothing — the worker that has gone, mid-Undo.
+  int failModuleDeleteMany = 0;
 
   @override
-  Future<int> moduleDeleteAll(String module) async =>
-      _modules.deleteAll(module);
+  Future<void> moduleDeleteMany(
+    String module,
+    List<({String kind, String id})> records,
+  ) async {
+    if (failModuleDeleteMany > 0) {
+      failModuleDeleteMany--;
+      throw StateError('bulk delete refused by the test');
+    }
+    _modules.deleteMany(module, records);
+  }
+
+  /// How many of the next [failModuleDeleteAll] module wipes throw before
+  /// deleting anything.
+  int failModuleDeleteAll = 0;
+
+  @override
+  Future<int> moduleDeleteAll(String module) async {
+    if (failModuleDeleteAll > 0) {
+      failModuleDeleteAll--;
+      throw StateError('module wipe refused by the test');
+    }
+    return _modules.deleteAll(module);
+  }
 
   @override
   Future<ScheduledNote?> scheduleNote(

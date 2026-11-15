@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/crash_reporter.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/nex_dialog.dart';
 import 'nex_module.dart';
 import 'module_dates.dart';
@@ -62,7 +66,19 @@ abstract class NexStoredModule extends NexModule {
     BuildContext context, {
     required NexServices services,
     required NexPreferences preferences,
-  }) => preferences.setModuleOn(id, true);
+  }) async {
+    await preferences.setModuleOn(id, true);
+    // Its kept reminders ring again without waiting for the next launch:
+    // data that was kept when the module was removed still carries its
+    // `__reminder` records, and a re-add used to leave them silent until
+    // the app next started or returned to the front. Quiet — the next
+    // start or return tries again if this fails.
+    try {
+      await services.restoreModuleReminders();
+    } catch (_) {
+      // Nothing to show from here; re-adding found everything where it was.
+    }
+  }
 
   @override
   Future<bool> turnOff(
@@ -98,8 +114,28 @@ abstract class NexStoredModule extends NexModule {
       ),
     );
     if (choice == null) return false;
-    if (choice == 'delete') await services.moduleDeleteAll(id);
-    await services.cancelModuleReminders(id);
+    // A delete that fails leaves the module where it was (2.7.2). The wipe
+    // is one transaction, so a failure — a full disk, a worker that has
+    // gone — deleted nothing; turning the module off anyway would leave the
+    // person believing their records were gone while every one of them
+    // stayed. So it stays on, with its reminders, and says so: the choice
+    // can be made again at once. The failure also goes to diagnostics.
+    if (choice == 'delete') {
+      try {
+        await services.moduleDeleteAll(id);
+      } catch (error) {
+        unawaited(NexCrashLog.handled('module.$id.turnOff', error));
+        if (context.mounted) {
+          nexShowBanner(context, message: l10n.moduleRemoveFailed(title(l10n)));
+        }
+        return false;
+      }
+    }
+    try {
+      await services.cancelModuleReminders(id);
+    } catch (error) {
+      unawaited(NexCrashLog.handled('module.$id.turnOff.reminders', error));
+    }
     await preferences.setModuleOn(id, false);
     return true;
   }

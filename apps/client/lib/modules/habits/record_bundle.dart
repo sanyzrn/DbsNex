@@ -1,110 +1,20 @@
 import 'package:nex_client/modules/module_api.dart';
 
-/// Raw bodies preserve unknown fields and malformed historical values in Undo.
-class RecordBundle {
-  RecordBundle(this.store, this.records);
-  static final Expando<bool> _busy = Expando<bool>();
-  final NexModuleStore store;
-  final List<({String kind, String id, Map<String, Object?> body})> records;
+import 'habit_reminder.dart';
 
-  static Future<RecordBundle> capture(
-    NexModuleStore store,
-    String kind,
-    String id,
-    String children,
-    String parentField,
-  ) async {
-    final parent = await store.get(kind, id);
-    final dependent = await store.list(children);
-    final draft = await store.get('draft', '$kind:$id');
-    final reminder = kind == 'habit' ? await store.get('remind', id) : null;
-    return RecordBundle(store, [
-      for (final record in dependent)
-        if (record.body[parentField] == id)
-          (kind: children, id: record.id, body: Map.of(record.body)),
-      if (draft != null) (kind: 'draft', id: '$kind:$id', body: Map.of(draft)),
-      if (reminder != null) (kind: 'remind', id: id, body: Map.of(reminder)),
-      if (parent != null) (kind: kind, id: id, body: Map.of(parent)),
-    ]);
-  }
+/// The platform's record bundle, with a habit's reminder setting captured
+/// beside it — what its Undo needs to put a deleted habit back exactly as
+/// it was. Before the platform bundle learned to capture extra records
+/// (`also`), this file was a fork of the whole class, fix for fix.
+typedef RecordBundle = NexModuleRecordBundle;
 
-  Future<void> restore() async {
-    for (final record in records) {
-      await store.put(record.kind, record.id, record.body);
-    }
-    if (records.isNotEmpty) await store.delete('operation', _journalId);
-  }
-
-  String get _journalId => '${records.last.kind}:${records.last.id}';
-
-  /// Incomplete deletion is rolled back after a crash or a storage failure.
-  static Future<void> recover(NexModuleStore store) async {
-    if (_busy[store] == true) return;
-    _busy[store] = true;
-    try {
-      for (final operation in await store.list('operation')) {
-        final raw = operation.body['records'];
-        if (operation.body['v'] != 1 || raw is! List) {
-          await store.quarantine(operation);
-          continue;
-        }
-        final records =
-            <({String kind, String id, Map<String, Object?> body})>[];
-        for (final entry in raw) {
-          if (entry is! Map ||
-              entry['kind'] is! String ||
-              entry['id'] is! String ||
-              entry['body'] is! Map) {
-            continue;
-          }
-          final body = entry['body'] as Map;
-          if (body.keys.any((key) => key is! String)) continue;
-          records.add((
-            kind: entry['kind'] as String,
-            id: entry['id'] as String,
-            body: {for (final key in body.keys) key as String: body[key]},
-          ));
-        }
-        if (records.length != raw.length ||
-            records.isEmpty ||
-            records.any(
-              (r) =>
-                  r.kind.isEmpty ||
-                  r.id.isEmpty ||
-                  r.kind == 'operation' ||
-                  r.kind == '__recovery',
-            )) {
-          await store.quarantine(operation);
-          continue;
-        }
-        await RecordBundle(store, records).restore();
-        await store.delete('operation', operation.id);
-      }
-    } finally {
-      _busy[store] = false;
-    }
-  }
-
-  Future<void> delete() async {
-    if (records.isEmpty) return;
-    _busy[store] = true;
-    try {
-      await store.put('operation', _journalId, {
-        'v': 1,
-        'records': [
-          for (final r in records) {'kind': r.kind, 'id': r.id, 'body': r.body},
-        ],
-      });
-      for (final record in records) {
-        await store.delete(record.kind, record.id);
-      }
-      await store.delete('operation', _journalId);
-    } catch (_) {
-      // The API has no transaction. Compensate before reporting a failed delete.
-      await restore();
-      rethrow;
-    } finally {
-      _busy[store] = false;
-    }
-  }
-}
+/// Captures [id], its checks, its edit draft and its reminder setting.
+Future<RecordBundle> captureHabitBundle(NexModuleStore store, String id) =>
+    RecordBundle.capture(
+      store,
+      'habit',
+      id,
+      'check',
+      'habit',
+      also: [(kind: habitRemindKind, id: id)],
+    );

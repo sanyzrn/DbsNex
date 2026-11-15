@@ -75,15 +75,51 @@ class SqliteModuleRecordRepository {
       'VALUES (?, ?, ?, ?, ?) '
       'ON CONFLICT(module, kind, id) DO UPDATE SET '
       'body = excluded.body, updated_at = excluded.updated_at',
-      [module, kind, id, jsonEncode(body), record.updatedAt.toIso8601String()],
+      [module, kind, id, jsonEncode(body), _stamp(record.updatedAt)],
     );
     return record;
+  }
+
+  /// A fixed-width UTC stamp, because `ORDER BY updated_at` is a string
+  /// compare and the string has to order by the moment, not by how the
+  /// moment happens to print. `toIso8601String()` drops the fraction on a
+  /// whole second and shrinks it to three digits when microseconds are zero,
+  /// and against a six-digit stamp the shorter string with the later moment
+  /// then sorts *first*: two records saved inside one second could come back
+  /// newest-first either way round. Always six digits, always a `Z`.
+  static String _stamp(DateTime at) {
+    final utc = at.toUtc();
+    String two(int n) => n.toString().padLeft(2, '0');
+    final fraction = (utc.microsecondsSinceEpoch % 1000000).toString().padLeft(
+      6,
+      '0',
+    );
+    return '${utc.year.toString().padLeft(4, '0')}-${two(utc.month)}-'
+        '${two(utc.day)}T${two(utc.hour)}:${two(utc.minute)}:'
+        '${two(utc.second)}.${fraction}Z';
   }
 
   void delete(String module, String kind, String id) => db.execute(
     'DELETE FROM module_records WHERE module = ? AND kind = ? AND id = ?',
     [module, kind, id],
   );
+
+  /// Deletes [records] together or not at all — what a module's Undo runs in
+  /// place of the write-a-journal, delete-one-by-one, hope-none-fails dance
+  /// the client used to perform. One transaction: a failure or a crash
+  /// leaves every record exactly where it was, rather than half-deleted with
+  /// a journal to replay on the next open.
+  void deleteMany(String module, List<({String kind, String id})> records) {
+    if (records.isEmpty) return;
+    db.together(() {
+      for (final record in records) {
+        db.execute(
+          'DELETE FROM module_records WHERE module = ? AND kind = ? AND id = ?',
+          [module, record.kind, record.id],
+        );
+      }
+    });
+  }
 
   /// Everything [module] ever saved, gone — what "Remove and delete its
   /// data" does. Returns how many records went.

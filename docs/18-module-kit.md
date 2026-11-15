@@ -95,8 +95,13 @@ The only storage a module has. Records are JSON objects filed under a
 | `get(kind, id)` | One record's fields, or null. |
 | `put(kind, id, body)` | Saves, replacing what was there. |
 | `delete(kind, id)` | |
+| `deleteRecords(records)` | Deletes several records as one storage transaction: either every one is gone, or none is. |
 | `newId()` | A new unique, time-ordered id. |
 | `changes` | Fires after this module's records change. A list screen listens to it. |
+
+The kinds `__reminder` and `__recovery` belong to the platform; a
+module's own `put` and `delete` refuse them. The reminder methods are the
+sanctioned way to touch a reminder, and quarantine is the storage layer's.
 
 Values are what JSON holds. A date is stored as `toIso8601String()`.
 Records are:
@@ -191,9 +196,19 @@ The prompt to give the agent that writes a module is
 Draft writes have their own `draftChanges` stream; `changes` is for saved data.
 Journal and `__recovery` writes do not wake list readers. Draft helpers coalesce
 typing for 250 ms and flush on close; final save/discard waits for in-flight
-writes before cleanup. Unknown or malformed journals are copied to
-`__recovery` before leaving the active queue; raw undecodable database bodies
-are preserved there byte-for-byte. Never replay a partly validated journal.
+writes before cleanup, and an untouched form writes no checkpoint at all. A
+compound delete runs as one storage transaction (`deleteRecords`); the journals
+older versions wrote are still replayed on open, and unknown or malformed ones
+are copied to `__recovery` before leaving the active queue. Raw undecodable
+database bodies are preserved there byte-for-byte. Never replay a partly
+validated journal.
+
+A write reconciles only the reminders pointing at what it changed: a module
+that saves a record its reminder cites finds that reminder re-armed (or, if the
+source is gone, cancelled) when the write resolves, and no other module's
+alarms are touched. Startup and resume still rebuild every module's reminders.
+A daily reminder keeps the face of the clock it was set for; one written before
+that was kept falls back to the stored instant.
 
 
 ## Habit briefs and notification destinations (2.5.1)

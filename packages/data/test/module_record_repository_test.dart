@@ -41,6 +41,78 @@ void main() {
     expect(records.list('words', 'card').map((r) => r.id), ['new', 'old']);
   });
 
+  test('two records saved inside one second still order newest first', () {
+    // `toIso8601String()` prints a whole second without a fraction, and a
+    // fraction-free stamp sorts *after* a later one with fractions: without
+    // a fixed width, '…T10:30:00Z' came after '…T10:30:00.500Z'.
+    records.put(
+      'words',
+      'card',
+      'whole-second',
+      {},
+      now: DateTime.utc(2026, 1, 1, 10, 30, 0),
+    );
+    records.put(
+      'words',
+      'card',
+      'half-second',
+      {},
+      now: DateTime.utc(2026, 1, 1, 10, 30, 0, 500),
+    );
+    records.put(
+      'words',
+      'card',
+      'micro-second',
+      {},
+      now: DateTime.utc(2026, 1, 1, 10, 30, 0, 500, 12),
+    );
+    expect(records.list('words', 'card').map((r) => r.id), [
+      'micro-second',
+      'half-second',
+      'whole-second',
+    ]);
+  });
+
+  test('a whole-second stamp next to legacy widths still orders by moment', () {
+    // A row written by an older version, its fraction left off.
+    db.db.execute('INSERT INTO module_records VALUES (?, ?, ?, ?, ?)', [
+      'words',
+      'card',
+      'legacy',
+      '{}',
+      '2026-01-01T10:30:00Z',
+    ]);
+    records.put(
+      'words',
+      'card',
+      'newer',
+      {},
+      now: DateTime.utc(2026, 1, 1, 10, 30, 1),
+    );
+    expect(records.list('words', 'card').map((r) => r.id), ['newer', 'legacy']);
+  });
+
+  test('deleteMany takes exactly the records it names, in one transaction', () {
+    records.put('words', 'card', 'keep', {'n': 1});
+    records.put('words', 'card', 'gone', {'n': 2});
+    records.put('words', 'check', 'c1', {'card': 'gone'});
+    records.put('gold', 'card', 'gone', {'n': 3});
+    records.deleteMany('words', const [
+      (kind: 'card', id: 'gone'),
+      (kind: 'check', id: 'c1'),
+    ]);
+    expect(records.get('words', 'card', 'keep'), isNotNull);
+    expect(records.get('words', 'card', 'gone'), isNull);
+    expect(records.get('words', 'check', 'c1'), isNull);
+    expect(
+      records.get('gold', 'card', 'gone'),
+      isNotNull,
+      reason: 'another module is never touched',
+    );
+    records.deleteMany('words', const []);
+    expect(records.count('words'), 1);
+  });
+
   test('one module never sees or deletes another one\'s records', () {
     records.put('parking', 'spot', 'a', {'n': 1});
     records.put('gold', 'spot', 'a', {'n': 2});

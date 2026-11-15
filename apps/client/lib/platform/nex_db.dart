@@ -249,6 +249,14 @@ abstract interface class NexDb {
 
   Future<void> moduleDelete(String module, String kind, String id);
 
+  /// Deletes several of [module]'s records in one storage transaction:
+  /// either every one is gone, or none is — what a module's Undo runs in
+  /// place of the journal it used to keep.
+  Future<void> moduleDeleteMany(
+    String module,
+    List<({String kind, String id})> records,
+  );
+
   /// Everything [module] saved, gone. Resolves to how many records went.
   Future<int> moduleDeleteAll(String module);
 

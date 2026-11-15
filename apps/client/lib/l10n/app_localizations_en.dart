@@ -6542,4 +6542,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupMoveDown => 'Move down';
+
+  @override
+  String moduleRemoveFailed(String name) {
+    return '$name\'s records could not be deleted, so nothing was removed. Try again.';
+  }
 }

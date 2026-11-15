@@ -161,7 +161,7 @@ void main() {
         'archived': false,
         'createdAt': DateTime.now().toIso8601String(),
       });
-      await store.put('__reminder', 'habit:h1', {
+      await h.db.modulePut('habits', '__reminder', 'habit:h1', {
         'sourceKind': 'habit',
         'sourceId': 'h1',
         'at': DateTime(2026, 10, 20, 20, 0).toUtc().toIso8601String(),
@@ -218,7 +218,7 @@ void main() {
         'due': '2030-01-01',
         'note': '',
       });
-      await store.put('__reminder', 'loan:l1', {
+      await h.db.modulePut('lent_borrowed', '__reminder', 'loan:l1', {
         'sourceKind': 'loan',
         'sourceId': 'l1',
         'at': DateTime(2030, 1, 1, 9).toUtc().toIso8601String(),
@@ -324,4 +324,3 @@ void main() {
     expect(convertQuantity(const Fraction(1), g100, ml100), isNull);
   });
 }
-

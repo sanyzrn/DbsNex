@@ -23,6 +23,20 @@ class NexModuleStore {
   /// The module these records belong to.
   final String module;
 
+  /// The kinds the platform keeps for itself. A module cannot write them
+  /// directly: a raw `__reminder` would schedule notifications without the
+  /// permission and availability checks [setReminder] applies, and
+  /// `__recovery` is the quarantine the storage layer owns. Reading
+  /// `__reminder` stays open — Habits reads its version-1 reminders there
+  /// while migrating them.
+  static const _reservedKinds = {'__reminder', '__recovery'};
+
+  void _checkKind(String kind, String call) {
+    if (_reservedKinds.contains(kind)) {
+      throw ArgumentError.value(kind, 'kind', '$call on a reserved kind');
+    }
+  }
+
   /// Every record of [kind], the most recently saved first.
   Future<List<ModuleRecord>> list(String kind) =>
       _logged('list', () => _services.moduleRecords(module, kind));
@@ -35,11 +49,29 @@ class NexModuleStore {
       ))?.body;
 
   /// Saves [body] as [id], replacing what was there.
-  Future<void> put(String kind, String id, Map<String, Object?> body) =>
-      _logged('put', () => _services.modulePut(module, kind, id, body));
+  Future<void> put(String kind, String id, Map<String, Object?> body) {
+    _checkKind(kind, 'put');
+    return _logged('put', () => _services.modulePut(module, kind, id, body));
+  }
 
-  Future<void> delete(String kind, String id) =>
-      _logged('delete', () => _services.moduleDelete(module, kind, id));
+  Future<void> delete(String kind, String id) {
+    _checkKind(kind, 'delete');
+    return _logged('delete', () => _services.moduleDelete(module, kind, id));
+  }
+
+  /// Deletes several of this module's records as one storage transaction:
+  /// either every one of them is gone, or none is. This is what Undo's
+  /// "delete it with everything that hangs off it" runs, so a failure or a
+  /// crash cannot leave half of it deleted.
+  Future<void> deleteRecords(List<({String kind, String id})> records) {
+    for (final record in records) {
+      _checkKind(record.kind, 'deleteRecords');
+    }
+    return _logged(
+      'deleteRecords',
+      () => _services.moduleDeleteMany(module, records),
+    );
+  }
 
   /// Runs [action]; a failure is written to the diagnostics log (2.1.10) —
   /// which module and which call, never what was being stored — and thrown on.
@@ -56,12 +88,17 @@ class NexModuleStore {
   /// A failed copy leaves the original untouched and the error visible.
   Future<void> quarantine(ModuleRecord record) async {
     unawaited(NexCrashLog.failed('module.$module', 'record quarantined'));
-    await put('__recovery', newId(), {
-      'kind': record.kind,
-      'id': record.id,
-      'body': record.body,
-      'updatedAt': record.updatedAt.toIso8601String(),
-    });
+    // The recovery envelope is the storage layer's own; it goes around the
+    // reserved-kind check the module's writes pass.
+    await _logged(
+      'quarantine',
+      () => _services.modulePut(module, '__recovery', newId(), {
+        'kind': record.kind,
+        'id': record.id,
+        'body': record.body,
+        'updatedAt': record.updatedAt.toIso8601String(),
+      }),
+    );
     await delete(record.kind, record.id);
   }
 

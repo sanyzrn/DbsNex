@@ -43,3 +43,19 @@ List<NexModule> nexModulesOn(NexPreferences preferences) => [
   for (final module in nexModules)
     if (module.available && module.isOn(preferences)) module,
 ];
+
+/// The same modules by id — one lookup where a walk of the whole list used
+/// to run on every module write, in the reminder gate.
+final Map<String, NexModule> nexModulesById = {
+  for (final module in nexModules) module.id: module,
+};
+
+/// Whether [id] names a module that is part of the app right now: available
+/// in this release and added by the person. The one gate every reach of a
+/// module asks — Tools tiles, reminder scheduling, pinned summaries, the
+/// brief — so "available and on" is spelled once instead of re-derived in
+/// each of them.
+bool nexModuleActive(String id, NexPreferences preferences) {
+  final module = nexModulesById[id];
+  return module != null && module.available && module.isOn(preferences);
+}
