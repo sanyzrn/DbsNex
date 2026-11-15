@@ -3569,5 +3569,15 @@
   "groupMoveDown": "Move down",
   "@groupMoveDown": {"description": "Move a home shelf one place down"},
   "moduleRemoveFailed": "{name}'s records could not be deleted, so nothing was removed. Try again.",
-  "@moduleRemoveFailed": {"description": "Banner when removing a module and deleting its data failed; the module stays", "placeholders": {"name": {"type": "String"}}}
+  "@moduleRemoveFailed": {"description": "Banner when removing a module and deleting its data failed; the module stays", "placeholders": {"name": {"type": "String"}}},
+  "aiDaySummaryMore": "{count} more",
+  "@aiDaySummaryMore": {"description": "Beside the folded smart summary's arrow on the home screen: how many of its lines are folded away", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "homeViewAsGrid": "Show as a grid",
+  "@homeViewAsGrid": {"description": "Tooltip of the home screen's view switch while the notes are a list"},
+  "homeViewAsList": "Show as a list",
+  "@homeViewAsList": {"description": "Tooltip of the home screen's view switch while the notes are a grid"},
+  "layoutPinnedTools": "Pinned tools",
+  "@layoutPinnedTools": {"description": "Home layout sheet: the section choosing which tools show as tiles on the home screen"},
+  "layoutPinnedToolsHint": "Small live tiles under the greeting. Tap one to pin it or take it off.",
+  "@layoutPinnedToolsHint": {"description": "Home layout sheet: under the pinned tools heading"}
 }

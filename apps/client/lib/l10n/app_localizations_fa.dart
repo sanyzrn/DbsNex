@@ -6450,4 +6450,26 @@ class AppLocalizationsFa extends AppLocalizations {
   String moduleRemoveFailed(String name) {
     return 'رکوردهای $name پاک نشد، پس چیزی برداشته نشد. دوباره امتحان کنید.';
   }
+
+  @override
+  String aiDaySummaryMore(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString مورد دیگر';
+  }
+
+  @override
+  String get homeViewAsGrid => 'نمایش شبکه‌ای';
+
+  @override
+  String get homeViewAsList => 'نمایش فهرستی';
+
+  @override
+  String get layoutPinnedTools => 'ابزارهای سنجاق‌شده';
+
+  @override
+  String get layoutPinnedToolsHint =>
+      'کاشی‌های کوچک و زنده، زیر خوش‌آمدگویی. برای سنجاق‌کردن یا برداشتن، روی هر کدام بزنید.';
 }

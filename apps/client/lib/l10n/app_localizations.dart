@@ -10087,6 +10087,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name}\'s records could not be deleted, so nothing was removed. Try again.'**
   String moduleRemoveFailed(String name);
+
+  /// Beside the folded smart summary's arrow on the home screen: how many of its lines are folded away
+  ///
+  /// In en, this message translates to:
+  /// **'{count} more'**
+  String aiDaySummaryMore(int count);
+
+  /// Tooltip of the home screen's view switch while the notes are a list
+  ///
+  /// In en, this message translates to:
+  /// **'Show as a grid'**
+  String get homeViewAsGrid;
+
+  /// Tooltip of the home screen's view switch while the notes are a grid
+  ///
+  /// In en, this message translates to:
+  /// **'Show as a list'**
+  String get homeViewAsList;
+
+  /// Home layout sheet: the section choosing which tools show as tiles on the home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned tools'**
+  String get layoutPinnedTools;
+
+  /// Home layout sheet: under the pinned tools heading
+  ///
+  /// In en, this message translates to:
+  /// **'Small live tiles under the greeting. Tap one to pin it or take it off.'**
+  String get layoutPinnedToolsHint;
 }
 
 class _AppLocalizationsDelegate

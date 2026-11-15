@@ -59,26 +59,33 @@ extension _TimelineShelves on TimelineScreenState {
         if (other.shelf?.movable ?? false) other.key,
     ];
     final at = movable.indexOf(group.key);
-    return NexTapGuarded(
-      controller: _guard,
-      child: _GroupHeader(
-        compact: compact,
-        label: group.label,
-        count: group.count,
-        leading: _shelfMark(group),
-        alwaysCount: shelf != null && shelf.kind != NexShelfKind.pinned,
-        collapsed: _model.collapsedGroups.contains(group.key),
-        onToggle: () => unawaited(_toggleGroup(group.key)),
-        onAsk: AiChatSheet.availableFor(widget.preferences)
-            ? () => unawaited(_askAboutGroup(group))
-            : null,
-        onDelete: group.complete
-            ? () => unawaited(_deleteGroup(group, l10n))
-            : null,
-        onMoveUp: at > 0 ? () => _moveShelf(group, movable, -1) : null,
-        onMoveDown: at >= 0 && at < movable.length - 1
-            ? () => _moveShelf(group, movable, 1)
-            : null,
+    return _DayMark(
+      // Known to the sticky day, so it does not repeat a heading that is
+      // on screen beside it.
+      heading: true,
+      label: group.label,
+      marks: _dayMarks,
+      child: NexTapGuarded(
+        controller: _guard,
+        child: _GroupHeader(
+          compact: compact,
+          label: group.label,
+          count: group.count,
+          leading: _shelfMark(group),
+          alwaysCount: shelf != null && shelf.kind != NexShelfKind.pinned,
+          collapsed: _model.collapsedGroups.contains(group.key),
+          onToggle: () => unawaited(_toggleGroup(group.key)),
+          onAsk: AiChatSheet.availableFor(widget.preferences)
+              ? () => unawaited(_askAboutGroup(group))
+              : null,
+          onDelete: group.complete
+              ? () => unawaited(_deleteGroup(group, l10n))
+              : null,
+          onMoveUp: at > 0 ? () => _moveShelf(group, movable, -1) : null,
+          onMoveDown: at >= 0 && at < movable.length - 1
+              ? () => _moveShelf(group, movable, 1)
+              : null,
+        ),
       ),
     );
   }

@@ -254,6 +254,10 @@ class TimelineScreenState extends State<TimelineScreen>
     curve: NexMotion.curve,
   );
 
+  /// Whether this launch's first notes have been shown — see
+  /// `_onModelChange`.
+  bool _firstNotesShown = false;
+
   void _fadeInBody() {
     _searchFade.duration = NexMotion.of(context, NexMotion.enter);
     unawaited(_searchFade.forward(from: 0));
@@ -313,14 +317,15 @@ class TimelineScreenState extends State<TimelineScreen>
   String? _aiHeadlineText;
   bool _aiHeadlineLoading = false;
 
-  /// Collapse only the recap body; keep the header and chevron visible.
-  /// Persisted in [NexPreferences.daySummaryFolded].
+  /// Folds the brief down to its first lines; the heading and its arrow
+  /// stay. Persisted in [NexPreferences.daySummaryFolded], and changed by a
+  /// tap alone: a scroll used to fold it too, which moved every card under
+  /// a finger that was only trying to read them (2.8.0).
   late bool _aiSummaryCollapsed = widget.preferences.daySummaryFolded;
 
-  /// The first real scroll collapses the card on its own, once. Touching the
-  /// chevron takes that over: an explicit open should not be undone by the
-  /// scroll that follows it.
-  bool _aiSummaryToggledByUser = false;
+  /// Which note each line the app wrote in the brief is about, so a tap on
+  /// the line opens it — see `_rememberBriefLines`.
+  final Map<String, String> _briefLineNotes = {};
   int _aiSummaryExpansion = 0;
   bool _aiSummaryBeamPending = false;
 
@@ -532,26 +537,6 @@ class TimelineScreenState extends State<TimelineScreen>
       hash = ((hash ^ unit) * 0x01000193) & 0xFFFFFFFF;
     }
     return '${source.length}:${hash.toRadixString(16)}';
-  }
-
-  /// Collapses the card's body on a real, finger-driven scroll — reading a
-  /// note is not the moment for a recap.
-  ///
-  /// Gives way to the chevron entirely: once the user has worked the control
-  /// by hand, scrolling stops having an opinion about it. Only a drag counts
-  /// (a ballistic or programmatic move is nobody reading), only 56px of it
-  /// (four used to be the whole trigger — less than a reading finger
-  /// trembles), and only for the session: the folded preference belongs to
-  /// the chevron alone, so a bump while reading costs one fold today, not a
-  /// changed setting for every launch after.
-  ///
-  /// Reached from the body's own `NotificationListener` in
-  /// timeline_layout.dart, which can tell a drag from a fling — a plain
-  /// scroll-listener cannot.
-  void _collapseAiSummaryOnDrag(double pixels) {
-    if (_aiSummaryCollapsed || _aiSummaryToggledByUser) return;
-    if (pixels <= 56) return;
-    setState(() => _aiSummaryCollapsed = true);
   }
 
   void _onSearchChanged() {

@@ -117,7 +117,11 @@ class NexNavigationDock extends StatelessWidget {
 }
 
 /// A full-sized destination in the home dock, with a fixed place for a badge.
-class NexDockAction extends StatelessWidget {
+///
+/// Under a finger its glyph gives a little and springs back on the way up:
+/// the dock's four places have no labels, so the press itself is what says
+/// "this one" before the page it leads to arrives.
+class NexDockAction extends StatefulWidget {
   const NexDockAction({
     super.key,
     required this.icon,
@@ -132,21 +136,41 @@ class NexDockAction extends StatelessWidget {
   final Widget? badge;
 
   @override
+  State<NexDockAction> createState() => _NexDockActionState();
+}
+
+class _NexDockActionState extends State<NexDockAction> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) => Tooltip(
-    message: tooltip,
+    message: widget.tooltip,
     child: InkResponse(
-      onTap: onPressed,
+      onTap: widget.onPressed,
+      onHighlightChanged: (down) {
+        if (down != _pressed) setState(() => _pressed = down);
+      },
       radius: nexMinTapTarget / 2,
       containedInkWell: true,
       customBorder: const CircleBorder(),
       child: Semantics(
         button: true,
-        label: tooltip,
+        label: widget.tooltip,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Center(child: Icon(icon, size: 22)),
-            if (badge case final mark?)
+            Center(
+              child: AnimatedScale(
+                scale: _pressed ? 0.86 : 1,
+                duration: NexMotion.of(
+                  context,
+                  _pressed ? NexMotion.fast : NexMotion.pop,
+                ),
+                curve: _pressed ? NexMotion.curve : NexMotion.popCurve,
+                child: Icon(widget.icon, size: 22),
+              ),
+            ),
+            if (widget.badge case final mark?)
               Positioned(top: 9, right: 9, child: mark),
           ],
         ),

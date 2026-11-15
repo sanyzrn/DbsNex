@@ -38,7 +38,36 @@ String? nexBriefReport(
   DateTime? now,
   String Function(DateTime local)? clock,
 }) {
-  if (maxLines <= 0) return null;
+  final lines = nexBriefReportLines(
+    facts,
+    l10n,
+    maxLines: maxLines,
+    notes: notes,
+    maxWords: maxWords,
+    now: now,
+    clock: clock,
+  );
+  return lines.isEmpty ? null : lines.map((line) => line.text).join('\n');
+}
+
+/// One line of the brief the app writes, and the note it was written from.
+///
+/// [noteId] is what lets a line on the home screen open its note (2.8.0): the
+/// brief used to be a paragraph to read and then go looking for. Null for a
+/// standing commitment, which is not a note.
+typedef NexBriefLine = ({String text, String? noteId});
+
+/// [nexBriefReport], line by line, each with the note it is about.
+List<NexBriefLine> nexBriefReportLines(
+  NexBriefFacts facts,
+  AppLocalizations l10n, {
+  int maxLines = 4,
+  List<Note> notes = const [],
+  int maxWords = 28,
+  DateTime? now,
+  String Function(DateTime local)? clock,
+}) {
+  if (maxLines <= 0) return const [];
   final at = now ?? DateTime.now();
   final persian = l10n.localeName == 'fa';
   String time(DateTime local) =>
@@ -60,22 +89,28 @@ String? nexBriefReport(
     for (final entry in [...facts.overdue, ...facts.dueSoon])
       entry.title.trim(),
   };
-  final groups = [<String>[], <String>[], <String>[]];
+  final groups = [<NexBriefLine>[], <NexBriefLine>[], <NexBriefLine>[]];
 
-  void add(String line, String title) {
+  void add(String line, String title, [String? noteId]) {
     final key = title.trim();
     final priority = urgentTitles.contains(key)
         ? 0
         : reminderTitles.contains(key)
         ? 1
         : 2;
-    groups[priority].add(line);
+    // One fact, one line: a note written over two lines used to break its
+    // own line of the brief in two, the second half with no mark.
+    groups[priority].add((
+      text: line.replaceAll(RegExp(r'\s*[\r\n]+\s*'), ' '),
+      noteId: noteId,
+    ));
   }
 
   for (final entry in facts.overdue) {
     add(
       '⏰ ${l10n.briefLineOverdue(entry.title, nexRelativeSpan(l10n, at.difference(entry.dueAt!)))}',
       entry.title,
+      entry.noteId,
     );
   }
   for (final entry in facts.dueSoon) {
@@ -100,12 +135,14 @@ String? nexBriefReport(
           ? '📅 ${l10n.briefLineAt(entry.title, when)}'
           : '📅 ${l10n.briefLineDue(entry.title, days >= 1 ? l10n.spanDays(days) : nexRelativeSpan(l10n, entry.dueAt!.difference(at)))}',
       entry.title,
+      entry.noteId,
     );
   }
   for (final entry in facts.unfinished) {
     add(
       '☑️ ${l10n.briefLineChecklist(entry.title, entry.remaining!, entry.total!)}',
       entry.title,
+      entry.noteId,
     );
   }
 
@@ -130,11 +167,11 @@ String? nexBriefReport(
     add(
       '${note.isUrgent ? '🔥' : '📝'} $excerpt${words.length > maxWords ? '…' : ''}',
       text,
+      note.id,
     );
   }
 
-  final lines = groups.expand((group) => group).take(maxLines).toList();
-  return lines.isEmpty ? null : lines.join('\n');
+  return groups.expand((group) => group).take(maxLines).toList();
 }
 
 /// Whole calendar days from [from] to [to], through UTC midnights so a clock

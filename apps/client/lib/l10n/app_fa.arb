@@ -2236,5 +2236,10 @@
   "shelfSeeAllUncounted": "دیدن همه",
   "groupMoveUp": "بالاتر ببر",
   "groupMoveDown": "پایین‌تر ببر",
-  "moduleRemoveFailed": "رکوردهای {name} پاک نشد، پس چیزی برداشته نشد. دوباره امتحان کنید."
+  "moduleRemoveFailed": "رکوردهای {name} پاک نشد، پس چیزی برداشته نشد. دوباره امتحان کنید.",
+  "aiDaySummaryMore": "{count} مورد دیگر",
+  "homeViewAsGrid": "نمایش شبکه‌ای",
+  "homeViewAsList": "نمایش فهرستی",
+  "layoutPinnedTools": "ابزارهای سنجاق‌شده",
+  "layoutPinnedToolsHint": "کاشی‌های کوچک و زنده، زیر خوش‌آمدگویی. برای سنجاق‌کردن یا برداشتن، روی هر کدام بزنید."
 }

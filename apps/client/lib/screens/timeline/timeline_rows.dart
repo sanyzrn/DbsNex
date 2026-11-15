@@ -273,6 +273,13 @@ extension _TimelineRows on TimelineScreenState {
     if (!mounted) return;
     final kind = _model.lastChange;
     if (kind == TimelineChange.notes) _fadeOnViewChange();
+    // The first notes of a launch arrive the way a search's results do —
+    // eased in over the placeholders they replace, once — rather than being
+    // there on one frame where grey bars were on the last.
+    if (!_firstNotesShown && _model.all != null) {
+      _firstNotesShown = true;
+      _fadeInBody();
+    }
     // By tag, the tags are the headings: a renamed or new tag is a change to
     // the rows, not just to the filter row.
     final tagShelves =

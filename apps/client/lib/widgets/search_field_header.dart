@@ -95,36 +95,12 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     return ClipRect(
-      child: TapRegion(
-        // A tap anywhere outside the field closes search the same way the X
-        // button does — the X was the only way out, so leaving search meant
-        // aiming for one small target instead of just tapping whatever you
-        // meant to look at. A result card shares [nexSearchTapGroup] with
-        // this region precisely so tapping *it* does not count as "outside":
-        // that tap fires on pointer-down, before the card's own onTap would
-        // resolve, so without the group the card never got a chance to open
-        // — search silently closed back to the timeline instead.
-        groupId: nexSearchTapGroup,
-        onTapOutside: (_) {
-          if (!searching) return;
-          // Words typed: a touch outside only ever puts the keyboard away —
-          // never also leaves, keyboard or no keyboard. A touch on the empty
-          // space under short results is how scrolls begin, and it used to
-          // take the whole query with it; leaving (and clearing) is the ✕'s
-          // and Back's job. With nothing typed there is nothing to keep, and
-          // a touch outside leaves at once.
-          final typed = controller.text.trim().isNotEmpty;
-          if (typed) {
-            // Put away here rather than left to the app's dismisser: on the
-            // timeline the touch can be claimed before it gets there.
-            focusNode.unfocus();
-            return;
-          }
-          onClear();
-        },
+      child: NexSearchTapRegion(
+        searching: searching,
+        controller: controller,
+        focusNode: focusNode,
+        onClear: onClear,
         // No backing behind the row. The tag row below this one needs one,
         // because it is pinned and the list genuinely runs beneath it; this
         // header is not pinned and never has anything behind it — it scrolls
@@ -141,11 +117,24 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
           child: _capped(
             Row(
               children: [
-                Expanded(child: _pill(context, l10n, scheme)),
+                Expanded(
+                  child: NexSearchPill(
+                    controller: controller,
+                    focusNode: focusNode,
+                    searching: searching,
+                    onTap: onTap,
+                    onChanged: onChanged,
+                    onClear: onClear,
+                    onSubmitted: onSubmitted,
+                    anchor: anchor,
+                    filterCount: filterCount,
+                    onShowFilters: onShowFilters,
+                  ),
+                ),
                 // Gives its room to the field as search opens, rather than
                 // vanishing on the frame the field is tapped.
                 if (trailing case final trailing?)
-                  _Reveal(
+                  NexInlineReveal(
                     shown: !searching,
                     child: Padding(
                       padding: const EdgeInsetsDirectional.only(
@@ -172,8 +161,76 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
           ),
         );
 
+  /// Always.
+  ///
+  /// This used to compare the delegate's own three fields, which is what the
+  /// API invites — and it is wrong for any header that reads its colours from
+  /// the theme. `shouldRebuild` gates whether the cached subtree is thrown
+  /// away, and a theme change does not touch `searching`, `controller` or
+  /// `focusNode`, so switching between light and dark left this header painted
+  /// in the colours of the theme the app happened to launch in: a black strip
+  /// across a light timeline, or a white one across a dark timeline, depending
+  /// on which way you switched.
+  ///
+  /// A field and a row of icons is cheap to rebuild, and the state that must
+  /// survive — the query and the focus — lives in the controller and the focus
+  /// node, both owned outside this delegate.
+  @override
+  bool shouldRebuild(SearchFieldHeader old) => true;
+}
+
+/// The search field as a pill: the icon, the words being typed, and — once
+/// searching — the search's own filters and the way out.
+///
+/// On a phone it lives in the app bar (2.8.0), beside the wordmark, where it
+/// stays put however far the list has moved: search is the second thing this
+/// app is for, and a field that scrolled away with the notes had to be
+/// scrolled back to before it could be used. In a wide window it is still
+/// the list's first row ([SearchFieldHeader]). One widget draws both.
+class NexSearchPill extends StatelessWidget {
+  const NexSearchPill({
+    super.key,
+    required this.controller,
+    required this.focusNode,
+    required this.searching,
+    required this.onTap,
+    required this.onChanged,
+    required this.onClear,
+    this.onSubmitted,
+    this.anchor,
+    this.filterCount = 0,
+    this.onShowFilters,
+    this.resting,
+  });
+
+  /// Attached to the field's own box, so the first-run tour can measure where
+  /// it actually is. Null everywhere the tour is not running.
+  final GlobalKey? anchor;
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool searching;
+  final VoidCallback onTap;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+  final ValueChanged<String>? onSubmitted;
+  final int filterCount;
+  final VoidCallback? onShowFilters;
+
+  /// Inside the pill's end while not searching — the timeline's own filter
+  /// button, when there is no tag row for it to head. It gives its place to
+  /// the search's filters and the ✕ as search opens.
+  final Widget? resting;
+
   /// The field, its edge and its icon easing to the accent as search opens
   /// and back as it closes, on the same beat as everything around it.
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return _pill(context, l10n, scheme);
+  }
+
   Widget _pill(
     BuildContext context,
     AppLocalizations l10n,
@@ -255,57 +312,70 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                     // A Persian query laid out left to right, in the one
                     // field in the app most likely to be typed in either
                     // language. The same treatment every other field has.
-                    child: NexAutoDirection(
-                      controller: controller,
-                      builder: (context, direction) => TextField(
+                    child: LayoutBuilder(
+                      builder: (context, box) => NexAutoDirection(
                         controller: controller,
-                        selectionWidthStyle: BoxWidthStyle.tight,
-                        contextMenuBuilder: nexReadingMenu,
-                        textDirection: direction,
-                        textAlign: TextAlign.start,
-                        focusNode: focusNode,
-                        onTap: onTap,
-                        onChanged: onChanged,
-                        onSubmitted: onSubmitted,
-                        textInputAction: TextInputAction.search,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        // The caret is one of the few places the accent is
-                        // spent: it means the app is listening.
-                        cursorColor: scheme.primary,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          // The app's InputDecorationTheme frames, fills
-                          // and pads every field, which is right for a
-                          // form and wrong here: the pill around this row
-                          // is already the surface, so the theme drew a
-                          // second rounded box inside it with the search
-                          // icon stranded outside it.
-                          //
-                          // Every one of these has to be named. `border`
-                          // is only the fallback: `InputDecorator` paints
-                          // `enabledBorder ?? border` at rest and
-                          // `focusedBorder ?? border` while focused, and
-                          // `applyDefaults` fills a null one from the
-                          // theme — which sets both. So `border: none`
-                          // alone removed nothing, and the inner box went
-                          // on showing in exactly the two states the
-                          // field is ever in: a soft outline at rest and
-                          // an accent one under the caret, each drawn
-                          // inside the pill's own matching edge.
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          disabledBorder: InputBorder.none,
-                          errorBorder: InputBorder.none,
-                          focusedErrorBorder: InputBorder.none,
-                          filled: false,
-                          contentPadding: EdgeInsets.zero,
-                          hintText: l10n.searchHint,
+                        builder: (context, direction) => TextField(
+                          controller: controller,
+                          selectionWidthStyle: BoxWidthStyle.tight,
+                          contextMenuBuilder: nexReadingMenu,
+                          textDirection: direction,
+                          textAlign: TextAlign.start,
+                          focusNode: focusNode,
+                          onTap: onTap,
+                          onChanged: onChanged,
+                          onSubmitted: onSubmitted,
+                          textInputAction: TextInputAction.search,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          // The caret is one of the few places the accent is
+                          // spent: it means the app is listening.
+                          cursorColor: scheme.primary,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            // The app's InputDecorationTheme frames, fills
+                            // and pads every field, which is right for a
+                            // form and wrong here: the pill around this row
+                            // is already the surface, so the theme drew a
+                            // second rounded box inside it with the search
+                            // icon stranded outside it.
+                            //
+                            // Every one of these has to be named. `border`
+                            // is only the fallback: `InputDecorator` paints
+                            // `enabledBorder ?? border` at rest and
+                            // `focusedBorder ?? border` while focused, and
+                            // `applyDefaults` fills a null one from the
+                            // theme — which sets both. So `border: none`
+                            // alone removed nothing, and the inner box went
+                            // on showing in exactly the two states the
+                            // field is ever in: a soft outline at rest and
+                            // an accent one under the caret, each drawn
+                            // inside the pill's own matching edge.
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            filled: false,
+                            contentPadding: EdgeInsets.zero,
+                            // The whole invitation where it fits, the one
+                            // word where it does not: beside the wordmark on
+                            // a narrow phone, "Search notes…" was cut off
+                            // mid-word.
+                            hintText:
+                                box.maxWidth <
+                                    MediaQuery.textScalerOf(context).scale(14) *
+                                        12.5
+                                ? l10n.search
+                                : l10n.searchHint,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  _Reveal(
+                  if (resting case final resting?)
+                    NexInlineReveal(shown: !searching, child: resting),
+                  NexInlineReveal(
                     shown: searching,
                     // Part of the field, for the keyboard's sake: filters and
                     // the way out answer the first touch, typing or not.
@@ -357,30 +427,63 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
       ),
     ),
   );
+}
 
-  /// Always.
-  ///
-  /// This used to compare the delegate's own three fields, which is what the
-  /// API invites — and it is wrong for any header that reads its colours from
-  /// the theme. `shouldRebuild` gates whether the cached subtree is thrown
-  /// away, and a theme change does not touch `searching`, `controller` or
-  /// `focusNode`, so switching between light and dark left this header painted
-  /// in the colours of the theme the app happened to launch in: a black strip
-  /// across a light timeline, or a white one across a dark timeline, depending
-  /// on which way you switched.
-  ///
-  /// A field and a row of icons is cheap to rebuild, and the state that must
-  /// survive — the query and the focus — lives in the controller and the focus
-  /// node, both owned outside this delegate.
+/// The search field's "a touch outside" rule, shared by the app bar's pill
+/// and the wide window's header.
+///
+/// A tap anywhere outside the field closes search the same way the ✕ does —
+/// the ✕ was the only way out, so leaving search meant aiming for one small
+/// target instead of just tapping whatever you meant to look at. A result
+/// card shares [nexSearchTapGroup] with this region precisely so tapping *it*
+/// does not count as "outside": that tap fires on pointer-down, before the
+/// card's own onTap would resolve, so without the group the card never got a
+/// chance to open — search silently closed back to the timeline instead.
+class NexSearchTapRegion extends StatelessWidget {
+  const NexSearchTapRegion({
+    super.key,
+    required this.searching,
+    required this.controller,
+    required this.focusNode,
+    required this.onClear,
+    required this.child,
+  });
+
+  final bool searching;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final VoidCallback onClear;
+  final Widget child;
+
   @override
-  bool shouldRebuild(SearchFieldHeader old) => true;
+  Widget build(BuildContext context) => TapRegion(
+    groupId: nexSearchTapGroup,
+    onTapOutside: (_) {
+      if (!searching) return;
+      // Words typed: a touch outside only ever puts the keyboard away —
+      // never also leaves, keyboard or no keyboard. A touch on the empty
+      // space under short results is how scrolls begin, and it used to
+      // take the whole query with it; leaving (and clearing) is the ✕'s
+      // and Back's job. With nothing typed there is nothing to keep, and
+      // a touch outside leaves at once.
+      final typed = controller.text.trim().isNotEmpty;
+      if (typed) {
+        // Put away here rather than left to the app's dismisser: on the
+        // timeline the touch can be claimed before it gets there.
+        focusNode.unfocus();
+        return;
+      }
+      onClear();
+    },
+    child: child,
+  );
 }
 
 /// Something that makes room for itself as it arrives and gives the room
 /// back as it leaves, fading as it goes — the field's buttons, and the
 /// filter beside it.
-class _Reveal extends StatelessWidget {
-  const _Reveal({required this.shown, required this.child});
+class NexInlineReveal extends StatelessWidget {
+  const NexInlineReveal({super.key, required this.shown, required this.child});
 
   final bool shown;
   final Widget child;
