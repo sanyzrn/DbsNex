@@ -13,6 +13,7 @@ import 'parking/module.dart';
 import 'pause_module.dart';
 import 'price_lens/module.dart';
 import 'smoke_free/module.dart';
+import 'security_tools/module.dart';
 import 'warranty/module.dart';
 import 'words/module.dart';
 
@@ -36,6 +37,7 @@ const List<NexModule> nexModules = [
   SmokeFreeModule(),
   OccasionsModule(),
   ConverterModule(),
+  SecurityToolsModule(),
 ];
 
 /// The modules that are part of the app right now.
