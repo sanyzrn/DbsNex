@@ -3578,6 +3578,6 @@
   "@homeViewAsList": {"description": "Tooltip of the home screen's view switch while the notes are a grid"},
   "layoutPinnedTools": "Pinned tools",
   "@layoutPinnedTools": {"description": "Home layout sheet: the section choosing which tools show as tiles on the home screen"},
-  "layoutPinnedToolsHint": "Small live tiles under the greeting. Tap one to pin it or take it off.",
+  "layoutPinnedToolsHint": "Small live tiles above your notes. Tap one to pin it or take it off.",
   "@layoutPinnedToolsHint": {"description": "Home layout sheet: under the pinned tools heading"}
 }

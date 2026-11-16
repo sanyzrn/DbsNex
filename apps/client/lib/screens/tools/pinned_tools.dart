@@ -280,9 +280,15 @@ class NexGlanceRail extends StatelessWidget {
     builder: (context, constraints) {
       final inner = constraints.maxWidth - NexSpacing.md * 2;
       final count = tiles.length;
+      // Larger text gets wider tiles rather than cut-off facts: the row
+      // scrolls, so a tile can afford the room its words need.
+      final scale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5);
       final width = count <= 2
-          ? math.min(_widest, (inner - _gap * (count - 1)) / count)
-          : ((inner - _gap * 2) / 2.3).clamp(_narrowest, _widest);
+          ? math.min(_widest * scale, (inner - _gap * (count - 1)) / count)
+          : ((inner - _gap * 2) / 2.3).clamp(
+              _narrowest * scale,
+              _widest * scale,
+            );
       return SingleChildScrollView(
         key: const ValueKey('glance-rail'),
         scrollDirection: Axis.horizontal,

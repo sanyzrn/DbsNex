@@ -231,6 +231,24 @@ class NexSearchPill extends StatelessWidget {
     return _pill(context, l10n, scheme);
   }
 
+  /// "Search notes…" when the field has room for all of it, "Search" when
+  /// it does not. Measured rather than guessed: the same field is wide in
+  /// English and tight in Persian, whose invitation is half as long again.
+  String _hintFor(BuildContext context, AppLocalizations l10n, double width) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: l10n.searchHint,
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final fits = painter.width <= width;
+    painter.dispose();
+    return fits ? l10n.searchHint : l10n.search;
+  }
+
   Widget _pill(
     BuildContext context,
     AppLocalizations l10n,
@@ -362,12 +380,7 @@ class NexSearchPill extends StatelessWidget {
                             // word where it does not: beside the wordmark on
                             // a narrow phone, "Search notes…" was cut off
                             // mid-word.
-                            hintText:
-                                box.maxWidth <
-                                    MediaQuery.textScalerOf(context).scale(14) *
-                                        12.5
-                                ? l10n.search
-                                : l10n.searchHint,
+                            hintText: _hintFor(context, l10n, box.maxWidth),
                           ),
                         ),
                       ),

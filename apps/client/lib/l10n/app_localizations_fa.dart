@@ -6471,5 +6471,5 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get layoutPinnedToolsHint =>
-      'کاشی‌های کوچک و زنده، زیر خوش‌آمدگویی. برای سنجاق‌کردن یا برداشتن، روی هر کدام بزنید.';
+      'کاشی‌های کوچک و زنده، بالای یادداشت‌ها. برای سنجاق‌کردن یا برداشتن، روی هر کدام بزنید.';
 }

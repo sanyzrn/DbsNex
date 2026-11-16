@@ -518,9 +518,10 @@ class _DensityTile extends StatelessWidget {
                       Container(
                         width: square,
                         height: square,
+                        // Round, as the mark on a real card is.
                         decoration: BoxDecoration(
                           color: scheme.primary.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(NexRadius.xs),
+                          shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 6),

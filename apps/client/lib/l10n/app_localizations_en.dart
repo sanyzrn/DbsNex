@@ -6568,5 +6568,5 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get layoutPinnedToolsHint =>
-      'Small live tiles under the greeting. Tap one to pin it or take it off.';
+      'Small live tiles above your notes. Tap one to pin it or take it off.';
 }

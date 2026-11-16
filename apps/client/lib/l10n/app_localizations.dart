@@ -10115,7 +10115,7 @@ abstract class AppLocalizations {
   /// Home layout sheet: under the pinned tools heading
   ///
   /// In en, this message translates to:
-  /// **'Small live tiles under the greeting. Tap one to pin it or take it off.'**
+  /// **'Small live tiles above your notes. Tap one to pin it or take it off.'**
   String get layoutPinnedToolsHint;
 }
 
