@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -126,7 +128,14 @@ class NexShelfTile extends StatelessWidget {
     this.pinned = false,
     this.compact = false,
     this.compactContent,
+    this.progress,
   });
+
+  /// How far along today is, 0 to 1, drawn as a ring round the mark of a
+  /// compact tile — habits done out of those due. Null draws no ring. The
+  /// words beside it already say the number; the ring is the same fact at a
+  /// glance, and says nothing to a screen reader the words have not.
+  final double? progress;
   final String title, subtitle;
   final IconData icon;
   final NexHue hue;
@@ -160,7 +169,7 @@ class NexShelfTile extends StatelessWidget {
       if (badge case final badge?)
         Icon(badge, size: 16, color: scheme.onSurfaceVariant),
     ];
-    final mark = Container(
+    final glyph = Container(
       padding: EdgeInsets.all(compact ? 7 : 9),
       decoration: BoxDecoration(
         color: color,
@@ -174,6 +183,18 @@ class NexShelfTile extends StatelessWidget {
             : Colors.white,
       ),
     );
+    // A compact tile keeps the ring's room whether or not it has one, so
+    // the marks along a row of tiles line up.
+    final mark = !compact
+        ? glyph
+        : ExcludeSemantics(
+            child: NexProgressRing(
+              progress: progress,
+              color: color,
+              radius: 12 + NexProgressRing.gap,
+              child: glyph,
+            ),
+          );
     return Semantics(
       onLongPressHint: longPressLabel,
       label: compactContent == null ? null : title,
@@ -200,12 +221,19 @@ class NexShelfTile extends StatelessWidget {
                       ],
                     ),
             ),
-            padding: EdgeInsets.all(compact ? 10 : 14),
+            padding: compact
+                ? const EdgeInsetsDirectional.fromSTEB(
+                    NexSpacing.sm,
+                    NexSpacing.sm,
+                    NexSpacing.md - NexSpacing.xs,
+                    NexSpacing.sm,
+                  )
+                : const EdgeInsets.all(14),
             child: compact
                 ? Row(
                     children: [
                       mark,
-                      const SizedBox(width: NexSpacing.sm + 2),
+                      const SizedBox(width: NexSpacing.sm),
                       Expanded(
                         child:
                             compactContent ??
@@ -259,6 +287,109 @@ class NexShelfTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A ring round a rounded mark, filled as far as [progress]: a habit count,
+/// the day of a cycle. It takes up its room with or without a ring, so marks
+/// beside each other stay level, and eases to a new value rather than
+/// jumping — the one moment the ring has news is when it moves.
+class NexProgressRing extends StatelessWidget {
+  const NexProgressRing({
+    super.key,
+    required this.child,
+    required this.color,
+    required this.radius,
+    this.progress,
+  });
+
+  /// The clear space between the mark and its ring, plus the ring itself.
+  static const gap = 4.0;
+  static const _stroke = 2.5;
+
+  final Widget child;
+  final Color color;
+
+  /// The ring's own corner: the mark's corner plus [gap].
+  final double radius;
+  final double? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final padded = Padding(padding: const EdgeInsets.all(gap), child: child);
+    final target = progress;
+    if (target == null) return padded;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: target.clamp(0.0, 1.0)),
+      duration: NexMotion.of(context, NexMotion.morph),
+      curve: NexMotion.moveCurve,
+      builder: (context, value, child) => CustomPaint(
+        foregroundPainter: _RingPainter(
+          progress: value,
+          color: color,
+          radius: radius,
+          stroke: _stroke,
+        ),
+        child: child,
+      ),
+      child: padded,
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  const _RingPainter({
+    required this.progress,
+    required this.color,
+    required this.radius,
+    required this.stroke,
+  });
+
+  final double progress;
+  final Color color;
+  final double radius;
+  final double stroke;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = (Offset.zero & size).deflate(stroke / 2);
+    final r = math.min(radius, rect.shortestSide / 2);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    // From the top's middle and clockwise, the way a clock fills.
+    final corner = Radius.circular(r);
+    final path = Path()
+      ..moveTo(rect.center.dx, rect.top)
+      ..lineTo(rect.right - r, rect.top)
+      ..arcToPoint(Offset(rect.right, rect.top + r), radius: corner)
+      ..lineTo(rect.right, rect.bottom - r)
+      ..arcToPoint(Offset(rect.right - r, rect.bottom), radius: corner)
+      ..lineTo(rect.left + r, rect.bottom)
+      ..arcToPoint(Offset(rect.left, rect.bottom - r), radius: corner)
+      ..lineTo(rect.left, rect.top + r)
+      ..arcToPoint(Offset(rect.left + r, rect.top), radius: corner)
+      ..close();
+    canvas.drawPath(path, paint..color = color.withValues(alpha: 0.22));
+    if (progress <= 0) return;
+    if (progress >= 1) {
+      canvas.drawPath(path, paint..color = color);
+      return;
+    }
+    for (final metric in path.computeMetrics()) {
+      canvas.drawPath(
+        metric.extractPath(0, metric.length * progress),
+        paint..color = color,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress ||
+      old.color != color ||
+      old.radius != radius ||
+      old.stroke != stroke;
 }
 
 /// A group of a page on a rounded card, with an optional heading.

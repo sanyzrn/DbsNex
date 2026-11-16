@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -13,7 +14,11 @@ import '../tools_screen.dart' show nexToggleToolPin;
 import 'pinned_module_summary.dart';
 import 'tool_catalog.dart';
 
-/// Pinned modules show two small local facts in the title's existing space.
+/// The tools pinned to the home screen, as one row of small live tiles —
+/// see [NexGlanceRail].
+///
+/// Pinned modules show two small local facts in the title's existing space,
+/// and a ring round their mark when the module counts toward something.
 /// Private tools keep their name and lock; no vault records are read here.
 class PinnedTools extends StatefulWidget {
   const PinnedTools({
@@ -201,41 +206,104 @@ class _PinnedToolsState extends State<PinnedTools> with WidgetsBindingObserver {
         child: tools.isEmpty
             ? const SizedBox(width: double.infinity)
             : Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  NexSpacing.md,
-                  NexSpacing.xs,
-                  NexSpacing.md,
-                  NexSpacing.sm,
+                padding: const EdgeInsets.only(
+                  top: NexSpacing.xs,
+                  bottom: NexSpacing.sm,
                 ),
-                child: nexShelfPairs([
-                  for (final tool in tools)
-                    VaultOpenBuilder(
-                      key: ValueKey('pinned-tool-${tool.id}'),
-                      builder: (context, open) => NexShelfTile(
-                        compact: true,
-                        title: tool.title,
-                        subtitle: tool.subtitle,
-                        icon: tool.icon,
-                        hue: tool.hue,
-                        compactContent: tool.id.startsWith('module.')
-                            ? _PinnedFacts(
-                                facts:
-                                    _facts[tool.id.substring(
-                                      'module.'.length,
-                                    )] ??
-                                    NexPinnedSummary(l.pinModuleLoading),
-                              )
-                            : null,
-                        badge: tool.locked ? nexLockBadge(open: open) : null,
-                        onTap: () => unawaited(tool.push(context)),
-                        onLongPress: () => unawaited(
-                          nexToggleToolPin(context, widget.preferences, tool),
-                        ),
-                        longPressLabel: l.unpinFromHome,
+                child: NexGlanceRail(
+                  tiles: [
+                    for (final tool in tools)
+                      VaultOpenBuilder(
+                        key: ValueKey('pinned-tool-${tool.id}'),
+                        builder: (context, open) {
+                          final facts = tool.id.startsWith('module.')
+                              ? _facts[tool.id.substring('module.'.length)] ??
+                                    NexPinnedSummary(l.pinModuleLoading)
+                              : null;
+                          return NexShelfTile(
+                            compact: true,
+                            title: tool.title,
+                            subtitle: tool.subtitle,
+                            icon: tool.icon,
+                            hue: tool.hue,
+                            progress: facts?.progress,
+                            compactContent: facts == null
+                                ? null
+                                : _PinnedFacts(facts: facts),
+                            badge: tool.locked
+                                ? nexLockBadge(open: open)
+                                : null,
+                            onTap: () => unawaited(tool.push(context)),
+                            onLongPress: () => unawaited(
+                              nexToggleToolPin(
+                                context,
+                                widget.preferences,
+                                tool,
+                              ),
+                            ),
+                            longPressLabel: l.unpinFromHome,
+                          );
+                        },
                       ),
-                    ),
-                ]),
+                  ],
+                ),
               ),
+      );
+    },
+  );
+}
+
+/// The pinned tools as one row across the home screen (2.8.0): each a small
+/// live tile, the row scrolling sideways once there are more than fit.
+///
+/// They used to be a grid two to a row, which gave three modules two rows of
+/// the first screen — and a whole row to whichever was the odd one out — on
+/// a screen whose subject is the notes below. One or two tiles share the
+/// width between them; from three on, two and the edge of the next show, so
+/// the row says for itself that there is more to the side.
+class NexGlanceRail extends StatelessWidget {
+  const NexGlanceRail({super.key, required this.tiles});
+
+  final List<Widget> tiles;
+
+  /// The room between two tiles.
+  static const _gap = NexSpacing.sm + NexSpacing.xs;
+
+  /// As wide as a tile gets, so two tiles in a wide window stay tiles.
+  static const _widest = 280.0;
+
+  /// As narrow as a tile gets in a scrolling row, so its facts stay readable.
+  static const _narrowest = 148.0;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final inner = constraints.maxWidth - NexSpacing.md * 2;
+      final count = tiles.length;
+      // Larger text gets wider tiles rather than cut-off facts: the row
+      // scrolls, so a tile can afford the room its words need.
+      final scale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5);
+      final width = count <= 2
+          ? math.min(_widest * scale, (inner - _gap * (count - 1)) / count)
+          : ((inner - _gap * 2) / 2.3).clamp(
+              _narrowest * scale,
+              _widest * scale,
+            );
+      return SingleChildScrollView(
+        key: const ValueKey('glance-rail'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (i, tile) in tiles.indexed) ...[
+                if (i > 0) const SizedBox(width: _gap),
+                SizedBox(width: math.max(0, width), child: tile),
+              ],
+            ],
+          ),
+        ),
       );
     },
   );
@@ -254,7 +322,9 @@ class _PinnedFacts extends StatelessWidget {
       children: [
         Text(
           facts.primary,
-          maxLines: 1,
+          // With nothing under it the first fact has both rows: "Add your
+          // first word" reads whole instead of being cut at the tile's edge.
+          maxLines: facts.secondary == null ? 2 : 1,
           overflow: TextOverflow.ellipsis,
           textDirection: nexDirectionOf(facts.primary),
           style: theme.textTheme.bodySmall?.copyWith(

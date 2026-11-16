@@ -125,11 +125,16 @@ class _FilterButton extends StatelessWidget {
     required this.active,
     required this.onPressed,
     this.round = false,
+    this.inField = false,
   });
 
   /// A circle the search field's height, for its place beside the field;
   /// otherwise a chip the tag pills' height, for the head of their row.
   final bool round;
+
+  /// A bare glyph inside the search field's own end, for a home screen with
+  /// no tag row to head: the field is already the surface.
+  final bool inField;
 
   /// Whether anything in the sheet is narrowing the timeline — a content
   /// type, the reminder filter, or both. A bool rather than the selection
@@ -141,6 +146,37 @@ class _FilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (inField) {
+      final scheme = Theme.of(context).colorScheme;
+      return IconButton(
+        key: const ValueKey('home-filter-in-field'),
+        tooltip: AppLocalizations.of(context).filters,
+        iconSize: 20,
+        isSelected: active,
+        onPressed: onPressed,
+        icon: Icon(Icons.tune, color: scheme.onSurfaceVariant),
+        selectedIcon: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(Icons.tune, color: scheme.primary),
+            // The same dot the search's own filters wear: something is
+            // narrowing the list, said without opening the sheet.
+            PositionedDirectional(
+              end: -2,
+              top: -2,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: scheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     if (!round) {
       return NexTagFilterButton(
         label: AppLocalizations.of(context).filters,
@@ -183,6 +219,36 @@ class _FilterButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(NexRadius.pill),
       fallbackColor: scheme.surfaceContainerLowest,
       child: button,
+    );
+  }
+}
+
+/// List or grid, one tap from the notes it lays out (2.8.0).
+///
+/// It shows the layout a tap would change to, the way the same switch does
+/// in every file manager, and is the tag pills' own shape so the row reads
+/// as one set of controls: what narrows the notes at its head, how they are
+/// laid out at its end. The glyph turns over as it changes, which is the
+/// whole confirmation — the notes below are already rearranging.
+class _ViewToggle extends StatelessWidget {
+  const _ViewToggle({required this.grid, required this.onChanged});
+
+  final bool grid;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final label = grid ? l10n.homeViewAsList : l10n.homeViewAsGrid;
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: NexTagFilterButton(
+        key: const ValueKey('home-view-toggle'),
+        label: label,
+        icon: grid ? Icons.view_agenda_outlined : Icons.grid_view_rounded,
+        onTap: () => onChanged(!grid),
+      ),
     );
   }
 }

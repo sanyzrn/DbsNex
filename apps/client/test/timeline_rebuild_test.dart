@@ -27,6 +27,7 @@ import 'package:nex_client/screens/profile_screen.dart';
 import 'package:nex_client/widgets/assistant_settings.dart';
 import 'package:nex_client/widgets/empty_timeline.dart';
 import 'package:nex_client/widgets/note_spotlight.dart';
+import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_client/widgets/first_run_tour.dart';
 
 import 'support/in_process_db.dart';
@@ -894,15 +895,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // The field sits at the top of the list from the start. It used to begin
-    // scrolled out of sight, revealed by pulling down — which never actually
-    // worked on a device, and that gesture is a refresh now.
+    // The field is the app bar's own since 2.8.0: beside the wordmark, above
+    // the list rather than its first row. It used to begin scrolled out of
+    // sight, then to scroll away with the notes; now it is where it is.
     final field = find.byType(TextField);
     expect(field, findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: field),
+      findsOneWidget,
+    );
+    final resting = tester.getRect(field).top;
 
-    // Tapping the field itself is the only way in now — the AppBar's own
-    // search icon was removed once the field became permanently visible,
-    // since it pointed at something already on screen.
+    // However far the list has moved, the field has not.
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(field).top, resting);
+
+    // Tapping the field itself is the way in — the AppBar's own search icon
+    // was removed once the field became permanently visible, since it
+    // pointed at something already on screen.
     await tester.tap(field);
     await tester.pumpAndSettle();
 
@@ -911,10 +922,9 @@ void main() {
     expect(find.byType(TimelineScreen), findsOneWidget);
     expect(field, findsOneWidget);
     expect(
-      tester.getRect(field).top,
-      greaterThanOrEqualTo(
-        tester.getRect(find.byType(CustomScrollView)).top - 1,
-      ),
+      tester.getRect(field).bottom,
+      lessThanOrEqualTo(tester.getRect(find.byType(CustomScrollView)).top + 1),
+      reason: 'the results run under the bar the field is in',
     );
 
     await tester.enterText(field, 'rockets');
@@ -1418,7 +1428,7 @@ void main() {
     expect(row.left, closeTo(card.left, 1));
   });
 
-  testWidgets('with no tags the filter button sits beside the search field', (
+  testWidgets('with no tags the filter button sits inside the search field', (
     tester,
   ) async {
     await services.captureText('a note');
@@ -1429,13 +1439,52 @@ void main() {
     await tester.pumpAndSettle();
 
     // A row holding only "All" narrowed nothing and cost a band of the
-    // screen. The filters are still one tap away, beside the field.
+    // screen. The filters are still one tap away, at the field's own end.
     expect(find.byType(TagFilterRow), findsNothing);
-    final filters = find.bySemanticsLabel('Filters');
+    final filters = find.byKey(const ValueKey('home-filter-in-field'));
     expect(filters, findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: filters),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('Filters'), findsOneWidget);
     await tester.tap(filters);
     await tester.pumpAndSettle();
     expect(find.text('a note'), findsWidgets);
+  });
+
+  testWidgets('with tags the filter heads their row and the view switch '
+      'ends it', (tester) async {
+    final note = (await services.captureText('a tagged note'))!;
+    await services.addTag(noteId: note.id, name: 'work');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final row = find.byType(TagFilterRow);
+    expect(row, findsOneWidget);
+    // The filter is the row's, not the field's.
+    expect(find.byKey(const ValueKey('home-filter-in-field')), findsNothing);
+    expect(
+      find.descendant(of: row, matching: find.bySemanticsLabel('Filters')),
+      findsOneWidget,
+    );
+
+    // List or grid, one tap from the notes it lays out.
+    final toggle = find.byKey(const ValueKey('home-view-toggle'));
+    expect(toggle, findsOneWidget);
+    expect(preferences.timelineGrid, isFalse);
+    expect(find.byType(NexNoteGridCard), findsNothing);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(preferences.timelineGrid, isTrue);
+    expect(find.byType(NexNoteGridCard), findsOneWidget);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(preferences.timelineGrid, isFalse);
+    expect(find.byType(NoteCard), findsOneWidget);
   });
 
   testWidgets('the AI day summary never appears without a usable provider', (

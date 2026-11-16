@@ -269,4 +269,46 @@ void main() {
       }
     }
   }
+  testWidgets('an icon pill wears the glyph it is given and turns a new one '
+      'over into place', (tester) async {
+    // The list-or-grid switch at the end of the timeline's tag row (2.8.0)
+    // is the filter's own pill with another glyph.
+    var grid = false;
+    late StateSetter rebuild;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return NexTagFilterButton(
+                label: 'View',
+                icon: grid
+                    ? Icons.view_agenda_outlined
+                    : Icons.grid_view_rounded,
+                onTap: () {},
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    expect(find.byIcon(Icons.grid_view_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.tune), findsNothing);
+    expect(
+      tester.getSize(find.byType(NexTappable)).height,
+      greaterThanOrEqualTo(nexMinTapTarget),
+    );
+
+    rebuild(() => grid = true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    // Mid-change both glyphs are there: one leaving, one arriving.
+    expect(find.byIcon(Icons.view_agenda_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.grid_view_rounded), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.grid_view_rounded), findsNothing);
+    expect(find.bySemanticsLabel('View'), findsOneWidget);
+  });
 }

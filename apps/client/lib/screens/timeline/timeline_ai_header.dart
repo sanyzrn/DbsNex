@@ -236,8 +236,8 @@ extension _TimelineAiHeader on TimelineScreenState {
     final habitLines = habitText.isEmpty ? <String>[] : habitText.split('\n');
     // Spend the factual budget on notes in priority order first. Habit
     // progress may use spare room; it never reserves a row ahead of a note.
-    final noteReport = style.statesFacts
-        ? nexBriefReport(
+    final reportLines = style.statesFacts
+        ? nexBriefReportLines(
             nexBriefFacts(briefNotes, commitments: _model.commitments),
             AppLocalizations.of(context),
             maxLines: writtenBudget,
@@ -245,8 +245,9 @@ extension _TimelineAiHeader on TimelineScreenState {
             notes: briefNotes,
             clock: (local) => nexDueClock(context, local),
           )
-        : null;
-    final noteLines = noteReport?.split('\n') ?? const <String>[];
+        : const <NexBriefLine>[];
+    _rememberBriefLines(reportLines);
+    final noteLines = [for (final line in reportLines) line.text];
     final written = style.statesFacts
         ? [
             ...noteLines,
@@ -510,7 +511,6 @@ extension _TimelineAiHeader on TimelineScreenState {
   void _toggleAiSummary() {
     _tick();
     _rebuild(() {
-      _aiSummaryToggledByUser = true;
       _aiSummaryCollapsed = !_aiSummaryCollapsed;
       _aiSummaryBeamPending = !_aiSummaryCollapsed;
       if (!_aiSummaryCollapsed) _aiSummaryExpansion++;
@@ -615,88 +615,27 @@ extension _TimelineAiHeader on TimelineScreenState {
     unawaited(_loadAiHeadline());
   }
 
-  String _notesOnlyBrief() =>
-      nexBriefReport(
-        nexBriefFacts(_briefLibrary(), commitments: _model.commitments),
-        AppLocalizations.of(context),
-        maxLines: widget.preferences.briefLength.lines,
-        maxWords: widget.preferences.briefLength.words,
-        notes: _briefLibrary(),
-        clock: (local) => nexDueClock(context, local),
-      ) ??
-      '';
-
-  /// The brief, as the first card above the notes.
-  ///
-  /// It has the note card's insets and corner, and none of its height rule.
-  /// The sponsor card the slot was built for is pinned to exactly one card's
-  /// height on purpose — a banner taller than the things around it has
-  /// stopped being an item in a list and started being an interruption — but
-  /// that reasoning is about a card selling something. This one is the app
-  /// reading the day back, and how long it is depends entirely on how much
-  /// there was to say. So it grows with its text.
-  ///
-  /// No icon, and no heading. The sparkle used to sit at the top of this and
-  /// it was naming something already named: it is the only generated surface
-  /// on the timeline, and the light going round its edge says so without
-  /// spending a row of the screen.
-  Widget _briefCard(AppLocalizations l10n) {
-    final scheme = Theme.of(context).colorScheme;
-    const corner = BorderRadius.all(Radius.circular(NexRadius.lg));
-    return Padding(
-      padding: nexCardInsets,
-      child: NexBorderBeam(
-        borderRadius: corner,
-        colors: [
-          scheme.primary.withValues(alpha: 0.08),
-          scheme.primary,
-          scheme.primary.withValues(alpha: 0.08),
-        ],
-        thickness: 0.6,
-        laps: 1,
-        strength: context.nexVisualStyle.minimal ? 0 : 0.4,
-        active: !_aiSummaryCollapsed && !context.nexVisualStyle.minimal,
-        token: _aiSummaryExpansion,
-        playOnMount: _aiSummaryBeamPending && !context.nexVisualStyle.minimal,
-        onFinished: () => _aiSummaryBeamPending = false,
-        // Only an explicit expansion earns a run; refreshed words do not.
-        restsUnlit: true,
-        child: NexGlassSurface(
-          blur: false,
-          borderRadius: corner,
-          showShadow: false,
-          fallbackColor: scheme.surfaceContainerLowest,
-          child: _AiDaySummaryPanel(
-            // Keyed so a test can say "the brief is on screen" without
-            // reaching for a glyph. It used to be found by its sparkle,
-            // which is a thing any other surface could start wearing.
-            key: const ValueKey('timeline-recap'),
-            loading: _aiSummaryLoading,
-            text: !widget.preferences.briefHabitsAllowed && _aiSummaryHasHabits
-                ? widget.preferences.aiDaySummaryText ?? _notesOnlyBrief()
-                : _aiSummaryText ?? '',
-            emptyLabel: l10n.aiDaySummaryEmpty,
-            collapsed: _aiSummaryCollapsed,
-            semanticLabel: widget.preferences.briefStyle.usesModel
-                ? '${l10n.aiDaySummarySemanticLabel}. ${l10n.aiDaySummaryByModel}'
-                : l10n.aiDaySummarySemanticLabel,
-            toggleTooltip: _aiSummaryCollapsed
-                ? l10n.aiDaySummaryExpand
-                : l10n.aiDaySummaryCollapse,
-            onToggle: _toggleAiSummary,
-            title: l10n.aiDaySummaryTitle,
-            byModel: widget.preferences.briefStyle.usesModel,
-            updatedAt:
-                widget.preferences.briefStyle.usesModel &&
-                    (!widget.preferences.aiDaySummaryIncludesHabits ||
-                        widget.preferences.briefHabitsAllowed)
-                ? widget.preferences.aiDaySummaryAt
-                : null,
-            solarCalendar: widget.services.solarCalendar,
-          ),
-        ),
-      ),
+  String _notesOnlyBrief() {
+    final lines = nexBriefReportLines(
+      nexBriefFacts(_briefLibrary(), commitments: _model.commitments),
+      AppLocalizations.of(context),
+      maxLines: widget.preferences.briefLength.lines,
+      maxWords: widget.preferences.briefLength.words,
+      notes: _briefLibrary(),
+      clock: (local) => nexDueClock(context, local),
     );
+    _rememberBriefLines(lines);
+    return lines.map((line) => line.text).join('\n');
+  }
+
+  /// Keeps which note each line the app wrote is about, so the card can open
+  /// it. Added to rather than replaced: a brief on file from a moment ago
+  /// still has its lines on screen while the next one is worked out.
+  void _rememberBriefLines(List<NexBriefLine> lines) {
+    if (_briefLineNotes.length > 64) _briefLineNotes.clear();
+    for (final line in lines) {
+      if (line.noteId case final id?) _briefLineNotes[line.text] = id;
+    }
   }
 
   /// "Good evening, Saeed", and the mark that goes after it — or null when

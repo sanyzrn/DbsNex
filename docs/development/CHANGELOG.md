@@ -34,6 +34,32 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.0 — the home screen, rebuilt
+
+- `NexSearchPill` and `NexSearchTapRegion` are cut out of `SearchFieldHeader`;
+  a phone puts the pill in the app bar's title, a wide window keeps the
+  sliver. `NexInlineReveal` (was the private `_Reveal`) folds the wordmark
+  away while searching.
+- Sliver order on a phone: header, brief, pinned tools, pinned notes toolbar,
+  body. The toolbar is `TagFilterRow` with the filter leading and
+  `NexTagFilterButton(icon:)` as the view switch behind a `ShaderMask` fade.
+- `NexBriefEntry.noteId` and `nexBriefReportLines` carry the note a line was
+  written from; the screen keeps a line → note map for the card's taps.
+  Report lines collapse a title's line breaks.
+- `PinnedTools` lays its tiles out with `NexGlanceRail`; `NexPinnedSummary`
+  gains `progress`, drawn by `NexProgressRing` on a compact `NexShelfTile`.
+- The scroll-fold of the brief and its session flag are gone.
+- `_updateStickyDay` runs post-frame (`_queueStickyDay`), checks the row is
+  held, and skips a label a visible heading already carries (headings
+  register as `_DayMark(heading: true)`).
+- `NexNavigationDock` gains `recede` (a `FadeTransition`, so no rebuilds
+  while it runs) and `away`; `_followDock` in `timeline_scroll.dart` drives
+  them from finger travel (48 px down to step back, 24 px up to return), and
+  the bottom scrim thins with the same animation.
+- `timeline_home_chrome.dart` holds the toolbar, the layout-sheet opener and
+  the brief card, keeping `timeline_layout.dart` and `timeline_ai_header.dart`
+  under the file-size limit.
+
 - Timeline rebuild discipline (`apps/client/lib/screens/timeline/`): the day
   groups and flattened rows are memoised against the notes identity, the fold
   sets, the locale and the local day (`_TimelineRowsCache`), so a rebuild that

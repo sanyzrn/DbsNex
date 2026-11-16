@@ -23,6 +23,9 @@ extension _TimelineSelection on TimelineScreenState {
     if (widget.preferences.haptics) HapticFeedback.selectionClick();
     _swipe.closeAll();
     final picking = !_selected.contains(note.id);
+    // The selection bar takes the dock's place, and a bar of actions is not
+    // something to have stepped back.
+    _setDockAway(false);
     _rebuild(() {
       if (picking) {
         _selected.add(note.id);

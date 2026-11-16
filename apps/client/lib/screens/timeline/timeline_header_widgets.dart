@@ -22,6 +22,92 @@ class _WordmarkTile extends StatelessWidget {
       const NexLivingLogotype(height: _height);
 }
 
+/// The day's header settling back as the notes come up over it.
+///
+/// As the list moves, the date and the greeting fall behind at a third of
+/// its pace and fade, inside their own box — so the header reads as the
+/// ground the notes travel over rather than as the first row of them, and it
+/// is gone before it could sit under anything. Scroll-linked, never timed:
+/// it is exactly as far along as the finger is, and still when the finger
+/// is. With animations off the header simply scrolls.
+///
+/// It listens to the list rather than rebuilding with it. A scroll controller
+/// speaks on every frame of a scroll, for as long as the scroll lasts; this
+/// only has anything to do over the first [_over] pixels, and holds one
+/// value — rebuilding nothing — for all the rest (the timeline's budget is
+/// that a steady scroll rebuilds no widget at all).
+class _HeroRecede extends StatefulWidget {
+  const _HeroRecede({required this.scroll, required this.child});
+
+  final ScrollController scroll;
+  final Widget child;
+
+  /// How far the list has to move for the header to have faded out.
+  static const _over = 160.0;
+
+  @override
+  State<_HeroRecede> createState() => _HeroRecedeState();
+}
+
+class _HeroRecedeState extends State<_HeroRecede> {
+  /// How far the header has receded, from 0 to [_HeroRecede._over]. Only
+  /// tells its listeners when it changes, which past the fade it never does.
+  final _travel = ValueNotifier<double>(0);
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scroll.addListener(_moved);
+  }
+
+  @override
+  void didUpdateWidget(_HeroRecede old) {
+    super.didUpdateWidget(old);
+    if (old.scroll == widget.scroll) return;
+    old.scroll.removeListener(_moved);
+    widget.scroll.addListener(_moved);
+  }
+
+  @override
+  void dispose() {
+    widget.scroll.removeListener(_moved);
+    _travel.dispose();
+    super.dispose();
+  }
+
+  void _moved() {
+    final scroll = widget.scroll;
+    // The first position, not `offset`: while one tree replaces another the
+    // controller briefly holds two, and `offset` asserts on that.
+    final offset = scroll.hasClients ? scroll.positions.first.pixels : 0.0;
+    // At rest, and while a pull stretches the list the other way, zero.
+    _travel.value = offset.clamp(0.0, _HeroRecede._over);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.disableAnimationsOf(context)) return widget.child;
+    return ValueListenableBuilder<double>(
+      valueListenable: _travel,
+      child: widget.child,
+      builder: (context, travel, child) {
+        // At rest the header is itself: no layer, no clip.
+        if (travel <= 0) return child!;
+        final t = travel / _HeroRecede._over;
+        return ClipRect(
+          child: Opacity(
+            opacity: 1 - NexMotion.exitCurve.transform(t),
+            child: Transform.translate(
+              offset: Offset(0, travel * 0.3),
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// "Good evening, Saeed ☀️" — the text and its animated mark on one line.
 class _GreetingLine extends StatelessWidget {
   const _GreetingLine({
@@ -146,28 +232,23 @@ class _TodayLine extends StatelessWidget {
   }
 }
 
-/// The brief: the first card above the notes, in the slot the sponsor card
-/// used to have.
+/// The brief: the app reading the day back, under the greeting it follows on
+/// from.
 ///
-/// It went through being a grey card with three buttons on it, then a bare
-/// paragraph with a rule down its edge, and it is a card again — but not the
-/// same one. What the first version got wrong was the chrome, not the shape:
-/// a heading naming something already named, a sparkle, and three controls
-/// for things that belong elsewhere. Those are all gone and they are what is
-/// staying gone. What it has instead is a light travelling round its border,
-/// which says a model wrote this without spending a row of the screen saying
-/// it in words.
+/// It went through being a grey card with three buttons on it, a bare
+/// paragraph with a rule down its edge, and a card in the notes' own slot.
+/// Since 2.8.0 it is part of the day's header: a surface in the accent's own
+/// wash rather than a note's, so it is never taken for one of the reader's
+/// notes, and small by default — its heading and its first two lines, with
+/// the number of lines folded away beside the arrow that opens them.
 ///
-/// It does not take a card's fixed height. That rule exists so a sponsor
-/// card cannot become an interruption; this one is the app reading the day
-/// back, and how tall it is depends on how much there was to say.
-///
-/// Nothing here is a button any more, and none of the three that left was
-/// lost:
-///   * the recurring items are in the bottom bar, next to capture;
-///   * refresh is the pull, which now has something to do — see the comment
-///     on the timeline's `RefreshIndicator`;
-///   * folding it away is still a tap, on the text itself.
+/// Three things about it are deliberate:
+///   * the whole card folds and opens, on a tap anywhere that is not a line
+///     leading somewhere, and the fold is remembered;
+///   * a line the app wrote from a note opens that note — the brief used to
+///     be something to read and then go looking for;
+///   * nothing here refreshes it. That is the pull, and it is the pull's
+///     only job.
 class _AiDaySummaryPanel extends StatelessWidget {
   const _AiDaySummaryPanel({
     super.key,
@@ -182,7 +263,12 @@ class _AiDaySummaryPanel extends StatelessWidget {
     required this.byModel,
     this.updatedAt,
     this.solarCalendar = false,
+    this.noteFor,
+    this.onOpenNote,
   });
+
+  /// How many lines the folded card still shows.
+  static const foldedLines = 2;
 
   /// The card's name, over the brief.
   final String title;
@@ -201,33 +287,46 @@ class _AiDaySummaryPanel extends StatelessWidget {
   final String toggleTooltip;
   final VoidCallback onToggle;
 
+  /// The note a line was written from, when the app wrote it from one.
+  final String? Function(String line)? noteFor;
+  final ValueChanged<String>? onOpenNote;
+
+  List<String> get _lines {
+    final value = text;
+    if (value == null) return const [];
+    final lines = [
+      for (final line in value.trim().split('\n'))
+        if (line.trim().isNotEmpty) line.trim(),
+    ];
+    if (lines.isEmpty) lines.add(value.trim());
+    return lines;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final lines = _lines;
+    final hidden = lines.length - foldedLines;
     return Semantics(
       container: true,
       label: semanticLabel,
       button: true,
-      // What the tap does, which used to be a tooltip on a chevron that no
-      // longer exists. A screen reader is the one place the affordance still
-      // has to be spelled out: sighted readers get a paragraph that folds,
-      // and there is nothing about a paragraph that needs explaining.
+      // What the tap does. A screen reader is the one place the affordance
+      // has to be spelled out in words; the arrow says it to the eye.
       hint: toggleTooltip,
+      // The lines that lead to a note are links of their own inside it.
+      explicitChildNodes: true,
       child: NexTappable(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(NexRadius.lg)),
         ),
         onTap: onToggle,
         child: Padding(
-          // A card's inset now that this is a card. It used to be a
-          // paragraph loose on the page, where the only thing keeping it off
-          // the edge was the header's own margin.
-          padding: const EdgeInsets.all(NexSpacing.cardInset),
+          padding: const EdgeInsets.symmetric(
+            horizontal: NexSpacing.cardInset,
+            vertical: NexSpacing.sm + NexSpacing.xs,
+          ),
           child: NexAnimatedSize(
-            // A heading again (2.4.0). The light going round the card was
-            // meant to say "a model wrote this", and it did not: readers
-            // took the card for one of their own notes. Now it says what it
-            // is, and who wrote it, in one quiet line.
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -239,6 +338,8 @@ class _AiDaySummaryPanel extends StatelessWidget {
                   token: text,
                   updatedAt: text?.trim().isNotEmpty == true ? updatedAt : null,
                   solarCalendar: solarCalendar,
+                  collapsed: collapsed,
+                  hidden: hidden > 0 ? hidden : 0,
                 ),
                 const SizedBox(height: NexSpacing.xs),
                 AnimatedSwitcher(
@@ -265,7 +366,7 @@ class _AiDaySummaryPanel extends StatelessWidget {
                   ),
                   child: KeyedSubtree(
                     key: ValueKey(text),
-                    child: _body(context, theme),
+                    child: _body(context, theme, lines),
                   ),
                 ),
               ],
@@ -276,17 +377,24 @@ class _AiDaySummaryPanel extends StatelessWidget {
     );
   }
 
-  /// The recap's opening sentence, for the folded state.
-  Widget _body(BuildContext context, ThemeData theme) {
-    final value = text;
+  Widget _line(String line, {bool folded = false}) {
+    final id = noteFor?.call(line);
+    final open = onOpenNote;
+    return _BriefLine(
+      line,
+      folded: folded,
+      onOpen: id == null || open == null ? null : () => open(id),
+    );
+  }
+
+  Widget _body(BuildContext context, ThemeData theme, List<String> lines) {
     final base = theme.textTheme.bodyMedium ?? const TextStyle(fontSize: 14);
     final body = base.copyWith(height: 1.45);
-    if (value == null) {
-      // No skeleton bars. They were the last thing in here shaped like a
-      // box, and two grey rectangles at the top of a first launch could be
-      // anything; the sentence that says there is nothing to summarise yet
-      // is the same sentence either way, so it is simply dimmed while the
-      // first one is being written.
+    if (text == null || lines.isEmpty) {
+      // No skeleton bars. Two grey rectangles at the top of a first launch
+      // could be anything; the sentence that says there is nothing to
+      // summarise yet is the same sentence either way, so it is simply
+      // dimmed while the first one is being written.
       return AnimatedOpacity(
         opacity: loading ? 0.5 : 1,
         duration: NexMotion.of(context, NexMotion.slow),
@@ -299,65 +407,50 @@ class _AiDaySummaryPanel extends StatelessWidget {
         ),
       );
     }
-    final lines = [
-      for (final line in value.trim().split('\n'))
-        if (line.trim().isNotEmpty) line.trim(),
-    ];
-    if (lines.isEmpty) lines.add(value.trim());
-    final muted = body.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    // A refresh keeps the last successful text fully readable.
+    // Every line the same widget, the same type and the same gap (2.1.6):
+    // the first one is simply the top of the list, not a heading over it.
+    // Per line, because the brief is written in the language of the notes
+    // and the notes are the one place most likely to be in both at once —
+    // each line takes its own direction.
+    //
+    // Not selectable, unlike the note body in the detail sheet: the card is
+    // one button, and a `SelectionArea` would claim its tap for clearing a
+    // selection.
+    //
+    // A refresh keeps the last successful text fully readable: the opacity
+    // is the same widget the empty state dims, held at one.
     return AnimatedOpacity(
       opacity: 1,
       duration: NexMotion.of(context, NexMotion.slow),
       curve: NexMotion.curve,
-      child: Column(
-        // Min, because this sits in an [IntrinsicHeight] row: a column that
-        // asks for all the height there is has no intrinsic height to give.
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Every line the same widget, the same type and the same gap
-          // (2.1.6). The first one used to be a plain `Text` with a wider gap
-          // under it and the rest one paragraph below, and the first line of
-          // the brief read as a heading over a list it is simply the top of.
-          AnimatedDefaultTextStyle(
-            duration: NexMotion.of(context, NexMotion.slow),
-            curve: NexMotion.curve,
-            style: collapsed ? muted : body,
-            child: _BriefLine(lines.first, folded: collapsed),
-          ),
-          NexReveal(
-            visible: !collapsed && lines.length > 1,
-            child: DefaultTextStyle.merge(
-              style: body,
+      child: DefaultTextStyle.merge(
+        style: body,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final line in lines.take(foldedLines))
+              _line(line, folded: collapsed),
+            NexReveal(
+              visible: !collapsed && lines.length > foldedLines,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Per line, because the recap is written in the language
-                  // of the notes and the notes are the one place in this app
-                  // most likely to be in both at once — each line takes its
-                  // own direction.
-                  //
-                  // Not selectable, unlike the note body in the detail
-                  // sheet. The whole card is one button — a tap anywhere on
-                  // it folds the brief away — and a `SelectionArea` would
-                  // claim that tap for clearing a selection.
-                  for (final line in lines.skip(1)) ...[
-                    const SizedBox(height: NexSpacing.xs + 2),
-                    _BriefLine(line),
-                  ],
+                  for (final line in lines.skip(foldedLines)) _line(line),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-/// The brief's heading: its mark and name, with the last update alongside.
+/// The brief's heading: its mark and name, the last update, and the arrow
+/// that says the card folds — with the number of lines folded away beside
+/// it, so a folded brief never looks like a whole one.
 ///
 /// The mark is a sparkle in a soft accent disc that turns and settles once
 /// each time a new brief arrives — the one moment the card has news — and
@@ -368,6 +461,8 @@ class _BriefHeader extends StatelessWidget {
     required this.title,
     required this.byModel,
     required this.token,
+    required this.collapsed,
+    required this.hidden,
     this.updatedAt,
     this.solarCalendar = false,
   });
@@ -377,14 +472,23 @@ class _BriefHeader extends StatelessWidget {
   final Object? token;
   final DateTime? updatedAt;
   final bool solarCalendar;
+  final bool collapsed;
+
+  /// Lines the folded card is not showing; none hides the count.
+  final int hidden;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final label = theme.textTheme.labelMedium?.copyWith(
+    final l10n = AppLocalizations.of(context);
+    final label = theme.textTheme.labelLarge?.copyWith(
       color: scheme.primary,
       fontWeight: FontWeight.w600,
+    );
+    final quiet = theme.textTheme.labelSmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w400,
     );
     final mark = DecoratedBox(
       decoration: BoxDecoration(
@@ -399,15 +503,16 @@ class _BriefHeader extends StatelessWidget {
         ),
       ),
       child: SizedBox.square(
-        dimension: 20,
+        dimension: 24,
         child: Icon(
           byModel ? Icons.auto_awesome : Icons.checklist_rtl,
-          size: 12,
+          size: 14,
           color: scheme.primary,
         ),
       ),
     );
-    final heading = ExcludeSemantics(
+    final at = updatedAt;
+    return ExcludeSemantics(
       child: Row(
         children: [
           if (byModel)
@@ -433,19 +538,46 @@ class _BriefHeader extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-        ],
-      ),
-    );
-    final at = updatedAt;
-    if (at == null) return heading;
-    return LayoutBuilder(
-      builder: (context, constraints) => Row(
-        children: [
-          Expanded(child: heading),
-          const SizedBox(width: NexSpacing.sm),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.45),
-            child: SummaryUpdatedTime(at: at, solarCalendar: solarCalendar),
+          if (at != null) ...[
+            const SizedBox(width: NexSpacing.sm),
+            Flexible(
+              child: SummaryUpdatedTime(at: at, solarCalendar: solarCalendar),
+            ),
+          ],
+          // What is folded away, said only while it is: open, the lines
+          // themselves are the count.
+          if (hidden > 0)
+            AnimatedSwitcher(
+              duration: NexMotion.of(context, NexMotion.standard),
+              switchInCurve: NexMotion.curve,
+              switchOutCurve: NexMotion.exitCurve,
+              child: collapsed
+                  ? Padding(
+                      key: const ValueKey('brief-more'),
+                      padding: const EdgeInsetsDirectional.only(
+                        start: NexSpacing.sm,
+                      ),
+                      child: Text(
+                        l10n.aiDaySummaryMore(hidden),
+                        maxLines: 1,
+                        style: quiet,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          const SizedBox(width: NexSpacing.xs),
+          AnimatedRotation(
+            // Folded, the arrow points down at what it would open; open, it
+            // turns over to point back up.
+            turns: collapsed ? 0 : 0.5,
+            duration: NexMotion.of(context, NexMotion.standard),
+            curve: NexMotion.curve,
+            child: Icon(
+              Icons.expand_more,
+              key: const ValueKey('brief-fold-arrow'),
+              size: 20,
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -465,12 +597,17 @@ class _BriefHeader extends StatelessWidget {
 /// The line takes its own direction, so a Persian line in an English
 /// interface puts its mark on the right.
 class _BriefLine extends StatelessWidget {
-  const _BriefLine(this.text, {this.folded = false});
+  const _BriefLine(this.text, {this.folded = false, this.onOpen});
 
   final String text;
 
-  /// The folded card shows the first line on one row.
+  /// The folded card shows each of its lines on one row.
   final bool folded;
+
+  /// Opens the note this line was written from. Null for a line that is not
+  /// about one note — a model's own sentence, a standing commitment — which
+  /// leaves the tap to the card, as a fold.
+  final VoidCallback? onOpen;
 
   /// The leading emoji, when the line starts with one: a first character that
   /// is neither a letter nor a digit, followed by a space.
@@ -496,30 +633,66 @@ class _BriefLine extends StatelessWidget {
       textAlign: TextAlign.start,
       textDirection: direction,
     );
-    final line = parts == null
+    final line = parts == null && onOpen == null
         ? paragraph
         : Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                // An emoji is about one and a quarter ems wide; the column
-                // grows with the text size so a large setting does not clip
-                // it.
-                width: MediaQuery.textScalerOf(context).scale(
-                  (DefaultTextStyle.of(context).style.fontSize ?? 14) * 1.4,
+              if (parts != null) ...[
+                SizedBox(
+                  // An emoji is about one and a quarter ems wide; the column
+                  // grows with the text size so a large setting does not
+                  // clip it.
+                  width: MediaQuery.textScalerOf(context).scale(
+                    (DefaultTextStyle.of(context).style.fontSize ?? 14) * 1.4,
+                  ),
+                  child: Text(parts.$1, textAlign: TextAlign.center),
                 ),
-                child: Text(parts.$1, textAlign: TextAlign.center),
-              ),
-              const SizedBox(width: NexSpacing.sm),
+                const SizedBox(width: NexSpacing.sm),
+              ],
               Expanded(child: paragraph),
+              // A line that leads to its note says so at its end, in the
+              // direction it is read: the glyph turns round with the line.
+              if (onOpen != null)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: NexSpacing.xs,
+                    top: 2,
+                  ),
+                  child: Icon(
+                    Icons.navigate_next_rounded,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
             ],
           );
-    return Semantics(
-      label: text,
-      excludeSemantics: true,
+    final open = onOpen;
+    // Room above and below each line, inside what a tap on it reaches: a
+    // line that opens a note is a link in a paragraph, and the gap between
+    // two of them belongs to one or the other rather than to neither.
+    final padded = Padding(
+      padding: const EdgeInsets.symmetric(vertical: NexSpacing.xs - 1),
       child: Directionality(
         textDirection: direction ?? Directionality.of(context),
         child: line,
+      ),
+    );
+    if (open == null) {
+      return Semantics(label: text, excludeSemantics: true, child: padded);
+    }
+    return Semantics(
+      label: text,
+      link: true,
+      excludeSemantics: true,
+      onTap: open,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          nexTick();
+          open();
+        },
+        child: padded,
       ),
     );
   }

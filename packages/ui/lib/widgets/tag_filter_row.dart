@@ -150,23 +150,27 @@ class TagFilterRow extends StatelessWidget {
   }
 }
 
-/// Icon-only filter using the tag pills' exact surface and interaction style.
+/// An icon-only pill using the tag pills' exact surface and interaction
+/// style: the filter at the head of their row and, since 2.8.0, the
+/// list-or-grid switch at its end. A changed [icon] turns over into place.
 class NexTagFilterButton extends StatelessWidget {
   const NexTagFilterButton({
     super.key,
     required this.label,
     required this.onTap,
     this.selected = false,
+    this.icon = Icons.tune,
   });
   final String label;
   final VoidCallback onTap;
   final bool selected;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) => _Pill(
     label: '',
     semanticLabel: label,
-    icon: Icons.tune,
+    icon: icon,
     selected: selected,
     onTap: onTap,
     theme: Theme.of(context),
@@ -259,7 +263,33 @@ class _Pill extends StatelessWidget {
                         MediaQuery.textScalerOf(context)
                             .scale(theme.textTheme.labelLarge?.fontSize ?? 14) *
                         (theme.textTheme.labelLarge?.height ?? 1.43),
-                    child: Icon(icon, size: 18, color: fg),
+                    // A glyph that changes — list to grid — turns over
+                    // into place rather than being swapped on a frame.
+                    child: AnimatedSwitcher(
+                      duration: NexMotion.of(context, NexMotion.pop),
+                      switchInCurve: NexMotion.popCurve,
+                      switchOutCurve: NexMotion.exitCurve,
+                      transitionBuilder: (child, animation) =>
+                          RotationTransition(
+                            turns: Tween(
+                              begin: 0.75,
+                              end: 1.0,
+                            ).animate(animation),
+                            child: ScaleTransition(
+                              scale: animation,
+                              child: FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              ),
+                            ),
+                          ),
+                      child: Icon(
+                        icon,
+                        key: ValueKey(icon),
+                        size: 18,
+                        color: fg,
+                      ),
+                    ),
                   )
                 else
                   Text(

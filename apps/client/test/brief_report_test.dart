@@ -76,6 +76,63 @@ void main() {
     expect('pay the bill'.allMatches(report), hasLength(1));
   });
 
+  test('each line knows the note it was written from', () {
+    // What a tap on a line of the home screen's brief opens (2.8.0).
+    final notes = [
+      note(id: 'plain', text: 'a new thought'),
+      note(
+        id: 'due',
+        text: 'the appointment',
+        dueAt: now.add(const Duration(days: 1)),
+      ),
+    ];
+    final lines = nexBriefReportLines(
+      nexBriefFacts(notes, now: now),
+      en,
+      notes: notes,
+      now: now,
+    );
+    expect({
+      for (final line in lines) line.noteId,
+    }, containsAll(<String>['plain', 'due']));
+    expect(
+      lines.firstWhere((line) => line.noteId == 'due').text,
+      contains('the appointment'),
+    );
+    // The joined report is exactly these lines, in this order.
+    expect(
+      nexBriefReport(
+        nexBriefFacts(notes, now: now),
+        en,
+        notes: notes,
+        now: now,
+      ),
+      lines.map((line) => line.text).join('\n'),
+    );
+  });
+
+  test('a note written over two lines is still one line of the brief', () {
+    // It used to break its own line in two, the second half with no mark —
+    // and no way to say which note either half was about.
+    final notes = [
+      note(
+        id: 'two',
+        text: 'Call the landlord about the heating.\nAsk about the boiler.',
+        dueAt: now.add(const Duration(hours: 3)),
+      ),
+    ];
+    final lines = nexBriefReportLines(
+      nexBriefFacts(notes, now: now),
+      en,
+      notes: notes,
+      now: now,
+    );
+    expect(lines, hasLength(1));
+    expect(lines.single.text, isNot(contains('\n')));
+    expect(lines.single.text, contains('heating. Ask about the boiler.'));
+    expect(lines.single.noteId, 'two');
+  });
+
   test('a quiet day is not filled in', () {
     final report = nexBriefReport(
       nexBriefFacts([note(id: '1', text: 'a thought')], now: now),

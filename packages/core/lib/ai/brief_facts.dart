@@ -33,9 +33,14 @@ class NexBriefEntry {
     this.recurring = false,
     this.remaining,
     this.total,
+    this.noteId,
   });
 
   final String title;
+
+  /// The note this fact is about, so a line written from it can lead back to
+  /// it. Null for a standing commitment, which is not a note.
+  final String? noteId;
 
   /// When it falls due, for the two groups that have a date.
   final DateTime? dueAt;
@@ -138,11 +143,11 @@ NexBriefFacts nexBriefFacts(
     if (due != null) {
       final moment = due.toUtc();
       if (moment.isBefore(at)) {
-        overdue.add(NexBriefEntry(title: title, dueAt: due));
+        overdue.add(NexBriefEntry(title: title, dueAt: due, noteId: note.id));
         continue;
       }
       if (moment.isBefore(at.add(horizon))) {
-        dueSoon.add(NexBriefEntry(title: title, dueAt: due));
+        dueSoon.add(NexBriefEntry(title: title, dueAt: due, noteId: note.id));
         continue;
       }
     }
@@ -158,6 +163,7 @@ NexBriefFacts nexBriefFacts(
             title: title,
             remaining: left,
             total: items.length,
+            noteId: note.id,
           ),
         );
       }

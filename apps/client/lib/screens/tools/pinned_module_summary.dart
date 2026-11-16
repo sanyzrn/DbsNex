@@ -17,9 +17,15 @@ import '../pause/pause_patterns.dart';
 
 /// Two local facts for a pinned module, independent of AI and its consent.
 class NexPinnedSummary {
-  const NexPinnedSummary(this.primary, [this.secondary]);
+  const NexPinnedSummary(this.primary, [this.secondary, this.progress]);
   final String primary;
   final String? secondary;
+
+  /// How far along today is, from 0 to 1, when the module counts toward
+  /// something — habits done out of those due, the day of a cycle. Drawn as
+  /// a ring round the module's mark on the home screen; null draws none.
+  /// Always a real count from the person's own data, never decoration.
+  final double? progress;
 }
 
 Future<NexPinnedSummary?> nexPinnedModuleSummary({
@@ -34,13 +40,14 @@ Future<NexPinnedSummary?> nexPinnedModuleSummary({
   final store = NexModuleStore(services, id);
   switch (id) {
     case 'habits':
-      final habits = (await store.list(
-        'habit',
-      )).map(Habit.fromRecord).where((h) => !h.archived).toList();
+      final habits = (await store.list('habit'))
+          .map(Habit.fromRecord)
+          .where((h) => !h.archived)
+          .toList();
       if (habits.isEmpty) return NexPinnedSummary(l10n.pinHabitsEmpty);
-      final checks = (await store.list(
-        'check',
-      )).map(HabitCheck.fromRecord).toList();
+      final checks = (await store.list('check'))
+          .map(HabitCheck.fromRecord)
+          .toList();
       final firstDay = readFirstDay(await store.get('settings', 'week'));
       var done = 0, left = 0;
       for (final habit in habits) {
@@ -61,11 +68,12 @@ Future<NexPinnedSummary?> nexPinnedModuleSummary({
       return NexPinnedSummary(
         l10n.pinHabitsProgress(done, done + left),
         left == 0 ? l10n.pinHabitsRest : l10n.pinHabitsLeft(left),
+        done / (done + left),
       );
     case 'words':
-      final cards = (await store.list(
-        'card',
-      )).map((r) => WordCard.fromRecord(r.id, r.body)).toList();
+      final cards = (await store.list('card'))
+          .map((r) => WordCard.fromRecord(r.id, r.body))
+          .toList();
       if (cards.isEmpty) return NexPinnedSummary(l10n.pinWordsEmpty);
       final settings = WordsSettings.fromRecord(
         await store.get('settings', WordsSettings.recordId) ?? const {},
@@ -145,6 +153,9 @@ Future<NexPinnedSummary?> nexPinnedModuleSummary({
         typicalPeriod: preferences.cycleTypicalPeriod,
       );
       if (prediction == null) return NexPinnedSummary(l10n.pinCycleLog);
+      // The day of the cycle out of the days this cycle is expected to run:
+      // the days behind plus the days still ahead.
+      final length = prediction.cycleDay + prediction.daysUntilNext;
       return NexPinnedSummary(
         prediction.inPeriod
             ? l10n.cycleDayOfPeriod(digits(prediction.cycleDay))
@@ -152,6 +163,7 @@ Future<NexPinnedSummary?> nexPinnedModuleSummary({
         prediction.daysUntilNext < 0
             ? l10n.cycleLate(-prediction.daysUntilNext)
             : l10n.cycleDaysUntil(prediction.daysUntilNext),
+        length > 0 ? (prediction.cycleDay / length).clamp(0.0, 1.0) : 1.0,
       );
     default:
       return NexPinnedSummary(l10n.pinModuleUnavailable);

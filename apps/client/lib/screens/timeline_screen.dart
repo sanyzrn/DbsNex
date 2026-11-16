@@ -106,6 +106,8 @@ part 'timeline/timeline_capture.dart';
 part 'timeline/timeline_note_actions.dart';
 part 'timeline/timeline_navigation.dart';
 part 'timeline/timeline_layout.dart';
+part 'timeline/timeline_home_chrome.dart';
+part 'timeline/timeline_scroll.dart';
 part 'timeline/timeline_sticky_day.dart';
 part 'timeline/timeline_body.dart';
 part 'timeline/timeline_selection.dart';
@@ -153,7 +155,7 @@ class TimelineScreen extends StatefulWidget {
 }
 
 class TimelineScreenState extends State<TimelineScreen>
-    with RouteAware, WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with RouteAware, WidgetsBindingObserver, TickerProviderStateMixin {
   /// What the timeline shows: the notes, the filters, paging and the folded
   /// groups (W4.2). This State keeps only what is about showing it.
   late final TimelineModel _model = TimelineModel(
@@ -254,6 +256,27 @@ class TimelineScreenState extends State<TimelineScreen>
     curve: NexMotion.curve,
   );
 
+  /// The dock's four destinations stepping back while someone reads down
+  /// the list, and returning — see `_followDock`. Capture never moves.
+  late final AnimationController _dockRecede = AnimationController(
+    vsync: this,
+    duration: NexMotion.exit,
+    reverseDuration: NexMotion.enter,
+  );
+  late final Animation<double> _dockReceded = CurvedAnimation(
+    parent: _dockRecede,
+    curve: NexMotion.exitCurve,
+    reverseCurve: NexMotion.exitCurve,
+  );
+  final ValueNotifier<bool> _dockAway = ValueNotifier(false);
+
+  /// How far the finger has carried the list one way since it last turned.
+  double _dockTravel = 0;
+
+  /// Whether this launch's first notes have been shown — see
+  /// `_onModelChange`.
+  bool _firstNotesShown = false;
+
   void _fadeInBody() {
     _searchFade.duration = NexMotion.of(context, NexMotion.enter);
     unawaited(_searchFade.forward(from: 0));
@@ -268,6 +291,10 @@ class TimelineScreenState extends State<TimelineScreen>
   final Set<String> _selected = {};
   final ValueNotifier<String?> _stickyDay = ValueNotifier(null);
   final GlobalKey _stickyLine = GlobalKey();
+
+  /// A sticky-day pass is waiting for this frame's layout — see
+  /// `_queueStickyDay`.
+  bool _stickyQueued = false;
 
   /// When the current search began, for [NexMetric.searchToOpen]. Null
   /// outside a search, and after its first note has been opened: the
@@ -313,14 +340,15 @@ class TimelineScreenState extends State<TimelineScreen>
   String? _aiHeadlineText;
   bool _aiHeadlineLoading = false;
 
-  /// Collapse only the recap body; keep the header and chevron visible.
-  /// Persisted in [NexPreferences.daySummaryFolded].
+  /// Folds the brief down to its first lines; the heading and its arrow
+  /// stay. Persisted in [NexPreferences.daySummaryFolded], and changed by a
+  /// tap alone: a scroll used to fold it too, which moved every card under
+  /// a finger that was only trying to read them (2.8.0).
   late bool _aiSummaryCollapsed = widget.preferences.daySummaryFolded;
 
-  /// The first real scroll collapses the card on its own, once. Touching the
-  /// chevron takes that over: an explicit open should not be undone by the
-  /// scroll that follows it.
-  bool _aiSummaryToggledByUser = false;
+  /// Which note each line the app wrote in the brief is about, so a tap on
+  /// the line opens it — see `_rememberBriefLines`.
+  final Map<String, String> _briefLineNotes = {};
   int _aiSummaryExpansion = 0;
   bool _aiSummaryBeamPending = false;
 
@@ -534,26 +562,6 @@ class TimelineScreenState extends State<TimelineScreen>
     return '${source.length}:${hash.toRadixString(16)}';
   }
 
-  /// Collapses the card's body on a real, finger-driven scroll — reading a
-  /// note is not the moment for a recap.
-  ///
-  /// Gives way to the chevron entirely: once the user has worked the control
-  /// by hand, scrolling stops having an opinion about it. Only a drag counts
-  /// (a ballistic or programmatic move is nobody reading), only 56px of it
-  /// (four used to be the whole trigger — less than a reading finger
-  /// trembles), and only for the session: the folded preference belongs to
-  /// the chevron alone, so a bump while reading costs one fold today, not a
-  /// changed setting for every launch after.
-  ///
-  /// Reached from the body's own `NotificationListener` in
-  /// timeline_layout.dart, which can tell a drag from a fling — a plain
-  /// scroll-listener cannot.
-  void _collapseAiSummaryOnDrag(double pixels) {
-    if (_aiSummaryCollapsed || _aiSummaryToggledByUser) return;
-    if (pixels <= 56) return;
-    setState(() => _aiSummaryCollapsed = true);
-  }
-
   void _onSearchChanged() {
     if (mounted) setState(() {});
   }
@@ -624,51 +632,6 @@ class TimelineScreenState extends State<TimelineScreen>
   static const _scrollTickDistance = 64.0;
   static const _trimBelow = 1500.0;
 
-  bool _onScroll(ScrollNotification notification) {
-    // The timeline's own scroll only: the tag row's horizontal scroll bubbles
-    // through the viewport with a depth above zero, and its metrics are not
-    // the list's — a horizontal drag used to tick, trim and re-name the
-    // sticky day as though the notes had moved.
-    if (notification.depth != 0) return false;
-    // A scroll that has come to rest near the top, however it got there.
-    if (notification is ScrollEndNotification &&
-        notification.metrics.pixels < _trimBelow &&
-        !_searching) {
-      _model.trimWindow();
-    }
-    if (notification is! ScrollUpdateNotification) return false;
-    _updateStickyDay();
-    final offset = notification.metrics.pixels;
-    // Back within a few screens of the top: the depth scrolled earlier is no
-    // longer needed, so it stops costing every change a full re-read.
-    // Only for a finger moving it up: a scroll the app starts itself (to a
-    // reminder's note, say) passes through here on its way down.
-    if (offset < _trimBelow &&
-        !_searching &&
-        notification.dragDetails != null &&
-        (notification.scrollDelta ?? 0) < 0) {
-      _model.trimWindow();
-    }
-    final travelled = (offset - _lastTickOffset).abs();
-    if (travelled < _scrollTickDistance) return false;
-    // A jump this large is not a finger — it is the list being replaced
-    // under one, which happens every time search opens or a filter changes.
-    // Re-anchor silently rather than buzzing at a scroll nobody performed.
-    final jumped = travelled > _scrollTickDistance * 8;
-    _lastTickOffset = offset;
-    if (!jumped) nexTick();
-    return false;
-  }
-
-  /// Grows the timeline window when the list is close to its end.
-  ///
-  /// Not while searching — search results are their own query, not
-  /// [NexServices.loadMoreTimeline]'s window.
-  void _maybeLoadMore() {
-    if (_searching || !_rowsCache.grows) return;
-    _model.loadMore();
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -705,6 +668,8 @@ class TimelineScreenState extends State<TimelineScreen>
   @override
   void didPopNext() {
     _tourWhenReady();
+    // Back on the home screen: its destinations are where they are expected.
+    _setDockAway(false);
     // Avoid re-rendering all cards on an unchanged route return.
     if (_briefSettingsKey != _briefSettingsSignature()) {
       _onBriefPreferencesChanged();
@@ -772,6 +737,8 @@ class TimelineScreenState extends State<TimelineScreen>
     _search.removeListener(_onSearchChanged);
     _search.dispose();
     _searchFade.dispose();
+    _dockRecede.dispose();
+    _dockAway.dispose();
     _searchFocus.dispose();
     _scroll.dispose();
     _stickyDay.dispose();

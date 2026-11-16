@@ -4,6 +4,16 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.0
+
+- **A new home screen.** The top of Nex is now one calm header for the day — the date, your greeting, the smart summary and your pinned tools — with your notes starting right under it, so far more of them fit on the first screen.
+- **Search that stays put.** The search field has moved into the top bar, beside the Nex mark, and stays there however far you scroll. Tap it from anywhere in the list and the bar gives its whole width to what you type.
+- **A smart summary you can act on.** Tap a line Nex wrote about a note — a reminder, an unfinished list, a recent note — and that note opens. The summary now sits on a soft wash of your accent colour, so it is never taken for one of your own notes; folded, it keeps its first two lines and says how many more are tucked away. It no longer folds by itself while you scroll, and a note written over two lines stays one line of the summary.
+- **Pinned tools in one row.** Tools and modules pinned to the home screen are now one row of small live tiles that scrolls sideways, instead of a grid that pushed your notes down. Habits and Cycle draw today's progress as a ring round their icon, and you can pin or unpin tools from **Home layout** as well as by holding them.
+- **List or grid in one tap.** A switch at the end of the tag row changes between list and grid; the filter button sits at the start of the same row, or inside the search field until you have tags.
+- **More room to read.** As you scroll down through your notes, the bottom bar's four buttons step out of the way and **+** stays exactly where it is; scroll back up a little, or reach the top or the end, and they return.
+- **Calmer movement.** The greeting settles back as your notes scroll over it, the first notes ease in when Nex opens, and the dock's icons respond under your finger. The day chip now appears only once the tag row is held at the top, and no longer repeats a heading that is already on screen.
+
 ## v2.7.2
 
 - **Warranties is here.** A new module for what you bought and who stands behind it: the warranty company, its support number and card number beside the shop, what ends in the next 30 days at the top, a reminder offered while you save, and a service file a repair centre can use. Add it from **Tools → Modules**.

@@ -181,7 +181,12 @@ class _DayMark extends StatefulWidget {
     required this.label,
     required this.marks,
     required this.child,
+    this.heading = false,
   });
+
+  /// A group's own heading rather than one of its notes. While a heading is
+  /// on screen saying a day, the chip does not say it again beside it.
+  final bool heading;
 
   final String label;
   final Set<_DayMarkState> marks;
@@ -214,6 +219,21 @@ extension _TimelineStickyDay on TimelineScreenState {
   /// the top, the group headings already say it.
   static const _showAfter = 160.0;
 
+  /// Names the day again once this frame is laid out.
+  ///
+  /// A scroll says the list has moved before anything has been laid out
+  /// where it moved to, and whether the row is held at the top is a
+  /// question about exactly that. One callback a frame, however many
+  /// notifications the frame carried.
+  void _queueStickyDay() {
+    if (_stickyQueued) return;
+    _stickyQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _stickyQueued = false;
+      if (mounted) _updateStickyDay();
+    });
+  }
+
   /// Names the day of the row that is passing under the filter row.
   void _updateStickyDay() {
     if (_searching || !_scroll.hasClients || _scroll.offset < _showAfter) {
@@ -222,20 +242,41 @@ extension _TimelineStickyDay on TimelineScreenState {
     }
     final anchor = _stickyLine.currentContext?.findRenderObject();
     if (anchor is! RenderBox || !anchor.attached || !anchor.hasSize) return;
+    // Only once the row is held at the top. The day's header above it is
+    // taller than it was (2.8.0), and a chip hung under a row that was still
+    // travelling up the screen floated over the first cards, naming a day
+    // the heading beside it had just named.
+    final viewport = _scroll.position.context.storageContext.findRenderObject();
+    if (viewport is RenderBox && viewport.attached && viewport.hasSize) {
+      final held =
+          anchor.localToGlobal(Offset.zero).dy -
+          viewport.localToGlobal(Offset.zero).dy;
+      if (held > 1) {
+        _stickyDay.value = null;
+        return;
+      }
+    }
     final line = anchor.localToGlobal(Offset(0, anchor.size.height)).dy;
     String? label;
     var top = double.infinity;
+    final headings = <String>{};
     for (final mark in _dayMarks) {
       final box = mark.context.findRenderObject();
       if (box is! RenderBox || !box.attached || !box.hasSize) continue;
       final y = box.localToGlobal(Offset.zero).dy;
       if (y + box.size.height <= line) continue;
+      if (mark.widget.heading) {
+        // A heading still in view, not yet under the row.
+        if (y >= line) headings.add(mark.widget.label);
+        continue;
+      }
       if (y < top) {
         top = y;
         label = mark.widget.label;
       }
     }
-    _stickyDay.value = label;
+    // The heading on screen already says it.
+    _stickyDay.value = headings.contains(label) ? null : label;
   }
 
   /// The words for a row's day: the group's own name for pinned notes, today

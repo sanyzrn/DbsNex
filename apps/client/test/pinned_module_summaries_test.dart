@@ -8,6 +8,7 @@ import 'package:nex_client/screens/tools/pinned_module_summary.dart';
 import 'package:nex_client/screens/tools/pinned_tools.dart';
 import 'package:nex_client/widgets/nex_shelf.dart';
 import 'package:nex_core/nex_core.dart';
+
 import 'support/nex_harness.dart';
 
 void main() {
@@ -57,6 +58,8 @@ void main() {
       final summary = (await load('habits'))!;
       expect(summary.primary, l.pinHabitsProgress(1, 2));
       expect(summary.secondary, l.pinHabitsLeft(1));
+      // The same count as a share of today, for the ring round the mark.
+      expect(summary.progress, 0.5);
       expect(h.preferences.briefUseHabits, isFalse);
     },
   );
@@ -123,17 +126,14 @@ void main() {
     expect(summary.primary, 'Jalali birthday');
     expect(summary.secondary, l.cycleDayToday);
   });
-  test(
-    'breathing duration follows the selected pattern without starting a session',
-    () async {
-      await h.preferences.setModuleOn('pause', true);
-      expect((await load('pause'))!.primary, l.pinPauseDuration('1:50'));
-      await h.preferences.setPauseMode('focus');
-      final focus = (await load('pause'))!;
-      expect(focus.primary, l.pinPauseDuration('1:36'));
-      expect(focus.secondary, l.pauseModeFocus);
-    },
-  );
+  test('breathing duration follows the selected pattern without starting a session', () async {
+    await h.preferences.setModuleOn('pause', true);
+    expect((await load('pause'))!.primary, l.pinPauseDuration('1:50'));
+    await h.preferences.setPauseMode('focus');
+    final focus = (await load('pause'))!;
+    expect(focus.primary, l.pinPauseDuration('1:36'));
+    expect(focus.secondary, l.pauseModeFocus);
+  });
   test(
     'Cycle handles setup and pregnancy without predicting a period',
     () async {
@@ -211,9 +211,8 @@ void main() {
             localizationsDelegates: app.localizationsDelegates,
             supportedLocales: app.supportedLocales,
             builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: const TextScaler.linear(1.8)),
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: const TextScaler.linear(1.8)),
               child: child!,
             ),
             home: Scaffold(body: element.widget),

@@ -13,19 +13,24 @@ extension _TimelineLayout on TimelineScreenState {
     // exists to rewrite the recap and nothing else.
     final showSummary =
         !_searching && _briefAvailable && widget.preferences.showDaySummary;
-    // The filter button sits beside the search field whenever the field is
-    // there, and the row under it is then only for tags: with none, and no
-    // filter on, a row holding just "All" — always selected, narrowing
-    // nothing — was a whole band of the screen saying nothing.
-    final filterBesideSearch = widget.preferences.showSearchField;
     final otherFilters = _model.selectedType != null || _model.onlyReminders;
+    // The row over the notes: what narrows them, and how they are laid out.
+    // It is there for as long as it has something to say — tags to pick
+    // from, or a filter that is on. With neither, a row holding just "All"
+    // — always selected, narrowing nothing — was a whole band of the screen
+    // saying nothing, and the filter button moves into the search field.
     final showTagRow =
         !desktop &&
         widget.preferences.showTagRow &&
-        (!filterBesideSearch ||
-            _model.filterTags.isNotEmpty ||
+        (_model.filterTags.isNotEmpty ||
             _model.selectedTagIds.isNotEmpty ||
+            _model.onlyUntagged ||
             otherFilters);
+    // On a phone the search field is the app bar's own (2.8.0): beside the
+    // wordmark, where it stays put however far the list has moved. A wide
+    // window keeps it as the list's first row, lined up with its grid.
+    final searchInBar =
+        !desktop && (widget.preferences.showSearchField || _searching);
     return Scaffold(
       appBar: NexAppBar(
         // Transparent so the blur below has the list to work on rather than a
@@ -33,18 +38,69 @@ extension _TimelineLayout on TimelineScreenState {
         // opaque colour everywhere else.
         backgroundColor: glass ? Colors.transparent : null,
         flexibleSpace: glass ? const NexGlassBar() : null,
-        // The greeting used to live here, squeezed between the mark and the
-        // two action icons. It is a header now, at header size, in the list
-        // below — which is what it always wanted to be, and what left the bar
-        // free to be the small quiet strip it is here.
+        centerTitle: false,
         titleSpacing: NexSpacing.md,
-        title: desktop ? null : const _WordmarkTile(),
+        title: desktop
+            ? null
+            : Row(
+                children: [
+                  // The mark gives its room to the field as search opens:
+                  // a query wants the whole width, and the screen is plainly
+                  // still Nex.
+                  NexInlineReveal(
+                    shown: !_searching,
+                    child: const Padding(
+                      padding: EdgeInsetsDirectional.only(end: NexSpacing.md),
+                      child: _WordmarkTile(),
+                    ),
+                  ),
+                  if (searchInBar)
+                    Expanded(
+                      child: NexSearchTapRegion(
+                        searching: _searching,
+                        controller: _search.query,
+                        focusNode: _searchFocus,
+                        onClear: _exitSearch,
+                        child: NexSearchPill(
+                          anchor: _searchAnchor,
+                          controller: _search.query,
+                          focusNode: _searchFocus,
+                          searching: _searching,
+                          onTap: () => unawaited(revealSearch()),
+                          onChanged: (_) => _search.schedule(),
+                          onSubmitted: (_) => unawaited(_search.run()),
+                          onClear: _exitSearch,
+                          filterCount: _search.activeFilterCount,
+                          onShowFilters: () => unawaited(
+                            nexShowSearchFilterSheet(context, search: _search),
+                          ),
+                          // With no tag row to head, the timeline's own
+                          // filter lives inside the field's end.
+                          resting: showTagRow
+                              ? null
+                              : _FilterButton(
+                                  inField: true,
+                                  active: otherFilters,
+                                  onPressed: () {
+                                    if (_claimedByOverlay()) return;
+                                    unawaited(_pickFilters());
+                                  },
+                                ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
         actions: [
           // First, so it never moves. The icons after it come and go with
           // settings — the search icon appears only when the field is off —
           // and a control that locks the library is the wrong one to have
           // slide under a thumb that was aiming at something else.
-          if (widget.preferences.appLockEnabled && widget.onLock != null)
+          //
+          // None of them while searching: the field has the bar to itself.
+          if (!_searching &&
+              widget.preferences.appLockEnabled &&
+              widget.onLock != null)
             IconButton(
               tooltip: l10n.securityLockNow,
               icon: const Icon(Icons.lock_outline),
@@ -69,28 +125,11 @@ extension _TimelineLayout on TimelineScreenState {
           if (!_searching)
             IconButton(
               tooltip: l10n.layoutTitle,
-              // Not `tune`: the content-type filter at the head of the tag row
-              // already wears that, and two identical icons on one screen
-              // meaning two different things is worse than either.
+              // Not `tune`: the content-type filter already wears that, and
+              // two identical icons on one screen meaning two different
+              // things is worse than either.
               icon: const Icon(Icons.dashboard_customize_outlined),
-              onPressed: () async {
-                // The sheet's own writes rebuild this screen through the
-                // preferences listener; what is left to catch is a sheet
-                // dismissed without a change, and that must not repaint
-                // every card mid sheet-close transition.
-                final prefs = widget.preferences;
-                String layout() =>
-                    '${prefs.showGreeting}|${prefs.showDaySummary}|'
-                    '${prefs.showSearchField}|${prefs.showTagRow}|'
-                    '${prefs.pinnedTools.join(',')}';
-                final before = layout();
-                await nexShowSheet<void>(
-                  context: context,
-                  builder: (_) =>
-                      HomeLayoutSheet(preferences: widget.preferences),
-                );
-                if (mounted && layout() != before) _rebuild(() {});
-              },
+              onPressed: () => unawaited(_openHomeLayout()),
             ),
           // The library and the gear used to be here. They are the two things
           // on this screen somebody reaches for with a thumb rather than with
@@ -149,14 +188,6 @@ extension _TimelineLayout on TimelineScreenState {
                   if (notification is ScrollStartNotification) {
                     _swipe.closeAll();
                   }
-                  // A finger-driven scroll folds the day summary's body
-                  // (see [_collapseAiSummaryOnDrag]). This is the one place
-                  // that can tell a drag from a fling: dragDetails exists
-                  // only while the finger is still down.
-                  if (notification is ScrollUpdateNotification &&
-                      notification.dragDetails != null) {
-                    _collapseAiSummaryOnDrag(notification.metrics.pixels);
-                  }
                   // Past 200 notes, this is the only thing that ever asks for
                   // the rest — nothing rendered the tail of a long timeline
                   // before this, it just never loaded.
@@ -210,19 +241,22 @@ extension _TimelineLayout on TimelineScreenState {
                             ),
                           ),
                           slivers: [
-                            // The headline and the recap card, above the search
-                            // field. Both collapse to nothing rather than leaving
-                            // the list, the same reason the two headers below do.
+                            // The day's header: the date and the greeting.
+                            // It collapses to nothing rather than leaving the
+                            // list, the same reason the headers below do.
                             SliverToBoxAdapter(
                               key: const ValueKey('timeline-header'),
                               child: NexTapGuarded(
                                 controller: _guard,
                                 child: AnimatedSize(
+                                  // The token itself, not `NexMotion.of`:
+                                  // at zero an AnimatedSize ticks inside its
+                                  // own layout, which is an assertion.
                                   duration: NexMotion.slow,
                                   curve: NexMotion.curve,
                                   alignment: Alignment.topCenter,
                                   child: _searching
-                                      ? const SizedBox.shrink()
+                                      ? const SizedBox(width: double.infinity)
                                       : desktop
                                       ? Padding(
                                           padding: const EdgeInsets.symmetric(
@@ -231,26 +265,30 @@ extension _TimelineLayout on TimelineScreenState {
                                           ),
                                           child: _header(l10n),
                                         )
-                                      : _header(l10n),
+                                      : _HeroRecede(
+                                          scroll: _scroll,
+                                          child: _header(l10n),
+                                        ),
                                 ),
                               ),
                             ),
-                            // Both headers are always in the list, keyed, and collapse
-                            // to zero extent rather than leaving it. A sliver list that
-                            // changes length while another sliver changes its pinning
-                            // leaves the viewport painting a child it never laid out.
-                            // Kept in the list while a search is running even
-                            // when it is switched off, or the field the app bar
+                            // A wide window keeps the field as the list's
+                            // first row. Both headers are always in the list,
+                            // keyed, and collapse to zero extent rather than
+                            // leaving it: a sliver list that changes length
+                            // while another sliver changes its pinning leaves
+                            // the viewport painting a child it never laid
+                            // out. Kept while a search is running even when
+                            // it is switched off, or the field the app bar
                             // icon just asked for would not exist.
-                            if (widget.preferences.showSearchField ||
-                                _searching)
+                            if (desktop &&
+                                (widget.preferences.showSearchField ||
+                                    _searching))
                               SliverPersistentHeader(
                                 key: const ValueKey('search-header'),
                                 delegate: SearchFieldHeader(
-                                  gutter: desktop
-                                      ? _desktopGutter
-                                      : NexSpacing.md,
-                                  maxWidth: desktop ? 560 : null,
+                                  gutter: _desktopGutter,
+                                  maxWidth: 560,
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
@@ -286,8 +324,38 @@ extension _TimelineLayout on TimelineScreenState {
                                   ),
                                 ),
                               ),
-                            // Without the tag row, a pinned hairline still
-                            // carries the sticky day.
+                            // The brief: the app reading the day back, right
+                            // under the greeting it follows on from. Its own
+                            // sliver, so a brief that comes and goes never
+                            // renumbers a row of the list under it.
+                            if (showSummary)
+                              SliverToBoxAdapter(
+                                child: NexRefreshCompletion(
+                                  pulse: _refreshPulse,
+                                  // The brief listens to the model for itself:
+                                  // a commitments-only change repaints the
+                                  // card without rebuilding every note with it.
+                                  child: ListenableBuilder(
+                                    listenable: _model,
+                                    builder: (context, _) => _briefCard(l10n),
+                                  ),
+                                ),
+                              ),
+                            // Tools pinned from the Tools page: one row of
+                            // small live tiles closing the day's header.
+                            // Always in the list, keyed, and collapsed to
+                            // nothing in a search — that is about notes —
+                            // for the reason the headers above are.
+                            SliverToBoxAdapter(
+                              key: const ValueKey('pinned-tools'),
+                              child: PinnedTools(
+                                services: widget.services,
+                                preferences: widget.preferences,
+                                hidden: _searching,
+                              ),
+                            ),
+                            // Where the notes begin. Without the row, a
+                            // pinned hairline still carries the sticky day.
                             if (!showTagRow)
                               SliverPersistentHeader(
                                 pinned: true,
@@ -325,107 +393,10 @@ extension _TimelineLayout on TimelineScreenState {
                                       NexSpacing.sm,
                                   child: NexTapGuarded(
                                     controller: _guard,
-                                    // The row listens to the model itself, so
-                                    // a tags-only change — the filter row
-                                    // refreshing after a delivery — repaints
-                                    // the pills without rebuilding every card
-                                    // on the screen with them.
-                                    child: ListenableBuilder(
-                                      listenable: _model,
-                                      builder: (context, _) => TagFilterRow(
-                                        // Tighter above than the default: the
-                                        // search field's own padding already
-                                        // separates the two.
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: NexSpacing.md,
-                                          vertical: NexSpacing.sm,
-                                        ),
-                                        tags: _model.filterTags,
-                                        tagCounts: _model.filterTagCounts,
-                                        hasOtherFilters:
-                                            _model.selectedType != null ||
-                                            _model.onlyReminders,
-                                        activeFilterLabel: [
-                                          if (_model.selectedType != null)
-                                            l10n.noteType(
-                                              _model.selectedType!.wireName,
-                                            ),
-                                          if (_model.onlyReminders)
-                                            l10n.filterHasReminder,
-                                        ].join(' · '),
-                                        onOpenActiveFilter: () =>
-                                            unawaited(_pickFilters()),
-                                        onClearAll: () =>
-                                            unawaited(_clearFilters()),
-                                        selectedTagIds: _model.selectedTagIds,
-                                        allLabel: l10n.all,
-                                        untaggedLabel: _model.hasUntagged
-                                            ? l10n.filterUntagged
-                                            : null,
-                                        untaggedSelected: _model.onlyUntagged,
-                                        onUntagged: () {
-                                          _tick();
-                                          unawaited(
-                                            _model.selectUntagged(
-                                              !_model.onlyUntagged,
-                                            ),
-                                          );
-                                        },
-                                        tagLabel: (tag) =>
-                                            nexTagLabel(tag, l10n),
-                                        leading: filterBesideSearch
-                                            ? null
-                                            : _FilterButton(
-                                                active: otherFilters,
-                                                onPressed: () =>
-                                                    unawaited(_pickFilters()),
-                                              ),
-                                        onSelected: (value) =>
-                                            unawaited(_selectTags(value)),
-                                      ),
-                                    ),
+                                    child: _notesToolbar(l10n, otherFilters),
                                   ),
                                 ),
                               ),
-                            // Above the list rather than spliced into it.
-                            // `SliverList` matches its children by index — the
-                            // fold animation depends on that — so a card that
-                            // comes and goes inside it would renumber every row
-                            // under it. Its own sliver has no such problem, and
-                            // "the first card" is an honest place for something
-                            // that is not a note.
-                            //
-                            // What sits here is the brief. The slot was built
-                            // for the sponsor card and it is the right shape
-                            // for the wrong thing: the first card on the
-                            // screen should be the app's own reading of the
-                            // day, not an advertisement.
-                            if (showSummary)
-                              SliverToBoxAdapter(
-                                child: NexRefreshCompletion(
-                                  pulse: _refreshPulse,
-                                  // The brief listens to the model for itself:
-                                  // a commitments-only change repaints the
-                                  // card without rebuilding every note with it.
-                                  child: ListenableBuilder(
-                                    listenable: _model,
-                                    builder: (context, _) => _briefCard(l10n),
-                                  ),
-                                ),
-                              ),
-                            // Tools pinned from the Tools page, at the top
-                            // of the cards. Always in the list, keyed, and
-                            // collapsed to nothing in a search or a filtered
-                            // list — those are about notes — for the reason
-                            // the headers above are.
-                            SliverToBoxAdapter(
-                              key: const ValueKey('pinned-tools'),
-                              child: PinnedTools(
-                                services: widget.services,
-                                preferences: widget.preferences,
-                                hidden: _searching || _model.filtering,
-                              ),
-                            ),
                             for (final sliver in _bodySlivers(l10n))
                               SliverFadeTransition(
                                 opacity: _searchFadeIn,
@@ -461,7 +432,15 @@ extension _TimelineLayout on TimelineScreenState {
               right: 0,
               bottom: 0,
               height: nexBottomScrim + nexBottomInset(context),
-              child: const IgnorePointer(child: _BottomScrim()),
+              // It thins with the dock it is there for: with only capture
+              // left there is far less to keep readable, and the notes get
+              // the bottom of the screen back.
+              child: IgnorePointer(
+                child: FadeTransition(
+                  opacity: _dockReceded.drive(Tween(begin: 1.0, end: 0.3)),
+                  child: const _BottomScrim(),
+                ),
+              ),
             ),
             Positioned(
               left: 0,
@@ -570,164 +549,175 @@ extension _TimelineLayout on TimelineScreenState {
             builder: (context) {
               final theme = Theme.of(context);
               final scheme = theme.colorScheme;
-              return Container(
-                constraints: const BoxConstraints(maxWidth: 260),
-                padding: const EdgeInsetsDirectional.fromSTEB(
-                  NexSpacing.md,
-                  NexSpacing.sm,
-                  NexSpacing.xs,
-                  0,
-                ),
-                margin: const EdgeInsets.only(bottom: NexSpacing.sm),
-                decoration: BoxDecoration(
-                  color: scheme.inverseSurface,
-                  borderRadius: BorderRadius.circular(NexRadius.xl),
-                ),
-                // The words are the lesson; the button is the exit — a
-                // "Got it" that was part of the sentence read as decoration
-                // and dismissed wherever in the capsule the finger landed.
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        AppLocalizations.of(context).assistantHoldHint,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: scheme.onInverseSurface,
+              return FadeTransition(
+                opacity: _dockReceded.drive(Tween(begin: 1.0, end: 0.0)),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 260),
+                  padding: const EdgeInsetsDirectional.fromSTEB(
+                    NexSpacing.md,
+                    NexSpacing.sm,
+                    NexSpacing.xs,
+                    0,
+                  ),
+                  margin: const EdgeInsets.only(bottom: NexSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: scheme.inverseSurface,
+                    borderRadius: BorderRadius.circular(NexRadius.xl),
+                  ),
+                  // The words are the lesson; the button is the exit — a
+                  // "Got it" that was part of the sentence read as decoration
+                  // and dismissed wherever in the capsule the finger landed.
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context).assistantHoldHint,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: scheme.onInverseSurface,
+                          ),
                         ),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () =>
-                          widget.preferences.dismissCaptureHoldHint(),
-                      style: TextButton.styleFrom(
-                        foregroundColor: scheme.inversePrimary,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: NexSpacing.sm,
+                      TextButton(
+                        onPressed: () =>
+                            widget.preferences.dismissCaptureHoldHint(),
+                        style: TextButton.styleFrom(
+                          foregroundColor: scheme.inversePrimary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: NexSpacing.sm,
+                          ),
+                          minimumSize: const Size(40, 40),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                        minimumSize: const Size(40, 40),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        textStyle: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        child: Text(AppLocalizations.of(context).gotIt),
                       ),
-                      child: Text(AppLocalizations.of(context).gotIt),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
           ),
-        NexNavigationDock(
-          leading: [
-            NexDockAction(
-              icon: Icons.space_dashboard_outlined,
-              tooltip: l10n.toolsTitle,
-              onPressed: () {
+        ValueListenableBuilder<bool>(
+          valueListenable: _dockAway,
+          builder: (context, away, _) => NexNavigationDock(
+            recede: _dockReceded,
+            away: away,
+            leading: [
+              NexDockAction(
+                icon: Icons.space_dashboard_outlined,
+                tooltip: l10n.toolsTitle,
+                onPressed: () {
+                  if (_claimedByOverlay()) return;
+                  _tick();
+                  unawaited(
+                    Navigator.push<void>(
+                      context,
+                      NexPageRoute<void>(
+                        builder: (_) => ToolsScreen(
+                          services: widget.services,
+                          preferences: widget.preferences,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              NexDockAction(
+                icon: Icons.event_repeat_outlined,
+                tooltip: l10n.commitmentsTitle,
+                onPressed: () async {
+                  if (_claimedByOverlay()) return;
+                  _tick();
+                  await RecurringScreen.show(
+                    context,
+                    services: widget.services,
+                  );
+                  await _model.loadCommitments();
+                },
+              ),
+            ],
+            // Hold capture for the assistant; the leftmost destination is Tools.
+            capture: NexLongPressGlow(
+              startDelay: CaptureFlick.assistantDelay,
+              colors: nexAssistantSpectrum,
+              onHoldStart: _tick,
+              onTriggered: () {
                 if (_claimedByOverlay()) return;
-                _tick();
-                unawaited(
-                  Navigator.push<void>(
+                unawaited(widget.preferences.dismissCaptureHoldHint());
+                _openAssistant();
+              },
+              // Flicked sideways, a shortcut: see [CaptureFlick].
+              child: CaptureFlick(
+                preferences: widget.preferences,
+                onShortcut: (shortcut) {
+                  if (_claimedByOverlay()) return;
+                  unawaited(runCaptureShortcut(shortcut));
+                },
+                builder: (context, glyph) => FloatingActionButton(
+                  key: _captureAnchor,
+                  onPressed: () {
+                    if (_claimedByOverlay()) return;
+                    openCapture();
+                  },
+                  tooltip: l10n.capture,
+                  child: glyph,
+                ),
+              ),
+            ),
+            trailing: [
+              NexDockAction(
+                key: _libraryAnchor,
+                icon: Icons.inventory_2_outlined,
+                tooltip: l10n.libraryTitle,
+                // Awaited, and the timeline reloads on the way back. Tags
+                // and Trash both live behind here and both change what this
+                // screen shows, and neither refreshes it on its own.
+                onPressed: () async {
+                  if (_claimedByOverlay()) return;
+                  _tick();
+                  await Navigator.push(
                     context,
                     NexPageRoute<void>(
-                      builder: (_) => ToolsScreen(
+                      builder: (_) => LibraryScreen(
                         services: widget.services,
                         preferences: widget.preferences,
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-            NexDockAction(
-              icon: Icons.event_repeat_outlined,
-              tooltip: l10n.commitmentsTitle,
-              onPressed: () async {
-                if (_claimedByOverlay()) return;
-                _tick();
-                await RecurringScreen.show(context, services: widget.services);
-                await _model.loadCommitments();
-              },
-            ),
-          ],
-          // Hold capture for the assistant; the leftmost destination is Tools.
-          capture: NexLongPressGlow(
-            startDelay: CaptureFlick.assistantDelay,
-            colors: nexAssistantSpectrum,
-            onHoldStart: _tick,
-            onTriggered: () {
-              if (_claimedByOverlay()) return;
-              unawaited(widget.preferences.dismissCaptureHoldHint());
-              _openAssistant();
-            },
-            // Flicked sideways, a shortcut: see [CaptureFlick].
-            child: CaptureFlick(
-              preferences: widget.preferences,
-              onShortcut: (shortcut) {
-                if (_claimedByOverlay()) return;
-                unawaited(runCaptureShortcut(shortcut));
-              },
-              builder: (context, glyph) => FloatingActionButton(
-                key: _captureAnchor,
-                onPressed: () {
-                  if (_claimedByOverlay()) return;
-                  openCapture();
+                  );
+                  await _refresh();
                 },
-                tooltip: l10n.capture,
-                child: glyph,
               ),
-            ),
+              NexDockAction(
+                key: _settingsAnchor,
+                icon: Icons.settings_outlined,
+                tooltip: l10n.settings,
+                badge: _updateDot(l10n),
+                // Awaited so the commitments can be re-read on the way
+                // back: they are not on the timeline stream that refreshes
+                // everything else, and a brief that had not noticed the one
+                // just added would look broken to whoever just added it.
+                onPressed: () async {
+                  if (_claimedByOverlay()) return;
+                  _tick();
+                  await Navigator.push<void>(
+                    context,
+                    NexPageRoute<void>(
+                      builder: (_) => SettingsSheet(
+                        services: widget.services,
+                        preferences: widget.preferences,
+                        updates: widget.updates,
+                      ),
+                    ),
+                  );
+                  await _model.loadCommitments();
+                },
+              ),
+            ],
           ),
-          trailing: [
-            NexDockAction(
-              key: _libraryAnchor,
-              icon: Icons.inventory_2_outlined,
-              tooltip: l10n.libraryTitle,
-              // Awaited, and the timeline reloads on the way back. Tags
-              // and Trash both live behind here and both change what this
-              // screen shows, and neither refreshes it on its own.
-              onPressed: () async {
-                if (_claimedByOverlay()) return;
-                _tick();
-                await Navigator.push(
-                  context,
-                  NexPageRoute<void>(
-                    builder: (_) => LibraryScreen(
-                      services: widget.services,
-                      preferences: widget.preferences,
-                    ),
-                  ),
-                );
-                await _refresh();
-              },
-            ),
-            NexDockAction(
-              key: _settingsAnchor,
-              icon: Icons.settings_outlined,
-              tooltip: l10n.settings,
-              badge: _updateDot(l10n),
-              // Awaited so the commitments can be re-read on the way
-              // back: they are not on the timeline stream that refreshes
-              // everything else, and a brief that had not noticed the one
-              // just added would look broken to whoever just added it.
-              onPressed: () async {
-                if (_claimedByOverlay()) return;
-                _tick();
-                await Navigator.push<void>(
-                  context,
-                  NexPageRoute<void>(
-                    builder: (_) => SettingsSheet(
-                      services: widget.services,
-                      preferences: widget.preferences,
-                      updates: widget.updates,
-                    ),
-                  ),
-                );
-                await _model.loadCommitments();
-              },
-            ),
-          ],
         ),
       ],
     );

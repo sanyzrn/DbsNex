@@ -577,6 +577,41 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 - **Status:** Accepted for 2.7.1. Pairing has no screen yet; nothing here runs
   for a library that is not paired.
 
+## ADR-045 — The home screen is a day's header and a list; search lives in the app bar
+
+- **Context:** Above its subject the home screen had grown five separate bands —
+  a greeting, a search field, a tag row, the smart summary and a grid of pinned
+  tools — and on an ordinary phone the first note began three quarters of the
+  way down the first screen. The search field scrolled away with the notes, so
+  "find in seconds" began with scrolling back to it; pinned tools took two or
+  three rows; the summary was a paragraph to read and then go looking for.
+- **Decision:** Two zones. **The day's header** — date and greeting, the smart
+  summary, then pinned tools as one row that scrolls sideways — and **the
+  notes**, headed by one pinned row: filter, tags, and a list-or-grid switch.
+  On a phone the search field is the app bar's own, beside the wordmark, in one
+  fixed place at every scroll position; a wide window keeps it as the list's
+  first row.
+- **The summary is something to act on.** A line the app wrote from a note
+  opens that note. Folded it keeps two lines and counts the rest, and it folds
+  on a tap alone: the scroll-fold moved every card under a finger that was only
+  reading. Its surface is a wash of the accent, never a note's colour.
+- **The dock steps back while reading; capture never moves.** Once a finger has
+  carried the list down past the top of the home screen, the four destinations
+  and most of the fade behind them step back, and return on a little way back
+  up, at the top and at the end. The `+` keeps its fixed place, which is the
+  promise UI Principle 4 makes; the other four are a short pull away.
+- **What it costs:** the destinations are not on screen while reading down, and
+  a pinned tool's facts can be cut by its tile's width (the row scrolls, and
+  tiles widen with the text size). The timeline's budget still holds: a steady
+  scroll rebuilds no widget — the greeting's recede and the dock's fade are
+  driven without rebuilding, and the budget test is what caught the first
+  version that did not.
+- **Not changed:** cards, tiles and headings (refined in 2.7.2), the dock's
+  five places and their order, capture, and every preference — each piece of
+  the header keeps its switch in Home layout.
+- **Status:** Accepted for 2.8.0 at the owner's request. `docs/05-design.md`
+  ("2.8.0 the home screen") records the detail.
+
 ---
 
 ## Decision-Making Heuristic

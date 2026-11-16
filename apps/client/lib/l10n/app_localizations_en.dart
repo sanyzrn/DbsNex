@@ -6547,4 +6547,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String moduleRemoveFailed(String name) {
     return '$name\'s records could not be deleted, so nothing was removed. Try again.';
   }
+
+  @override
+  String aiDaySummaryMore(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString more';
+  }
+
+  @override
+  String get homeViewAsGrid => 'Show as a grid';
+
+  @override
+  String get homeViewAsList => 'Show as a list';
+
+  @override
+  String get layoutPinnedTools => 'Pinned tools';
+
+  @override
+  String get layoutPinnedToolsHint =>
+      'Small live tiles above your notes. Tap one to pin it or take it off.';
 }
