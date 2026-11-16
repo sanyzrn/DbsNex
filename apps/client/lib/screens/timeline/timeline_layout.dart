@@ -432,7 +432,15 @@ extension _TimelineLayout on TimelineScreenState {
               right: 0,
               bottom: 0,
               height: nexBottomScrim + nexBottomInset(context),
-              child: const IgnorePointer(child: _BottomScrim()),
+              // It thins with the dock it is there for: with only capture
+              // left there is far less to keep readable, and the notes get
+              // the bottom of the screen back.
+              child: IgnorePointer(
+                child: FadeTransition(
+                  opacity: _dockReceded.drive(Tween(begin: 1.0, end: 0.3)),
+                  child: const _BottomScrim(),
+                ),
+              ),
             ),
             Positioned(
               left: 0,
@@ -541,164 +549,175 @@ extension _TimelineLayout on TimelineScreenState {
             builder: (context) {
               final theme = Theme.of(context);
               final scheme = theme.colorScheme;
-              return Container(
-                constraints: const BoxConstraints(maxWidth: 260),
-                padding: const EdgeInsetsDirectional.fromSTEB(
-                  NexSpacing.md,
-                  NexSpacing.sm,
-                  NexSpacing.xs,
-                  0,
-                ),
-                margin: const EdgeInsets.only(bottom: NexSpacing.sm),
-                decoration: BoxDecoration(
-                  color: scheme.inverseSurface,
-                  borderRadius: BorderRadius.circular(NexRadius.xl),
-                ),
-                // The words are the lesson; the button is the exit — a
-                // "Got it" that was part of the sentence read as decoration
-                // and dismissed wherever in the capsule the finger landed.
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        AppLocalizations.of(context).assistantHoldHint,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: scheme.onInverseSurface,
+              return FadeTransition(
+                opacity: _dockReceded.drive(Tween(begin: 1.0, end: 0.0)),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 260),
+                  padding: const EdgeInsetsDirectional.fromSTEB(
+                    NexSpacing.md,
+                    NexSpacing.sm,
+                    NexSpacing.xs,
+                    0,
+                  ),
+                  margin: const EdgeInsets.only(bottom: NexSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: scheme.inverseSurface,
+                    borderRadius: BorderRadius.circular(NexRadius.xl),
+                  ),
+                  // The words are the lesson; the button is the exit — a
+                  // "Got it" that was part of the sentence read as decoration
+                  // and dismissed wherever in the capsule the finger landed.
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context).assistantHoldHint,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: scheme.onInverseSurface,
+                          ),
                         ),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () =>
-                          widget.preferences.dismissCaptureHoldHint(),
-                      style: TextButton.styleFrom(
-                        foregroundColor: scheme.inversePrimary,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: NexSpacing.sm,
+                      TextButton(
+                        onPressed: () =>
+                            widget.preferences.dismissCaptureHoldHint(),
+                        style: TextButton.styleFrom(
+                          foregroundColor: scheme.inversePrimary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: NexSpacing.sm,
+                          ),
+                          minimumSize: const Size(40, 40),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                        minimumSize: const Size(40, 40),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        textStyle: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        child: Text(AppLocalizations.of(context).gotIt),
                       ),
-                      child: Text(AppLocalizations.of(context).gotIt),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
           ),
-        NexNavigationDock(
-          leading: [
-            NexDockAction(
-              icon: Icons.space_dashboard_outlined,
-              tooltip: l10n.toolsTitle,
-              onPressed: () {
+        ValueListenableBuilder<bool>(
+          valueListenable: _dockAway,
+          builder: (context, away, _) => NexNavigationDock(
+            recede: _dockReceded,
+            away: away,
+            leading: [
+              NexDockAction(
+                icon: Icons.space_dashboard_outlined,
+                tooltip: l10n.toolsTitle,
+                onPressed: () {
+                  if (_claimedByOverlay()) return;
+                  _tick();
+                  unawaited(
+                    Navigator.push<void>(
+                      context,
+                      NexPageRoute<void>(
+                        builder: (_) => ToolsScreen(
+                          services: widget.services,
+                          preferences: widget.preferences,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              NexDockAction(
+                icon: Icons.event_repeat_outlined,
+                tooltip: l10n.commitmentsTitle,
+                onPressed: () async {
+                  if (_claimedByOverlay()) return;
+                  _tick();
+                  await RecurringScreen.show(
+                    context,
+                    services: widget.services,
+                  );
+                  await _model.loadCommitments();
+                },
+              ),
+            ],
+            // Hold capture for the assistant; the leftmost destination is Tools.
+            capture: NexLongPressGlow(
+              startDelay: CaptureFlick.assistantDelay,
+              colors: nexAssistantSpectrum,
+              onHoldStart: _tick,
+              onTriggered: () {
                 if (_claimedByOverlay()) return;
-                _tick();
-                unawaited(
-                  Navigator.push<void>(
+                unawaited(widget.preferences.dismissCaptureHoldHint());
+                _openAssistant();
+              },
+              // Flicked sideways, a shortcut: see [CaptureFlick].
+              child: CaptureFlick(
+                preferences: widget.preferences,
+                onShortcut: (shortcut) {
+                  if (_claimedByOverlay()) return;
+                  unawaited(runCaptureShortcut(shortcut));
+                },
+                builder: (context, glyph) => FloatingActionButton(
+                  key: _captureAnchor,
+                  onPressed: () {
+                    if (_claimedByOverlay()) return;
+                    openCapture();
+                  },
+                  tooltip: l10n.capture,
+                  child: glyph,
+                ),
+              ),
+            ),
+            trailing: [
+              NexDockAction(
+                key: _libraryAnchor,
+                icon: Icons.inventory_2_outlined,
+                tooltip: l10n.libraryTitle,
+                // Awaited, and the timeline reloads on the way back. Tags
+                // and Trash both live behind here and both change what this
+                // screen shows, and neither refreshes it on its own.
+                onPressed: () async {
+                  if (_claimedByOverlay()) return;
+                  _tick();
+                  await Navigator.push(
                     context,
                     NexPageRoute<void>(
-                      builder: (_) => ToolsScreen(
+                      builder: (_) => LibraryScreen(
                         services: widget.services,
                         preferences: widget.preferences,
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-            NexDockAction(
-              icon: Icons.event_repeat_outlined,
-              tooltip: l10n.commitmentsTitle,
-              onPressed: () async {
-                if (_claimedByOverlay()) return;
-                _tick();
-                await RecurringScreen.show(context, services: widget.services);
-                await _model.loadCommitments();
-              },
-            ),
-          ],
-          // Hold capture for the assistant; the leftmost destination is Tools.
-          capture: NexLongPressGlow(
-            startDelay: CaptureFlick.assistantDelay,
-            colors: nexAssistantSpectrum,
-            onHoldStart: _tick,
-            onTriggered: () {
-              if (_claimedByOverlay()) return;
-              unawaited(widget.preferences.dismissCaptureHoldHint());
-              _openAssistant();
-            },
-            // Flicked sideways, a shortcut: see [CaptureFlick].
-            child: CaptureFlick(
-              preferences: widget.preferences,
-              onShortcut: (shortcut) {
-                if (_claimedByOverlay()) return;
-                unawaited(runCaptureShortcut(shortcut));
-              },
-              builder: (context, glyph) => FloatingActionButton(
-                key: _captureAnchor,
-                onPressed: () {
-                  if (_claimedByOverlay()) return;
-                  openCapture();
+                  );
+                  await _refresh();
                 },
-                tooltip: l10n.capture,
-                child: glyph,
               ),
-            ),
+              NexDockAction(
+                key: _settingsAnchor,
+                icon: Icons.settings_outlined,
+                tooltip: l10n.settings,
+                badge: _updateDot(l10n),
+                // Awaited so the commitments can be re-read on the way
+                // back: they are not on the timeline stream that refreshes
+                // everything else, and a brief that had not noticed the one
+                // just added would look broken to whoever just added it.
+                onPressed: () async {
+                  if (_claimedByOverlay()) return;
+                  _tick();
+                  await Navigator.push<void>(
+                    context,
+                    NexPageRoute<void>(
+                      builder: (_) => SettingsSheet(
+                        services: widget.services,
+                        preferences: widget.preferences,
+                        updates: widget.updates,
+                      ),
+                    ),
+                  );
+                  await _model.loadCommitments();
+                },
+              ),
+            ],
           ),
-          trailing: [
-            NexDockAction(
-              key: _libraryAnchor,
-              icon: Icons.inventory_2_outlined,
-              tooltip: l10n.libraryTitle,
-              // Awaited, and the timeline reloads on the way back. Tags
-              // and Trash both live behind here and both change what this
-              // screen shows, and neither refreshes it on its own.
-              onPressed: () async {
-                if (_claimedByOverlay()) return;
-                _tick();
-                await Navigator.push(
-                  context,
-                  NexPageRoute<void>(
-                    builder: (_) => LibraryScreen(
-                      services: widget.services,
-                      preferences: widget.preferences,
-                    ),
-                  ),
-                );
-                await _refresh();
-              },
-            ),
-            NexDockAction(
-              key: _settingsAnchor,
-              icon: Icons.settings_outlined,
-              tooltip: l10n.settings,
-              badge: _updateDot(l10n),
-              // Awaited so the commitments can be re-read on the way
-              // back: they are not on the timeline stream that refreshes
-              // everything else, and a brief that had not noticed the one
-              // just added would look broken to whoever just added it.
-              onPressed: () async {
-                if (_claimedByOverlay()) return;
-                _tick();
-                await Navigator.push<void>(
-                  context,
-                  NexPageRoute<void>(
-                    builder: (_) => SettingsSheet(
-                      services: widget.services,
-                      preferences: widget.preferences,
-                      updates: widget.updates,
-                    ),
-                  ),
-                );
-                await _model.loadCommitments();
-              },
-            ),
-          ],
         ),
       ],
     );

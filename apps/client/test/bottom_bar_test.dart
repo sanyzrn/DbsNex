@@ -116,6 +116,90 @@ void main() {
     }
   }
 
+  group('reading down the list', () {
+    Future<void> longList(WidgetTester tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(400, 900);
+      addTearDown(tester.view.reset);
+      for (var i = 0; i < 40; i++) {
+        await services.captureText('note number $i');
+      }
+      await services.refreshTimeline();
+      await open(tester);
+    }
+
+    final dock = find.byType(NexNavigationDock);
+    bool away(WidgetTester tester) =>
+        tester.widget<NexNavigationDock>(dock).away;
+    double shown(WidgetTester tester) => tester
+        .widget<FadeTransition>(find.byKey(const ValueKey('dock-destinations')))
+        .opacity
+        .value;
+
+    testWidgets('the destinations step back, capture stays, and turning '
+        'round brings them back', (tester) async {
+      await longList(tester);
+      expect(away(tester), isFalse);
+      expect(shown(tester), 1);
+      final capture = tester.getRect(find.byType(FloatingActionButton));
+      final list = find.byType(CustomScrollView);
+
+      // A finger carrying the list down: the bar gives the notes the bottom
+      // of the screen. The one primary action has not moved a pixel.
+      await tester.drag(list, const Offset(0, -400));
+      await tester.pumpAndSettle();
+      expect(away(tester), isTrue);
+      expect(shown(tester), 0);
+      expect(tester.getRect(find.byType(FloatingActionButton)), capture);
+      // Faded out is also out of reach: a touch there goes to the note that
+      // is now showing under it, never to a control nobody can see.
+      expect(find.byIcon(Icons.settings_outlined).hitTestable(), findsNothing);
+      expect(
+        find.byIcon(Icons.inventory_2_outlined).hitTestable(),
+        findsNothing,
+      );
+      expect(dock, findsOneWidget);
+      // Capture still captures.
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(CaptureSheet), findsOneWidget);
+      await tester.tapAt(const Offset(200, 40));
+      await tester.pumpAndSettle();
+
+      // A little way back up is the whole signal.
+      await tester.drag(list, const Offset(0, 70));
+      await tester.pumpAndSettle();
+      expect(away(tester), isFalse);
+      expect(shown(tester), 1);
+    });
+
+    testWidgets('at the top of the home screen the dock is always whole', (
+      tester,
+    ) async {
+      await longList(tester);
+      // A short way down is still the top: this is where the destinations
+      // are looked for.
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -90));
+      await tester.pumpAndSettle();
+      expect(away(tester), isFalse);
+      expect(shown(tester), 1);
+    });
+
+    testWidgets('someone finding their way by touch keeps the dock where '
+        'they found it', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(accessibleNavigation: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await longList(tester);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+      await tester.pumpAndSettle();
+      expect(away(tester), isFalse);
+      expect(shown(tester), 1);
+    });
+  });
+
   testWidgets('capture rises above a single home dock', (tester) async {
     await open(tester);
 

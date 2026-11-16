@@ -107,6 +107,7 @@ part 'timeline/timeline_note_actions.dart';
 part 'timeline/timeline_navigation.dart';
 part 'timeline/timeline_layout.dart';
 part 'timeline/timeline_home_chrome.dart';
+part 'timeline/timeline_scroll.dart';
 part 'timeline/timeline_sticky_day.dart';
 part 'timeline/timeline_body.dart';
 part 'timeline/timeline_selection.dart';
@@ -154,7 +155,7 @@ class TimelineScreen extends StatefulWidget {
 }
 
 class TimelineScreenState extends State<TimelineScreen>
-    with RouteAware, WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with RouteAware, WidgetsBindingObserver, TickerProviderStateMixin {
   /// What the timeline shows: the notes, the filters, paging and the folded
   /// groups (W4.2). This State keeps only what is about showing it.
   late final TimelineModel _model = TimelineModel(
@@ -254,6 +255,23 @@ class TimelineScreenState extends State<TimelineScreen>
     parent: _searchFade,
     curve: NexMotion.curve,
   );
+
+  /// The dock's four destinations stepping back while someone reads down
+  /// the list, and returning — see `_followDock`. Capture never moves.
+  late final AnimationController _dockRecede = AnimationController(
+    vsync: this,
+    duration: NexMotion.exit,
+    reverseDuration: NexMotion.enter,
+  );
+  late final Animation<double> _dockReceded = CurvedAnimation(
+    parent: _dockRecede,
+    curve: NexMotion.exitCurve,
+    reverseCurve: NexMotion.exitCurve,
+  );
+  final ValueNotifier<bool> _dockAway = ValueNotifier(false);
+
+  /// How far the finger has carried the list one way since it last turned.
+  double _dockTravel = 0;
 
   /// Whether this launch's first notes have been shown — see
   /// `_onModelChange`.
@@ -614,51 +632,6 @@ class TimelineScreenState extends State<TimelineScreen>
   static const _scrollTickDistance = 64.0;
   static const _trimBelow = 1500.0;
 
-  bool _onScroll(ScrollNotification notification) {
-    // The timeline's own scroll only: the tag row's horizontal scroll bubbles
-    // through the viewport with a depth above zero, and its metrics are not
-    // the list's — a horizontal drag used to tick, trim and re-name the
-    // sticky day as though the notes had moved.
-    if (notification.depth != 0) return false;
-    // A scroll that has come to rest near the top, however it got there.
-    if (notification is ScrollEndNotification &&
-        notification.metrics.pixels < _trimBelow &&
-        !_searching) {
-      _model.trimWindow();
-    }
-    if (notification is! ScrollUpdateNotification) return false;
-    _queueStickyDay();
-    final offset = notification.metrics.pixels;
-    // Back within a few screens of the top: the depth scrolled earlier is no
-    // longer needed, so it stops costing every change a full re-read.
-    // Only for a finger moving it up: a scroll the app starts itself (to a
-    // reminder's note, say) passes through here on its way down.
-    if (offset < _trimBelow &&
-        !_searching &&
-        notification.dragDetails != null &&
-        (notification.scrollDelta ?? 0) < 0) {
-      _model.trimWindow();
-    }
-    final travelled = (offset - _lastTickOffset).abs();
-    if (travelled < _scrollTickDistance) return false;
-    // A jump this large is not a finger — it is the list being replaced
-    // under one, which happens every time search opens or a filter changes.
-    // Re-anchor silently rather than buzzing at a scroll nobody performed.
-    final jumped = travelled > _scrollTickDistance * 8;
-    _lastTickOffset = offset;
-    if (!jumped) nexTick();
-    return false;
-  }
-
-  /// Grows the timeline window when the list is close to its end.
-  ///
-  /// Not while searching — search results are their own query, not
-  /// [NexServices.loadMoreTimeline]'s window.
-  void _maybeLoadMore() {
-    if (_searching || !_rowsCache.grows) return;
-    _model.loadMore();
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -695,6 +668,8 @@ class TimelineScreenState extends State<TimelineScreen>
   @override
   void didPopNext() {
     _tourWhenReady();
+    // Back on the home screen: its destinations are where they are expected.
+    _setDockAway(false);
     // Avoid re-rendering all cards on an unchanged route return.
     if (_briefSettingsKey != _briefSettingsSignature()) {
       _onBriefPreferencesChanged();
@@ -762,6 +737,8 @@ class TimelineScreenState extends State<TimelineScreen>
     _search.removeListener(_onSearchChanged);
     _search.dispose();
     _searchFade.dispose();
+    _dockRecede.dispose();
+    _dockAway.dispose();
     _searchFocus.dispose();
     _scroll.dispose();
     _stickyDay.dispose();

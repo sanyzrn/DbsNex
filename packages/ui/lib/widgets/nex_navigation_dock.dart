@@ -14,11 +14,26 @@ class NexNavigationDock extends StatelessWidget {
     required this.leading,
     required this.capture,
     required this.trailing,
+    this.recede,
+    this.away = false,
   });
 
   final List<Widget> leading;
   final Widget capture;
   final List<Widget> trailing;
+
+  /// How far the four destinations have stepped back: 0 with the whole dock
+  /// there, 1 with only capture left. The home screen runs it while someone
+  /// reads down the list, so the notes have the bottom of the screen and the
+  /// one primary action never moves from under the thumb.
+  ///
+  /// A fade and nothing else, on purpose: it is drawn by the render object,
+  /// so a scroll that sets it going rebuilds no widget while it runs.
+  final Animation<double>? recede;
+
+  /// Whether the destinations are stepped back. Faded out they must not be
+  /// tappable or read out either: a control nobody can see is a trap.
+  final bool away;
 
   static const height = 64.0;
   static const lift = 24.0;
@@ -71,46 +86,69 @@ class NexNavigationDock extends StatelessWidget {
             right: 0,
             bottom: 0,
             height: height,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: radius,
-                // Dark and Night separate by tone; Light gets a quiet lift.
-                // Glass already paints its own optical edge and shadow.
-                boxShadow: visual.liquidGlass || dark
+            child: _stepBack(
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  // Dark and Night separate by tone; Light gets a quiet lift.
+                  // Glass already paints its own optical edge and shadow.
+                  boxShadow: visual.liquidGlass || dark
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: scheme.shadow.withValues(alpha: 0.06),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                ),
+                // Paint after the opaque surface so it cannot cover the edge.
+                foregroundDecoration: visual.liquidGlass
                     ? null
-                    : [
-                        BoxShadow(
-                          color: scheme.shadow.withValues(alpha: 0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 3),
+                    : BoxDecoration(
+                        borderRadius: radius,
+                        border: Border.all(
+                          color: highContrast
+                              ? scheme.outline
+                              : scheme.outlineVariant,
+                          width: highContrast ? 1 : 0.75,
                         ),
-                      ],
-              ),
-              // Paint after the opaque surface so it cannot cover the edge.
-              foregroundDecoration: visual.liquidGlass
-                  ? null
-                  : BoxDecoration(
-                      borderRadius: radius,
-                      border: Border.all(
-                        color: highContrast
-                            ? scheme.outline
-                            : scheme.outlineVariant,
-                        width: highContrast ? 1 : 0.75,
                       ),
-                    ),
-              child: NexGlassSurface(
-                material: NexGlassMaterial.floating,
-                borderRadius: radius,
-                // White in Light; the elevated neutral tone in Dark/Night.
-                fallbackColor: dark
-                    ? scheme.surfaceContainerHigh
-                    : scheme.surface,
-                child: actions,
+                child: NexGlassSurface(
+                  material: NexGlassMaterial.floating,
+                  borderRadius: radius,
+                  // White in Light; the elevated neutral tone in Dark/Night.
+                  fallbackColor: dark
+                      ? scheme.surfaceContainerHigh
+                      : scheme.surface,
+                  child: actions,
+                ),
               ),
             ),
           ),
           Positioned(top: 0, left: 0, right: 0, child: Center(child: capture)),
         ],
+      ),
+    );
+  }
+}
+
+extension on NexNavigationDock {
+  /// The capsule and its four destinations, fading with [recede] and out of
+  /// reach of a finger or a screen reader while [away].
+  Widget _stepBack(Widget capsule) {
+    final recede = this.recede;
+    return IgnorePointer(
+      ignoring: away,
+      child: ExcludeSemantics(
+        excluding: away,
+        child: recede == null
+            ? capsule
+            : FadeTransition(
+                key: const ValueKey('dock-destinations'),
+                opacity: recede.drive(Tween(begin: 1.0, end: 0.0)),
+                child: capsule,
+              ),
       ),
     );
   }
