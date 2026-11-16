@@ -3,7 +3,8 @@
 ## 1. What it does and screens
 
 Offline consumer tools: a random password/passphrase generator, a conservative
-textual link inspector, personal account checklists and a short response guide.
+textual link inspector, personal account checklists, a short response guide and
+a UTF-8 text converter (standard Base64, URL component, Hex).
 Home counts only user-confirmed actions, not a security score. The generator
 starts hidden and never stores its output. The inspector never opens a link,
 contacts a host, resolves a redirect or declares a site safe. Account records
@@ -57,8 +58,20 @@ records, telemetry or history.
   has raw Undo guarded against a recreated ID. The shared store has no
   cross-process compare-and-swap; independent external writers are a limit.
 
+- Text conversions are reversible representations, not encryption. Inputs are
+  bounded to 8,192 UTF-8 bytes, computed only on explicit action. Standard Base64
+  requires canonical padding/pad bits; Hex accepts complete byte pairs and ASCII
+  separators, never strips junk. Decoding rejects invalid UTF-8, and encoding
+  rejects unpaired UTF-16 surrogates instead of replacing data. URL conversion is
+  for one component (plus is not a form-encoded space). A changed input/mode clears
+  stale output. Reverse conversion never silently truncates oversized output.
+  The screen clears both directions on focus loss/disposal and has no drafts.
+
 ## 4. Research (verified 2026-11-16)
 
+- RFC 4648: https://www.rfc-editor.org/rfc/rfc4648.html — Base64 vectors,
+  canonical padding and pad bits; strict decoding rather than silently repairing
+  damaged encoded input.
 - NIST SP 800-63B-4: https://pages.nist.gov/800-63-4/sp800-63b.html
   Length, unique generated credentials, managers and phishing-resistant factors
   inform the design. Verifier rules are not presented as generator certification.
@@ -86,6 +99,10 @@ records, telemetry or history.
 
 ## 5. Guide / راهنما
 
+FA: در «تبدیل متن»، قالب و جهت تبدیل را انتخاب کن. این ابزار رمزگذاری امن نیست؛
+برای فارسی از UTF-8 استفاده می‌کند. دکمهٔ جابه‌جایی، خروجی را بدون بریدن به ورودی
+می‌برد و جهت تبدیل را برعکس می‌کند.
+
 FA: برای ساخت رمز، قالب و طول را انتخاب کن، «ساخت رمز تازه» را بزن و فقط
 وقتی لازم است آن را نمایش بده یا کپی کن. کپی ممکن است در کلیپ‌بورد سیستم بماند.
 برای لینک مشکوک، متن کامل و در صورت نیاز دامنه‌ای که مستقل می‌شناسی را وارد
@@ -93,6 +110,10 @@ FA: برای ساخت رمز، قالب و طول را انتخاب کن، «س�
 برای پیگیری حساب‌ها، یک نام مستعار بنویس و وضعیت چهار اقدام را خودت مشخص کن؛
 رمز یا کد بازیابی ننویس. اگر اطلاعاتی داده‌ای، راهنمای اقدام را بر اساس آنچه
 اتفاق افتاده مرور کن و از مسیر رسمی سرویس کمک بگیر.
+
+EN: In Text converters choose a format and direction, then convert explicitly.
+This is not encryption. Persian and emoji use UTF-8. Reverse reuses the complete
+output and switches direction when the input byte limit permits it.
 
 EN: Generate a password or phrase, reveal only when needed and explicitly copy.
 The OS clipboard may retain it. Inspect a suspicious HTTP(S) link without opening
@@ -103,8 +124,14 @@ guide to choose next steps after possible exposure, through official routes.
 
 ## 6. Changelog
 
+FA: افزوده شد: تبدیل متن فارسی و انگلیسی با Base64، URL و Hex، جابه‌جایی
+ورودی و خروجی و ردکردن دادهٔ نامعتبر؛ بدون ذخیرهٔ محتوا.
+
 FA: جعبه‌ابزار امنیت: رمز و عبارت عبور تصادفی، بررسی آفلاین لینک، چک‌لیست
 حساب‌ها و راهنمای اقدام؛ بدون ذخیرهٔ رمز یا صدور تأیید امنیت.
+
+EN: Added UTF-8 Base64, URL component and Hex conversion with reverse reuse,
+strict validation and transient input/output.
 
 EN: Security toolbox: random passwords/passphrases, offline textual link
 inspection, account checklists and a practical exposure-response guide.
@@ -113,7 +140,10 @@ inspection, account checklists and a practical exposure-response guide.
 
 Keep Soon until owner device review; availability is unchanged. Integration
 changes are limited to registry/plan entries and their catalog-count contract.
-The old plan mentioned AES-GCM, hashes and encrypted secret storage. Module Kit
+The old plan mentioned AES-GCM, hashes and encrypted secret storage.
+[Concrete platform request](PLATFORM_REQUEST.md) identifies the exact API,
+dependency and tests needing owner approval for text encryption and hashing.
+Old site format compatibility was explicitly declined by the owner. Module Kit
 exposes neither reviewed cryptographic primitives/key management nor protected
 secret storage. These remain explicit platform requests; no home-grown crypto,
 plaintext secret database or disguised Base64 encryption is substituted.
@@ -133,20 +163,19 @@ SQLite library was built from the repository's existing vendored SQLite source,
 outside the repository. No dependency or lockfile changes.
 
 - `flutter analyze --no-pub --fatal-infos`: no issues.
-- `dart format --output=none --set-exit-if-changed` on this module, its tests and
-  the three integration files: 20 files, zero changes.
+- `dart format --output=none --set-exit-if-changed` on the six Dart files changed
+  in this extension: 6 files, zero changes.
 - `flutter test --no-pub test/modules/security_tools --reporter expanded`:
-  65 passed (11 pure logic, 4 repository, 10 widget flows, 40 layout cases).
+  79 passed (16 pure logic, 4 repository, 11 widget flows, 48 layout cases).
 - `flutter test --no-pub test/module_kit_test.dart test/module_preview_test.dart
   test/modules_test.dart test/modules/security_tools --reporter expanded`:
-  132 passed, including architecture, catalog, namespace and module UI contracts.
-- `flutter test --no-pub --reporter expanded`: full client suite, 3,827 passed,
-  4 existing skips, zero failures (6 minutes).
+  146 passed, including architecture, catalog, namespace and module UI contracts.
+- `flutter test --no-pub --reporter expanded`: full client suite, 3,841 passed, 4 existing skips, zero failures.
 - `git diff --check`: clean.
 
 Coverage includes entropy failure, full-wordlist sampling, invalid/ambiguous
 URLs, exact host comparison, stale-result removal, ephemeral secrets/clipboard,
-draft read/write/cleanup failures, stable save IDs, stale edits, raw Undo and
+strict codec vectors/Unicode/errors/reverse, draft read/write/cleanup failures, stable save IDs, stale edits, raw Undo and
 unknown-field preservation. Layout checks cover FA/EN, light/dark, 390×844 and
 320×640 with 2× text and reduced motion. Review renders use synthetic records,
 never real account credentials; generated text stays hidden.
@@ -156,6 +185,8 @@ never real account credentials; generated text stays hidden.
 | Home, FA dark | [Home](review/home_fa_dark.png) |
 | Generator, FA dark | [Generator](review/generator_fa_dark.png) |
 | Generator, EN light | [Generator](review/generator_en_light.png) |
+| Text converter, FA dark | [Converter](review/codec_fa_dark.png) |
+| Text converter, EN light | [Converter](review/codec_en_light.png) |
 | Link inspection, FA dark | [Link](review/link_fa_dark.png) |
 | Checklist, FA dark | [Checklist](review/account_fa_dark.png) |
 | Response guide, EN light | [Guide](review/incident_en_light.png) |

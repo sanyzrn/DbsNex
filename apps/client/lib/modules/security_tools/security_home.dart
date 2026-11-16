@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'account_editor.dart';
+import 'codec_screen.dart';
 import 'account_model.dart';
 import 'account_repository.dart';
 import 'incident_screen.dart';
@@ -174,6 +175,12 @@ class _SecurityHomeState extends State<SecurityHome> {
                   caption: s(context, 'selfReport'),
                 ),
                 const SizedBox(height: NexSpacing.md),
+                _tool(
+                  'codecTitle',
+                  'codecAbout',
+                  Icons.transform,
+                  const SecurityCodecScreen(),
+                ),
                 _tool(
                   'generator',
                   'generatorAbout',

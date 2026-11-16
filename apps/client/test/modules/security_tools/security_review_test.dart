@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/security_tools/account_editor.dart';
+import 'package:nex_client/modules/security_tools/codec_screen.dart';
 import 'package:nex_client/modules/security_tools/account_model.dart';
 import 'package:nex_client/modules/security_tools/account_repository.dart';
 import 'package:nex_client/modules/security_tools/incident_screen.dart';
@@ -24,6 +25,7 @@ void main() {
       for (final compact in [true, false]) {
         for (final scene in [
           'home',
+          'codec',
           'generator',
           'link',
           'account',
@@ -61,6 +63,7 @@ void main() {
             final boundary = GlobalKey();
             final page = switch (scene) {
               'home' => SecurityHome(store: store),
+              'codec' => const SecurityCodecScreen(),
               'generator' => SecurityGenerator(randomSource: () => Random(7)),
               'link' => const SecurityLinkScreen(),
               'account' => SecurityAccountEditor(
@@ -95,6 +98,19 @@ void main() {
               ),
             );
             await settleSecurity(t);
+            if (scene == 'codec') {
+              final field = find.byKey(const ValueKey('security-codec-input'));
+              await revealSecurity(t, field);
+              await t.enterText(field, fa ? 'سلام 👋' : 'Hello 👋');
+              final run = find.byKey(const ValueKey('security-codec-run'));
+              await revealSecurity(t, run);
+              await t.tap(run);
+              await t.pumpAndSettle();
+              await revealSecurity(
+                t,
+                find.byKey(const ValueKey('security-codec-output')),
+              );
+            }
             if (scene == 'generator') {
               final generate = find.byKey(const ValueKey('security-generate'));
               await revealSecurity(t, generate);
