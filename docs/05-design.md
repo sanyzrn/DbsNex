@@ -84,7 +84,7 @@ All four combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode
 | **Capture Sheet** | Presents the three capture types | Appears instantly (no loading state), dismissible by outside tap |
 | **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text / voice caption or type with duration / photo thumbnail). Exact creation and edit times live in details; cards omit visible timestamps by owner decision. Tags use compact accent marks with localized accessible names. Collapsed cards share a text-scale-aware height; expanded cards grow to their content. Cards retain caption/type and duration; Android detail playback decodes and caches a real waveform |
 | **Tag Chip** | Represents a single tag | Neutral chip shape and text; an optional small accent dot (user-chosen, see [Tag Accent Color](#tag-accent-color)) may render beside the label. Rounded, removable via inline "×" in edit contexts |
-| **Search Bar** | Entry point + live query field | Paired with filter affordances (tag / date / type) that expand without navigating away |
+| **Search Bar** | Entry point + live query field | In the phone's app bar since 2.8.0, beside the wordmark, so it never scrolls away; the list's first row in a wide window. Paired with filter affordances (tag / date / type) that expand without navigating away |
 | **Filter Control** | Tag / date / content-type filters | Simple toggles/pills, combinable, always reversible with a single "clear" action |
 | **Note Detail Sheet** | Expanded view of a single note, tag editing, and the secondary actions of FR-2.9 | Sized to the note: a long one opens at reading height and scrolls, a short one stays short. Common actions are labelled and pinned under the body; secondary actions are in the labelled More menu (owner-approved v1.30.0 layout). Hide Copy when no text exists and expansion when no text/checklist can expand |
 | **Voice Recorder Bar** | Active recording state | Live waveform and elapsed time; the stop action is the single largest control on screen |
@@ -139,11 +139,14 @@ the build instead of aging quietly in a table.
 
 ## Search
 
-Search is not a place you go. The query field is part of the Timeline's own list, above the
-first card, with the list resting scrolled just past it — so **pulling down brings it in**, and
-because that is ordinary scrolling rather than an overscroll effect it behaves the same under
-Android's clamping physics and iOS's bouncing ones. The header icon and the desktop shortcut
-perform the same reveal; a gesture is a shortcut, never the only door.
+Search is not a place you go. On a phone the query field is the app bar's own (2.8.0): beside
+the wordmark, in one fixed place however far the list has moved, which is what "the Search entry
+point occupies a fixed, muscle-memory position at all times" always asked for. It began as a row
+of the list scrolled just out of sight, then as a row that scrolled away with the notes — either
+way a search started with scrolling back to it. As search opens, the wordmark and the bar's
+buttons give the field the whole width. In a wide window it is still the list's first row, lined
+up with the grid, and the desktop shortcut focuses it; a gesture is a shortcut, never the only
+door.
 
 Results replace the cards in place. "Find in seconds" cannot be true if finding starts with a
 route push and a transition.
@@ -272,3 +275,34 @@ The dock is fixed left-to-right: Tools, Recurring, Capture, Library, Settings. H
 - **Recurring is a page**, with its editor a page too: a large title, three
   tappable counts, payments ahead, a list/calendar switch and cards. Delete
   moved into each item's menu.
+
+## 2.8.0 the home screen
+
+The home screen had grown five separate bands above its subject — a greeting,
+a search field, a tag row, a brief, a grid of pinned tools — and on an ordinary
+phone the first note began three quarters of the way down. It is now two
+zones, and the notes begin at the middle of the first screen.
+
+- **The day's header.** The date and the greeting; the brief, on a wash of the
+  accent rather than a note's own colour so it is never taken for one; then
+  the pinned tools as one row of small live tiles (`NexGlanceRail`) that
+  scrolls sideways once there are more than two. A module that counts toward
+  something draws it as a ring round its mark (`NexProgressRing`): a real
+  number from the person's data, eased to a new value when it changes.
+- **The notes.** A pinned row heads them: the filter, the tags, and at its end
+  the list-or-grid switch, all the tag pill's own shape. With no tags and no
+  filter the row is not drawn and the filter sits inside the search field.
+- **The brief is something to act on.** A line the app wrote from a note
+  opens that note (`nexBriefReportLines`); a model's own sentence and a
+  standing commitment lead nowhere and leave the tap to the card, as a fold.
+  Folded, the card keeps two lines and says how many it is not showing.
+  A scroll no longer folds it: that moved every card under a finger that was
+  only reading them. The fold belongs to a tap alone.
+- **Motion.** The greeting falls behind at a third of the list's pace and
+  fades inside its own box as the notes come up over it — scroll-linked, so
+  it is exactly as far along as the finger is. The first notes of a launch
+  ease in over their placeholders. The day chip is worked out after layout,
+  appears only once the row is held at the top, and never repeats a heading
+  that is on screen. A dock glyph gives under a finger and springs back.
+- **Home layout** pins and unpins tools as well: pinning used to be a hold on
+  the Tools page, which nothing on the home screen mentioned.

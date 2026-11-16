@@ -7,7 +7,6 @@ import 'package:nex_client/platform/vault_session.dart';
 import 'package:nex_client/screens/tools/pinned_tools.dart';
 import 'package:nex_client/screens/tools_screen.dart';
 import 'package:nex_client/widgets/nex_shelf.dart';
-import 'package:nex_core/nex_core.dart';
 
 import 'support/nex_harness.dart';
 

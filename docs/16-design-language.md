@@ -66,7 +66,8 @@ form that is not a whole page.
   direction from what is typed, `private` for the vault, a fixed
   `textDirection` for ids, `ground: surface` inside a box that is already
   drawn. Never a `TextField` with a search icon of its own
-  (`ui_consistency_test`). The timeline's pill in its header is the one
+  (`ui_consistency_test`). The timeline's own pill — `NexSearchPill`, in the
+  app bar on a phone and the list's first row in a wide window — is the one
   exception.
 - A field's outline comes from the theme in every state; do not pass
   `OutlineInputBorder()` to get one (`ui_consistency_test`).
