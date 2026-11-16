@@ -30,7 +30,13 @@ class _WordmarkTile extends StatelessWidget {
 /// is gone before it could sit under anything. Scroll-linked, never timed:
 /// it is exactly as far along as the finger is, and still when the finger
 /// is. With animations off the header simply scrolls.
-class _HeroRecede extends StatelessWidget {
+///
+/// It listens to the list rather than rebuilding with it. A scroll controller
+/// speaks on every frame of a scroll, for as long as the scroll lasts; this
+/// only has anything to do over the first [_over] pixels, and holds one
+/// value — rebuilding nothing — for all the rest (the timeline's budget is
+/// that a steady scroll rebuilds no widget at all).
+class _HeroRecede extends StatefulWidget {
   const _HeroRecede({required this.scroll, required this.child});
 
   final ScrollController scroll;
@@ -40,24 +46,59 @@ class _HeroRecede extends StatelessWidget {
   static const _over = 160.0;
 
   @override
+  State<_HeroRecede> createState() => _HeroRecedeState();
+}
+
+class _HeroRecedeState extends State<_HeroRecede> {
+  /// How far the header has receded, from 0 to [_HeroRecede._over]. Only
+  /// tells its listeners when it changes, which past the fade it never does.
+  final _travel = ValueNotifier<double>(0);
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scroll.addListener(_moved);
+  }
+
+  @override
+  void didUpdateWidget(_HeroRecede old) {
+    super.didUpdateWidget(old);
+    if (old.scroll == widget.scroll) return;
+    old.scroll.removeListener(_moved);
+    widget.scroll.addListener(_moved);
+  }
+
+  @override
+  void dispose() {
+    widget.scroll.removeListener(_moved);
+    _travel.dispose();
+    super.dispose();
+  }
+
+  void _moved() {
+    final scroll = widget.scroll;
+    // The first position, not `offset`: while one tree replaces another the
+    // controller briefly holds two, and `offset` asserts on that.
+    final offset = scroll.hasClients ? scroll.positions.first.pixels : 0.0;
+    // At rest, and while a pull stretches the list the other way, zero.
+    _travel.value = offset.clamp(0.0, _HeroRecede._over);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (MediaQuery.disableAnimationsOf(context)) return child;
-    return AnimatedBuilder(
-      animation: scroll,
-      child: child,
-      builder: (context, child) {
-        // The first position, not `offset`: while one tree replaces another
-        // the controller briefly holds two, and `offset` asserts on that.
-        final offset = scroll.hasClients ? scroll.positions.first.pixels : 0.0;
-        // At rest, and while a pull stretches the list the other way, the
-        // header is itself: no layer, no clip.
-        if (offset <= 0) return child!;
-        final t = (offset / _over).clamp(0.0, 1.0);
+    if (MediaQuery.disableAnimationsOf(context)) return widget.child;
+    return ValueListenableBuilder<double>(
+      valueListenable: _travel,
+      child: widget.child,
+      builder: (context, travel, child) {
+        // At rest the header is itself: no layer, no clip.
+        if (travel <= 0) return child!;
+        final t = travel / _HeroRecede._over;
         return ClipRect(
           child: Opacity(
             opacity: 1 - NexMotion.exitCurve.transform(t),
             child: Transform.translate(
-              offset: Offset(0, offset * 0.3),
+              offset: Offset(0, travel * 0.3),
               child: child,
             ),
           ),

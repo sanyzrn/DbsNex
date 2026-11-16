@@ -143,15 +143,11 @@ NexBriefFacts nexBriefFacts(
     if (due != null) {
       final moment = due.toUtc();
       if (moment.isBefore(at)) {
-        overdue.add(
-          NexBriefEntry(title: title, dueAt: due, noteId: note.id),
-        );
+        overdue.add(NexBriefEntry(title: title, dueAt: due, noteId: note.id));
         continue;
       }
       if (moment.isBefore(at.add(horizon))) {
-        dueSoon.add(
-          NexBriefEntry(title: title, dueAt: due, noteId: note.id),
-        );
+        dueSoon.add(NexBriefEntry(title: title, dueAt: due, noteId: note.id));
         continue;
       }
     }
