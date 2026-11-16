@@ -46,21 +46,14 @@ void main() {
   );
 
   test('what has slipped comes before what is coming', () {
-    final facts = nexBriefFacts(
-      [
-        note(
-          id: '1',
-          text: 'call the plumber',
-          dueAt: now.subtract(const Duration(days: 2)),
-        ),
-        note(
-          id: '2',
-          text: 'dentist',
-          dueAt: now.add(const Duration(days: 1)),
-        ),
-      ],
-      now: now,
-    );
+    final facts = nexBriefFacts([
+      note(
+        id: '1',
+        text: 'call the plumber',
+        dueAt: now.subtract(const Duration(days: 2)),
+      ),
+      note(id: '2', text: 'dentist', dueAt: now.add(const Duration(days: 1))),
+    ], now: now);
     expect(facts.overdue.single.title, 'call the plumber');
     expect(facts.dueSoon.single.title, 'dentist');
     expect(facts.nothingWaiting, isFalse);
@@ -68,21 +61,18 @@ void main() {
   });
 
   test('the most overdue is first, not the most recent', () {
-    final facts = nexBriefFacts(
-      [
-        note(
-          id: '1',
-          text: 'yesterday',
-          dueAt: now.subtract(const Duration(days: 1)),
-        ),
-        note(
-          id: '2',
-          text: 'last month',
-          dueAt: now.subtract(const Duration(days: 30)),
-        ),
-      ],
-      now: now,
-    );
+    final facts = nexBriefFacts([
+      note(
+        id: '1',
+        text: 'yesterday',
+        dueAt: now.subtract(const Duration(days: 1)),
+      ),
+      note(
+        id: '2',
+        text: 'last month',
+        dueAt: now.subtract(const Duration(days: 30)),
+      ),
+    ], now: now);
     // What has been ignored longest is the thing worth saying first. Sorting
     // these by date the other way round buries a bill nobody has paid under
     // one that slipped this morning.
@@ -93,16 +83,13 @@ void main() {
   });
 
   test('a date beyond the horizon is not waiting on anybody', () {
-    final facts = nexBriefFacts(
-      [
-        note(
-          id: '1',
-          text: 'passport renewal',
-          dueAt: now.add(const Duration(days: 90)),
-        ),
-      ],
-      now: now,
-    );
+    final facts = nexBriefFacts([
+      note(
+        id: '1',
+        text: 'passport renewal',
+        dueAt: now.add(const Duration(days: 90)),
+      ),
+    ], now: now);
     // It is a note with a date on it, not something this morning needs to
     // hear about — the same horizon `nexRecapSource` uses, so a brief with a
     // model in it and one without cannot disagree about the same Tuesday.
@@ -111,17 +98,14 @@ void main() {
   });
 
   test('a deleted note is not waiting either', () {
-    final facts = nexBriefFacts(
-      [
-        note(
-          id: '1',
-          text: 'cancelled',
-          dueAt: now.subtract(const Duration(days: 1)),
-          deletedAt: now,
-        ),
-      ],
-      now: now,
-    );
+    final facts = nexBriefFacts([
+      note(
+        id: '1',
+        text: 'cancelled',
+        dueAt: now.subtract(const Duration(days: 1)),
+        deletedAt: now,
+      ),
+    ], now: now);
     expect(facts.nothingWaiting, isTrue);
     expect(facts.notes, 0);
   });
@@ -144,46 +128,83 @@ void main() {
   });
 
   test('an overdue checklist is said once, as overdue', () {
-    final facts = nexBriefFacts(
-      [
-        note(
-          id: '1',
-          text: '- [ ] milk',
-          type: NoteType.checklist,
-          dueAt: now.subtract(const Duration(days: 1)),
-        ),
-      ],
-      now: now,
-    );
+    final facts = nexBriefFacts([
+      note(
+        id: '1',
+        text: '- [ ] milk',
+        type: NoteType.checklist,
+        dueAt: now.subtract(const Duration(days: 1)),
+      ),
+    ], now: now);
     // Both are true of it. Saying both spends two of a four-line brief on one
     // item, and the second line adds nothing the first did not.
     expect(facts.overdue, hasLength(1));
     expect(facts.unfinished, isEmpty);
   });
 
-  test('a commitment is waiting on its own lead time, and a paused one never',
-      () {
+  test(
+    'a commitment is waiting on its own lead time, and a paused one never',
+    () {
+      final facts = nexBriefFacts(
+        const [],
+        commitments: [
+          commitment(
+            title: 'rent',
+            dueAt: now.subtract(const Duration(days: 3)),
+          ),
+          commitment(
+            title: 'gym',
+            dueAt: now.subtract(const Duration(days: 3)),
+            paused: true,
+          ),
+        ],
+        now: now,
+      );
+      expect(facts.overdue.single.title, 'rent');
+      expect(facts.overdue.single.recurring, isTrue);
+    },
+  );
+
+  test('a fact about a note names it; a commitment has none to name', () {
+    // What lets a line of the brief on the home screen open its note
+    // (2.8.0). A commitment is not a note and leads nowhere.
     final facts = nexBriefFacts(
-      const [],
-      commitments: [
-        commitment(title: 'rent', dueAt: now.subtract(const Duration(days: 3))),
-        commitment(
-          title: 'gym',
-          dueAt: now.subtract(const Duration(days: 3)),
-          paused: true,
+      [
+        note(
+          id: 'late',
+          text: 'renew the passport',
+          dueAt: now.subtract(const Duration(days: 2)),
         ),
+        note(
+          id: 'soon',
+          text: 'call the plumber',
+          dueAt: now.add(const Duration(days: 1)),
+        ),
+        note(id: 'list', text: '[ ] milk\n[x] bread', type: NoteType.checklist),
+      ],
+      commitments: [
+        commitment(title: 'Rent', dueAt: now.add(const Duration(days: 1))),
       ],
       now: now,
     );
-    expect(facts.overdue.single.title, 'rent');
-    expect(facts.overdue.single.recurring, isTrue);
+    expect(facts.overdue.single.noteId, 'late');
+    expect({
+      for (final entry in facts.dueSoon) entry.title: entry.noteId,
+    }, containsPair('call the plumber', 'soon'));
+    expect(
+      facts.dueSoon.where((entry) => entry.recurring).map((e) => e.noteId),
+      everyElement(isNull),
+    );
+    for (final entry in facts.unfinished) {
+      expect(entry.noteId, 'list');
+    }
   });
 
   test('a quiet library is a quiet brief', () {
-    final facts = nexBriefFacts(
-      [note(id: '1', text: 'a thought'), note(id: '2', text: 'another')],
-      now: now,
-    );
+    final facts = nexBriefFacts([
+      note(id: '1', text: 'a thought'),
+      note(id: '2', text: 'another'),
+    ], now: now);
     // Not an empty one — there are two notes. Nothing is *waiting*, which is
     // an answer rather than a failure, and the thing a brief is allowed to
     // say nothing about.

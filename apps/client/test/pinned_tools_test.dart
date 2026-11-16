@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/modules/habits/habit_model.dart';
+import 'package:nex_client/modules/nex_module_store.dart';
 import 'package:nex_client/platform/vault_session.dart';
 import 'package:nex_client/screens/tools/pinned_tools.dart';
 import 'package:nex_client/screens/tools_screen.dart';
+import 'package:nex_client/widgets/nex_shelf.dart';
+import 'package:nex_core/nex_core.dart';
 
 import 'support/nex_harness.dart';
 
@@ -100,6 +104,137 @@ void main() {
       expect(harness.preferences.pinnedTools, isNot(contains('generator')));
     });
   }
+
+  testWidgets('one or two tiles share the row; from three on it scrolls '
+      'sideways with the next one showing', (tester) async {
+    tester.view.physicalSize = const Size(412, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Finder tile(String id) => find.byKey(ValueKey('pinned-tool-$id'));
+    final rail = find.byKey(const ValueKey('glance-rail'));
+    Future<void> show() async {
+      await tester.pumpWidget(
+        host(
+          PinnedTools(
+            services: harness.services,
+            preferences: harness.preferences,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await harness.preferences.togglePinnedTool('generator');
+    await harness.preferences.togglePinnedTool('vault.card');
+    await show();
+    // Two: side by side, edge to edge of the page's own gutters, level.
+    final first = tester.getRect(tile('generator'));
+    final second = tester.getRect(tile('vault.card'));
+    expect(first.top, second.top);
+    expect(first.width, closeTo(second.width, 0.5));
+    expect(first.left, closeTo(16, 0.5));
+    expect(second.right, closeTo(412 - 16, 0.5));
+    final scroll = tester.widget<SingleChildScrollView>(rail);
+    expect(scroll.scrollDirection, Axis.horizontal);
+    expect(
+      tester
+          .state<ScrollableState>(
+            find.descendant(of: rail, matching: find.byType(Scrollable)),
+          )
+          .position
+          .maxScrollExtent,
+      0,
+      reason: 'two tiles fit: nothing to scroll',
+    );
+
+    // Three: still one row — it used to be two rows, the odd one out alone
+    // on the second — and the third shows its edge at the side.
+    await harness.preferences.togglePinnedTool('vault.password');
+    await show();
+    final rects = [
+      for (final id in ['generator', 'vault.card', 'vault.password'])
+        tester.getRect(tile(id)),
+    ];
+    expect({for (final rect in rects) rect.top}, hasLength(1));
+    expect(rects[1].right, lessThan(412));
+    expect(rects[2].left, lessThan(412), reason: 'the next one peeks in');
+    expect(rects[2].right, greaterThan(412));
+    final position = tester
+        .state<ScrollableState>(
+          find.descendant(of: rail, matching: find.byType(Scrollable)),
+        )
+        .position;
+    expect(position.maxScrollExtent, greaterThan(0));
+    await tester.drag(rail, const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(tile('vault.password')).right,
+      closeTo(412 - 16, 0.5),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a module that counts toward something draws it as a ring', (
+    tester,
+  ) async {
+    await harness.preferences.setModuleOn('habits', true);
+    final now = DateTime.now();
+    final store = NexModuleStore(harness.services, 'habits');
+    for (final id in ['water', 'walk']) {
+      await store.put('habit', id, {
+        'name': id,
+        'schedule': 'daily',
+        'goal': 1,
+        'archived': false,
+        'createdAt': now.subtract(const Duration(days: 10)).toIso8601String(),
+      });
+    }
+    await store.put('check', HabitCheck.idFor('water', dateKeyOf(now)), {
+      'habit': 'water',
+      'date': dateKeyOf(now),
+      'amount': 1,
+      'at': now.toIso8601String(),
+    });
+    await harness.preferences.togglePinnedTool('module.habits');
+    await harness.preferences.togglePinnedTool('generator');
+    await tester.pumpWidget(
+      host(
+        PinnedTools(
+          services: harness.services,
+          preferences: harness.preferences,
+        ),
+      ),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pumpAndSettle();
+    NexProgressRing ring(String id) => tester.widget<NexProgressRing>(
+      find.descendant(
+        of: find.byKey(ValueKey('pinned-tool-$id')),
+        matching: find.byType(NexProgressRing),
+      ),
+    );
+    // One habit of two done today: half the ring, a real count.
+    expect(ring('module.habits').progress, 0.5);
+    // A tool that counts nothing keeps the ring's room and draws none, so
+    // the marks along the row stay level.
+    expect(ring('generator').progress, isNull);
+    expect(
+      tester.getSize(
+        find.descendant(
+          of: find.byKey(const ValueKey('pinned-tool-module.habits')),
+          matching: find.byType(NexProgressRing),
+        ),
+      ),
+      tester.getSize(
+        find.descendant(
+          of: find.byKey(const ValueKey('pinned-tool-generator')),
+          matching: find.byType(NexProgressRing),
+        ),
+      ),
+    );
+  });
 
   testWidgets('nothing at all while hidden', (tester) async {
     await harness.preferences.togglePinnedTool('generator');
