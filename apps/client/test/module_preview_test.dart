@@ -24,7 +24,7 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('five add-ons are back, the other eight are Soon; their code stays', () {
+  test('five add-ons are back, the other nine are Soon; their code stays', () {
     // Cycle; Pause, which is first-party; and, finished and redesigned in
     // 2.4.0, Birthdays & occasions and Word by Word.
     expect(nexAvailableModuleIds, {
@@ -39,9 +39,10 @@ void main() {
     const back = {'occasions', 'words', 'habits', 'converter', 'warranty'};
     expect(reviewed, back);
     expect(paused, moduleIds.difference(back));
-    // Twelve add-ons, and Converter (2.6.29), on from 2.7.0 once the owner
-    // had tried it on a phone.
-    expect(moduleIds, hasLength(13));
+    // Thirteen existing add-ons plus Prompt Studio, registered but still Soon.
+    expect(moduleIds, contains('prompt_studio'));
+    expect(paused, contains('prompt_studio'));
+    expect(moduleIds, hasLength(14));
   });
 
   test(
@@ -56,8 +57,8 @@ void main() {
     },
   );
 
-  test('all modules default off, including the thirteen add-ons', () {
-    expect(moduleIds, hasLength(13));
+  test('all modules default off, including the fourteen add-ons', () {
+    expect(moduleIds, hasLength(14));
     expect(
       nexModules.whereType<NexStoredModule>().map((m) => m.id).toSet(),
       moduleIds,
@@ -88,7 +89,7 @@ void main() {
   );
 
   test(
-    'identical record keys stay isolated across all twelve modules',
+    'identical record keys stay isolated across all stored modules',
     () async {
       for (final id in moduleIds) {
         await NexModuleStore(

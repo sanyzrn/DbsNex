@@ -83,14 +83,6 @@ const List<NexModulePlan> nexModulePlans = [
     NexHue.violet,
     NexModuleStage.soon,
   ),
-  // A plain request in, a well-made prompt out, through the person's own AI
-  // provider. Planned for after the assistant's tools settle.
-  NexModulePlan(
-    'prompt-studio',
-    Icons.auto_fix_high_outlined,
-    NexHue.violet,
-    NexModuleStage.soon,
-  ),
   NexModulePlan(
     'security-tools',
     Icons.security_outlined,
