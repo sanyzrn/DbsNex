@@ -52,6 +52,10 @@ Working convention:
 - `_updateStickyDay` runs post-frame (`_queueStickyDay`), checks the row is
   held, and skips a label a visible heading already carries (headings
   register as `_DayMark(heading: true)`).
+- `NexNavigationDock` gains `recede` (a `FadeTransition`, so no rebuilds
+  while it runs) and `away`; `_followDock` in `timeline_scroll.dart` drives
+  them from finger travel (48 px down to step back, 24 px up to return), and
+  the bottom scrim thins with the same animation.
 - `timeline_home_chrome.dart` holds the toolbar, the layout-sheet opener and
   the brief card, keeping `timeline_layout.dart` and `timeline_ai_header.dart`
   under the file-size limit.

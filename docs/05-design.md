@@ -80,7 +80,7 @@ All four combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode
 | Component | Purpose | Design Notes |
 |---|---|---|
 | **Capture Button (`+`)** | Universal entry point to text/voice/photo capture | Always visible on the Timeline, fixed position, largest single interactive element on screen |
-| **Home dock** | Thumb-reachable destinations on the Timeline | One floating surface with four 48dp actions and a raised 64dp Capture button at its centre. Positions stay fixed in English and Persian; on a narrow screen the outside margin yields before a tap target does. The list fades into its own page colour behind the dock. |
+| **Home dock** | Thumb-reachable destinations on the Timeline | One floating surface with four 48dp actions and a raised 64dp Capture button at its centre. While a finger reads down the list the four actions step back and Capture stays (2.8.0). Positions stay fixed in English and Persian; on a narrow screen the outside margin yields before a tap target does. The list fades into its own page colour behind the dock. |
 | **Capture Sheet** | Presents the three capture types | Appears instantly (no loading state), dismissible by outside tap |
 | **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text / voice caption or type with duration / photo thumbnail). Exact creation and edit times live in details; cards omit visible timestamps by owner decision. Tags use compact accent marks with localized accessible names. Collapsed cards share a text-scale-aware height; expanded cards grow to their content. Cards retain caption/type and duration; Android detail playback decodes and caches a real waveform |
 | **Tag Chip** | Represents a single tag | Neutral chip shape and text; an optional small accent dot (user-chosen, see [Tag Accent Color](#tag-accent-color)) may render beside the label. Rounded, removable via inline "×" in edit contexts |
@@ -306,3 +306,13 @@ zones, and the notes begin at the middle of the first screen.
   that is on screen. A dock glyph gives under a finger and springs back.
 - **Home layout** pins and unpins tools as well: pinning used to be a hold on
   the Tools page, which nothing on the home screen mentioned.
+- **The dock steps back while reading.** The bar and the fade behind it cover
+  the bottom fifth of the screen. Once a finger has carried the list a little
+  way down, past the top of the home screen, the four destinations and most of
+  the fade step back; a little way back up, the top, or the end of the list
+  returns them. Capture never moves — "the `+` action occupies a fixed,
+  muscle-memory position at all times" is about exactly this button. Only a
+  finger steps it back, never a scroll the app starts itself, never with
+  accessible navigation on, and never while selecting. It is a fade drawn by
+  the render object (`NexNavigationDock.recede`), so the scroll that starts it
+  rebuilds nothing while it runs.
