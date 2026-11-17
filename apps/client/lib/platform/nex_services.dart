@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+
 import 'dart:isolate';
 import 'dart:math';
 import 'dart:io';
@@ -130,8 +131,7 @@ class NexServices {
   /// Notes whose reminder is ringing (2.3.0); [NexRingingServices] keeps it.
   final ringing = ValueNotifier<Set<String>>(const {});
 
-  /// Notes a "remove when done" reminder sent to Recently deleted (2.8.4),
-  /// until the timeline has offered their Undo.
+  /// Notes a "remove when done" reminder just deleted, awaiting Undo (2.8.4).
   final reminderCleared = ValueNotifier<List<String>>(const []);
 
   final BackupPolicy _backupPolicy;
