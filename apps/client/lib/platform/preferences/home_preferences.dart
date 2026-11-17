@@ -148,6 +148,20 @@ mixin _HomePreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// Whether the home screen shows a tip now and then (2.8.4). On by
+  /// default; the schedule keeps them rare.
+  bool get showTips => _prefs.getBool('home.tips') ?? true;
+
+  Future<void> setShowTips(bool value) => _setHomePart('tips', value);
+
+  /// Where the tips are: which have been shown, which is up, when the last
+  /// one was closed — `NexTipState`'s JSON. Written quietly: the card keeps
+  /// its own state, and a write here must not rebuild the whole home screen.
+  String? get tipState => _prefs.getString('home.tip_state');
+
+  Future<void> setTipState(String json) =>
+      _prefs.setString('home.tip_state', json);
+
   Future<void> setWidgetTypes(Set<String> value) async {
     await _prefs.setStringList('widget.types', value.toList()..sort());
     notifyListeners();

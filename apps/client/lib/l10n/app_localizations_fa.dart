@@ -6612,4 +6612,138 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get onboardingModulesBody =>
       'نکس پیش از هر چیز جای یادداشت است. کنارش می‌توانید ابزارهای کوچکی اضافه کنید — عادت‌ها، تولدها، داروها، چک و اقساط، پارک خودرو، طلا و چیزهای دیگر. هر کدام تا اضافه‌اش نکنید خاموش می‌ماند و داده‌اش را جدا نگه می‌دارد. همین حالا هر کدام را بزنید تا اضافه شود، یا بعداً از «ابزارها».';
+
+  @override
+  String get tipLabel => 'نکته';
+
+  @override
+  String get tipClose => 'بستن این نکته';
+
+  @override
+  String get tipTurnOff => 'دیگر نکته نشان نده';
+
+  @override
+  String get tipOpenTools => 'باز کردن ابزارها';
+
+  @override
+  String get layoutTips => 'نکته‌ها';
+
+  @override
+  String get tipReminderClearsTitle => 'یادآوری‌ای که خودش جمع می‌کند';
+
+  @override
+  String get tipReminderClearsBody =>
+      'یادآوری یک‌باره می‌تواند پس از انجام، یادداشتش را هم بردارد: کنار «تکرار»، «پس از انجام، یادداشت حذف شود» را بزنید. با «انجام شد» در اعلان، یا باز و بسته کردن یادداشت پس از به صدا درآمدن، یادداشت به «اخیراً حذف‌شده» می‌رود — با امکان برگرداندن.';
+
+  @override
+  String get tipModulesTitle => 'ابزارهای کوچک کنار یادداشت‌ها';
+
+  @override
+  String get tipModulesBody =>
+      'عادت‌ها، تولدها، داروها، چک و اقساط، پارک خودرو و چیزهای دیگر در «ابزارها» هستند. فقط همان‌هایی را که می‌خواهید اضافه کنید.';
+
+  @override
+  String get tipPinToolsTitle => 'ابزارهایتان روی صفحهٔ خانه';
+
+  @override
+  String get tipPinToolsBody =>
+      'در صفحهٔ «ابزارها» یک ابزار را نگه دارید تا بالای یادداشت‌ها سنجاق شود و با یک لمس در دسترس باشد.';
+
+  @override
+  String get tipFlickPlusTitle => 'با کشیدن + یک قدم جلوتر';
+
+  @override
+  String get tipFlickPlusBody =>
+      '+ را به چپ بکشید تا صدا ضبط شود، یا به راست تا دوربین باز شود. کار هر طرف را در تنظیمات ← «اشاره‌ها و منوها» انتخاب کنید.';
+
+  @override
+  String get tipSendLaterTitle => 'یادداشتی برای آینده';
+
+  @override
+  String get tipSendLaterBody =>
+      'دکمهٔ ارسال را به‌جای زدن نگه دارید تا یادداشت هر وقت خواستید برسد — فردا صبح، ماه بعد، سال بعد.';
+
+  @override
+  String get tipGridTitle => 'یادداشت‌ها به شکل کاشی';
+
+  @override
+  String get tipGridBody =>
+      'کلید انتهای ردیف برچسب‌ها فهرست را شبکه‌ای می‌کند: عکس‌ها کل کاشی را پر می‌کنند و یادداشت صوتی همان‌جا پخش می‌شود.';
+
+  @override
+  String get tipGroupByTitle => 'دسته‌بندی بر اساس چه، نه کی';
+
+  @override
+  String get tipGroupByBody =>
+      'در «چیدمان خانه» می‌توانید یادداشت‌ها را به‌جای روز، بر اساس نوع یا برچسب در قفسه‌های جدا ببینید.';
+
+  @override
+  String get tipPinchTitle => 'بستن همهٔ روزها با هم';
+
+  @override
+  String get tipPinchBody =>
+      'دو انگشت را روی خط زمانی به هم نزدیک کنید تا همهٔ روزها بسته شوند، و از هم باز کنید تا دوباره باز شوند.';
+
+  @override
+  String get tipPinNoteTitle => 'یادداشتی همیشه بالا';
+
+  @override
+  String get tipPinNoteBody =>
+      'یادداشتی را نگه دارید و «پین کردن» را بزنید. تا پنج یادداشت بالای خط زمانی می‌مانند.';
+
+  @override
+  String get tipSelectTitle => 'چند یادداشت با هم';
+
+  @override
+  String get tipSelectBody =>
+      'دایرهٔ کنار یک کارت را بزنید تا انتخاب شروع شود؛ بعد همه را با هم برچسب بزنید، پین یا بایگانی کنید یا حذف کنید.';
+
+  @override
+  String get tipArchiveTitle => 'دور از چشم، نه حذف';
+
+  @override
+  String get tipArchiveBody =>
+      '«بایگانی» یادداشت را تا زمانی که می‌گویید — امشب، هفتهٔ بعد — از صفحهٔ خانه برمی‌دارد و بعد خودش برمی‌گرداند.';
+
+  @override
+  String get tipLockTitle => 'قفل نکس با اثر انگشت';
+
+  @override
+  String get tipLockBody =>
+      '«قفل برنامه» را در تنظیمات روشن کنید تا نکس فقط برای خودتان باز شود.';
+
+  @override
+  String get tipBackupTitle => 'یک نسخه در جای امن';
+
+  @override
+  String get tipBackupBody =>
+      '«کپی خودکار در یک پوشه» در تنظیمات، روزی یک بار یادداشت‌ها را در پوشه‌ای که انتخاب می‌کنید ذخیره می‌کند — روی گوشی، گوگل‌درایو یا نکست‌کلاد — تا با گم شدن گوشی از دست نروند.';
+
+  @override
+  String get tipWidgetTitle => 'نکس روی صفحهٔ اصلی گوشی';
+
+  @override
+  String get tipWidgetBody =>
+      'ابزارک «خط زمانی Nex» را از لانچر اضافه کنید تا یادداشت، صدا یا عکس را با یک لمس شروع کنید.';
+
+  @override
+  String get tipShareInTitle => 'ذخیره از هر اپی';
+
+  @override
+  String get tipShareInBody =>
+      'هر چیزی را به نکس بفرستید، یا در اپ دیگری متنی را انتخاب کنید و از منو «ذخیره در Nex» را بزنید.';
+
+  @override
+  String get tipTrashTitle => 'حذف‌شده، از دست‌رفته نیست';
+
+  @override
+  String get tipTrashBody =>
+      'یادداشت‌های حذف‌شده ۳۰ روز در کتابخانه ← سطل زباله می‌مانند و هر کدام را می‌شود برگرداند.';
+
+  @override
+  String get tipGuideTitle => 'هر کاری که نکس می‌کند';
+
+  @override
+  String get tipGuideBody =>
+      'راهنما همهٔ بخش‌های برنامه را توضیح می‌دهد و همیشه در تنظیمات هست.';
 }

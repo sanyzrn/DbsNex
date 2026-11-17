@@ -133,6 +133,23 @@ class _HomeLayoutSheetState extends State<HomeLayoutSheet> {
                 ),
               ],
             ),
+            const SizedBox(height: NexSpacing.sm),
+            // Now and then, a tip above the notes (2.8.4).
+            Row(
+              children: [
+                Expanded(
+                  child: toggle(
+                    'tips',
+                    Icons.lightbulb_outline_rounded,
+                    l10n.layoutTips,
+                    prefs.showTips,
+                    prefs.setShowTips,
+                  ),
+                ),
+                const SizedBox(width: NexSpacing.sm),
+                const Expanded(child: SizedBox.shrink()),
+              ],
+            ),
             const SizedBox(height: NexSpacing.lg),
             Text(l10n.layoutLookSection, style: label),
             const SizedBox(height: NexSpacing.sm),

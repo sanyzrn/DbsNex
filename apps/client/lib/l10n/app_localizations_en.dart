@@ -6710,4 +6710,138 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onboardingModulesBody =>
       'Nex is notes first. Beside them you can add small tools — habits, birthdays, medicines, cheques and instalments, parking, gold and more. Each stays off until you add it and keeps its own data. Tap any to add it now, or later from Tools.';
+
+  @override
+  String get tipLabel => 'Tip';
+
+  @override
+  String get tipClose => 'Close this tip';
+
+  @override
+  String get tipTurnOff => 'No more tips';
+
+  @override
+  String get tipOpenTools => 'Open Tools';
+
+  @override
+  String get layoutTips => 'Tips';
+
+  @override
+  String get tipReminderClearsTitle => 'Reminders that tidy up';
+
+  @override
+  String get tipReminderClearsBody =>
+      'A one-time reminder can remove its note once it is done: choose “Remove the note when done” beside Repeat. Done in the notification, or opening the note after it rings, sends it to Recently deleted — with Undo.';
+
+  @override
+  String get tipModulesTitle => 'Small tools beside your notes';
+
+  @override
+  String get tipModulesBody =>
+      'Habits, birthdays, medicines, cheques and instalments, parking and more are in Tools. Add only the ones you want.';
+
+  @override
+  String get tipPinToolsTitle => 'Your tools on the home screen';
+
+  @override
+  String get tipPinToolsBody =>
+      'Hold a tool on the Tools page to pin it above your notes, one tap away.';
+
+  @override
+  String get tipFlickPlusTitle => 'Flick + to skip a step';
+
+  @override
+  String get tipFlickPlusBody =>
+      'Flick + to the left to record a voice note, or to the right to open the camera. Choose what each side does in Settings → Gestures and menus.';
+
+  @override
+  String get tipSendLaterTitle => 'Send a note to the future';
+
+  @override
+  String get tipSendLaterBody =>
+      'Hold the send button instead of tapping it, and the note arrives when you choose — tomorrow morning, next month, next year.';
+
+  @override
+  String get tipGridTitle => 'Notes as tiles';
+
+  @override
+  String get tipGridBody =>
+      'The switch at the end of the tag row turns the list into a grid: photos fill their tiles, and voice notes play right on them.';
+
+  @override
+  String get tipGroupByTitle => 'Group by what, not when';
+
+  @override
+  String get tipGroupByBody =>
+      'Home layout can group your notes by kind or by tag instead of by day, each on its own shelf.';
+
+  @override
+  String get tipPinchTitle => 'Fold every day at once';
+
+  @override
+  String get tipPinchBody =>
+      'Pinch two fingers together on the timeline to fold every day, and spread them to open them all again.';
+
+  @override
+  String get tipPinNoteTitle => 'Keep a note on top';
+
+  @override
+  String get tipPinNoteBody =>
+      'Hold a note and choose Pin. Up to five notes stay at the top of your timeline.';
+
+  @override
+  String get tipSelectTitle => 'Many notes at once';
+
+  @override
+  String get tipSelectBody =>
+      'Tap a card\'s round icon to start picking notes, then tag, pin, archive or delete them together.';
+
+  @override
+  String get tipArchiveTitle => 'Out of sight, not deleted';
+
+  @override
+  String get tipArchiveBody =>
+      'Archive takes a note off the home screen until a time you choose — this evening, next week — and brings it back by itself.';
+
+  @override
+  String get tipLockTitle => 'Lock Nex with your fingerprint';
+
+  @override
+  String get tipLockBody =>
+      'Turn on App lock in Settings, and Nex opens only for you.';
+
+  @override
+  String get tipBackupTitle => 'A copy somewhere safe';
+
+  @override
+  String get tipBackupBody =>
+      '“Automatic copy to a folder” in Settings saves your notes once a day to a folder you choose — on the phone, Google Drive or Nextcloud — so they survive losing the phone.';
+
+  @override
+  String get tipWidgetTitle => 'Nex on your home screen';
+
+  @override
+  String get tipWidgetBody =>
+      'Add the Nex Timeline widget from your launcher to start a note, a voice note or a photo in one tap.';
+
+  @override
+  String get tipShareInTitle => 'Save from any app';
+
+  @override
+  String get tipShareInBody =>
+      'Share anything to Nex, or select words in another app and choose “Save to Nex” from the menu.';
+
+  @override
+  String get tipTrashTitle => 'Deleted is not gone';
+
+  @override
+  String get tipTrashBody =>
+      'Deleted notes wait 30 days in Library → Trash, where any of them can be restored.';
+
+  @override
+  String get tipGuideTitle => 'Everything Nex can do';
+
+  @override
+  String get tipGuideBody =>
+      'The guide walks through every part of the app, and it is always in Settings.';
 }
