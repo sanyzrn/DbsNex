@@ -17,17 +17,19 @@ class SavedComparison {
   final Map<String, Object?>? source;
 
   Map<String, Object?> toBody() => {
+    ...keepUnknown(source, {'date', 'commonUnit', 'options', 'schema'}),
     'date': date.toIso8601String(),
     if (commonUnitKey != null) 'commonUnit': commonUnitKey,
     'options': [for (final option in options) option.toBody()],
-    'schema': 2,
+    'schema': 3,
   };
 
   static SavedComparison? fromBody(String id, Map<String, Object?> body) {
     final dateRaw = _stringOf(body, 'date');
     final date = dateRaw == null ? null : priceCalendar(dateRaw);
     final rawOptions = body['options'];
-    if (date == null ||
+    if (!priceSchemaKnown(body) ||
+        date == null ||
         rawOptions is! List ||
         rawOptions.length < 2 ||
         rawOptions.length > 4) {

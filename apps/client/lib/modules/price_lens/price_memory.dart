@@ -15,6 +15,9 @@ class PriceMemory {
     this.packageCount = 1,
     this.paidFraction,
     this.source,
+    this.recordedAt,
+    this.productName,
+    this.person,
   });
 
   final String id;
@@ -24,14 +27,30 @@ class PriceMemory {
   final Fraction quantity;
   final String unitKey;
   final DateTime date;
+  final DateTime? recordedAt;
   final int packageCount;
   final Fraction? paidFraction;
   Fraction get exactPaid => paidFraction ?? Fraction(priceMinor);
   final Map<String, Object?>? source;
+  final String? productName;
+  final Map<String, Object?>? person;
+  String get productLabel =>
+      productName?.trim().isNotEmpty == true ? productName! : label;
+  String get shop => person?['name'] is String ? person!['name'] as String : '';
 
   Map<String, Object?> toBody() => {
+    ...keepUnknown(source, memoryFields),
     'label': label,
-    'price': priceMinor,
+    if (currency == 'IRR' &&
+        paidFraction != null &&
+        paidFraction!.exactNumerator %
+                (paidFraction!.exactDenominator * BigInt.from(100)) !=
+            BigInt.zero)
+      'price': priceMinor
+    else
+      ...priceMoneyFields(priceMinor, currency, source),
+    if (productName != null) 'productName': productName,
+    if (person != null) 'person': person,
     'currency': currency,
     ...priceMetadata(currency),
     'quantity': quantity.numerator,
@@ -43,18 +62,25 @@ class PriceMemory {
       'paid_num': paidFraction!.exactNumerator.toString(),
     if (paidFraction != null)
       'paid_den': paidFraction!.exactDenominator.toString(),
-    'schema': 2,
+    if (recordedAt != null) 'recordedAt': recordedAt!.toIso8601String(),
+    'schema': 3,
   };
 
-  static PriceMemory? fromBody(String id, Map<String, Object?> body) {
+  static PriceMemory? fromBody(
+    String id,
+    Map<String, Object?> body, {
+    DateTime? recordedAt,
+  }) {
     final label = _stringOf(body, 'label');
-    final price = body['price'];
+    final price = storedPriceMinor(body);
     final currency = body['currency_code'] ?? body['currency'];
     final unit = _stringOf(body, 'unit');
     final quantity = body['quantity'];
     final dateRaw = _stringOf(body, 'date');
     final date = dateRaw == null ? null : priceCalendar(dateRaw);
-    if (label == null ||
+    if (!priceSchemaKnown(body) ||
+        !productMetadataValid(body) ||
+        label == null ||
         label.trim().isEmpty ||
         !(price is int && price >= 0 && price <= priceMax * 2) ||
         !priceMetadataValid(body) ||
@@ -103,9 +129,34 @@ class PriceMemory {
       quantity: Fraction(quantity, _intOr(body['quantityDen'], 1)),
       unitKey: unit,
       date: date,
+      recordedAt: LocalValues.stamp(body['recordedAt']) ?? recordedAt,
       packageCount: _intOr(body['packageCount'], 1),
       paidFraction: exact,
       source: Map.of(body),
+      productName: body['productName'] is String
+          ? body['productName'] as String
+          : null,
+      person: storedPerson(body),
     );
   }
 }
+
+const memoryFields = {
+  'label',
+  'price',
+  'priceRial',
+  'amount',
+  'currency',
+  'currency_code',
+  'currency_exponent',
+  'quantity',
+  'quantityDen',
+  'unit',
+  'packageCount',
+  'date',
+  'paid_num',
+  'paid_den',
+  'schema',
+  'productName',
+  'person',
+};

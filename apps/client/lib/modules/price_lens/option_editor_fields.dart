@@ -1,16 +1,9 @@
 part of 'option_editor.dart';
 
-/// The offer editor's scrollable fields, split out of the sheet's build
-/// so each file stays small: label, price with currency and rial/toman,
-/// quantity with unit, counts, the one discount, shipping, and the
-/// shared shopping-date entry. State lives in the sheet; this builds.
 extension _OptionEditorFields on _OptionEditorSheetState {
   List<Widget> editorFields(BuildContext context) {
-    final theme = Theme.of(context);
     final s = priceLensStrings;
     return [
-      // A person's own words for the offer: the direction follows the
-      // script being typed (ADR-037).
       NexAutoDirection(
         controller: _label,
         builder: (context, direction) => TextField(
@@ -25,12 +18,12 @@ extension _OptionEditorFields on _OptionEditorSheetState {
                 ? s(context, 'labelEmpty')
                 : null,
           ),
-          onChanged: (_) => _markDirty(),
         ),
       ),
       const SizedBox(height: NexSpacing.md),
       PriceLensMoneyField(
         key: const ValueKey('lens-price'),
+        legacyMinor: widget.priceEntry ? null : widget.existing?.priceMinor,
         controller: _price,
         label: s(context, 'priceLabel'),
         currency: _currency,
@@ -56,9 +49,63 @@ extension _OptionEditorFields on _OptionEditorSheetState {
             unitKey: _unitKey,
           ),
         ),
-        onChanged: (_) => _markDirty(),
       ),
-      const SizedBox(height: NexSpacing.sm),
+      const SizedBox(height: NexSpacing.md),
+      LensUnitPicker(
+        selectedKey: _unitKey,
+        onSelected: (key) {
+          _paint(() {
+            _unitKey = key;
+            _unitConfirmed = true;
+          });
+          _markDirty();
+        },
+      ),
+      const SizedBox(height: NexSpacing.md),
+      if (_details)
+        ..._extraFields(context)
+      else
+        NexMoreDetails(
+          open: _details,
+          onChanged: (open) {
+            _paint(() => _details = open);
+            _markDirty();
+          },
+          title: s(context, 'moreDetails'),
+          hint: s(context, 'detailsHint'),
+          toggleKey: const ValueKey('lens-details'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _extraFields(context),
+          ),
+        ),
+    ];
+  }
+
+  List<Widget> _extraFields(BuildContext context) {
+    final s = priceLensStrings;
+    return [
+      NexTextField(
+        key: const ValueKey('lens-product'),
+        controller: _product,
+        minLines: 1,
+        maxLines: 2,
+        maxLength: 150,
+        decoration: InputDecoration(
+          labelText: s(context, 'productName'),
+          hintText: s(context, 'productNameHint'),
+        ),
+      ),
+      const SizedBox(height: NexSpacing.md),
+      NexTextField(
+        key: const ValueKey('lens-shop'),
+        controller: _shop,
+        minLines: 1,
+        maxLines: 2,
+        maxLength: 100,
+        decoration: InputDecoration(labelText: s(context, 'shopLabel')),
+      ),
+      const SizedBox(height: NexSpacing.md),
       TextField(
         key: const ValueKey('lens-count'),
         controller: _count,
@@ -72,7 +119,6 @@ extension _OptionEditorFields on _OptionEditorSheetState {
             text: _count.text,
           ),
         ),
-        onChanged: (_) => _markDirty(),
       ),
       if ((parseCount(_count.text) ?? 1) > 1 || _paidCount.text.isNotEmpty) ...[
         const SizedBox(height: NexSpacing.sm),
@@ -95,25 +141,15 @@ extension _OptionEditorFields on _OptionEditorSheetState {
                     text: _paidCount.text,
                   ),
           ),
-          onChanged: (_) => _markDirty(),
         ),
       ],
       const SizedBox(height: NexSpacing.md),
-      LensUnitPicker(
-        selectedKey: _unitKey,
-        onSelected: (key) {
-          _paint(() {
-            _unitKey = key;
-            _unitConfirmed = true;
-          });
-          _markDirty();
-        },
-      ),
       LensDiscountSection(
         kind: _discountKind,
         controller: _discount,
         currency: _currency,
         irrUnit: _irrUnit,
+        legacyMinor: widget.existing?.discountMinor,
         onKindChanged: (kind) {
           _paint(() => _discountKind = kind);
           _markDirty();
@@ -129,44 +165,73 @@ extension _OptionEditorFields on _OptionEditorSheetState {
           irrUnit: _irrUnit,
         ),
       ),
-      TextField(
-        key: const ValueKey('lens-shipping'),
-        controller: _shipping,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        textDirection: TextDirection.ltr,
-        decoration: InputDecoration(
-          labelText: s(context, 'shippingLabel'),
-          hintText: s(context, 'shippingHint'),
-          suffixText: _currency.code == 'IRR' && _irrUnit == IrrUnit.toman
-              ? s(context, 'tomanUnit')
-              : _currency.code,
-          errorText:
-              _showErrors &&
-                  _shipping.text.trim().isNotEmpty &&
-                  parseMoneyIn(_shipping.text, _currency, _irrUnit).minor ==
-                      null
-              ? s(context, 'errNotNumber')
+      const SizedBox(height: NexSpacing.md),
+      if (lensAmountsHidden(context))
+        const Text('••••')
+      else
+        LensAmountEntry(
+          legacyMinor: widget.existing?.shippingMinor,
+          fieldKey: const ValueKey('lens-shipping'),
+          controller: _shipping,
+          currency: _currency.code,
+          digits: _currency.code == 'IRR' ? 0 : _currency.exponent,
+          unit: _irrUnit,
+          label: s(context, 'shippingLabel'),
+          hint: s(context, 'shippingHint'),
+          errorText: _showErrors && _shipping.text.trim().isNotEmpty
+              ? moneyErrorOf(
+                  context,
+                  parseMoneyIn(_shipping.text, _currency, _irrUnit).error,
+                )
               : null,
         ),
-        onChanged: (_) => _markDirty(),
-      ),
       const SizedBox(height: NexSpacing.md),
-      // The shopping date: typed civil text with the shared Jalali
-      // calendar button beside it (storage stays ISO 8601).
-      NexModuleDateEntry(
-        controller: _dateText,
-        child: TextField(
-          key: const ValueKey('lens-date'),
+      if (NexModuleStrings.persian(context))
+        NexModuleCalendar(
+          solar: true,
+          child: Builder(
+            builder: (calendarContext) => TextButton.icon(
+              key: const ValueKey('lens-date'),
+              icon: const Icon(Icons.calendar_month_outlined),
+              onPressed: () async {
+                final now = DateTime.now();
+                final picked = await nexPickModuleDate(
+                  calendarContext,
+                  initial: _parsedDate ?? now,
+                  first: DateTime(1900),
+                  last: now,
+                );
+                if (picked != null && mounted) {
+                  _dateText.text =
+                      '${picked.year}/${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}';
+                  _paint(() => _dateConfirmed = true);
+                }
+              },
+              label: Text(
+                _parsedDate == null
+                    ? s(context, 'chooseDate')
+                    : nexReadableDate(_parsedDate!, solar: true, persian: true),
+              ),
+            ),
+          ),
+        )
+      else
+        NexModuleDateEntry(
           controller: _dateText,
-          keyboardType: TextInputType.datetime,
-          textDirection: TextDirection.ltr,
-          decoration: InputDecoration(
-            labelText: s(context, 'dateLabel'),
-            hintText: s(context, 'dateHint'),
-            errorText: _dateProblem ? s(context, 'dateRequired') : null,
+          child: TextField(
+            key: const ValueKey('lens-date'),
+            controller: _dateText,
+            keyboardType: TextInputType.datetime,
+            textDirection: TextDirection.ltr,
+            decoration: InputDecoration(
+              labelText: s(context, 'dateLabel'),
+              hintText: s(context, 'dateHint'),
+              errorText: _dateProblem ? s(context, 'dateRequired') : null,
+            ),
           ),
         ),
-      ),
+      if (NexModuleStrings.persian(context) && _dateProblem)
+        Text(s(context, 'dateRequired')),
       if (_dateText.text.isNotEmpty || !_dateConfirmed)
         Align(
           alignment: AlignmentDirectional.centerStart,
@@ -178,7 +243,10 @@ extension _OptionEditorFields on _OptionEditorSheetState {
             child: Text(s(context, 'clearDate')),
           ),
         ),
-      Text(s(context, 'bundlePriceHint'), style: theme.textTheme.bodySmall),
+      Text(
+        s(context, 'bundlePriceHint'),
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
     ];
   }
 }

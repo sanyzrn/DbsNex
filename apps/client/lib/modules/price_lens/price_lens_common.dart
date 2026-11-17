@@ -4,58 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'money.dart';
+import 'irr_unit.dart';
 import 'strings.dart';
+import 'legacy_amount_entry.dart';
+import 'privacy.dart';
+import 'choices.dart';
 
 /// The pieces the Price Lens's editors and screens share: pills, the
 /// money field with its currency picker and rial/toman choice, the
 /// discard guard, date labels.
 
 /// Which unit an IRR amount is entered in.
-enum IrrUnit { rial, toman }
-
-/// A calm pill that always meets the 48dp floor — the module's own
-/// selection control, wrapping where a segmented row would overflow.
-class LensPill extends StatelessWidget {
-  const LensPill({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final theme = Theme.of(context);
-    return IntrinsicWidth(
-      child: Material(
-        color: selected ? scheme.primary : scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(NexRadius.pill),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(NexRadius.pill),
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsetsDirectional.symmetric(
-              horizontal: NexSpacing.md,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: selected ? scheme.onPrimary : scheme.onSurface,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+export 'irr_unit.dart';
 
 /// The price field with its currency row and IRR unit choice. The
 /// error text appears as soon as the input stops being money.
@@ -68,6 +28,7 @@ class PriceLensMoneyField extends StatefulWidget {
     required this.irrUnit,
     required this.onCurrencyChanged,
     required this.onIrrUnitChanged,
+    this.legacyMinor,
     this.error,
     this.onChanged,
   });
@@ -78,6 +39,7 @@ class PriceLensMoneyField extends StatefulWidget {
   final IrrUnit irrUnit;
   final ValueChanged<PriceCurrency> onCurrencyChanged;
   final ValueChanged<IrrUnit> onIrrUnitChanged;
+  final int? legacyMinor;
   final String? error;
   final VoidCallback? onChanged;
 
@@ -93,25 +55,20 @@ class _PriceLensMoneyFieldState extends State<PriceLensMoneyField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          controller: widget.controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          textDirection: TextDirection.ltr,
-          decoration: InputDecoration(
-            labelText: widget.label,
-            // In toman entry the amount typed is tomans — say so beside it,
-            // the way the discount and shipping fields already do.
-            suffixText:
-                widget.currency.code == 'IRR' && widget.irrUnit == IrrUnit.toman
-                ? s(context, 'tomanUnit')
-                : widget.currency.code,
+        if (lensAmountsHidden(context))
+          const Text('••••')
+        else
+          LensAmountEntry(
+            legacyMinor: widget.legacyMinor,
+            controller: widget.controller,
+            currency: widget.currency.code,
+            digits: widget.currency.code == 'IRR'
+                ? 0
+                : widget.currency.exponent,
+            unit: widget.irrUnit,
+            label: widget.label,
             errorText: widget.error,
           ),
-          onChanged: (text) {
-            setState(() {}); // the error follows the typing
-            widget.onChanged?.call();
-          },
-        ),
         const SizedBox(height: NexSpacing.sm),
         _CurrencyRow(
           currency: widget.currency,
@@ -119,21 +76,13 @@ class _PriceLensMoneyFieldState extends State<PriceLensMoneyField> {
         ),
         if (widget.currency.code == 'IRR') ...[
           const SizedBox(height: NexSpacing.xs),
-          Wrap(
+          LensChoices<IrrUnit>(
             key: const ValueKey('lens-irr-unit'),
-            spacing: NexSpacing.sm,
-            runSpacing: NexSpacing.sm,
-            children: [
-              for (final unit in IrrUnit.values)
-                LensPill(
-                  label: s(
-                    context,
-                    unit == IrrUnit.rial ? 'rialUnit' : 'tomanUnit',
-                  ),
-                  selected: unit == widget.irrUnit,
-                  onTap: () => widget.onIrrUnitChanged(unit),
-                ),
-            ],
+            values: IrrUnit.values,
+            value: widget.irrUnit,
+            label: (unit) =>
+                s(context, unit == IrrUnit.rial ? 'rialUnit' : 'tomanUnit'),
+            onChanged: widget.onIrrUnitChanged,
           ),
           Text(
             s(context, 'tomanHint'),
@@ -254,4 +203,6 @@ Future<void> confirmPriceLensDiscard(BuildContext context) async {
 /// "2026/10/13" — "1405/07/20" where the app is set to Jalali — in the
 /// locale's own digits, through the shared label.
 String lensFullDate(BuildContext context, DateTime date) =>
-    nexModuleDateLabel(context, date);
+    NexModuleStrings.persian(context)
+    ? nexReadableDate(date, solar: true, persian: true)
+    : nexModuleDateLabel(context, date);

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/price_lens/controller.dart';
 import 'package:nex_client/modules/price_lens/options.dart';
 import 'package:nex_client/modules/price_lens/rational.dart';
+
 import 'lens_test_store.dart';
 import '../../support/nex_harness.dart';
 

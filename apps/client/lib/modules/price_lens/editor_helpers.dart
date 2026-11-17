@@ -7,6 +7,7 @@ import 'rational.dart';
 import 'strings.dart';
 import 'units.dart';
 import 'local_values.dart';
+import 'money_format.dart' as reference;
 
 /// The offer editor's parse-and-validate layer, kept out of the sheet
 /// so the sheet stays small: the initial text for a reopened offer, the
@@ -56,10 +57,29 @@ PriceCurrency initialCurrencyOf(PriceOption? existing) =>
 PriceAmountResult parseMoneyIn(
   String text,
   PriceCurrency currency,
-  IrrUnit irrUnit,
-) => currency.code == 'IRR' && irrUnit == IrrUnit.toman
-    ? parseTomanPrice(text)
-    : parsePriceAmount(text, currency);
+  IrrUnit irrUnit, {
+  int? legacyMinor,
+}) {
+  if (text.trim().isEmpty) return (minor: null, error: PriceAmountError.empty);
+  if (currency.code == 'IRR' &&
+      legacyMinor != null &&
+      legacyMinor % 100 != 0 &&
+      reference.parseMoney(text, irrUnit == IrrUnit.toman ? 3 : 2) ==
+          legacyMinor) {
+    return (minor: legacyMinor, error: null);
+  }
+  final value = reference.parseAmount(
+    text,
+    currency.code,
+    currency.code == 'IRR' ? 0 : currency.exponent,
+    irrUnit,
+  );
+  if (value == null) return (minor: null, error: PriceAmountError.notANumber);
+  if (value > (currency.code == 'IRR' ? priceMax ~/ 100 : priceMax)) {
+    return (minor: null, error: PriceAmountError.tooLarge);
+  }
+  return (minor: currency.code == 'IRR' ? value * 100 : value, error: null);
+}
 
 /// A whole-number count: null when nothing was typed, -1 when what was
 /// typed is not a positive whole number under the module's bound.

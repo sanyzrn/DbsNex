@@ -13,7 +13,7 @@ library;
 import 'rational.dart';
 
 /// A family of comparable units.
-enum UnitFamily { mass, volume, piece }
+enum UnitFamily { mass, volume, piece, roll, sheet }
 
 /// One unit a quantity can be entered in.
 class PriceUnit {
@@ -57,6 +57,9 @@ const priceUnits = <PriceUnit>[
   PriceUnit('l', UnitFamily.volume, litreFactor, 3),
   PriceUnit('floz', UnitFamily.volume, usFlOzFactor, 3),
   PriceUnit('piece', UnitFamily.piece, pieceFactor, 0),
+  PriceUnit('roll', UnitFamily.roll, pieceFactor, 0),
+  PriceUnit('sheet', UnitFamily.sheet, pieceFactor, 0),
+  PriceUnit('sheet100', UnitFamily.sheet, Fraction(100), 0),
 ];
 
 PriceUnit? priceUnitOf(String? key) {
@@ -79,6 +82,8 @@ PriceUnit canonicalUnitOf(UnitFamily family) => switch (family) {
   UnitFamily.mass => priceUnitOf('kg')!,
   UnitFamily.volume => priceUnitOf('l')!,
   UnitFamily.piece => priceUnitOf('piece')!,
+  UnitFamily.roll => priceUnitOf('roll')!,
+  UnitFamily.sheet => priceUnitOf('sheet')!,
 };
 
 /// Converts a quantity of [from] into [to], exactly — or null when
@@ -96,4 +101,6 @@ PriceUnit baseUnitOf(UnitFamily family) => switch (family) {
   UnitFamily.mass => priceUnitOf('g')!,
   UnitFamily.volume => priceUnitOf('ml')!,
   UnitFamily.piece => priceUnitOf('piece')!,
+  UnitFamily.roll => priceUnitOf('roll')!,
+  UnitFamily.sheet => priceUnitOf('sheet')!,
 };

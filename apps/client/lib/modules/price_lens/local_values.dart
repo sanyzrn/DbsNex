@@ -40,9 +40,8 @@ class LocalValues {
   /// A typed shopping date, civil: `yyyy/MM/dd` (the shared date entry's
   /// format), one separator style throughout, 1900–2100 like the picker.
   static DateTime? day(String text) {
-    final match = RegExp(
-      r'^(\d{4})([/.-])(\d{1,2})\2(\d{1,2})$',
-    ).firstMatch(ascii(text.trim()));
+    final match = RegExp(r'^(\d{4})([/.-])(\d{1,2})\2(\d{1,2})$')
+        .firstMatch(ascii(text.trim()));
     if (match == null) {
       return null;
     }
