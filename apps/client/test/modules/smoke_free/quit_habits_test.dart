@@ -8,6 +8,7 @@ import 'package:nex_client/modules/smoke_free/smoke_free_screen.dart';
 import 'package:nex_client/modules/smoke_free/smoke_math.dart';
 
 import '../../support/nex_harness.dart';
+import 'quit_details.dart';
 
 /// Quit Habits: several habits, each its own count; the records of the
 /// module as it was (cigarettes only) read exactly as before.
@@ -196,8 +197,9 @@ void main() {
       await settle(tester);
       expect(find.text('3 days without alcohol'), findsOneWidget);
       expect(find.byKey(const ValueKey('quit-counter')), findsOneWidget);
-      expect(find.byKey(const ValueKey('quit-why')), findsOneWidget);
       expect(find.byKey(const ValueKey('sos-open')), findsOneWidget);
+      await revealQuit(tester, find.byKey(const ValueKey('quit-why')));
+      expect(find.byKey(const ValueKey('quit-why')), findsOneWidget);
     });
 
     testWidgets('a craving belongs to the habit it was logged for', (
@@ -261,22 +263,27 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('sos-why')), findsOneWidget);
 
+      await revealQuit(tester, find.byKey(const ValueKey('sos-breath-toggle')));
       await tester.tap(find.byKey(const ValueKey('sos-breath-toggle')));
       await tester.pump(const Duration(seconds: 1));
       expect(find.byKey(const ValueKey('sos-breath-count')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('sos-breath-toggle')));
       await tester.pumpAndSettle();
 
+      await revealQuit(tester, find.text('Wait'));
       await tester.tap(find.text('Wait'));
       await tester.pumpAndSettle();
+      await revealQuit(tester, find.byKey(const ValueKey('sos-wait-start')));
       await tester.tap(find.byKey(const ValueKey('sos-wait-start')));
       await tester.pump(const Duration(seconds: 61));
       expect(find.text('08:59 left'), findsOneWidget);
       await tester.pump(const Duration(minutes: 9));
       expect(find.byKey(const ValueKey('sos-wait-done')), findsOneWidget);
 
+      await revealQuit(tester, find.text('Distract'));
       await tester.tap(find.text('Distract'));
       await tester.pumpAndSettle();
+      await revealQuit(tester, find.text('Drink a glass of water slowly.'));
       expect(find.text('Drink a glass of water slowly.'), findsOneWidget);
     });
 

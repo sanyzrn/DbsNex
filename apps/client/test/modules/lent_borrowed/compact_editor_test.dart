@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/lent_borrowed/loans_screen.dart';
+
 import '../../support/nex_harness.dart';
 
 void main() {

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'irr_unit.dart';
 import 'loan_date_entry.dart';
 import 'loan_dates.dart';
 import 'loan_model.dart';
-import 'money_format.dart';
 import 'module.dart';
+import 'money_format.dart';
 
 /// Every return, newest first, each removable — the honest history of what
 /// has come back so far, its date said both relatively and on the calendar
@@ -15,11 +16,13 @@ class LoanReturnHistory extends StatelessWidget {
     super.key,
     required this.loan,
     required this.returns,
+    required this.unit,
     required this.onDelete,
   });
 
   final Loan loan;
   final List<LoanReturn> returns;
+  final IrrUnit unit;
   final void Function(LoanReturn record) onDelete;
 
   @override
@@ -57,11 +60,12 @@ class LoanReturnHistory extends StatelessWidget {
                 title: Text(
                   strings(context, 'returnedOn', {
                     'amount': loan.kind == LoanKind.money
-                        ? formatMoney(
+                        ? formatAmount(
                             record.amount,
                             loan.currency,
                             loan.digits,
                             persian,
+                            unit,
                           )
                         : formatNumber(record.amount, persian),
                   }),

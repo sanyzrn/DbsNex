@@ -26,7 +26,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('return-field-amount')),
-        '200000',
+        '20000',
       );
       final returnSave = find.byKey(const ValueKey('return-save'));
       await tester.ensureVisible(returnSave);
@@ -52,10 +52,7 @@ void main() {
         hasLength(1),
         reason: 'the return history came back too',
       );
-      expect(
-        find.textContaining('300,000 \u2066IRR\u2069 still out'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('30,000 tomans still out'), findsOneWidget);
     });
   });
 

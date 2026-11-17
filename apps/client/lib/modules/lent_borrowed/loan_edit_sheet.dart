@@ -3,33 +3,38 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
-import 'loan_math.dart';
-import 'loan_fields.dart';
-import 'loan_model.dart';
-import 'money_format.dart';
-import 'module.dart';
 import 'adaptive_segments.dart';
-import 'store_state.dart';
-import 'form_draft.dart';
-import 'draft_guard.dart';
+import 'amount_field.dart';
 import 'currency_field.dart';
-import 'loan_date_fields.dart';
-import 'number_input.dart';
+import 'draft_guard.dart';
+import 'form_draft.dart';
+import 'irr_unit.dart';
 import 'loan_date_entry.dart';
+import 'loan_date_fields.dart';
 import 'loan_dates.dart';
+import 'loan_fields.dart';
+import 'loan_math.dart';
+import 'loan_model.dart';
+import 'module.dart';
+import 'money_format.dart';
+import 'money_input.dart';
+import 'number_input.dart';
+import 'store_state.dart';
 
 part 'loan_edit_logic.dart';
 
 /// Creates a lent or borrowed record — or edits one without ever touching
 /// its return history. Dates are absolute, entered as `yyyy/MM/dd` or
 /// picked on the shared calendar (Jalali for a Persian reader), with the
-/// practical presets still one tap away.
+/// practical presets still one tap away. Money is typed in the unit the
+/// person reads in — toman or rial — and said back in words underneath.
 Future<void> showLoanEditSheet(
   BuildContext context,
   NexModuleStore store, {
   Loan? editing,
   List<LoanReturn> returns = const [],
   LoanDirection initialDirection = LoanDirection.lent,
+  required IrrUnit unit,
 }) => nexShowSheet<void>(
   context: context,
   dismissible: false,
@@ -39,6 +44,7 @@ Future<void> showLoanEditSheet(
     editing: editing,
     returns: returns,
     initialDirection: initialDirection,
+    unit: unit,
   ),
 );
 
@@ -48,12 +54,14 @@ class _LoanEditSheet extends StatefulWidget {
     required this.editing,
     required this.returns,
     required this.initialDirection,
+    required this.unit,
   });
 
   final NexModuleStore store;
   final Loan? editing;
   final List<LoanReturn> returns;
   final LoanDirection initialDirection;
+  final IrrUnit unit;
 
   @override
   State<_LoanEditSheet> createState() => _LoanEditSheetState();
@@ -80,7 +88,7 @@ class _LoanEditSheetState extends State<_LoanEditSheet> with _LoanEditLogic {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(height: NexSpacing.md),
+                const SizedBox(height: NexSpacing.md),
                 Text(
                   strings(
                     context,
@@ -156,19 +164,28 @@ class _LoanEditSheetState extends State<_LoanEditSheet> with _LoanEditLogic {
                           }),
                   ),
                   const SizedBox(height: NexSpacing.md),
-                  LoanNumberField(
-                    key: const ValueKey('loan-field-amount'),
+                  AmountField(
+                    fieldKey: const ValueKey('loan-field-amount'),
+                    wordsKey: const ValueKey('loan-amount-words'),
                     controller: _amount,
+                    currency: _currency,
+                    digits: _digits,
+                    unit: widget.unit,
                     label: strings(context, 'amountLabel'),
                     errorText: _amountError,
                     hint: strings(context, 'amountHint', {
-                      'example': localDigits(
-                        moneyInput(12345, _digits),
-                        NexModuleStrings.persian(context),
+                      'example': groupAmountText(
+                        amountInput(
+                          _currency == 'IRR' ? 1200000 : 12345,
+                          _currency,
+                          _digits,
+                          widget.unit,
+                        ),
+                        amountDisplayDigits(_currency, _digits, widget.unit),
+                        persian: NexModuleStrings.persian(context),
                       ),
                     }),
-                    suffix: _currency,
-                    decimal: _digits > 0,
+                    enabled: !_saving,
                   ),
                 ] else ...[
                   NexAutoDirection(
@@ -186,10 +203,11 @@ class _LoanEditSheetState extends State<_LoanEditSheet> with _LoanEditLogic {
                   ),
                   const SizedBox(height: NexSpacing.md),
                   LoanNumberField(
-                    key: const ValueKey('loan-field-quantity'),
+                    fieldKey: const ValueKey('loan-field-quantity'),
                     controller: _quantity,
                     label: strings(context, 'quantityLabel'),
                     errorText: _quantityError,
+                    enabled: !_saving,
                   ),
                 ],
                 const SizedBox(height: NexSpacing.md),
@@ -206,6 +224,7 @@ class _LoanEditSheetState extends State<_LoanEditSheet> with _LoanEditLogic {
                     enabled: !_saving,
                     loan: widget.editing,
                     returns: _myReturns,
+                    unit: widget.unit,
                     issueError: _issueError,
                     dueError: _dueError,
                   ),

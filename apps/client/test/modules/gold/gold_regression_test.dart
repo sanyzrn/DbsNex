@@ -7,6 +7,7 @@ import 'package:nex_client/modules/gold/gold_format.dart';
 import 'package:nex_client/modules/gold/gold_screen.dart';
 import 'package:nex_client/modules/gold/gold_form.dart';
 import 'package:nex_client/modules/gold/gold_quotes_page.dart';
+
 import '../../support/nex_harness.dart';
 
 void main() {
@@ -228,6 +229,13 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('gold-making-mode')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Fixed for this piece').last);
+    await tester.pumpAndSettle();
+    expect(form.buildInput(), isNull);
+    await reveal(tester, 'gold-making-fixed');
+    await tester.enterText(
+      find.byKey(const ValueKey('gold-making-fixed')),
+      '0',
+    );
     await tester.pumpAndSettle();
     expect(form.buildInput()!.makingMode, GoldMakingMode.fixed);
     expect(form.buildInput()!.makingFixedRial, 0);

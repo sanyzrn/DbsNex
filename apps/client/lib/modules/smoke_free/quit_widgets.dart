@@ -7,6 +7,7 @@ import 'module.dart';
 import 'quit_habits.dart';
 import 'quit_model.dart';
 import 'smoke_math.dart';
+export 'quit_calendar.dart';
 
 /// The habit as the person calls it: a preset's name, or what they wrote.
 String quitHabitLabel(BuildContext context, QuitAttempt attempt) =>
@@ -52,19 +53,36 @@ class LiveCounter extends StatefulWidget {
   State<LiveCounter> createState() => _LiveCounterState();
 }
 
-class _LiveCounterState extends State<LiveCounter> {
+class _LiveCounterState extends State<LiveCounter> with WidgetsBindingObserver {
   Timer? _tick;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startClock();
+  }
+
+  void _startClock() {
+    _tick?.cancel();
     _tick = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startClock();
+      if (mounted) setState(() {});
+    } else {
+      _tick?.cancel();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _tick?.cancel();
     super.dispose();
   }
@@ -161,115 +179,4 @@ class QuitMarks extends StatelessWidget {
       ),
     );
   }
-}
-
-/// How the last five weeks went, a day to a square — kept, a craving, a
-/// lapse, or not yet — read from the person's own records.
-class QuitWeeks extends StatelessWidget {
-  const QuitWeeks({
-    super.key,
-    required this.attempt,
-    required this.cravings,
-    required this.past,
-  });
-
-  final QuitAttempt attempt;
-  final List<Craving> cravings;
-  final List<QuitAttempt> past;
-
-  static const _weeks = 5;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = smokeFreeStrings;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final today = DateTime.now();
-    final end = DateTime(today.year, today.month, today.day);
-    final first = end.subtract(const Duration(days: _weeks * 7 - 1));
-    DateTime day(DateTime d) => DateTime(d.year, d.month, d.day);
-    final cravingDays = {for (final c in cravings) day(c.at.toLocal())};
-    final lapseDays = {
-      for (final a in past)
-        if (a.endedWhy == 'lapse' && a.endedAt != null)
-          day(a.endedAt!.toLocal()),
-    };
-    final start = day(attempt.startedAt.toLocal());
-    Color colour(DateTime d) {
-      if (lapseDays.contains(d)) return scheme.error;
-      if (d.isBefore(start)) return scheme.surfaceContainerHighest;
-      if (cravingDays.contains(d)) return scheme.tertiary;
-      return scheme.primary;
-    }
-
-    final cells = [
-      for (var i = 0; i < _weeks * 7; i++) first.add(Duration(days: i)),
-    ];
-    return NexPanel(
-      title: strings(context, 'calendarHeading'),
-      icon: Icons.calendar_view_month_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            label: strings(context, 'calendarHeading'),
-            child: Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                for (final d in cells)
-                  Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: colour(d)
-                          .withValues(alpha: d.isAfter(end) ? 0.15 : 0.85),
-                      borderRadius: BorderRadius.circular(NexRadius.xs),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          Wrap(
-            spacing: NexSpacing.md,
-            runSpacing: NexSpacing.xs,
-            children: [
-              _Legend(scheme.primary, strings(context, 'legendClean')),
-              _Legend(scheme.tertiary, strings(context, 'legendCraving')),
-              _Legend(scheme.error, strings(context, 'legendLapse')),
-              _Legend(
-                scheme.surfaceContainerHighest,
-                strings(context, 'legendLater'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Legend extends StatelessWidget {
-  const _Legend(this.colour, this.label);
-
-  final Color colour;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        width: 12,
-        height: 12,
-        decoration: BoxDecoration(
-          color: colour,
-          borderRadius: BorderRadius.circular(3),
-        ),
-      ),
-      const SizedBox(width: NexSpacing.xs),
-      Text(label, style: Theme.of(context).textTheme.bodySmall),
-    ],
-  );
 }

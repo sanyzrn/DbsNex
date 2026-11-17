@@ -7,7 +7,6 @@ import '../../platform/nex_preferences.dart';
 import '../../platform/nex_services.dart';
 import '../../platform/vault_store.dart';
 import '../../widgets/nex_shelf.dart';
-import '../password_generator_screen.dart';
 import '../vault_screen.dart';
 
 /// One thing on the Tools page: what it is called, how it looks, and where it
@@ -85,23 +84,6 @@ List<NexTool> nexPrivateTools(
   ];
 }
 
-/// The everyday tools. Scheduled notes left this shelf in 2.3.4: they are
-/// notes, and live in the Library beside the archive; a pin to them from
-/// before is simply dropped (see [nexPinnedTools]).
-List<NexTool> nexEverydayTools(BuildContext context) {
-  final l = AppLocalizations.of(context);
-  return [
-    NexTool(
-      id: 'generator',
-      title: l.vaultGenerator,
-      subtitle: l.toolsGeneratorHint,
-      icon: Icons.casino_outlined,
-      hue: NexHue.slate,
-      open: (_) => const PasswordGeneratorScreen(),
-    ),
-  ];
-}
-
 /// The modules that are added.
 List<NexTool> nexModuleTools(
   BuildContext context, {
@@ -138,7 +120,6 @@ List<NexTool> nexPinnedTools(
         context,
         biometricOnly: preferences.appLockBiometricOnly,
       ),
-      ...nexEverydayTools(context),
       ...nexModuleTools(context, services: services, preferences: preferences),
     ])
       tool.id: tool,

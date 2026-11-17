@@ -4,6 +4,33 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.1
+
+- **Five modules arrive.** Finished and reviewed, and ready to add from **Tools → Modules**:
+  - **Gold Check** estimates buying, selling or melted gold from the weight, purity and rates you enter, shows how much of a price is gold and how much is making, profit and tax, and keeps a receipt to check against the shop's.
+  - **Lent & Borrowed** keeps money and things you lent or borrowed, in tomans or rials, with partial returns, a page for each person, a due-day reminder and a polite reminder message to send.
+  - **Quit Habits** counts your days free of anything you are quitting, with the money and time kept, your own reason, and **I need help now** for a hard moment.
+  - **Prompt Studio** keeps the AI prompts you reuse, with blanks to fill each time, blocks to insert and earlier versions to go back to.
+  - **Security toolbox** makes random passwords and passphrases, looks over a suspicious link without opening it, keeps a checklist for each of your accounts and converts text to Base64, URL and Hex — all offline.
+- **The kind's edge on list cards, in every look.** The fine outline in each note's colour that 2.7.2 gave list cards was left out in most appearances — every palette and the soft looks — so few people ever saw it. It is now drawn everywhere, as it always was on grid tiles.
+- **The new smart summary shows for everyone.** The summary's soft wash of your accent colour and its edge from 2.8.0 were missing in the same appearances, so it looked as it did before. They now show in every look.
+- **A tidier summary heading.** When the summary was last updated now sits under its name instead of being squeezed beside the arrow. How many lines are folded away and the arrow that opens them sit together in one small button at the end, so opening and folding move nothing else on the card. Opening it now grows the card in one smooth movement, and the hidden lines come in one after another.
+- **A bottom bar that tucks in.** Scrolling down through your notes, the bar now draws in towards **+** and slips away, and **+** gives a small pulse as it takes it in. Scroll back up and the bar opens out again from **+**. A quick flick now hides it just as a slow drag does — before, it often stayed.
+- **Smoother scrolling on every theme.** A theme's own look — paper fibre, tilework stars, falling leaves — was drawn stroke by stroke on every frame the list moved, which is why some themes scrolled heavier than plain Nex. It is now drawn once and simply shown, so every theme scrolls as lightly as Nex, on 90 and 120 Hz screens too.
+- **A scheduled note stays scheduled.** On a synced device, a note held for later could turn up early with the next sync, or arrive twice. It now stays out of sight until its time, travels with every backup while it waits, and lands under its own day everywhere. Throwing one away moves it to **Recently deleted**, where it can be brought back.
+- **Tag changes show everywhere at once.** Renaming, recolouring, merging or deleting a tag now updates the cards, the tag row, the grouped shelves and the home-screen widget straight away, instead of at the next unrelated change. Merged and deleted tags also reach your other devices.
+- **A ticked line shows on the card.** Ticking a checklist line in a note's details now shows on its card right away.
+- **Imported notes ring on time.** Notes imported from another app's export get their reminders set at once, not after the next start.
+- **A note that cannot be scheduled keeps its reminder.** Scheduling a note with attachments is still refused, but the attempt no longer takes its reminder away.
+- **One password generator.** Making a password now lives in the Security toolbox, which also makes passphrases; the separate generator under Tools is gone. Like the old one, it keeps the screen out of screenshots and the app switcher while it is open.
+- **Reminders without the empty space.** A reminder no longer repeats its note's words under its title: a one-line note is its title alone, and a longer one shows only what comes after the first line — which also removes the blank lines that appeared when the note's language differed from the phone's.
+- **A daily nudge worth reading.** Its title now counts what is waiting — "2 overdue · 3 today" — and each item gets its own line, with how many more there are. On a day with nothing due and nothing to bring back it stays silent instead of sending a general line.
+- **Tidier photo crop.** The shape choices (Free, 1:1, 4:3…) are even pills with their labels centred, and the chosen one changes smoothly.
+- **Card size shown as it looks.** In **Appearance**, the card-size choices are drawn like the view and grouping choices beside them: cards in their kinds' colours, more and slimmer for Compact, fewer and fuller for Easier to read.
+- **The logo in your colour.** On the About page, the x in the Nex logo and "AI" under it take your accent colour.
+- **Picking tags moves nothing.** Ticking a tag no longer widens it and pushes the others onto another line: the tick takes the place of its colour dot, and a ticked tag is washed in its own colour.
+- **The Untagged shelf keeps up.** Arranged by tag, tagging notes from their details or from the assistant no longer leaves an "Untagged" shelf counting notes that all have tags now.
+
 ## v2.8.0
 
 - **A new home screen.** The top of Nex is now one calm header for the day — the date, your greeting, the smart summary and your pinned tools — with your notes starting right under it, so far more of them fit on the first screen.

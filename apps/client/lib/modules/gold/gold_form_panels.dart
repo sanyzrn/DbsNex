@@ -22,21 +22,23 @@ class GoldExtraControllers {
 Widget goldPiecePanel(
   BuildContext context, {
   required TextEditingController weight,
+  bool includeWeight = true,
   required TextEditingController gross,
   required int fineness,
   required ValueChanged<int> onFineness,
 }) => Column(
   crossAxisAlignment: CrossAxisAlignment.start,
   children: [
-    GoldNumberField(
-      fieldKey: const ValueKey('gold-weight'),
-      label: goldStrings(context, 'weight'),
-      hint: goldStrings(context, 'weightHint'),
-      controller: weight,
-      scale: 3,
-      maxScaled: GoldInput.maxWeightMg,
-      allowEmpty: false,
-    ),
+    if (includeWeight)
+      GoldNumberField(
+        fieldKey: const ValueKey('gold-weight'),
+        label: goldStrings(context, 'weight'),
+        hint: goldStrings(context, 'weightHint'),
+        controller: weight,
+        scale: 3,
+        maxScaled: GoldInput.maxWeightMg,
+        allowEmpty: false,
+      ),
     const SizedBox(height: NexSpacing.sm),
     GoldNumberField(
       fieldKey: const ValueKey('gold-gross'),
@@ -61,20 +63,22 @@ Widget goldPiecePanel(
 Widget goldRatePanel(
   BuildContext context, {
   required TextEditingController rate,
+  bool includeRate = true,
   required int rateRef,
   required ValueChanged<int> onRateRef,
 }) => Column(
   crossAxisAlignment: CrossAxisAlignment.start,
   children: [
-    GoldNumberField(
-      fieldKey: const ValueKey('gold-rate'),
-      label: goldStrings(context, 'rate'),
-      hint: goldStrings(context, 'rateHint'),
-      controller: rate,
-      scale: 2,
-      maxScaled: GoldInput.maxRateCenti,
-      allowEmpty: false,
-    ),
+    if (includeRate)
+      GoldNumberField(
+        fieldKey: const ValueKey('gold-rate'),
+        label: goldStrings(context, 'rate'),
+        hint: goldStrings(context, 'rateHint'),
+        controller: rate,
+        scale: 2,
+        maxScaled: GoldInput.maxRateCenti,
+        allowEmpty: false,
+      ),
     const SizedBox(height: NexSpacing.md),
     GoldFinenessField(
       fieldKey: const ValueKey('gold-rate-ref'),
@@ -91,6 +95,8 @@ Widget goldRatePanel(
 Widget goldChargesPanel(
   BuildContext context, {
   required GoldMakingMode mode,
+  VoidCallback? onReference,
+  bool includeMaking = true,
   required ValueChanged<GoldMakingMode> onMode,
   required TextEditingController makingPercent,
   required TextEditingController makingPerGram,
@@ -107,48 +113,21 @@ Widget goldChargesPanel(
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      GoldDropdownField<GoldMakingMode>(
-        fieldKey: const ValueKey('gold-making-mode'),
-        label: goldStrings(context, 'making'),
-        value: mode,
-        items: [
-          (GoldMakingMode.percent, goldStrings(context, 'makingModePercent')),
-          (GoldMakingMode.perGram, goldStrings(context, 'makingModePerGram')),
-          (GoldMakingMode.fixed, goldStrings(context, 'makingModeFixed')),
-          (GoldMakingMode.mixed, goldStrings(context, 'makingModeMixed')),
-        ],
-        onSelected: onMode,
-      ),
-      const SizedBox(height: NexSpacing.sm),
-      if (mode == GoldMakingMode.percent || mode == GoldMakingMode.mixed) ...[
-        GoldNumberField(
-          fieldKey: const ValueKey('gold-making-percent'),
-          label: goldStrings(context, 'makingPercentLabel'),
-          controller: makingPercent,
-          scale: 2,
-          maxScaled: GoldInput.maxPercentBp,
+      if (includeMaking)
+        goldMakingFields(
+          context,
+          mode: mode,
+          onMode: onMode,
+          makingPercent: makingPercent,
+          makingPerGram: makingPerGram,
+          makingFixed: makingFixed,
         ),
-        const SizedBox(height: NexSpacing.sm),
-      ],
-      if (mode == GoldMakingMode.perGram || mode == GoldMakingMode.mixed) ...[
-        GoldNumberField(
-          fieldKey: const ValueKey('gold-making-pergram'),
-          label: goldStrings(context, 'makingPerGramLabel'),
-          controller: makingPerGram,
-          scale: 2,
-          maxScaled: GoldInput.maxPerGramCenti,
+      if (onReference != null)
+        TextButton.icon(
+          onPressed: onReference,
+          icon: const Icon(Icons.restart_alt),
+          label: Text(goldStrings(context, 'restoreReference')),
         ),
-        const SizedBox(height: NexSpacing.sm),
-      ],
-      if (mode == GoldMakingMode.fixed)
-        GoldNumberField(
-          fieldKey: const ValueKey('gold-making-fixed'),
-          label: goldStrings(context, 'makingFixedLabel'),
-          controller: makingFixed,
-          scale: 2,
-          maxScaled: GoldInput.maxAmountRial * 10,
-        ),
-      const SizedBox(height: NexSpacing.sm),
       GoldNumberField(
         fieldKey: const ValueKey('gold-profit'),
         label: goldStrings(context, 'profit'),
@@ -290,3 +269,61 @@ Widget goldExtrasPanel(
     ],
   );
 }
+
+Widget goldMakingFields(
+  BuildContext context, {
+  required GoldMakingMode mode,
+  required ValueChanged<GoldMakingMode> onMode,
+  required TextEditingController makingPercent,
+  required TextEditingController makingPerGram,
+  required TextEditingController makingFixed,
+}) => Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    GoldDropdownField<GoldMakingMode>(
+      fieldKey: const ValueKey('gold-making-mode'),
+      label: goldStrings(context, 'making'),
+      value: mode,
+      items: [
+        (GoldMakingMode.percent, goldStrings(context, 'makingModePercent')),
+        (GoldMakingMode.perGram, goldStrings(context, 'makingModePerGram')),
+        (GoldMakingMode.fixed, goldStrings(context, 'makingModeFixed')),
+        (GoldMakingMode.mixed, goldStrings(context, 'makingModeMixed')),
+      ],
+      onSelected: onMode,
+    ),
+    const SizedBox(height: NexSpacing.sm),
+    if (mode == GoldMakingMode.percent || mode == GoldMakingMode.mixed) ...[
+      GoldNumberField(
+        fieldKey: const ValueKey('gold-making-percent'),
+        allowEmpty: false,
+        label: goldStrings(context, 'makingPercentLabel'),
+        controller: makingPercent,
+        scale: 2,
+        maxScaled: GoldInput.maxPercentBp,
+      ),
+      const SizedBox(height: NexSpacing.sm),
+    ],
+    if (mode == GoldMakingMode.perGram || mode == GoldMakingMode.mixed) ...[
+      GoldNumberField(
+        fieldKey: const ValueKey('gold-making-pergram'),
+        allowEmpty: false,
+        label: goldStrings(context, 'makingPerGramLabel'),
+        controller: makingPerGram,
+        scale: 2,
+        maxScaled: GoldInput.maxPerGramCenti,
+      ),
+      const SizedBox(height: NexSpacing.sm),
+    ],
+    if (mode == GoldMakingMode.fixed)
+      GoldNumberField(
+        fieldKey: const ValueKey('gold-making-fixed'),
+        allowEmpty: false,
+        label: goldStrings(context, 'makingFixedLabel'),
+        controller: makingFixed,
+        scale: 2,
+        maxScaled: GoldInput.maxAmountRial * 10,
+      ),
+    const SizedBox(height: NexSpacing.sm),
+  ],
+);

@@ -116,7 +116,7 @@ extension NexNoteReminders on NexReminders {
     final title = body.isEmpty
         ? 'Nex'
         : NexReminders._clamp(body.split('\n').first, 60);
-    final text = body.isEmpty ? null : NexReminders._clamp(body, 1200);
+    final text = NexReminders.bodyBeyond(title, body);
     final secret = hideOnLockScreen?.call() ?? false;
     try {
       await _plugin.zonedSchedule(

@@ -234,6 +234,15 @@ extension _TimelineStickyDay on TimelineScreenState {
     });
   }
 
+  /// How far [anchor] sits below the top of the scrolling area, measured
+  /// globally: the path for a row with no viewport above it.
+  double? _heldBelowTop(RenderBox anchor) {
+    final area = _scroll.position.context.storageContext.findRenderObject();
+    if (area is! RenderBox || !area.attached || !area.hasSize) return null;
+    return anchor.localToGlobal(Offset.zero).dy -
+        area.localToGlobal(Offset.zero).dy;
+  }
+
   /// Names the day of the row that is passing under the filter row.
   void _updateStickyDay() {
     if (_searching || !_scroll.hasClients || _scroll.offset < _showAfter) {
@@ -242,28 +251,30 @@ extension _TimelineStickyDay on TimelineScreenState {
     }
     final anchor = _stickyLine.currentContext?.findRenderObject();
     if (anchor is! RenderBox || !anchor.attached || !anchor.hasSize) return;
+    // Every position below is asked of the list's own viewport rather than
+    // the root (2.8.1): the same answers for marks inside it, and a matrix
+    // walk a few levels long instead of the whole app's depth, for every
+    // mounted mark on every frame of a scroll.
+    final viewport = RenderAbstractViewport.maybeOf(anchor);
+    double topOf(RenderBox box, [Offset at = Offset.zero]) =>
+        box.localToGlobal(at, ancestor: viewport).dy;
     // Only once the row is held at the top. The day's header above it is
     // taller than it was (2.8.0), and a chip hung under a row that was still
     // travelling up the screen floated over the first cards, naming a day
     // the heading beside it had just named.
-    final viewport = _scroll.position.context.storageContext.findRenderObject();
-    if (viewport is RenderBox && viewport.attached && viewport.hasSize) {
-      final held =
-          anchor.localToGlobal(Offset.zero).dy -
-          viewport.localToGlobal(Offset.zero).dy;
-      if (held > 1) {
-        _stickyDay.value = null;
-        return;
-      }
+    final held = viewport == null ? _heldBelowTop(anchor) : topOf(anchor);
+    if (held != null && held > 1) {
+      _stickyDay.value = null;
+      return;
     }
-    final line = anchor.localToGlobal(Offset(0, anchor.size.height)).dy;
+    final line = topOf(anchor, Offset(0, anchor.size.height));
     String? label;
     var top = double.infinity;
     final headings = <String>{};
     for (final mark in _dayMarks) {
       final box = mark.context.findRenderObject();
       if (box is! RenderBox || !box.attached || !box.hasSize) continue;
-      final y = box.localToGlobal(Offset.zero).dy;
+      final y = topOf(box);
       if (y + box.size.height <= line) continue;
       if (mark.widget.heading) {
         // A heading still in view, not yet under the row.

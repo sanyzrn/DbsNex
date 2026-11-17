@@ -604,7 +604,7 @@ extension _TimelineLayout on TimelineScreenState {
         ValueListenableBuilder<bool>(
           valueListenable: _dockAway,
           builder: (context, away, _) => NexNavigationDock(
-            recede: _dockReceded,
+            recede: _dockMorph,
             away: away,
             leading: [
               NexDockAction(

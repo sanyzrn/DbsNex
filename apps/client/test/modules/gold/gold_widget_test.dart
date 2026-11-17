@@ -37,12 +37,20 @@ void main() {
   Finder scrollable() => find.byType(Scrollable).first;
 
   Future<void> downTo(WidgetTester tester, Finder finder) async {
-    await tester.scrollUntilVisible(finder, 400, scrollable: scrollable());
+    if (finder.evaluate().isNotEmpty) {
+      await tester.ensureVisible(finder);
+    } else {
+      await tester.scrollUntilVisible(finder, 400, scrollable: scrollable());
+    }
     await tester.pumpAndSettle();
   }
 
   Future<void> upTo(WidgetTester tester, Finder finder) async {
-    await tester.scrollUntilVisible(finder, -400, scrollable: scrollable());
+    if (finder.evaluate().isNotEmpty) {
+      await tester.ensureVisible(finder);
+    } else {
+      await tester.scrollUntilVisible(finder, -400, scrollable: scrollable());
+    }
     await tester.pumpAndSettle();
   }
 
@@ -51,8 +59,10 @@ void main() {
   /// starting points, the first three typed. Ends scrolled to the
   /// making-charge field.
   Future<void> enterReferenceExample(WidgetTester tester) async {
+    await upTo(tester, find.byKey(const ValueKey('gold-weight')));
     await tester.enterText(find.byKey(const ValueKey('gold-weight')), '3');
     await tester.pump();
+    await downTo(tester, find.byKey(const ValueKey('gold-rate')));
     await tester.enterText(find.byKey(const ValueKey('gold-rate')), '10000000');
     await tester.pump();
     await downTo(tester, find.byKey(const ValueKey('gold-making-percent')));
@@ -120,6 +130,9 @@ void main() {
     await tester.pumpWidget(goldScreen());
     await tester.pumpAndSettle();
     await enterReferenceExample(tester);
+    await downTo(tester, find.byKey(const ValueKey('gold-purchase-details')));
+    await tester.tap(find.byKey(const ValueKey('gold-purchase-details')));
+    await tester.pumpAndSettle();
     await downTo(tester, find.byKey(const ValueKey('gold-shop-quote')));
     await tester.enterText(
       find.byKey(const ValueKey('gold-shop-quote')),
@@ -142,6 +155,10 @@ void main() {
 
     // The piece is 21k while the entered rate is for 18k — chosen before
     // anything scrolls the fineness picker away.
+    await downTo(tester, find.byKey(const ValueKey('gold-purchase-details')));
+    await tester.tap(find.byKey(const ValueKey('gold-purchase-details')));
+    await tester.pumpAndSettle();
+    await downTo(tester, find.byKey(const ValueKey('gold-fineness')));
     await tester.tap(find.byKey(const ValueKey('gold-fineness')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('875 · 21k').last);
@@ -173,6 +190,10 @@ void main() {
     await tester.pumpWidget(goldScreen());
     await tester.pumpAndSettle();
     // While the first panel is still on screen.
+    await downTo(tester, find.byKey(const ValueKey('gold-purchase-details')));
+    await tester.tap(find.byKey(const ValueKey('gold-purchase-details')));
+    await tester.pumpAndSettle();
+    await downTo(tester, find.byKey(const ValueKey('gold-gross')));
     await tester.enterText(find.byKey(const ValueKey('gold-gross')), '3.75');
     await tester.pump();
     await enterReferenceExample(tester);
@@ -269,8 +290,10 @@ void main() {
       TextDirection.rtl,
     );
 
+    await upTo(tester, find.byKey(const ValueKey('gold-weight')));
     await tester.enterText(find.byKey(const ValueKey('gold-weight')), '3');
     await tester.pump();
+    await downTo(tester, find.byKey(const ValueKey('gold-rate')));
     await tester.enterText(find.byKey(const ValueKey('gold-rate')), '10000000');
     await tester.pump();
     await downTo(tester, find.byKey(const ValueKey('gold-making-percent')));
@@ -306,9 +329,8 @@ void main() {
             ? const SizedBox()
             : Builder(
                 builder: (inner) => MediaQuery(
-                  data: MediaQuery.of(
-                    inner,
-                  ).copyWith(textScaler: TextScaler.linear(2.0)),
+                  data: MediaQuery.of(inner)
+                      .copyWith(textScaler: TextScaler.linear(2.0)),
                   child: child,
                 ),
               ),
@@ -351,9 +373,17 @@ void main() {
   ) async {
     await tester.pumpWidget(goldScreen());
     await tester.pumpAndSettle();
+    await upTo(tester, find.byKey(const ValueKey('gold-weight')));
     await tester.enterText(find.byKey(const ValueKey('gold-weight')), '3');
     await tester.pump();
+    await downTo(tester, find.byKey(const ValueKey('gold-rate')));
     await tester.enterText(find.byKey(const ValueKey('gold-rate')), '10000000');
+    await tester.pump();
+    await downTo(tester, find.byKey(const ValueKey('gold-making-percent')));
+    await tester.enterText(
+      find.byKey(const ValueKey('gold-making-percent')),
+      '0',
+    );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('gold-save-fab')));
     await tester.pumpAndSettle();

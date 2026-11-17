@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../tokens/nex_appearance.dart';
 import '../tokens/nex_tokens.dart';
@@ -27,8 +30,14 @@ class NexNavigationDock extends StatelessWidget {
   /// reads down the list, so the notes have the bottom of the screen and the
   /// one primary action never moves from under the thumb.
   ///
-  /// A fade and nothing else, on purpose: it is drawn by the render object,
-  /// so a scroll that sets it going rebuilds no widget while it runs.
+  /// Stepping back, the capsule draws in to capture from both ends and sinks
+  /// a little, its four places gathering towards the centre as they fade,
+  /// and capture swells once as it takes them in (2.8.1). Coming back, the
+  /// capsule opens out of capture again. The value may run a little below 0
+  /// on the way back — a curve with give — and the capsule opens a touch
+  /// past its width before it settles.
+  ///
+  /// Only the dock repaints while it runs; nothing above it is rebuilt.
   final Animation<double>? recede;
 
   /// Whether the destinations are stepped back. Faded out they must not be
@@ -75,6 +84,50 @@ class NexNavigationDock extends StatelessWidget {
         ),
       ),
     );
+    Widget capsule(Widget places) => Container(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        // Dark and Night separate by tone; Light gets a quiet lift.
+        // Glass already paints its own optical edge and shadow.
+        boxShadow: visual.liquidGlass || dark
+            ? null
+            : [
+                BoxShadow(
+                  color: scheme.shadow.withValues(alpha: 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+      ),
+      // Paint after the opaque surface so it cannot cover the edge.
+      foregroundDecoration: visual.liquidGlass
+          ? null
+          : BoxDecoration(
+              borderRadius: radius,
+              border: Border.all(
+                color: highContrast ? scheme.outline : scheme.outlineVariant,
+                width: highContrast ? 1 : 0.75,
+              ),
+            ),
+      child: NexGlassSurface(
+        material: NexGlassMaterial.floating,
+        borderRadius: radius,
+        // White in Light; the elevated neutral tone in Dark/Night.
+        fallbackColor: dark ? scheme.surfaceContainerHigh : scheme.surface,
+        // The places keep the dock's whole width while the capsule draws in
+        // round them, so they are tucked away by its ends rather than
+        // squeezed into each other.
+        child: ClipRRect(
+          borderRadius: radius,
+          child: OverflowBox(minWidth: width, maxWidth: width, child: places),
+        ),
+      ),
+    );
+    // Built once. While the dock steps back or returns, its layout, fade and
+    // transforms follow [recede] in the render tree — no widget rebuilds, so
+    // a scroll that sets it going costs the timeline's budget nothing.
+    final t = recede ?? const AlwaysStoppedAnimation<double>(0);
+    final along = _Mapped(t, (v) => v.clamp(0.0, 1.0));
     return SizedBox(
       width: width,
       height: height + lift,
@@ -86,71 +139,177 @@ class NexNavigationDock extends StatelessWidget {
             right: 0,
             bottom: 0,
             height: height,
-            child: _stepBack(
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: radius,
-                  // Dark and Night separate by tone; Light gets a quiet lift.
-                  // Glass already paints its own optical edge and shadow.
-                  boxShadow: visual.liquidGlass || dark
-                      ? null
-                      : [
-                          BoxShadow(
-                            color: scheme.shadow.withValues(alpha: 0.06),
-                            blurRadius: 12,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                ),
-                // Paint after the opaque surface so it cannot cover the edge.
-                foregroundDecoration: visual.liquidGlass
-                    ? null
-                    : BoxDecoration(
-                        borderRadius: radius,
-                        border: Border.all(
-                          color: highContrast
-                              ? scheme.outline
-                              : scheme.outlineVariant,
-                          width: highContrast ? 1 : 0.75,
+            child: IgnorePointer(
+              ignoring: away,
+              child: ExcludeSemantics(
+                excluding: away,
+                child: CustomSingleChildLayout(
+                  delegate: _CapsuleLayout(t),
+                  // The capsule fades only once it is mostly gone behind
+                  // capture.
+                  child: FadeTransition(
+                    opacity: _Mapped(
+                      along,
+                      (v) => 1 - ((v - 0.6) / 0.4).clamp(0.0, 1.0),
+                    ),
+                    child: capsule(
+                      // The places go first, by the time the capsule is half
+                      // drawn in, gathering towards capture as they go.
+                      FadeTransition(
+                        key: const ValueKey('dock-destinations'),
+                        opacity: _Mapped(
+                          along,
+                          (v) => 1 - (v / 0.5).clamp(0.0, 1.0),
+                        ),
+                        child: _AnimatedScale(
+                          scale: _Mapped(along, (v) => 1 - 0.3 * v),
+                          child: actions,
                         ),
                       ),
-                child: NexGlassSurface(
-                  material: NexGlassMaterial.floating,
-                  borderRadius: radius,
-                  // White in Light; the elevated neutral tone in Dark/Night.
-                  fallbackColor: dark
-                      ? scheme.surfaceContainerHigh
-                      : scheme.surface,
-                  child: actions,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-          Positioned(top: 0, left: 0, right: 0, child: Center(child: capture)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Center(
+              // Capture takes the dock in: one swell, back to its own size by
+              // the end, so where it sits never changes.
+              child: _AnimatedScale(
+                scale: _Mapped(along, (v) => 1 + 0.08 * math.sin(math.pi * v)),
+                child: capture,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-extension on NexNavigationDock {
-  /// The capsule and its four destinations, fading with [recede] and out of
-  /// reach of a finger or a screen reader while [away].
-  Widget _stepBack(Widget capsule) {
-    final recede = this.recede;
-    return IgnorePointer(
-      ignoring: away,
-      child: ExcludeSemantics(
-        excluding: away,
-        child: recede == null
-            ? capsule
-            : FadeTransition(
-                key: const ValueKey('dock-destinations'),
-                opacity: recede.drive(Tween(begin: 1.0, end: 0.0)),
-                child: capsule,
-              ),
-      ),
+/// [parent] seen through [map], without a widget to do the mapping.
+class _Mapped extends Animation<double> with AnimationWithParentMixin<double> {
+  _Mapped(this.parent, this.map);
+
+  @override
+  final Animation<double> parent;
+  final double Function(double) map;
+
+  @override
+  double get value => map(parent.value);
+}
+
+/// The capsule at [t] of the way to only capture: drawn in to a circle under
+/// it at 1 and sunk a little; a little below 0 on the way back, a touch wider
+/// than the dock, which is the give.
+class _CapsuleLayout extends SingleChildLayoutDelegate {
+  _CapsuleLayout(this.t) : super(relayout: t);
+
+  final Animation<double> t;
+
+  double _inset(Size size) =>
+      (size.width - size.height) / 2 * t.value.clamp(-0.04, 1.0);
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
+    final size = constraints.biggest;
+    return BoxConstraints.tight(
+      Size(math.max(size.height, size.width - 2 * _inset(size)), size.height),
     );
+  }
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) =>
+      Offset((size.width - childSize.width) / 2, 6 * t.value.clamp(0.0, 1.0));
+
+  @override
+  bool shouldRelayout(_CapsuleLayout old) => old.t != t;
+}
+
+/// Scales its child about its centre as [scale] runs, repainting rather than
+/// rebuilding.
+class _AnimatedScale extends SingleChildRenderObjectWidget {
+  const _AnimatedScale({required this.scale, super.child});
+
+  final Animation<double> scale;
+
+  @override
+  _RenderAnimatedScale createRenderObject(BuildContext context) =>
+      _RenderAnimatedScale(scale);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderAnimatedScale renderObject,
+  ) => renderObject.scale = scale;
+}
+
+class _RenderAnimatedScale extends RenderProxyBox {
+  _RenderAnimatedScale(this._scale);
+
+  Animation<double> _scale;
+  set scale(Animation<double> value) {
+    if (value == _scale) return;
+    if (attached) _scale.removeListener(markNeedsPaint);
+    _scale = value;
+    if (attached) _scale.addListener(markNeedsPaint);
+    markNeedsPaint();
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _scale.addListener(markNeedsPaint);
+  }
+
+  @override
+  void detach() {
+    _scale.removeListener(markNeedsPaint);
+    super.detach();
+  }
+
+  Matrix4 get _transform {
+    final s = _scale.value;
+    final centre = size.center(Offset.zero);
+    return Matrix4.identity()
+      ..translateByDouble(centre.dx, centre.dy, 0, 1)
+      ..scaleByDouble(s, s, 1, 1)
+      ..translateByDouble(-centre.dx, -centre.dy, 0, 1);
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (child == null) return;
+    if (_scale.value == 1) {
+      layer = null;
+      context.paintChild(child!, offset);
+      return;
+    }
+    layer = context.pushTransform(
+      needsCompositing,
+      offset,
+      _transform,
+      (context, offset) => context.paintChild(child!, offset),
+      oldLayer: layer is TransformLayer ? layer as TransformLayer? : null,
+    );
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      result.addWithPaintTransform(
+        transform: _scale.value == 1 ? null : _transform,
+        position: position,
+        hitTest: (result, position) =>
+            super.hitTestChildren(result, position: position),
+      );
+
+  @override
+  void applyPaintTransform(RenderBox child, Matrix4 transform) {
+    if (_scale.value != 1) transform.multiply(_transform);
   }
 }
 

@@ -70,13 +70,21 @@ String formatNumber(int value, bool persian) {
   );
 }
 
+/// How a currency is named beside an amount. The rial is said in Persian
+/// («ریال»), the way the gold and lent & borrowed modules say their amounts:
+/// an ISO code in Latin letters read as a stray English word in a Persian
+/// sentence. Other currencies keep their code, isolated from the sentence.
+String currencyLabel(String currency, bool persian) =>
+    persian && currency == 'IRR' ? 'ریال' : '\u2066$currency\u2069';
+
 String formatMoney(int minor, String currency, int digits, bool persian) {
   final factor = moneyFactor(digits);
   final fraction = digits == 0
       ? ''
       : '${persian ? '٫' : '.'}${localDigits((minor.abs() % factor).toString().padLeft(digits, '0'), persian)}';
   // Isolate the code from the surrounding RTL sentence.
-  return '${formatNumber(minor ~/ factor, persian)}$fraction \u2066$currency\u2069';
+  return '${formatNumber(minor ~/ factor, persian)}$fraction '
+      '${currencyLabel(currency, persian)}';
 }
 
 String formatExactMoney(
@@ -94,5 +102,6 @@ String formatExactMoney(
   final fraction = digits == 0
       ? ''
       : '${persian ? '٫' : '.'}${(minor % factor).toString().padLeft(digits, '0')}';
-  return '${localDigits(grouped + fraction, persian)} \u2066$currency\u2069';
+  return '${localDigits(grouped + fraction, persian)} '
+      '${currencyLabel(currency, persian)}';
 }

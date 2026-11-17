@@ -173,6 +173,55 @@ void main() {
       expect(shown(tester), 1);
     });
 
+    testWidgets('a quick flick steps the destinations back as a slow drag '
+        'does (2.8.1)', (tester) async {
+      await longList(tester);
+      // A short stroke under the finger, the rest of the way gliding: past
+      // the touch slop the finger alone carries the list less than the
+      // threshold, and the glide takes it most of a screen further.
+      await tester.fling(
+        find.byType(CustomScrollView),
+        const Offset(0, -60),
+        2400,
+      );
+      await tester.pumpAndSettle();
+      expect(away(tester), isTrue);
+      expect(shown(tester), 0);
+    });
+
+    testWidgets('stepping back, the capsule draws in to capture and capture '
+        'ends where it started (2.8.1)', (tester) async {
+      await longList(tester);
+      final capsule = find.byKey(const ValueKey('dock-destinations'));
+      double wide() => tester
+          .getRect(
+            find
+                .ancestor(of: capsule, matching: find.byType(NexGlassSurface))
+                .first,
+          )
+          .width;
+      final whole = wide();
+      final capture = tester.getRect(find.byType(FloatingActionButton));
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+      await tester.pump();
+      await tester.pump(NexMotion.slow ~/ 2);
+      expect(wide(), lessThan(whole));
+      expect(wide(), greaterThan(NexNavigationDock.height));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byType(FloatingActionButton)), capture);
+
+      // Back: it opens out again, a touch past whole, then settles there.
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 70));
+      var widest = 0.0;
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        if (wide() > widest) widest = wide();
+      }
+      await tester.pumpAndSettle();
+      expect(widest, greaterThan(whole));
+      expect(wide(), whole);
+    });
+
     testWidgets('at the top of the home screen the dock is always whole', (
       tester,
     ) async {

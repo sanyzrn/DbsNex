@@ -3,11 +3,19 @@ part of '../nex_services.dart';
 /// Tags, threads, recurring items, search, library maintenance, enrichment
 /// and the timeline window. Split out of NexServices (REL-10).
 extension NexLibraryServices on NexServices {
+  /// Takes a tag off a note, and tells every timeline listener the note
+  /// changed — the tag chips on the cards are baked into the stream's note
+  /// snapshots, and nothing else reliably tells them (see
+  /// `_afterLibraryWrite`).
   Future<void> removeTag({required String noteId, required String tagId}) =>
-      worker.removeTag(noteId: noteId, tagId: tagId);
+      _afterLibraryWrite(worker.removeTag(noteId: noteId, tagId: tagId));
 
+  /// Creates a tag nobody wears yet, and refreshes the timeline: the filter
+  /// row and the shelves read their tags and counts off the stream's
+  /// delivery, so a new tag only appearing after a restart was the old
+  /// behaviour this replaces.
   Future<Tag> createTag(String name, {String? color}) =>
-      worker.createTag(name, color: color);
+      _afterLibraryWrite(worker.createTag(name, color: color));
 
   Future<List<Tag>> listTags() => worker.listTags();
 
@@ -73,8 +81,10 @@ extension NexLibraryServices on NexServices {
     _queueDailyNudge();
   }
 
+  /// Recolours a tag, and tells the cards and every widget filtered by tags
+  /// that the library changed.
   Future<void> setTagColor({required String tagId, String? color}) =>
-      worker.setTagColor(tagId: tagId, color: color);
+      _afterLibraryWrite(worker.setTagColor(tagId: tagId, color: color));
 
   Future<List<Note>> search(SearchFilters filters) => worker.search(filters);
 
@@ -145,12 +155,23 @@ extension NexLibraryServices on NexServices {
   Future<List<TagUsage>> tagUsage({bool timelineOnly = false}) =>
       worker.tagUsage(timelineOnly: timelineOnly);
 
-  Future<void> renameTag(String id, String name) => worker.renameTag(id, name);
+  /// Renames a tag, and tells every timeline listener — the cards wear the
+  /// old name until the stream re-delivers, and the tag manager was the one
+  /// caller that never refreshed the timeline.
+  Future<void> renameTag(String id, String name) =>
+      _afterLibraryWrite(worker.renameTag(id, name));
 
+  /// Merges two tags, and tells every timeline listener: the notes kept their
+  /// identity but changed their tags, which the stream's snapshots bake in.
   Future<void> mergeTag({required String sourceId, required String targetId}) =>
-      worker.mergeTag(sourceId: sourceId, targetId: targetId);
+      _afterLibraryWrite(
+        worker.mergeTag(sourceId: sourceId, targetId: targetId),
+      );
 
-  Future<void> deleteTag(String id) => worker.deleteTag(id);
+  /// Deletes a tag, and tells every timeline listener — a home-screen widget
+  /// narrowed to this tag keeps showing the notes that wore it until the
+  /// stream re-delivers, which it now does.
+  Future<void> deleteTag(String id) => _afterLibraryWrite(worker.deleteTag(id));
 
   Future<Note?> nearestMiss(String query) => worker.nearestMiss(query);
 

@@ -152,12 +152,6 @@ abstract class AppLocalizations {
   /// **'Private'**
   String get toolsSectionPrivate;
 
-  /// No description provided for @toolsSectionEveryday.
-  ///
-  /// In en, this message translates to:
-  /// **'Everyday'**
-  String get toolsSectionEveryday;
-
   /// No description provided for @intelligenceStateOn.
   ///
   /// In en, this message translates to:
@@ -4460,12 +4454,6 @@ abstract class AppLocalizations {
   /// **'A private space for your words'**
   String get toolsMessagesHint;
 
-  /// Line under the password generator tool
-  ///
-  /// In en, this message translates to:
-  /// **'Create and copy a strong password'**
-  String get toolsGeneratorHint;
-
   /// Confirmation for merging notes
   ///
   /// In en, this message translates to:
@@ -5153,7 +5141,7 @@ abstract class AppLocalizations {
   /// No description provided for @scheduledDiscardConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Discard this note? It never reached your notes, so it cannot be restored.'**
+  /// **'Discard this waiting note? It moves to Recently deleted, where it stays until the trash is emptied.'**
   String get scheduledDiscardConfirm;
 
   /// No description provided for @cycleStagePeriod.
@@ -7669,12 +7657,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Generate a new password'**
   String get vaultGenerate;
-
-  /// No description provided for @vaultGenerator.
-  ///
-  /// In en, this message translates to:
-  /// **'Password generator'**
-  String get vaultGenerator;
 
   /// No description provided for @vaultSymbols.
   ///

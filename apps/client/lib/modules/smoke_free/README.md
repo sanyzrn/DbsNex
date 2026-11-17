@@ -1,248 +1,269 @@
-# Smoke-free
+# Quit Habits / ترک عادت
 
-## 1. What it does
+Module ID and store namespace remain `smoke_free`. This extends the existing
+multi-habit module; it does not create a second habit tracker. Work starts from
+`origin/main` at `f27852e8e4c57d9c637e480ff3a5c2dad9219d37` on
+`agent/module-quit-habits`. Keep the module in **Soon** pending owner device review.
 
-First-run setup asks days since quitting, prior cigarettes/day, pack price in
-the chosen currency and cigarettes/pack. All baseline fields can be corrected.
-The dashboard shows calendar days, estimated cigarettes avoided and money kept,
-with the input basis and rounding/day-boundary explanation. Logging a craving
-is the primary action: intensity, triggers, coping choice, note and timestamp.
-Earlier logs can be edited/deleted with Undo; patterns count each trigger once
-per log. History remains accessible even when no attempt is active.
-“I smoked” explicitly records a lapse, optionally restarting today; a separate
-“Start a new attempt” action restarts without labelling it a lapse. Both preserve
-earlier attempts, currency/baseline and cravings. A same-day attempt is honestly
-labelled as ending on the day it began. Setup/craving editors keep local drafts.
-There are no health claims, recovery milestones, treatments, notifications,
-external links/exports, sensors, accounts, telemetry or AI features.
+## 1. Features and screens
 
-## 2. Records
+- **Home:** cigarettes, vape, alcohol, caffeine, sugar, social media, gambling and
+  named custom habits, each with independent attempts. Running, planned and ended
+  habits are separated. Planned starts never claim an earned day-one milestone.
+- **Habit dashboard:** Nex hero, elapsed time, a personal next-step card, optional
+  money/time estimates and saving goal, the person's reason, recent reports,
+  milestone marks, a five-week calendar and accessible attempt history.
+- **Setup/edit:** choose the habit and start first; optional baselines stay behind
+  Details on a new habit. Correct past/future starts, currency, amount, time and
+  reason. Unchanged dates retain their exact timestamp.
+- **Personal plan:** one small “when X, I will Y” action. It is shown prominently
+  again in help, with a local draft and no AI or mandatory planning questionnaire.
+- **Help now:** optional slow breathing, a 2/5/10-minute pause, or practical
+  distractions. The pause survives tab changes and resumes from its deadline.
+  Ask for the person's before/optional after rating; never infer success from
+  finishing a timer. Recording opens an editable craving form.
+- **Craving form:** intensity, optional after-intensity, triggers, coping and note.
+  Existing logs can be edited/deleted with Undo. New drafts are separated by habit.
+- **Review:** 30 local calendar days of explicit reports, after-ratings and reports
+  of easing, plus the most recorded trigger. No logs is unknown, not abstinence.
+  Calendar cells distinguish a report, lapse, unlogged day and outside an attempt;
+  weekday headings align with the actual cells. Date tooltips use the shared
+  Persian/Jalali or English formatter.
+- A lapse, restart without a lapse, and restarting after an ended attempt remain
+  distinct. Earlier attempts and craving history are retained.
 
-Kind `quit`, store-generated stable ID, schema v2:
+Everything works offline through the module APIs. There are no accounts,
+network calls, telemetry, medication instructions or automatic notifications.
 
-```json
-{"v":2,"startedAt":"2026-10-07T09:00:00.000","cigarettesPerDay":10,"pricePerPackMinor":650,"currency":"USD","currencyDecimals":2,"perPack":20,"endedAt":null,"endedWhy":null}
+## 2. Records and compatibility
+
+All data uses `NexModuleStore`, kinds `quit`, `craving` and `draft`.
+There is no database migration or destructive rewrite of existing records.
+
+### `quit`: an attempt
+
+Legacy cigarette records without a habit read as `cigarette`. The cigarette-only
+shape remains schema v2 when no extension field is needed. Extended records use
+v3. Dates are ISO timestamps; IDs remain store-generated.
+
+| Field | Meaning / fallback |
+| --- | --- |
+| `startedAt` | Start instant; malformed/missing values fall back to now. |
+| `endedAt`, `endedWhy` | Optional end and `lapse`/`restart` reason. Latest open attempt per habit is current. |
+| `cigarettesPerDay` | Legacy key also used for other habits' units/day, integer 0–1000. |
+| `pricePerPackMinor` | Nonnegative integer price in selected currency minor units. |
+| `pricePerPackRials` | Accepted legacy alias; also retained when writing IRR. |
+| `currency`, `currencyDecimals` | Currency code and preserved precision; old records are whole-rial IRR. |
+| `perPack` | Units per priced pack, 1–100; missing value defaults to 20. Non-pack setup uses 1. |
+| `habit`, `name` | Preset key or custom label; missing habit means cigarettes. |
+| `why`, `goalMinor`, `minutesPerUnit` | Optional personal reason, saving goal and minutes/unit. |
+| `nextStep` | New optional personal action, empty when missing or not a string. |
+| `habitKey` | New optional stable `custom:` identity (string, ≤512 chars). Missing identity falls back to normalized custom name. |
+
+Custom renames preserve the original identity so old cravings, attempts and
+habit-specific drafts stay attached. Baseline edits merge the latest raw record,
+preserve unknown fields and support clearing optional reason/goal/time values.
+The next step and baselines are carried into subsequent attempts, including
+starting again after an ended custom habit; its stable identity is retained. The plan editor changes only
+`nextStep` and the extension version, leaving other fields intact.
+
+Money remains integer minor units, using the existing offline currency table.
+IRR deliberately means **whole rials**, not tomans or ISO fractional rials, to
+preserve Nex's existing contract. No exchange conversion or market prices are
+implied. User-entered baselines remain estimates, never measured savings.
+New amounts must be ≤`2^53−1`; integer/BigInt parsing accepts Persian, Arabic and
+Latin digits and rejects invalid precision/grouping. Large intermediate estimates
+use BigInt. The bundled currency table's earlier source is
+[SIX ISO 4217 List One](https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml),
+verified by the prior implementation on 2026-10-12; the table is unchanged here.
+
+### `craving`: an explicit report
+
+`at` is an ISO instant; `intensity` is 1–3; `triggers` is a deduplicated list of
+known keys; `coping` is an optional known key; `note` is text. Missing `habit`
+means cigarettes. Existing malformed-record fallbacks remain defensive.
+
+New optional `afterIntensity` accepts **integers 1–3 only**; missing/malformed
+values are unknown and excluded from after-rating/easing counts. It is omitted
+from legacy records when unknown. Editing can explicitly clear it with null.
+Edits preserve unknown raw fields; deletion Undo restores the complete raw body.
+
+### `draft`: unfinished inputs
+
+Shared `NexModuleFormDraft` handles coalesced serial writes, baseline fingerprints,
+retry and stale saved-record detection. Its shape is
+`{v: 1, base: <JSON baseline>, fields: {...}}`; cleanup may use
+`{v: 1, discarded: true}`. Drafts never count as reports or progress.
+
+| ID | Contents |
+| --- | --- |
+| `quit:<id>` / `quit:new` | Setup text, currency/precision, date anchor, chosen habit, future/past mode and expanded details. Home creation and legacy cigarettes keep the original new-draft ID. |
+| `quit:<habit-key>:new` | Setup/resume checkpoint for a specific non-cigarette habit, isolated from general creation. |
+| `craving:<id>` | Existing log edit. |
+| `craving:new` | Legacy cigarette new-log checkpoint, retained for compatibility. |
+| `craving:<habit-key>:new` | New-log checkpoint isolated to another habit. |
+| `plan:<attempt-id>` | Next-step text; baseline is the saved next step. |
+| `sos:<habit-key>` | Before/after ratings, mode, pause duration, remaining seconds and deadline. Baseline includes attempt ID and start. |
+
+Read failures show Retry before editing; unread checkpoints are not overwritten.
+Back/swipe waits for the latest checkpoint. Save clears it. SOS keeps its own
+checkpoint until the editable log closes, and the log checkpoints prefilled
+ratings even if the person types nothing. A timer alone never creates a report.
+
+## 3. Decisions and defects corrected
+
+- Use shared Nex hero, panels, sheets, fields, banners, adaptive segments, tokens
+  and date APIs. Persian RTL and English LTR have matching local string maps.
+  Locale maps and setup UI were split into focused files to keep code readable.
+- Correct the old calendar's “all unlogged days are green” implication. Missing
+  reports remain neutral; lapse is not inferred from a craving. Use civil-date
+  ordinals for 35 unique days across DST changes.
+- Separate future plans from running attempts. Fix future-start editing so an
+  unchanged date stays exact and switching to “Already started” actually moves it.
+- Preserve custom identity across renames, unknown raw fields during edits and
+  optional-field clearing. Fix cross-habit new-craving draft leakage and block
+  editing when a draft read fails.
+- Replace the fixed ten-minute promise and breath hold with user-chosen pauses
+  and an optional comfortable 4-in/6-out visual cue. The cue is a design choice,
+  not a medical protocol or a guarantee that an urge ends in a fixed time.
+- Pause time belongs to the help sheet, not its tab widget. A stored deadline
+  catches delayed callbacks/background time; the active tick keeps movement
+  smooth if wall time moves backwards. No background service is introduced.
+- Day-based totals repaint at the next civil midnight without a storage query;
+  lifecycle handlers stop timers in background and refresh on resume. The small
+  elapsed-time widget updates independently. No performance speedup is claimed
+  without device profiling.
+- Milestone marks and home use the same list, including 90 days (previously the
+  home's next mark could disagree). Marks describe calendar progress, not health
+  recovery or verified abstinence.
+- Money/time: local calendar days × baseline units/day, with pack-price division
+  floored in integer minor units. Yesterday 23:00 to today 07:00 is one calendar
+  day; elapsed duration is displayed separately. Ended attempts freeze estimates.
+- The 30-day review counts self-reports only. “Eased” means the user selected a
+  lower after-intensity; it does not establish causation or treatment efficacy.
+- Reads are guarded against stale completion. Existing deterministic same-instant
+  ordering, safe numeric parsing, failed-write retries and delete Undo remain.
+
+## 4. Research and verification dates
+
+Primary sources checked **2026-11-15**; summarized, not copied into the product.
+Tobacco-specific advice is not used to invent recovery timelines for other habits.
+
+| Source | Finding and product decision |
+| --- | --- |
+| [WHO: quick tips for quitting tobacco](https://www.who.int/campaigns/world-no-tobacco-day/2021/quitting-toolkit/quick-tips) | Delay, comfortable breathing, water and distraction support practical help choices. No universal countdown is promised. |
+| [NHS: smoking triggers and cravings](https://www.nhs.uk/better-health/quit-smoking/staying-smoke-free/understand-your-smoking-triggers-and-cravings/) | Recognizing triggers and choosing alternatives supports a short personal action and descriptive trigger review. |
+| [NHS: getting back on track after a lapse](https://www.nhs.uk/better-health/quit-smoking/staying-smoke-free/get-back-on-track-after-a-smoking-relapse/) | A lapse and return to regular smoking are different. Retain compassionate restart language and earlier history. |
+| [NCI: withdrawal and cravings](https://www.cancer.gov/about-cancer/causes-prevention/risk/tobacco/withdrawal-fact-sheet) | Urges can recur and coping varies. Do not label timer completion as a successful outcome. |
+| [NHS: alcohol-use disorder](https://www.nhs.uk/conditions/alcohol-use-disorder/) | Sudden stopping can be dangerous with dependence; retain the existing alcohol-specific professional-support notice. |
+
+2/5/10-minute pause lengths, the 4/6 breathing cue and the 30-day review window
+are UX choices. No clinical efficacy or Iranian-market baseline is claimed.
+Currency/consumption/price/time inputs are personal values and remain editable.
+
+## 5. User guide / راهنمای کاربر
+
+**فارسی:** از «ترک یک عادت» شروع کنید؛ عادت و زمان شروع را انتخاب کنید.
+مقدار مصرف قبلی، هزینه، زمان، دلیل و هدف مالی اختیاری‌اند و بعداً قابل‌ویرایش.
+در «قدم کوچک بعدی شما» یک کار ساده بنویسید؛ مثلاً «اگر بعد از چای هوس کردم،
+دو دقیقه قدم می‌زنم». در لحظهٔ سخت، «همین الان کمک می‌خواهم» را بزنید و
+نفس آرام، مکث یا حواس‌پرتی را انتخاب کنید. می‌توانید شدت هوس را قبل و بعد
+خودتان مشخص کنید؛ فقط با ذخیرهٔ فرم، گزارش ثبت می‌شود. مرور ۳۰ روز و تقویم
+بر اساس ثبت‌های شماست؛ روز بدون ثبت، موفقیت تأییدشده محسوب نمی‌شود.
+لغزش یا تلاش تازه تاریخچه را پاک نمی‌کند. حذف گزارش بازگردانی دارد و فرم
+ناتمام روی همین دستگاه می‌ماند. مبلغ ریال است؛ هزینه و صرفه‌جویی برآوردند.
+
+**English:** Choose Quit something, pick a habit and its start. Previous use,
+price, time, reason and saving goal are optional and editable. Add one small
+“When X, I will Y” action in Your next small step. During an urge, open Help now
+and choose comfortable breathing, a pause or a distraction. Optionally rate
+before and after; only saving the editable form records a craving. The 30-day
+review and calendar describe your reports, not verified craving-free days.
+A lapse or new attempt keeps earlier history. Deleted logs have Undo; unfinished
+forms stay on this device. Money and time kept are baseline estimates.
+
+## 6. Changelog / تغییرات
+
+- **FA:** تکمیل ترک عادت با نمای تازه، قدم کوچک شخصی، کمک فوری با مکث قابل‌انتخاب
+  و ارزیابی قبل/بعد، مرور ۳۰ روز و تقویم صادقانه. حفظ گزارش‌ها پس از تغییر نام،
+  جداسازی پیش‌نویس عادت‌ها و اصلاح شروع‌های آینده، پاک‌کردن مقادیر اختیاری و
+  به‌روزرسانی شمارنده‌ها. سازگار با داده‌های قدیمی بدون سیگار.
+- **EN:** Complete Quit Habits with a refreshed dashboard, personal next step,
+  selectable pauses and before/after ratings, 30-day review and an honest
+  calendar. Preserve custom-habit history across renames, isolate drafts, repair
+  planned-start edits and optional-field clearing, and update day-based facts.
+  Existing Smoke-free records remain compatible.
+
+These paragraphs belong here until the maintainer approves integration; no global
+version, changelog or guide is modified.
+
+## 7. Platform limits and rollout
+
+- Existing two-write end/restart uses stable IDs and compensates a failed second
+  write by restoring the previous attempt. The module API has no crash-atomic
+  multi-record transaction. A platform batch transaction remains a maintainer
+  request; this module does not add a database or bypass the API.
+- The shared list API returns all records; the module cannot implement server
+  pagination. Review windows/calendar output are bounded, but input reads still
+  depend on the person's retained history. No new API/dependency is introduced.
+- Device clock/time-zone changes can change relative dates and estimates. No
+  trusted clock, external monitoring or verified abstinence is available.
+- No health recovery timeline, diagnosis or medication plan is shipped. Existing
+  help is optional support, not emergency or clinical care.
+- No real Android device, release APK or OS/background endurance check was
+  available here. Widget renders do not establish device frame rate.
+- Owner authorized the shared corner-radius ratchet adjustment on 2026-11-15.
+  Its numeric-radius baseline is now 7 instead of 8; assertions are unchanged.
+- Changes are confined to this module plus that authorized one-line test baseline. Registration and
+  `nexAvailableModuleIds` are unchanged. **Soon stays Soon**; owner reviews device
+  behavior before any enablement, merge or release.
+
+## 8. Tests and review evidence
+
+Pinned SDK: **Flutter 3.47.9 / Dart 3.13.7** (repository `.fvmrc`). Commands from
+`apps/client`, after resolving existing locked dependencies:
+
+```sh
+CI=true BOT=true FLUTTER_SUPPRESS_ANALYTICS=true flutter analyze --no-pub --fatal-infos
+CI=true BOT=true FLUTTER_SUPPRESS_ANALYTICS=true flutter test --no-pub test/module_kit_test.dart test/modules/smoke_free --reporter expanded
+CI=true BOT=true FLUTTER_SUPPRESS_ANALYTICS=true flutter test --no-pub --reporter expanded
+# Optional fixture PNGs, same module suite:
+CI=true BOT=true FLUTTER_SUPPRESS_ANALYTICS=true flutter test --no-pub test/modules/smoke_free/screen_review_test.dart --dart-define=NEX_CAPTURE=/tmp/nex-quit-review
+# Format only changed Dart files; git diff --check and scope review before commit.
 ```
 
-`startedAt`: ISO timestamp; `cigarettesPerDay`: integer 0–1000;
-`pricePerPackMinor`: integer currency minor units; `currency`: three-letter code;
-`currencyDecimals`: integer 0–4; `perPack`: integer 1–100 (default 20);
-`endedAt`: ISO timestamp or null; `endedWhy`: lapse/restart or null.
-The newest record with null end is active. A lapse/restart ends the same record
-and creates a new ID if requested. Failed multi-write restart compensates by
-restoring the prior attempt; histories and cravings are never deleted.
+The Linux test host required SQLite: a local library built from the already
+vendored source was supplied through `LD_LIBRARY_PATH=/tmp/nex-gold-libs`.
+This is a host setup detail, not a repository dependency or shipped binary.
 
-Legacy records without currency/minor-price remain **IRR whole rials** and read
-`pricePerPackMinor` unchanged. New IRR records also retain that legacy key.
-In the Dart model `pricePerPackRials` is only a legacy source alias (a
-constructor parameter and a stored key the reader accepts); new logic uses
-`pricePerPackMinor`. Missing text/numeric fields default to safe empty/zero
-values, missing start to now, invalid end to null. Pack size defaults to 20.
+- Full client analyzer: **clean**, `--fatal-infos`.
+- Module Kit + this module: **190 passed**.
+- Full client run: **3796 passed, 4 existing skips, 1 failed** in 6m59s.
+  This historical failure was the numeric-radius ratchet (8 → 7). The owner
+  subsequently authorized its shared test baseline update. Failed CI #1082 also
+  confirmed this was its only failure (3093 passed, 4 skipped).
+  Follow-up after the baseline fix: **198 passed**, running the UI consistency
+  tests together with Module Kit and this module. The full suite was not repeated
+  for this one-line count correction; new CI will rerun affected checks.
+- 24 language/theme/size review scenes passed; six representative PNGs inspected.
+- Changed Dart files formatted; diff whitespace/scope checks clean. No release or
+  device-performance claim.
 
-Money is an **integer count of the selected currency's minor units**. The
-offline table contains 165 current currency/fund codes with known precision,
-verified from [SIX's ISO 4217 List One](https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml)
-on 2026-10-12. Examples: USD/EUR 2 digits, JPY/KRW 0, KWD/BHD 3, CLF 4.
-**IRR deliberately uses whole rials (0 digits)** to preserve the original Nex
-contract and existing records; this differs from ISO's listed minor-unit scale.
-There is no currency conversion, exchange-rate lookup or total across currencies.
+Coverage includes legacy/malformed records, exact money, DST-safe calendar math,
+30-day boundaries/future reports, renamed custom identities, unknown-field
+preservation and optional clearing, planned dates, scoped drafts, failed reads
+and writes, checkpoint recovery, SOS tab/expiry behavior, explicit editable
+ratings and deletion Undo. The 24-scene render matrix crosses FA/EN × light/dark ×
+390×844 normal text / 320×640 at 2× text with reduced motion × home/detail/help.
+Existing setup/craving compact-editor checks also remain enabled.
 
-New amounts/prices are limited to `2^53 − 1` minor units, exact on native and web
-runtimes. Input uses integer/BigInt parsing, accepts Latin, Persian and Arabic
-digits, grouped thousands, and `.` / `٫` decimals. Excess precision, negative
-money, malformed grouping, decimal comma and larger values are rejected rather
-than silently rounded/clamped. Stored fractional/NaN/infinite amounts default
-to zero. Stored currency precision is preserved, including an unknown valid
-three-letter historical code; new selections come from the bundled table.
+Selected review images under `review/` are actual Flutter widget renders with
+Nex fonts/themes and synthetic records; they are not device screenshots.
 
-Kind `craving`, store-generated ID:
+| Persian dark: dashboard | English light: calendar |
+| --- | --- |
+| ![Dashboard](review/quit_detail_fa_dark.png) | ![Calendar](review/quit_detail_en_light_calendar.png) |
 
-```json
-{"at":"2026-10-12T13:20:00.000","intensity":2,"triggers":["stress","coffee"],"coping":"water","note":"after tea"}
-```
-
-`at`: ISO timestamp; `intensity`: integer 1–3;
-`triggers`: distinct known string keys (stress, boredom, coffee, afterMeal,
-social, driving, tired, emotion, other); `coping`: water/deepBreath/walk/gum/
-waited/distraction or null; `note`: string. Unknown/duplicate triggers and coping
-keys are filtered; nonfinite intensity falls back to 1. Invalid timestamp reads
-as now. Future timestamps get an explicit future label ("Tomorrow", "in N
-days"), never a negative "days ago". Deletion/Undo restores the complete raw
-craving body.
-
-Drafts are stored under kind `draft`, IDs `<editor>:<record-id>` or
-`<editor>:new`, with `{v: 1, base: <JSON string of original body>, fields: {...}}`.
-Field values are strings from the editors plus typed choices described below.
-`fields.recordId` is an optional stable target ID for new records: if that record
-already exists, a leftover checkpoint is not reopened as a new unsaved record.
-A cleanup failure may replace the draft with `{v: 1, discarded: true}`; this
-marker has no fields/base and is ignored on read.
-Serial, coalesced writes keep the latest snapshot; back/swipe keeps it, explicit
-Cancel discards it, successful Save clears it. A baseline fingerprint rejects
-stale drafts after a final record changes. These records stay in this module's
-store/backups and never count toward progress or balances.
-
-Quit draft fields: `daysAgo`, `perDay`, `price`, `perPack` strings;
-`currency` string, `digits` integer and `anchor` ISO timestamp. Craving draft:
-`note` string, `intensity` integer, `triggers` string list, `coping` nullable key.
-
-## 3. Decisions
-
-- Days count **local calendar boundaries**, not full 24-hour periods: yesterday
-  at 23:00 to today at 07:00 is one calendar day. UTC/offset timestamps are first
-  converted to device local time. Future starts clamp to zero.
-- Avoided cigarettes = calendar days × baseline/day. Saved minor units =
-  floor(avoided × pack price / cigarettes per pack). Zero/negative/corrupt
-  baselines cannot produce negative values or divide by zero.
-- BigInt intermediates and the displayed `moneySavedMinor` keep very large
-  estimates exact, even past int64. The legacy `rialsSaved` numeric alias is
-  bounded to the interoperable integer range and is not used by the dashboard.
-- Ended attempts stop estimating at their end. Same-day attempts cross zero
-  calendar boundaries; they are not described as lasting one full day.
-- Baseline-only edits preserve the exact original timestamp. Changed relative
-  dates use calendar construction anchored at editor-open time, avoiding DST
-  shifts and midnight drift. Drafts retain that anchor on reopen.
-- The person never enters or reads an absolute calendar date: the quit start is
-  "N days ago", progress is "N days", cravings are "today / yesterday / N days
-  ago". Relative wording is the honest UX for a quit streak, so the shared
-  Jalali picker has nothing to wrap here; storage stays civil ISO 8601.
-- Lists are deterministic: exact-same-instant cravings and attempts tie-break on
-  the store's time-ordered record id, so rows never swap between rebuilds.
-- One-unit counts read in the English singular ("Smoke-free for 1 day",
-  "≈ 1 cigarette not smoked", "Lasted 1 day", "Tomorrow"); Persian needs no
-  plural branch and keeps its own natural wording.
-- Empty-state and retry buttons grow with the text scale instead of carrying
-  Material's fixed 40 px height cap, so a 2× label is never clipped.
-- Encouragement is non-medical and compassionate; estimates are labelled.
-  Missing craving logs do not prove there were no cravings.
-- Writes are guarded and failures preserve the editor; stable save IDs make
-  retries idempotent. Module storage remains independent of every other module.
-
-## 4. Guide
-
-**English:** Set your quit date and earlier smoking baseline, including pack
-price and currency. The dashboard estimates cigarettes avoided and money kept
-from calendar days; these are estimates. Log a craving when helpful, then review
-what set it off and what you tried. A lapse or a fresh attempt keeps your earlier
-history. You can correct the baseline and undo a deleted log; unfinished forms
-keep a local draft. Everything stays offline on this device.
-
-**فارسی:** زمان شروع ترک و مبنای قبلی را، همراه قیمت بسته و ارز آن، وارد
-کنید. صفحه بر اساس روزهای تقویمی، تعداد سیگار نکشیده و پول صرفه‌جویی‌شده را
-برآورد می‌کند. هر وقت مفید بود هوسی ثبت کنید تا محرک‌ها و کارهایی را که
-امتحان کرده‌اید مرور کنید. ثبت لغزش یا شروع تلاش تازه، تاریخچهٔ قبلی را نگه
-می‌دارد. مبنا قابل‌اصلاح است، حذف هوس بازگردانی دارد و فرم ناتمام به‌صورت
-پیش‌نویس محلی می‌ماند. همه‌چیز روی همین دستگاه و آفلاین است.
-
-## 5. Changelog
-
-- EN: Smoke-free: exact international currency estimates, visible attempt
-  history after lapses, explicit restarts, preserved quit dates and local drafts.
-- FA: بدون سیگار: برآورد دقیق با ارزهای بین‌المللی، تاریخچهٔ در دسترس پس از
-  لغزش، شروع تلاش تازه، حفظ زمان ترک و پیش‌نویس محلی.
-- EN: Smoke-free: honest singulars ("1 day", "1 cigarette", "Tomorrow"),
-  deterministic same-instant ordering, and text-scale-safe empty-state buttons.
-- FA: بدون سیگار: واژه‌های مفرد درست («۱ روز»، «۱ سیگار»، «فردا»)، ترتیب
-  قطعی برای ثبت‌های هم‌لحظه و دکمه‌هایی که با متن بزرگ می‌شوند، نه بریده.
-
-## 6. Platform requests
-
-1. Evidence-reviewed localized recovery milestones as platform content. Still
-   requested: no clinical recovery timeline or outcome claim is shipped without
-   a vetted source, and the module's own encouragement stays calm and
-   non-medical regardless.
-2. ~~Shared Jalali picker/formatter through the API; relative days are the
-   honest working fallback.~~ **Fulfilled by design — nothing to wire.** The
-   module has no absolute date a person enters or reads: the quit start is a
-   relative "days since quitting" number, progress and history are relative
-   day counts, and cravings read "today / yesterday / N days ago". That is the
-   deliberate UX for a quit streak, so `NexModuleDateEntry` and
-   `nexModuleDateLabel` have no spot to occupy; if an absolute date is ever
-   added, it will go through them. Storage stays civil ISO 8601.
-3. ~~Export `NexTextField` for Nex's native per-paragraph note editor.~~
-   **Fulfilled.** The module's only multiline note — the craving note — uses
-   the exported `NexTextField`; the remaining fields are single-line numbers
-   kept in explicit left-to-right `TextField`s on purpose (ADR-037). No local
-   multiline fallback existed to convert.
-4. Optional atomic storage batch for attempt end/restart. Still requested: the
-   kit cannot provide a crash-atomic two-record transaction. Current writes are
-   guarded, use stable save IDs, and compensate failures by restoring the
-   prior attempt; histories and cravings are never deleted.
-
-## 7. Checks
-
-Current pass (this repository, this folder only), run from `apps/client` with
-the repository's pinned Flutter **3.35.5** / Dart **3.9.2**:
-
-```text
-dart format lib/modules/smoke_free test/modules/smoke_free   # 0 changed
-flutter analyze --fatal-infos                                  # clean
-flutter test test/module_kit_test.dart -j 2                    # 40 passed
-flutter test test/modules/smoke_free -j 2                      # 92 passed
-```
-
-92 = 78 inherited (all still green, none weakened) + 14 added: English and
-Persian singular day/cigarette wording, the same-day attempt line, Tomorrow
-and in-N-days future labels, the 2×-text empty-state button height, and
-deterministic same-instant tie-breaks for cravings, the active attempt and
-history. Both language maps carry identical keys (91 each) with no empty
-value and no bidi control characters (the only isolates in the module are
-`money_format`'s long-standing LRI/PDI pair around a currency code inside a
-bidi sentence, shared verbatim with the reviewed `lent_borrowed` module);
-no file in the module's `lib` folder exceeds 400 lines. Edits are confined
-to `lib/modules/smoke_free/` and `test/modules/smoke_free/`.
-
-Originally reviewed in the owner's Windows / PowerShell workspace against Nex `main`
-`fdd70f4890b0bab67d30b88d4821273113d4b01d`, with the repository's pinned Flutter **3.35.5** / Dart **3.9.2**.
-The installed system Flutter is 3.44.8; a local validation SDK was used instead.
-
-All three modules were temporarily registered in a separate reference checkout
-under `.validation/DbsNex`; the original registry is restored after checks.
-No core source, ARB, dependencies, registry or planned-catalog edits are delivered.
-No Commit, Push, PR, remote write or ZIP was made. `core.longpaths` was supplied
-to clone per command rather than changing the owner's global Git configuration.
-
-Commands run from `apps/client` (with the pinned local SDK):
-
-```text
-flutter pub get --enforce-lockfile
-flutter test --no-pub test/module_kit_test.dart test/modules/habits test/modules/smoke_free test/modules/lent_borrowed --reporter expanded
-flutter analyze --no-pub --fatal-infos
-flutter test --no-pub --reporter expanded
-dart format <module's lib and test folders>
-```
-
-`--no-pub` follows successful dependency resolution: Flutter's final Windows
-plugin-symlink setup reports missing Developer Mode privileges. Package versions
-remain exactly those in the baseline lockfile; only the hosted download endpoint
-was changed temporarily to the public Flutter mirror because pub.dev returned
-403. Tests run outside the filesystem sandbox after its compiler-temp-file copy
-failed with Access denied. Neither workaround changes module code or dependencies.
-
-Final results: **248/248 passed** for the combined module tests and the real
-module-kit gate with temporary registration; **full client analyzer clean**.
-The full client run reported **1368 passed, 4 failed, 3 skipped**: two Windows
-attachment-fixture file-lock cleanup failures, the intentional old planned
-Habits entry pending maintainer integration, and the multiline editor/API
-discrepancy described above. The Windows failures reproduced with the original
-registry. Core: 231 passed/analyzer clean. Data: 253 passed, 2 failed (Windows
-symlink privileges), 14 skipped/analyzer clean. Final detailed evidence is in
-`review/VALIDATION.md` at the workspace root. Earlier test failures were repaired;
-the final log, not the initial README's historical claims, is authoritative.
-
-Tests include Persian RTL and English LTR, light/dark, text scale 2.0 at 320×640,
-reduced motion, reopening, isolation, failed writes/retry, draft coalescing,
-back waits for the latest durable checkpoint, retry after a failed flush,
-and meaningful user journeys. Actual Flutter main-screen captures use Nex's
-themes and bundled fonts in Persian dark and English light, under
-`review/screenshots`. These are widget renders with test fixtures, not Android-device screenshots.
-
-Maintainer integration: register the three const modules and imports in
-`nexModules`; remove the old planned IDs **`habits`, `smoke-free`, `lent`**
-(different from the actual IDs `habits`, `smoke_free`, `lent_borrowed`).
-Copy the Guide/Changelog paragraphs above into the app's content. Run the gate,
-full app checks and device/accessibility review before release.
-
-## Changes since the upgrade pass
-
-- 2.1.12: Quit Habits — several habits (presets and custom) with a live count, future start, money and time kept, saving goal, a reason, marks, a five-week grid and a help sheet (4-7-8 breathing, ten-minute wait, tips). Records of the Smoke-free module read as cigarettes and are written back unchanged; new fields (`habit`, `name`, `why`, `goalMinor`, `minutesPerUnit`) appear only when used.
+| Persian dark: pause | Persian dark: 30-day review |
+| --- | --- |
+| ![Pause](review/quit_help_fa_dark_pause.png) | ![Review](review/quit_detail_fa_dark_insights.png) |

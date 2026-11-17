@@ -55,6 +55,39 @@ void main() {
     }
   });
 
+  testWidgets('ticking a tag moves nothing: its pill keeps its width '
+      '(2.8.1)', (tester) async {
+    await _open(
+      tester,
+      _harness(
+        (_) {},
+        tags: [
+          Tag(
+            id: '1',
+            name: 'DbsStudio',
+            color: '#3BB4C9',
+            createdAt: DateTime.utc(2026),
+          ),
+          _tag('2', 'idea'),
+          _tag('3', 'nafas'),
+        ],
+      ),
+    );
+    Rect pill(String name) => tester.getRect(
+      find.ancestor(of: find.text(name), matching: find.byType(InkWell)).first,
+    );
+    final before = {
+      for (final n in ['DbsStudio', 'idea', 'nafas']) n: pill(n),
+    };
+    await tester.tap(find.text('DbsStudio'));
+    await tester.tap(find.text('idea'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check), findsNWidgets(2));
+    for (final n in before.keys) {
+      expect(pill(n), before[n], reason: '$n moved or changed size');
+    }
+  });
+
   testWidgets('a tap ticks in place; Add commits the choice', (tester) async {
     late Future<List<TagChoice>?> pending;
     await _open(

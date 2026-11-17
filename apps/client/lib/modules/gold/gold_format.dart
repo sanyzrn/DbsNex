@@ -158,7 +158,7 @@ enum GoldParseProblem { empty, invalid, tooManyDecimals, negative, tooBig }
 /// values, and the Persian decimal separator «٫» as a dot. Surrounding
 /// whitespace is forgiven, everything else is not.
 int? parseScaled(String text, int scale) {
-  if (scale < 0 || scale > 6) return null;
+  if (scale < 0 || scale > 6 || text.length > 256) return null;
   final normalized = _normalize(text);
   if (!RegExp(r'^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$')
       .hasMatch(normalized)) {
@@ -200,6 +200,7 @@ String goldDigits(String text, bool persian) =>
 /// [parseScaled] with the reasons kept: null result becomes a problem the
 /// field can put into words.
 (int?, GoldParseProblem?) parseScaledDetailed(String text, int scale) {
+  if (text.length > 256) return (null, GoldParseProblem.tooBig);
   final normalized = _normalize(text);
   if (normalized.isEmpty) return (null, GoldParseProblem.empty);
   if (normalized.startsWith('-')) {

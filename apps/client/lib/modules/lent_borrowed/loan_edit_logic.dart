@@ -53,7 +53,10 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
     _kind = editing?.kind ?? LoanKind.money;
     _amount = TextEditingController(
       text: editing != null && editing.kind == LoanKind.money
-          ? moneyInput(editing.amount, _digits)
+          ? groupAmountText(
+              amountInput(editing.amount, _currency, _digits, widget.unit),
+              amountDisplayDigits(_currency, _digits, widget.unit),
+            )
           : '',
     );
     _what = TextEditingController(
@@ -90,6 +93,7 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
         'digits': _digits,
         'direction': _direction.key,
         'kind': _kind.key,
+        'unit': widget.unit.key,
       },
     );
     unawaited(_restoreDraft());
@@ -104,10 +108,23 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
       _digits = moneyDigits(_currency, body['digits']);
       _direction = LoanDirection.fromKey('${body['direction']}');
       _kind = LoanKind.fromKey('${body['kind']}');
+      _keepDraftUnit(currencyCode(body['currency']), body['unit']);
       _migrateLegacyDateDraft(body);
     }
     _draft.start();
     setState(() => _restoring = false);
+  }
+
+  /// A checkpoint written while the module said amounts in the other unit
+  /// holds a number that means something different now. The amount it meant
+  /// is kept exactly; only the way it is written changes.
+  void _keepDraftUnit(String currency, Object? savedUnit) {
+    if (currency != 'IRR') return;
+    final unit = IrrUnit.fromKey(savedUnit);
+    if (unit == widget.unit) return;
+    final parsed = parseAmount(_amount.text, currency, _digits, unit);
+    if (parsed == null) return;
+    _amount.text = amountInput(parsed, currency, _digits, widget.unit);
   }
 
   /// Drafts written before absolute date entry stored day offsets against an
@@ -151,7 +168,7 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
   }
 
   int? _int(TextEditingController controller) =>
-      parseWhole(controller.text, signed: true, max: maxMoney);
+      parseWhole(controller.text, max: maxMoney);
 
   /// A stored date the field still shows untouched is kept exactly, even
   /// when it is older than the typed-entry range (a legacy record dated a
@@ -162,7 +179,7 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
   Future<void> _save() async {
     final strings = lentStrings;
     final person = _person.text.trim();
-    final amount = parseMoney(_amount.text, _digits);
+    final amount = parseAmount(_amount.text, _currency, _digits, widget.unit);
     final quantity = _int(_quantity);
     final issueWritten = _issueDate.text.trim();
     final dueWritten = _dueDate.text.trim();
@@ -259,9 +276,10 @@ mixin _LoanEditLogic on State<_LoanEditSheet> {
       final old = await widget.store.get('loan', id);
       if (old != null) {
         final fresh = Loan.fromBody(id, old);
-        final history = (await widget.store.list(
-          'return',
-        )).map(LoanReturn.fromRecord).where((r) => r.loanId == id).toList();
+        final history = (await widget.store.list('return'))
+            .map(LoanReturn.fromRecord)
+            .where((r) => r.loanId == id)
+            .toList();
         if (history.isNotEmpty &&
             (_kind != fresh.kind ||
                 _currency != fresh.currency ||

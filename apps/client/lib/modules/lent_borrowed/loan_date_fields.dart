@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'irr_unit.dart';
 import 'loan_date_entry.dart';
 import 'loan_fields.dart';
-import 'loan_model.dart';
 import 'loan_math.dart';
-import 'money_format.dart';
+import 'loan_model.dart';
 import 'module.dart';
+import 'money_format.dart';
 
 /// The issue date (with its calendar), the due question, and the note —
 /// the part of the editor every record shares.
@@ -19,6 +20,7 @@ class LoanDateFields extends StatelessWidget {
     required this.enabled,
     required this.loan,
     required this.returns,
+    required this.unit,
     this.issueError,
     this.dueError,
   });
@@ -28,12 +30,14 @@ class LoanDateFields extends StatelessWidget {
   final bool enabled;
   final Loan? loan;
   final List<LoanReturn> returns;
+  final IrrUnit unit;
 
   @override
   Widget build(BuildContext context) {
     final strings = lentStrings;
     final theme = Theme.of(context);
     final persian = NexModuleStrings.persian(context);
+    final editing = loan;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -82,10 +86,10 @@ class LoanDateFields extends StatelessWidget {
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(labelText: strings(context, 'noteLabel')),
         ),
-        if (loan != null) ...[
+        if (editing != null) ...[
           const SizedBox(height: NexSpacing.sm),
           Text(
-            '${strings(context, 'ofTotal', {'done': loan!.kind == LoanKind.money ? formatMoney(LoanMath.standing(loan!, returns).returned, loan!.currency, loan!.digits, persian) : formatNumber(LoanMath.standing(loan!, returns).returned, persian), 'total': loan!.kind == LoanKind.money ? formatMoney(loan!.amount, loan!.currency, loan!.digits, persian) : formatNumber(loan!.amount, persian)})} — ${strings(context, 'editRecord')}',
+            _ofTotal(context, editing, persian),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -93,5 +97,19 @@ class LoanDateFields extends StatelessWidget {
         ],
       ],
     );
+  }
+
+  /// «۲۰۰٬۰۰۰ تومان از ۵۰۰٬۰۰۰ تومان برگشته» — what an edit may not take
+  /// away, said before the person changes the total.
+  String _ofTotal(BuildContext context, Loan loan, bool persian) {
+    final strings = lentStrings;
+    final standing = LoanMath.standing(loan, returns);
+    String amount(int minor) => loan.kind == LoanKind.money
+        ? formatAmount(minor, loan.currency, loan.digits, persian, unit)
+        : formatNumber(minor, persian);
+    return strings(context, 'ofTotal', {
+      'done': amount(standing.returned),
+      'total': amount(loan.amount),
+    });
   }
 }

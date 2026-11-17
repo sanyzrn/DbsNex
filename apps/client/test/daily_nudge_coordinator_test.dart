@@ -207,7 +207,7 @@ void main() {
 
     await h.preferences.setDailyNudgeMemories(false);
     await h.services.updateDailyNudge();
-    expect(bodies(), hasLength(NexDailyNudgeContent.quietEn.length));
+    expect(bodies(), isEmpty, reason: 'nothing due and no memory: silence');
     expect(bodies().join(), isNot(contains('the first day of the new job')));
     expect(ai.calls, 0);
   });

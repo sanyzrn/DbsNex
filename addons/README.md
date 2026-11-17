@@ -28,6 +28,17 @@ are migrated on open. Re-enable each remaining module individually after a
 device check (TalkBack, notification permission, large text) — add its id to
 `nexAvailableModuleIds` in `apps/client/lib/modules/module_rollout.dart`.
 
+### Back in 2.8.1: Gold, Quit Habits, Lent & Borrowed; new: Prompt Studio, Security toolbox
+
+Completed by the module agents (`agent/module-*` branches) and reviewed before
+merge: each stays inside its own folder, uses the shared store, drafts and
+reminders, reaches no network and has its own README with records, decisions
+and checks. Review changes: Quit Habits names the rial in Persian instead of
+`IRR`; Prompt Studio and the Security toolbox get their own module hues.
+`nexAvailableModuleIds` adds `gold`, `smoke_free`, `lent_borrowed`,
+`prompt_studio` and `security_tools`; Price Lens, Expenses, Parking, Medicine
+and Maintenance stay Soon.
+
 ### Back in 2.4.0: Word by Word
 
 Redesigned: a deck card (waiting count, a four-step ladder from new to

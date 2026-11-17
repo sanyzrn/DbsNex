@@ -152,6 +152,7 @@ class SqliteNoteRepository implements NoteRepository {
       for (final row in db.select(
         'SELECT * FROM notes WHERE deleted_at IS NULL '
         'AND (set_aside_at IS NULL OR set_aside_until IS NOT NULL) '
+        'AND scheduled_until IS NULL '
         'AND (${category.where}) ORDER BY ${category.order} LIMIT 60',
         category.args,
       )) {
@@ -210,6 +211,7 @@ class SqliteNoteRepository implements NoteRepository {
       'SELECT * FROM notes INDEXED BY idx_notes_created_at '
       'WHERE created_at >= ? AND created_at < ? '
       'AND deleted_at IS NULL AND set_aside_at IS NULL '
+      'AND scheduled_until IS NULL '
       "AND type IN ('text', 'photo', 'voice') "
       "AND length(trim(coalesce(title, '') || coalesce(content, '') || "
       "coalesce(caption, ''))) > 0 "
@@ -522,15 +524,17 @@ WHERE id = ? AND deleted_at IS NULL
   }
 
   /// Existence across the entire home timeline, including unloaded pages.
-  bool hasUntaggedTimelineNotes() =>
-      db.select(
-        'SELECT EXISTS(SELECT 1 FROM notes n '
-        'WHERE n.deleted_at IS NULL AND $_notSetAside '
-        'AND NOT EXISTS(SELECT 1 FROM note_tags nt JOIN tags t ON t.id = nt.tag_id '
-        'WHERE nt.note_id = n.id)) AS found',
-        [DateTime.now().toUtc().toIso8601String()],
-      ).first['found'] ==
-      1;
+  bool hasUntaggedTimelineNotes() {
+    final now = DateTime.now().toUtc().toIso8601String();
+    return db.select(
+          'SELECT EXISTS(SELECT 1 FROM notes n '
+          'WHERE n.deleted_at IS NULL AND $_notSetAside AND $_notWaiting '
+          'AND NOT EXISTS(SELECT 1 FROM note_tags nt JOIN tags t ON t.id = nt.tag_id '
+          'WHERE nt.note_id = n.id)) AS found',
+          [now, now],
+        ).first['found'] ==
+        1;
+  }
 
   /// How many home-timeline notes each shelf of an arranged home holds
   /// (2.7.0): `type:<wire name>` for each kind, `tag:<id>` for each tag and
@@ -539,25 +543,27 @@ WHERE id = ? AND deleted_at IS NULL
   ///
   /// Pinned notes are left out: they sit on their own shelf at the top, and
   /// a kind's "See all 12" counts the notes under that kind's own heading.
-  /// Set-aside notes are left out, as the timeline leaves them out.
+  /// Set-aside notes are left out, as the timeline leaves them out — and so
+  /// are notes still waiting for their time, which have not arrived yet.
   Map<String, int> timelineShelfCounts() {
     final now = DateTime.now().toUtc().toIso8601String();
     const live =
         'n.deleted_at IS NULL AND n.pinned_at IS NULL AND '
         '(n.set_aside_at IS NULL OR '
-        '(n.set_aside_until IS NOT NULL AND n.set_aside_until <= ?))';
+        '(n.set_aside_until IS NOT NULL AND n.set_aside_until <= ?)) '
+        'AND $_notWaiting';
     return {
       for (final row in db.select(
         'SELECT n.type AS type, COUNT(*) AS c FROM notes n WHERE $live '
         'GROUP BY n.type',
-        [now],
+        [now, now],
       ))
         'type:${row['type']}': row['c'] as int,
       for (final row in db.select(
         'SELECT nt.tag_id AS tag, COUNT(DISTINCT n.id) AS c FROM note_tags nt '
         'JOIN tags t ON t.id = nt.tag_id JOIN notes n ON n.id = nt.note_id '
         'WHERE $live GROUP BY nt.tag_id',
-        [now],
+        [now, now],
       ))
         'tag:${row['tag']}': row['c'] as int,
       'untagged':
@@ -565,7 +571,7 @@ WHERE id = ? AND deleted_at IS NULL
                 'SELECT COUNT(*) AS c FROM notes n WHERE $live AND NOT EXISTS('
                 'SELECT 1 FROM note_tags nt JOIN tags t ON t.id = nt.tag_id '
                 'WHERE nt.note_id = n.id)',
-                [now],
+                [now, now],
               ).first['c']
               as int,
     };
@@ -603,6 +609,57 @@ WHERE id = ? AND deleted_at IS NULL
   static const _notSetAside =
       '(set_aside_at IS NULL OR '
       '(set_aside_until IS NOT NULL AND set_aside_until <= ?))';
+
+  /// The SQL term that keeps a note nobody has reached the time of off the
+  /// same surfaces, with one `?` for "now". The same shape as
+  /// [_notSetAside] for the same reason: a note whose time has passed counts
+  /// as arrived whether or not [SqliteScheduledNoteRepository.releaseDue]
+  /// has stamped its arrival yet.
+  ///
+  /// Aliased by nothing — `notes` is queried both with and without an `n.`
+  /// prefix around this code, and a term that names a bare column works in
+  /// both while a prefixed one works in neither of the un-prefixed.
+  static const _notWaiting =
+      '(scheduled_until IS NULL OR scheduled_until <= ?)';
+
+  /// Delivers a note waiting in place: back into every view, stamped with
+  /// the moment it arrives rather than the moment this device noticed —
+  /// the file-under-its-own-time behaviour [ScheduledNote] has always had.
+  ///
+  /// The row was never gone, so this is a delivery *and* an edit: the note
+  /// re-derives its search row, jumps to the top of the timeline under its
+  /// arrival time, and enters the outbox so the arrival travels — a peer's
+  /// copy re-files itself under the same day without anything else being
+  /// said. Null when nothing was waiting (already delivered, or deleted) —
+  /// the caller has usually just said otherwise, but a release that raced
+  /// another release is a no-op, not a crash.
+  Note? releaseWaiting(String noteId, DateTime at) {
+    var delivered = false;
+    db.together(() {
+      final instant = at.toUtc().toIso8601String();
+      db.execute(
+        '''
+UPDATE notes
+SET scheduled_until = NULL, created_at = ?, updated_at = ?,
+    rev = rev + 1, sync_state = 'pending'
+    ${localDeviceId != null ? ', device_id = ?' : ''}
+WHERE id = ? AND scheduled_until IS NOT NULL AND deleted_at IS NULL
+''',
+        [instant, instant, if (localDeviceId != null) localDeviceId, noteId],
+      );
+      // The row count, not a read-back: a release that raced another release
+      // (or one asked of a note already delivered) is a no-op, and the
+      // caller's answer is "nothing was waiting", not "here is the note".
+      delivered = db.updatedRows > 0;
+      if (!delivered) return;
+      // A delivery is not a capture: the receipt that flashes "just
+      // written" belongs to the day it was written, not to the day it
+      // surfaced.
+      db.execute('DELETE FROM capture_receipts WHERE note_id = ?', [noteId]);
+      _reindex(noteId);
+    });
+    return delivered ? getById(noteId) : null;
+  }
 
   /// Puts [noteId] to one side: off the home timeline, still searchable, still
   /// carrying its reminder and its place in every backup. Returns false when
@@ -822,10 +879,11 @@ ORDER BY
 SELECT n.* FROM notes n
 WHERE deleted_at IS NULL
   AND $_notSetAside
+  AND $_notWaiting
 $order
 LIMIT ? OFFSET ?
 ''',
-            [nowIso, limit, offset],
+            [nowIso, nowIso, limit, offset],
           )
         : db.select(
             '''
@@ -833,10 +891,11 @@ SELECT n.* FROM notes n
 INNER JOIN note_tags nt ON nt.note_id = n.id
 WHERE n.deleted_at IS NULL AND nt.tag_id = ?
   AND $_notSetAside
+  AND $_notWaiting
 $order
 LIMIT ? OFFSET ?
 ''',
-            [tagId, nowIso, limit, offset],
+            [tagId, nowIso, nowIso, limit, offset],
           );
     return _withTags(rows);
   }
@@ -2115,11 +2174,14 @@ ON CONFLICT(note_id) DO UPDATE SET
     );
     if (candidates.isEmpty) return const [];
     final placeholders = List.filled(candidates.length, '?').join(',');
+    // A note waiting for its time keeps its row and its vector now; it is
+    // found by meaning no more than by its words until it arrives.
     final rows = db.select(
       '''
 SELECT e.note_id, e.vec FROM note_embeddings e
 JOIN notes n ON n.id = e.note_id
-WHERE n.deleted_at IS NULL AND e.note_id IN ($placeholders)
+WHERE n.deleted_at IS NULL AND n.scheduled_until IS NULL
+  AND e.note_id IN ($placeholders)
 ''',
       [for (final c in candidates) c.id],
     );
@@ -2156,7 +2218,8 @@ WHERE n.deleted_at IS NULL AND e.note_id IN ($placeholders)
       '''
 SELECT e.note_id, e.vec FROM note_embeddings e
 JOIN notes n ON n.id = e.note_id
-WHERE n.deleted_at IS NULL AND e.note_id IN ($placeholders)
+WHERE n.deleted_at IS NULL AND n.scheduled_until IS NULL
+  AND e.note_id IN ($placeholders)
 ''',
       [for (final p in picked) p.id],
     )) {
@@ -2299,6 +2362,7 @@ LIMIT ?
 SELECT * FROM notes
 WHERE deleted_at IS NULL
   AND $_notSetAside
+  AND $_notWaiting
   AND (due_at IS NOT NULL OR is_urgent = 1)
   -- Urgent first, because a caller truncating by the limit must never be
   -- able to drop them: with dated notes ahead, a library of more than the
@@ -2308,7 +2372,7 @@ WHERE deleted_at IS NULL
 ORDER BY is_urgent DESC, (due_at IS NULL), due_at ASC, updated_at DESC
 LIMIT ?
 ''',
-      [nowIso, limit],
+      [nowIso, nowIso, limit],
     );
     return _withTags(rows);
   }
@@ -2431,6 +2495,12 @@ ${filters.pageSize != null
   (List<String>, List<Object?>) _filterClause(SearchFilters filters) {
     final where = <String>['n.deleted_at IS NULL'];
     final args = <Object?>[];
+    // A note still waiting for its time is in the library but not in any
+    // view — search included, the way the timeline and the shelves already
+    // leave it out. The `?` is appended last so the argument list stays in
+    // the order the terms were added.
+    where.add(_notWaiting);
+    args.add(DateTime.now().toUtc().toIso8601String());
     if (filters.tagIds.isNotEmpty) {
       final placeholders = List.filled(filters.tagIds.length, '?').join(',');
       where.add('''
@@ -2636,6 +2706,16 @@ LIMIT ?
     final notes = db.select('SELECT * FROM notes WHERE deleted_at IS NULL');
     final tags = listTags();
     final noteModels = _withTags(notes);
+    // Whose note is still waiting for its time, and until when. The wait is
+    // part of the note's own row now, and it rides the archive the same way
+    // the reminder does (DATA-03): a note held back until later survives the
+    // trip to a new phone as a note still held back, not as one that arrives
+    // the moment it is imported.
+    final waitingUntil = <String, String>{
+      for (final row in notes)
+        if (row['scheduled_until'] case final until?)
+          row['id']! as String: until as String,
+    };
 
     final out = File(outputPath);
     out.parent.createSync(recursive: true);
@@ -2663,6 +2743,7 @@ LIMIT ?
               ...n.toJson(),
               'due_at': n.dueAt?.toUtc().toIso8601String(),
               'due_repeat': n.dueRepeat.wireName,
+              'scheduled_until': waitingUntil[n.id],
             },
         ],
         'tags': tags.map((t) => t.toJson()).toList(),
@@ -2879,6 +2960,17 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
               ],
             );
           }
+          // The wait, the same way (DATA-03): a note that had not reached its
+          // time on the phone it left keeps not reaching it here. An archive
+          // from an older build carries no such field, and its waiting notes
+          // arrive through the `scheduled` section below instead.
+          final waiting = json['scheduled_until'] as String?;
+          if (waiting != null) {
+            db.execute('UPDATE notes SET scheduled_until = ? WHERE id = ?', [
+              waiting,
+              note.id,
+            ]);
+          }
           imported++;
         }
         // Recurring items and threads, with the same additive rule as notes:
@@ -3089,6 +3181,13 @@ WHERE id = ?
       [if (edited) now, if (localDeviceId != null) localDeviceId, noteId],
     );
   }
+
+  /// Marks [noteId] as filed differently — its tags, not its words — so the
+  /// change reaches the outbox without re-sorting the timeline. The public
+  /// face of `_bumpNote`'s filing half, for [LibraryMaintenance]'s tag
+  /// manager: it changes many notes' tags at once and cannot reach the
+  /// private method from its own file.
+  void markPending(String noteId) => _bumpNote(noteId, edited: false);
 
   /// Removes [noteId]'s search row by its key, not by scanning for its
   /// label.

@@ -66,16 +66,6 @@ class ToolsScreen extends StatelessWidget {
               ))
                 tile(tool),
             ]),
-            const SizedBox(height: NexSpacing.lg),
-            NexShelfHeading(
-              icon: Icons.grid_view_rounded,
-              title: l.toolsSectionEveryday,
-              note: preferences == null ? null : l.toolsPinHint,
-            ),
-            const SizedBox(height: NexSpacing.sm),
-            nexShelfPairs([
-              for (final tool in nexEverydayTools(context)) tile(tool),
-            ]),
             // The modules that are added, and the way to add more — see
             // `docs/17-modules.md`. Rebuilt from the preferences, so a module
             // added or removed on its page is here, or gone, on the way back.
@@ -85,9 +75,14 @@ class ToolsScreen extends StatelessWidget {
                 final preferences?,
               )) ...[
                 const SizedBox(height: NexSpacing.lg),
+                // The password generator lived in an "everyday" shelf here
+                // until 2.8.1; it is the Security toolbox's now, and the
+                // shelf, with nothing left on it, went with it. The hold-to-
+                // pin hint it carried moves to the modules.
                 NexShelfHeading(
                   icon: Icons.extension_outlined,
                   title: l.modulesTitle,
+                  note: l.toolsPinHint,
                 ),
                 const SizedBox(height: NexSpacing.sm),
                 ListenableBuilder(

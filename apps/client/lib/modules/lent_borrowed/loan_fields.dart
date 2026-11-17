@@ -12,25 +12,31 @@ class LoanNumberField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.label,
+    this.fieldKey,
     this.hint,
     this.errorText,
     this.suffix,
     this.decimal = false,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
   final String label;
+  final Key? fieldKey;
   final String? hint;
   final String? errorText;
   final String? suffix;
   final bool decimal;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => TextField(
+    key: fieldKey,
     controller: controller,
+    enabled: enabled,
     keyboardType: TextInputType.numberWithOptions(
       decimal: decimal,
-      signed: true,
+      signed: false,
     ),
     textDirection: TextDirection.ltr,
     decoration: InputDecoration(

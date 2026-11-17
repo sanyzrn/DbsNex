@@ -47,16 +47,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.byKey(const ValueKey('tool-generator')));
+    await tester.longPress(find.byKey(const ValueKey('tool-vault.password')));
     await tester.pumpAndSettle();
-    expect(harness.preferences.pinnedTools, ['generator']);
+    expect(harness.preferences.pinnedTools, ['vault.password']);
     expect(find.text('Pinned to the home screen'), findsOneWidget);
 
     await tester.longPress(find.byKey(const ValueKey('tool-vault.card')));
     await tester.pumpAndSettle();
-    expect(harness.preferences.pinnedTools, ['generator', 'vault.card']);
+    expect(harness.preferences.pinnedTools, ['vault.password', 'vault.card']);
 
-    await tester.longPress(find.byKey(const ValueKey('tool-generator')));
+    await tester.longPress(find.byKey(const ValueKey('tool-vault.password')));
     await tester.pumpAndSettle();
     expect(harness.preferences.pinnedTools, ['vault.card']);
   });
@@ -65,9 +65,11 @@ void main() {
     testWidgets('pinned tools show as cards, and a hold takes one off '
         '($locale)', (tester) async {
       await harness.preferences.togglePinnedTool('vault.password');
+      await harness.preferences.togglePinnedTool('vault.card');
+      // A pin whose tool is gone is not drawn — a module removed, Scheduled,
+      // which moved to the Library in 2.3.4, or the password generator, the
+      // Security toolbox's since 2.8.1.
       await harness.preferences.togglePinnedTool('generator');
-      // A pin whose tool is gone is not drawn — a module removed, or
-      // Scheduled, which moved to the Library in 2.3.4.
       await harness.preferences.togglePinnedTool('module.gone');
       await harness.preferences.togglePinnedTool('scheduled');
       await tester.pumpWidget(
@@ -85,9 +87,10 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('pinned-tool-generator')),
+        find.byKey(const ValueKey('pinned-tool-vault.card')),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('pinned-tool-generator')), findsNothing);
       expect(
         find.byKey(const ValueKey('pinned-tool-module.gone')),
         findsNothing,
@@ -96,11 +99,14 @@ void main() {
       expect(tester.takeException(), isNull);
 
       await tester.longPress(
-        find.byKey(const ValueKey('pinned-tool-generator')),
+        find.byKey(const ValueKey('pinned-tool-vault.card')),
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('pinned-tool-generator')), findsNothing);
-      expect(harness.preferences.pinnedTools, isNot(contains('generator')));
+      expect(
+        find.byKey(const ValueKey('pinned-tool-vault.card')),
+        findsNothing,
+      );
+      expect(harness.preferences.pinnedTools, isNot(contains('vault.card')));
     });
   }
 
@@ -123,11 +129,11 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await harness.preferences.togglePinnedTool('generator');
+    await harness.preferences.togglePinnedTool('vault.message');
     await harness.preferences.togglePinnedTool('vault.card');
     await show();
     // Two: side by side, edge to edge of the page's own gutters, level.
-    final first = tester.getRect(tile('generator'));
+    final first = tester.getRect(tile('vault.message'));
     final second = tester.getRect(tile('vault.card'));
     expect(first.top, second.top);
     expect(first.width, closeTo(second.width, 0.5));
@@ -151,7 +157,7 @@ void main() {
     await harness.preferences.togglePinnedTool('vault.password');
     await show();
     final rects = [
-      for (final id in ['generator', 'vault.card', 'vault.password'])
+      for (final id in ['vault.message', 'vault.card', 'vault.password'])
         tester.getRect(tile(id)),
     ];
     expect({for (final rect in rects) rect.top}, hasLength(1));
@@ -195,7 +201,7 @@ void main() {
       'at': now.toIso8601String(),
     });
     await harness.preferences.togglePinnedTool('module.habits');
-    await harness.preferences.togglePinnedTool('generator');
+    await harness.preferences.togglePinnedTool('vault.message');
     await tester.pumpWidget(
       host(
         PinnedTools(
@@ -218,7 +224,7 @@ void main() {
     expect(ring('module.habits').progress, 0.5);
     // A tool that counts nothing keeps the ring's room and draws none, so
     // the marks along the row stay level.
-    expect(ring('generator').progress, isNull);
+    expect(ring('vault.message').progress, isNull);
     expect(
       tester.getSize(
         find.descendant(
@@ -228,7 +234,7 @@ void main() {
       ),
       tester.getSize(
         find.descendant(
-          of: find.byKey(const ValueKey('pinned-tool-generator')),
+          of: find.byKey(const ValueKey('pinned-tool-vault.message')),
           matching: find.byType(NexProgressRing),
         ),
       ),
@@ -236,7 +242,7 @@ void main() {
   });
 
   testWidgets('nothing at all while hidden', (tester) async {
-    await harness.preferences.togglePinnedTool('generator');
+    await harness.preferences.togglePinnedTool('vault.message');
     await tester.pumpWidget(
       host(
         PinnedTools(
@@ -247,7 +253,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('pinned-tool-generator')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('pinned-tool-vault.message')),
+      findsNothing,
+    );
   });
 
   // The lock opens with the private tools and closes again with them —

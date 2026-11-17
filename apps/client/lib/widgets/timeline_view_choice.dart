@@ -240,3 +240,88 @@ class NexArrangementPreview extends StatelessWidget {
     );
   }
 }
+
+/// A card size, drawn as the list it makes (2.8.1): how many cards fit in the
+/// same height, and how much each one says. In the language of the view and
+/// grouping pictures beside it — cards in a wash of their kind's colour, each
+/// with the round mark a real card carries and its lines of text — where it
+/// used to be outlined boxes with a square, from an earlier look.
+class NexDensityPreview extends StatelessWidget {
+  const NexDensityPreview({super.key, required this.density});
+
+  final NexCardDensity density;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    const kinds = ['text', 'voice', 'checklist', 'photo'];
+    // Cards that fit, the mark's size, and the lines of text on each.
+    final (count, mark, lines) = switch (density) {
+      NexCardDensity.compact => (4, 4.0, 1),
+      NexCardDensity.standard => (3, 6.0, 1),
+      NexCardDensity.readable => (2, 9.0, 2),
+    };
+    Widget card(String type) {
+      final tint = nexNoteTypeTint(type, scheme);
+      return Container(
+        padding: const EdgeInsetsDirectional.symmetric(horizontal: 3),
+        decoration: BoxDecoration(
+          color: Color.alphaBlend(
+            tint.withValues(alpha: 0.22),
+            scheme.surfaceContainerLowest,
+          ),
+          borderRadius: BorderRadius.circular(NexRadius.xs),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: mark,
+              height: mark,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: tint.withValues(alpha: 0.65),
+              ),
+            ),
+            const SizedBox(width: 3),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < lines; i++) ...[
+                    if (i > 0) const SizedBox(height: 2),
+                    FractionallySizedBox(
+                      widthFactor: i == lines - 1 && lines > 1 ? 0.55 : 0.85,
+                      child: Container(
+                        height: 2,
+                        decoration: BoxDecoration(
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(NexRadius.xs / 2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ExcludeSemantics(
+      child: SizedBox(
+        width: 48,
+        height: 36,
+        child: Column(
+          children: [
+            for (var i = 0; i < count; i++) ...[
+              if (i > 0) const SizedBox(height: 3),
+              Expanded(child: card(kinds[i])),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

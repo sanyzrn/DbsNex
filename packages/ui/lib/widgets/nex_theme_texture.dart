@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -73,6 +74,7 @@ class NexTextureBackdrop extends StatelessWidget {
                 texture: texture,
                 ink: ink,
                 extent: extent,
+                pixelRatio: MediaQuery.devicePixelRatioOf(context),
               ),
             ),
           ),
@@ -89,15 +91,66 @@ class NexTexturePainter extends CustomPainter {
     required this.texture,
     required this.ink,
     this.extent = 0.5,
+    this.pixelRatio,
   });
 
   final NexThemeTexture texture;
   final Color ink;
   final double extent;
 
+  /// The device pixel ratio the motif is rasterized at.
+  ///
+  /// The motif is static — the whole point of it — so its picture is
+  /// rasterized once into an image and each frame afterwards draws that
+  /// image: one textured quad, under Impeller and Skia alike. Impeller has
+  /// no raster cache to do this for a plain `CustomPainter`, so without this
+  /// the fibre's ~860 strokes and its fading `saveLayer` were re-rasterized
+  /// on every frame the screen moved — every frame of a scroll — which is
+  /// why the plain Nex theme scrolled smoothly and the paper one did not.
+  ///
+  /// Null resolves the ratio from the view the painter runs in, which keeps
+  /// a directly constructed painter working (the picker's previews, tests).
+  final double? pixelRatio;
+
+  double get _ratio =>
+      pixelRatio ??
+      ui.PlatformDispatcher.instance.implicitView?.devicePixelRatio ??
+      1.0;
+
   @override
   void paint(Canvas canvas, Size size) {
     if (texture == NexThemeTexture.none || size.isEmpty) return;
+    final ratio = _ratio;
+    final image = nexRasterCachedImage(
+      key: (
+        'motif',
+        texture,
+        ink.toARGB32(),
+        extent,
+        (size.width * ratio).round(),
+        (size.height * ratio).round(),
+      ),
+      size: size,
+      pixelRatio: ratio,
+      paint: _paintMotif,
+    );
+    if (image != null) {
+      canvas.drawImageRect(
+        image,
+        ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        Offset.zero & size,
+        Paint()..filterQuality = ui.FilterQuality.none,
+      );
+      return;
+    }
+    // Nowhere to rasterize into (an unsupported platform, or the middle of a
+    // teardown): the picture itself, exactly as this always painted.
+    _paintMotif(canvas, size);
+  }
+
+  /// The motif as vector commands — the fallback, and the source the cached
+  /// image is rasterized from, so both paths draw the same thing.
+  void _paintMotif(Canvas canvas, Size size) {
     final band = Rect.fromLTWH(
       0,
       size.height * (1 - extent),
@@ -511,5 +564,86 @@ class NexTexturePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(NexTexturePainter old) =>
-      old.texture != texture || old.ink != ink || old.extent != extent;
+      old.texture != texture ||
+      old.ink != ink ||
+      old.extent != extent ||
+      old.pixelRatio != pixelRatio;
+}
+
+/// Rasterizes a static backdrop once and keeps the image, so a frame that
+/// draws it costs one textured quad instead of the whole vector picture.
+///
+/// A `RepaintBoundary` already keeps a static painter from being re-RECORDED
+/// while the page scrolls over it. Recording is not the expensive half,
+/// though: under Impeller — Flutter's renderer on Android and iOS — there is
+/// no raster cache, so an unchanged picture's commands are re-executed by
+/// the GPU on every frame the screen moves, however static the picture is.
+/// A theme's bottom-of-screen motif costs ~860 strokes and a full-screen
+/// `saveLayer` that way, on each of the 120 frames a second a phone spends
+/// on a flick. Rasterizing the picture once into a GPU-resident image and
+/// drawing that instead is the documented answer, and it is exactly what a
+/// `RepaintBoundary` used to arrange under Skia.
+///
+/// Images are keyed by everything the caller's picture depends on. The cache
+/// is bounded by bytes rather than entries — one motif is a few megabytes,
+/// one full-page background pattern rather more, and a picker full of tiny
+/// preview swatches is noise — and eviction disposes.
+///
+/// Returns null where an image cannot be made (an unsupported platform, or
+/// anything the engine refuses); callers fall back to painting the picture,
+/// which is what they did before.
+final _rasterCache = <Object, ui.Image>{};
+var _rasterCacheBytes = 0;
+const _rasterCacheBudget = 48 * 1024 * 1024;
+
+ui.Image? nexRasterCachedImage({
+  required Object key,
+  required Size size,
+  required double pixelRatio,
+  required void Function(ui.Canvas canvas, Size size) paint,
+}) {
+  final cached = _rasterCache[key];
+  if (cached != null) return cached;
+
+  final w = (size.width * pixelRatio).round();
+  final h = (size.height * pixelRatio).round();
+  if (w <= 0 || h <= 0 || w > 32768 || h > 32768) return null;
+
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.scale(pixelRatio);
+  paint(canvas, size);
+  final picture = recorder.endRecording();
+  try {
+    final image = picture.toImageSync(w, h);
+    _rasterCache[key] = image;
+    _rasterCacheBytes += w * h * 4;
+    _evictRasterCache();
+    // An image larger than the whole budget is evicted — and disposed — the
+    // moment it is made; drawing that handle would throw. Null paints the
+    // picture instead, as an uncacheable backdrop always has.
+    return _rasterCache[key];
+  } on Object {
+    return null;
+  } finally {
+    picture.dispose();
+  }
+}
+
+void _evictRasterCache() {
+  if (_rasterCacheBytes <= _rasterCacheBudget && _rasterCache.length <= 12) {
+    return;
+  }
+  // Oldest-inserted first, which is also the least likely to be the one
+  // still on screen.
+  final keys = _rasterCache.keys.toList(growable: false);
+  for (final key in keys) {
+    if (_rasterCacheBytes <= _rasterCacheBudget && _rasterCache.length <= 12) {
+      return;
+    }
+    final image = _rasterCache.remove(key);
+    if (image == null) continue;
+    _rasterCacheBytes -= image.width * image.height * 4;
+    image.dispose();
+  }
 }

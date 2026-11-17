@@ -34,6 +34,59 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.1 — what 2.8.0 drew for almost nobody
+
+- `NoteCard` keeps its kind-coloured edge under `nexVisualStyle.minimal`, and
+  the brief card keeps its wash, edge and beam; only high contrast swaps them
+  for the plain outline. Every ramp palette and soft appearance is minimal,
+  so both were missing on nearly every install. `minimal_appearance_test`
+  covers classic, a palette in soft dark and one in night.
+- The brief's heading moves its time under the title and puts the count and
+  arrow in `_FoldPill`; the opened lines are `_ArrivingLine`s inside the
+  card's one `NexAnimatedSize` (the nested `NexReveal` made the outer size
+  chase a moving target). Brief widgets live in `timeline_brief_widgets.dart`.
+- `NexNavigationDock.recede` now narrows the capsule to capture, sinks and
+  scales its places, and pulses capture; it runs on `_dockMorph`, whose
+  reverse curve overshoots, while the scrim keeps `_dockReceded`. It is
+  built once: a `SingleChildLayoutDelegate` with `relayout`, mapped
+  `FadeTransition`s and a repaint-only scale render object, so the 5,000-note
+  budget still sees no rebuild while it runs.
+  `_followDock` counts a fling's glide through `userScrollDirection`.
+- Owner device review: `NexReminders.bodyBeyond` (a reminder's body is the
+  note after its title line, not the note again — the repeated body also
+  carried the Android `<div>` alignment wrapper's trailing blank lines);
+  daily nudge plans a per-day `title` (`NexDailyNudgeContent.headline`),
+  shows four facts plus "+N more", and is silent on a day with nothing due
+  and no memory (`fallback` empty for a non-empty library; the receiver
+  reads `dated.title`); crop ratio pills centred at their own height;
+  `NexDensityPreview` replaces the outlined density drawing; About's logo
+  PNG goes through `nexAccentLogoFilter` (blue minus red → accent); tag
+  picker tick shares the dot's slot; the stale Untagged shelf is S-2,
+  pinned by a screen test.
+- Five module branches merged and enabled (`agent/module-gold`,
+  `-quit-habits`, `-lent-borrowed`, `-prompts`, `-security-toolbox`); each
+  folder's README holds its records, decisions and checks. Review: the rial is
+  «ریال» in Persian in Quit Habits; `prompt_studio` (284) and
+  `security_tools` (200) get hues in `module_hero.dart`.
+- Two reviewed audit patches, merged onto 2.8.0:
+  - Scroll: theme motifs and background patterns are rasterized once
+    (`nexRasterCachedImage`, `Picture.toImageSync`, 48 MB budget) and drawn
+    as one image; the pattern has its own `RepaintBoundary`. Review: an
+    image evicted the moment it is made is no longer returned (it was
+    disposed). The sticky day measures against its `RenderAbstractViewport`,
+    folded into 2.8.0's held-row check. Bench: `packages/ui/test/perf/`.
+  - Integrity: a scheduled note stays in `notes` with `scheduled_until`
+    instead of being hard-deleted without a tombstone (sync put it back);
+    arrival is a rev+1 edit, discard a soft delete. Tag writes, title,
+    caption, checklist ticks, pin and set-aside refresh the timeline from
+    the service (`_afterLibraryWrite`); merge/delete tag mark affected notes
+    pending; the launch reminder prune and module re-arms share
+    `_inReminderLane` (kept on 2.7.2's scoped `_reconcileModuleSources`);
+    `scheduleNote` cancels the reminder only after the move; `importNotes`
+    restores reminders. Review: semantic search and Home tag counts skip
+    waiting notes too, and `idx_notes_home` is dropped only when it lacks
+    the new column (the patch rebuilt it on every open).
+
 ### 2.8.0 — the home screen, rebuilt
 
 - `NexSearchPill` and `NexSearchTapRegion` are cut out of `SearchFieldHeader`;

@@ -68,7 +68,7 @@ Future<bool> storeWrite(
     await write();
     return true;
   } catch (_) {
-    messenger?.show(message: message);
+    messenger?.show(kind: NexBannerKind.failed, message: message);
     return false;
   }
 }

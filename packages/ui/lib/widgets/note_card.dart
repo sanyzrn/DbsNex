@@ -9,7 +9,6 @@ import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
 import '../tokens/nex_note_wash.dart';
-import '../tokens/nex_appearance.dart';
 
 part 'note_card_bell.dart';
 part 'note_card_footnote.dart';
@@ -379,11 +378,11 @@ class _CardBody extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
-        side:
-            context.nexVisualStyle.minimal &&
-                !MediaQuery.highContrastOf(context)
-            ? BorderSide.none
-            : picked
+        // Not dropped by a minimal appearance (2.8.1). Every designed palette
+        // and soft appearance is minimal, so for almost everyone the 2.7.2
+        // edge never drew: it is the note's kind, not a generic outline,
+        // and the grid tile has always kept it.
+        side: picked
             ? BorderSide(color: theme.colorScheme.primary, width: 2)
             : MediaQuery.highContrastOf(context)
             ? BorderSide(color: theme.colorScheme.outline, width: 1.5)

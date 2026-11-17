@@ -82,7 +82,8 @@ void main() {
   });
 
   test('another date, this year and a wordless note are not memories', () {
-    final quiet = NexDailyNudgeContent.quietEn;
+    // Nothing to bring back is silence (2.8.1), not a generic line.
+    const quiet = <String>[];
     expect(local([_note('a', DateTime(2025, 11, 4, 10))]), quiet);
     expect(local([_note('a', DateTime(2025, 11, 2, 10))]), quiet);
     expect(local([_note('a', DateTime(2026, 11, 3, 1))]), quiet);
@@ -108,7 +109,8 @@ void main() {
   });
 
   test('a deleted or set-aside note is never brought back', () {
-    final quiet = NexDailyNudgeContent.quietEn;
+    // Nothing to bring back is silence (2.8.1), not a generic line.
+    const quiet = <String>[];
     expect(
       local([
         _note('a', DateTime(2025, 11, 3, 10), deleted: DateTime(2026, 1, 1)),
@@ -161,10 +163,7 @@ void main() {
       'پارسال، همین روز نوشتی: «دوازده آبان»',
     ]);
     // The Gregorian reader's 3 November is a different day of that year.
-    expect(
-      local([aban12], persian: true, when: day),
-      NexDailyNudgeContent.quietFa,
-    );
+    expect(local([aban12], persian: true, when: day), isEmpty);
   });
 
   test('the plan carries a memory on its own day and not on the others', () {
@@ -190,13 +189,7 @@ void main() {
     expect((days['2026-11-05']! as Map)['localBodies'], [
       'A year ago today you wrote: “two days on”',
     ]);
-    expect(
-      (days['2026-11-03']! as Map)['localBodies'],
-      NexDailyNudgeContent.quietEn,
-    );
-    expect(
-      (days['2026-11-06']! as Map)['localBodies'],
-      NexDailyNudgeContent.quietEn,
-    );
+    expect((days['2026-11-03']! as Map)['localBodies'], isEmpty);
+    expect((days['2026-11-06']! as Map)['localBodies'], isEmpty);
   });
 }

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'dart:ui' as ui;
 
 // For `listEquals`, which `material.dart` does not re-export: its export of
 // `foundation.dart` is a `show` list, and that is not on it.
@@ -410,11 +411,20 @@ class NexAppBackground extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            CustomPaint(
-              painter: _BackgroundPainter(
-                pattern: pattern,
-                brightness: theme.brightness,
-                accent: theme.colorScheme.primary,
+            // Its own repaint boundary, so the pattern's picture is recorded
+            // once and merely referenced while the page above it scrolls:
+            // sharing the stack's boundary kept the pattern inside the
+            // repaints the scrolling child caused, and its vector commands
+            // ran again on every frame the list moved. The painter draws a
+            // raster-cached image, so even the raster side is one quad.
+            RepaintBoundary(
+              child: CustomPaint(
+                painter: _BackgroundPainter(
+                  pattern: pattern,
+                  brightness: theme.brightness,
+                  accent: theme.colorScheme.primary,
+                  pixelRatio: MediaQuery.devicePixelRatioOf(context),
+                ),
               ),
             ),
             child,
@@ -1208,16 +1218,54 @@ class _BackgroundPainter extends CustomPainter {
     required this.pattern,
     required this.brightness,
     required this.accent,
+    this.pixelRatio,
   });
 
   final NexBackgroundPattern pattern;
   final Brightness brightness;
   final Color accent;
 
+  /// The ratio the pattern is rasterized at — see [NexTexturePainter], whose
+  /// reasoning is this file's too.
+  final double? pixelRatio;
+
+  double get _ratio =>
+      pixelRatio ??
+      ui.PlatformDispatcher.instance.implicitView?.devicePixelRatio ??
+      1.0;
+
   bool get _dark => brightness == Brightness.dark;
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (pattern == NexBackgroundPattern.plain || size.isEmpty) return;
+    final ratio = _ratio;
+    final image = nexRasterCachedImage(
+      key: (
+        'pattern',
+        pattern,
+        brightness,
+        accent.toARGB32(),
+        (size.width * ratio).round(),
+        (size.height * ratio).round(),
+      ),
+      size: size,
+      pixelRatio: ratio,
+      paint: _paintPattern,
+    );
+    if (image != null) {
+      canvas.drawImageRect(
+        image,
+        ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        Offset.zero & size,
+        Paint()..filterQuality = ui.FilterQuality.none,
+      );
+      return;
+    }
+    _paintPattern(canvas, size);
+  }
+
+  void _paintPattern(Canvas canvas, Size size) {
     switch (pattern) {
       case NexBackgroundPattern.plain:
         return;
@@ -1421,5 +1469,6 @@ class _BackgroundPainter extends CustomPainter {
   bool shouldRepaint(covariant _BackgroundPainter oldDelegate) =>
       pattern != oldDelegate.pattern ||
       brightness != oldDelegate.brightness ||
-      accent != oldDelegate.accent;
+      accent != oldDelegate.accent ||
+      pixelRatio != oldDelegate.pixelRatio;
 }

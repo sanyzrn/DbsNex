@@ -120,7 +120,10 @@ extension _TimelineHomeChrome on TimelineScreenState {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     const corner = BorderRadius.all(Radius.circular(NexRadius.lg));
-    final minimal = context.nexVisualStyle.minimal;
+    // Not tied to a minimal appearance (2.8.1): every designed palette and
+    // soft appearance is minimal, so the 2.8.0 wash, edge and light were
+    // drawn for almost nobody and the brief looked as it always had. The
+    // wash is what tells the app's words from the reader's; it stays.
     final highContrast = MediaQuery.highContrastOf(context);
     final dark = theme.brightness == Brightness.dark;
     Color wash(Color tint, double alpha) => Color.alphaBlend(
@@ -141,10 +144,10 @@ extension _TimelineHomeChrome on TimelineScreenState {
         ],
         thickness: 0.6,
         laps: 1,
-        strength: minimal ? 0 : 0.4,
-        active: !_aiSummaryCollapsed && !minimal,
+        strength: highContrast ? 0 : 0.4,
+        active: !_aiSummaryCollapsed && !highContrast,
         token: _aiSummaryExpansion,
-        playOnMount: _aiSummaryBeamPending && !minimal,
+        playOnMount: _aiSummaryBeamPending && !highContrast,
         onFinished: () => _aiSummaryBeamPending = false,
         // Only an explicit expansion earns a run; refreshed words do not.
         restsUnlit: true,
@@ -152,10 +155,8 @@ extension _TimelineHomeChrome on TimelineScreenState {
           key: const ValueKey('timeline-recap-surface'),
           decoration: BoxDecoration(
             borderRadius: corner,
-            color: minimal || highContrast
-                ? scheme.surfaceContainerLowest
-                : null,
-            gradient: minimal || highContrast
+            color: highContrast ? scheme.surfaceContainerLowest : null,
+            gradient: highContrast
                 ? null
                 : LinearGradient(
                     begin: AlignmentDirectional.topStart,
@@ -167,8 +168,6 @@ extension _TimelineHomeChrome on TimelineScreenState {
                   ),
             border: highContrast
                 ? Border.all(color: scheme.outline, width: 1.5)
-                : minimal
-                ? null
                 : Border.all(
                     color: scheme.primary.withValues(alpha: dark ? 0.22 : 0.14),
                   ),

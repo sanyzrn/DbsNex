@@ -53,14 +53,16 @@ abstract final class NexDailyNudgeContent {
     'Today could be a good day to take one unfinished thought a little further.',
   ];
 
-  static List<String> local(
+  /// What the day's notification is about, most pressing first, one per
+  /// note or item: urgent, overdue, due in the next two days, recurring
+  /// items coming up, unfinished checklists.
+  static List<_Fact> _facts(
     NexNudgeSnapshot source,
     DateTime at, {
     required bool persian,
-    bool solarCalendar = false,
     Map<String, List<ChecklistItem>>? itemsById,
   }) {
-    final facts = <({int rank, DateTime when, String id, String text})>[];
+    final facts = <_Fact>[];
     // The note's own words are isolated (FSI … PDI): a Persian title inside
     // an English line, or the reverse, used to pull the quotation marks and
     // the ellipsis to the wrong end of the line.
@@ -99,6 +101,7 @@ abstract final class NexDailyNudgeContent {
       if (note.isUrgent) {
         facts.add((
           rank: 0,
+          kind: _Kind.urgent,
           when: note.updatedAt,
           id: note.id,
           text: persian ? 'فوری: $title' : 'Urgent: $title',
@@ -118,6 +121,7 @@ abstract final class NexDailyNudgeContent {
         if (gap.isNegative && gap >= const Duration(days: -7)) {
           facts.add((
             rank: 1,
+            kind: _Kind.overdue,
             when: due,
             id: note.id,
             text: persian ? 'عقب‌افتاده: $title' : 'Overdue: $title',
@@ -138,6 +142,7 @@ abstract final class NexDailyNudgeContent {
           );
           facts.add((
             rank: 2,
+            kind: day == 0 ? _Kind.today : _Kind.soon,
             when: due,
             id: note.id,
             text: persian
@@ -152,6 +157,7 @@ abstract final class NexDailyNudgeContent {
         final count = nexDigits('$left', persian: persian);
         facts.add((
           rank: 4,
+          kind: _Kind.unfinished,
           when: note.updatedAt,
           id: note.id,
           text: persian
@@ -166,9 +172,19 @@ abstract final class NexDailyNudgeContent {
       if (gap < const Duration(days: -7) || gap > const Duration(days: 2)) {
         continue;
       }
+      final local = at.isUtc ? item.dueAt.toUtc() : item.dueAt.toLocal();
+      final sameDay =
+          local.year == at.year &&
+          local.month == at.month &&
+          local.day == at.day;
       final title = quoted(item.title);
       facts.add((
         rank: gap.isNegative ? 1 : 3,
+        kind: gap.isNegative
+            ? _Kind.overdue
+            : sameDay
+            ? _Kind.today
+            : _Kind.soon,
         when: item.dueAt,
         id: 'commitment:${item.id}',
         text: persian
@@ -181,11 +197,24 @@ abstract final class NexDailyNudgeContent {
       return rank == 0 ? a.when.compareTo(b.when) : rank;
     });
     final seen = <String>{};
-    final picked = [
-      for (final fact in facts.where((f) => seen.add(f.id)).take(3))
-        short(fact.text, 90),
+    return [
+      for (final fact in facts)
+        if (seen.add(fact.id)) fact,
     ];
-    if (picked.isEmpty) {
+  }
+
+  /// How many lines of facts a nudge shows; the rest are counted.
+  static const shownFacts = 4;
+
+  static List<String> local(
+    NexNudgeSnapshot source,
+    DateTime at, {
+    required bool persian,
+    bool solarCalendar = false,
+    Map<String, List<ChecklistItem>>? itemsById,
+  }) {
+    final facts = _facts(source, at, persian: persian, itemsById: itemsById);
+    if (facts.isEmpty) {
       // A day with nothing due is the day for something old: a line the
       // person wrote on this date, in place of a line anyone could be sent.
       final memory = onThisDay(
@@ -195,15 +224,61 @@ abstract final class NexDailyNudgeContent {
         solarCalendar: solarCalendar,
       );
       if (memory != null) return [memory];
-      return source.hasData
-          ? (persian ? quietFa : quietEn)
-          : (persian ? emptyFa : emptyEn);
+      // Otherwise silence (2.8.1). A rotating "take a look at your notes"
+      // was the nudge on most days, and a line that is true of every day
+      // teaches a person to swipe the nudge away unread — the days it had
+      // something to say included. Only an empty library still hears from
+      // it, once a day, with how to begin.
+      return source.hasData ? const [] : (persian ? emptyFa : emptyEn);
     }
     // One fact a line, the most pressing first, each starting with what it
-    // is. These used to be one run-on sentence behind a rotating lead-in, so
-    // a day read "A quick reminder: Urgent: «…»; «…», tomorrow at 09:00".
-    // The facts change from day to day; the frame around them need not.
-    return [picked.join('\n')];
+    // is; what does not fit is counted rather than dropped without a word.
+    final lines = [
+      for (final fact in facts.take(shownFacts)) short(fact.text, 90),
+    ];
+    final more = facts.length - shownFacts;
+    if (more > 0) {
+      final count = nexDigits('$more', persian: persian);
+      lines.add(persian ? '+ $count مورد دیگر' : '+ $count more');
+    }
+    return [lines.join('\n')];
+  }
+
+  /// The nudge's title for [at]: what is waiting, counted — "2 overdue · 3
+  /// today" — so the notification says at a glance whether it is worth
+  /// opening. Null when nothing is due, and the plan's greeting stands.
+  static String? headline(
+    NexNudgeSnapshot source,
+    DateTime at, {
+    required bool persian,
+    Map<String, List<ChecklistItem>>? itemsById,
+  }) {
+    final facts = _facts(source, at, persian: persian, itemsById: itemsById);
+    if (facts.isEmpty) return null;
+    int count(_Kind kind) => facts.where((f) => f.kind == kind).length;
+    String n(int value) => nexDigits('$value', persian: persian);
+    final urgent = count(_Kind.urgent);
+    final overdue = count(_Kind.overdue);
+    final today = count(_Kind.today);
+    final soon = count(_Kind.soon);
+    final unfinished = count(_Kind.unfinished);
+    final parts = persian
+        ? [
+            if (urgent > 0) '${n(urgent)} فوری',
+            if (overdue > 0) '${n(overdue)} عقب‌افتاده',
+            if (today > 0) '${n(today)} برای امروز',
+            if (soon > 0 && today == 0) '${n(soon)} در راه',
+            if (unfinished > 0) '${n(unfinished)} فهرست ناتمام',
+          ]
+        : [
+            if (urgent > 0) '${n(urgent)} urgent',
+            if (overdue > 0) '${n(overdue)} overdue',
+            if (today > 0) '${n(today)} today',
+            if (soon > 0 && today == 0) '${n(soon)} coming up',
+            if (unfinished > 0)
+              '${n(unfinished)} unfinished ${unfinished == 1 ? 'list' : 'lists'}',
+          ];
+    return parts.join(' · ');
   }
 
   /// "A year ago today you wrote …", from [memories], or null when no note
@@ -328,6 +403,7 @@ abstract final class NexDailyNudgeContent {
           ? summaryAt!.add(const Duration(hours: 1)).millisecondsSinceEpoch
           : localExpires;
       days[dayKey(at)] = {
+        'title': ?headline(source, at, persian: persian, itemsById: parsed),
         'ai': ai,
         'zone': at.timeZoneOffset.inMinutes,
         'bodies': ai ? [short(summary!, 210)] : alternatives,
@@ -346,8 +422,10 @@ abstract final class NexDailyNudgeContent {
       'zone': now.timeZoneOffset.inMinutes,
       'channelName': (persian ? NexChannelText.fa : NexChannelText.en).daily,
       'days': days,
+      // A plan whose day has gone stale says nothing rather than a line that
+      // could be about any day; an empty library still gets how to begin.
       'fallback': source.hasData
-          ? (persian ? quietFa : quietEn)
+          ? const <String>[]
           : (persian ? emptyFa : emptyEn),
     };
   }
@@ -388,3 +466,7 @@ Map<String, Object?> nexBuildDailyNudgePlan(NexNudgePlanInput input) =>
 Future<Map<String, Object?>> nexComputeDailyNudgePlan(
   NexNudgePlanInput input,
 ) => Isolate.run(() => nexBuildDailyNudgePlan(input));
+
+enum _Kind { urgent, overdue, today, soon, unfinished }
+
+typedef _Fact = ({int rank, _Kind kind, DateTime when, String id, String text});

@@ -17,7 +17,9 @@ import 'package:flutter/foundation.dart'
 /// Birthdays & occasions and Word by Word are the first of them back,
 /// finished and redesigned in 2.4.0. Habits returns in 2.4.1, and Converter
 /// (dates, units and sizes, added in 2.6.29) in 2.7.0, and Warranties,
-/// completed and reviewed, in 2.7.2.
+/// completed and reviewed, in 2.7.2. In 2.8.1, reviewed and completed by the
+/// module agents: Gold, Quit Habits (`smoke_free`) and Lent & Borrowed come
+/// back, and two new ones arrive — Prompt Studio and the Security toolbox.
 const nexAvailableModuleIds = {
   'cycle',
   'pause',
@@ -26,6 +28,11 @@ const nexAvailableModuleIds = {
   'habits',
   'converter',
   'warranty',
+  'gold',
+  'smoke_free',
+  'lent_borrowed',
+  'prompt_studio',
+  'security_tools',
 };
 
 /// Windows, Linux and macOS. The modules are made for the phone; the desktop

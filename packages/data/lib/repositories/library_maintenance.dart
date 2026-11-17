@@ -265,7 +265,9 @@ class LibraryMaintenance {
   List<TagUsage> tagUsage({bool timelineOnly = false}) {
     final homeConstraint = timelineOnly
         ? 'AND (n.set_aside_at IS NULL OR '
-              '(n.set_aside_until IS NOT NULL AND n.set_aside_until <= ?))'
+              '(n.set_aside_until IS NOT NULL AND n.set_aside_until <= ?)) '
+              // Nor a note still waiting for its time: it is not on Home.
+              'AND (n.scheduled_until IS NULL OR n.scheduled_until <= ?)'
         : '';
     return repo.db
         .select(
@@ -277,7 +279,12 @@ class LibraryMaintenance {
       $homeConstraint
     GROUP BY t.id ORDER BY usage_count DESC, t.name COLLATE NOCASE
   ''',
-          [if (timelineOnly) DateTime.now().toUtc().toIso8601String()],
+          [
+            if (timelineOnly) ...[
+              DateTime.now().toUtc().toIso8601String(),
+              DateTime.now().toUtc().toIso8601String(),
+            ],
+          ],
         )
         .map((row) => TagUsage(Tag.fromRow(row), row['usage_count'] as int))
         .toList();
@@ -307,9 +314,32 @@ class LibraryMaintenance {
     );
   }
 
+  /// Folds every note carrying [sourceId] into [targetId], and deletes the
+  /// source tag.
+  ///
+  /// The merge has to travel. Before the notes were marked pending this
+  /// changed only local rows — the links moved, the source tag went — and
+  /// nothing entered the outbox: the notes kept their `sync_state`, so the
+  /// very change that moved them never reached any peer, and the next pull
+  /// of any of those notes re-linked the tag this device had just folded
+  /// away. The tag rows themselves have no tombstone in the sync wire, but
+  /// the *link* a note carries is part of its payload, and a pending note is
+  /// the one channel a merge can ride.
   void mergeTag({required String sourceId, required String targetId}) {
     repo.db.beginImmediate();
     try {
+      // Read first: the cascade below takes the joins with it, so the notes
+      // that need marking have to be carried across by hand. Only the notes
+      // that actually gain the target are marked — one already carrying it
+      // keeps its links as they were.
+      final moved = [
+        for (final row in repo.db.select(
+          'SELECT note_id FROM note_tags WHERE tag_id = ? '
+          'AND note_id NOT IN (SELECT note_id FROM note_tags WHERE tag_id = ?)',
+          [sourceId, targetId],
+        ))
+          row['note_id']! as String,
+      ];
       repo.db.execute(
         '''
         INSERT OR IGNORE INTO note_tags (note_id, tag_id)
@@ -318,6 +348,9 @@ class LibraryMaintenance {
         [targetId, sourceId],
       );
       repo.db.execute('DELETE FROM tags WHERE id = ?', [sourceId]);
+      for (final noteId in moved) {
+        repo.markPending(noteId);
+      }
       repo.db.execute('COMMIT');
     } catch (_) {
       repo.db.execute('ROLLBACK');
@@ -325,8 +358,26 @@ class LibraryMaintenance {
     }
   }
 
-  void deleteTag(String id) =>
-      repo.db.execute('DELETE FROM tags WHERE id = ?', [id]);
+  /// Deletes a tag and every link to it.
+  ///
+  /// Same reasoning as [mergeTag]: the links' removal has to travel or the
+  /// next pull of any affected note puts them right back. The tag row itself
+  /// cannot travel — the wire has no tombstone for tags, so the row stays on
+  /// the server and on peers until a protocol change says otherwise; the
+  /// notes arrive without it, which is the half a person notices.
+  void deleteTag(String id) {
+    final carried = [
+      for (final row in repo.db.select(
+        'SELECT note_id FROM note_tags WHERE tag_id = ?',
+        [id],
+      ))
+        row['note_id']! as String,
+    ];
+    repo.db.execute('DELETE FROM tags WHERE id = ?', [id]);
+    for (final noteId in carried) {
+      repo.markPending(noteId);
+    }
+  }
 
   /// The closest thing to a query that found nothing, offered as "the
   /// closest thing you actually wrote" — or null when nothing is close.
@@ -345,9 +396,10 @@ class LibraryMaintenance {
     Note? best;
     var score = 0.0;
     for (final row in repo.db.select(
-      '''SELECT * FROM notes WHERE deleted_at IS NULL AND (
-            content IS NOT NULL OR title IS NOT NULL OR caption IS NOT NULL
-            OR transcript_text IS NOT NULL OR ocr_text IS NOT NULL)
+      '''SELECT * FROM notes WHERE deleted_at IS NULL
+            AND scheduled_until IS NULL
+            AND (content IS NOT NULL OR title IS NOT NULL OR caption IS NOT NULL
+                 OR transcript_text IS NOT NULL OR ocr_text IS NOT NULL)
           ORDER BY created_at DESC LIMIT 500''',
     )) {
       final note = Note.fromRow(row, tags: const []);

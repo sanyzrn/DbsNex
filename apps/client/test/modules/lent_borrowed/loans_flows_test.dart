@@ -26,7 +26,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('return-field-amount')),
-        '200000',
+        '20000',
       );
       final save = find.byKey(const ValueKey('return-save'));
       await tester.ensureVisible(save);
@@ -34,11 +34,9 @@ void main() {
       await tester.tap(save);
       await settleLoans(tester);
 
-      expect(
-        find.textContaining('300,000 \u2066IRR\u2069 still out'),
-        findsOneWidget,
-      );
-      expect(find.text('Returned 200,000 \u2066IRR\u2069'), findsOneWidget);
+      expect(find.textContaining('30,000 tomans still out'), findsOneWidget);
+      await revealInLoanDetail(tester, find.text('Returned 20,000 tomans'));
+      expect(find.text('Returned 20,000 tomans'), findsOneWidget);
       final returns = await store.list('return');
       expect(returns, hasLength(1));
       expect(returns.first.body['loan'], id);
@@ -54,9 +52,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('loan-record-return')));
       await tester.pumpAndSettle();
+      // One rial more than is out: 50,000.1 tomans.
       await tester.enterText(
         find.byKey(const ValueKey('return-field-amount')),
-        '500001',
+        '50000.1',
       );
       final save = find.byKey(const ValueKey('return-save'));
       await tester.ensureVisible(save);
@@ -82,11 +81,9 @@ void main() {
       await tester.tap(settleAll);
       await settleLoans(tester);
 
-      expect(
-        find.textContaining('500,000 \u2066IRR\u2069 still out'),
-        findsNothing,
-      );
-      expect(find.text('Returned 500,000 \u2066IRR\u2069'), findsOneWidget);
+      expect(find.textContaining('50,000 tomans still out'), findsNothing);
+      await revealInLoanDetail(tester, find.text('Returned 50,000 tomans'));
+      expect(find.text('Returned 50,000 tomans'), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
       expect(
@@ -107,7 +104,8 @@ void main() {
 
       await tester.tap(find.text('Undo'));
       await settleLoans(tester);
-      expect(find.text('Returned 500,000 \u2066IRR\u2069'), findsOneWidget);
+      await revealInLoanDetail(tester, find.text('Returned 50,000 tomans'));
+      expect(find.text('Returned 50,000 tomans'), findsOneWidget);
       expect(find.text('Settled'), findsOneWidget);
     });
   });
@@ -125,7 +123,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('return-field-amount')),
-        '200000',
+        '20000',
       );
       final returnSave = find.byKey(const ValueKey('return-save'));
       await tester.ensureVisible(returnSave);
@@ -141,7 +139,7 @@ void main() {
       );
       await tester.enterText(
         find.byKey(const ValueKey('loan-field-amount')),
-        '600000',
+        '60000',
       );
       // Let the focused amount field finish its own scroll-into-view before
       // the test scrolls to the save button; otherwise the caret's scroll
@@ -154,10 +152,7 @@ void main() {
       await settleLoans(tester);
 
       expect(find.text('Ali Rezaei'), findsOneWidget);
-      expect(
-        find.textContaining('400,000 \u2066IRR\u2069 still out'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('40,000 tomans still out'), findsOneWidget);
       expect(
         await store.list('return'),
         hasLength(1),
@@ -177,7 +172,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('return-field-amount')),
-        '400000',
+        '40000',
       );
       final returnSave = find.byKey(const ValueKey('return-save'));
       await tester.ensureVisible(returnSave);
@@ -189,7 +184,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('loan-field-amount')),
-        '300000',
+        '30000',
       );
       // Same caret-scroll settle as in the renaming test above.
       await tester.pumpAndSettle();

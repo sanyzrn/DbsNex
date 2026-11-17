@@ -238,6 +238,10 @@ public final class NexDailyNudgeReceiver extends BroadcastReceiver {
             : dated.optInt("zone", plan.optInt("zone"));
         int actualOffset = zone.getOffset(now) / 60000;
         List<String> pool = new ArrayList<>();
+        // The plan's greeting, unless the day has its own title: what is
+        // waiting, counted ("2 overdue · 3 today"), which only holds while
+        // the day's own text does (2.8.1).
+        String title = plan.optString("title", "Nex");
         if (dated != null) {
             // The plan's own text is used only for the day it describes, in
             // the zone it was planned for, and while it is still true. Local
@@ -249,6 +253,8 @@ public final class NexDailyNudgeReceiver extends BroadcastReceiver {
             if (NexDailyDeliveryPolicy.current(now, localLimit, generated, invalidated,
                 plannedOffset, actualOffset)) {
                 pool = strings(dated.optJSONArray("localBodies"));
+                String dayTitle = dated.optString("title", "").trim();
+                if (!dayTitle.isEmpty()) title = dayTitle;
                 boolean consent = !plan.optBoolean("includesHabits")
                     || (prefs.getBoolean("flutter.brief.useHabits", false)
                         && prefs.getBoolean("flutter.module.habits.on", false));
@@ -300,7 +306,7 @@ public final class NexDailyNudgeReceiver extends BroadcastReceiver {
         if (icon == 0) icon = context.getApplicationInfo().icon;
         Notification.Builder builder = Build.VERSION.SDK_INT >= 26
             ? new Notification.Builder(context, CHANNEL) : new Notification.Builder(context);
-        builder.setSmallIcon(icon).setContentTitle(text(plan.optString("title", "Nex")))
+        builder.setSmallIcon(icon).setContentTitle(text(title))
             .setContentText(text(body)).setStyle(new Notification.BigTextStyle().bigText(text(body)))
             .setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER)
             .setVisibility(prefs.getBoolean("flutter.security.app_lock", false)

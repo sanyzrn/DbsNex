@@ -90,6 +90,20 @@ class CravingList extends StatelessWidget {
     if (craving.triggers.isNotEmpty) {
       parts.add(triggerLabel(context, craving.triggers.first));
     }
+    if (craving.afterIntensity != null) {
+      parts.add(
+        strings(context, 'afterSummary', {
+          'rating': strings(
+            context,
+            craving.afterIntensity == 1
+                ? 'intensityLow'
+                : craving.afterIntensity == 2
+                ? 'intensityMedium'
+                : 'intensityHigh',
+          ),
+        }),
+      );
+    }
     return parts.join(' · ');
   }
 

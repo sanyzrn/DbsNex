@@ -74,9 +74,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get toolsSectionPrivate => 'خصوصی';
 
   @override
-  String get toolsSectionEveryday => 'روزمره';
-
-  @override
   String intelligenceStateOn(String provider) {
     return 'روشن — $provider';
   }
@@ -2760,9 +2757,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get toolsMessagesHint => 'فضایی خصوصی برای متن‌های شما';
 
   @override
-  String get toolsGeneratorHint => 'ساخت و کپی رمز قوی';
-
-  @override
   String get assistantConfirmMerge => 'این یادداشت‌ها را یکی کنم؟';
 
   @override
@@ -3303,7 +3297,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get scheduledDiscardConfirm =>
-      'این یادداشت دور انداخته شود؟ هنوز به یادداشت‌هایتان نرسیده، پس برگرداندنی نیست.';
+      'این یادداشتِ منتظر دور انداخته شود؟ به «اخیراً حذف‌شده» می‌رود و تا خالی شدن سطل بازیافت همان‌جا می‌ماند.';
 
   @override
   String get cycleStagePeriod => 'پریود';
@@ -4823,9 +4817,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get vaultGenerate => 'تولید رمز تازه';
-
-  @override
-  String get vaultGenerator => 'تولیدکنندهٔ رمز';
 
   @override
   String get vaultSymbols => 'استفاده از نمادها';

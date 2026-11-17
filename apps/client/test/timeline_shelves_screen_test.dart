@@ -90,6 +90,28 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final explicit in [true, false]) {
+    testWidgets(
+      'by tag: once every note is tagged, Untagged goes at once '
+      '(2.8.1, ${explicit ? 'from the selection bar' : 'from a note\'s details'})',
+      (tester) async {
+        await setUpLibrary(by: NexTimelineArrangement.tag);
+        await open(tester);
+        expect(heading('Untagged'), findsOneWidget);
+        // Tagged the way the selection bar does it, which refreshes after,
+        // and the way a note's details or the assistant do it, which used to
+        // leave the home holding a count of notes that were all tagged.
+        for (final note in await harness.services.timeline(limit: 50)) {
+          await harness.services.addTag(noteId: note.id, name: 'Errands');
+        }
+        if (explicit) await harness.services.refreshTimeline();
+        await tester.pumpAndSettle();
+        expect(heading('Untagged'), findsNothing);
+        expect(heading('Errands'), findsOneWidget);
+      },
+    );
+  }
+
   testWidgets('a shelf moved down stays moved', (tester) async {
     await setUpLibrary();
     await open(tester);

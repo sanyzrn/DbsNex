@@ -307,53 +307,100 @@ class _TagOption extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final dot = nexParseTagColor(tag.color);
+    final on = alreadyOn || checked;
+    // The tag's own colour marks the pill it is on; one with none takes the
+    // accent. The tick sits in a disc of it, where the dot was.
+    final tint = dot ?? scheme.primary;
+    final duration = NexMotion.of(context, NexMotion.standard);
     final pill = Material(
-      color: alreadyOn || checked
-          ? scheme.surfaceContainerHighest
-          : scheme.surfaceContainerLowest,
-      shape: StadiumBorder(side: BorderSide(color: scheme.outline)),
+      color: Colors.transparent,
       child: InkWell(
         onTap: alreadyOn || disabled ? null : onTap,
         customBorder: const StadiumBorder(),
-        child: ConstrainedBox(
+        child: AnimatedContainer(
+          duration: duration,
+          curve: NexMotion.curve,
           constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: NexSpacing.md,
-              vertical: NexSpacing.sm,
+          padding: const EdgeInsetsDirectional.fromSTEB(
+            NexSpacing.sm + NexSpacing.xs,
+            NexSpacing.sm,
+            NexSpacing.md,
+            NexSpacing.sm,
+          ),
+          decoration: ShapeDecoration(
+            color: on
+                ? Color.alphaBlend(
+                    tint.withValues(alpha: 0.14),
+                    scheme.surfaceContainerLowest,
+                  )
+                : scheme.surfaceContainerLowest,
+            shape: StadiumBorder(
+              side: BorderSide(
+                color: on ? tint.withValues(alpha: 0.7) : scheme.outline,
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (dot != null)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: dot,
-                    ),
-                  ),
-                if (dot != null) const SizedBox(width: NexSpacing.contentGap),
-                Text(
-                  nexTagLabel(tag, AppLocalizations.of(context)),
-                  style: alreadyOn
-                      ? theme.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // One slot for the dot and the tick, the same width either way
+              // (2.8.1): the tick used to be added at the end, so ticking a
+              // tag widened its pill and could push the ones after it onto
+              // another row under the finger.
+              SizedBox.square(
+                dimension: 18,
+                child: AnimatedSwitcher(
+                  duration: NexMotion.of(context, NexMotion.pop),
+                  switchInCurve: NexMotion.popCurve,
+                  switchOutCurve: NexMotion.exitCurve,
+                  transitionBuilder: (child, animation) =>
+                      ScaleTransition(scale: animation, child: child),
+                  child: on
+                      ? Container(
+                          key: const ValueKey('tag-on'),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: alreadyOn
+                                ? scheme.onSurfaceVariant.withValues(alpha: 0.5)
+                                : tint,
+                          ),
+                          child: Icon(
+                            Icons.check,
+                            size: 13,
+                            color: nexReadableOn(Colors.white, tint),
+                          ),
                         )
-                      : theme.textTheme.bodyMedium,
+                      : Center(
+                          key: const ValueKey('tag-off'),
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: dot,
+                              border: dot == null
+                                  ? Border.all(color: scheme.outline)
+                                  : null,
+                            ),
+                          ),
+                        ),
                 ),
-                if (alreadyOn || checked) ...[
-                  const SizedBox(width: NexSpacing.contentGap),
-                  Icon(Icons.check, size: 16, color: scheme.onSurfaceVariant),
-                ],
-              ],
-            ),
+              ),
+              const SizedBox(width: NexSpacing.contentGap),
+              Text(
+                nexTagLabel(tag, AppLocalizations.of(context)),
+                style: alreadyOn
+                    ? theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      )
+                    : theme.textTheme.bodyMedium,
+              ),
+            ],
           ),
         ),
       ),
     );
-    return Semantics(selected: alreadyOn || checked, child: pill);
+    return Semantics(selected: on, child: pill);
   }
 }
 

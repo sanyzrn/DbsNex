@@ -73,6 +73,7 @@ class GoldNumberField extends StatelessWidget {
         // whatever slips past the keyboard, in words rather than silence.
         decoration: InputDecoration(
           labelText: label,
+          suffixText: suffix,
           counterText: '',
           errorMaxLines: 3,
         ),
@@ -237,6 +238,7 @@ class GoldFinenessField extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.fieldKey,
+    this.presets = goldFinenessPresets,
   });
 
   final String label;
@@ -244,11 +246,13 @@ class GoldFinenessField extends StatelessWidget {
   final int value;
   final void Function(int) onChanged;
   final Key? fieldKey;
+  final List<int> presets;
 
   static const custom = -1;
 
   String _presetLabel(BuildContext context, int ppt) {
     final persian = NexModuleStrings.persian(context);
+    if (ppt == 740 || ppt == 705) return groupDigits(ppt, persian: persian);
     final karat = switch (ppt) {
       999 => '24k',
       916 => '22k',
@@ -266,9 +270,9 @@ class GoldFinenessField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final persian = NexModuleStrings.persian(context);
-    final isPreset = goldFinenessPresets.contains(value);
+    final isPreset = presets.contains(value);
     final items = <(int, String)>[
-      for (final ppt in goldFinenessPresets) (ppt, _presetLabel(context, ppt)),
+      for (final ppt in presets) (ppt, _presetLabel(context, ppt)),
       (
         custom,
         isPreset

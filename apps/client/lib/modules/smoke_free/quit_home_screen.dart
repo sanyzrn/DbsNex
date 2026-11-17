@@ -11,6 +11,7 @@ import 'quit_widgets.dart';
 import 'setup_sheet.dart';
 import 'smoke_free_screen.dart';
 import 'smoke_math.dart';
+import 'quit_day_clock.dart';
 import 'store_state.dart';
 
 /// Quit Habits: everything the person is quitting, each with its own count.
@@ -28,31 +29,43 @@ class _QuitHomeScreenState extends State<QuitHomeScreen>
     with WidgetsBindingObserver, StoreState<QuitHomeScreen> {
   List<QuitAttempt> _attempts = const [];
   StreamSubscription<void>? _changes;
+  late final _days = QuitDayClock(() {
+    if (mounted) setState(() {});
+  });
   bool _adding = false;
+  int _loadToken = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _days.start();
     _changes = widget.store.changes.listen((_) => unawaited(_load()));
     unawaited(_load());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(_load());
+    if (state == AppLifecycleState.resumed) {
+      _days.start();
+      unawaited(_load());
+    } else {
+      _days.stop();
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _days.stop();
     unawaited(_changes?.cancel());
     super.dispose();
   }
 
   Future<void> _load() => readRecords(() async {
+    final token = ++_loadToken;
     final quits = await widget.store.list('quit');
-    if (!mounted) return;
+    if (!mounted || token != _loadToken) return;
     setState(() => _attempts = quits.map(QuitAttempt.fromRecord).toList());
   });
 
@@ -70,7 +83,13 @@ class _QuitHomeScreenState extends State<QuitHomeScreen>
   Widget build(BuildContext context) {
     final strings = smokeFreeStrings;
     final habits = quitHabitsOf(_attempts);
-    final running = habits.where((a) => a.isActive).toList();
+    final now = DateTime.now();
+    final running = habits
+        .where((a) => a.isActive && !a.startedAt.isAfter(now))
+        .toList();
+    final planned = habits
+        .where((a) => a.isActive && a.startedAt.isAfter(now))
+        .toList();
     final ended = habits.where((a) => !a.isActive).toList();
     return Scaffold(
       appBar: NexAppBar(title: Text(strings(context, 'title'))),
@@ -121,6 +140,19 @@ class _QuitHomeScreenState extends State<QuitHomeScreen>
                       NexGroupedRow(
                         index: i,
                         count: running.length,
+                        child: _HabitTile(attempt: a, store: widget.store),
+                      ),
+                  ],
+                  if (planned.isNotEmpty) ...[
+                    const SizedBox(height: NexSpacing.md),
+                    NexShelfHeading(
+                      icon: Icons.event_outlined,
+                      title: strings(context, 'plannedHeading'),
+                    ),
+                    for (final (i, a) in planned.indexed)
+                      NexGroupedRow(
+                        index: i,
+                        count: planned.length,
                         child: _HabitTile(attempt: a, store: widget.store),
                       ),
                   ],
@@ -216,7 +248,7 @@ class _HabitTile extends StatelessWidget {
   }
 }
 
-const _milestones = [1, 3, 7, 14, 30, 60, 100, 180, 365];
+const _milestones = quitMilestones;
 
 /// The page's one statement: the longest run among what is being quit right
 /// now, in the module's own colour.

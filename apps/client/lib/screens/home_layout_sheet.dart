@@ -49,7 +49,7 @@ class _HomeLayoutSheetState extends State<HomeLayoutSheet> {
 
   /// Everything that can be a tile on the home screen: the modules that are
   /// added first — they are the ones with something live to show — then the
-  /// everyday and the private tools.
+  /// private tools.
   List<NexTool> _pinnable(BuildContext context) => [
     if (widget.services case final services?)
       ...nexModuleTools(
@@ -57,7 +57,6 @@ class _HomeLayoutSheetState extends State<HomeLayoutSheet> {
         services: services,
         preferences: widget.preferences,
       ),
-    ...nexEverydayTools(context),
     ...nexPrivateTools(
       context,
       biometricOnly: widget.preferences.appLockBiometricOnly,

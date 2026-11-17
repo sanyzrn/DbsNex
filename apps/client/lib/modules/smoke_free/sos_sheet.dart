@@ -4,364 +4,371 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'craving_sheet.dart';
+import 'craving_rating.dart';
+import 'draft_guard.dart';
+import 'form_draft.dart';
 import 'module.dart';
 import 'quit_model.dart';
+import 'sos_breathing.dart';
+import 'sos_clock.dart';
 
-/// The help button: three ways to get through a craving — breathe, wait it
-/// out, do something else — with the person's own reason one glance away.
-/// Nothing is recorded unless they choose to log the craving.
 Future<void> showSosSheet(
   BuildContext context,
   NexModuleStore store,
   QuitAttempt attempt,
 ) => nexShowSheet<void>(
   context: context,
-  builder: (sheet) => _SosSheet(store: store, attempt: attempt),
+  dismissible: false,
+  swipeToClose: true,
+  builder: (_) => _SosSheet(store: store, attempt: attempt),
 );
 
 enum _Mode { breathe, wait, distract }
 
 class _SosSheet extends StatefulWidget {
   const _SosSheet({required this.store, required this.attempt});
-
   final NexModuleStore store;
   final QuitAttempt attempt;
-
   @override
   State<_SosSheet> createState() => _SosSheetState();
 }
 
-class _SosSheetState extends State<_SosSheet> {
+class _SosSheetState extends State<_SosSheet> with WidgetsBindingObserver {
   _Mode _mode = _Mode.breathe;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = smokeFreeStrings;
-    final theme = Theme.of(context);
-    final why = widget.attempt.why.trim();
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsetsDirectional.all(NexSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              strings(context, 'sosTitle'),
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: NexSpacing.xs),
-            Text(
-              strings(context, 'sosIntro'),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (why.isNotEmpty) ...[
-              const SizedBox(height: NexSpacing.md),
-              NexPanel(
-                key: const ValueKey('sos-why'),
-                title: strings(context, 'remember'),
-                icon: Icons.favorite_border,
-                child: NexTextDirection(
-                  text: why,
-                  child: Text(why, style: theme.textTheme.bodyLarge),
-                ),
-              ),
-            ],
-            const SizedBox(height: NexSpacing.md),
-            SegmentedButton<_Mode>(
-              key: const ValueKey('sos-modes'),
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(
-                  value: _Mode.breathe,
-                  label: Text(strings(context, 'tabBreathe')),
-                ),
-                ButtonSegment(
-                  value: _Mode.wait,
-                  label: Text(strings(context, 'tabWait')),
-                ),
-                ButtonSegment(
-                  value: _Mode.distract,
-                  label: Text(strings(context, 'tabDistract')),
-                ),
-              ],
-              selected: {_mode},
-              onSelectionChanged: (s) => setState(() => _mode = s.first),
-            ),
-            const SizedBox(height: NexSpacing.md),
-            switch (_mode) {
-              _Mode.breathe => const _Breathing(),
-              _Mode.wait => const _WaitTimer(),
-              _Mode.distract => const _Tips(),
-            },
-            const SizedBox(height: NexSpacing.md),
-            OutlinedButton.icon(
-              key: const ValueKey('sos-log'),
-              icon: const Icon(Icons.edit_note_outlined),
-              label: Text(strings(context, 'logIt')),
-              onPressed: () {
-                final navigator = Navigator.of(context);
-                navigator.pop();
-                unawaited(
-                  showCravingSheet(
-                    navigator.context,
-                    widget.store,
-                    habit: widget.attempt.key,
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 4-7-8: four counts in, seven held, eight out, over and over until
-/// stopped. The circle grows and shrinks with the breath; with reduced
-/// motion only the words and the count change.
-class _Breathing extends StatefulWidget {
-  const _Breathing();
-
-  @override
-  State<_Breathing> createState() => _BreathingState();
-}
-
-class _BreathingState extends State<_Breathing>
-    with SingleTickerProviderStateMixin {
-  static const _in = 4, _hold = 7, _out = 8, _cycle = _in + _hold + _out;
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: _cycle),
-  );
-  bool _running = false;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _toggle() {
-    setState(() => _running = !_running);
-    if (_running) {
-      unawaited(_controller.repeat());
-    } else {
-      _controller
-        ..stop()
-        ..value = 0;
-    }
-  }
-
-  ({String key, int count, double scale}) _phase(double t) {
-    final seconds = t * _cycle;
-    if (seconds < _in) {
-      return (
-        key: 'breatheIn',
-        count: _in - seconds.floor(),
-        scale: 0.55 + 0.45 * (seconds / _in),
-      );
-    }
-    if (seconds < _in + _hold) {
-      return (
-        key: 'breatheHold',
-        count: (_in + _hold) - seconds.floor(),
-        scale: 1,
-      );
-    }
-    final out = seconds - _in - _hold;
-    return (
-      key: 'breatheOut',
-      count: _cycle - seconds.floor(),
-      scale: 1 - 0.45 * (out / _out),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = smokeFreeStrings;
-    final theme = Theme.of(context);
-    final still = MediaQuery.disableAnimationsOf(context);
-    final persian = NexModuleStrings.persian(context);
-    return Column(
-      children: [
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            final phase = _phase(_controller.value);
-            final count = persian
-                ? nexDigits('${phase.count}', persian: true)
-                : '${phase.count}';
-            return Semantics(
-              liveRegion: true,
-              label: _running
-                  ? '${strings(context, phase.key)} $count'
-                  : strings(context, 'tabBreathe'),
-              child: SizedBox(
-                height: 180,
-                child: Center(
-                  child: Transform.scale(
-                    scale: still || !_running ? 0.8 : phase.scale,
-                    child: Container(
-                      width: 160,
-                      height: 160,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: theme.colorScheme.primary.withValues(
-                          alpha: 0.18,
-                        ),
-                        border: Border.all(
-                          color: theme.colorScheme.primary,
-                          width: 2,
-                        ),
-                      ),
-                      child: _running
-                          ? Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  strings(context, phase.key),
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                                Text(
-                                  count,
-                                  key: const ValueKey('sos-breath-count'),
-                                  style: theme.textTheme.headlineMedium,
-                                ),
-                              ],
-                            )
-                          : const Icon(Icons.air, size: 40),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        Text(
-          strings(context, 'breatheNote'),
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        FilledButton(
-          key: const ValueKey('sos-breath-toggle'),
-          onPressed: _toggle,
-          child: Text(
-            strings(context, _running ? 'breatheStop' : 'breatheStart'),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// "Urge surfing": a ten-minute clock to let a craving crest and fall.
-class _WaitTimer extends StatefulWidget {
-  const _WaitTimer();
-
-  @override
-  State<_WaitTimer> createState() => _WaitTimerState();
-}
-
-class _WaitTimerState extends State<_WaitTimer> {
-  static const _total = 10 * 60;
+  int _before = 2;
+  int? _after;
+  int _minutes = 10, _left = 600;
+  DateTime? _deadline;
   Timer? _timer;
-  int _left = _total;
-  bool _started = false;
+  bool _loading = true, _failed = false, _leaving = false;
+  late final _draft = FormDraft(
+    widget.store,
+    'sos:${widget.attempt.key}',
+    {
+      'attempt': widget.attempt.id,
+      'startedAt': widget.attempt.startedAt.toIso8601String(),
+    },
+    const {},
+    () => {
+      'before': _before,
+      'after': _after,
+      'mode': _mode.name,
+      'minutes': _minutes,
+      'left': _left,
+      'deadline': _deadline?.toIso8601String(),
+    },
+  );
 
   @override
-  void dispose() {
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    final body = await _draft.load();
+    if (!mounted) return;
+    if (_draft.loadFailed) {
+      setState(() {
+        _loading = false;
+        _failed = true;
+      });
+      return;
+    }
+    if (body != null) {
+      final before = body['before'], after = body['after'];
+      if (before is int && before >= 1 && before <= 3) _before = before;
+      if (after is int && after >= 1 && after <= 3) _after = after;
+      _mode =
+          _Mode.values.where((m) => m.name == body['mode']).firstOrNull ??
+          _Mode.breathe;
+      if ([2, 5, 10].contains(body['minutes'])) {
+        _minutes = body['minutes'] as int;
+      }
+      _left = body['left'] is int
+          ? (body['left'] as int).clamp(0, _minutes * 60)
+          : _minutes * 60;
+      _deadline = DateTime.tryParse('${body['deadline'] ?? ''}');
+      if (_deadline != null) _sync();
+    }
+    _draft.start();
+    setState(() {
+      _loading = false;
+      _failed = false;
+    });
+    if (_deadline != null && _left > 0) _arm();
+  }
+
+  void _change(VoidCallback action) {
+    setState(action);
+    _draft.changed();
+  }
+
+  void _sync() {
+    final end = _deadline;
+    if (end == null) return;
+    final clockLeft = sosSecondsLeft(end, DateTime.now());
+    if (clockLeft < _left) _left = clockLeft;
+  }
+
+  void _arm() {
     _timer?.cancel();
-    super.dispose();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      // The monotonic tick keeps progress smooth if wall time moves backwards;
+      // the deadline catches up after delayed callbacks or a background pause.
+      if (_left > 0) _left--;
+      _sync();
+      if (_left == 0) {
+        _timer?.cancel();
+        _draft.changed();
+      }
+      if (mounted && _mode == _Mode.wait) setState(() {});
+    });
   }
 
   void _start() {
+    _change(() {
+      _left = _minutes * 60;
+      _deadline = DateTime.now().add(Duration(minutes: _minutes));
+    });
+    _arm();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _sync();
+      if (mounted) setState(() {});
+      if (_deadline != null && _left > 0) _arm();
+    } else {
+      _timer?.cancel();
+      _draft.changed();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
-    setState(() {
-      _started = true;
-      _left = _total;
-    });
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      setState(() => _left--);
-      if (_left <= 0) timer.cancel();
-    });
+    _draft.close();
+    super.dispose();
+  }
+
+  Future<void> _record() async {
+    if (_leaving || _loading || _failed) return;
+    setState(() => _leaving = true);
+    final navigator = Navigator.of(context);
+    final coping = switch (_mode) {
+      _Mode.breathe => 'deepBreath',
+      _Mode.wait => 'waited',
+      _Mode.distract => 'distraction',
+    };
+    // Keep the SOS checkpoint until the editable log owns a durable draft.
+    // Opening the form never creates a craving or infers a success.
+    _draft.changed();
+    if (!await _draft.finish()) {
+      _draft.resume();
+      if (mounted) {
+        setState(() => _leaving = false);
+        nexShowBanner(
+          context,
+          message: smokeFreeStrings(context, 'saveError'),
+          kind: NexBannerKind.failed,
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    navigator.pop();
+    await showCravingSheet(
+      navigator.context,
+      widget.store,
+      habit: widget.attempt.key,
+      initialIntensity: _before,
+      initialCoping: coping,
+      afterIntensity: _after,
+    );
+    await _draft.clear();
+  }
+
+  Widget _ratings({required bool after}) => CravingRating(
+    key: ValueKey(after ? 'sos-after' : 'sos-before'),
+    label: smokeFreeStrings(context, after ? 'afterRating' : 'beforeRating'),
+    value: after ? _after : _before,
+    optional: after,
+    onChanged: (value) => _change(() {
+      if (after) {
+        _after = value;
+      } else {
+        _before = value!;
+      }
+    }),
+  );
+
+  Widget _wait() {
+    final strings = smokeFreeStrings;
+    final shown = nexDigits(
+      '${(_left ~/ 60).toString().padLeft(2, '0')}:${(_left % 60).toString().padLeft(2, '0')}',
+      persian: NexModuleStrings.persian(context),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        NexAdaptiveSegments<int>(
+          segments: [
+            for (final n in [2, 5, 10])
+              ButtonSegment(
+                value: n,
+                label: Text(strings(context, 'waitMinutes', {'n': n})),
+              ),
+          ],
+          selected: {_minutes},
+          onSelectionChanged: (value) => _change(() {
+            _timer?.cancel();
+            _deadline = null;
+            _minutes = value.first;
+            _left = _minutes * 60;
+          }),
+        ),
+        const SizedBox(height: NexSpacing.md),
+        Text(
+          _deadline == null
+              ? strings(context, 'waitHint')
+              : _left == 0
+              ? strings(context, 'waitDone')
+              : strings(context, 'waitLeft', {'time': shown}),
+          key: ValueKey(
+            _deadline != null && _left == 0 ? 'sos-wait-done' : 'sos-wait-left',
+          ),
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        if (_deadline != null) ...[
+          const SizedBox(height: NexSpacing.md),
+          LinearProgressIndicator(value: 1 - _left / (_minutes * 60)),
+        ],
+        const SizedBox(height: NexSpacing.md),
+        FilledButton(
+          key: const ValueKey('sos-wait-start'),
+          onPressed: _start,
+          child: Text(
+            _deadline == null
+                ? strings(context, 'waitBegin')
+                : strings(context, 'waitReset'),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final strings = smokeFreeStrings;
-    final theme = Theme.of(context);
-    final persian = NexModuleStrings.persian(context);
-    final done = _started && _left <= 0;
-    final time =
-        '${(_left ~/ 60).toString().padLeft(2, '0')}:'
-        '${(_left % 60).toString().padLeft(2, '0')}';
-    final shown = persian ? nexDigits(time, persian: true) : time;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (done)
-          Text(
-            strings(context, 'waitDone'),
-            key: const ValueKey('sos-wait-done'),
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium,
-          )
-        else if (_started)
-          Text(
-            strings(context, 'waitLeft', {'time': shown}),
-            key: const ValueKey('sos-wait-left'),
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineMedium,
-          )
-        else
-          Text(
-            strings(context, 'waitHint'),
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium,
-          ),
-        const SizedBox(height: NexSpacing.md),
-        if (_started && !done)
-          LinearProgressIndicator(value: 1 - _left / _total),
-        const SizedBox(height: NexSpacing.sm),
-        FilledButton(
-          key: const ValueKey('sos-wait-start'),
-          onPressed: _start,
-          child: Text(strings(context, _started ? 'waitReset' : 'waitStart')),
-        ),
-      ],
+    final plan = widget.attempt.nextStep.trim();
+    final why = widget.attempt.why.trim();
+    return DraftGuard(
+      draft: _draft,
+      busy: () => _loading || _leaving,
+      child: _failed
+          ? NexEmptyState(
+              icon: Icons.refresh,
+              message: strings(context, 'draftReadFailed'),
+              action: TextButton(
+                onPressed: () {
+                  setState(() => _loading = true);
+                  unawaited(_load());
+                },
+                child: Text(strings(context, 'retry')),
+              ),
+            )
+          : AbsorbPointer(
+              absorbing: _loading || _leaving,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(NexSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      strings(context, 'sosTitle'),
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: NexSpacing.xs),
+                    Text(strings(context, 'sosIntro')),
+                    if (why.isNotEmpty || plan.isNotEmpty) ...[
+                      const SizedBox(height: NexSpacing.md),
+                      NexPanel(
+                        key: const ValueKey('sos-why'),
+                        icon: Icons.favorite_border,
+                        title: strings(
+                          context,
+                          plan.isNotEmpty ? 'planTitle' : 'remember',
+                        ),
+                        child: NexTextDirection(
+                          text: plan.isNotEmpty ? plan : why,
+                          child: Text(plan.isNotEmpty ? plan : why),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: NexSpacing.md),
+                    _ratings(after: false),
+                    const SizedBox(height: NexSpacing.md),
+                    NexAdaptiveSegments<_Mode>(
+                      key: const ValueKey('sos-modes'),
+                      segments: [
+                        for (final pair in [
+                          (_Mode.breathe, 'tabBreathe'),
+                          (_Mode.wait, 'tabWait'),
+                          (_Mode.distract, 'tabDistract'),
+                        ])
+                          ButtonSegment(
+                            value: pair.$1,
+                            label: Text(strings(context, pair.$2)),
+                          ),
+                      ],
+                      selected: {_mode},
+                      onSelectionChanged: (value) =>
+                          _change(() => _mode = value.first),
+                    ),
+                    const SizedBox(height: NexSpacing.md),
+                    switch (_mode) {
+                      _Mode.breathe => const SosBreathing(),
+                      _Mode.wait => _wait(),
+                      _Mode.distract => const _Tips(),
+                    },
+                    const SizedBox(height: NexSpacing.md),
+                    _ratings(after: true),
+                    const SizedBox(height: NexSpacing.md),
+                    TextButton.icon(
+                      key: const ValueKey('sos-log'),
+                      icon: const Icon(Icons.edit_note_outlined),
+                      label: Text(strings(context, 'logIt')),
+                      onPressed: _record,
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }
 
 class _Tips extends StatelessWidget {
   const _Tips();
-
   @override
-  Widget build(BuildContext context) {
-    final strings = smokeFreeStrings;
-    return Column(
-      children: [
-        for (final (i, icon) in const [
-          Icons.water_drop_outlined,
-          Icons.directions_walk,
-          Icons.chat_bubble_outline,
-          Icons.face_outlined,
-          Icons.back_hand_outlined,
-        ].indexed)
-          ListTile(
-            leading: Icon(icon),
-            title: Text(strings(context, 'tip${i + 1}')),
-          ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (final (i, icon) in const [
+        Icons.water_drop_outlined,
+        Icons.directions_walk,
+        Icons.chat_bubble_outline,
+        Icons.face_outlined,
+        Icons.back_hand_outlined,
+      ].indexed)
+        ListTile(
+          leading: Icon(icon),
+          title: Text(smokeFreeStrings(context, 'tip${i + 1}')),
+        ),
+    ],
+  );
 }

@@ -169,7 +169,7 @@ void main() {
               .toIso8601String(),
         });
         await h.preferences.togglePinnedTool('module.habits');
-        await h.preferences.togglePinnedTool('generator');
+        await h.preferences.togglePinnedTool('vault.message');
         await tester.pumpWidget(
           MaterialApp(
             locale: Locale(locale),
@@ -186,7 +186,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(l.pinHabitsProgress(0, 1)), findsOneWidget);
         final module = find.byKey(const ValueKey('pinned-tool-module.habits'));
-        final generator = find.byKey(const ValueKey('pinned-tool-generator'));
+        final generator = find.byKey(
+          const ValueKey('pinned-tool-vault.message'),
+        );
         Finder tile(Finder parent) =>
             find.descendant(of: parent, matching: find.byType(NexShelfTile));
         expect(

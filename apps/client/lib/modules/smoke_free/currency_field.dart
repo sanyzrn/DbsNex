@@ -37,7 +37,12 @@ class CurrencyField extends StatelessWidget {
       })
         DropdownMenuItem(
           value: code,
-          child: Text(code, textDirection: TextDirection.ltr),
+          // In Persian the rial is named, its code beside it.
+          child: Text(
+            code == 'IRR' && Directionality.of(context) == TextDirection.rtl
+                ? 'ریال (IRR)'
+                : code,
+          ),
         ),
     ],
     onChanged: onChanged == null

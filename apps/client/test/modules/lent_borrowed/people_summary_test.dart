@@ -209,10 +209,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('person-sara')));
       await settle(tester);
       expect(find.text('Sara'), findsWidgets);
-      expect(find.byKey(const ValueKey('loans-summary')), findsWidgets);
+      expect(find.byKey(const ValueKey('person-ledger')), findsOneWidget);
+      expect(plainText('125.00 USD'), findsOneWidget);
     });
 
-    testWidgets('a lent record offers three polite messages to share', (
+    testWidgets('a lent record offers three polite messages to copy', (
       tester,
     ) async {
       final store = await seed();
@@ -220,10 +221,13 @@ void main() {
       await settle(tester);
       await tester.tap(find.byKey(const ValueKey('loan-message')));
       await tester.pumpAndSettle();
-      for (final tone in ['friendly', 'plain', 'formal']) {
-        expect(find.byKey(ValueKey('loan-message-$tone')), findsOneWidget);
-      }
+      expect(find.byKey(const ValueKey('loan-message-tones')), findsOneWidget);
       expect(find.textContaining('Hi Sara!'), findsOneWidget);
+      expect(find.byKey(const ValueKey('loan-message-copy')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loan-message-share')), findsOneWidget);
+      // Another tone says the same thing without the exclamation.
+      await tester.tap(find.text('Formal'));
+      await tester.pumpAndSettle();
       expect(find.textContaining('Dear Sara'), findsOneWidget);
     });
 

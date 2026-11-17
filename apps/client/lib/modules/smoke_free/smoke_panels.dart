@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
+
 import 'craving_list.dart';
 import 'module.dart';
 import 'money_format.dart';
 import 'quit_model.dart';
+import 'quit_habits.dart';
 import 'quit_widgets.dart';
 import 'smoke_math.dart';
+import 'quit_plan.dart';
+import 'quit_insights.dart';
 
 /// What the screen shows before the first attempt: an honest, small
 /// invitation — not a questionnaire.
@@ -123,50 +127,37 @@ class SmokeDashboard extends StatelessWidget {
         NexSpacing.lg + nexBottomInset(context),
       ),
       children: [
-        NexPanel(
-          icon: Icons.timelapse_outlined,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (started)
-                Text(
+        NexModuleHero(
+          moduleId: 'smoke_free',
+          icon: quitPresetOf(attempt.habit).icon,
+          eyebrow: quitHabitLabel(context, attempt),
+          headline: started
+              ? strings(
+                  context,
                   legacy
-                      ? strings(
-                          context,
-                          progress.days == 0
-                              ? 'smokeFreeToday'
-                              : progress.days == 1
-                              ? 'smokeFreeOneDay'
-                              : 'smokeFreeFor',
-                          {'days': progress.days},
-                        )
-                      : strings(
-                          context,
-                          progress.days == 0
-                              ? 'todayWithout'
-                              : progress.days == 1
-                              ? 'oneDayWithout'
-                              : 'daysWithout',
-                          {'days': progress.days, 'habit': habit},
-                        ),
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                      ? (progress.days == 0
+                            ? 'smokeFreeToday'
+                            : progress.days == 1
+                            ? 'smokeFreeOneDay'
+                            : 'smokeFreeFor')
+                      : (progress.days == 0
+                            ? 'todayWithout'
+                            : progress.days == 1
+                            ? 'oneDayWithout'
+                            : 'daysWithout'),
+                  {'days': progress.days, 'habit': habit},
+                )
+              : strings(context, 'plannedHeading'),
+          caption: strings(
+            context,
+            started ? supportMessageKey(progress.days) : 'plannedNote',
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               LiveCounter(
                 startedAt: attempt.startedAt,
-                style: started
-                    ? theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      )
-                    : theme.textTheme.headlineSmall,
-              ),
-              const SizedBox(height: NexSpacing.xs),
-              Text(
-                strings(context, supportMessageKey(progress.days)),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: theme.textTheme.titleSmall,
               ),
               if (onHelp != null) ...[
                 const SizedBox(height: NexSpacing.md),
@@ -180,6 +171,8 @@ class SmokeDashboard extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: NexSpacing.md),
+        QuitPlanCard(attempt: attempt, store: StoreScope.of(context)),
         const SizedBox(height: NexSpacing.md),
         NexPanel(
           title: quitHabitLabel(context, attempt),
@@ -296,6 +289,8 @@ class SmokeDashboard extends StatelessWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: NexSpacing.lg),
+        QuitInsightPanel(cravings: cravings),
+        const SizedBox(height: NexSpacing.md),
         CravingList(cravings: cravings),
         const SizedBox(height: NexSpacing.lg),
         QuitMarks(days: progress.days),

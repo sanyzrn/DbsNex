@@ -4,7 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'gold_screen.dart';
 import 'gold_strings.dart';
 
-/// «Gold Check» — an auditable calculator for new gold jewelry in Iran.
+/// «Gold Check» — offline buying, buyback and market conversions for Iran.
 ///
 /// Everything a person needs to question a counter price honestly: the
 /// weight, fineness and rate they were given, the making-charge formula
