@@ -8,6 +8,8 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Split a shared cost.** Lent & Borrowed now has Splits for a trip or a shared month: add who's in and each cost — divided equally, by shares or by exact amounts — and see everyone's balance and the fewest payments that settle it. Shares come out in whole tomans, and your own payment becomes a loan record with one tap.
 - **A book of cards and IBANs.** Save a person's card number or IBAN once: it's checked offline, the bank is named from the card's first digits, it copies in one tap, and the reminder message to that person can carry it.
+- **Links stay where they were.** An older link whose title or picture is filled in later no longer jumps to the top of your notes; it keeps its place.
+- **Steady site icons.** A site whose icon is animated no longer makes its mark on the card flicker; it shows a still icon.
 
 ## v2.8.3
 

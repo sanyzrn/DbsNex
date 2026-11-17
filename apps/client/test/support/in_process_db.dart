@@ -273,7 +273,13 @@ class InProcessDb implements NexDb {
     String id, {
     String? title,
     String? excerpt,
-  }) async => _repo.setLinkMetadata(id, title: title, excerpt: excerpt);
+    bool keepTime = false,
+  }) async => _repo.setLinkMetadata(
+    id,
+    title: title,
+    excerpt: excerpt,
+    keepTime: keepTime,
+  );
 
   @override
   Future<void> toggleChecklistItem(String id, int index) async =>

@@ -145,8 +145,17 @@ extension NexScheduledServices on NexServices {
   Future<void> summarizeInto(String id, String summary) =>
       worker.setSummaryText(id, summary);
 
-  Future<void> setLinkMetadata(String id, {String? title, String? excerpt}) =>
-      worker.setLinkMetadata(id, title: title, excerpt: excerpt);
+  Future<void> setLinkMetadata(
+    String id, {
+    String? title,
+    String? excerpt,
+    bool keepTime = false,
+  }) => worker.setLinkMetadata(
+    id,
+    title: title,
+    excerpt: excerpt,
+    keepTime: keepTime,
+  );
 
   /// Ticks a checklist line, and tells the timeline: the card renders the
   /// ticked state, and the detail sheet was the one caller that never

@@ -312,7 +312,14 @@ extension _TimelineRows on TimelineScreenState {
   void _startLinkArt() {
     final art = NexLinkArt.instance;
     art.onPageWords = (id, title, excerpt) async {
-      await widget.services.setLinkMetadata(id, title: title, excerpt: excerpt);
+      // Found later, in the background: not an edit, so the link keeps its
+      // place in the timeline (2.8.4).
+      await widget.services.setLinkMetadata(
+        id,
+        title: title,
+        excerpt: excerpt,
+        keepTime: true,
+      );
       if (mounted) await widget.services.refreshTimeline();
     };
     unawaited(() async {

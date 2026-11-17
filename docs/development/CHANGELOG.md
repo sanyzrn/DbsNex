@@ -53,6 +53,11 @@ Working convention:
   ahead (32 per medicine, 160 per cabinet); `person` as `{"name"}`,
   `priceRial`; `MedicineShared`.
 - All three leave the pending lists of `module_shared_rules_test`.
+- 2.8.3 follow-ups: `setLinkMetadata(keepTime:)` — the background fill
+  keeps `updated_at` (the timeline order) and writes nothing when the words
+  are unchanged; link icons are kept as one frame (`decodeImage(frame: 0)`,
+  `encodePng(singleFrame: true)`) and 2.8.3's `*.icon.png` are re-encoded
+  once at launch to `*.icon1.png`.
 
 ### 2.8.3 — link cards, arranging tools and modules, store readiness
 

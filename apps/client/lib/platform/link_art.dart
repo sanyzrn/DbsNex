@@ -44,6 +44,9 @@ class NexLinkArt extends ChangeNotifier {
   bool _running = false;
 
   static const _coverWidth = 720;
+
+  /// The icon's file: `icon1` since icons are kept as one frame (2.8.4).
+  static const _iconName = 'icon1.png';
   static const _iconSize = 96;
 
   /// How long a site that had no picture is left alone.
@@ -75,8 +78,11 @@ class NexLinkArt extends ChangeNotifier {
       final known = _known[id] ?? (cover: null, icon: null);
       if (kind == 'cover.jpg') {
         _known[id] = (cover: entry, icon: known.icon);
-      } else if (kind == 'icon.png') {
+      } else if (kind == _iconName) {
         _known[id] = (cover: known.cover, icon: entry);
+      } else if (kind == 'icon.png') {
+        // Written by 2.8.3, perhaps with every frame of an animated icon.
+        _legacyIcons[id] = entry;
       } else if (kind == 'none') {
         _empty[id] = entry.lastModifiedSync();
       }
@@ -87,6 +93,38 @@ class NexLinkArt extends ChangeNotifier {
   Future<void> open() async {
     await _folder();
     notifyListeners();
+    await _settleLegacyIcons();
+  }
+
+  /// Icons as 2.8.3 kept them, still to be brought to one frame.
+  final _legacyIcons = <String, File>{};
+
+  /// An icon is kept as one still frame (2.8.4). 2.8.3 kept every frame of
+  /// an animated one — a site whose icon moves — so its mark on the card
+  /// played the animation, and looked like it was jumping. Those are
+  /// re-encoded once, offline, under the new name: a new name, so the
+  /// moving copy an image cache may still hold is never shown again.
+  Future<void> _settleLegacyIcons() async {
+    final dir = _dir;
+    if (dir == null || _legacyIcons.isEmpty) return;
+    final legacy = Map.of(_legacyIcons);
+    _legacyIcons.clear();
+    var changed = false;
+    for (final MapEntry(key: id, value: file) in legacy.entries) {
+      try {
+        final still = await compute(_stillIcon, await file.readAsBytes());
+        if (still != null) {
+          final next = await _write(dir, '$id.$_iconName', still);
+          final known = _known[id] ?? (cover: null, icon: null);
+          _known[id] = (cover: known.cover, icon: next);
+          changed = true;
+        }
+      } catch (_) {}
+      try {
+        await file.delete();
+      } catch (_) {}
+    }
+    if (changed) notifyListeners();
   }
 
   /// Called with a page's title and description when a later fetch finds
@@ -169,7 +207,7 @@ class NexLinkArt extends ChangeNotifier {
         coverFile = await _write(dir, '$noteId.cover.jpg', bytes);
       }
       if (shrunk.icon case final bytes?) {
-        iconFile = await _write(dir, '$noteId.icon.png', bytes);
+        iconFile = await _write(dir, '$noteId.$_iconName', bytes);
       }
       if (coverFile == null && iconFile == null) {
         if (reached) {
@@ -244,7 +282,7 @@ class NexLinkArt extends ChangeNotifier {
     final had = _known.remove(noteId) != null;
     _empty.remove(noteId);
     if (dir == null) return;
-    for (final name in ['cover.jpg', 'icon.png', 'none']) {
+    for (final name in ['cover.jpg', _iconName, 'icon.png', 'none']) {
       try {
         await File('${dir.path}/$noteId.$name').delete();
       } catch (_) {}
@@ -287,6 +325,10 @@ class NexLinkArt extends ChangeNotifier {
     _opening = Future.value(dir);
     _load(dir);
   }
+
+  /// [bytes] as the one still frame an icon is kept as (tests).
+  @visibleForTesting
+  static Uint8List? debugStill(Uint8List bytes) => _stillIcon(bytes);
 
   /// Puts pictures in place for [noteId], as a fetch would have (tests).
   @visibleForTesting
@@ -350,7 +392,8 @@ String _siteOf(String host) {
   Uint8List? icon;
   try {
     if (input.cover case final bytes?) {
-      var image = img.decodeImage(bytes);
+      // The first frame only: a cover is a still picture.
+      var image = img.decodeImage(bytes, frame: 0);
       if (image != null &&
           input.youTube &&
           image.height * 4 >= image.width * 3) {
@@ -378,7 +421,8 @@ String _siteOf(String host) {
   } catch (_) {}
   try {
     if (input.icon case final bytes?) {
-      final image = img.decodeImage(bytes);
+      // The first frame only: a mark that moves reads as one that jumps.
+      final image = img.decodeImage(bytes, frame: 0);
       if (image != null && image.width >= 16 && image.height >= 16) {
         final small = image.width > NexLinkArt._iconSize
             ? img.copyResize(
@@ -387,9 +431,19 @@ String _siteOf(String host) {
                 height: NexLinkArt._iconSize,
               )
             : image;
-        icon = img.encodePng(small);
+        icon = img.encodePng(small, singleFrame: true);
       }
     }
   } catch (_) {}
   return (cover: cover, icon: icon);
+}
+
+/// [bytes] as one still PNG frame; null when they are not a picture.
+Uint8List? _stillIcon(Uint8List bytes) {
+  try {
+    final image = img.decodeImage(bytes, frame: 0);
+    return image == null ? null : img.encodePng(image, singleFrame: true);
+  } catch (_) {
+    return null;
+  }
 }

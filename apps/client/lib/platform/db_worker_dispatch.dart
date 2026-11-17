@@ -177,6 +177,7 @@ class _Worker {
           arg('id')! as String,
           title: arg('title') as String?,
           excerpt: arg('excerpt') as String?,
+          keepTime: arg('keepTime') == true,
         ),
       ),
       _DbCommand.toggleChecklistItem => NexDbWorker._voided(

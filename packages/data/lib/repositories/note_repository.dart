@@ -1852,21 +1852,37 @@ WHERE id = ? AND deleted_at IS NULL
   /// Not a user edit: the revision is bumped so the change syncs, but a null
   /// argument leaves that field alone rather than clearing it — a page that
   /// stops answering should not erase what was read from it the first time.
-  void setLinkMetadata(String noteId, {String? title, String? excerpt}) {
+  /// Saves a page's [title] and [excerpt] on link [noteId]; a null one is
+  /// left as it is.
+  ///
+  /// [keepTime] leaves `updated_at` alone (2.8.4): words fetched later, in
+  /// the background, for a link saved long ago are not an edit, and the
+  /// timeline is ordered by that time — touching it moved old links to the
+  /// top the day 2.8.3 filled them in. The revision still moves, so the
+  /// words still sync. Words that are already there change nothing at all.
+  void setLinkMetadata(
+    String noteId, {
+    String? title,
+    String? excerpt,
+    bool keepTime = false,
+  }) {
     db.together(() {
       if (title == null && excerpt == null) return;
       final now = DateTime.now().toUtc().toIso8601String();
       db.execute(
         '''
 UPDATE notes
-SET title = COALESCE(?, title),
-    link_excerpt = COALESCE(?, link_excerpt),
-    updated_at = ?, rev = rev + 1, sync_state = 'pending'
-WHERE id = ? AND deleted_at IS NULL
+SET title = COALESCE(?1, title),
+    link_excerpt = COALESCE(?2, link_excerpt),
+    updated_at = CASE WHEN ?3 THEN updated_at ELSE ?4 END,
+    rev = rev + 1, sync_state = 'pending'
+WHERE id = ?5 AND deleted_at IS NULL
+  AND (title IS NOT COALESCE(?1, title)
+       OR link_excerpt IS NOT COALESCE(?2, link_excerpt))
 ''',
-        [title?.trim(), excerpt?.trim(), now, noteId],
+        [title?.trim(), excerpt?.trim(), keepTime ? 1 : 0, now, noteId],
       );
-      _reindex(noteId);
+      if (db.updatedRows > 0) _reindex(noteId);
     });
   }
 
