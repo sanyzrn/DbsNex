@@ -6492,4 +6492,19 @@ class AppLocalizationsFa extends AppLocalizations {
 
     return '+$countString';
   }
+
+  @override
+  String tileLinkKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'video': 'ویدئو',
+      'post': 'پست',
+      'profile': 'پروفایل',
+      'repo': 'مخزن کد',
+      'article': 'مطلب',
+      'place': 'مکان',
+      'file': 'فایل',
+      'other': 'صفحه',
+    });
+    return '$_temp0';
+  }
 }

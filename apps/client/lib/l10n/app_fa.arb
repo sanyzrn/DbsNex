@@ -2242,5 +2242,6 @@
   "cardPlay": "پخش",
   "cardPause": "مکث",
   "tilePdfPages": "{count, plural, other{{count} صفحه}}",
-  "tileMorePhotos": "+{count}"
+  "tileMorePhotos": "+{count}",
+  "tileLinkKind": "{kind, select, video{ویدئو} post{پست} profile{پروفایل} repo{مخزن کد} article{مطلب} place{مکان} file{فایل} other{صفحه}}"
 }

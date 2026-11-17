@@ -59,6 +59,7 @@ import 'local_ai_support.dart';
 import 'model_store.dart';
 import 'reminders.dart';
 import '../modules/module_registry.dart';
+import 'link_art.dart';
 
 part 'folder_backup.dart';
 part 'module_services.dart';

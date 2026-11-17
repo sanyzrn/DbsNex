@@ -6590,4 +6590,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
     return '+$countString';
   }
+
+  @override
+  String tileLinkKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'video': 'Video',
+      'post': 'Post',
+      'profile': 'Profile',
+      'repo': 'Code repository',
+      'article': 'Article',
+      'place': 'Place',
+      'file': 'File',
+      'other': 'Page',
+    });
+    return '$_temp0';
+  }
 }

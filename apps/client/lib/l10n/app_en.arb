@@ -3581,5 +3581,7 @@
   "tilePdfPages": "{count, plural, =1{1 page} other{{count} pages}}",
   "@tilePdfPages": {"description": "How many pages a PDF has, on its grid tile (2.8.2)", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "tileMorePhotos": "+{count}",
-  "@tileMorePhotos": {"description": "On a photo collage tile: how many more photos the note has than it shows (2.8.2)", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}}
+  "@tileMorePhotos": {"description": "On a photo collage tile: how many more photos the note has than it shows (2.8.2)", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "tileLinkKind": "{kind, select, video{Video} post{Post} profile{Profile} repo{Code repository} article{Article} place{Place} file{File} other{Page}}",
+  "@tileLinkKind": {"description": "Under a link's site name on its grid tile: what the address points at, worked out from the address itself (2.8.3)", "placeholders": {"kind": {"type": "String"}}}
 }

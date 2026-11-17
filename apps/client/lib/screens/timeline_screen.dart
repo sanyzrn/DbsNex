@@ -45,6 +45,7 @@ import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/download_notice.dart';
 import '../platform/model_install_controller.dart';
+import '../platform/link_art.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/metrics.dart';

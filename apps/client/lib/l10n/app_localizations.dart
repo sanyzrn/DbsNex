@@ -10123,6 +10123,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'+{count}'**
   String tileMorePhotos(int count);
+
+  /// Under a link's site name on its grid tile: what the address points at, worked out from the address itself (2.8.3)
+  ///
+  /// In en, this message translates to:
+  /// **'{kind, select, video{Video} post{Post} profile{Profile} repo{Code repository} article{Article} place{Place} file{File} other{Page}}'**
+  String tileLinkKind(String kind);
 }
 
 class _AppLocalizationsDelegate

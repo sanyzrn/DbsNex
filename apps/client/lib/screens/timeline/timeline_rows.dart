@@ -279,6 +279,11 @@ extension _TimelineRows on TimelineScreenState {
     if (!_firstNotesShown && _model.all != null) {
       _firstNotesShown = true;
       _fadeInBody();
+      _startLinkArt();
+    }
+    // Links saved without their picture ask for it once (2.8.3).
+    if (kind == TimelineChange.notes) {
+      NexLinkArt.instance.fillIn(_model.all ?? const []);
     }
     // By tag, the tags are the headings: a renamed or new tag is a change to
     // the rows, not just to the filter row.
@@ -299,5 +304,22 @@ extension _TimelineRows on TimelineScreenState {
     if (_model.all?.isEmpty ?? false) unawaited(_countSetAside());
     // Commitments and notes can arrive independently of the timeline stream.
     unawaited(_loadAiSummary());
+  }
+
+  /// Link pictures: what is on disk known before the first tile, words a
+  /// later fetch finds saved on their note, and the pictures of notes that
+  /// are gone let go of (2.8.3).
+  void _startLinkArt() {
+    final art = NexLinkArt.instance;
+    art.onPageWords = (id, title, excerpt) async {
+      await widget.services.setLinkMetadata(id, title: title, excerpt: excerpt);
+      if (mounted) await widget.services.refreshTimeline();
+    };
+    unawaited(() async {
+      await art.open();
+      if (!mounted) return;
+      art.fillIn(_model.all ?? const []);
+      await art.sweep(widget.services.noteExists);
+    }());
   }
 }

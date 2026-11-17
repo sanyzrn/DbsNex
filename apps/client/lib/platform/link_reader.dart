@@ -7,10 +7,17 @@ import 'package:http/http.dart' as http;
 
 /// What a page says about itself.
 class LinkPreview {
-  const LinkPreview({this.title, this.excerpt});
+  const LinkPreview({this.title, this.excerpt, this.imageUrl, this.iconUrl});
 
   final String? title;
   final String? excerpt;
+
+  /// The picture the page offers for a preview (Open Graph), resolved
+  /// against the page (2.8.3).
+  final Uri? imageUrl;
+
+  /// The page's own icon, resolved against the page (2.8.3).
+  final Uri? iconUrl;
 
   bool get isEmpty => title == null && excerpt == null;
 }
@@ -81,41 +88,19 @@ class LinkReader {
 
   Future<LinkPreview> read(String url) async {
     try {
-      var target = Uri.parse(url);
-      http.StreamedResponse? response;
-      // Redirects are followed by hand so that every hop is checked: a
-      // public page that answers with a redirect to 127.0.0.1 would otherwise
-      // walk the preview straight onto the phone's own services.
-      for (var hop = 0; hop <= _maxRedirects; hop++) {
-        if (!isPublicWebUrl(target)) return const LinkPreview();
-        if (!await _resolvesPublic(target)) return const LinkPreview();
-        final request = http.Request('GET', target)
-          ..followRedirects = false
-          ..headers.addAll({
-            // Some sites serve a stub to anything that does not look like a
-            // browser. This is the smallest honest thing that gets real HTML.
-            'User-Agent': 'Mozilla/5.0 (compatible; Nex/1.0; +link-preview)',
-            'Accept': 'text/html,application/xhtml+xml',
-          });
-        final sent = await _client.send(request).timeout(_timeout);
-        final location = sent.headers['location'];
-        if (sent.isRedirect ||
-            (sent.statusCode ~/ 100 == 3 && location != null)) {
-          if (location == null) return const LinkPreview();
-          unawaited(sent.stream.listen(null).cancel());
-          target = target.resolve(location);
-          continue;
-        }
-        response = sent;
-        break;
-      }
-      if (response == null) return const LinkPreview();
-
-      if (response.statusCode != 200) return const LinkPreview();
+      final opened = await _open(
+        Uri.parse(url),
+        accept: 'text/html,application/xhtml+xml',
+      );
+      if (opened == null) return const LinkPreview();
+      final (response, at) = opened;
       final type = response.headers['content-type'] ?? '';
       // Not an error, just not a page: a PDF or an image has no <title>, and
       // trying to parse one as HTML finds nothing slowly.
-      if (!type.contains('html')) return const LinkPreview();
+      if (!type.contains('html')) {
+        unawaited(response.stream.listen(null).cancel());
+        return const LinkPreview();
+      }
 
       // Read the stream only as far as the cap (SEC-03). Collecting the
       // whole response first and cutting it afterwards kept every byte of an
@@ -124,12 +109,104 @@ class LinkReader {
         response.stream,
         _maxBytes,
       ).timeout(_timeout);
-      return parseLinkPreview(utf8.decode(body, allowMalformed: true));
+      return parseLinkPreview(
+        utf8.decode(body, allowMalformed: true),
+        base: at,
+      );
     } catch (_) {
       // Offline, DNS failure, a timeout, TLS refusal, malformed URL — all the
       // same outcome here. The note exists; this was the optional part.
       return const LinkPreview();
     }
+  }
+
+  /// A picture at [url] — a page's preview image or its icon — of at most
+  /// [maxBytes], checked the way a page is (2.8.3). Null for anything that
+  /// is not an image, too large, or not to be had.
+  Future<Uint8List?> readImage(Uri url, {int maxBytes = 3 << 20}) async {
+    try {
+      final opened = await _open(url, accept: 'image/*');
+      if (opened == null) return null;
+      final (response, _) = opened;
+      final type = (response.headers['content-type'] ?? '').toLowerCase();
+      final icon = url.path.toLowerCase().endsWith('.ico');
+      if (!type.startsWith('image/') &&
+          !(icon && type.contains('octet-stream'))) {
+        unawaited(response.stream.listen(null).cancel());
+        return null;
+      }
+      final length = response.contentLength;
+      if (length != null && length > maxBytes) {
+        unawaited(response.stream.listen(null).cancel());
+        return null;
+      }
+      final bytes = await readCapped(
+        response.stream,
+        maxBytes + 1,
+      ).timeout(_timeout);
+      return bytes.length > maxBytes || bytes.isEmpty
+          ? null
+          : Uint8List.fromList(bytes);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// A small JSON answer at [url] (a video's oEmbed), checked the way a
+  /// page is (2.8.3).
+  Future<Map<String, Object?>?> readJson(Uri url) async {
+    try {
+      final opened = await _open(url, accept: 'application/json');
+      if (opened == null) return null;
+      final body = await readCapped(
+        opened.$1.stream,
+        64 * 1024,
+      ).timeout(_timeout);
+      final value = jsonDecode(utf8.decode(body, allowMalformed: true));
+      return value is Map<String, Object?> ? value : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The answer at [start], following redirects by hand, every hop checked
+  /// as public; with the address it finally came from. Null when refused or
+  /// not a 200.
+  Future<(http.StreamedResponse, Uri)?> _open(
+    Uri start, {
+    required String accept,
+  }) async {
+    var target = start;
+    // Redirects are followed by hand so that every hop is checked: a
+    // public page that answers with a redirect to 127.0.0.1 would otherwise
+    // walk the preview straight onto the phone's own services.
+    for (var hop = 0; hop <= _maxRedirects; hop++) {
+      if (!isPublicWebUrl(target)) return null;
+      if (!await _resolvesPublic(target)) return null;
+      final request = http.Request('GET', target)
+        ..followRedirects = false
+        ..headers.addAll({
+          // Some sites serve a stub to anything that does not look like a
+          // browser. This is the smallest honest thing that gets real HTML.
+          'User-Agent': 'Mozilla/5.0 (compatible; Nex/1.0; +link-preview)',
+          'Accept': accept,
+        });
+      final sent = await _client.send(request).timeout(_timeout);
+      final location = sent.headers['location'];
+      if (sent.isRedirect ||
+          (sent.statusCode ~/ 100 == 3 && location != null)) {
+        unawaited(sent.stream.listen(null).cancel());
+        if (location == null) return null;
+        target = target.resolve(location);
+        continue;
+      }
+      if (sent.statusCode != 200) {
+        unawaited(sent.stream.listen(null).cancel());
+        return null;
+      }
+      return (sent, target);
+    }
+    return null;
   }
 
   void close() {
@@ -235,7 +312,7 @@ RegExp _metaPattern(String key) => RegExp(
 /// Separate from [LinkReader] so it can be tested against real page fragments
 /// without a network — which is the half of this worth testing, since the
 /// fetch is a `get` and the parsing is where pages disagree.
-LinkPreview parseLinkPreview(String html) {
+LinkPreview parseLinkPreview(String html, {Uri? base}) {
   String? first(RegExp pattern) {
     final match = pattern.firstMatch(html);
     if (match == null) return null;
@@ -250,7 +327,59 @@ LinkPreview parseLinkPreview(String html) {
       first(_twitterDescription) ??
       first(_description);
 
-  return LinkPreview(title: _clamp(title, 200), excerpt: _clamp(excerpt, 400));
+  Uri? resolved(String? value) {
+    if (value == null || base == null) return null;
+    final uri = Uri.tryParse(value);
+    if (uri == null) return null;
+    final full = base.resolveUri(uri);
+    return full.scheme == 'https' || full.scheme == 'http' ? full : null;
+  }
+
+  String? icon;
+  // The largest the page names first: a touch icon is made to be seen at
+  // size, a favicon at sixteen pixels.
+  for (final rel in _iconRels) {
+    for (final tag in _linkTag.allMatches(html)) {
+      final whole = tag.group(0)!;
+      final relValue = _attr(whole, 'rel')?.toLowerCase();
+      if (relValue == null || !relValue.split(RegExp(r'\s+')).contains(rel)) {
+        continue;
+      }
+      final href = _attr(whole, 'href');
+      if (href == null || href.toLowerCase().endsWith('.svg')) continue;
+      icon = href;
+      break;
+    }
+    if (icon != null) break;
+  }
+
+  return LinkPreview(
+    title: _clamp(title, 200),
+    excerpt: _clamp(excerpt, 400),
+    imageUrl: resolved(
+      first(_ogImageSecure) ??
+          first(_ogImage) ??
+          first(_twitterImage) ??
+          first(_twitterImageSrc),
+    ),
+    iconUrl: resolved(icon) ?? base?.resolve('/favicon.ico'),
+  );
+}
+
+final _ogImage = _metaPattern('og:image');
+final _ogImageSecure = _metaPattern('og:image:secure_url');
+final _twitterImage = _metaPattern('twitter:image');
+final _twitterImageSrc = _metaPattern('twitter:image:src');
+final _linkTag = RegExp(r'<link\b[^>]*>', caseSensitive: false);
+const _iconRels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon'];
+
+String? _attr(String tag, String name) {
+  final match = RegExp(
+    '\\b$name\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))',
+    caseSensitive: false,
+  ).firstMatch(tag);
+  final value = match?.group(1) ?? match?.group(2) ?? match?.group(3);
+  return value == null ? null : _decodeEntities(value).trim();
 }
 
 /// The handful of entities that actually show up in titles. Not a full HTML

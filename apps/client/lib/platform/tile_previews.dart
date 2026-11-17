@@ -5,8 +5,9 @@ import 'pdf_preview.dart';
 import 'video_preview.dart';
 
 /// What a grid tile can show of its note as a picture, filling the tile
-/// (2.8.2). [none] keeps the tile's words.
-enum NexTileBackdrop { none, photo, collage, video, pdf }
+/// (2.8.2). [none] keeps the tile's words; [link] is a link's own picture,
+/// when its site gave one (2.8.3).
+enum NexTileBackdrop { none, photo, collage, video, pdf, link }
 
 /// Which picture [note]'s tile wears.
 ///
