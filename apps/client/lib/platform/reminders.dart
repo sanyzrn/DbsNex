@@ -756,7 +756,23 @@ class NexReminders {
 
   static int _idFor(String noteId) => idFor(noteId);
 
-  static String _clamp(String text, int max) {
+  /// What a note's reminder says under its title: the rest of the note, or
+  /// nothing (2.8.1). It used to repeat the whole note, so a one-line note
+  /// read twice — and when its language ran against the phone's, the
+  /// alignment wrapper Android needs for the second copy left blank lines
+  /// between it and the buttons. A first line cut short for the title is
+  /// still said in full here.
+  @visibleForTesting
+  static String? bodyBeyond(String title, String note) {
+    if (note.isEmpty) return null;
+    final lines = note.split('\n');
+    // The whole first line, as the title would have it had nothing been cut.
+    final first = lines.first.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final rest = first == title ? lines.skip(1).join('\n').trim() : note;
+    return rest.isEmpty ? null : _clamp(rest, 1200);
+  }
+
+  static String _clamp(String text, [int max = 60]) {
     final one = text.replaceAll(RegExp(r'\s+'), ' ');
     return one.length <= max ? one : '${one.substring(0, max)}…';
   }

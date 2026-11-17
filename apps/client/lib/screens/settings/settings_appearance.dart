@@ -92,56 +92,6 @@ class _TextSizePreview extends StatelessWidget {
   );
 }
 
-/// A stack of cards at a density, drawn rather than named: how many fit, and
-/// how much room each takes.
-class _DensityPreview extends StatelessWidget {
-  const _DensityPreview({required this.density});
-
-  final NexCardDensity density;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final (count, height, gap) = switch (density) {
-      NexCardDensity.compact => (4, 6.0, 2.5),
-      NexCardDensity.standard => (3, 9.0, 3.5),
-      NexCardDensity.readable => (2, 14.0, 4.0),
-    };
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          for (var i = 0; i < count; i++) ...[
-            if (i > 0) SizedBox(height: gap),
-            Container(
-              height: height,
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(3),
-                border: Border.all(color: scheme.outline, width: 1),
-              ),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Container(
-                  width: height - 3,
-                  height: height - 3,
-                  margin: const EdgeInsetsDirectional.only(start: 1.5),
-                  decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class _ThemeScreen extends StatelessWidget {
   const _ThemeScreen({required this.preferences});
   final NexPreferences preferences;
@@ -257,7 +207,7 @@ class _ThemeScreen extends StatelessWidget {
                     NexChoice(
                       value: density,
                       label: label,
-                      preview: _DensityPreview(density: density),
+                      preview: NexDensityPreview(density: density),
                     ),
                 ],
               ),

@@ -52,6 +52,17 @@ Working convention:
   `FadeTransition`s and a repaint-only scale render object, so the 5,000-note
   budget still sees no rebuild while it runs.
   `_followDock` counts a fling's glide through `userScrollDirection`.
+- Owner device review: `NexReminders.bodyBeyond` (a reminder's body is the
+  note after its title line, not the note again — the repeated body also
+  carried the Android `<div>` alignment wrapper's trailing blank lines);
+  daily nudge plans a per-day `title` (`NexDailyNudgeContent.headline`),
+  shows four facts plus "+N more", and is silent on a day with nothing due
+  and no memory (`fallback` empty for a non-empty library; the receiver
+  reads `dated.title`); crop ratio pills centred at their own height;
+  `NexDensityPreview` replaces the outlined density drawing; About's logo
+  PNG goes through `nexAccentLogoFilter` (blue minus red → accent); tag
+  picker tick shares the dot's slot; the stale Untagged shelf is S-2,
+  pinned by a screen test.
 - Five module branches merged and enabled (`agent/module-gold`,
   `-quit-habits`, `-lent-borrowed`, `-prompts`, `-security-toolbox`); each
   folder's README holds its records, decisions and checks. Review: the rial is

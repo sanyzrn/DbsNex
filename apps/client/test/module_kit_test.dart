@@ -40,9 +40,8 @@ void main() {
           reason: 'test/modules/$id/ holds its tests',
         );
         expect(
-          File(
-            p.join('lib', 'modules', 'module_registry.dart'),
-          ).readAsStringSync(),
+          File(p.join('lib', 'modules', 'module_registry.dart'))
+              .readAsStringSync(),
           contains("'$id/module.dart'"),
         );
         expect(nexModules.map((m) => m.id), contains(id));
@@ -109,9 +108,11 @@ part of '../../platform/nex_services.dart';
     test(
       'the platform files and what the API exports are the reviewed ones',
       () {
-        final loose = Directory(
-          p.join('lib', 'modules'),
-        ).listSync().whereType<File>().map((f) => p.basename(f.path)).toSet();
+        final loose = Directory(p.join('lib', 'modules'))
+            .listSync()
+            .whereType<File>()
+            .map((f) => p.basename(f.path))
+            .toSet();
         expect(loose, {
           'cycle_module.dart',
           'module_api.dart',
@@ -137,9 +138,8 @@ part of '../../platform/nex_services.dart';
         final exports =
             RegExp(r'''^export\s+['"]([^'"]+)['"]''', multiLine: true)
                 .allMatches(
-                  File(
-                    p.join('lib', 'modules', 'module_api.dart'),
-                  ).readAsStringSync(),
+                  File(p.join('lib', 'modules', 'module_api.dart'))
+                      .readAsStringSync(),
                 )
                 .map((m) => m.group(1)!)
                 .toSet();
@@ -148,6 +148,9 @@ part of '../../platform/nex_services.dart';
           'package:nex_ui/nex_ui.dart',
           '../l10n/app_localizations.dart',
           '../platform/display_date.dart',
+          // 2.8.1: a screen showing a secret (the Security toolbox's
+          // generator) keeps it out of screenshots — `show NexSecureWindow`.
+          '../platform/secure_window.dart',
           '../widgets/nex_banner.dart',
           '../widgets/nex_dialog.dart',
           '../widgets/nex_shelf.dart',

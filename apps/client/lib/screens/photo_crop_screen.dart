@@ -573,28 +573,46 @@ class _RatioOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // The pill is drawn at its own height, centred in the row, and the touch
+    // reaches the row's whole height (2.8.1). A horizontal list stretches its
+    // children to the row, so the pill used to grow into a tall bubble with
+    // its label pinned to the top edge.
     return Padding(
       padding: const EdgeInsetsDirectional.only(end: NexSpacing.xs),
       child: Semantics(
         button: true,
         selected: selected,
         child: Material(
-          color: selected
-              ? scheme.primary
-              : Colors.white.withValues(alpha: 0.1),
-          shape: const StadiumBorder(),
-          clipBehavior: Clip.antiAlias,
+          type: MaterialType.transparency,
           child: InkWell(
             onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: NexSpacing.md,
-                vertical: NexSpacing.sm,
-              ),
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: selected ? scheme.onPrimary : Colors.white,
+            customBorder: const StadiumBorder(),
+            child: Center(
+              child: AnimatedContainer(
+                duration: NexMotion.of(context, NexMotion.standard),
+                curve: NexMotion.curve,
+                constraints: BoxConstraints(
+                  minHeight:
+                      MediaQuery.textScalerOf(context).scale(20) +
+                      NexSpacing.md +
+                      NexSpacing.xs,
+                  minWidth: 56,
+                ),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+                decoration: ShapeDecoration(
+                  shape: const StadiumBorder(),
+                  color: selected
+                      ? scheme.primary
+                      : Colors.white.withValues(alpha: 0.1),
+                ),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: selected ? scheme.onPrimary : Colors.white,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
                 ),
               ),
             ),

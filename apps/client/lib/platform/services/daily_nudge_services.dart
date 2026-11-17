@@ -230,7 +230,14 @@ extension NexDailyNudgeServices on NexServices {
             } else {
               // Other supported platforms keep their existing alarm infrastructure.
               // A neutral local fallback never repeats an outdated dated claim.
-              final fallback = plan['fallback']! as List<String>;
+              // This path has one repeating text and no per-day plan, so it
+              // keeps the neutral lines the Android plan no longer sends.
+              final planned = plan['fallback']! as List<String>;
+              final fallback = planned.isNotEmpty
+                  ? planned
+                  : (localeKey == 'fa'
+                        ? NexDailyNudgeContent.quietFa
+                        : NexDailyNudgeContent.quietEn);
               await reminders.scheduleDaily(
                 hour: _preferences.dailyNudgeMinutes ~/ 60,
                 minute: _preferences.dailyNudgeMinutes % 60,

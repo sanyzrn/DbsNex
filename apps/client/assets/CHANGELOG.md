@@ -23,6 +23,13 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 - **Imported notes ring on time.** Notes imported from another app's export get their reminders set at once, not after the next start.
 - **A note that cannot be scheduled keeps its reminder.** Scheduling a note with attachments is still refused, but the attempt no longer takes its reminder away.
 - **One password generator.** Making a password now lives in the Security toolbox, which also makes passphrases; the separate generator under Tools is gone. Like the old one, it keeps the screen out of screenshots and the app switcher while it is open.
+- **Reminders without the empty space.** A reminder no longer repeats its note's words under its title: a one-line note is its title alone, and a longer one shows only what comes after the first line — which also removes the blank lines that appeared when the note's language differed from the phone's.
+- **A daily nudge worth reading.** Its title now counts what is waiting — "2 overdue · 3 today" — and each item gets its own line, with how many more there are. On a day with nothing due and nothing to bring back it stays silent instead of sending a general line.
+- **Tidier photo crop.** The shape choices (Free, 1:1, 4:3…) are even pills with their labels centred, and the chosen one changes smoothly.
+- **Card size shown as it looks.** In **Appearance**, the card-size choices are drawn like the view and grouping choices beside them: cards in their kinds' colours, more and slimmer for Compact, fewer and fuller for Easier to read.
+- **The logo in your colour.** On the About page, the x in the Nex logo and "AI" under it take your accent colour.
+- **Picking tags moves nothing.** Ticking a tag no longer widens it and pushes the others onto another line: the tick takes the place of its colour dot, and a ticked tag is washed in its own colour.
+- **The Untagged shelf keeps up.** Arranged by tag, tagging notes from their details or from the assistant no longer leaves an "Untagged" shelf counting notes that all have tags now.
 
 ## v2.8.0
 

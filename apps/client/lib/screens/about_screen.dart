@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nex_ui/nex_ui.dart';
+
 import '../app_version.dart';
 import 'guide_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/crash_reporter.dart';
 import '../platform/feedback_service.dart';
 import '../platform/nex_preferences.dart';
+import '../widgets/nex_brand.dart';
 import '../platform/nex_services.dart';
 import '../platform/sharing.dart';
 import '../widgets/feature_label.dart';
@@ -49,12 +51,21 @@ class AboutScreen extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Image.asset(
-                  theme.brightness == Brightness.dark
-                      ? 'assets/branding/text_logo_dark.png'
-                      : 'assets/branding/text_logo_light.png',
-                  width: 160,
-                  semanticLabel: 'Nex',
+                ColorFiltered(
+                  colorFilter: nexAccentLogoFilter(
+                    // The artwork's own ink, measured from the two images.
+                    ink: theme.brightness == Brightness.dark
+                        ? const Color(0xFFF4F5F5)
+                        : const Color(0xFF231F20),
+                    accent: theme.colorScheme.primary,
+                  ),
+                  child: Image.asset(
+                    theme.brightness == Brightness.dark
+                        ? 'assets/branding/text_logo_dark.png'
+                        : 'assets/branding/text_logo_light.png',
+                    width: 160,
+                    semanticLabel: 'Nex',
+                  ),
                 ),
                 const SizedBox(height: NexSpacing.xs),
                 Text(
@@ -242,9 +253,8 @@ class _WhatsNewTileState extends State<_WhatsNewTile> {
               ),
               child: Text(
                 l10n.whatsNewBadge,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: scheme.onPrimary),
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: scheme.onPrimary),
               ),
             ),
           const Icon(Icons.chevron_right),
@@ -391,4 +401,33 @@ class _LinkTile extends StatelessWidget {
       nexShowBanner(context, message: copiedLabel);
     },
   );
+}
+
+/// Repaints the logo's brand blue — the x, its dot and «AI» — in the app's
+/// accent, and leaves its ink alone (2.8.1).
+///
+/// The artwork has two colours: an ink that is grey (red equals blue) and
+/// the brand blue (no red, nearly full blue). So "blue minus red" is 0 on
+/// the ink and on transparent edges and 1 on the blue, and one colour matrix
+/// can mix from the ink to the accent along it — no second set of images to
+/// draw and keep in step with every palette.
+@visibleForTesting
+ColorFilter nexAccentLogoFilter({required Color ink, required Color accent}) {
+  // How blue the brand blue is above its red: the matrix's full step.
+  final step = (NexBrand.blue.b - NexBrand.blue.r);
+  List<double> row(double from, double to) {
+    final k = (to - from) / step;
+    return [-k, 0, k, 0, from * 255];
+  }
+
+  return ColorFilter.matrix([
+    ...row(ink.r, accent.r),
+    ...row(ink.g, accent.g),
+    ...row(ink.b, accent.b),
+    0,
+    0,
+    0,
+    1,
+    0,
+  ]);
 }

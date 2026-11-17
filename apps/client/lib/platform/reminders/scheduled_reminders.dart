@@ -272,18 +272,17 @@ extension NexScheduledReminders on NexReminders {
       await _withdraw(NexReminders.arrivalIdFor(note.id));
       return;
     }
-    final body = NexMarkdownText.preview(note.content).trim();
+    final words = NexMarkdownText.preview(note.content).trim();
+    final title = words.isEmpty
+        ? 'Nex'
+        : NexReminders._clamp(words.split('\n').first, 60);
+    // The rest of the note under its first line, not the whole note again.
+    final body = NexReminders.bodyBeyond(title, words);
     try {
       await _plugin.zonedSchedule(
         id: NexReminders.arrivalIdFor(note.id),
-        title: nexNotificationText(
-          body.isEmpty
-              ? 'Nex'
-              : NexReminders._clamp(body.split('\n').first, 60),
-        ),
-        body: nexNotificationText(
-          body.isEmpty ? null : NexReminders._clamp(body, 1200),
-        ),
+        title: nexNotificationText(title),
+        body: nexNotificationText(body),
         scheduledDate: NexReminders.scheduledDateFor(note.releaseAt),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
@@ -292,9 +291,7 @@ extension NexScheduledReminders on NexReminders {
             channelDescription: NexReminders._text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
-            styleInformation: nexNotificationStyle(
-              NexReminders._clamp(body, 1200),
-            ),
+            styleInformation: nexNotificationStyle(body),
             visibility: hideOnLockScreen?.call() ?? false
                 ? NotificationVisibility.secret
                 : null,

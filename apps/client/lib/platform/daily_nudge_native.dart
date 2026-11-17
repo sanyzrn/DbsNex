@@ -41,6 +41,8 @@ abstract final class NexDailyNudgeNative {
           for (final entry in days.entries)
             entry.key: {
               ...entry.value! as Map,
+              if ((entry.value! as Map)['title'] case final String title)
+                'title': nexAndroidNotificationText(title),
               'bodies': formatted((entry.value! as Map)['bodies']),
               'localBodies': formatted((entry.value! as Map)['localBodies']),
             },

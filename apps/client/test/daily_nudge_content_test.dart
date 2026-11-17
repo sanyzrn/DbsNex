@@ -55,21 +55,10 @@ void main() {
       );
       expect(local([], hasData: false), hasLength(5));
     });
-    test(
-      '$fa quiet nonempty library gets a review invitation, not onboarding',
-      () {
-        expect(
-          local([]),
-          fa ? NexDailyNudgeContent.quietFa : NexDailyNudgeContent.quietEn,
-        );
-        expect(
-          local([]),
-          isNot(
-            fa ? NexDailyNudgeContent.emptyFa : NexDailyNudgeContent.emptyEn,
-          ),
-        );
-      },
-    );
+    test('$fa a library with nothing due is left in peace, not sent a generic '
+        'line (2.8.1)', () {
+      expect(local([]), isEmpty);
+    });
     test('$fa facts are one a line, most pressing first, with no lead-in', () {
       final bodies = local([
         note('call-printshop', due: now.add(const Duration(hours: 2))),
@@ -94,16 +83,42 @@ void main() {
       expect(bodies.single, isNot(contains('quick reminder')));
       expect(bodies.single, isNot(contains('یادآوری کوتاه')));
     });
-    test('$fa at most three facts, each kept to one short line', () {
+    test('$fa at most four facts, each one short line, the rest counted', () {
       final bodies = local([
-        for (var i = 0; i < 5; i++)
+        for (var i = 0; i < 6; i++)
           note('urgent-$i-${'x' * 120}', urgent: true),
       ]);
       final lines = bodies.single.split('\n');
-      expect(lines, hasLength(3));
+      expect(lines, hasLength(5));
       for (final line in lines) {
         expect(line.runes.length, lessThanOrEqualTo(90));
       }
+      expect(lines.last, fa ? '+ ۲ مورد دیگر' : '+ 2 more');
+    });
+    test('$fa the title counts what is waiting (2.8.1)', () {
+      final source = NexNudgeSnapshot(
+        notes: [
+          note('call', due: now.add(const Duration(hours: 2))),
+          note('late', due: now.subtract(const Duration(days: 1))),
+          note('fire', urgent: true),
+        ],
+        commitments: const [],
+        hasData: true,
+      );
+      expect(
+        NexDailyNudgeContent.headline(source, now, persian: fa),
+        fa
+            ? '۱ فوری · ۱ عقب‌افتاده · ۱ برای امروز'
+            : '1 urgent · 1 overdue · 1 today',
+      );
+      expect(
+        NexDailyNudgeContent.headline(
+          const NexNudgeSnapshot(notes: [], commitments: [], hasData: true),
+          now,
+          persian: fa,
+        ),
+        isNull,
+      );
     });
     test(
       '$fa stale, archived, deleted and completed tasks are not current',
@@ -125,10 +140,7 @@ void main() {
             items: [const ChecklistItem(text: 'old', done: false)],
           ),
         ]);
-        expect(
-          bodies,
-          fa ? NexDailyNudgeContent.quietFa : NexDailyNudgeContent.quietEn,
-        );
+        expect(bodies, isEmpty);
       },
     );
     test('$fa a plan never quotes an empty note title', () {
