@@ -229,7 +229,8 @@ void main() {
     expect(next.raw['person'], saved.raw['person']);
     final plan = await PlanRepository(store).save('p', null, planRaw());
     expect(plan.raw['totalRial'], 1001);
-    expect(nexModulesById['cheques']!.available, isFalse);
+    // Reviewed and available since 2.8.4.
+    expect(nexModulesById['cheques']!.available, isTrue);
   });
 
   test(
