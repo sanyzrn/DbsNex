@@ -45,7 +45,7 @@ mixin _AppearancePreferences on _PreferencesStore {
 
   Future<void> setThemePreset(String value) async {
     await _prefs.setString('appearance.theme_preset', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   // Background-only styles are retired in favour of whole-app themes.
@@ -79,7 +79,7 @@ mixin _AppearancePreferences on _PreferencesStore {
 
   Future<void> setCardDensity(NexCardDensity value) async {
     await _prefs.setString('appearance.card_density', value.name);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Whether the timeline shows its notes as a grid of cards, two to a row,
@@ -89,7 +89,7 @@ mixin _AppearancePreferences on _PreferencesStore {
 
   Future<void> setTimelineGrid(bool value) async {
     await _prefs.setBool('appearance.timeline_grid', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// What the home screen's headings are: days, kinds or tags (2.7.0). The
@@ -101,7 +101,7 @@ mixin _AppearancePreferences on _PreferencesStore {
 
   Future<void> setTimelineArrangement(NexTimelineArrangement value) async {
     await _prefs.setString('appearance.timeline_arrange', value.name);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Whether Enter submits the note being typed on first capture, rather
@@ -126,7 +126,7 @@ mixin _AppearancePreferences on _PreferencesStore {
       ((locale ?? PlatformDispatcher.instance.locale).languageCode == 'fa');
   Future<void> setSolarCalendar(bool enabled) async {
     await _prefs.setBool('appearance.solar_calendar', enabled);
-    notifyListeners();
+    _notifyNow();
   }
 
   NexAppearanceMode get appearanceMode =>
@@ -138,7 +138,7 @@ mixin _AppearancePreferences on _PreferencesStore {
 
   Future<void> setAppearanceMode(NexAppearanceMode value) async {
     await _prefs.setString('appearance.theme', value.wireName);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setComfortMode(bool value) =>
@@ -149,7 +149,7 @@ mixin _AppearancePreferences on _PreferencesStore {
 
   Future<void> setBackgroundPattern(NexBackgroundPattern value) async {
     await _prefs.setString('appearance.background_pattern', value.wireName);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Moves [color] to the front of [recentColors], keeping the list to
@@ -165,7 +165,7 @@ mixin _AppearancePreferences on _PreferencesStore {
       ...recentColors.where((c) => c.toUpperCase() != normalised),
     ].take(nexRecentColorLimit).toList();
     await _prefs.setStringList('appearance.recent_colors', next);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Null clears the setting back to the shipped default rather than storing
@@ -176,12 +176,12 @@ mixin _AppearancePreferences on _PreferencesStore {
     } else {
       await _prefs.setString('appearance.accent_seed', value);
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setUiScale(double value) async {
     await _prefs.setDouble('appearance.ui_scale', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setEnterSubmitsCapture(bool value) =>
@@ -192,7 +192,7 @@ mixin _AppearancePreferences on _PreferencesStore {
 
   Future<void> setLocale(String value) async {
     await _prefs.setString('appearance.locale', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setThemeMode(ThemeMode value) =>

@@ -88,6 +88,24 @@ Working convention:
   `home.tips` in Home layout.
 - Grid tile: tag dots sit beside the reminder pill instead of being hidden.
 
+### 2.8.4 — UI performance audit (NEX-UI-01…12) applied
+
+- From the audit patch on e3edff3f (`nex-ui-performance`), applied with a
+  three-way merge onto 2.8.4 (one context conflict in `home_preferences.dart`
+  from the tip settings; the merged `_Foot` keeps 2.8.4's tag dots beside the
+  reminder and adds the `_footFits` memo).
+- Preferences: typed-text setters persist at once but notify after 400 ms
+  of quiet (`_TypingNotifyPreferences`, `_notifyNow` everywhere else); app
+  lock timing moved to its own part to stay under 800 lines.
+- Capture sheet rebuilds only on empty↔non-empty; `NexLinkFace.of` memo and
+  static patterns; vault filter memo; loans standings in one bucketed pass;
+  skeleton shimmer painted, not rebuilt; assistant edge glow stops turning
+  while covered; module hero entrance caches its card; card strings and
+  child indices hoisted in search and threads; images decoded at their
+  shown size (portrait, wordmark, logo, video frame, PDF page); module
+  search and grid foot regexes/painters cached.
+- Tests: rebuild/notify counters and a budget-tagged host bench.
+
 ### 2.8.3 — link cards, arranging tools and modules, store readiness
 
 - `NexLinkFace` (platform/link_face.dart) reads a link's address offline:

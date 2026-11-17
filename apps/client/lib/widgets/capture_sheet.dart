@@ -210,6 +210,15 @@ class _CaptureSheetState extends State<CaptureSheet>
   }
 
   void changed(String value) {
+    // The sheet's build reads the typed text only through its emptiness —
+    // the schedule hint, the send affordance, the paste/clear side action —
+    // so the only rebuilds worth scheduling are the flips between empty and
+    // typed. A rebuild per keystroke re-ran the whole sheet — the kind bar,
+    // the composer box's AnimatedContainer → AnimatedSize →
+    // AnimatedSwitcher chain, the tools wrap — once per character typed,
+    // for nothing that changed.
+    final beforeTyped = _latestText.trim().isNotEmpty;
+    final beforeAny = _latestText.isNotEmpty;
     _latestText = value;
     try {
       widget.services.captureJournal.writeSoon(_draftId, value);
@@ -221,7 +230,10 @@ class _CaptureSheetState extends State<CaptureSheet>
         _fail();
       }
     }
-    setState(() {});
+    if (beforeTyped != value.trim().isNotEmpty ||
+        beforeAny != value.isNotEmpty) {
+      setState(() {});
+    }
     if (noteId == null && value.isNotEmpty) {
       // While the first isolate write is pending, do not start another note:
       // the callback takes the latest text after the first id arrives.

@@ -163,7 +163,7 @@ mixin _ServicePreferences on _PreferencesStore {
 
   Future<void> setAutoUpdateCheck(bool value) async {
     await _prefs.setBool('update.auto', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   String? get cachedUpdate => _prefs.getString('update.available');

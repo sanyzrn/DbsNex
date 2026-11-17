@@ -28,6 +28,7 @@ export 'appearance_mode.dart';
 
 part 'preferences/ai_preferences.dart';
 part 'preferences/appearance_preferences.dart';
+part 'preferences/app_lock_timing_preferences.dart';
 part 'preferences/backup_folder_preferences.dart';
 part 'preferences/brief_preferences.dart';
 part 'preferences/cycle_preferences.dart';
@@ -37,30 +38,11 @@ part 'preferences/module_preferences.dart';
 part 'preferences/profile_preferences.dart';
 part 'preferences/security_preferences.dart';
 part 'preferences/service_preferences.dart';
+part 'preferences/typing_notify_preferences.dart';
 
 /// Temporarily paused by the owner in 2.0.6. Stored preferences are retained
 /// so the feature can return without rewriting anyone's choices.
 const nexRelatedNotesAvailable = false;
-
-/// When the app lock puts itself back on.
-///
-/// The lock used to re-arm the instant the app left the screen, which is the
-/// safe default and, for someone switching to a browser to copy a link and
-/// coming straight back, five fingerprints a minute. These are the three
-/// answers that actually differ: at once, after a while, or never on its own.
-enum AppLockTiming { immediately, after, manual }
-
-extension AppLockTimingWire on AppLockTiming {
-  String get wireName => name;
-
-  static AppLockTiming fromWire(String? value) =>
-      AppLockTiming.values.firstWhere(
-        (timing) => timing.name == value,
-        // The behaviour that shipped, for a device that has never seen this
-        // setting: a lock nobody configured should be the strict one.
-        orElse: () => AppLockTiming.immediately,
-      );
-}
 
 /// How many colours a picker remembers between visits.
 ///
@@ -127,7 +109,8 @@ enum NexBackupFolderFailure {
 ///
 /// [NexPreferences] is one object to its callers; its members live in one
 /// mixin per domain under `preferences/` (W4.2), each on this base.
-abstract class _PreferencesStore extends ChangeNotifier {
+abstract class _PreferencesStore extends ChangeNotifier
+    with _TypingNotifyPreferences {
   _PreferencesStore(this._prefs, this._secureStorage);
 
   final SharedPreferences _prefs;
@@ -154,10 +137,17 @@ abstract class _PreferencesStore extends ChangeNotifier {
 
   Future<void> _setBool(String key, bool value) async {
     await _prefs.setBool(key, value);
-    notifyListeners();
+    _notifyNow();
   }
 
-  Future<void> _setBoundedText(String key, String value, int maxLength) async {
+  /// `typing` marks a field saved per keystroke — see
+  /// [_notifyTypingSettled] in its part file.
+  Future<void> _setBoundedText(
+    String key,
+    String value,
+    int maxLength, {
+    bool typing = false,
+  }) async {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
       await _prefs.remove(key);
@@ -167,7 +157,7 @@ abstract class _PreferencesStore extends ChangeNotifier {
         trimmed.length <= maxLength ? trimmed : trimmed.substring(0, maxLength),
       );
     }
-    notifyListeners();
+    typing ? _notifyTypingSettled() : _notifyNow();
   }
 }
 
@@ -473,7 +463,7 @@ class NexPreferences extends _PreferencesStore
 
   Future<void> completeOnboarding() async {
     await _prefs.setBool(_kOnboardingComplete, true);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Whether the system "Alarms & reminders" screen has already been shown
@@ -560,7 +550,7 @@ class NexPreferences extends _PreferencesStore
 
   Future<void> completeTour() async {
     await _prefs.setBool(_kTourComplete, true);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Moves each provider's key out of the plaintext slot [_migrateAiProviderStorage]
@@ -700,7 +690,7 @@ class NexPreferences extends _PreferencesStore
     } else {
       await _prefs.setString(_kSyncBaseUrl, value);
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Device token from `POST /auth/pair`. Null until the device is paired.
@@ -725,7 +715,7 @@ class NexPreferences extends _PreferencesStore
       _secureApiKeys[_kSecureSyncToken] = value;
       await _prefs.remove(_kSyncBearerToken);
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Feedback text that failed to send, held so it can be retried without the
@@ -741,7 +731,7 @@ class NexPreferences extends _PreferencesStore
     } else {
       await _prefs.setString(_kPendingFeedback, value);
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   static const aiUserNameMaxLength = 40;

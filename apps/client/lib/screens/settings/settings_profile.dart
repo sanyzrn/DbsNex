@@ -69,7 +69,9 @@ class _ProfileCardState extends State<_ProfileCard> {
                       ? BoxDecoration(
                           shape: BoxShape.circle,
                           image: DecorationImage(
-                            image: FileImage(photo),
+                            // The 48px circle does not need the photo's
+                            // full resolution as a texture.
+                            image: ResizeImage(FileImage(photo), width: 144),
                             fit: BoxFit.cover,
                             // A picture just replaced: the old file is gone
                             // a frame before this card learns the new one.

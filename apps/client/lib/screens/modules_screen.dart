@@ -44,6 +44,10 @@ class _ModulesScreenState extends State<ModulesScreen>
   String? _busy;
   String? _expanded;
   String _query = '';
+
+  /// The diacritics/ZWNJ strip, compiled once — it used to be re-compiled
+  /// for every module and the query on every keystroke of the search box.
+  static final RegExp _arabicMarks = RegExp(r'[\u064B-\u065F\u0670\u200C]');
   final _search = TextEditingController();
 
   /// The shelf of modules on show; null for all of them (2.8.3).
@@ -53,7 +57,7 @@ class _ModulesScreenState extends State<ModulesScreen>
       .toLowerCase()
       .replaceAll('ي', 'ی')
       .replaceAll('ك', 'ک')
-      .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u200C]'), '');
+      .replaceAll(_arabicMarks, '');
 
   /// The module being put together, or taken apart, on screen — see
   /// [ModuleInstallGlyph]. A module stays in the section it started in until

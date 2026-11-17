@@ -95,6 +95,10 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   final search = TextEditingController();
   List<VaultEntry> entries = [];
   VaultEntry? draft, editing;
+
+  /// The vault list's filter/sort memo, one entry deep — see
+  /// `_visibleEntries` in vault_items.dart.
+  _VaultFilterCache? _filterCache;
   bool unlocked = false,
       busy = false,
       authenticating = false,

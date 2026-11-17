@@ -218,6 +218,16 @@ List<Widget> searchResultSlivers({
     ];
   }
 
+  // One set of card strings for every result row, the way the timeline's
+  // body does it: the builder used to build a fresh `NexCardStrings` —
+  // ten closures deep — for every result it laid out, on every rebuild.
+  final cardStrings = nexCardStrings(context);
+  // Keys answered from a map rather than an O(children x results) scan for
+  // every child a query update re-keys.
+  final resultAt = {
+    for (final (index, note) in search.results.indexed) note.id: index,
+  };
+
   return [
     ?saveAction(),
     if (search.narrowed)
@@ -241,14 +251,13 @@ List<Widget> searchResultSlivers({
       // and its state, rather than playing its entrance again.
       findChildIndexCallback: (key) {
         if (key is! ValueKey<String>) return null;
-        final at = search.results.indexWhere((n) => n.id == key.value);
-        return at < 0 ? null : at;
+        return resultAt[key.value];
       },
       itemBuilder: (context, index) {
         final note = search.results[index];
         final card = NoteCard(
           note: note,
-          strings: nexCardStrings(context),
+          strings: cardStrings,
           onTap: () => onOpen(note),
         );
         // Small notes above a card that say why it is here when the query

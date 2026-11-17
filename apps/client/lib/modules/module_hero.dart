@@ -100,7 +100,12 @@ class NexModuleHero extends StatelessWidget {
     final accent = nexModuleAccent(context, moduleId);
     final dark = theme.brightness == Brightness.dark;
     final shape = BorderRadius.circular(NexRadius.xl);
-    Widget cardAt(double t) => Semantics(
+    // Built once, not per tick of the entrance: the whole hero used to be
+    // re-constructed on every frame of its arrival (an entrance on all
+    // thirteen module screens). Only the wrappers below and the big icon's
+    // rotation actually read the progress; the icon's own tween runs on the
+    // same duration and curve, so the two stay in lockstep.
+    Widget card() => Semantics(
       container: true,
       label: semanticsLabel,
       child: DecoratedBox(
@@ -124,8 +129,14 @@ class NexModuleHero extends StatelessWidget {
                 end: -22,
                 top: -18,
                 child: ExcludeSemantics(
-                  child: Transform.rotate(
-                    angle: -0.22 - (1 - t) * 0.5,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: NexMotion.of(context, NexMotion.enter),
+                    curve: NexMotion.curve,
+                    builder: (context, t, child) => Transform.rotate(
+                      angle: -0.22 - (1 - t) * 0.5,
+                      child: child,
+                    ),
                     child: Icon(
                       icon,
                       size: 132,
@@ -238,11 +249,12 @@ class NexModuleHero extends StatelessWidget {
       tween: Tween(begin: 0, end: 1),
       duration: NexMotion.of(context, NexMotion.enter),
       curve: NexMotion.curve,
-      builder: (context, t, _) => Opacity(
+      child: card(),
+      builder: (context, t, child) => Opacity(
         opacity: t,
         child: Transform.translate(
           offset: Offset(0, (1 - t) * 12),
-          child: cardAt(t),
+          child: child,
         ),
       ),
     );

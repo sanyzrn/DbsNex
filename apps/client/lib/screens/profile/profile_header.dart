@@ -255,6 +255,13 @@ class _ProfileAvatar extends StatelessWidget {
                             photo,
                             fit: BoxFit.cover,
                             gaplessPlayback: true,
+                            // The picture is picked at up to 1600px square;
+                            // decoded at the circle's own size it is a
+                            // texture of this box rather than ~10MB of
+                            // memory for a 112px circle.
+                            cacheWidth:
+                                (_size * MediaQuery.devicePixelRatioOf(context))
+                                    .round(),
                             errorBuilder: (_, _, _) => const SizedBox.shrink(),
                           )
                         : Center(

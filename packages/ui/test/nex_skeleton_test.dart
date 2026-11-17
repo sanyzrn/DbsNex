@@ -56,25 +56,28 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('the shimmer moves when animations are on', (tester) async {
+  testWidgets('the shimmer moves without rebuilding anything', (tester) async {
     await tester.pumpWidget(
       host(const SizedBox(width: 200, child: NexSkeleton())),
     );
 
-    BoxDecoration decoration() =>
-        tester
-                .widget<DecoratedBox>(
-                  find.descendant(
-                    of: find.byType(NexSkeleton),
-                    matching: find.byType(DecoratedBox),
-                  ),
-                )
-                .decoration
-            as BoxDecoration;
-
-    final first = (decoration().gradient! as LinearGradient).begin;
+    // The band travels by repainting (the painter listens to the
+    // animation), not by rebuilding a fresh DecoratedBox per tick: a
+    // timeline's first load shows sixteen skeletons at once, and the
+    // rebuilds were churn on exactly the frames the real cards needed.
+    // The skeleton's own widgets only — the framework's focus scopes
+    // rebuild during any pump, and they are nobody's business here.
+    var rebuilds = 0;
+    debugOnRebuildDirtyWidget = (element, _) {
+      final name = element.widget.runtimeType.toString();
+      if (name == 'CustomPaint' || name == 'DecoratedBox') rebuilds++;
+    };
+    addTearDown(() => debugOnRebuildDirtyWidget = null);
+    final before = NexSkeleton.debugPaints;
     await tester.pump(const Duration(milliseconds: 300));
-    final later = (decoration().gradient! as LinearGradient).begin;
-    expect(later, isNot(first));
+    final later = NexSkeleton.debugPaints;
+
+    expect(later, greaterThan(before)); // the band still moves
+    expect(rebuilds, 0); // and no widget of the skeleton was rebuilt for it
   });
 }

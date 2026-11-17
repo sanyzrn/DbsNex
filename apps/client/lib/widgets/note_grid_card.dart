@@ -363,6 +363,12 @@ class _Top extends StatelessWidget {
 }
 
 /// The reminder with its time, the tags, and when the note was last touched.
+/// Whether a reminder's full label fits its row, remembered across builds —
+/// the same shape as `_lineHeights` in note_grid_body.dart. A tile rebuilt
+/// for anything but its words used to lay the label out again to answer the
+/// same question; keys compare [TextStyle] by value.
+final Map<Record, bool> _footFits = {};
+
 class _Foot extends StatelessWidget {
   const _Foot({
     required this.note,
@@ -434,14 +440,35 @@ class _Foot extends StatelessWidget {
                         color: color,
                         fontWeight: FontWeight.w700,
                       );
-                      final painter = TextPainter(
-                        text: TextSpan(text: full, style: style),
-                        textScaler: MediaQuery.textScalerOf(context),
-                        textDirection: Directionality.of(context),
-                        maxLines: 1,
-                      )..layout();
-                      final fits = painter.width <= constraints.maxWidth;
-                      painter.dispose();
+                      final scaler = MediaQuery.textScalerOf(context);
+                      final locale = Localizations.maybeLocaleOf(context);
+                      final direction = Directionality.of(context);
+                      final width = constraints.maxWidth;
+                      final key = (
+                        full,
+                        width,
+                        style,
+                        scaler,
+                        locale,
+                        direction,
+                      );
+                      final known = _footFits[key];
+                      final bool fits;
+                      if (known != null) {
+                        fits = known;
+                      } else {
+                        if (_footFits.length > 300) _footFits.clear();
+                        final painter = TextPainter(
+                          text: TextSpan(text: full, style: style),
+                          textScaler: scaler,
+                          textDirection: direction,
+                          locale: locale,
+                          maxLines: 1,
+                        )..layout();
+                        fits = painter.width <= width;
+                        painter.dispose();
+                        _footFits[key] = fits;
+                      }
                       return Text(
                         fits || short == null ? full : short,
                         maxLines: 1,

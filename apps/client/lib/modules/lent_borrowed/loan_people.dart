@@ -38,8 +38,9 @@ class LoanSummary {
   factory LoanSummary.of(Iterable<Loan> loans, List<LoanReturn> returns) {
     final totals = <String, (int, BigInt)>{};
     var items = 0, open = 0, overdue = 0;
+    final bucketed = LoanMath.returnsByLoan(returns);
     for (final loan in loans) {
-      final standing = LoanMath.standing(loan, returns);
+      final standing = LoanMath.standing(loan, bucketed[loan.id] ?? const []);
       if (standing.settled) continue;
       open++;
       if (standing.due.status == DueStatus.overdue) overdue++;

@@ -12,10 +12,7 @@ import '../platform/link_face.dart';
 /// spells out — never the address again, which the site's name already says.
 String nexLinkHeadline(Note note, String title, NexLinkFace face) {
   final url = (note.linkUrl ?? '').trim();
-  final bare = title.trim().toLowerCase().replaceFirst(
-    RegExp(r'^(https?://)?(www\.)?'),
-    '',
-  );
+  final bare = title.trim().toLowerCase().replaceFirst(_addressPrefix, '');
   final host = face.host.toLowerCase();
   final onlyAddress =
       title.trim().isEmpty ||
@@ -24,6 +21,8 @@ String nexLinkHeadline(Note note, String title, NexLinkFace face) {
       bare.startsWith('$host/') && !title.contains(' ');
   return onlyAddress ? (face.title ?? '') : title;
 }
+
+final RegExp _addressPrefix = RegExp(r'^(https?://)?(www\.)?');
 
 /// The colour a site is drawn in: its own when it is one people know, one
 /// worked out from its address otherwise — the same site, the same colour.

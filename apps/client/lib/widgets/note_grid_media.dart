@@ -71,7 +71,19 @@ class _MediaTileState extends State<_MediaTile> {
       isKnown: NexTilePreviews.knownFrame(_path) != null,
       future: () => NexTilePreviews.frame(_path),
       build: (bytes) => _tile(
-        NexParallaxImage(image: MemoryImage(bytes!)),
+        // A frame preview is 720 device pixels wide; the tile needs no
+        // more than the same 1.6x-tile budget the file photos use, so the
+        // rest is never decoded into memory.
+        NexParallaxImage(
+          image: ResizeImage.resizeIfNeeded(
+            (widget.metrics.tileWidth *
+                    1.6 *
+                    MediaQuery.devicePixelRatioOf(context))
+                .round(),
+            null,
+            MemoryImage(bytes!),
+          ),
+        ),
         center: const _PlayBadge(),
       ),
     ),
@@ -80,7 +92,14 @@ class _MediaTileState extends State<_MediaTile> {
       isKnown: NexTilePreviews.knownPage(_path) != null,
       future: () => NexTilePreviews.page(_path),
       build: (page) => _tile(
-        _PdfPage(bytes: page!.bytes),
+        _PdfPage(
+          bytes: page!.bytes,
+          cacheWidth:
+              (widget.metrics.tileWidth *
+                      1.6 *
+                      MediaQuery.devicePixelRatioOf(context))
+                  .round(),
+        ),
         badge: AppLocalizations.of(context).tilePdfPages(page.pages),
         lightPicture: true,
       ),
@@ -392,9 +411,12 @@ class _Waiting extends StatelessWidget {
 
 /// A PDF's first page: white paper from the top, as a document is read.
 class _PdfPage extends StatelessWidget {
-  const _PdfPage({required this.bytes});
+  const _PdfPage({required this.bytes, required this.cacheWidth});
 
   final Uint8List bytes;
+
+  /// The decode width the tile is willing to pay for — see the caller.
+  final int cacheWidth;
 
   @override
   Widget build(BuildContext context) => ColoredBox(
@@ -404,6 +426,10 @@ class _PdfPage extends StatelessWidget {
       fit: BoxFit.cover,
       alignment: Alignment.topCenter,
       gaplessPlayback: true,
+      // The page bitmap is bounded to three million pixels, a page-shape
+      // thumbnail; the tile it is drawn into is far smaller, and the same
+      // resize-if-needed policy keeps the decode proportional.
+      cacheWidth: cacheWidth,
     ),
   );
 }

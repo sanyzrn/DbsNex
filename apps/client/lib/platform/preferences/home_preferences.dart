@@ -132,7 +132,7 @@ mixin _HomePreferences on _PreferencesStore {
     final pinned = !pins.remove(id);
     if (pinned) pins.add(id);
     await _prefs.setStringList('home.pinned_tools', pins);
-    notifyListeners();
+    _notifyNow();
     return pinned;
   }
 
@@ -140,12 +140,12 @@ mixin _HomePreferences on _PreferencesStore {
   /// top of the timeline (2.8.3).
   Future<void> setPinnedTools(List<String> ids) async {
     await _prefs.setStringList('home.pinned_tools', [...ids]);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> _setHomePart(String key, bool value) async {
     await _prefs.setBool('home.$key', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Whether the home screen shows a tip now and then (2.8.4). On by
@@ -164,17 +164,17 @@ mixin _HomePreferences on _PreferencesStore {
 
   Future<void> setWidgetTypes(Set<String> value) async {
     await _prefs.setStringList('widget.types', value.toList()..sort());
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setWidgetPinnedFirst(bool value) async {
     await _prefs.setBool('widget.pinned_first', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setWidgetShowWhenLocked(bool value) async {
     await _prefs.setBool('widget.show_when_locked', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setWidgetTags(Map<String, String> value) async {
@@ -183,7 +183,7 @@ mixin _HomePreferences on _PreferencesStore {
     } else {
       await _prefs.setString('widget.tags', jsonEncode(value));
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   /// The silent quick-capture row in the notification shade (W5.2). Off by
@@ -216,7 +216,7 @@ mixin _HomePreferences on _PreferencesStore {
       isLeading ? 'swipe.leading' : 'swipe.trailing',
       action.wireName,
     );
-    notifyListeners();
+    _notifyNow();
   }
 
   SwipeAction actionFor({required bool isLeading}) =>
@@ -243,7 +243,7 @@ mixin _HomePreferences on _PreferencesStore {
       left ? 'capture.flick_left' : 'capture.flick_right',
       shortcut.name,
     );
-    notifyListeners();
+    _notifyNow();
   }
 
   /// What the daily brief is — see [NexBriefStyle].
@@ -268,7 +268,7 @@ mixin _HomePreferences on _PreferencesStore {
     await _prefs.setStringList('hold_menu.actions', [
       for (final action in actions) action.name,
     ]);
-    notifyListeners();
+    _notifyNow();
   }
 
   /* --------------------------------------------------------- Saved searches */
@@ -290,7 +290,7 @@ mixin _HomePreferences on _PreferencesStore {
 
   Future<void> setDailyNudge(bool value) async {
     await _prefs.setBool('nudge.on', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Whether a day with nothing due may quote a note written on the same
@@ -302,7 +302,7 @@ mixin _HomePreferences on _PreferencesStore {
 
   Future<void> setDailyNudgeMemories(bool value) async {
     await _prefs.setBool('nudge.memories', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// When it arrives, as minutes past midnight. Nine in the morning until
@@ -311,6 +311,6 @@ mixin _HomePreferences on _PreferencesStore {
 
   Future<void> setDailyNudgeMinutes(int value) async {
     await _prefs.setInt('nudge.at', value.clamp(0, 24 * 60 - 1));
-    notifyListeners();
+    _notifyNow();
   }
 }

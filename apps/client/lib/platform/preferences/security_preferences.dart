@@ -52,12 +52,12 @@ mixin _SecurityPreferences on _PreferencesStore {
   Future<void> setAppLockEnabled(bool value) async {
     await _prefs.setBool('security.app_lock', value);
     if (!value) await _prefs.setBool('security.biometric_only', false);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setAppLockTiming(AppLockTiming value) async {
     await _prefs.setString('security.lock_timing', value.wireName);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setAppLockGraceSeconds(int value) async {
@@ -65,7 +65,7 @@ mixin _SecurityPreferences on _PreferencesStore {
     // ever writes one of its own choices, and a value that did not come
     // from there is not made canonical by rewriting it.
     await _prefs.setInt('security.lock_grace_seconds', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Records the lock closing or opening.
@@ -96,6 +96,6 @@ mixin _SecurityPreferences on _PreferencesStore {
   Future<void> setAppLockBiometricOnly(bool value) async {
     await _prefs.setBool('security.biometric_only', value);
     if (value) await _prefs.setBool('security.app_lock', true);
-    notifyListeners();
+    _notifyNow();
   }
 }

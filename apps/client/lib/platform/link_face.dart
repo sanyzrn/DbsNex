@@ -77,12 +77,28 @@ class NexLinkFace {
   /// The video's id, for a YouTube video.
   final String? youTubeId;
 
+  /// Faces remembered, bounded: a face is immutable and the address is the
+  /// whole input, so the same address is always the same answer. A link's
+  /// card asks on every rebuild — the link-art listener rebuilds every
+  /// mounted link card as covers fill in — and each rebuild used to
+  /// re-parse the address, seven freshly-compiled regexes and all.
+  static final Map<String, NexLinkFace> _faces = {};
+  static const _facesLimit = 256;
+
   static NexLinkFace of(String url) {
+    final remembered = _faces[url];
+    if (remembered != null) return remembered;
+    final face = _parse(url);
+    if (_faces.length >= _facesLimit) {
+      _faces.remove(_faces.keys.first);
+    }
+    _faces[url] = face;
+    return face;
+  }
+
+  static NexLinkFace _parse(String url) {
     final uri = Uri.tryParse(url.trim());
-    final host = (uri?.host ?? '').toLowerCase().replaceFirst(
-      RegExp(r'^(www|m|mobile)\.'),
-      '',
-    );
+    final host = (uri?.host ?? '').toLowerCase().replaceFirst(_hostPrefix, '');
     if (uri == null || host.isEmpty) {
       return NexLinkFace(host: host, name: host, kind: NexLinkKind.page);
     }
@@ -178,7 +194,7 @@ class NexLinkFace {
   }
 
   static String? _youTubeId(Uri uri, String host) {
-    final id = RegExp(r'^[A-Za-z0-9_-]{11}$');
+    final id = _youTubeIdPattern;
     String? pick(String? value) =>
         value != null && id.hasMatch(value) ? value : null;
     if (host == 'youtu.be') {
@@ -206,22 +222,21 @@ class NexLinkFace {
   }
 
   static String? _words(String segment, {bool keepCase = false}) {
-    var text = _decode(
-      segment,
-    ).replaceFirst(RegExp(r'\.(html?|php|aspx?)$', caseSensitive: false), '');
-    text = text.replaceFirst(RegExp(r'^\d+[-_]'), '');
-    if (!RegExp(r'[-_+ ]').hasMatch(text) && !keepCase) return null;
+    var text = _decode(segment)
+        .replaceFirst(_slugEnding, '')
+        .replaceFirst(_slugNumber, '');
+    if (!_slugSeparator.hasMatch(text) && !keepCase) return null;
     text = text
-        .replaceAll(RegExp(r'[-_+]+'), ' ')
-        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(_slugDashes, ' ')
+        .replaceAll(_slugSpaces, ' ')
         .trim();
     final words = text.split(' ');
     // An id, not words: no letters, or a single run of hex.
-    if (!RegExp(r'[A-Za-z؀-ۿ]').hasMatch(text)) return null;
+    if (!_hasLetters.hasMatch(text)) return null;
     if (words.length < 2 && !keepCase) return null;
-    if (words.every((w) => RegExp(r'^[0-9a-f]{6,}$').hasMatch(w))) return null;
+    if (words.every((w) => _hexWord.hasMatch(w))) return null;
     if (text.length > 90) text = '${text.substring(0, 89)}…';
-    if (keepCase || !RegExp(r'^[a-z]').hasMatch(text)) return text;
+    if (keepCase || !_startsLowercase.hasMatch(text)) return text;
     return text[0].toUpperCase() + text.substring(1);
   }
 
@@ -232,4 +247,18 @@ class NexLinkFace {
       return text;
     }
   }
+
+  static final RegExp _hostPrefix = RegExp(r'^(www|m|mobile)\.');
+  static final RegExp _youTubeIdPattern = RegExp(r'^[A-Za-z0-9_-]{11}$');
+  static final RegExp _slugEnding = RegExp(
+    r'\.(html?|php|aspx?)$',
+    caseSensitive: false,
+  );
+  static final RegExp _slugNumber = RegExp(r'^\d+[-_]');
+  static final RegExp _slugSeparator = RegExp(r'[-_+ ]');
+  static final RegExp _slugDashes = RegExp(r'[-_+]+');
+  static final RegExp _slugSpaces = RegExp(r'\s+');
+  static final RegExp _hasLetters = RegExp(r'[A-Za-z؀-ۿ]');
+  static final RegExp _hexWord = RegExp(r'^[0-9a-f]{6,}$');
+  static final RegExp _startsLowercase = RegExp(r'^[a-z]');
 }

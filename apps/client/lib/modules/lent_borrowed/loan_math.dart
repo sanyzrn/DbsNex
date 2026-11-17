@@ -66,6 +66,40 @@ class LoanMath {
         : value.toInt();
   }
 
+  /// The returns bucketed by the loan they answer, one pass.
+  ///
+  /// `standing` scans the whole returns list for the one loan it is asked
+  /// about — right for one loan, O(loans x returns) when a whole screen
+  /// asks. The list body asked twice per loan (the filter pass, then the
+  /// standings map) and the summary asked once more; with every loan
+  /// bucketed first, each answer reads only its own returns.
+  static Map<String, List<LoanReturn>> returnsByLoan(List<LoanReturn> returns) {
+    final bucketed = <String, List<LoanReturn>>{};
+    for (final returned in returns) {
+      final bucket = bucketed.putIfAbsent(returned.loanId, () => []);
+      bucket.add(returned);
+    }
+    return bucketed;
+  }
+
+  /// Every loan's standing in one pass, keyed by loan id.
+  ///
+  /// `today` is read once for the whole pass, so two rows in one build can
+  /// no longer disagree about a midnight that lands between their
+  /// standings.
+  static Map<String, LoanStanding> standingsOf(
+    Iterable<Loan> loans,
+    List<LoanReturn> returns, {
+    DateTime? today,
+  }) {
+    final bucketed = returnsByLoan(returns);
+    final now = today ?? DateTime.now();
+    return {
+      for (final loan in loans)
+        loan.id: standing(loan, bucketed[loan.id] ?? const [], today: now),
+    };
+  }
+
   /// The standing of [loan] against [returns]: outstanding money or
   /// quantity, clamped at zero so corrupt history cannot invent a debt
   /// running backwards.

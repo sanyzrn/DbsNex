@@ -295,10 +295,18 @@ class NexAmbientEdgeGlow extends StatefulWidget {
     required this.colors,
     this.width = 3,
     this.period = const Duration(seconds: 6),
+    this.covered,
   });
 
   final Widget child;
   final List<Color> colors;
+
+  /// True while something else covers the route this glow decorates — a
+  /// note opened from the chat, a dialog. The border stays drawn but its
+  /// turning rests: the entry lives in the root overlay, above whatever
+  /// covered the route, so nothing else stops it from requesting a frame
+  /// for a light nobody is looking at.
+  final ValueListenable<bool>? covered;
 
   /// The line's width in logical pixels; a soft halo twice as wide sits
   /// under it.
@@ -350,6 +358,7 @@ class _NexAmbientEdgeGlowState extends State<NexAmbientEdgeGlow> {
           period: widget.period,
           still: still,
           closing: _closing,
+          covered: widget.covered,
           // The entry outlives this widget by the length of its exit, and
           // takes itself down once that has played.
           onGone: () {
@@ -398,6 +407,7 @@ class _AmbientBorder extends StatefulWidget {
     required this.still,
     required this.closing,
     required this.onGone,
+    this.covered,
   });
 
   final List<Color> colors;
@@ -406,6 +416,9 @@ class _AmbientBorder extends StatefulWidget {
   final bool still;
   final ValueListenable<bool> closing;
   final VoidCallback onGone;
+
+  /// See [NexAmbientEdgeGlow.covered].
+  final ValueListenable<bool>? covered;
 
   @override
   State<_AmbientBorder> createState() => _AmbientBorderState();
@@ -429,6 +442,8 @@ class _AmbientBorderState extends State<_AmbientBorder>
         if (status == AnimationStatus.completed) widget.onGone();
       });
 
+  bool get _turns => !widget.still && NexAmbientEdgeGlow.turns;
+
   @override
   void initState() {
     super.initState();
@@ -436,10 +451,21 @@ class _AmbientBorderState extends State<_AmbientBorder>
       _fade.value = 1;
     } else {
       _fade.forward();
-      if (NexAmbientEdgeGlow.turns) _turn.repeat();
+      if (_turns && widget.covered?.value != true) _turn.repeat();
     }
     widget.closing.addListener(_onClosing);
+    widget.covered?.addListener(_onCovered);
     _onClosing();
+  }
+
+  void _onCovered() {
+    if (!_turns) return;
+    final covered = widget.covered?.value ?? false;
+    if (covered && _turn.isAnimating) {
+      _turn.stop();
+    } else if (!covered && !_turn.isAnimating) {
+      _turn.repeat();
+    }
   }
 
   void _onClosing() {
@@ -453,6 +479,7 @@ class _AmbientBorderState extends State<_AmbientBorder>
   @override
   void dispose() {
     widget.closing.removeListener(_onClosing);
+    widget.covered?.removeListener(_onCovered);
     _fade.dispose();
     _turn.dispose();
     _exit.dispose();

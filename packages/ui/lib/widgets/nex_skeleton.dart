@@ -22,6 +22,10 @@ class NexSkeleton extends StatefulWidget {
     this.radius = NexRadius.sm,
   });
 
+  /// How many times the travelling band has been painted — a test handle
+  /// for "it still moves, and it moves without rebuilding anything".
+  static int debugPaints = 0;
+
   final double? width;
   final double height;
   final double radius;
@@ -85,31 +89,64 @@ class _NexSkeletonState extends State<NexSkeleton>
       );
     }
 
-    return AnimatedBuilder(
-      animation: _shimmer,
-      builder: (context, _) {
-        // A band travelling left to right, wider than the box so the highlight
-        // enters and leaves rather than appearing in place.
-        final t = _shimmer.value * 2 - 0.5;
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.radius),
-            gradient: LinearGradient(
-              begin: Alignment(t - 1, 0),
-              end: Alignment(t + 1, 0),
-              colors: [
-                base,
-                Color.alphaBlend(scheme.surface.withValues(alpha: 0.55), base),
-                base,
-              ],
-              stops: const [0.35, 0.5, 0.65],
-            ),
-          ),
-          child: box,
-        );
-      },
+    // The band travels by repainting, not by rebuilding: a timeline's first
+    // load shows sixteen of these at once, and the per-tick widget rebuild —
+    // a fresh BoxDecoration and BoxPainter per skeleton per frame — was
+    // pure element churn on the exact frames the real cards are fighting
+    // to appear in. The same gradient, drawn by the painter the animation
+    // itself schedules.
+    return CustomPaint(
+      painter: _ShimmerPainter(
+        shimmer: _shimmer,
+        base: base,
+        highlight: Color.alphaBlend(
+          scheme.surface.withValues(alpha: 0.55),
+          base,
+        ),
+        radius: widget.radius,
+      ),
+      child: box,
     );
   }
+}
+
+/// Paints the travelling band; nothing about it is a widget.
+class _ShimmerPainter extends CustomPainter {
+  _ShimmerPainter({
+    required this.shimmer,
+    required this.base,
+    required this.highlight,
+    required this.radius,
+  }) : super(repaint: shimmer);
+
+  final Animation<double> shimmer;
+  final Color base;
+  final Color highlight;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    NexSkeleton.debugPaints++;
+    // A band travelling left to right, wider than the box so the highlight
+    // enters and leaves rather than appearing in place.
+    final t = shimmer.value * 2 - 0.5;
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment(t - 1, 0),
+        end: Alignment(t + 1, 0),
+        colors: [base, highlight, base],
+        stops: const [0.35, 0.5, 0.65],
+      ).createShader(rect);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, Radius.circular(radius)),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ShimmerPainter old) =>
+      old.base != base || old.highlight != highlight || old.radius != radius;
 }
 
 /// A timeline card that has not arrived yet.
