@@ -57,6 +57,8 @@ void main() {
         'price_lens',
         'lent_borrowed',
         'occasions',
+        'prompt_studio',
+        'security_tools',
       ];
       final accents = <String, Color>{};
       await tester.pumpWidget(

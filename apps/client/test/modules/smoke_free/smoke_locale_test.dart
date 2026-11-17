@@ -77,14 +77,8 @@ void main() {
       );
       expect(find.text('۵ روز بدون سیگار'), findsOneWidget);
       expect(find.text('حدود ۵۰ سیگار نکشیده شده'), findsOneWidget);
-      await revealQuit(
-        tester,
-        find.text('حدود ۵۰۰٬۰۰۰ \u2066IRR\u2069 صرفه‌جویی'),
-      );
-      expect(
-        find.text('حدود ۵۰۰٬۰۰۰ \u2066IRR\u2069 صرفه‌جویی'),
-        findsOneWidget,
-      );
+      await revealQuit(tester, find.text('حدود ۵۰۰٬۰۰۰ ریال صرفه‌جویی'));
+      expect(find.text('حدود ۵۰۰٬۰۰۰ ریال صرفه‌جویی'), findsOneWidget);
       expectNoOverflow(tester);
     });
 
@@ -98,14 +92,8 @@ void main() {
         textScale: 2.0,
       );
       expect(find.text('۵ روز بدون سیگار'), findsOneWidget);
-      await revealQuit(
-        tester,
-        find.text('حدود ۵۰۰٬۰۰۰ \u2066IRR\u2069 صرفه‌جویی'),
-      );
-      expect(
-        find.text('حدود ۵۰۰٬۰۰۰ \u2066IRR\u2069 صرفه‌جویی'),
-        findsOneWidget,
-      );
+      await revealQuit(tester, find.text('حدود ۵۰۰٬۰۰۰ ریال صرفه‌جویی'));
+      expect(find.text('حدود ۵۰۰٬۰۰۰ ریال صرفه‌جویی'), findsOneWidget);
       expectNoOverflow(tester);
     });
 

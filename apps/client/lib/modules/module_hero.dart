@@ -39,6 +39,10 @@ const _moduleHues = <String, double>{
   'price_lens': 84,
   'lent_borrowed': 236,
   'occasions': 304,
+  // 2.8.1: between Words and Occasions, and between Warranties and Parking —
+  // the violet and sky their own modules declare.
+  'prompt_studio': 284,
+  'security_tools': 200,
 };
 
 /// The top of a module's home page: one large, calm statement of where things

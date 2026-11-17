@@ -52,6 +52,11 @@ Working convention:
   `FadeTransition`s and a repaint-only scale render object, so the 5,000-note
   budget still sees no rebuild while it runs.
   `_followDock` counts a fling's glide through `userScrollDirection`.
+- Five module branches merged and enabled (`agent/module-gold`,
+  `-quit-habits`, `-lent-borrowed`, `-prompts`, `-security-toolbox`); each
+  folder's README holds its records, decisions and checks. Review: the rial is
+  «ریال» in Persian in Quit Habits; `prompt_studio` (284) and
+  `security_tools` (200) get hues in `module_hero.dart`.
 - Two reviewed audit patches, merged onto 2.8.0:
   - Scroll: theme motifs and background patterns are rasterized once
     (`nexRasterCachedImage`, `Picture.toImageSync`, 48 MB budget) and drawn

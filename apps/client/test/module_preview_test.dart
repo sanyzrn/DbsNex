@@ -24,19 +24,22 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('five add-ons are back, the other nine are Soon; their code stays', () {
-    // Cycle; Pause, which is first-party; and, finished and redesigned in
-    // 2.4.0, Birthdays & occasions and Word by Word.
-    expect(nexAvailableModuleIds, {
-      'cycle',
-      'pause',
+  test('ten add-ons are back, the other five are Soon; their code stays', () {
+    // Cycle; Pause, which is first-party; and the add-ons reviewed and turned
+    // on since 2.4.0 — five more of them in 2.8.1.
+    const back = {
       'occasions',
       'words',
       'habits',
       'converter',
       'warranty',
-    });
-    const back = {'occasions', 'words', 'habits', 'converter', 'warranty'};
+      'gold',
+      'smoke_free',
+      'lent_borrowed',
+      'prompt_studio',
+      'security_tools',
+    };
+    expect(nexAvailableModuleIds, {'cycle', 'pause', ...back});
     expect(reviewed, back);
     expect(paused, moduleIds.difference(back));
     // Thirteen existing add-ons plus Prompt Studio and the security toolbox.

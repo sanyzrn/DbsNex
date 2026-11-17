@@ -14,7 +14,10 @@
   Start new release work from current `main`; use a release branch and a pull
   request back to `main`. Never resume the retired `codex/2.0-polish` branch.
 - Available modules are **Cycle, Breathing break (Pause), Birthdays & occasions,
-  Word by Word and Habits** (`cycle`, `pause`, `occasions`, `words`, `habits`).
+  Word by Word, Habits, Converter, Warranties, Gold, Quit Habits, Lent &
+  Borrowed, Prompt Studio and Security toolbox** (`cycle`, `pause`,
+  `occasions`, `words`, `habits`, `converter`, `warranty`, `gold`,
+  `smoke_free`, `lent_borrowed`, `prompt_studio`, `security_tools`).
   The authoritative rollout list is `apps/client/lib/modules/module_rollout.dart`;
   installed and active modules are resolved through `nexModulesOn`.
   Other modules remain **Soon** pending completion and device review. Preserve
