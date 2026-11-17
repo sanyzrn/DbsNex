@@ -6458,13 +6458,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get homeViewAsList => 'نمایش فهرستی';
 
   @override
-  String get layoutPinnedTools => 'ابزارهای سنجاق‌شده';
-
-  @override
-  String get layoutPinnedToolsHint =>
-      'کاشی‌های کوچک و زنده، بالای یادداشت‌ها. برای سنجاق‌کردن یا برداشتن، روی هر کدام بزنید.';
-
-  @override
   String get cardPlay => 'پخش';
 
   @override

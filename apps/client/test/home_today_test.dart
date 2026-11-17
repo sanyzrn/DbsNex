@@ -125,26 +125,26 @@ void main() {
     expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
   });
 
-  testWidgets('the home layout sheet pins a tool and takes it off again', (
-    tester,
-  ) async {
+  testWidgets('pins live on Arrange now, not in the home layout sheet; '
+      'a pin shows on the home screen at once (2.8.3)', (tester) async {
     await h.services.captureText('a note');
     await open(tester);
-    expect(
-      find.byKey(const ValueKey('pinned-tool-vault.message')),
-      findsNothing,
-    );
-
     await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
     await tester.pumpAndSettle();
     expect(find.byType(HomeLayoutSheet), findsOneWidget);
-    final chip = find.byKey(const ValueKey('layout-pin-vault.message'));
-    await tester.ensureVisible(chip);
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w.key is ValueKey<String> &&
+            (w.key! as ValueKey<String>).value.startsWith('layout-pin-'),
+      ),
+      findsNothing,
+    );
+    Navigator.of(tester.element(find.byType(HomeLayoutSheet))).pop();
     await tester.pumpAndSettle();
-    await tester.tap(chip);
+
+    await h.preferences.togglePinnedTool('vault.message');
     await tester.pumpAndSettle();
-    expect(h.preferences.pinnedTools, ['vault.message']);
-    // On the home screen behind the sheet at once.
     expect(
       find.byKey(
         const ValueKey('pinned-tool-vault.message'),
@@ -152,10 +152,15 @@ void main() {
       ),
       findsOneWidget,
     );
-
-    await tester.tap(chip);
+    await h.preferences.togglePinnedTool('vault.message');
     await tester.pumpAndSettle();
-    expect(h.preferences.pinnedTools, isEmpty);
+    expect(
+      find.byKey(
+        const ValueKey('pinned-tool-vault.message'),
+        skipOffstage: false,
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('the day chip waits for the row to be held at the top, and '

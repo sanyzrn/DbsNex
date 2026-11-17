@@ -6555,13 +6555,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeViewAsList => 'Show as a list';
 
   @override
-  String get layoutPinnedTools => 'Pinned tools';
-
-  @override
-  String get layoutPinnedToolsHint =>
-      'Small live tiles above your notes. Tap one to pin it or take it off.';
-
-  @override
   String get cardPlay => 'Play';
 
   @override

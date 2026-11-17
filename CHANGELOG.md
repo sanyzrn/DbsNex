@@ -8,7 +8,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Links that show what they point at.** A link's card now shows the page's own picture and the site's icon, and a YouTube link its thumbnail and title. Pictures come straight from the site, are kept on your phone, and are fetched once later for links saved earlier or while offline.
 - **Links that make sense even offline.** Without a connection, or for a site that is out of reach, a link still shows the site's name and colour, what it is — a video, a post, an article, a repository, a place — and the title its address spells out, instead of a bare address. A video gets a small screen with Play on it.
-- **Arrange your tools and modules.** A new Arrange page, from Tools or Modules, puts a pin beside every tool, lets you drag what's on your home screen into the order you like, and sets the order of your modules on the Tools page.
+- **Arrange your tools and modules.** A new Arrange page, from Tools or Modules, puts a pin beside every tool, lets you drag what's on your home screen into the order you like, and sets the order of your modules on the Tools page. Pinning moved here from Home layout, which now keeps to the home screen's own pieces.
 - **A friendlier Modules page.** See at a glance how many modules you've added, narrow the list to money, health and habits, everyday, or security and work, and add or open a module straight from its card.
 - **Tell us which module you want.** Modules that are still to come have an "I want this" button, with an offer to tell the developer in a ready-written message.
 

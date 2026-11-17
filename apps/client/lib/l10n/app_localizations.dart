@@ -10088,18 +10088,6 @@ abstract class AppLocalizations {
   /// **'Show as a list'**
   String get homeViewAsList;
 
-  /// Home layout sheet: the section choosing which tools show as tiles on the home screen
-  ///
-  /// In en, this message translates to:
-  /// **'Pinned tools'**
-  String get layoutPinnedTools;
-
-  /// Home layout sheet: under the pinned tools heading
-  ///
-  /// In en, this message translates to:
-  /// **'Small live tiles above your notes. Tap one to pin it or take it off.'**
-  String get layoutPinnedToolsHint;
-
   /// Play button on a voice note's card in the timeline (2.8.2)
   ///
   /// In en, this message translates to:
