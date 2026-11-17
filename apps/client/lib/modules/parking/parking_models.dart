@@ -72,6 +72,15 @@ class ParkingModels {
     return LocalValues.count(value);
   }
 
+  /// A true/false field, false when missing. Old records simply have no
+  /// favourite mark yet.
+  static bool readBool(Map<String, Object?> body, String key) =>
+      body[key] == true;
+
+  /// Whether a remembered place is one of the person's favourites.
+  static bool isFavourite(Map<String, Object?> place) =>
+      readBool(place, 'favorite');
+
   // -------------------------------------------------------------- session
 
   /// The body of a parking session. [startedAt] is when it was recorded and
@@ -109,6 +118,7 @@ class ParkingModels {
     required String landmark,
     required int useCount,
     required DateTime lastUsedAt,
+    bool favourite = false,
     double? lat,
     double? lng,
   }) => {
@@ -119,6 +129,7 @@ class ParkingModels {
     'landmark': landmark,
     'useCount': useCount,
     'lastUsedAt': lastUsedAt.toUtc().toIso8601String(),
+    'favorite': favourite,
     'lat': ?lat,
     'lng': ?lng,
   };

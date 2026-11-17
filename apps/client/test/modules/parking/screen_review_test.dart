@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/parking/parking_screen.dart';
+
 import '../../support/nex_harness.dart';
 
 void main() {
@@ -49,6 +51,13 @@ void main() {
             'floor': '−1',
             'spot': 'B12',
             'useCount': 4,
+            'favorite': true,
+          });
+          await store.put('place', 'p2', {
+            'v': 1,
+            'place': persian ? 'پارکینگ دفتر' : 'Work parking',
+            'floor': '2',
+            'useCount': 2,
           });
           await store.put('session', 's2', {
             'v': 1,
@@ -101,7 +110,8 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
           const output = String.fromEnvironment('NEX_CAPTURE');
-          if (output.isNotEmpty && !compact) {
+          Future<void> capture(String name) async {
+            if (output.isEmpty || compact) return;
             await tester.runAsync(() async {
               final image =
                   await (boundary.currentContext!.findRenderObject()!
@@ -111,11 +121,22 @@ void main() {
                 format: ui.ImageByteFormat.png,
               );
               final dir = Directory(output)..createSync(recursive: true);
-              await File(
-                '${dir.path}/parking_${persian ? 'fa_dark' : 'en_light'}.png',
-              ).writeAsBytes(bytes!.buffer.asUint8List());
+              await File('${dir.path}/$name.png')
+                  .writeAsBytes(bytes!.buffer.asUint8List());
               image.dispose();
             });
+          }
+
+          await capture('parking_${persian ? 'fa_dark' : 'en_light'}');
+
+          // The reminder sheet is part of the upgrade too.
+          final remind = find.byKey(const ValueKey('parking-quick-remind'));
+          if (remind.evaluate().isNotEmpty) {
+            await tester.tap(remind);
+            await tester.pumpAndSettle();
+            await capture(
+              'parking_${persian ? 'fa_dark' : 'en_light'}_reminder',
+            );
           }
           await tester.pumpWidget(const SizedBox());
         },

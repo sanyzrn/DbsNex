@@ -1,4 +1,5 @@
 import 'package:nex_client/modules/module_api.dart';
+
 import 'parking_logic.dart';
 import 'parking_models.dart';
 import 'editor_checkpoint.dart';
@@ -6,6 +7,26 @@ import 'local_writes.dart';
 import 'local_values.dart';
 
 class ParkingWrites {
+  /// Marks a remembered place as a favourite, or takes the mark away. The
+  /// rest of the record is kept as it was.
+  static Future<void> setFavourite(
+    NexModuleStore store,
+    String id,
+    bool favourite,
+  ) => LocalWrites.serial(store, () async {
+    final raw = await store.get(ParkingModels.place, id);
+    if (raw == null) {
+      return;
+    }
+    await LocalWrites.apply(store, [
+      (
+        kind: ParkingModels.place,
+        id: id,
+        body: {...raw, 'favorite': favourite},
+      ),
+    ]);
+  });
+
   static Future<void> rememberPlace(
     NexModuleStore store,
     List<ModuleRecord> ignored,
