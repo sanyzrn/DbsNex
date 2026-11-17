@@ -34,6 +34,47 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.2 — tiles that show their notes
+
+- `nexTileBackdropOf` picks a grid tile's picture (photo, collage, video,
+  PDF); `_MediaTile` (note_grid_media.dart) draws it edge to edge with
+  fall-offs, a press dim (ink splashes paint under children) and a fallback
+  to the word tile when no frame/page can be had. `NexParallaxImage` drifts a
+  picture with a `Flow` repainting from the scroll position — no rebuilds.
+  `NexTilePreviews` keeps video frames and PDF pages in memory only (32 MB).
+- `NexCardAudio`: one card player app-wide (just_audio), stopped by
+  `NexCardAudioObserver` on a page push, by the detail sheet's own player
+  and when the app is backgrounded; `NexCardVoice` / `NexCardVoicePreview`
+  on grid tiles and through `NoteCard.previewOverride`. `AudioWaveform`
+  takes colours and remembers peaks in memory.
+- Checklist tiles tick through `onToggleItem` (the item's own index) with a
+  progress ring; link tiles draw an offline site monogram.
+- FAB hero clash: every `FloatingActionButton` shared the default hero tag,
+  so a module's FAB flew into the home dock's + on the way back. All 19 now
+  pass `heroTag: null`; `test/fab_hero_test.dart` scans `lib` and
+  `packages/ui/lib` for a FAB without one.
+- Gold Check: Sell and Melted were a pushed `GoldMarketPage` (a page
+  transition each way, an abrupt Sell/Melted swap, the draft re-read on each
+  push). Now `GoldKeptTabs` keeps visited tabs built (Offstage + TickerMode,
+  identical wrappers so no state is lost) and fades the chosen one in;
+  `GoldMarketPanel` is the market form without a page of its own.
+- `NexSegmentSwap` (packages/ui): an AnimatedSwitcher for views whose state
+  lives above them, optionally size-eased (`resize`). Used by Prompt Studio's
+  filter, the converter's tabs, the security generator and the commitments
+  sheet. Lent & Borrowed's tab lists carry `PageStorageKey`s.
+- Timeline view changes: `_ViewDissolve` holds the old view's last frame
+  (read from a `RepaintBoundary` subclass's layer, so a dirty boundary does
+  not refuse) and paints it clipped below the filter row, fading out over the
+  new view's existing fade-in; disposed when the fade ends. No card builds.
+- `NexBorderBeam` returned its bare child when inactive, so the brief — whose
+  light switches off as it folds — remounted on every fold and its
+  `NexAnimatedSize` started from nothing. It keeps its Stack now.
+  `_FoldingLines` keeps the leaving lines painted (zero-height Align) under a
+  bottom-edge clip while they fade.
+- The brief is back on `NexGlassSurface` (no blur, plain fallback). A card
+  waveform seeks only once its recording is loaded, so a tap on the card
+  opens the note.
+
 ### 2.8.1 — what 2.8.0 drew for almost nobody
 
 - `NoteCard` keeps its kind-coloured edge under `nexVisualStyle.minimal`, and

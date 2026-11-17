@@ -98,6 +98,8 @@ class _QuitHomeScreenState extends State<QuitHomeScreen>
       floatingActionButton: habits.isEmpty
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('quit-add'),
               onPressed: () => unawaited(_add()),
               icon: const Icon(Icons.add),

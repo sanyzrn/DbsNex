@@ -1,4 +1,5 @@
 import '../platform/crash_reporter.dart';
+import '../widgets/card_audio.dart';
 import '../widgets/folded_note.dart';
 
 import 'dart:async';
@@ -343,6 +344,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   /// another player before the first had finished — the bar then followed
   /// one while the button drove the other.
   Future<void> _initPlayer(String uri, {bool voice = false}) async {
+    // The sheet has its own player; one played from a card stops for it.
+    unawaited(NexCardAudio.instance.stop());
     if (!File(uri).existsSync()) {
       setState(() => _playerFailed = true);
       return;

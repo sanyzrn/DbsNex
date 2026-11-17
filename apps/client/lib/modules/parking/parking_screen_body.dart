@@ -93,6 +93,8 @@ extension _ParkingScreenBody on _ParkingScreenState {
           _loading || _loadFailed || (_sessions.isEmpty && _places.isEmpty)
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('parking-fab'),
               onPressed: _busy ? null : () => unawaited(_newParking()),
               label: Text(strings(context, 'parkedHere')),

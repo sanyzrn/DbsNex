@@ -4,6 +4,19 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.2
+
+- **Photos that fill their tile.** In the grid, a photo now covers its whole tile, with its caption over it, and drifts gently as you scroll — a tall picture is seen whole, a little at a time.
+- **Several photos at a glance.** A note with more than one photo shows three of them side by side on its tile, and how many more there are.
+- **Videos and PDFs you can recognise.** A video's tile shows a frame from it with a play mark; a PDF's shows its first page and how many pages it has.
+- **Play voice notes from the card.** A voice note plays right on its card, in the grid and in the list, with its own waveform — once it's playing, tap or drag along it to move through the recording; anywhere else on the card still opens the note. One plays at a time, and it stops when you open something else or leave the app.
+- **Tick checklists from the grid.** A checklist's tile shows a ring of how much is done, and a tap on an item ticks it without opening the note.
+- **Links with a face.** A link's tile shows the site as a coloured mark with its name, drawn from the address alone — nothing is fetched from the site.
+- **Buttons that stay on their own page.** Opening Habits, Warranties or any other module from the home screen and coming back, its "New" button no longer flies into the home screen's + button on the way.
+- **Gold Check's tabs switch in place.** Buy, Sell and Melted gold now change without the page leaving and coming back, and what you typed in each is kept as you move between them.
+- **Smoother changes of view.** Switching between list and grid, choosing a tag or a filter, folding and opening the recap, and the switches in Prompt Studio, the Converter, the Security toolbox and the Recurring sheet now fade from one view to the next instead of jumping. In Lent & Borrowed, each tab comes back where you left it.
+- **A plain recap again.** The recap card is back on the plain card background, without the tinted wash.
+
 ## v2.8.1
 
 - **Five modules arrive.** Finished and reviewed, and ready to add from **Tools → Modules**:

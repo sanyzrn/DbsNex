@@ -2,6 +2,7 @@ import 'feature_label.dart';
 import 'recurring_attachments.dart';
 import 'recurring_calendar.dart';
 import 'recurring_options.dart';
+
 import 'dart:convert';
 import 'dart:async';
 import 'dart:ui' show BoxWidthStyle;
@@ -566,38 +567,51 @@ class _RecurringScreenState extends State<RecurringScreen>
                   ],
                 ],
                 const SizedBox(height: NexSpacing.md),
-                if (shown == null)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: NexSpacing.xl),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (source!.isEmpty)
-                  _Empty(l10n: l10n, onAdd: () => unawaited(_edit()))
-                else if (calendar)
-                  RecurringCalendar(
-                    commitments: shown,
-                    solar: widget.services.solarCalendar,
-                    onActions: (c) => unawaited(_actions(c)),
-                  )
-                else if (shown.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: NexSpacing.xl,
-                    ),
-                    child: Text(
-                      nexLabel(
-                        context,
-                        'Nothing in this view.',
-                        'در این نما چیزی نیست.',
-                      ),
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  )
-                else
-                  ..._grouped(l10n, shown, now),
+                // Calendar or a list, and which list: one view fades into
+                // the next (2.8.2). The list arriving, or changing under the
+                // same view, is not a change of view and stays in place.
+                NexSegmentSwap(
+                  selection: _view,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (shown == null)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                            vertical: NexSpacing.xl,
+                          ),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (source!.isEmpty)
+                        _Empty(l10n: l10n, onAdd: () => unawaited(_edit()))
+                      else if (calendar)
+                        RecurringCalendar(
+                          commitments: shown,
+                          solar: widget.services.solarCalendar,
+                          onActions: (c) => unawaited(_actions(c)),
+                        )
+                      else if (shown.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: NexSpacing.xl,
+                          ),
+                          child: Text(
+                            nexLabel(
+                              context,
+                              'Nothing in this view.',
+                              'در این نما چیزی نیست.',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        )
+                      else
+                        ..._grouped(l10n, shown, now),
+                    ],
+                  ),
+                ),
                 // Room for the button floating over the end of the list.
                 SizedBox(height: 96 + nexBottomInset(context)),
               ],

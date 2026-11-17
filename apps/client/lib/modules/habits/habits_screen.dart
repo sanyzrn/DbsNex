@@ -254,6 +254,8 @@ class _HabitsScreenState extends State<HabitsScreen>
       floatingActionButton: _habits.isEmpty
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('habits-new'),
               onPressed: () => unawaited(_newHabit()),
               icon: const Icon(Icons.add),

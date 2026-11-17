@@ -165,12 +165,14 @@ class _NexBorderBeamState extends State<NexBorderBeam>
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.active) return widget.child;
-    // Out at rest, the light still keeps its place in the tree: returning
-    // the bare child here would move the card's contents in and out of the
-    // stack below each time a lap starts, and remount them — a brief that
-    // should cross-fade to its new words lost the old ones on the spot.
-    final lit = !widget.restsUnlit || _lap.isAnimating;
+    // Out at rest, and switched off, the light still keeps its place in the
+    // tree: returning the bare child would move the card's contents in and
+    // out of the stack below, and remount them. A brief that should
+    // cross-fade to its new words lost the old ones on the spot — and, as
+    // the brief's light is switched off when it folds, folding and opening
+    // it rebuilt the whole card, so its size animation started from nothing
+    // and both were cuts (2.8.2).
+    final lit = widget.active && (!widget.restsUnlit || _lap.isAnimating);
     // Keep the animated light in its own repaint boundary. Wrapping the
     // entire child isolated its BackdropFilter too: when the recap re-entered
     // the viewport its glass sampled an empty layer before the page appeared,

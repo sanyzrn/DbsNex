@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
-import 'draft_guard.dart';
 import 'form_draft.dart';
 import 'gold_fields.dart';
 import 'gold_details.dart';
@@ -16,6 +15,9 @@ import 'gold_workspace.dart';
 
 /// Sell and melted-gold tools share a checkpoint, but retain separate raw
 /// inputs. A tab change never reinterprets a rate already entered elsewhere.
+/// Selling and melted gold, as a page of its own — the panel below with the
+/// three destinations over it. Gold's own screen hosts the same panel in
+/// place (2.8.2); this page remains for a direct entry.
 class GoldMarketPage extends StatefulWidget {
   const GoldMarketPage({
     super.key,
@@ -31,8 +33,64 @@ class GoldMarketPage extends StatefulWidget {
 }
 
 class _GoldMarketPageState extends State<GoldMarketPage> {
-  late int _mode;
-  late bool _rials;
+  late int _mode = widget.mode;
+  late bool _rials = widget.showRials;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: NexAppBar(
+      title: Text(goldStrings(context, 'title')),
+      actions: [
+        TextButton(
+          onPressed: () => setState(() => _rials = !_rials),
+          child: Text(goldStrings(context, _rials ? 'showRial' : 'showToman')),
+        ),
+      ],
+    ),
+    body: ListView(
+      padding: const EdgeInsets.all(NexSpacing.md),
+      children: [
+        GoldWorkspace(
+          selected: _mode,
+          onChanged: (value) {
+            FocusManager.instance.primaryFocus?.unfocus();
+            if (value == 0) {
+              Navigator.of(context).maybePop();
+            } else {
+              setState(() => _mode = value);
+            }
+          },
+        ),
+        const SizedBox(height: NexSpacing.md),
+        GoldMarketPanel(store: widget.store, mode: _mode, showRials: _rials),
+      ],
+    ),
+  );
+}
+
+/// Selling and melted gold: the inputs, the result and the caution for the
+/// [mode] chosen — 1 to sell, 2 for melted gold.
+///
+/// One form under both: what was typed for one stays when the other is
+/// looked at, and both are kept as a draft. Switching between the two fades
+/// the one into the other rather than replacing it on a frame (2.8.2).
+class GoldMarketPanel extends StatefulWidget {
+  const GoldMarketPanel({
+    super.key,
+    required this.store,
+    required this.mode,
+    this.showRials = false,
+  });
+  final NexModuleStore store;
+  final int mode;
+  final bool showRials;
+  @override
+  State<GoldMarketPanel> createState() => _GoldMarketPanelState();
+}
+
+class _GoldMarketPanelState extends State<GoldMarketPanel> {
+  int get _mode => widget.mode;
+  bool get _rials => widget.showRials;
   bool _loading = true, _failed = false, _details = false;
   int _settlement = 750, _fineness = 750;
   bool _mithqal = true;
@@ -54,8 +112,6 @@ class _GoldMarketPageState extends State<GoldMarketPage> {
   @override
   void initState() {
     super.initState();
-    _mode = widget.mode;
-    _rials = widget.showRials;
     _draft = FormDraft(
       widget.store,
       'market:tools',
@@ -317,74 +373,57 @@ class _GoldMarketPageState extends State<GoldMarketPage> {
   );
 
   @override
-  Widget build(BuildContext context) => DraftGuard(
-    draft: _draft,
-    busy: () => _loading,
-    child: Scaffold(
-      appBar: NexAppBar(
-        title: Text(goldStrings(context, 'title')),
-        actions: [
-          TextButton(
-            onPressed: () => setState(() => _rials = !_rials),
-            child: Text(
-              goldStrings(context, _rials ? 'showRial' : 'showToman'),
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(NexSpacing.xl),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_failed) {
+      return NexEmptyState(
+        icon: Icons.refresh,
+        message: goldStrings(context, 'draftLoadError'),
+        action: TextButton(
+          onPressed: _load,
+          child: Text(goldStrings(context, 'retry')),
+        ),
+      );
+    }
+    return AnimatedSwitcher(
+      duration: NexMotion.of(context, NexMotion.standard),
+      switchInCurve: NexMotion.curve,
+      switchOutCurve: NexMotion.exitCurve,
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topCenter,
+        children: [...previous, ?current],
+      ),
+      child: Column(
+        key: ValueKey('gold-market-$_mode'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            goldStrings(context, _mode == 1 ? 'saleIntro' : 'meltIntro'),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: NexSpacing.md),
+          NexPanel(
+            title: goldStrings(
+              context,
+              _mode == 1 ? 'saleInputs' : 'meltInputs',
             ),
+            icon: _mode == 1 ? Icons.sell_outlined : Icons.balance_outlined,
+            child: _inputs(),
+          ),
+          const SizedBox(height: NexSpacing.md),
+          _result(),
+          const SizedBox(height: NexSpacing.lg),
+          Text(
+            goldStrings(context, _mode == 1 ? 'saleCaution' : 'meltCaution'),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _failed
-          ? NexEmptyState(
-              icon: Icons.refresh,
-              message: goldStrings(context, 'draftLoadError'),
-              action: TextButton(
-                onPressed: _load,
-                child: Text(goldStrings(context, 'retry')),
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.all(NexSpacing.md),
-              children: [
-                GoldWorkspace(
-                  selected: _mode,
-                  onChanged: (value) {
-                    FocusManager.instance.primaryFocus?.unfocus();
-                    if (value == 0) {
-                      Navigator.of(context).maybePop();
-                    } else {
-                      setState(() => _mode = value);
-                    }
-                  },
-                ),
-                const SizedBox(height: NexSpacing.md),
-                Text(
-                  goldStrings(context, _mode == 1 ? 'saleIntro' : 'meltIntro'),
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: NexSpacing.md),
-                NexPanel(
-                  title: goldStrings(
-                    context,
-                    _mode == 1 ? 'saleInputs' : 'meltInputs',
-                  ),
-                  icon: _mode == 1
-                      ? Icons.sell_outlined
-                      : Icons.balance_outlined,
-                  child: _inputs(),
-                ),
-                const SizedBox(height: NexSpacing.md),
-                _result(),
-                const SizedBox(height: NexSpacing.lg),
-                Text(
-                  goldStrings(
-                    context,
-                    _mode == 1 ? 'saleCaution' : 'meltCaution',
-                  ),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-    ),
-  );
+    );
+  }
 }

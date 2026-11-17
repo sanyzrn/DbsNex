@@ -65,6 +65,8 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       // The screen could rename, merge and delete tags but had no way to create
       // one, so a tag could only ever come into existence by tagging a note.
       floatingActionButton: FloatingActionButton(
+        // No hero: a page's button never flies into another's (2.8.2).
+        heroTag: null,
         onPressed: () => unawaited(_createTag()),
         tooltip: l10n.createTag,
         child: const Icon(Icons.add),

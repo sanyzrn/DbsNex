@@ -6463,4 +6463,33 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get layoutPinnedToolsHint =>
       'کاشی‌های کوچک و زنده، بالای یادداشت‌ها. برای سنجاق‌کردن یا برداشتن، روی هر کدام بزنید.';
+
+  @override
+  String get cardPlay => 'پخش';
+
+  @override
+  String get cardPause => 'مکث';
+
+  @override
+  String tilePdfPages(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString صفحه',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tileMorePhotos(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '+$countString';
+  }
 }

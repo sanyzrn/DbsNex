@@ -285,6 +285,8 @@ class _OccasionsScreenState extends State<OccasionsScreen>
       floatingActionButton: _items.isEmpty || _loading || _failed
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('occasions-add'),
               onPressed: () => unawaited(_add()),
               icon: const Icon(Icons.add),

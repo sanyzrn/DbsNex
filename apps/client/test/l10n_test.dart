@@ -37,6 +37,9 @@ void main() {
     // A layout template like `remindRepeatingAt`: a brief line's title and
     // when it is, both already in the reader's language.
     'briefLineAt',
+    // "+3" on a photo collage: only the count, already in the reader's
+    // digits by its number format.
+    'tileMorePhotos',
   };
 
   test('every English message has a Persian one', () {
@@ -59,9 +62,9 @@ void main() {
     // The `@key` metadata is authoritative about which names are placeholders.
     // Scraping `{…}` out of the message itself cannot tell a placeholder from
     // an ICU plural or select branch.
-    final template =
-        jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
-            as Map<String, dynamic>;
+    final template = jsonDecode(
+      File('lib/l10n/app_en.arb').readAsStringSync(),
+    ) as Map<String, dynamic>;
     for (final key in en.keys) {
       final meta = template['@$key'];
       if (meta is! Map<String, dynamic>) continue;

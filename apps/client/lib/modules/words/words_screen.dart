@@ -67,6 +67,8 @@ class _WordsScreenState extends State<WordsScreen>
       floatingActionButton: _loading || _failed || _cards.isEmpty
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('words-add'),
               onPressed: () => unawaited(
                 Navigator.of(context).push(

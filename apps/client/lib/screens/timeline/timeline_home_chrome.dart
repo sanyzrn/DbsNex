@@ -110,26 +110,19 @@ extension _TimelineHomeChrome on TimelineScreenState {
   ///
   /// It has a card's corner and none of a note card's height rule: this is
   /// the app reading the day back, and how long it is depends on how much
-  /// there was to say. Nor a note card's colour — it sits on a wash of the
-  /// accent, light gathering in its starting corner the way a note's own
-  /// colour does on a note, so the one surface on this screen the app wrote
-  /// is never taken for something the reader wrote.
+  /// there was to say. Nor a note card's colour: it is the plain card ground,
+  /// with the app's own heading on it.
   ///
   /// The light going round its edge plays once, when it is opened by hand.
   Widget _briefCard(AppLocalizations l10n) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     const corner = BorderRadius.all(Radius.circular(NexRadius.lg));
-    // Not tied to a minimal appearance (2.8.1): every designed palette and
-    // soft appearance is minimal, so the 2.8.0 wash, edge and light were
-    // drawn for almost nobody and the brief looked as it always had. The
-    // wash is what tells the app's words from the reader's; it stays.
+    // The light along the edge is not tied to a minimal appearance (2.8.1):
+    // every designed palette is minimal, so it ran for almost nobody. The
+    // surface is the plain card it always was (2.8.2): the 2.8.1 wash of the
+    // accent read as one more coloured panel on a screen of them.
     final highContrast = MediaQuery.highContrastOf(context);
-    final dark = theme.brightness == Brightness.dark;
-    Color wash(Color tint, double alpha) => Color.alphaBlend(
-      tint.withValues(alpha: alpha),
-      scheme.surfaceContainerLowest,
-    );
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: NexSpacing.md,
@@ -151,27 +144,12 @@ extension _TimelineHomeChrome on TimelineScreenState {
         onFinished: () => _aiSummaryBeamPending = false,
         // Only an explicit expansion earns a run; refreshed words do not.
         restsUnlit: true,
-        child: DecoratedBox(
+        child: NexGlassSurface(
           key: const ValueKey('timeline-recap-surface'),
-          decoration: BoxDecoration(
-            borderRadius: corner,
-            color: highContrast ? scheme.surfaceContainerLowest : null,
-            gradient: highContrast
-                ? null
-                : LinearGradient(
-                    begin: AlignmentDirectional.topStart,
-                    end: AlignmentDirectional.bottomEnd,
-                    colors: [
-                      wash(scheme.primary, dark ? 0.16 : 0.13),
-                      wash(scheme.tertiary, dark ? 0.06 : 0.04),
-                    ],
-                  ),
-            border: highContrast
-                ? Border.all(color: scheme.outline, width: 1.5)
-                : Border.all(
-                    color: scheme.primary.withValues(alpha: dark ? 0.22 : 0.14),
-                  ),
-          ),
+          blur: false,
+          borderRadius: corner,
+          showShadow: false,
+          fallbackColor: scheme.surfaceContainerLowest,
           child: _AiDaySummaryPanel(
             // Keyed so a test can say "the brief is on screen" without
             // reaching for a glyph. It used to be found by its sparkle,

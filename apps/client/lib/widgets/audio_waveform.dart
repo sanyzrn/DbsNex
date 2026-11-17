@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
@@ -22,9 +24,16 @@ class AudioWaveform extends StatefulWidget {
     required this.progress,
     this.onSeek,
     this.height = 40,
+    this.played,
+    this.ahead,
   });
   final String path;
   final double progress;
+
+  /// The played part's colour, and the rest's; the accent and a quiet grey
+  /// unless given. A card draws its recording in its own kind's colour.
+  final Color? played;
+  final Color? ahead;
 
   /// Where along the recording a touch or a drag landed, from 0 to 1.
   final ValueChanged<double>? onSeek;
@@ -34,11 +43,30 @@ class AudioWaveform extends StatefulWidget {
 }
 
 class _AudioWaveformState extends State<AudioWaveform> {
-  late Future<List<double>> peaks = _load();
+  late Future<List<double>> peaks = _cachedOr(_load);
+
+  /// Shapes already read this run, by path (2.8.2). A card's waveform is
+  /// built every time its card scrolls back into view, and each of those
+  /// used to hash the file's details, open the cache file on disk and show
+  /// the stand-in for a frame before the real shape replaced it.
+  static final _known = <String, List<double>>{};
+
+  Future<List<double>> _cachedOr(Future<List<double>> Function() load) {
+    final known = _known[widget.path];
+    if (known != null) return SynchronousFuture(known);
+    return load().then((values) {
+      if (values.isNotEmpty) {
+        if (_known.length > 120) _known.clear();
+        _known[widget.path] = values;
+      }
+      return values;
+    });
+  }
+
   @override
   void didUpdateWidget(AudioWaveform oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.path != widget.path) peaks = _load();
+    if (oldWidget.path != widget.path) peaks = _cachedOr(_load);
   }
 
   Future<List<double>> _load() async {
@@ -59,9 +87,8 @@ class _AudioWaveformState extends State<AudioWaveform> {
             .map((n) => n.toDouble())
             .toList();
       }
-      final values = await const MethodChannel(
-        'nex/os_capture',
-      ).invokeListMethod<num>('audioWaveform', {'path': widget.path});
+      final values = await const MethodChannel('nex/os_capture')
+          .invokeListMethod<num>('audioWaveform', {'path': widget.path});
       final result = values?.map((v) => v.toDouble()).toList() ?? <double>[];
       if (result.isNotEmpty) {
         await cache.parent.create(recursive: true);
@@ -97,8 +124,10 @@ class _AudioWaveformState extends State<AudioWaveform> {
           painter: _Envelope(
             real ? values : _standIn,
             real ? widget.progress : 0,
-            scheme.primary,
-            scheme.onSurfaceVariant.withValues(alpha: real ? 0.28 : 0.14),
+            widget.played ?? scheme.primary,
+            (widget.ahead ?? scheme.onSurfaceVariant).withValues(
+              alpha: real ? 0.28 : 0.14,
+            ),
           ),
         ),
       );

@@ -326,50 +326,59 @@ class _AiDaySummaryPanel extends StatelessWidget {
             horizontal: NexSpacing.cardInset,
             vertical: NexSpacing.sm + NexSpacing.xs,
           ),
-          child: NexAnimatedSize(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _BriefHeader(
-                  title: title,
-                  byModel: byModel,
-                  // A new brief makes the mark twinkle once.
-                  token: text,
-                  updatedAt: text?.trim().isNotEmpty == true ? updatedAt : null,
-                  solarCalendar: solarCalendar,
-                  collapsed: collapsed,
-                  hidden: hidden > 0 ? hidden : 0,
-                ),
-                const SizedBox(height: NexSpacing.xs),
-                AnimatedSwitcher(
-                  duration: NexMotion.of(context, NexMotion.enter),
-                  reverseDuration: NexMotion.of(context, NexMotion.exit),
-                  switchInCurve: NexMotion.curve,
-                  switchOutCurve: NexMotion.exitCurve,
-                  layoutBuilder: (current, previous) => Stack(
-                    alignment: AlignmentDirectional.topStart,
-                    children: [
-                      for (final child in previous)
-                        ExcludeSemantics(child: IgnorePointer(child: child)),
-                      ?current,
-                    ],
+          // Its bottom edge is where folding lines go under (2.8.2).
+          child: ClipRect(
+            clipper: const _BottomEdge(),
+            child: NexAnimatedSize(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _BriefHeader(
+                    title: title,
+                    byModel: byModel,
+                    // A new brief makes the mark twinkle once.
+                    token: text,
+                    updatedAt: text?.trim().isNotEmpty == true
+                        ? updatedAt
+                        : null,
+                    solarCalendar: solarCalendar,
+                    collapsed: collapsed,
+                    hidden: hidden > 0 ? hidden : 0,
                   ),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: animation.drive(
-                        Tween(begin: const Offset(0, 0.025), end: Offset.zero),
+                  const SizedBox(height: NexSpacing.xs),
+                  AnimatedSwitcher(
+                    duration: NexMotion.of(context, NexMotion.enter),
+                    reverseDuration: NexMotion.of(context, NexMotion.exit),
+                    switchInCurve: NexMotion.curve,
+                    switchOutCurve: NexMotion.exitCurve,
+                    layoutBuilder: (current, previous) => Stack(
+                      alignment: AlignmentDirectional.topStart,
+                      children: [
+                        for (final child in previous)
+                          ExcludeSemantics(child: IgnorePointer(child: child)),
+                        ?current,
+                      ],
+                    ),
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: animation.drive(
+                          Tween(
+                            begin: const Offset(0, 0.025),
+                            end: Offset.zero,
+                          ),
+                        ),
+                        child: child,
                       ),
-                      child: child,
+                    ),
+                    child: KeyedSubtree(
+                      key: ValueKey(text),
+                      child: _body(context, theme, lines),
                     ),
                   ),
-                  child: KeyedSubtree(
-                    key: ValueKey(text),
-                    child: _body(context, theme, lines),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -436,9 +445,15 @@ class _AiDaySummaryPanel extends StatelessWidget {
             // its size round them, so the card chased a height that changed
             // every frame and the opening stuttered. Now the card opens once
             // and its lines arrive after one another into the room it makes.
-            if (!collapsed)
-              for (final (i, line) in lines.skip(foldedLines).indexed)
-                _ArrivingLine(index: i, child: _line(line)),
+            // Folding, they do not leave on the frame of the tap (2.8.2):
+            // they fade while the card closes over them.
+            _FoldingLines(
+              open: !collapsed,
+              lines: [
+                for (final (i, line) in lines.skip(foldedLines).indexed)
+                  _ArrivingLine(index: i, child: _line(line)),
+              ],
+            ),
           ],
         ),
       ),

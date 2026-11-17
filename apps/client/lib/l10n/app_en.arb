@@ -3573,5 +3573,13 @@
   "layoutPinnedTools": "Pinned tools",
   "@layoutPinnedTools": {"description": "Home layout sheet: the section choosing which tools show as tiles on the home screen"},
   "layoutPinnedToolsHint": "Small live tiles above your notes. Tap one to pin it or take it off.",
-  "@layoutPinnedToolsHint": {"description": "Home layout sheet: under the pinned tools heading"}
+  "@layoutPinnedToolsHint": {"description": "Home layout sheet: under the pinned tools heading"},
+  "cardPlay": "Play",
+  "@cardPlay": {"description": "Play button on a voice note's card in the timeline (2.8.2)"},
+  "cardPause": "Pause",
+  "@cardPause": {"description": "Pause button on a voice note's card in the timeline (2.8.2)"},
+  "tilePdfPages": "{count, plural, =1{1 page} other{{count} pages}}",
+  "@tilePdfPages": {"description": "How many pages a PDF has, on its grid tile (2.8.2)", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "tileMorePhotos": "+{count}",
+  "@tileMorePhotos": {"description": "On a photo collage tile: how many more photos the note has than it shows (2.8.2)", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}}
 }

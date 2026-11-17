@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -7,9 +8,13 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../desktop/desktop_note_card.dart' show nexSplitNoteText;
+import '../platform/tile_previews.dart';
+import 'card_audio.dart';
+import 'parallax_image.dart';
 import '../l10n/app_localizations.dart';
 
 part 'note_grid_body.dart';
+part 'note_grid_media.dart';
 
 /// How a grid tile is laid out at each card size (Settings → Appearance →
 /// Card size): how many fit across, how tall a row is, and how large the
@@ -103,11 +108,21 @@ class NexNoteGridCard extends StatelessWidget {
     this.onLeadingTap,
     this.selected,
     this.ringing = false,
+    this.photos,
+    this.onToggleItem,
   });
 
   final Note note;
   final NexCardStrings strings;
   final VoidCallback onTap;
+
+  /// A photo note's other pictures, for a collage tile (2.8.2). Without it a
+  /// photo note shows its first picture alone.
+  final NexTilePhotos? photos;
+
+  /// Ticks or unticks a checklist's item, by its place in the list (2.8.2).
+  /// Without it the items are only shown.
+  final ValueChanged<int>? onToggleItem;
 
   /// A tap on the round mark: picks the note, or puts it back.
   final VoidCallback? onLeadingTap;
@@ -146,87 +161,107 @@ class NexNoteGridCard extends StatelessWidget {
         ? BorderSide(color: scheme.outline, width: 1.5)
         : BorderSide(color: tint.withValues(alpha: dark ? 0.16 : 0.10));
     const widestEdge = 2.0;
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: [
-        strings.noteOfType(note.type.name),
-        content.title.isNotEmpty ? content.title : content.body,
-        if (note.isUrgent) strings.urgentLabel,
-        if (note.dueAt case final due?)
-          strings.dueDescription?.call(due, note.dueRepeat) ??
-              strings.dueLabel?.call(due, note.dueRepeat) ??
-              '',
-        strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
-      ].where((part) => part.isNotEmpty).join('. '),
-      explicitChildNodes: true,
-      child: Material(
-        type: MaterialType.transparency,
-        child: Ink(
-          decoration: ShapeDecoration(
-            gradient: LinearGradient(
-              begin: AlignmentDirectional.topStart,
-              end: AlignmentDirectional.bottomEnd,
-              colors: [from, to],
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(NexRadius.xl),
-              side: edge,
-            ),
+    final backdrop = nexTileBackdropOf(note, collages: photos != null);
+    final label = [
+      strings.noteOfType(note.type.name),
+      content.title.isNotEmpty ? content.title : content.body,
+      if (note.isUrgent) strings.urgentLabel,
+      if (note.dueAt case final due?)
+        strings.dueDescription?.call(due, note.dueRepeat) ??
+            strings.dueLabel?.call(due, note.dueRepeat) ??
+            '',
+      strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
+    ].where((part) => part.isNotEmpty).join('. ');
+    // The tile as words: every kind but a picture, and a file whose picture
+    // could not be read.
+    Widget words(BuildContext context) => Material(
+      type: MaterialType.transparency,
+      child: Ink(
+        decoration: ShapeDecoration(
+          gradient: LinearGradient(
+            begin: AlignmentDirectional.topStart,
+            end: AlignmentDirectional.bottomEnd,
+            colors: [from, to],
           ),
-          child: InkWell(
-            onTap: onTap,
-            customBorder: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(NexRadius.xl),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(
-                metrics.padding + widestEdge - edge.width,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _Top(
-                    note: note,
-                    kind: metrics.showKind ? kind : null,
-                    tint: tint,
-                    ink: ink,
-                    muted: muted,
-                    disc: metrics.disc,
-                    selected: selected,
-                    ringing: ringing,
-                    label: strings.selectLabel,
-                    onPick: onLeadingTap,
-                  ),
-                  SizedBox(height: metrics.padding * 0.8),
-                  Expanded(
-                    child: ClipRect(
-                      child: _Body(
-                        note: note,
-                        title: content.title,
-                        body: content.body,
-                        strings: strings,
-                        tint: tint,
-
-                        muted: muted,
-                        outline: outline,
-                      ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(NexRadius.xl),
+            side: edge,
+          ),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(NexRadius.xl),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(metrics.padding + widestEdge - edge.width),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Top(
+                  note: note,
+                  kind: metrics.showKind ? kind : null,
+                  tint: tint,
+                  ink: ink,
+                  muted: muted,
+                  disc: metrics.disc,
+                  selected: selected,
+                  ringing: ringing,
+                  label: strings.selectLabel,
+                  onPick: onLeadingTap,
+                ),
+                SizedBox(height: metrics.padding * 0.8),
+                Expanded(
+                  child: ClipRect(
+                    child: _Body(
+                      note: note,
+                      title: content.title,
+                      body: content.body,
+                      strings: strings,
+                      tint: tint,
+                      muted: muted,
+                      outline: outline,
+                      onToggleItem: onToggleItem,
                     ),
                   ),
-                  const SizedBox(height: NexSpacing.xs),
-                  _Foot(
-                    note: note,
-                    strings: strings,
-                    roomForBoth: metrics.showKind,
-                    ground: from,
-                    muted: muted,
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: NexSpacing.xs),
+                _Foot(
+                  note: note,
+                  strings: strings,
+                  roomForBoth: metrics.showKind,
+                  ground: from,
+                  muted: muted,
+                ),
+              ],
             ),
           ),
         ),
       ),
+    );
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      explicitChildNodes: true,
+      child: backdrop == NexTileBackdrop.none
+          ? words(context)
+          : _MediaTile(
+              key: ValueKey('grid-media-${note.id}'),
+              note: note,
+              backdrop: backdrop,
+              kind: kind,
+              tint: tint,
+              edge: edge,
+              metrics: metrics,
+              strings: strings,
+              selected: selected,
+              ringing: ringing,
+              onTap: onTap,
+              onLeadingTap: onLeadingTap,
+              photos: photos,
+              fallback: words,
+            ),
     );
   }
 }

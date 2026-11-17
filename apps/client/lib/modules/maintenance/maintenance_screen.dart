@@ -108,6 +108,8 @@ class _MaintenanceScreenState extends State<MaintenanceScreen>
               controller.assets.isEmpty
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('maintenance-add-asset'),
               onPressed: () =>
                   unawaited(showAssetEditor(context, controller: controller)),

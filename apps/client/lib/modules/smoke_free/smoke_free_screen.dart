@@ -206,6 +206,8 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
       floatingActionButton: active == null
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('smoke-log-craving'),
               onPressed: _writing
                   ? null

@@ -10099,6 +10099,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Small live tiles above your notes. Tap one to pin it or take it off.'**
   String get layoutPinnedToolsHint;
+
+  /// Play button on a voice note's card in the timeline (2.8.2)
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get cardPlay;
+
+  /// Pause button on a voice note's card in the timeline (2.8.2)
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get cardPause;
+
+  /// How many pages a PDF has, on its grid tile (2.8.2)
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 page} other{{count} pages}}'**
+  String tilePdfPages(int count);
+
+  /// On a photo collage tile: how many more photos the note has than it shows (2.8.2)
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String tileMorePhotos(int count);
 }
 
 class _AppLocalizationsDelegate

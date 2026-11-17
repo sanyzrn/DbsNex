@@ -247,6 +247,99 @@ class _ArrivingLine extends StatelessWidget {
   }
 }
 
+/// The brief's lines past its folded few (2.8.2).
+///
+/// Open, they are laid out as any line is. Folding, they used to leave on
+/// the frame of the tap and the card then shrank round an empty space; now
+/// they stay painted — taking no room, so the card's one size animation is
+/// still the only one — and fade while the card closes over them. The same
+/// widgets throughout, so a line that has arrived does not arrive again on
+/// its way out.
+class _FoldingLines extends StatefulWidget {
+  const _FoldingLines({required this.open, required this.lines});
+
+  final bool open;
+  final List<Widget> lines;
+
+  @override
+  State<_FoldingLines> createState() => _FoldingLinesState();
+}
+
+class _FoldingLinesState extends State<_FoldingLines>
+    with SingleTickerProviderStateMixin {
+  late final _leave = AnimationController(vsync: this);
+  late final Animation<double> _fading = ReverseAnimation(
+    CurvedAnimation(parent: _leave, curve: NexMotion.exitCurve),
+  );
+  bool _leaving = false;
+
+  @override
+  void didUpdateWidget(_FoldingLines old) {
+    super.didUpdateWidget(old);
+    if (widget.open) {
+      _leaving = false;
+      _leave.stop();
+      return;
+    }
+    if (!old.open && !_leaving) return;
+    if (old.open) {
+      // As long as the card takes to close.
+      final duration = NexMotion.of(context, NexMotion.slow);
+      if (duration == Duration.zero || old.lines.isEmpty) return;
+      _leaving = true;
+      _leave.duration = duration;
+      _leave.forward(from: 0).whenComplete(() {
+        if (mounted) setState(() => _leaving = false);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _leave.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.open && !_leaving) return const SizedBox.shrink();
+    final leaving = !widget.open;
+    return IgnorePointer(
+      ignoring: leaving,
+      child: ExcludeSemantics(
+        excluding: leaving,
+        // No room of its own while leaving: painted below the folded lines,
+        // where the card's bottom edge clips it as it closes.
+        child: Align(
+          alignment: AlignmentDirectional.topStart,
+          heightFactor: leaving ? 0 : 1,
+          child: FadeTransition(
+            opacity: leaving ? _fading : kAlwaysCompleteAnimation,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: widget.lines,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Clips only what passes below the bottom edge: a mark that glows past the
+/// sides or the top is left as it is.
+class _BottomEdge extends CustomClipper<Rect> {
+  const _BottomEdge();
+
+  @override
+  Rect getClip(Size size) =>
+      Rect.fromLTRB(-size.width, -size.height, size.width * 2, size.height);
+
+  @override
+  bool shouldReclip(_BottomEdge old) => false;
+}
+
 /// One line of the brief: its emoji in a column of its own, the words beside
 /// it.
 ///

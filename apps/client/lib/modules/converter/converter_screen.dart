@@ -602,7 +602,16 @@ class _ConverterScreenState extends State<ConverterScreen> {
                   if (outcome.note != null) ConverterNote(text: outcome.note!),
                   const SizedBox(height: NexSpacing.md),
                 ],
-                ..._content(context),
+                // Dates, units or sizes: one fades into the next (2.8.2).
+                // Their fields belong to this screen, so nothing typed goes
+                // with the view that leaves.
+                NexSegmentSwap(
+                  selection: _tab,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: _content(context),
+                  ),
+                ),
                 const SizedBox(height: NexSpacing.lg),
                 if (_failed)
                   NexEmptyState(
