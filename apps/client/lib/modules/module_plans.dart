@@ -71,12 +71,7 @@ class NexModulePlan {
 
 /// What is coming, nearest first.
 const List<NexModulePlan> nexModulePlans = [
-  NexModulePlan(
-    'cheque-manager',
-    Icons.receipt_long_outlined,
-    NexHue.sky,
-    NexModuleStage.soon,
-  ),
+  // The cheque manager arrived as Cheques & instalments (2.8.4).
   NexModulePlan(
     'language-learning',
     Icons.translate_outlined,

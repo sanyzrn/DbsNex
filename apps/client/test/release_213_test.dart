@@ -234,6 +234,7 @@ void main() {
         'security_tools',
         'parking',
         'medicine',
+        'cheques',
       });
       expect(
         NexModuleAlarms.moduleId('a', 'b:c'),

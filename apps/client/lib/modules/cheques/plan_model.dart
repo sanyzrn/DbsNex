@@ -64,9 +64,18 @@ class InstalmentPlan {
     );
   }
 
-  BigInt amount(int i) =>
-      total! ~/ BigInt.from(count) +
-      (i == count - 1 ? total! % BigInt.from(count) : BigInt.zero);
+  /// Instalment [i]'s share of the total; the last one takes what does not
+  /// divide. A total in whole tomans is divided in whole tomans (2.8.4):
+  /// 10,000,000 tomans in three used to read 3,333,333.3 tomans.
+  BigInt amount(int i) {
+    final ten = BigInt.from(10);
+    final unit = total! % ten == BigInt.zero ? ten : BigInt.one;
+    final units = total! ~/ unit;
+    final n = BigInt.from(count);
+    final share = units ~/ n;
+    return (share + (i == count - 1 ? units % n : BigInt.zero)) * unit;
+  }
+
   bool paid(int i) => (raw['paid'] as Map).containsKey('$i');
   List<Cheque> cheques() => !valid
       ? []

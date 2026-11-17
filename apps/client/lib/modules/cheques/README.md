@@ -22,8 +22,25 @@ The earlier, uncommitted cheque work has been kept and extended:
 | Privacy | Private notification text | Amount visibility control added; named amount alerts per new brief |
 | State/motion | Persistent list state, no FAB hero | Kept; stateful lists retained, transient follow-up heading uses NexSegmentSwap |
 | Robustness | Drafts, conflict checks, atomic events, Undo | Kept; plan stale-alarm cleanup and tests added |
-| AI | Redacted context / draft proposal contracts | Kept, disconnected from AI until an approved host adapter exists |
+| AI | Redacted context / draft proposal contracts | Removed in review (2.8.4): unused, and the brief asks for no AI |
 | Integration | Missing registry line caused PR CI failure | Registered for the owner’s PR repair; remains Soon |
+
+## Maintainer review (2.8.4)
+
+Checked against the brief, `docs/18` and the design rules; merged and made
+available, with these changes:
+
+- **Instalments in whole tomans.** A total in whole tomans is divided in
+  whole tomans, the last instalment taking what does not divide: ten
+  million tomans in three read 3,333,333.3 tomans before.
+- **The month view lists the days something falls due**, not every day of
+  the month — thirty cards, most of them "nothing due", buried the few that
+  matter. A day more goes out than comes in has a red edge and says so; an
+  empty month says so once.
+- **The unused AI contract is gone** (`ai_contract.dart` and its tests):
+  nothing called it, and the brief asks for no AI.
+- The module's hero has its own hue (222, the sky it declares), and the
+  "On the way" entry it replaces (`cheque-manager`) is retired.
 
 ## 1. What it does
 

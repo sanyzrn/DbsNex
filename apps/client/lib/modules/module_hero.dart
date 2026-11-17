@@ -43,6 +43,8 @@ const _moduleHues = <String, double>{
   // the violet and sky their own modules declare.
   'prompt_studio': 284,
   'security_tools': 200,
+  // 2.8.4: the sky it declares, between Parking and Lent & borrowed.
+  'cheques': 222,
 };
 
 /// The top of a module's home page: one large, calm statement of where things

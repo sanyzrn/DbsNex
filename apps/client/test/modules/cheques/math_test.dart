@@ -1,11 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/cheques/values.dart';
 import 'package:nex_client/modules/cheques/model.dart';
 import 'package:nex_client/modules/cheques/logic.dart';
 import 'package:nex_client/modules/cheques/reminders.dart';
-import 'package:nex_client/modules/cheques/ai_contract.dart';
 
 import 'fixtures.dart';
 
@@ -203,74 +200,4 @@ void main() {
       expect(chequeAlarmKey('a', 3), 'cheque:a:3');
     },
   );
-  test('AI context is bounded, exact and redacted by default; source IDs remain usable', () {
-    final rows = [
-      for (var i = 0; i < 30; i++)
-        Cheque(
-          'c$i',
-          chequeRaw(
-            amount: '999999999999999999999999',
-            sayad: '0012345678901234',
-          ),
-        ),
-    ];
-    final context = ChequeContextV1.build(rows, DateTime(2026, 11, 17));
-    expect(context['openCount'], 30);
-    expect(context['omittedCount'], 18);
-    final items = context['items'] as List;
-    expect(items.length, 12);
-    expect((items.first as Map)['ref'], 'c0');
-    final encoded = jsonEncode(context);
-    expect(encoded, isNot(contains('Sample party')));
-    expect(encoded, isNot(contains('0012345678901234')));
-    expect(encoded, isNot(contains('Private note')));
-    expect(encoded, isNot(contains('Sample bank')));
-    expect(
-      ((context['weeks'] as List).first as Map)['outgoingRial'],
-      (BigInt.parse('999999999999999999999999') * BigInt.from(30)).toString(),
-    );
-    expect(
-      jsonEncode(
-        ChequeContextV1.build(rows, DateTime(2026, 11, 17), includeNames: true),
-      ),
-      contains('Sample party'),
-    );
-    expect(
-      () => ChequeContextV1.build(rows, DateTime(2026), limit: 21),
-      throwsArgumentError,
-    );
-  });
-  test('future AI draft proposals reject unknown operations and ambiguous malformed amounts', () {
-    final proposal = ChequeDraftProposalV1.parse({
-      'v': 1,
-      'fields': {'amountRial': '1000', 'party': 'Test'},
-      'uncertain': ['party'],
-    });
-    expect(proposal.uncertain, {'party'});
-    expect(() => proposal.fields['amountRial'] = '0', throwsUnsupportedError);
-    for (final fields in [
-      {'amountRial': '1e8'},
-      {'due': '2026-02-30'},
-      {'execute': 'settle'},
-      {'sayad': '123'},
-      {'direction': 'maybe'},
-    ]) {
-      expect(
-        () => ChequeDraftProposalV1.parse({
-          'v': 1,
-          'fields': fields,
-          'uncertain': [],
-        }),
-        throwsFormatException,
-      );
-    }
-    expect(
-      () => ChequeDraftProposalV1.parse({
-        'v': 1,
-        'fields': {'party': 'A'},
-        'uncertain': ['bank'],
-      }),
-      throwsFormatException,
-    );
-  });
 }

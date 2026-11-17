@@ -41,6 +41,21 @@ void main() {
       expect(p.cheques().every((c) => c.valid), isTrue);
     },
   );
+  test('a total in whole tomans is paid in whole tomans (2.8.4)', () {
+    final p = InstalmentPlan('p', {
+      ...planRaw(),
+      'totalRial': '100000000',
+      'count': 3,
+    });
+    final parts = [for (var i = 0; i < 3; i++) p.amount(i)];
+    expect(parts.every((v) => v % BigInt.from(10) == BigInt.zero), isTrue);
+    expect(parts.fold(BigInt.zero, (a, b) => a + b), BigInt.from(100000000));
+    expect(parts.map((v) => v.toString()), [
+      '33333330',
+      '33333330',
+      '33333340',
+    ]);
+  });
   test(
     'Jalali monthly anchoring spans leap Esfand with recovery of original day',
     () {

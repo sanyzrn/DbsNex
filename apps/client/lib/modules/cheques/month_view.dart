@@ -82,39 +82,74 @@ class ChequeMonth extends StatelessWidget {
           ),
         ),
         const SizedBox(height: NexSpacing.md),
-        for (var day = 1; day <= nexPersianMonthDays(p.year, p.month); day++)
-          Builder(
-            builder: (c) {
-              final date = nexGregorianDate(p.year, p.month, day),
-                  items = selected.where((q) => q.due == date).toList();
-              final deficit = sum(items, 'outgoing') > sum(items, 'incoming');
-              return Padding(
-                padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-                child: NexPanel(
-                  title: nexModuleDateLabel(context, date),
-                  icon: deficit
-                      ? Icons.south_east
-                      : Icons.calendar_today_outlined,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (deficit) Text(s(context, 'moreOut')),
-                      for (final item in items)
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(item.party),
-                          subtitle: Text(
-                            '${s(context, item.direction)} · ${chequeMoney(context, item.remaining)} ${s(context, 'toman')}',
-                          ),
-                          onTap: () => open(item),
-                        ),
-                      if (items.isEmpty) Text(s(context, 'noCommitments')),
-                    ],
-                  ),
-                ),
-              );
-            },
+        // Only the days something falls due (2.8.4): a card for every day
+        // of the month, most of them "nothing due", buried the few that
+        // matter. A day more goes out than comes in is marked.
+        if (selected.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: NexSpacing.lg),
+            child: Text(
+              s(context, 'noCommitments'),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
+        for (var day = 1; day <= nexPersianMonthDays(p.year, p.month); day++)
+          if (selected.any(
+            (q) => q.due == nexGregorianDate(p.year, p.month, day),
+          ))
+            Builder(
+              builder: (c) {
+                final date = nexGregorianDate(p.year, p.month, day),
+                    items = selected.where((q) => q.due == date).toList();
+                final deficit = sum(items, 'outgoing') > sum(items, 'incoming');
+                final scheme = Theme.of(c).colorScheme;
+                return Padding(
+                  key: ValueKey('cheque-month-day-$day'),
+                  padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(NexRadius.lg),
+                      border: deficit
+                          ? Border.all(
+                              color: scheme.error.withValues(alpha: 0.6),
+                            )
+                          : null,
+                    ),
+                    child: NexPanel(
+                      title: nexModuleDateLabel(context, date),
+                      icon: deficit
+                          ? Icons.south_east
+                          : Icons.calendar_today_outlined,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (deficit)
+                            Text(
+                              s(context, 'moreOut'),
+                              style: TextStyle(
+                                color: scheme.error,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          for (final item in items)
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(item.party),
+                              subtitle: Text(
+                                '${s(context, item.direction)} · ${chequeMoney(context, item.remaining)} ${s(context, 'toman')}',
+                              ),
+                              onTap: () => open(item),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
         const SizedBox(height: kMinInteractiveDimension * 2),
       ],
     );

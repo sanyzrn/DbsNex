@@ -24,7 +24,7 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('twelve add-ons are back, the other three are Soon; their code '
+  test('thirteen add-ons are back, the other three are Soon; their code '
       'stays', () {
     // Cycle; Pause, which is first-party; and the add-ons reviewed and turned
     // on since 2.4.0 — five more of them in 2.8.1.
@@ -42,6 +42,7 @@ void main() {
       // 2.8.4.
       'parking',
       'medicine',
+      'cheques',
     };
     expect(nexAvailableModuleIds, {'cycle', 'pause', ...back});
     expect(reviewed, back);
