@@ -13,6 +13,8 @@ import 'gold_form.dart';
 import 'gold_format.dart';
 import 'gold_guide.dart';
 import 'gold_math.dart';
+import 'gold_market_page.dart';
+import 'gold_workspace.dart';
 import 'gold_models.dart';
 import 'gold_quotes_page.dart';
 import 'gold_receipt.dart';
@@ -115,9 +117,8 @@ class _GoldScreenState extends State<GoldScreen> {
       await state.markSaved(quote);
       if (mounted) setState(() => _saved = true);
       if (!mounted) return;
-      NexBannerHost.of(
-        context,
-      )?.show(message: goldStrings(context, 'quoteSaved'));
+      NexBannerHost.of(context)
+          ?.show(message: goldStrings(context, 'quoteSaved'));
     } catch (_) {
       if (!mounted) return;
       NexBannerHost.of(context)?.show(
@@ -213,14 +214,6 @@ class _GoldScreenState extends State<GoldScreen> {
             ),
             icon: const Icon(Icons.inventory_2_outlined),
           ),
-          IconButton(
-            key: const ValueKey('gold-open-guide'),
-            tooltip: strings(context, 'openGuideTip'),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(NexPageRoute<void>(builder: (_) => const GoldGuidePage())),
-            icon: const Icon(Icons.help_outline),
-          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -235,6 +228,37 @@ class _GoldScreenState extends State<GoldScreen> {
         padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
         children: [
           const SizedBox(height: NexSpacing.md),
+          GoldWorkspace(
+            selected: 0,
+            onChanged: (mode) {
+              if (mode == 0) return;
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.of(context).push(
+                NexPageRoute<void>(
+                  builder: (_) => GoldMarketPage(
+                    store: widget.store,
+                    mode: mode,
+                    showRials: _showRials,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Wrap(
+            spacing: NexSpacing.sm,
+            children: [
+              IconButton(
+                key: const ValueKey('gold-open-guide'),
+                tooltip: strings(context, 'openGuideTip'),
+                onPressed: () => Navigator.of(context).push(
+                  NexPageRoute<void>(builder: (_) => const GoldGuidePage()),
+                ),
+                icon: const Icon(Icons.help_outline),
+              ),
+            ],
+          ),
+          const SizedBox(height: NexSpacing.sm),
           GoldForm(
             key: _formKey,
             initialQuote: widget.editing,
@@ -247,6 +271,14 @@ class _GoldScreenState extends State<GoldScreen> {
             },
             recordId: _recordId,
             busy: () => _saving,
+            receipt: input != null && result != null
+                ? GoldReceipt(
+                    input: input,
+                    result: result,
+                    showRials: _showRials,
+                    quoteDate: _quoteDate.text.trim(),
+                  )
+                : null,
             onInputChanged: (input) {
               if (mounted) setState(() => _input = input);
             },
@@ -285,14 +317,7 @@ class _GoldScreenState extends State<GoldScreen> {
             onToggle: () => setState(() => _howOpen = !_howOpen),
           ),
           const SizedBox(height: NexSpacing.md),
-          if (input != null && result != null)
-            GoldReceipt(
-              input: input,
-              result: result,
-              showRials: _showRials,
-              quoteDate: _quoteDate.text.trim(),
-            )
-          else
+          if (input == null)
             Padding(
               padding: const EdgeInsets.all(NexSpacing.md),
               child: Text(

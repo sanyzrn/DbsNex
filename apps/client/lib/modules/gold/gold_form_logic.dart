@@ -27,6 +27,7 @@ mixin _GoldFormLogic on State<GoldForm> {
   FormDraft? _draft;
   bool _restoring = true;
   bool _draftLoadFailed = false;
+  bool _detailsOpen = false;
 
   @override
   void initState() {
@@ -38,6 +39,7 @@ mixin _GoldFormLogic on State<GoldForm> {
     }
     final initial = widget.initialQuote;
     if (initial != null) {
+      _detailsOpen = true;
       _suppressParentNotify = true;
       loadQuote(initial);
       _suppressParentNotify = false;
@@ -175,14 +177,14 @@ mixin _GoldFormLogic on State<GoldForm> {
     final rate = read(_rate, 2, GoldInput.maxRateCenti, required: true);
     final percent =
         _mode == GoldMakingMode.percent || _mode == GoldMakingMode.mixed
-        ? read(_makingPercent, 2, GoldInput.maxPercentBp)
+        ? read(_makingPercent, 2, GoldInput.maxPercentBp, required: true)
         : 0;
     final perGram =
         _mode == GoldMakingMode.perGram || _mode == GoldMakingMode.mixed
-        ? read(_makingPerGram, 2, GoldInput.maxPerGramCenti)
+        ? read(_makingPerGram, 2, GoldInput.maxPerGramCenti, required: true)
         : 0;
     final fixed = _mode == GoldMakingMode.fixed
-        ? read(_makingFixed, 2, GoldInput.maxAmountRial * 10)
+        ? read(_makingFixed, 2, GoldInput.maxAmountRial * 10, required: true)
         : 0;
     final profit = read(_profit, 2, GoldInput.maxPercentBp);
     final vat = read(_vat, 2, GoldInput.maxPercentBp);

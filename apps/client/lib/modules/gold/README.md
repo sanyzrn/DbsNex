@@ -2,7 +2,7 @@
 
 ## What it does
 
-An offline, auditable calculator for **new gold jewelry**. Enter net gold
+An offline, auditable workbench for **buying, selling and converting gold in Iran**. The purchase calculator handles new gold jewelry. Enter net gold
 mass (grams with three decimals / soot), optional gross mass, item purity,
 rate and its reference purity, making charge (% / per gram / fixed / mixed),
 profit, VAT, optional commission, extras and the seller's quote. The receipt
@@ -18,8 +18,36 @@ Comparison identifies both quotes and warns on different specifications;
 the cross-spec difference is suppressed. Drafts survive back/navigation and
 restart, including invalid unfinished input. Clear draft discards a fresh form.
 
-No live prices, currency conversion, legal invoice certification, second-hand
-gold/coins/bullion assumptions, background alerts.
+### Buy
+
+A three-input starting form (net weight, manual rate and making charge), then
+the live receipt, then optional purity/profit/tax/extras. A blank making field
+is not silently interpreted as zero: enter the agreed charge, including zero
+when appropriate. Profit starts at 7% and VAT at 10%; both are already filled,
+remain editable, and can be restored together using the reference button.
+Existing estimates and drafts keep their own historical values. A segmented
+cost bar shows metal / services and tax / extras, with textual percentages and
+all-in price per net gram. All charges still appear as exact receipt lines.
+
+### Sell
+
+Enter net weight, a manually quoted 750/18k rate and settlement fineness
+(default 750; 740 is an explicit alternative, never an automatic deduction).
+Optional percentage and fixed deductions produce the net payout. An original
+purchase cost adds a signed difference and the minimum break-even 750 rate
+under those same terms. This is a scenario, not a forecast or guaranteed offer.
+
+### Melted gold
+
+Enter either a 705 mithqal quote or a 750 gram rate, net weight and assayed
+fineness. See metal value, your fineness's gram rate, the 705 mithqal quote,
+soot, approximate mithqal weight and equivalent 750 weight. Switching rate
+bases keeps two separate text fields; an old quote is never silently treated
+as a gram price. A copy button includes units, weight, purity and limitations.
+
+No live prices, currency conversion, invoice/authenticity certification,
+coin premiums or background alerts. The new market tools keep drafts, not
+historical quote records; saved purchase estimates remain exactly as before.
 
 ## Records
 
@@ -60,10 +88,35 @@ for the latest serial checkpoint; failed writes retry once and remain editable.
 Successful Save clears the checkpoint and continues under the saved ID.
 
 Kind **`operation`**, ID `quote:<id>`, `{v:1,records:[{kind,id,body}]}` is a
-temporary recovery journal for quote + edit-draft deletion. Interrupted
-deletes restore their exact bodies before the next list read. Undo restores
-the same IDs, snapshots, unknown fields and related draft; store-managed
-`updatedAt` changes. No transaction API is assumed.
+legacy recovery journal for older quote + edit-draft deletions. The shared
+record bundle replays valid older journals; current deletion uses the API
+transaction `deleteRecords` and creates no journal. Undo restores the same
+IDs, snapshots, unknown fields and related draft; store-managed `updatedAt`
+changes.
+
+New draft ID **`market:tools`**, using the existing `{v:1,base,fields}`
+checkpoint envelope and an empty base fingerprint. Fields are raw strings
+`sellWeight,sellRate,deduction,fee,cost,meltWeight,meltQuote,meltGram`, with
+integer choices `settlement,fineness` and boolean `mithqal`. Missing or malformed
+choices use 750/750/mithqal defaults; invalid unfinished text is kept for editing.
+The checkpoint loads once per page and coalesces writes through the shared kit.
+The route flushes on back; failed reads offer Retry before editing.
+No schema migration or changes to existing `quote` snapshots are required.
+
+## Audit findings (baseline main, before implementation)
+
+1. The purchase screen exposed four long panels before its result. The first
+   screen now asks for three inputs and displays the result before optional fields.
+2. Empty making charges silently priced as zero. A charge must now be explicit;
+   zero is valid and negotiated discounts can be entered in the charge itself.
+3. App-bar tools competed with the title and currency label on small screens.
+   The guide moved to page content; saved quotes and budget stay accessible.
+4. The old scope covered only new jewelry. Separate sell and melted workspaces
+   now model explicit buyback terms and Iran's quoted mithqal convention.
+5. The receipt listed components but did not explain their relative weight.
+   A semantic cost bar and per-gram cost add a visual, numeric comparison.
+6. Research/check documentation was dated and included no market-tool cases.
+   Sources, exact assumptions and regression/visual checks are updated here.
 
 ## Decisions
 
@@ -98,6 +151,38 @@ the same IDs, snapshots, unknown fields and related draft; store-managed
   storage stays civil ISO. Relative day math uses UTC civil days after
   converting instants to local time; the shown day is a local civil day,
   never a UTC instant; future days are not described as today.
+
+## Research
+
+Checked **2026-11-15**. This is a calculator, not an authority validating a sale.
+Runtime needs no network. Sources were read for the following specific facts:
+
+| Question | Source and decision |
+|---|---|
+| What joins the VAT base? | [Tehran gold union's official notice](https://t.me/s/tgj_union?before=12719), concerning the 1404 budget: making, seller profit and commission use 10%; original gold is separate. Retain this separation and editable commission treatment. |
+| Current 1405 VAT reference | [Tasnim, 1405/02/04](https://www.tasnimnews.ir/fa/news/1405/02/04/3573672/نرخ-مالیات-بر-ارزش-افزوده-طلافروشان-در-سال-1405) and [1405/04/16 update](https://tasnimnews.ir/fa/news/1405/04/16/3641941/) report 10% on services and exemption of original gold. The [government circular](https://qavanin.ir/Law/TreeText/?IDS=2617869460704551710) returned a redirect page; [government PDF entry](https://dotic.ir/news/20326) returned 403. Direct government text could not be independently read. Thus 10% remains a dated, editable reference, not a certified legal ruling. |
+| Is profit or making a universal fixed number? | No retrieved primary source established 7% as a mandatory universal profit rate or established one making charge for all pieces. Preserve 7% as the existing editable reference; require the invoice's making charge rather than invent a market-wide value. The reference restore button does not change making. |
+| What does a mithqal quote mean? | [TGJU's own market definitions](https://www.tgju.org/gold-chart): a market mithqal quote refers to 705 fineness. The definitions mention 4.6083 g while another explanation and [older unit table](https://www.tgju.org/news/2832/فرمول-تبدیل-واحدهای-سکه-و-طلا) round to 4.608 g. Use **4.6083 g**, state it visibly, and use the full purity ratio, rather than an unexplained rounded divisor such as 4.3318. |
+| 740 versus 750 | [TGJU's market list](https://www.tgju.org/gold-chart/1000) publishes separate 750 and 740 rates. That shows distinct quotation bases; it does not prove every buyer must deduct purity. Therefore 750 is the default settlement basis and 740 requires an explicit choice. |
+| Assay and authenticity | [The gold union's official channel](https://t.me/s/tgj_union), including its 2026-11-11 standard/assay notice, distinguishes numerical purity and physical authentication. The tool asks for assayed fineness and cannot verify it. It provides arithmetic, not a purchase recommendation. |
+
+### Market arithmetic and limits
+
+- `gram(target) = quote(705 mithqal) × 10000 × target / (46083 × 705)`.
+  All rates are centi-toman; convert and round to centi-toman before pricing mass.
+- `mithqal(705) = gram(reference) × 46083 × 705 / (10000 × reference)`.
+- Sale metal value = net milligrams × settlement-adjusted centi-toman/g / 10000,
+  rounded to rials. The explicit percentage deduction rounds on that metal
+  value; then subtract it and the fixed rial deduction. Reject a negative payout.
+- Break-even binary-searches the **same rounded** sale formula for the first
+  centi-toman/g that covers the entered cost. No reachable result is labelled
+  unavailable, not zero. It assumes constant weight, purity and deductions.
+- Soot is milligrams. Mithqal weight is rounded to 4 decimals and 750-equivalent
+  weight to milligrams; labels mark these as approximate/rounded.
+- BigInt intermediates, bounded input and exact stored integers. No doubles
+  enter any money or mass calculation. Overlong numeric text is rejected before
+  parsing. The widgets recalculate locally; there are no streams or repeated
+  storage reads while typing.
 
 ## Guide
 
@@ -137,6 +222,9 @@ the empty saved list offers the way back to the calculator.
 
 ## Platform requests
 
+No new API is required by this change. Clipboard is now available through
+`nexModuleCopyText`; the earlier optional clipboard request is fulfilled.
+
 1. **Fulfilled** — Nex's native multiline editor is exported through
    `module_api.dart` (`NexTextField`); the save sheet's note uses it, and
    every one-line field states its direction (`NexAutoDirection`, or an
@@ -147,31 +235,51 @@ the empty saved list offers the way back to the calculator.
    and writes the same civil day. Every date a person reads goes through
    `nexModuleDateLabel` (`gold_dates.dart`); the old Gregorian labels are
    retired in both languages; storage stays civil ISO.
-3. Optional atomic batch / compare-and-write for record changes. The current
-   deletion journal and fresh reads are an honest local fallback.
-4. Optional approved direct clipboard helper or consent-based price feed.
-   Selection-menu copy is available; no live feed is implemented.
+3. **Partly fulfilled** — atomic deletion is provided by `deleteRecords`.
+   Compare-and-write for concurrent edits remains optional; current quote edits
+   merge unknown fields from a fresh read before writing.
+4. **Fulfilled** — approved clipboard helper. Both purchase and market results
+   can be copied with one tap. No live feed is implemented.
 
 ## Checks
 
-Linux, Flutter 3.35.5 / Dart 3.9.2, on the current Nex tree:
+Linux host, **Flutter 3.47.9 / Dart 3.13.7** (repository-pinned Flutter),
+2026-11-15. Commands from `apps/client` unless noted:
 
 ```text
-dart format lib/modules/gold test/modules/gold     # 0 changed
-flutter analyze --fatal-infos                      # No issues found
-flutter test test/module_kit_test.dart -j 2        # 40 passed
-flutter test test/modules/gold -j 2                # 97 passed
+flutter pub get
+  exit 0; no committed dependency or lockfile changes
+flutter analyze --no-pub --fatal-infos
+  No issues found! (ran in 4.9s)
+flutter test --no-pub test/module_kit_test.dart test/modules/gold --reporter expanded
+  00:24 +180: All tests passed!
+flutter test --no-pub test/modules/gold/screen_review_test.dart --dart-define=NEX_CAPTURE=/tmp/nex-gold-review --reporter expanded
+  00:06 +12: All tests passed!
+flutter test --no-pub --reporter expanded
+  06:48 +3786 ~4: All tests passed!
+# From repository root; staged paths are only this module and its tests:
+dart format --output=none --set-exit-if-changed $(git diff --cached --name-only -- '*.dart')
+  Formatted 23 files (0 changed)
+git diff --cached --check
+  exit 0
 ```
 
-Persian RTL / English LTR, light/dark, large text, store isolation,
-edit/history, raw Undo and draft navigation are tested; the shared Jalali
-entry (pick a day, land in field and storage as the same civil day) and
-the calendar-labelled display of every stored day are covered by
-`test/modules/gold/gold_dates_test.dart`. Both string maps hold the same
-161 keys, with no bidi control characters in the Persian half.
-Android builds and device/TalkBack checks are not represented by host
-tests. Maintainer: const-register `GoldModule()`, retire planned `gold`,
-incorporate Guide/Changelog and run release checks before activation.
+The four existing suite skips were not changed. Every new test is active.
+Commands used `CI=true BOT=true FLUTTER_SUPPRESS_ANALYTICS=true` so Flutter
+uses its documented CI path rather than probing cloud instance metadata.
+This host lacked the unversioned `libsqlite3.so`; the repository's vendored
+SQLite 3.54.1 was compiled **outside the repository** with FTS5 and column
+metadata, then tests used `LD_LIBRARY_PATH=/tmp/nex-gold-libs`. No application
+infrastructure, dependencies, test enforcement or source data were changed.
+The initial environment-only failure was corrected before the successful runs.
+
+The final module run also regenerated screenshots after the cost-share rounding
+correction. Their Persian dark and English light renderings were visually
+inspected. Host tests cover drafts, explicit zero making, mutable defaults,
+buyback/deductions, break-even, conversion, malformed input, legacy records,
+copy controls, store isolation, save/edit/delete/Undo and accessibility layouts.
+**Not verified:** an Android APK, real-device high-refresh scrolling, TalkBack
+and an external shop's invoice. The module remains **Soon** for owner testing.
 
 ## From a budget, making share, copy (2.1.13)
 
@@ -189,3 +297,43 @@ incorporate Guide/Changelog and run release checks before activation.
   what share of the metal value it comes to («the trade's percent»).
 - **Copy the estimate** puts the breakdown lines on the clipboard (the lines
   can still be selected one by one).
+
+## Updated guide and changelog for maintainer integration
+
+**Guide — English.** Choose Buy, Sell or Melted gold. Buy starts with weight,
+rate and the agreed making charge; profit and tax are already filled and can
+be changed in details. The cost lens separates gold value from charges. Sell
+uses the buyer's settlement purity and explicit deductions; an original cost
+adds a break-even scenario. Melted gold converts the 705 mithqal quote, actual
+purity, grams and soot. Rates are manual; drafts stay on the device.
+
+**راهنما — فارسی.** خرید، فروش یا آب‌شده را انتخاب کنید. برای خرید، وزن، نرخ
+و اجرت توافق‌شده را وارد کنید؛ سود و مالیات از قبل پر شده‌اند و در جزئیات قابل
+تغییرند. نوار هزینه‌ها نشان می‌دهد چه سهمی از پولتان ارزش خود طلاست. فروش، عیار
+بازخرید و کسورات خریدار را حساب می‌کند و با مبلغ خرید قبلی، سناریوی سربه‌سر را
+نشان می‌دهد. آب‌شده، مظنهٔ مثقال ۷۰۵، عیار واقعی، گرم و سوت را تبدیل می‌کند.
+نرخ‌ها دستی‌اند و پیش‌نویس‌ها روی دستگاه می‌مانند.
+
+**Changelog — English.** Gold Check adds a clearer purchase receipt, explicit
+buyback and break-even calculations, and melted-gold quotation/unit conversion;
+profit and VAT start filled, with editable invoice assumptions.
+
+**تغییرات — فارسی.** طلاسنج با فاکتور خرید روشن‌تر، محاسبهٔ مبلغ فروش و
+سربه‌سر، و تبدیل مظنه و واحدهای طلای آب‌شده کامل‌تر شد؛ سود و مالیات از قبل
+پر شده‌اند و مبناهای فاکتور قابل تغییرند.
+
+## Visual review
+
+These are the actual Flutter-rendered screens with synthetic example data,
+not design mockups. The same capture test also checks 320dp / 2× text and
+reduced motion in both languages. Purchase editing remains alive during long
+scrolls; reduced motion uses a static open detail body to avoid the SDK's
+zero-duration `AnimatedSize` layout invalidation.
+
+| Buy, Persian dark | Buy, English light |
+|---|---|
+| ![Buy in Persian dark](review/buy-fa-dark.png) | ![Buy in English light](review/buy-en-light.png) |
+
+| Cost lens and receipt | Buyback | Melted-gold conversions |
+|---|---|---|
+| ![Receipt](review/receipt-fa-dark.png) | ![Buyback](review/sell-fa-dark.png) | ![Melted gold](review/melt-fa-dark.png) |

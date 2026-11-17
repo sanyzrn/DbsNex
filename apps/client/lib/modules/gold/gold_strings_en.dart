@@ -4,6 +4,57 @@
 library;
 
 const Map<String, String> goldStringsEn = {
+  'saleFeeValue': 'Fixed deduction',
+  'saleCostValue': 'Original purchase cost',
+  'restoreReference': 'Restore 1405 reference: profit 7%, VAT 10%',
+  'purchaseAssumptions': 'Piece {ppt}, rate {ref} · profit {profit} · VAT {vat}. Review or change.',
+  "workspaceBuy": "Buy",
+  "workspaceSell": "Sell",
+  "workspaceMelt": "Melted gold",
+  "purchaseDetails": "Purity, profit and other details",
+  "purchaseDetailsHint": "Starts at 750 purity, 7% profit and 10% VAT. Check or change these assumptions.",
+  "purchaseBasics": "Start with the piece and the rate",
+  "costLens": "Where your money goes",
+  "costServices": "Charges + tax",
+  "metalShare": "{pct} of the total is gold value.",
+  "allInGram": "All-in cost per gram: {amount} {unit}",
+  "marketRate750": "750 / 18k rate per gram (toman)",
+  "settlement": "Buyback settlement fineness",
+  "settlementHint": "Starts at 750. Choose the shop’s settlement basis (for example 740) explicitly; no automatic purity deduction.",
+  "saleDetails": "Deductions and original cost",
+  "saleDetailsHint":
+      "Optional: shop deduction, fixed fee and your purchase cost.",
+  "saleDeduction": "Shop deduction (%)",
+  "saleFee": "Fixed deduction (toman)",
+  "saleCost": "Original total purchase cost (toman)",
+  "saleIntro": "What would I receive? Use net weight and the shop’s actual buyback terms.",
+  "saleInputs": "Your gold and the buyback offer",
+  "saleCaution": "A manual buyback estimate. Making charges and taxes paid on purchase are not added to resale value. Confirm settlement fineness and deductions with the buyer; this is not a guaranteed offer.",
+  "saleNet": "Estimated amount you receive",
+  "saleGain": "Difference from purchase cost",
+  "saleBreakEven": "Break-even 750 rate",
+  "breakEvenHint": "The minimum 750 rate that covers your cost, keeping this weight, settlement fineness and deductions unchanged. A scenario, not a price forecast.",
+  "breakEvenUnavailable": "Beyond this calculator’s range",
+  "saleInvalid": "Check the values: deductions must not exceed the gold value.",
+  "mithqalQuote": "Mithqal / 705",
+  "gram750Quote": "Gram / 750",
+  "marketMithqal": "Mithqal quote at 705 (toman)",
+  "assayFineness": "Assayed fineness (parts per thousand)",
+  "assayHint": "Use the assay result, not the stamp’s appearance. This calculator cannot verify purity or authenticity.",
+  "meltIntro": "One quote, all the units. Convert Iran’s 705 mithqal quote into the value of your actual weight and fineness.",
+  "meltInputs": "Market quote and your piece",
+  "meltCaution": "Convention: one quoted mithqal is 4.6083 g at 705 fineness. Results are rounded estimates of metal value; commission, tax and assay fees are not included. Authenticity is not checked.",
+  "meltTotal": "Estimated metal value",
+  "meltGramResult": "Rate per gram at your fineness",
+  "sootResult": "Weight in soot (1 mg)",
+  "mithqalWeightResult": "Approximate weight in mithqal",
+  "equivalent750": "Equivalent weight at 750 (g, rounded)",
+  "marketEmpty": "Enter a positive weight and rate to see the live result.",
+  "rateAmount": "{amount} toman/g",
+  "marketWeightChip": "{weight} g net",
+  "manualRates": "Manual rate · offline",
+  "copyFailed": "Could not copy. Try again.",
+
   'draftLoadError': 'Could not read the saved draft. Try again before editing.',
 
   'discardDraft': 'Clear this draft',
@@ -13,8 +64,7 @@ const Map<String, String> goldStringsEn = {
   'breakdownProfit_metalOnly': 'Seller profit ({pct} of gold value): {amount}',
   'breakdownProfit_services':
       'Seller profit ({pct} of making + commission): {amount}',
-  'breakdownVatBaseNoCommission':
-      'VAT base (making + profit; commission excluded by your choice): {amount}',
+  'breakdownVatBaseNoCommission': 'VAT base (making + profit; commission excluded by your choice): {amount}',
 
   'saveError':
       'Could not save your draft. Your changes are still here; try again.',
@@ -23,18 +73,14 @@ const Map<String, String> goldStringsEn = {
   'profitBase_metalOnly': 'Gold value only',
   'profitBase_services': 'Making charge + commission',
   'commissionTaxable': 'Include commission in VAT base',
-  'commissionTaxableHint':
-      'Match the invoice explicitly. This is a manual assumption, not a legal check.',
+  'commissionTaxableHint': 'Match the invoice explicitly. This is a manual assumption, not a legal check.',
   'diffPercentUnavailable': 'Percentage unavailable for this rounded estimate',
   'loadError': 'Could not load saved estimates. Try again.',
   'retry': 'Try again',
 
   'title': 'Gold Check',
   'tagline': 'See what the asked price is made of',
-  'about':
-      'An auditable calculator for new gold jewelry in Iran: weight, '
-      'fineness, rate, making charge, profit and VAT, line by line, with '
-      'the numbers you entered kept apart from the numbers it worked out.',
+  'about': 'Work out a purchase receipt, estimate a buyback offer and break-even rate, or convert a melted-gold quote, fineness and weight. Use the numbers you receive from the shop; the calculations stay offline.',
   'point1': 'Line-by-line receipt',
   'point2': 'Your numbers, your formula',
   'point3': 'Saved estimates keep their day’s rates',
@@ -131,19 +177,16 @@ const Map<String, String> goldStringsEn = {
   'rialWord': 'rials',
   'budgetTip': 'From a budget',
   'budgetTitle': 'From a budget',
-  'budgetAbout':
-      'How much gold does an amount buy? This runs the calculator the other way, with the rate, purity, charges, profit and VAT already entered. The weight in the form is not used.',
+  'budgetAbout': 'How much gold does an amount buy? This runs the calculator the other way, with the rate, purity, charges, profit and VAT already entered. The weight in the form is not used.',
   'budgetField': 'Budget (toman)',
   'budgetBad': 'Write the budget as a number.',
   'budgetNone': 'Even the smallest piece costs more than this budget.',
   'budgetResult': 'About {weight} g at most fits in {amount}.',
   'budgetAtCap':
       'Any weight this calculator takes (up to {weight} g) fits in {amount}.',
-  'budgetNote':
-      'The same formula, run the other way. A shop that rounds differently can differ by a little.',
+  'budgetNote': 'The same formula, run the other way. A shop that rounds differently can differ by a little.',
   'budgetUse': 'Use this weight',
-  'budgetNeedsRate':
-      'Enter the rate first — the budget is turned into a weight with it.',
+  'budgetNeedsRate': 'Enter a valid rate and the agreed making charge first, including 0 if there is none.',
   'makingShare': 'The making charge comes to {pct} of the metal value.',
   'copyBreakdown': 'Copy the estimate',
   'breakdownCopied': 'Estimate copied.',
@@ -200,10 +243,8 @@ const Map<String, String> goldStringsEn = {
       'The making charge is the formula you picked: a percentage of the '
       'metal value, an amount per gram, a fixed amount for the piece, or '
       'a percentage plus a per-gram amount together.',
-  'howBody3':
-      'Seller profit uses the base you choose: gold value + making, gold value only, or making + commission. The default is the first. Commission is included only when you enter it.',
-  'howBody4':
-      'VAT applies to making + profit + commission by default. You may explicitly exclude commission to match the invoice. The gold itself stays outside the reference VAT base; this is a manual estimate, not a legal check.',
+  'howBody3': 'Seller profit uses the base you choose: gold value + making, gold value only, or making + commission. The default is the first. Commission is included only when you enter it.',
+  'howBody4': 'VAT applies to making + profit + commission by default. You may explicitly exclude commission to match the invoice. The gold itself stays outside the reference VAT base; this is a manual estimate, not a legal check.',
   'howBody5':
       'The estimated total adds it all up, plus the extras you entered. '
       'Each line is rounded to the nearest rial after it is worked out, '
@@ -214,10 +255,7 @@ const Map<String, String> goldStringsEn = {
       'here is one you entered. The 10% VAT and 7% profit are editable '
       'starting points dated to 1405 (2026); they are not a promise about '
       'any particular shop, invoice or year.',
-  'scopeNote':
-      'For new jewelry only. Second-hand gold, coins and bullion have '
-      'their own spreads and rules — not modelled here, and no claim is '
-      'made about them.',
+  'scopeNote': 'Buy itemizes new jewelry. Sell estimates buyback under the terms you enter. Melted gold converts quotes and units without certifying purity. Coin premiums, investment advice and live prices are not included.',
   'checklistTitle': 'Ask for these on the invoice',
   'checklistNote': 'A missing line is a question, not an accusation.',
   'check1': 'Net gold weight, in soot or grams',
