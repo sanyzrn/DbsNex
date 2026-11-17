@@ -24,16 +24,22 @@ class SqliteThreadRepository {
 
   /// Every live thread, the most recently active first.
   List<NoteThread> list() {
-    final rows = db.select('''
+    final now = _now();
+    final rows = db.select(
+      '''
 SELECT t.*,
   (SELECT COUNT(*) FROM note_threads nt JOIN notes n ON n.id = nt.note_id
-     WHERE nt.thread_id = t.id AND n.deleted_at IS NULL) AS note_count,
+     WHERE nt.thread_id = t.id AND n.deleted_at IS NULL
+       AND (n.scheduled_until IS NULL OR n.scheduled_until <= ?)) AS note_count,
   (SELECT MAX(n.created_at) FROM note_threads nt JOIN notes n ON n.id = nt.note_id
-     WHERE nt.thread_id = t.id AND n.deleted_at IS NULL) AS last_activity
+     WHERE nt.thread_id = t.id AND n.deleted_at IS NULL
+       AND (n.scheduled_until IS NULL OR n.scheduled_until <= ?)) AS last_activity
 FROM threads t
 WHERE t.deleted_at IS NULL
 ORDER BY COALESCE(last_activity, t.updated_at) DESC, t.rowid DESC
-''');
+''',
+      [now, now],
+    );
     return [for (final row in rows) _fromRow(row)];
   }
 
@@ -56,18 +62,24 @@ ORDER BY COALESCE(last_activity, t.updated_at) DESC, t.rowid DESC
   }
 
   /// The live notes in [threadId], oldest first: a thread reads as a story.
+  ///
+  /// A note waiting for its time is not part of any story yet: the same
+  /// visibility rule the timeline, the shelves and search apply, so the
+  /// thread cannot leak a note the home has not delivered.
   List<Note> notes(String threadId) {
     // Dart emits either 3 or 6 fractional digits. Comparing raw ISO text
     // puts .010100Z before the earlier .010Z. Pad the UTC sort key to six
     // digits without rounding away microseconds; equal instants keep rowid order.
+    final now = _now();
     final rows = db.select(
       '''
 SELECT n.* FROM notes n
 JOIN note_threads nt ON nt.note_id = n.id
 WHERE nt.thread_id = ? AND n.deleted_at IS NULL
+  AND (n.scheduled_until IS NULL OR n.scheduled_until <= ?)
 ORDER BY substr(replace(n.created_at, 'Z', '000'), 1, 26) ASC, n.rowid ASC
 ''',
-      [threadId],
+      [threadId, now],
     );
     return [
       for (final row in rows)
@@ -158,14 +170,16 @@ ORDER BY substr(replace(n.created_at, 'Z', '000'), 1, 26) ASC, n.rowid ASC
     if (note == null) return null;
     final words = ThreadAffinity.wordsOf(note);
     final since = note.createdAt.toUtc().subtract(lookback).toIso8601String();
+    final now = _now();
     final rows = db.select(
       '''
 SELECT * FROM notes
 WHERE deleted_at IS NULL AND id != ? AND created_at >= ?
+  AND (scheduled_until IS NULL OR scheduled_until <= ?)
 ORDER BY created_at DESC
 LIMIT ?
 ''',
-      [noteId, since, lookbackLimit],
+      [noteId, since, now, lookbackLimit],
     );
     if (rows.isEmpty) return null;
 

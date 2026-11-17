@@ -85,8 +85,22 @@ extension NexNoteServices on NexServices {
   }
 
   /// Imports another app's export, and answers how many notes landed.
-  Future<int> importNotes(String path) =>
-      _afterNudgeWrite(worker.importNotes(path, mediaDir: mediaDir));
+  ///
+  /// The same two halves [importArchive] has always paid: the timeline told
+  /// (a shared import used to leave the screen to its caller), and the
+  /// reminders rebuilt — an imported note with a due date carried an alarm
+  /// nowhere until the next launch's sweep noticed it.
+  Future<int> importNotes(String path) async {
+    final count = await _afterLibraryWrite(
+      worker.importNotes(path, mediaDir: mediaDir),
+    );
+    try {
+      await restoreReminders();
+    } catch (_) {
+      // The import itself is committed; alarms rebuild at the next launch.
+    }
+    return count;
+  }
 
   /// Keeps the recordings the app died in the middle of (DATA-04).
   ///

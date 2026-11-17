@@ -10,6 +10,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 - **The new smart summary shows for everyone.** The summary's soft wash of your accent colour and its edge from 2.8.0 were missing in the same appearances, so it looked as it did before. They now show in every look.
 - **A tidier summary heading.** When the summary was last updated now sits under its name instead of being squeezed beside the arrow. How many lines are folded away and the arrow that opens them sit together in one small button at the end, so opening and folding move nothing else on the card. Opening it now grows the card in one smooth movement, and the hidden lines come in one after another.
 - **A bottom bar that tucks in.** Scrolling down through your notes, the bar now draws in towards **+** and slips away, and **+** gives a small pulse as it takes it in. Scroll back up and the bar opens out again from **+**. A quick flick now hides it just as a slow drag does — before, it often stayed.
+- **Smoother scrolling on every theme.** A theme's own look — paper fibre, tilework stars, falling leaves — was drawn stroke by stroke on every frame the list moved, which is why some themes scrolled heavier than plain Nex. It is now drawn once and simply shown, so every theme scrolls as lightly as Nex, on 90 and 120 Hz screens too.
+- **A scheduled note stays scheduled.** On a synced device, a note held for later could turn up early with the next sync, or arrive twice. It now stays out of sight until its time, travels with every backup while it waits, and lands under its own day everywhere. Throwing one away moves it to **Recently deleted**, where it can be brought back.
+- **Tag changes show everywhere at once.** Renaming, recolouring, merging or deleting a tag now updates the cards, the tag row, the grouped shelves and the home-screen widget straight away, instead of at the next unrelated change. Merged and deleted tags also reach your other devices.
+- **A ticked line shows on the card.** Ticking a checklist line in a note's details now shows on its card right away.
+- **Imported notes ring on time.** Notes imported from another app's export get their reminders set at once, not after the next start.
+- **A note that cannot be scheduled keeps its reminder.** Scheduling a note with attachments is still refused, but the attempt no longer takes its reminder away.
 
 ## v2.8.0
 

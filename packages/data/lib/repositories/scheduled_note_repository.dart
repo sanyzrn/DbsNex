@@ -11,19 +11,30 @@ import 'note_repository.dart';
 ///
 /// The capture sheet saves on the first keystroke, so by the time someone
 /// holds Send to schedule what they wrote, it is already a note. [schedule]
-/// takes it back out of the library — the row, its search entry, its tags
-/// and embedding by cascade — and keeps the words here; [releaseDue] puts
-/// them back as a new note under the same id once the time has come. Both
-/// are one transaction each, so a note is always in exactly one place.
+/// takes it out of every view — timeline, search, shelves, the brief — by
+/// setting the note's `scheduled_until` and dropping its search row;
+/// [releaseDue] delivers it at its time, stamped with the moment it was due
+/// rather than the moment this device happened to notice. Both are one
+/// transaction each, so a note is always in exactly one state.
 ///
-/// What waits is the whole note, not just its body. A title, the text a
-/// model read out of it and the tags it was filed under are kept in
-/// [metadata] and [tag_ids] and put back on arrival. They used to be
-/// dropped with the row: the note came back looking right — it had its
-/// words — while everything else about it had silently gone. The reminder
-/// is the one thing deliberately not carried: it was an alarm on a note
-/// that is not in the library, and the service cancels it when the note is
-/// scheduled.
+/// The row itself never leaves the library. It used to be deleted outright,
+/// which is the one thing this design exists to correct: a row deleted
+/// without a tombstone is a row the next sync pull puts back — the note
+/// stopped waiting the moment any sync ran, arrived twice, and lost its
+/// held-back content to the copy the server still had. Waiting is now an
+/// arrangement of a live row — the same shape as set-aside, local to this
+/// device, carried by every backup and never at odds with sync. Its
+/// *arrival* is a real edit (new timestamps, rev, outbox), so it travels to
+/// every peer and re-files itself under its own day there.
+///
+/// Waiting rows written by the older design — the note deleted, its words
+/// kept in the `scheduled_notes` table — are still delivered by that table,
+/// through the release path they were written for. That population only
+/// shrinks, and nothing new joins it.
+///
+/// The reminder is the one thing deliberately not carried by any of this: it
+/// was an alarm on a note that is not arriving, and the service cancels it
+/// when the note is scheduled.
 class SqliteScheduledNoteRepository {
   SqliteScheduledNoteRepository(this._db, this._notes);
 
@@ -32,32 +43,16 @@ class SqliteScheduledNoteRepository {
 
   Database get db => _db.db;
 
-  /// The note columns worth carrying across the wait. Everything derived
-  /// from the words is here because the words do not change while it waits;
-  /// `due_at` is not, by design (see the class comment).
-  static const _preservedColumns = [
-    'title',
-    'caption',
-    'summary_text',
-    'ocr_text',
-    'transcript_text',
-    'link_excerpt',
-    'mime_type',
-    'is_urgent',
-  ];
-
-  /// Moves the live text note [noteId] out of the library until
-  /// [releaseAt]. Null when there is no such note, or it is not text.
-  ///
-  /// Also null when the note carries attachments. A file cannot wait in the
-  /// scheduled table, and deleting the note row would cascade its attachment
-  /// rows away and hand the files to the orphan sweep — the note would come
-  /// back without its photos and nothing would say so. Refusing is the only
-  /// answer that does not lose them until files can wait too.
+  /// Takes the live text note [noteId] out of every view until [releaseAt].
+  /// Null when there is no such note, it is not text, its words are empty, or
+  /// it carries attachments — a file cannot be hidden half-way, and removing
+  /// the note row (as the old design did) would hand the files to the orphan
+  /// sweep; refusing is still the only answer that does not lose them.
   ScheduledNote? schedule(String noteId, DateTime releaseAt) => db.together(() {
     final rows = db.select(
       "SELECT * FROM notes "
-      "WHERE id = ? AND deleted_at IS NULL AND type = 'text'",
+      "WHERE id = ? AND deleted_at IS NULL AND scheduled_until IS NULL "
+      "AND type = 'text'",
       [noteId],
     );
     if (rows.isEmpty) return null;
@@ -76,45 +71,49 @@ class SqliteScheduledNoteRepository {
       releaseAt: releaseAt.toUtc(),
       writtenAt: DateTime.parse(row['created_at'] as String),
     );
+    // An arrangement, not an edit: no rev, no outbox, no `updated_at` — the
+    // note has not said anything different, and which of *this device's*
+    // views hide it is nobody else's business, the same reasoning set-aside
+    // is written under. The reminder and the pin go with it: an alarm on a
+    // note that is not arriving is a surprise later, and a hidden note must
+    // not hold one of the five slots on a home it is not on.
     db.execute(
-      'INSERT OR REPLACE INTO scheduled_notes '
-      '(id, content, release_at, written_at, metadata, tag_ids) '
-      'VALUES (?, ?, ?, ?, ?, ?)',
-      [
-        scheduled.id,
-        scheduled.content,
-        scheduled.releaseAt.toIso8601String(),
-        scheduled.writtenAt.toUtc().toIso8601String(),
-        jsonEncode({
-          for (final column in _preservedColumns)
-            if (row[column] != null) column: row[column],
-        }),
-        jsonEncode([
-          for (final tag in db.select(
-            'SELECT tag_id FROM note_tags WHERE note_id = ? ORDER BY rowid',
-            [noteId],
-          ))
-            tag['tag_id'] as String,
-        ]),
-      ],
+      'UPDATE notes SET scheduled_until = ?, due_at = NULL, due_repeat = NULL, '
+      'reminder_acked_at = NULL, pinned_at = NULL WHERE id = ?',
+      [scheduled.releaseAt.toIso8601String(), noteId],
     );
-    // Gone, not deleted: a soft delete would put the words in the trash,
-    // which is one more place to read them before their time. The search row
-    // goes by the note's rowid key, while the note row still exists below —
-    // a `note_id` delete here scanned the whole index to find the one row.
+    // Hidden from search the way it is hidden from the timeline: the index
+    // row goes now and is re-derived from the whole note on arrival, so a
+    // checklist, a title or a link excerpt becomes findable again the day
+    // it becomes visible again.
     _notes.deleteSearchRow(noteId);
-    db.execute('DELETE FROM capture_receipts WHERE note_id = ?', [noteId]);
-    db.execute('DELETE FROM notes WHERE id = ?', [noteId]);
     return scheduled;
   });
 
-  /// Everything waiting, the soonest first.
-  List<ScheduledNote> pending() => [
-    for (final row in db.select(
-      'SELECT * FROM scheduled_notes ORDER BY release_at, id',
-    ))
-      _fromRow(row),
-  ];
+  /// Everything waiting, the soonest first — both kinds: notes hidden by
+  /// their own row's flag, and the older table's rows.
+  List<ScheduledNote> pending() {
+    final waiting =
+        <ScheduledNote>[
+          for (final row in db.select('SELECT * FROM scheduled_notes'))
+            _fromRow(row),
+          for (final row in db.select(
+            'SELECT id, content, created_at, scheduled_until FROM notes '
+            'WHERE scheduled_until IS NOT NULL AND deleted_at IS NULL',
+          ))
+            ScheduledNote(
+              id: row['id']! as String,
+              content: row['content'] as String? ?? '',
+              releaseAt: DateTime.parse(row['scheduled_until']! as String),
+              writtenAt: DateTime.parse(row['created_at']! as String),
+            ),
+        ]..sort((a, b) {
+          final byTime = a.releaseAt.compareTo(b.releaseAt);
+          if (byTime != 0) return byTime;
+          return a.id.compareTo(b.id);
+        });
+    return waiting;
+  }
 
   /// Puts every note whose time has come on the timeline, and returns them.
   ///
@@ -122,31 +121,54 @@ class SqliteScheduledNoteRepository {
   /// app happened to notice, so a phone that was off at nine still files
   /// nine o'clock's note at nine.
   List<Note> releaseDue(DateTime now) => db.together(() {
-    final rows = db.select(
-      'SELECT * FROM scheduled_notes WHERE release_at <= ? '
-      'ORDER BY release_at, id',
+    final arrived = [
+      for (final row in db.select(
+        'SELECT * FROM scheduled_notes WHERE release_at <= ? '
+        'ORDER BY release_at, id',
+        [now.toUtc().toIso8601String()],
+      ))
+        _release(_fromRow(row)),
+    ];
+    for (final row in db.select(
+      'SELECT id, scheduled_until FROM notes '
+      'WHERE scheduled_until IS NOT NULL AND scheduled_until <= ? '
+      'AND deleted_at IS NULL ORDER BY scheduled_until, id',
       [now.toUtc().toIso8601String()],
-    );
-    return [for (final row in rows) _release(_fromRow(row))];
+    )) {
+      final note = _notes.releaseWaiting(
+        row['id']! as String,
+        DateTime.parse(row['scheduled_until']! as String),
+      );
+      if (note != null) arrived.add(note);
+    }
+    return arrived;
   });
 
   /// Delivers [id] now, whatever its time. Null when it is not waiting.
   Note? releaseNow(String id, DateTime now) => db.together(() {
     final rows = db.select('SELECT * FROM scheduled_notes WHERE id = ?', [id]);
-    if (rows.isEmpty) return null;
-    final scheduled = _fromRow(rows.first);
-    return _release(
-      ScheduledNote(
-        id: scheduled.id,
-        content: scheduled.content,
-        releaseAt: now.toUtc(),
-        writtenAt: scheduled.writtenAt,
-      ),
-    );
+    if (rows.isNotEmpty) {
+      final scheduled = _fromRow(rows.first);
+      return _release(
+        ScheduledNote(
+          id: scheduled.id,
+          content: scheduled.content,
+          releaseAt: now.toUtc(),
+          writtenAt: scheduled.writtenAt,
+        ),
+      );
+    }
+    return _notes.releaseWaiting(id, now.toUtc());
   });
 
   /// Moves [id] to [releaseAt]. False when it is no longer waiting.
   bool reschedule(String id, DateTime releaseAt) {
+    db.execute(
+      'UPDATE notes SET scheduled_until = ? '
+      'WHERE id = ? AND scheduled_until IS NOT NULL AND deleted_at IS NULL',
+      [releaseAt.toUtc().toIso8601String(), id],
+    );
+    if (db.updatedRows > 0) return true;
     db.execute('UPDATE scheduled_notes SET release_at = ? WHERE id = ?', [
       releaseAt.toUtc().toIso8601String(),
       id,
@@ -154,10 +176,20 @@ class SqliteScheduledNoteRepository {
     return db.updatedRows > 0;
   }
 
-  /// Throws [id] away for good. It was never in the library, so there is no
-  /// trash for it to go to.
-  void discard(String id) =>
-      db.execute('DELETE FROM scheduled_notes WHERE id = ?', [id]);
+  /// Throws [id] away for good.
+  ///
+  /// A note waiting by its own row is a live note, and it goes the way every
+  /// live note goes — deleted, in the trash, undoable until the retention
+  /// sweep takes it — rather than vanishing without a trace the way the old
+  /// design's hard delete vanished it. The old table's row is still removed
+  /// outright, its note row having gone with it years ago.
+  void discard(String id) => db.together(() {
+    db.execute('DELETE FROM scheduled_notes WHERE id = ?', [id]);
+    _notes.softDelete(id);
+    // The flag goes with the note: a discarded note is deleted, and no query
+    // should be able to find it waiting underneath its tombstone.
+    db.execute('UPDATE notes SET scheduled_until = NULL WHERE id = ?', [id]);
+  });
 
   Note _release(ScheduledNote scheduled) {
     // The row is read before it is deleted: it holds what the words alone do
@@ -167,10 +199,18 @@ class SqliteScheduledNoteRepository {
     ]);
     final waiting = rows.isEmpty ? null : rows.first;
     db.execute('DELETE FROM scheduled_notes WHERE id = ?', [scheduled.id]);
-    // The same id cannot be live already — [schedule] removed it — but a
-    // restored backup can hold both; the library's copy wins.
+    // The same id cannot be live already — the old design removed the row
+    // when it took the note out — but a restored backup can hold both; the
+    // library's copy wins.
     final existing = _notes.getById(scheduled.id, includeDeleted: true);
-    if (existing != null) return existing;
+    if (existing != null && existing.deletedAt == null) return existing;
+    if (existing != null) {
+      // A tombstone with the same id — the backup held the note's own words,
+      // which are the words the waiting copy was made of. The row comes back
+      // from the dead rather than being duplicated beside its own ghost.
+      _notes.undelete(scheduled.id);
+      return _notes.getById(scheduled.id)!;
+    }
     final metadata = _metadata(waiting?['metadata']);
     final note = _notes.insert(
       Note(

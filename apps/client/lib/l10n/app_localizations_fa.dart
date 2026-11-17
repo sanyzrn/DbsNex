@@ -3303,7 +3303,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get scheduledDiscardConfirm =>
-      'این یادداشت دور انداخته شود؟ هنوز به یادداشت‌هایتان نرسیده، پس برگرداندنی نیست.';
+      'این یادداشتِ منتظر دور انداخته شود؟ به «اخیراً حذف‌شده» می‌رود و تا خالی شدن سطل بازیافت همان‌جا می‌ماند.';
 
   @override
   String get cycleStagePeriod => 'پریود';

@@ -225,6 +225,17 @@ CREATE TABLE IF NOT EXISTS note_tags (
     _addColumnIfMissing('notes', 'set_aside_at', 'TEXT');
     _addColumnIfMissing('notes', 'set_aside_until', 'TEXT');
 
+    // Written now, surfacing at its own time. The note row stays — in the
+    // library, in every backup, in everything sync carries — and this column
+    // is the one thing that hides it until its moment. Local only, like
+    // set_aside: which views hide it is this device's business (the queries
+    // guard on it), and its arrival is a plain edit that travels by itself.
+    // Before this column, taking a note out of the library meant deleting
+    // its row outright, and a row deleted without a tombstone is a row the
+    // next sync pull happily puts back — the note stopped waiting the moment
+    // any sync ran.
+    _addColumnIfMissing('notes', 'scheduled_until', 'TEXT');
+
     // An optional headline, on any note. Deliberately not asked for at
     // capture — see `Note.title`.
     _addColumnIfMissing('notes', 'title', 'TEXT');
@@ -281,9 +292,22 @@ CREATE TABLE IF NOT EXISTS note_tags (
     // aside — the writes that already maintain this table's other indexes —
     // and an ordinary content edit leaves every indexed value untouched,
     // so the index is not rewritten for one.
+    //
+    // Re-created (dropped first) rather than merely created-if-missing so the
+    // waiting flag joins the flags it already carried: every home query now
+    // asks `scheduled_until` too, and a covering index that stops one flag
+    // short puts the full-row read it exists to avoid right back. An existing
+    // library pays one index rebuild on upgrade; a new one builds it this
+    // shape from the start. Only when the index is the old shape: this runs
+    // at every open, and an unconditional drop rebuilt it on every launch.
+    final homeIndex = db.select('PRAGMA index_info(idx_notes_home)');
+    if (homeIndex.isNotEmpty &&
+        !homeIndex.any((c) => c['name'] == 'scheduled_until')) {
+      db.execute('DROP INDEX idx_notes_home;');
+    }
     db.execute(
       'CREATE INDEX IF NOT EXISTS idx_notes_home ON notes('
-      'id, deleted_at, set_aside_at, set_aside_until);',
+      'id, deleted_at, set_aside_at, set_aside_until, scheduled_until);',
     );
 
     // Tags get the outbox notes have always had.
@@ -792,6 +816,7 @@ CREATE TABLE notes_rebuilt (
   is_urgent INTEGER NOT NULL DEFAULT 0,
   set_aside_at TEXT,
   set_aside_until TEXT,
+  scheduled_until TEXT,
   sort_order INTEGER,
   title TEXT,
   link_excerpt TEXT

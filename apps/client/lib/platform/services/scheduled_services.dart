@@ -3,13 +3,19 @@ part of '../nex_services.dart';
 /// Scheduled notes: held back until their time. Split out of NexServices
 /// (REL-10).
 extension NexScheduledServices on NexServices {
-  /// Takes the note being written out of the library until [releaseAt] —
+  /// Takes the note being written out of every view until [releaseAt] —
   /// the capture sheet's held Send. Its reminder, if it had one, goes: it
-  /// was set on a note that is not there any more.
+  /// was set on a note that is not arriving.
+  ///
+  /// The reminder is only cancelled once the note is *actually* waiting:
+  /// this used to cancel first and move second, so a note the move refused
+  /// — attachments on it, or no words worth delivering — came back with its
+  /// alarm already gone and nothing left to re-arm it. The move is the
+  /// transaction; the side effects follow it, not lead it.
   Future<ScheduledNote?> scheduleNote(String noteId, DateTime releaseAt) async {
-    await reminders.cancel(noteId);
     final scheduled = await worker.scheduleNote(noteId, releaseAt);
     if (scheduled == null) return null;
+    await reminders.cancel(noteId);
     await reminders.scheduleArrival(scheduled);
     await refreshTimeline();
     await _armScheduledTimer();
@@ -92,8 +98,11 @@ extension NexScheduledServices on NexServices {
     );
   }
 
-  /// Puts every pending alarm back from the library. Run at launch — an OS
-  /// alarm does not survive a reinstall or a restore, and the note does.
+  /// Rebuilds every pending alarm from the library — and prunes the ones the
+  /// library no longer asks for — on the reminder plane's one lane, so a
+  /// module write re-arming an alarm beside this sweep cannot have it pruned
+  /// as unaccounted-for between the sweep's wanted-set and its cancel loop.
+  /// See `NexIntegrityServices`' extension comment.
   Future<void> restoreReminders() async {
     // What came due while the app was closed arrives first, so its alarm is
     // not re-armed below for a moment already past.
@@ -105,24 +114,33 @@ extension NexScheduledServices on NexServices {
       // inside cancels every pending alarm it cannot account for, so leaving
       // them out of this call is what would destroy their alarms on the next
       // launch.
-      await reminders.syncFromLibrary(
-        await worker.upcomingReminders(),
-        commitments: await worker.listCommitments(),
-        // Their arrival alarms too, for the same reason.
-        scheduled: await worker.scheduledNotes(),
-        moduleReminderIds: await restoreModuleReminders(),
-      );
+      //
+      // The whole read-and-prune is one lane entry: the module reminder ids
+      // it prunes against are computed inside, immediately before the sweep,
+      // so nothing scheduled in between can slip below the wanted-set.
+      await _inReminderLane(() async {
+        await reminders.syncFromLibrary(
+          await worker.upcomingReminders(),
+          commitments: await worker.listCommitments(),
+          // Their arrival alarms too, for the same reason.
+          scheduled: await worker.scheduledNotes(),
+          moduleReminderIds: await restoreModuleReminders(),
+        );
+      });
     } catch (_) {
       // A library that cannot be read here is a library the timeline will
       // fail to read too, and that path already reports it.
     }
   }
 
-  Future<void> setCaption(String id, String caption) =>
-      _afterNudgeWrite(worker.setCaption(id, caption));
-
+  /// Names a note, and tells the timeline: the card wears the title.
   Future<void> setTitle(String id, String? title) =>
-      _afterNudgeWrite(worker.setTitle(id, title));
+      _afterLibraryWrite(worker.setTitle(id, title));
+
+  /// Captions a note, and tells the timeline: the card wears the caption
+  /// where one is set.
+  Future<void> setCaption(String id, String caption) =>
+      _afterLibraryWrite(worker.setCaption(id, caption));
 
   Future<void> summarizeInto(String id, String summary) =>
       worker.setSummaryText(id, summary);
@@ -130,29 +148,36 @@ extension NexScheduledServices on NexServices {
   Future<void> setLinkMetadata(String id, {String? title, String? excerpt}) =>
       worker.setLinkMetadata(id, title: title, excerpt: excerpt);
 
+  /// Ticks a checklist line, and tells the timeline: the card renders the
+  /// ticked state, and the detail sheet was the one caller that never
+  /// refreshed it — the line read done on the sheet and undone on the card
+  /// until an unrelated change happened to fire the stream.
   Future<void> toggleChecklistItem(String id, int index) =>
-      _afterNudgeWrite(worker.toggleChecklistItem(id, index));
+      _afterLibraryWrite(worker.toggleChecklistItem(id, index));
 
-  /// Pins [id] when fewer than five notes are already pinned.
-  Future<bool> pinNote(String id) => worker.pinNote(id);
+  /// Pins [id] when fewer than five notes are already pinned, and tells the
+  /// timeline: a pin moves a note to the top of it, which is the timeline's
+  /// business to show.
+  Future<bool> pinNote(String id) => _afterLibraryWrite(worker.pinNote(id));
 
   Future<void> setUrgent(String id, bool urgent) async {
     await worker.setUrgent(id, urgent);
     await refreshTimeline();
   }
 
-  Future<void> unpinNote(String id) => worker.unpinNote(id);
+  Future<void> unpinNote(String id) => _afterLibraryWrite(worker.unpinNote(id));
 
   Future<int> pinnedNoteCount() => worker.pinnedNoteCount();
 
   /// Puts [id] to one side: off the home timeline, still searchable, still
   /// carrying its reminder. A null [until] keeps it there until it is
-  /// brought back. The timeline is refreshed by the caller's own reload, like
-  /// pinning — see `refreshTimeline`.
+  /// brought back. The service owns the timeline refresh — every caller
+  /// already did it, and the one that forgets is the one that used to leave
+  /// the home holding a note that was not on it.
   Future<bool> setAside(String id, {DateTime? until}) =>
-      _afterNudgeWrite(worker.setAside(id, until: until));
+      _afterLibraryWrite(worker.setAside(id, until: until));
 
-  Future<void> bringBack(String id) => _afterNudgeWrite(worker.bringBack(id));
+  Future<void> bringBack(String id) => _afterLibraryWrite(worker.bringBack(id));
 
   Future<List<Note>> listSetAside() => worker.listSetAside();
 

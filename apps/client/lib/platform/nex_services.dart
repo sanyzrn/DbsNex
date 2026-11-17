@@ -64,6 +64,7 @@ part 'folder_backup.dart';
 part 'module_services.dart';
 part 'services/attachment_services.dart';
 part 'services/backup_services.dart';
+part 'services/integrity_services.dart';
 part 'services/library_services.dart';
 part 'services/daily_nudge_services.dart';
 part 'services/scheduled_services.dart';
@@ -154,6 +155,10 @@ class NexServices {
   Timer? _autoSyncPeriodicTimer;
   DateTime _autoSyncQuietUntil = DateTime.fromMillisecondsSinceEpoch(0);
   bool _autoSyncInFlight = false;
+
+  /// The reminder plane's one lane — see `NexIntegrityServices`' extension
+  /// comment for why a queue exists at all.
+  Future<void>? _reminderLane;
 
   Future<HabitsBrief> habitsForBrief() async {
     await applyHabitActions();
@@ -264,7 +269,8 @@ class NexServices {
           sources != null &&
           sources.isNotEmpty) {
         try {
-          await _reconcileModuleSources(module, sources);
+          // On the reminder lane, so the launch prune cannot drop it.
+          await _inReminderLane(() => _reconcileModuleSources(module, sources));
         } catch (_) {
           reminders.onDiagnostic?.call('module reminder reconciliation failed');
         }
@@ -626,11 +632,15 @@ class NexServices {
 
   /* ---------------------------------------------------------------- tags */
 
+  /// Files [noteId] under [name], and tells the timeline (see
+  /// `_afterLibraryWrite`).
   Future<Tag> addTag({
     required String noteId,
     required String name,
     String? color,
-  }) => worker.addTag(noteId: noteId, name: name, color: color);
+  }) => _afterLibraryWrite(
+    worker.addTag(noteId: noteId, name: name, color: color),
+  );
 
   /* ---------------------------------------------------------- threads */
 

@@ -5,7 +5,8 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent, ScrollDirection;
+import 'package:flutter/rendering.dart'
+    show RenderAbstractViewport, ScrollCacheExtent, ScrollDirection;
 import 'package:flutter/foundation.dart'
     show ValueListenable, compute, listEquals, setEquals;
 

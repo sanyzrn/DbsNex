@@ -160,4 +160,56 @@ void main() {
       },
     );
   });
+
+  group('tag manager writes reach the outbox', () {
+    Note syncedText(String content) {
+      // Inserted and linked first — the link itself marks a note pending —
+      // then settled: the state a paired device's note is normally in by the
+      // time the tag manager touches it, so anything pending afterwards is
+      // the manager's doing and nothing else's.
+      final note = insertText(content);
+      return note;
+    }
+
+    test('merging two tags marks the notes that gained the target', () {
+      final mover = syncedText('carries the source');
+      final keeper = syncedText('already wears the target');
+      final bystander = syncedText('no tags at all');
+      final source = repo.upsertTag(name: 'Old');
+      final target = repo.upsertTag(name: 'New');
+      repo.attachTag(noteId: mover.id, tagId: source.id);
+      repo.attachTag(noteId: keeper.id, tagId: target.id);
+      for (final note in [mover, keeper, bystander]) {
+        repo.markSynced(note.id, serverRev: repo.getById(note.id)!.rev);
+      }
+
+      maintenance.mergeTag(sourceId: source.id, targetId: target.id);
+
+      // The merge has to travel: the notes that gained a tag are pending, so
+      // their tag set rides the next push. A note that gained nothing, and
+      // one that never carried either, stays out of the outbox.
+      expect(repo.listPending(includeDeleted: true).map((n) => n.id).toSet(), {
+        mover.id,
+      }, reason: 'the moved link is the change that must travel');
+      expect(repo.getById(mover.id)!.tags.map((t) => t.name), ['New']);
+    });
+
+    test('deleting a tag marks the notes that wore it', () {
+      final wearer = syncedText('wore it');
+      final other = syncedText('never did');
+      final tag = repo.upsertTag(name: 'Gone');
+      repo.attachTag(noteId: wearer.id, tagId: tag.id);
+      for (final note in [wearer, other]) {
+        repo.markSynced(note.id, serverRev: repo.getById(note.id)!.rev);
+      }
+
+      maintenance.deleteTag(tag.id);
+
+      expect(repo.listPending(includeDeleted: true).map((n) => n.id).toSet(), {
+        wearer.id,
+      }, reason: 'the link removal is part of the note, and the note travels');
+      expect(repo.getById(wearer.id)!.tags, isEmpty);
+      expect(repo.getById(other.id)!.tags, isEmpty);
+    });
+  });
 }

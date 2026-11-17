@@ -2340,7 +2340,7 @@
   "scheduledSendNow": "Deliver now",
   "scheduledChangeTime": "Change time",
   "scheduledDiscard": "Discard",
-  "scheduledDiscardConfirm": "Discard this note? It never reached your notes, so it cannot be restored.",
+  "scheduledDiscardConfirm": "Discard this waiting note? It moves to Recently deleted, where it stays until the trash is emptied.",
   "cycleStagePeriod": "Period",
   "cycleStageFollicular": "Follicular phase",
   "cycleStageFertile": "Fertile window",

@@ -5153,7 +5153,7 @@ abstract class AppLocalizations {
   /// No description provided for @scheduledDiscardConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Discard this note? It never reached your notes, so it cannot be restored.'**
+  /// **'Discard this waiting note? It moves to Recently deleted, where it stays until the trash is emptied.'**
   String get scheduledDiscardConfirm;
 
   /// No description provided for @cycleStagePeriod.

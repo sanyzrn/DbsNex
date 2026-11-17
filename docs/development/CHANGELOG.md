@@ -52,6 +52,24 @@ Working convention:
   `FadeTransition`s and a repaint-only scale render object, so the 5,000-note
   budget still sees no rebuild while it runs.
   `_followDock` counts a fling's glide through `userScrollDirection`.
+- Two reviewed audit patches, merged onto 2.8.0:
+  - Scroll: theme motifs and background patterns are rasterized once
+    (`nexRasterCachedImage`, `Picture.toImageSync`, 48 MB budget) and drawn
+    as one image; the pattern has its own `RepaintBoundary`. Review: an
+    image evicted the moment it is made is no longer returned (it was
+    disposed). The sticky day measures against its `RenderAbstractViewport`,
+    folded into 2.8.0's held-row check. Bench: `packages/ui/test/perf/`.
+  - Integrity: a scheduled note stays in `notes` with `scheduled_until`
+    instead of being hard-deleted without a tombstone (sync put it back);
+    arrival is a rev+1 edit, discard a soft delete. Tag writes, title,
+    caption, checklist ticks, pin and set-aside refresh the timeline from
+    the service (`_afterLibraryWrite`); merge/delete tag mark affected notes
+    pending; the launch reminder prune and module re-arms share
+    `_inReminderLane` (kept on 2.7.2's scoped `_reconcileModuleSources`);
+    `scheduleNote` cancels the reminder only after the move; `importNotes`
+    restores reminders. Review: semantic search and Home tag counts skip
+    waiting notes too, and `idx_notes_home` is dropped only when it lacks
+    the new column (the patch rebuilt it on every open).
 
 ### 2.8.0 — the home screen, rebuilt
 
