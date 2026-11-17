@@ -186,7 +186,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(l.pinHabitsProgress(0, 1)), findsOneWidget);
         final module = find.byKey(const ValueKey('pinned-tool-module.habits'));
-        final generator = find.byKey(const ValueKey('pinned-tool-vault.message'));
+        final generator = find.byKey(
+          const ValueKey('pinned-tool-vault.message'),
+        );
         Finder tile(Finder parent) =>
             find.descendant(of: parent, matching: find.byType(NexShelfTile));
         expect(
