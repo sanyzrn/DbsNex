@@ -172,6 +172,79 @@ class _ParkingScreenState extends State<ParkingScreen>
     }
   }
 
+  /// «I parked» in one tap: a parking starts right now with the vehicle
+  /// this person parked most recently and nothing else. Every other field
+  /// is optional and can be added from the card afterwards.
+  Future<void> _quickPark() async {
+    if (_busy || _loading || _loadFailed) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      var vehicle = '';
+      for (final record in _sessions) {
+        final name = ParkingModels.readString(record.body, 'vehicle').trim();
+        if (name.isNotEmpty) {
+          vehicle = name;
+          break;
+        }
+      }
+      final body = ParkingModels.sessionBody(
+        vehicle: vehicle,
+        place: '',
+        floor: '',
+        spot: '',
+        landmark: '',
+        startedAt: DateTime.now(),
+      );
+      Future<void> write({bool closeEarlier = false}) => ParkingRepository.save(
+        widget.store,
+        widget.store.newId(),
+        body,
+        body.keys.toList(),
+        existing: false,
+        closeEarlier: closeEarlier,
+      );
+      try {
+        await write();
+      } on ParkingConflict {
+        if (!mounted) {
+          return;
+        }
+        final close = await ParkingDialogs.askAboutEarlier(
+          context,
+          vehicle,
+          parkingStrings,
+        );
+        if (close != true || !mounted) {
+          return;
+        }
+        await write(closeEarlier: true);
+      }
+      if (mounted) {
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.done,
+          message: parkingStrings(context, 'parkedQuick'),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: parkingStrings(context, 'saveFailed'),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _toggleFavourite(ModuleRecord record, bool favourite) => _work(
+    () => ParkingWrites.setFavourite(widget.store, record.id, favourite),
+  );
+
   // -------------------------------------------------------------- saving
 
   /// Writes a draft, asking about an earlier open parking for the same

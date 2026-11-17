@@ -12,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/in_process_db.dart';
 import '../../support/nex_harness.dart';
-import '../../support/add_button.dart';
 import '../../support/more_details.dart';
 
 /// How the parking screen holds up: Persian right to left, dark, large
@@ -31,7 +30,10 @@ void main() {
         home: ParkingScreen(store: NexModuleStore(h.services, 'parking')),
       );
       expect(find.text('جای پارک'), findsOneWidget);
-      expect(addButton('parking-fab', 'parking-empty-add'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('parking-park-details')),
+        findsOneWidget,
+      );
       expect(Directionality.of(_context(tester)), TextDirection.rtl);
       expect(tester.takeException(), isNull);
     });
@@ -50,7 +52,10 @@ void main() {
         ),
         home: ParkingScreen(store: NexModuleStore(h.services, 'parking')),
       );
-      expect(addButton('parking-fab', 'parking-empty-add'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('parking-park-details')),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -69,16 +74,18 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(2)),
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(2)),
             child: child ?? const SizedBox.shrink(),
           ),
           home: child,
         ),
         home: ParkingScreen(store: NexModuleStore(h.services, 'parking')),
       );
-      expect(addButton('parking-fab', 'parking-empty-add'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('parking-park-details')),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
   });
@@ -87,24 +94,17 @@ void main() {
     testWidgets('a far-off time counts down', (tester) async {
       await _withScreen(tester, (h) async {
         await _create(tester, expiry: '2099/01/01 00:00');
-        expect(
-          find.byWidgetPredicate(
-            (w) => w is Text && w.data!.startsWith('Ends in'),
-          ),
-          findsOneWidget,
-        );
+        // The time left is the large line, with what it means under it.
+        expect(find.byKey(const ValueKey('parking-time-left')), findsOneWidget);
+        expect(find.text('Left on the meter'), findsOneWidget);
       });
     });
 
     testWidgets('a past one says it may have ended', (tester) async {
       await _withScreen(tester, (h) async {
         await _create(tester, expiry: '2020/01/01 00:00');
-        expect(
-          find.byWidgetPredicate(
-            (w) => w is Text && w.data!.startsWith('May have ended'),
-          ),
-          findsOneWidget,
-        );
+        expect(find.byKey(const ValueKey('parking-time-left')), findsOneWidget);
+        expect(find.text('Past the paid time'), findsOneWidget);
       });
     });
   });
@@ -114,7 +114,7 @@ void main() {
       tester,
     ) async {
       await _withScreen(tester, (h) async {
-        await tester.tap(addButton('parking-fab', 'parking-empty-add'));
+        await tester.tap(find.byKey(const ValueKey('parking-park-details')));
         await tester.pumpAndSettle();
         await openMoreDetails(tester, 'parking-more-toggle');
         expect(find.textContaining('Only if you know them.'), findsOneWidget);
@@ -195,7 +195,7 @@ Future<void> _create(
   String place = 'North lot',
   String expiry = '',
 }) async {
-  await tester.tap(addButton('parking-fab', 'parking-empty-add'));
+  await tester.tap(find.byKey(const ValueKey('parking-park-details')));
   await tester.pumpAndSettle();
   await openMoreDetails(tester, 'parking-more-toggle');
   await tester.enterText(

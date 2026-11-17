@@ -48,9 +48,6 @@ extension _ParkingEditorBody on _ParkingEditorSheetState {
                   controller: _place,
                   label: strings(context, 'place'),
                   hint: strings(context, 'placeHint'),
-                  helper: _showErrors && _place.text.trim().isEmpty
-                      ? strings(context, 'placeRequired')
-                      : null,
                 ),
                 const SizedBox(height: NexSpacing.sm),
                 NexMoreDetails(

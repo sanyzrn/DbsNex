@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'editor_checkpoint.dart';
 import 'parking_repository.dart';
 
@@ -202,8 +203,9 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
       ParkingModels.lngMin,
       ParkingModels.lngMax,
     );
-    if (_place.text.trim().isEmpty ||
-        expiry == ParkingParse.invalid ||
+    // Every field is optional: a person in a hurry may have parked the car
+    // and only have time to tap once. A place is a convenience, not a rule.
+    if (expiry == ParkingParse.invalid ||
         (lat != null && lat.isNaN) ||
         (lng != null && lng.isNaN)) {
       setState(() {

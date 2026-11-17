@@ -135,13 +135,26 @@ extension _ParkingDetailBody on _ParkingDetailPageState {
                   ),
                   // The same opt-in device alert as the open parking's card,
                   // offered here too because search is the one way a person
-                  // reaches this page while the parking is still open.
-                  NexModuleReminderControl(
-                    key: const ValueKey('parking-reminders'),
-                    store: widget.store,
-                    sourceKind: ParkingModels.session,
-                    sourceId: widget.sessionId,
-                  ),
+                  // reaches this page while the parking is still open. With
+                  // a paid time it counts back from the end; without one it
+                  // asks for a moment.
+                  if (ParkingModels.readDate(body, 'expiresAt')
+                      case final expiresAt?)
+                    ParkingQuickReminder(
+                      key: const ValueKey('parking-quick-reminder'),
+                      store: widget.store,
+                      recordId: widget.sessionId,
+                      expiresAt: expiresAt,
+                      place: ParkingModels.readString(body, 'place'),
+                      floor: ParkingModels.readString(body, 'floor'),
+                    )
+                  else
+                    NexModuleReminderControl(
+                      key: const ValueKey('parking-reminders'),
+                      store: widget.store,
+                      sourceKind: ParkingModels.session,
+                      sourceId: widget.sessionId,
+                    ),
                 ],
               ],
             ),
