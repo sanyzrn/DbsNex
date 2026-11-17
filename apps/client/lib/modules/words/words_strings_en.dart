@@ -6,8 +6,7 @@ library;
 
 const Map<String, String> wordsStringsEn = {
   'repairDueAction': 'Set review date to today',
-  'repairDueBody':
-      'Use today for this unavailable review date? Your history, pause state and typed edits stay.',
+  'repairDueBody': 'Use today for this unavailable review date? Your history, pause state and typed edits stay.',
 
   'reviewSettings': 'Review settings',
 
@@ -15,8 +14,7 @@ const Map<String, String> wordsStringsEn = {
 
   'draftLoadError': 'Could not read the saved draft. Try again before editing.',
 
-  'batchFormat':
-      'One word per line. Optionally separate the word and your meaning with a Tab. Preview before adding. Repeated or already-saved words in this language are skipped.',
+  'batchFormat': 'One word per line. Optionally separate the word and your meaning with a Tab, a dash, a colon or «=». Preview before adding. Repeated or already-saved words in this language are skipped.',
   'batchTextLabel': 'Words to add',
   'batchPreviewAll': 'Preview the list',
 
@@ -40,8 +38,7 @@ const Map<String, String> wordsStringsEn = {
   'skipForNow': 'Skip for now',
   'reviewChanged': 'This card changed. The review has been refreshed.',
   'batchLimit': 'Use up to 200 words in each batch. Your pasted text is kept.',
-  'batchPartial':
-      '{added} added. Could not confirm {remaining}; the remaining list is kept for retry.',
+  'batchPartial': '{added} added. Could not confirm {remaining}; the remaining list is kept for retry.',
 
   'title': 'Word by Word',
   'tagline': 'Keep the words you meet; review them until they stay',
@@ -54,7 +51,6 @@ const Map<String, String> wordsStringsEn = {
   'point3': 'No account, no cloud',
 
   // -------------------------------------------------------------- home
-  'streak': '{count}-day streak',
   'stageNew': '{count} new',
   'stageLearning': '{count} learning',
   'stageHolding': '{count} holding',
@@ -166,4 +162,50 @@ const Map<String, String> wordsStringsEn = {
   'batchAdd': 'Add {count} words',
   'batchAdded': '{count} words added',
   'batchSkipped': '{count} skipped — repeated or already saved',
+
+  // ------------------------------------------------------------- decks
+  'deckLabel': 'Deck',
+  'deckNone': 'No deck',
+  'decksTitle': 'Decks',
+  'newDeck': 'New deck',
+  'deckNameLabel': 'Deck name',
+  'deckNameHint': 'A book, a course, a trip…',
+  'deckEmpty':
+      'No decks yet. A deck keeps the words of one book, course or trip '
+      'together; a word can stay outside every deck.',
+  'deckRename': 'Rename deck',
+  'deckActions': 'Deck actions',
+  'deckDeleteTitle': 'Remove this deck?',
+  'deckDeleteBody':
+      '«{name}» goes; its words stay in your list, with their review history.',
+
+  // ---------------------------------------------------------- practice
+  'practiceMode': 'How cards are asked',
+  'modeFlashcard': 'Flashcards',
+  'modeType': 'Type',
+  'modeChoose': 'Choose',
+  'askForMeaning': 'What does it mean?',
+  'askForWord': 'Which word is this?',
+  'answerLabel': 'Your answer',
+  'checkAnswer': 'Check',
+  'forgivingHint':
+      'Case, spacing and the Persian forms of ی and ک are forgiven.',
+  'answerRight': 'Right.',
+  'answerWrong': 'Not quite — here is the answer.',
+  'answerYouWrote': 'You wrote: {text}',
+
+  // ---------------------------------------------------------- progress
+  'progressTitle': 'Progress',
+  'goalToday': '{done}/{goal} today',
+  'goalMet': '{done} reviews — the goal is done',
+  'goalLine': 'Today: {done} of {goal} reviews',
+  'goalOff': 'No daily goal',
+  'progressLearned': 'Words learned',
+  'progressDue': 'Due now',
+  'progressPaused': 'Paused',
+  'progressTotalLine': '{count} words kept',
+  'progressWeek': 'This week',
+  'progressWeekEmpty': 'No reviews this week yet.',
+  'progressWeekLine': '{reviews} reviews · {again} again',
+  'weekDayTip': '{day}: {count} reviews',
 };

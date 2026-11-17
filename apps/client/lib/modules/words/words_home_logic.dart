@@ -3,6 +3,7 @@ part of 'words_screen.dart';
 mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
   late final WordsRepository _repository;
   List<WordCard> _cards = const [];
+  List<WordsDeck> _decks = const [];
   WordsSettings _settings = const WordsSettings(
     newPerDay: WordsSettings.defaultPerDay,
   );
@@ -17,6 +18,10 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
   String _query = '';
   _StatusFilter _filter = _StatusFilter.all;
   String? _tagFilter;
+
+  /// The deck the list is narrowed to; null shows every word, and an empty
+  /// string means the words that sit outside every deck.
+  String? _deckFilter;
 
   @override
   void initState() {
@@ -40,15 +45,21 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) unawaited(_reload());
   }
 
+  /// Repainting the page from a `part` file: `setState` is protected, so
+  /// the one place that may call it lives in the state itself.
+  void _paint(VoidCallback change) => setState(change);
+
   Future<void> _reload() async {
     final generation = ++_generation;
     try {
       final cards = await _repository.loadCards();
       final settings = await _repository.loadSettings();
+      final decks = await _repository.loadDecks();
       if (!mounted || generation != _generation) return;
       setState(() {
         _cards = cards;
         _settings = settings;
+        _decks = decks;
         _loading = false;
         _failed = false;
       });
@@ -108,6 +119,10 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
     if (_tagFilter != null) {
       cards = cards.where((card) => card.tag == _tagFilter);
     }
+    final deckFilter = _deckFilter;
+    if (deckFilter != null) {
+      cards = cards.where((card) => card.deckId == deckFilter);
+    }
     if (query.isNotEmpty) {
       cards = cards.where((card) {
         final haystack = [
@@ -125,6 +140,26 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
   }
 
   int get _dueCount => _cards.where((card) => card.isDueOn(_todayIso)).length;
+
+  /// The small daily goal in answers, and how many were given today. A
+  /// missed day is not counted anywhere — there is no streak.
+  int get _goal => _settings.goalPerDay;
+  int get _reviewedToday => wordsReviewsOn(_cards, _todayIso);
+
+  void _openProgress() => unawaited(
+    showWordsProgressSheet(context, cards: _cards, settings: _settings),
+  );
+
+  /// The deck sheet doubles as «new deck» and as the way to narrow the
+  /// list: choosing a deck here filters the words to it.
+  void _manageDecks() => unawaited(
+    showWordsDeckPicker(
+      context,
+      _repository,
+      selectedId: _deckFilter ?? '',
+      onPicked: (id) => setState(() => _deckFilter = id.isEmpty ? null : id),
+    ),
+  );
 
   /// New cards the day may still introduce, with the cap applied.
   int get _newToday => buildSession(

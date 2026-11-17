@@ -1,11 +1,14 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
+
 import 'words_fields.dart';
 import 'words_models.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
 import 'words_batch_parse.dart';
+import 'words_deck_picker.dart';
 import 'form_draft.dart';
 import 'draft_guard.dart';
 
@@ -35,6 +38,9 @@ class _WordsBatchSheetState extends State<_WordsBatchSheet> {
   bool _adding = false;
   bool _restoring = true;
   bool _draftLoadFailed = false;
+
+  /// The deck the whole pasted list is filed in, empty for none.
+  String _deckId = '';
   @override
   void initState() {
     super.initState();
@@ -42,7 +48,7 @@ class _WordsBatchSheetState extends State<_WordsBatchSheet> {
     _draft = FormDraft(widget.repository.store, 'batch:new', const {}, {
       'text': _text,
       'language': _language,
-    }, () => const {});
+    }, () => {'deckId': _deckId});
     unawaited(_restore(initial: true));
   }
 
@@ -58,7 +64,10 @@ class _WordsBatchSheetState extends State<_WordsBatchSheet> {
       });
       return;
     }
-    if (body != null) _draft.apply(body);
+    if (body != null) {
+      _draft.apply(body);
+      if (body['deckId'] is String) _deckId = body['deckId'] as String;
+    }
     _draft.resume();
     setState(() {
       _restoring = false;
@@ -121,6 +130,7 @@ class _WordsBatchSheetState extends State<_WordsBatchSheet> {
           headword: line.word,
           language: language,
           meaning: line.meaning,
+          deckId: _deckId,
         );
         if (await widget.repository.saveCard(card)) {
           added++;
@@ -258,6 +268,11 @@ class _WordsBatchSheetState extends State<_WordsBatchSheet> {
                       label: strings(context, 'languageLabel'),
                       hint: strings(context, 'languageHint'),
                       fieldKey: const ValueKey('words-batch-language'),
+                    ),
+                    WordsDeckField(
+                      repository: widget.repository,
+                      deckId: _deckId,
+                      onChanged: (id) => setState(() => _deckId = id),
                     ),
                     const SizedBox(height: NexSpacing.md),
                     Text(

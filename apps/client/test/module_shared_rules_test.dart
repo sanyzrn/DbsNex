@@ -21,7 +21,6 @@ void main() {
     'occasions',
     'parking',
     'warranty',
-    'words',
   };
 
   /// Modules without a `summarize` line per record yet.
@@ -40,7 +39,6 @@ void main() {
     'security_tools',
     'smoke_free',
     'warranty',
-    'words',
   };
 
   final folders = Directory(p.join('lib', 'modules'))

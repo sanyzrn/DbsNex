@@ -8,6 +8,7 @@ import 'dart:async';
 
 import 'package:nex_client/modules/module_api.dart';
 
+import 'words_decks.dart';
 import 'words_models.dart';
 import 'words_scheduler.dart';
 import 'words_dates.dart';
@@ -69,6 +70,7 @@ class WordsRepository {
               example: card.example,
               note: card.note,
               tag: card.tag,
+              deckId: card.deckId,
             )
           : card;
       await _store.put(
@@ -85,6 +87,7 @@ class WordsRepository {
                 'tag': next.tag,
                 'schema': next.schema,
                 'introducedOn': next.introducedOn,
+                'deckId': next.deckId,
               }
             : {...?body, ...next.toRecord()},
       );
@@ -220,6 +223,7 @@ class WordsRepository {
     String example = '',
     String note = '',
     String tag = '',
+    String deckId = '',
   }) async {
     final now = DateTime.now();
     return WordCard(
@@ -230,6 +234,7 @@ class WordsRepository {
       example: example,
       note: note,
       tag: tag,
+      deckId: deckId,
       createdAtIso: now.toIso8601String(),
       step: 0,
       due: isoDay(now),
@@ -256,24 +261,28 @@ class WordsRepository {
     }
   });
 
-  Future<bool> updateSettings({int? newPerDay, int? sessionLimit}) =>
-      _serial(() async {
-        try {
-          final body = await _store.get(settingsKind, WordsSettings.recordId);
-          final current = WordsSettings.fromRecord(body ?? const {});
-          final next = WordsSettings(
-            newPerDay: newPerDay ?? current.newPerDay,
-            sessionLimit: sessionLimit ?? current.sessionLimit,
-          );
-          await _store.put(settingsKind, WordsSettings.recordId, {
-            ...?body,
-            ...next.toRecord(),
-          });
-          return true;
-        } catch (_) {
-          return false;
-        }
+  Future<bool> updateSettings({
+    int? newPerDay,
+    int? sessionLimit,
+    int? goalPerDay,
+  }) => _serial(() async {
+    try {
+      final body = await _store.get(settingsKind, WordsSettings.recordId);
+      final current = WordsSettings.fromRecord(body ?? const {});
+      final next = WordsSettings(
+        newPerDay: newPerDay ?? current.newPerDay,
+        sessionLimit: sessionLimit ?? current.sessionLimit,
+        goalPerDay: goalPerDay ?? current.goalPerDay,
+      );
+      await _store.put(settingsKind, WordsSettings.recordId, {
+        ...?body,
+        ...next.toRecord(),
       });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  });
 
   /// The words of the day's session, and how many are waiting.
   Future<
@@ -300,4 +309,81 @@ class WordsRepository {
       sessionLimit: settings.sessionLimit,
     );
   }
+
+  // ------------------------------------------------------------- decks
+
+  /// Every deck, by name.
+  Future<List<WordsDeck>> loadDecks() async {
+    final records = await _store.list(wordsDeckKind);
+    return sortDecks(
+      records.map((record) => WordsDeck.fromRecord(record.id, record.body)),
+    );
+  }
+
+  /// Makes a deck, or hands back the one already carrying this name — two
+  /// cases of one book never become two decks.
+  Future<WordsDeck?> createDeck(String name) => _serial(() async {
+    final clean = foldWhitespace(name);
+    if (clean.isEmpty) return null;
+    try {
+      for (final deck in await loadDecks()) {
+        if (deck.name.toLowerCase() == clean.toLowerCase()) return deck;
+      }
+      final deck = WordsDeck(
+        id: _store.newId(),
+        name: clean,
+        createdAtIso: DateTime.now().toIso8601String(),
+      );
+      await _store.put(wordsDeckKind, deck.id, deck.toRecord());
+      return deck;
+    } catch (_) {
+      return null;
+    }
+  });
+
+  Future<bool> renameDeck(String id, String name) => _serial(() async {
+    final clean = foldWhitespace(name);
+    if (clean.isEmpty) return false;
+    try {
+      final body = await _store.get(wordsDeckKind, id);
+      if (body == null) return false;
+      await _store.put(wordsDeckKind, id, {
+        ...body,
+        ...WordsDeck.fromRecord(id, body).copyWith(name: clean).toRecord(),
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  });
+
+  /// Removes a deck and leaves its words where they are, without a deck.
+  /// The cards are written one by one so an interrupted delete cannot take
+  /// a word with it.
+  Future<bool> deleteDeck(String id) => _serial(() async {
+    try {
+      final cards = await _store.list(cardKind);
+      for (final record in cards) {
+        if (record.body['deckId'] != id) continue;
+        await _store.put(cardKind, record.id, {...record.body, 'deckId': ''});
+      }
+      await _store.delete(wordsDeckKind, id);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  });
+
+  /// Puts one card in a deck, or takes it out of every deck with an empty
+  /// [deckId]. The review history is left exactly as it was.
+  Future<bool> setCardDeck(String cardId, String deckId) => _serial(() async {
+    try {
+      final body = await _store.get(cardKind, cardId);
+      if (body == null) return false;
+      await _store.put(cardKind, cardId, {...body, 'deckId': deckId});
+      return true;
+    } catch (_) {
+      return false;
+    }
+  });
 }

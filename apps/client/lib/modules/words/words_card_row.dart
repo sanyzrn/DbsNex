@@ -10,7 +10,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'words_models.dart';
 import 'words_scheduler.dart';
 import 'words_strings.dart';
-import 'words_visuals.dart';
+import 'words_badges.dart';
 
 class WordsCardRow extends StatelessWidget {
   const WordsCardRow({

@@ -1,6 +1,7 @@
-/// The review session: due cards first, then the day's new ones. Tap to
-/// reveal, answer, next — and when the queue is empty, a calm done state
-/// that neither praises nor nags.
+/// The review session: due cards first, then the day's new ones. A card
+/// can be asked as a flashcard, typed, or answered from choices drawn from
+/// the same deck — and when the queue is empty, a calm done state that
+/// neither praises nor nags.
 ///
 /// An «Again» card leaves the session when it is answered (it comes back
 /// tomorrow), so nothing loops forever inside one sitting. Every answer
@@ -15,12 +16,15 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'words_models.dart';
+import 'words_practice.dart';
 import 'words_scheduler.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
 import 'words_card_page.dart';
 import 'words_visuals.dart';
 part 'words_review_view.dart';
+part 'words_review_cards.dart';
+part 'words_review_practice.dart';
 part 'words_review_done.dart';
 
 class WordsReviewPage extends StatefulWidget {
@@ -35,6 +39,9 @@ class WordsReviewPage extends StatefulWidget {
 class _WordsReviewPageState extends State<WordsReviewPage> {
   late final WordsRepository _repository;
   List<WordCard> _queue = const [];
+
+  /// Every card, for drawing wrong choices from the right deck.
+  List<WordCard> _pool = const [];
   int _index = 0;
   bool _revealed = false;
 
@@ -47,6 +54,15 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
   bool _failed = false;
   String? _answerId;
 
+  /// How the card is asked. A typing or choice card still ends on the same
+  /// four answers, so the schedule stays in the person's hands.
+  WordsExercise _exercise = WordsExercise.flashcard;
+  final _typed = TextEditingController();
+  final _typedFocus = FocusNode();
+  bool _checked = false;
+  bool _wasRight = false;
+  String? _chosen;
+
   @override
   void initState() {
     super.initState();
@@ -54,12 +70,21 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     unawaited(_load());
   }
 
+  @override
+  void dispose() {
+    _typed.dispose();
+    _typedFocus.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     try {
       final session = await _repository.loadSession();
+      final pool = await _repository.loadCards();
       if (!mounted) return;
       setState(() {
         _queue = [...session.due, ...session.fresh];
+        _pool = pool;
         _loading = false;
         _failed = false;
       });
@@ -74,6 +99,56 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
   }
 
   WordCard? get _current => _index < _queue.length ? _queue[_index] : null;
+
+  int get _total => _queue.length;
+
+  /// Turning the flashcard over. (A `part` cannot call `setState` on the
+  /// state it extends, so the one place that does lives here.)
+  void _reveal() => setState(() => _revealed = true);
+
+  /// Everything a card's answer leaves behind, cleared for the next one.
+  void _resetAnswer() {
+    _revealed = false;
+    _checked = false;
+    _wasRight = false;
+    _chosen = null;
+    _answerId = null;
+    _typed.clear();
+  }
+
+  /// Checking a typed answer reveals the card and says whether it matched;
+  /// the person still grades it, because only they know how hard it was.
+  void _checkTyped(WordCard card) {
+    if (_answering || _revealed) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _checked = true;
+      _wasRight = wordsAnswerMatches(
+        _typed.text,
+        wordsAnswerOf(card, reverse: _reverse),
+      );
+      _revealed = true;
+    });
+  }
+
+  void _choose(WordCard card, String option) {
+    if (_answering || _revealed) return;
+    setState(() {
+      _chosen = option;
+      _wasRight =
+          wordsNormalize(option) ==
+          wordsNormalize(wordsAnswerOf(card, reverse: _reverse));
+      _revealed = true;
+    });
+  }
+
+  void _setExercise(WordsExercise exercise) {
+    if (_answering) return;
+    setState(() {
+      _exercise = exercise;
+      _resetAnswer();
+    });
+  }
 
   Future<void> _answer(WordsGrade grade) async {
     final card = _current;
@@ -94,21 +169,21 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     }
     setState(() {
       _answering = false;
-      _answerId = null;
-      _revealed = false;
       if (result.status == WordsAnswerStatus.saved) {
         _answered++;
         _index++;
+        _resetAnswer();
       } else if (result.card != null) {
         _queue[_index] = result.card!;
+        _resetAnswer();
       } else {
         _index++;
+        _resetAnswer();
       }
     });
     if (result.status != WordsAnswerStatus.saved) {
-      NexBannerHost.of(
-        context,
-      )?.show(message: wordsStrings(context, 'reviewChanged'));
+      NexBannerHost.of(context)
+          ?.show(message: wordsStrings(context, 'reviewChanged'));
     }
   }
 
@@ -116,8 +191,7 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
     if (_answering || _current == null) return;
     setState(() {
       _index++;
-      _answerId = null;
-      _revealed = false;
+      _resetAnswer();
     });
   }
 
@@ -136,12 +210,16 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
       if (!mounted) return;
       setState(() {
         _answering = false;
-        _revealed = false;
-        _answerId = null;
+        _resetAnswer();
         if (body == null || body['paused'] == true) {
           _index++;
         } else {
-          _queue[_index] = WordCard.fromRecord(card.id, body);
+          final changed = WordCard.fromRecord(card.id, body);
+          _queue[_index] = changed;
+          _pool = [
+            for (final other in _pool)
+              if (other.id == card.id) changed else other,
+          ];
         }
       });
     } catch (_) {
@@ -175,15 +253,15 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
                   ? null
                   : () => setState(() {
                       _reverse = !_reverse;
-                      _revealed = false;
+                      _resetAnswer();
                     }),
               icon: const Icon(Icons.swap_horiz),
               selectedIcon: const Icon(Icons.swap_horiz),
               style: _reverse
                   ? IconButton.styleFrom(
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.secondaryContainer,
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .secondaryContainer,
                     )
                   : null,
             ),
@@ -201,19 +279,8 @@ class _WordsReviewPageState extends State<WordsReviewPage> {
                 ),
               )
             : _current == null
-            ? _DoneView(answered: _answered, total: _queue.length)
-            : _ReviewBody(
-                card: _current!,
-                reverse: _reverse,
-                revealed: _revealed,
-                answering: _answering,
-                index: _index,
-                total: _queue.length,
-                onReveal: () => setState(() => _revealed = true),
-                onAnswer: (grade) => unawaited(_answer(grade)),
-                onEdit: () => unawaited(_editMeaning()),
-                onSkip: _skip,
-              ),
+            ? _DoneView(answered: _answered, total: _total)
+            : _reviewBody(context),
       ),
     );
   }
