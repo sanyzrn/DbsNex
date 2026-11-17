@@ -84,6 +84,29 @@ class ReminderStore extends NexModuleStore {
     return true;
   }
 
+  /// Daily reminders, armed for an every-day routine (2.8.4), by key.
+  final daily = <String>{};
+
+  @override
+  Future<bool> setDailyReminder(
+    String key, {
+    required String sourceKind,
+    required String sourceId,
+    required DateTime at,
+    required String title,
+    required String body,
+  }) async {
+    daily.add(key);
+    return setReminder(
+      key,
+      sourceKind: sourceKind,
+      sourceId: sourceId,
+      at: at,
+      title: title,
+      body: body,
+    );
+  }
+
   @override
   Future<void> withdrawReminder(String key) async {
     _records.remove(key);

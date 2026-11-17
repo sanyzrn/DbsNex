@@ -328,7 +328,7 @@ class MedicinePlaceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final place = MedicineModels.readString(source.body, 'place');
-    final price = MedicineModels.readCount(source.body, 'price');
+    final price = MedicineModels.readPriceRial(source.body);
     final at = MedicineModels.readDay(source.body, 'at');
     return ListTile(
       key: ValueKey('medicine-place-${source.id}'),

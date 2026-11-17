@@ -16,7 +16,6 @@ void main() {
   const duesPending = {
     'habits',
     'maintenance',
-    'medicine',
     'occasions',
     'warranty',
     'words',
@@ -29,7 +28,6 @@ void main() {
     'gold',
     'habits',
     'maintenance',
-    'medicine',
     'occasions',
     'price_lens',
     'prompt_studio',

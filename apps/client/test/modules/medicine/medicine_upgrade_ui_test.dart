@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/medicine/medicine_detail.dart';
 import 'package:nex_client/modules/medicine/medicine_expiry_page.dart';
 import 'package:nex_client/modules/medicine/medicine_models.dart';
 import 'package:nex_client/modules/medicine/medicine_reminders.dart';
+import 'package:nex_client/modules/medicine/module.dart';
 import 'package:nex_client/modules/medicine/medicine_repository.dart';
 import 'package:nex_client/modules/medicine/medicine_today_page.dart';
 
@@ -64,7 +66,7 @@ void main() {
 
       final saved = (await store.list('source')).single;
       expect(saved.body['place'], 'Corner pharmacy');
-      expect(saved.body['price'], 125000);
+      expect(saved.body['priceRial'], 125000);
       expect(MedicineModels.readDay(saved.body, 'at'), isNotNull);
       expect(find.text('Corner pharmacy'), findsOneWidget);
       expect(find.textContaining('12,500 tomans'), findsOneWidget);
@@ -146,6 +148,55 @@ void main() {
       expect(store.armed.first.title, 'Medicine A');
       expect(store.armed.first.body, contains('Sara'));
       expect(store.armed.first.body, contains(time));
+    });
+
+    testWidgets('an every-day routine rings daily, needing no upkeep; '
+        'a weekday routine is planned a week ahead (2.8.4)', (tester) async {
+      final h = await upgradeHarness();
+      final store = ReminderStore(h.services);
+      final context = await pumpHost(tester);
+      await MedicineReminders.sync(context, store, [
+        medicineRecord('daily', {
+          'v': 3,
+          'name': 'Every day',
+          'times': ['08:00', '14:00', '20:00'],
+        }),
+        medicineRecord('week', {
+          'v': 3,
+          'name': 'Weekdays',
+          'times': ['08:00', '14:00', '20:00'],
+          'weekdays': [1, 2, 3, 4, 5, 6, 7],
+        }),
+      ]);
+      expect(store.daily, {
+        'med-daily-d0800',
+        'med-daily-d1400',
+        'med-daily-d2000',
+      });
+      final weekly = store.armed.where((a) => a.sourceId == 'week').toList();
+      // Three a day for a week — not the eight the first version stopped at.
+      expect(weekly.length, greaterThanOrEqualTo(21));
+      expect(weekly.every((a) => !store.daily.contains(a.key)), isTrue);
+    });
+
+    testWidgets('Nex keeps them ahead on start, without the cabinet opened '
+        '(2.8.4)', (tester) async {
+      final h = await upgradeHarness();
+      final store = ReminderStore(h.services);
+      await tester.runAsync(
+        () => store.put('medicine', 'm1', {
+          'v': 3,
+          'name': 'Medicine A',
+          'times': ['09:00'],
+        }),
+      );
+      await tester.runAsync(
+        () => const MedicineModule().keepUp(
+          store,
+          lookupAppLocalizations(const Locale('en')),
+        ),
+      );
+      expect(store.daily, {'med-m1-d0900'});
     });
 
     testWidgets('an archived medicine arms nothing', (tester) async {

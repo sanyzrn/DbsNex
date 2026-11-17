@@ -115,8 +115,15 @@ class MedicineModels {
       body['hardToFind'] == true;
 
   /// The person this medicine belongs to; '' means "me".
+  /// Whose medicine it is; '' for "me". Stored as `{"name": …}`, the shape
+  /// every module gives the other party (docs/18, rule 3, 2.8.4); a plain
+  /// string, as the upgrade first wrote it, still reads.
   static String readPerson(Map<String, Object?> body) =>
-      readString(body, 'person').trim();
+      switch (body['person']) {
+        {'name': final String name} => name.trim(),
+        final String name => name.trim(),
+        _ => '',
+      };
 
   /// Whether the record is archived. A missing field is false.
   static bool readArchived(Map<String, Object?> body) =>
@@ -169,7 +176,7 @@ class MedicineModels {
     'times': times,
     'days': days.trim(),
     'purpose': purpose,
-    'person': person.trim(),
+    if (person.trim().isNotEmpty) 'person': {'name': person.trim()},
     'quantity': ?quantity,
     'doseUnits': ?doseUnits,
     if (expiresAt != null) 'expiresAt': expiresAt.toIso8601String(),
@@ -231,9 +238,15 @@ class MedicineModels {
     'v': 1,
     'medicineId': medicineId,
     'place': place.trim(),
-    'price': ?priceRials,
+    // Money fields end in Rial (docs/18, rule 2; 2.8.4).
+    'priceRial': ?priceRials,
     'at': dayText(at),
   };
+
+  /// A place's price in whole rials; `price`, as the upgrade first wrote
+  /// it, still reads.
+  static int? readPriceRial(Map<String, Object?> body) =>
+      readCount(body, 'priceRial') ?? readCount(body, 'price');
 
   /// The two words a dose log can carry: taken or skipped.
   static const taken = 'taken';

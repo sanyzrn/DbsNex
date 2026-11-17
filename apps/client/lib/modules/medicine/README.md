@@ -37,6 +37,26 @@ whole-rial/toman-display rule the borrowed/lent module already uses, and the
 editor's Save sits below the scrolling form because the longer form otherwise
 pushed it out of reach at 320×480 with 2× text.
 
+## Maintainer review (2.8.4)
+
+Merged after checking the brief, `docs/18` and the design rules; changed:
+
+- **Reminders no longer wait for the cabinet to be opened.** They were
+  planned only on opening it, for at most eight moments a medicine — under
+  three days of a three-times-a-day routine — so whoever did not open the
+  module stopped being reminded. Now Nex keeps them ahead on every start and
+  return (`MedicineModule.keepUp`); an every-day routine uses the
+  platform's repeating daily reminder, which never runs out; other routines
+  are planned a full week ahead.
+- **The person is `{"name": …}`** (docs/18, rule 3), as every module gives
+  the other party; "me" is no `person` at all. The plain string this
+  upgrade first wrote still reads.
+- **A place's price is `priceRial`** (rule 2); `price` still reads.
+- **`duesBetween` and `summarize`** (`medicine_shared.dart`): each moment a
+  routine names, done once a log answers it, and each box's expiry; a line
+  per medicine with whose it is — all private. The module left the central
+  pending lists.
+
 ## What it does
 
 The cabinet is the home screen: a quiet hero with the count, a person filter,
@@ -65,7 +85,7 @@ nothing is fetched.
 
 - medicine v1/v2 readable; saved form v3: `name`, `strength`, `package`,
   `instructions`, `times`, `days`, `purpose`, `archived`, optional `quantity`,
-  `doseUnits`, `expiresAt`, `refillThreshold`, and the upgrade's `person`,
+  `doseUnits`, `expiresAt`, `refillThreshold`, and the upgrade's `person` (`{"name": …}`, absent for me),
   `weekdays` (1 = Monday … 7 = Sunday), `everyDays` (2…366), `startsOn`,
   `endsOn` (civil `yyyy-MM-dd`), `warnDays`, `hardToFind`. A record written
   before the upgrade simply lacks the new keys and reads as: me, every day, no
@@ -74,7 +94,8 @@ nothing is fetched.
   the routine moment a log answers). No dose field was renamed.
 - box v1: `medicineId`, `expiresAt` (civil day), optional `units`, `addedAt`
   (UTC stamp). Boxes never sum into `quantity`.
-- source v1: `medicineId`, `place`, optional `price` (whole rials), `at`
+- source v1: `medicineId`, `place`, optional `priceRial` (whole rials;
+  `price` from before the review still reads), `at`
   (civil day it was bought/looked).
 - settings v1, a single record with id `settings`: `secure` (bool). Absent =
   off. It is an ordinary record, so backup and remove-data cover it.
@@ -107,16 +128,16 @@ one time exist, so the module never invents a number. The warning is the
 person's own `warnDays` (default 10) and the mark appears when the estimate is
 at or under it. No clinical claim is attached to either.
 
-**Reminders are planned alarms, not a polling service.** On open (and after
-any save/archive/delete) the module asks the store whether reminders are on,
-asks every active medicine for its occurrences over the next seven days, and
-arms at most eight per medicine through `setReminder` with keys
-`med-<medicineId>-<yyyyMMddHHmm>`. Titles are the medicine's own name; bodies
-name the person and the time in the person's own string table. Alarms that no
-longer match the routine are withdrawn. If the platform refuses one, the sync
-stops quietly rather than retrying in a loop; a medicine with no times keeps
-the existing one-time control so nothing that used to work disappears. The
-module is still "Soon", so no alarm can be armed by the shell yet.
+**Reminders are planned alarms, kept ahead by Nex itself (2.8.4).** The plan
+is rebuilt when Nex starts and each time it comes back (`keepUp`), and when
+the cabinet is opened. A routine every day with no end rings through the
+platform's daily reminder, one per time (`med-<id>-dHHmm`), which keeps
+ringing however long the app stays closed; any other routine is planned as
+its concrete moments over the next eight days, up to 32 per medicine and 160
+for the cabinet (`med-<id>-<yyyyMMddHHmm>`). Titles are the medicine's own
+name; bodies name the person and the time. Alarms that no longer match are
+withdrawn. If the platform refuses one, the plan stops quietly rather than
+retrying in a loop.
 
 **Today never accuses anyone.** A moment is "no record", not "missed". Only the
 person's own tap writes a log. Stock leaves only through the same
