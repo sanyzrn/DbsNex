@@ -2238,5 +2238,9 @@
   "homeViewAsGrid": "نمایش شبکه‌ای",
   "homeViewAsList": "نمایش فهرستی",
   "layoutPinnedTools": "ابزارهای سنجاق‌شده",
-  "layoutPinnedToolsHint": "کاشی‌های کوچک و زنده، بالای یادداشت‌ها. برای سنجاق‌کردن یا برداشتن، روی هر کدام بزنید."
+  "layoutPinnedToolsHint": "کاشی‌های کوچک و زنده، بالای یادداشت‌ها. برای سنجاق‌کردن یا برداشتن، روی هر کدام بزنید.",
+  "cardPlay": "پخش",
+  "cardPause": "مکث",
+  "tilePdfPages": "{count, plural, other{{count} صفحه}}",
+  "tileMorePhotos": "+{count}"
 }

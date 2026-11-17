@@ -4,6 +4,15 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.2
+
+- **Photos that fill their tile.** In the grid, a photo now covers its whole tile, with its caption over it, and drifts gently as you scroll — a tall picture is seen whole, a little at a time.
+- **Several photos at a glance.** A note with more than one photo shows three of them side by side on its tile, and how many more there are.
+- **Videos and PDFs you can recognise.** A video's tile shows a frame from it with a play mark; a PDF's shows its first page and how many pages it has.
+- **Play voice notes from the card.** A voice note plays right on its card, in the grid and in the list, with its own waveform to tap or drag through. One plays at a time, and it stops when you open something else or leave the app.
+- **Tick checklists from the grid.** A checklist's tile shows a ring of how much is done, and a tap on an item ticks it without opening the note.
+- **Links with a face.** A link's tile shows the site as a coloured mark with its name, drawn from the address alone — nothing is fetched from the site.
+
 ## v2.8.1
 
 - **Five modules arrive.** Finished and reviewed, and ready to add from **Tools → Modules**:

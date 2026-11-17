@@ -18,6 +18,9 @@ NexCardStrings nexCardStrings(BuildContext context) {
   return NexCardStrings(
     urgentLabel: l10n.urgent,
     selectLabel: l10n.selectNotes,
+    checklistProgress: (done, total) => l10n.checklistProgress(done, total),
+    playLabel: l10n.cardPlay,
+    pauseLabel: l10n.cardPause,
     tagName: (tag) => nexTagLabel(tag, l10n),
     durationLabel: (milliseconds) {
       final seconds = milliseconds ~/ 1000;

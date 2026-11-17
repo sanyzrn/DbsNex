@@ -10,6 +10,7 @@ class _Body extends StatelessWidget {
     required this.tint,
     required this.muted,
     required this.outline,
+    this.onToggleItem,
   });
 
   final Note note;
@@ -19,6 +20,7 @@ class _Body extends StatelessWidget {
   final Color tint;
   final Color muted;
   final Color outline;
+  final ValueChanged<int>? onToggleItem;
 
   @override
   Widget build(BuildContext context) {
@@ -99,8 +101,6 @@ class _Body extends StatelessWidget {
           return (count, used);
         }
 
-        int fit(double height, TextStyle? style) =>
-            (height / lineOf(style)).floor().clamp(1, 40);
         Widget headingText(int lines) => Text(
           heading,
           maxLines: lines,
@@ -149,58 +149,133 @@ class _Body extends StatelessWidget {
         }
 
         if (note.type == NoteType.checklist) {
-          final items = note.checklistItems
-              .where((item) => item.text.trim().isNotEmpty)
-              .toList();
-          final open = [
-            ...items.where((i) => !i.done),
-            ...items.where((i) => i.done),
+          // Each item keeps its place in the list: that place is what a tick
+          // is told, whatever order the tile shows them in.
+          final items = [
+            for (final (i, item) in note.checklistItems.indexed)
+              if (item.text.trim().isNotEmpty) (index: i, item: item),
           ];
-          final rows = fit(
-            constraints.maxHeight - (heading.isEmpty ? 0 : lineOf(titleStyle)),
-            bodyStyle,
-          );
+          final open = [
+            ...items.where((e) => !e.item.done),
+            ...items.where((e) => e.item.done),
+          ];
+          final done = items.where((e) => e.item.done).length;
+          final toggle = onToggleItem;
+          // A row a finger can hit when the items can be ticked here (2.8.2),
+          // the line's own height when they are only shown.
+          final rowHeight = toggle == null
+              ? lineOf(bodyStyle)
+              : math.max(lineOf(bodyStyle), 30.0);
+          final head = math.max(lineOf(titleStyle), 22.0);
+          final rows = ((constraints.maxHeight - head) / rowHeight)
+              .floor()
+              .clamp(1, 40);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (heading.isNotEmpty) headingText(1),
-              for (final item in open.take(rows))
-                Row(
+              SizedBox(
+                height: head,
+                child: Row(
                   children: [
-                    Icon(
-                      item.done
-                          ? Icons.check_box_rounded
-                          : Icons.check_box_outline_blank_rounded,
-                      size: 15,
-                      color: item.done ? tint : outline,
-                    ),
-                    const SizedBox(width: 6),
                     Expanded(
-                      child: Text(
-                        item.text,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textDirection: nexDirectionOf(item.text),
-                        style: bodyStyle?.copyWith(
-                          color: item.done ? muted : scheme.onSurface,
-                          decoration: item.done
-                              ? TextDecoration.lineThrough
-                              : null,
-                        ),
-                      ),
+                      child: heading.isNotEmpty
+                          ? headingText(1)
+                          : Text(
+                              strings.checklistProgress?.call(
+                                    done,
+                                    items.length,
+                                  ) ??
+                                  '$done/${items.length}',
+                              maxLines: 1,
+                              style: bodyStyle?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(width: NexSpacing.xs),
+                    _ProgressRing(
+                      key: const ValueKey('grid-checklist-ring'),
+                      done: done,
+                      total: items.length,
+                      tint: tint,
+                      track: outline,
                     ),
                   ],
+                ),
+              ),
+              for (final entry in open.take(rows))
+                _ItemRow(
+                  key: ValueKey('grid-item-${entry.index}'),
+                  text: entry.item.text,
+                  done: entry.item.done,
+                  height: rowHeight,
+                  tint: tint,
+                  outline: outline,
+                  muted: muted,
+                  style: bodyStyle,
+                  onTap: toggle == null
+                      ? null
+                      : () {
+                          nexTick();
+                          toggle(entry.index);
+                        },
                 ),
             ],
           );
         }
 
-        final extra = switch (note.type) {
-          NoteType.voice when (note.durationMs ?? 0) > 0 =>
-            strings.durationLabel?.call(note.durationMs!),
-          NoteType.link => Uri.tryParse(note.linkUrl ?? '')?.host,
-          _ => null,
-        };
+        if (note.isAudioMedia && uri != null) {
+          // The recording plays from the tile (2.8.2): its words above, as
+          // many whole lines as fit, and the player at the foot.
+          const strip = 44.0;
+          final room = constraints.maxHeight - strip - NexSpacing.xs;
+          final words = heading.isNotEmpty ? heading : body;
+          final style = heading.isNotEmpty ? titleStyle : bodyStyle;
+          final lines = words.isEmpty ? 0 : fitting(words, style, room).$1;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (lines > 0)
+                Text(
+                  words,
+                  maxLines: lines,
+                  overflow: TextOverflow.ellipsis,
+                  textDirection: nexDirectionOf(words),
+                  style: style,
+                ),
+              // Nothing written: the recording is the note, so it has the
+              // tile, a little larger and in the middle of it.
+              Spacer(flex: lines > 0 ? 1 : 2),
+              SizedBox(
+                height: lines > 0 ? strip : strip + 12,
+                child: NexCardVoice(
+                  note: note,
+                  tint: tint,
+                  durationLabel:
+                      strings.durationLabel ?? nexDefaultDurationLabel,
+                  playLabel: strings.playLabel ?? 'Play',
+                  pauseLabel: strings.pauseLabel ?? 'Pause',
+                  height: lines > 0 ? strip : strip + 12,
+                ),
+              ),
+              if (lines == 0) const Spacer(flex: 3),
+            ],
+          );
+        }
+
+        if (note.type == NoteType.link) {
+          return _SiteCard(
+            note: note,
+            title: heading.isNotEmpty ? heading : body,
+            tint: tint,
+            muted: muted,
+            titleStyle: titleStyle,
+            bodyStyle: bodyStyle,
+            fitting: fitting,
+            height: constraints.maxHeight,
+          );
+        }
+
         final rest = body;
         final restStyle = heading.isEmpty
             ? bodyStyle?.copyWith(color: scheme.onSurface)
@@ -219,9 +294,7 @@ class _Body extends StatelessWidget {
             headLines++;
           }
         }
-        final used =
-            headHeight +
-            (extra == null || extra.isEmpty ? 0 : lineOf(bodyStyle) + 2);
+        final used = headHeight;
         // A text note's caption sits under its words, quiet, as on the list
         // card — it used to be left off the tile altogether (2.7.2). Up to
         // two lines, and never so many that the note's own words lose their
@@ -257,30 +330,6 @@ class _Body extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (heading.isNotEmpty) headingText(headLines),
-            if (extra != null && extra.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Row(
-                  children: [
-                    Icon(
-                      note.type == NoteType.voice
-                          ? Icons.graphic_eq_rounded
-                          : Icons.public_rounded,
-                      size: 14,
-                      color: tint,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        extra,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: bodyStyle?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             if (rest.isNotEmpty && restLines > 0)
               Flexible(
                 child: Text(
@@ -312,3 +361,244 @@ class _Body extends StatelessWidget {
 /// Line heights already measured, by text, width, style, text scale and
 /// locale — see `_Body`'s `linesOf`.
 final _lineHeights = <Object, List<double>>{};
+
+/// How much of a checklist is done, as a ring with the count inside.
+class _ProgressRing extends StatelessWidget {
+  const _ProgressRing({
+    super.key,
+    required this.done,
+    required this.total,
+    required this.tint,
+    required this.track,
+  });
+
+  final int done;
+  final int total;
+  final Color tint;
+  final Color track;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = total == 0 ? 0.0 : done / total;
+    final complete = total > 0 && done == total;
+    return SizedBox.square(
+      dimension: 22,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(end: value),
+            duration: NexMotion.of(context, NexMotion.slow),
+            curve: NexMotion.curve,
+            builder: (context, v, _) => CircularProgressIndicator(
+              value: v,
+              strokeWidth: 2.5,
+              strokeCap: StrokeCap.round,
+              color: tint,
+              backgroundColor: track.withValues(alpha: 0.35),
+            ),
+          ),
+          if (complete) Icon(Icons.check_rounded, size: 13, color: tint),
+        ],
+      ),
+    );
+  }
+}
+
+/// One item of a checklist on its tile: the whole row ticks it (2.8.2), a
+/// row tall enough for a finger rather than a box too small to hit inside a
+/// tile that opens on any other touch.
+class _ItemRow extends StatelessWidget {
+  const _ItemRow({
+    super.key,
+    required this.text,
+    required this.done,
+    required this.height,
+    required this.tint,
+    required this.outline,
+    required this.muted,
+    required this.style,
+    required this.onTap,
+  });
+
+  final String text;
+  final bool done;
+  final double height;
+  final Color tint;
+  final Color outline;
+  final Color muted;
+  final TextStyle? style;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final row = SizedBox(
+      height: height,
+      child: Row(
+        children: [
+          AnimatedSwitcher(
+            duration: NexMotion.of(context, NexMotion.pop),
+            switchInCurve: NexMotion.popCurve,
+            transitionBuilder: (child, animation) =>
+                ScaleTransition(scale: animation, child: child),
+            child: Icon(
+              done
+                  ? Icons.check_box_rounded
+                  : Icons.check_box_outline_blank_rounded,
+              key: ValueKey(done),
+              size: 16,
+              color: done ? tint : outline,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textDirection: nexDirectionOf(text),
+              style: style?.copyWith(
+                color: done ? muted : scheme.onSurface,
+                decoration: done ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    final tap = onTap;
+    if (tap == null) return row;
+    return Semantics(
+      checked: done,
+      button: true,
+      label: text,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: tap,
+        borderRadius: BorderRadius.circular(NexRadius.sm),
+        child: row,
+      ),
+    );
+  }
+}
+
+/// A link's tile: the site as a mark in a colour of its own, its name, and
+/// what the page is called (2.8.2).
+///
+/// No picture is fetched from the site for it. A preview image is a request
+/// to the page's server every time a link is saved, from a library that is
+/// otherwise offline and private; the mark is drawn from the address alone,
+/// and the same site always gets the same colour.
+class _SiteCard extends StatelessWidget {
+  const _SiteCard({
+    required this.note,
+    required this.title,
+    required this.tint,
+    required this.muted,
+    required this.titleStyle,
+    required this.bodyStyle,
+    required this.fitting,
+    required this.height,
+  });
+
+  final Note note;
+  final String title;
+  final Color tint;
+  final Color muted;
+  final TextStyle? titleStyle;
+  final TextStyle? bodyStyle;
+  final (int, double) Function(String, TextStyle?, double) fitting;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final host = (Uri.tryParse(note.linkUrl ?? '')?.host ?? '').replaceFirst(
+      RegExp(r'^www\.'),
+      '',
+    );
+    final name = host.isEmpty ? '' : host.split('.').first;
+    final letter = name.isEmpty ? '#' : name.characters.first.toUpperCase();
+    // The same site, the same colour: a hue from its address.
+    final hue =
+        host.codeUnits.fold<int>(7, (h, c) => (h * 31 + c) & 0xffff) % 360;
+    final dark = scheme.brightness == Brightness.dark;
+    final mark = HSLColor.fromAHSL(
+      1,
+      hue.toDouble(),
+      0.55,
+      dark ? 0.62 : 0.46,
+    ).toColor();
+    const markSize = 34.0;
+    // A title that is only the address again says nothing the mark does not.
+    final bare = title.trim().toLowerCase().replaceFirst(
+      RegExp(r'^(https?://)?(www\.)?'),
+      '',
+    );
+    final words =
+        title.trim() == (note.linkUrl ?? '').trim() ||
+            bare == host.toLowerCase() ||
+            bare.startsWith('${host.toLowerCase()}/') && !title.contains(' ')
+        ? ''
+        : title;
+    final lines = words.isEmpty
+        ? 0
+        : fitting(words, titleStyle, height - markSize - NexSpacing.sm).$1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: markSize,
+              height: markSize,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(NexRadius.md),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [mark, Color.lerp(mark, tint, 0.45)!],
+                ),
+              ),
+              child: Text(
+                letter,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: nexReadableOn(Colors.white, mark),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: NexSpacing.sm),
+            Expanded(
+              child: Text(
+                host.isEmpty ? (note.linkUrl ?? '') : host,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textDirection: TextDirection.ltr,
+                textAlign: Directionality.of(context) == TextDirection.rtl
+                    ? TextAlign.right
+                    : TextAlign.left,
+                style: bodyStyle?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (lines > 0) ...[
+          const SizedBox(height: NexSpacing.sm),
+          Text(
+            words,
+            maxLines: lines,
+            overflow: TextOverflow.ellipsis,
+            textDirection: nexDirectionOf(words),
+            style: titleStyle,
+          ),
+        ],
+      ],
+    );
+  }
+}

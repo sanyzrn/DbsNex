@@ -36,6 +36,9 @@ class NexCardStrings {
     this.attachedLabel = _defaultAttachedLabel,
     this.urgentLabel = 'Urgent',
     this.selectLabel = 'Select',
+    this.checklistProgress,
+    this.playLabel,
+    this.pauseLabel,
   });
 
   /// English default, for tests and for anything that has not been localised
@@ -103,6 +106,13 @@ class NexCardStrings {
   /// What the card's icon does when it can be tapped on its own: pick the
   /// note, as in a mail app's list.
   final String selectLabel;
+
+  /// "3 of 5" — a checklist's progress, on a grid tile (2.8.2).
+  final String Function(int done, int total)? checklistProgress;
+
+  /// What Play and Pause on a card's recording are called (2.8.2).
+  final String? playLabel;
+  final String? pauseLabel;
 
   /// Full schedule for the tooltip and screen reader.
   final String Function(DateTime due, NoteRepeat repeat)? dueDescription;

@@ -34,6 +34,22 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.2 — tiles that show their notes
+
+- `nexTileBackdropOf` picks a grid tile's picture (photo, collage, video,
+  PDF); `_MediaTile` (note_grid_media.dart) draws it edge to edge with
+  fall-offs, a press dim (ink splashes paint under children) and a fallback
+  to the word tile when no frame/page can be had. `NexParallaxImage` drifts a
+  picture with a `Flow` repainting from the scroll position — no rebuilds.
+  `NexTilePreviews` keeps video frames and PDF pages in memory only (32 MB).
+- `NexCardAudio`: one card player app-wide (just_audio), stopped by
+  `NexCardAudioObserver` on a page push, by the detail sheet's own player
+  and when the app is backgrounded; `NexCardVoice` / `NexCardVoicePreview`
+  on grid tiles and through `NoteCard.previewOverride`. `AudioWaveform`
+  takes colours and remembers peaks in memory.
+- Checklist tiles tick through `onToggleItem` (the item's own index) with a
+  progress ring; link tiles draw an offline site monogram.
+
 ### 2.8.1 — what 2.8.0 drew for almost nobody
 
 - `NoteCard` keeps its kind-coloured edge under `nexVisualStyle.minimal`, and

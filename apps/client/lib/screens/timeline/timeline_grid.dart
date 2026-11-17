@@ -13,6 +13,10 @@ const _gridFoldRows = 8;
 /// from — so what a swipe does in the list is in the tile's hold menu, which
 /// is the same menu the list's cards open.
 extension _TimelineGrid on TimelineScreenState {
+  /// Where a collage tile's other pictures come from.
+  NexTilePhotos get _tilePhotos =>
+      (note) => _tilePhotosOf(widget.services, note);
+
   /// How far down the grid the [index]th note starts, at least — the
   /// reveal's first jump, as `index * rowHeight` is the list's.
   double _gridOffsetEstimate(int index) {
@@ -187,10 +191,31 @@ extension _TimelineGrid on TimelineScreenState {
               onLeadingTap: () => _pickNote(note),
               selected: _selecting ? _selected.contains(note.id) : null,
               ringing: widget.services.ringing.value.contains(note.id),
+              photos: _tilePhotos,
+              // Ticked where it is seen (2.8.2); not while notes are being
+              // picked, when a touch on a tile picks it.
+              onToggleItem: _selecting
+                  ? null
+                  : (index) => unawaited(
+                      widget.services.toggleChecklistItem(note.id, index),
+                    ),
             ),
           ),
         ),
       ),
     ),
   );
+}
+
+/// A photo note's other pictures, for its collage tile: the photo
+/// attachments' files, in their order (2.8.2).
+Future<List<String>> _tilePhotosOf(NexServices services, Note note) async {
+  final attached = await services.attachmentsFor(note.id);
+  return [
+    for (final a in attached)
+      if (a.deletedAt == null &&
+          (a.kind == AttachmentKind.photo ||
+              (a.mimeType?.startsWith('image/') ?? false)))
+        a.mediaUri,
+  ];
 }
