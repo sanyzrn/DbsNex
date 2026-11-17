@@ -5,6 +5,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'car_logic.dart';
 import 'car_reminder_sheet.dart';
+import 'car_reminders.dart';
 import 'controller.dart';
 import 'editor_draft.dart';
 import 'maintenance_widgets.dart';
@@ -126,6 +127,7 @@ class CarExpiryRow extends StatelessWidget {
       inspectionLeadDays: asset.inspectionLeadDays,
       archived: asset.archived,
     );
+    final l10n = AppLocalizations.of(context);
     try {
       await controller.saveAsset(
         next,
@@ -134,6 +136,8 @@ class CarExpiryRow extends StatelessWidget {
           itemKey == 'insurance' ? 'insuranceExpiresAt' : 'inspectionExpiresAt',
         ],
       );
+      // A renewed date moves its reminder with it (2.8.4).
+      await CarReminders.planOne(controller.store, asset.id, l10n);
     } catch (_) {
       if (context.mounted) maintenanceWriteFailure(context);
     }
@@ -212,13 +216,21 @@ class CarExpiryRow extends StatelessWidget {
                         ),
                       ),
                     ),
-              icon: const Icon(Icons.notifications_outlined),
+              icon: Icon(
+                CarReminders.on(asset, itemKey)
+                    ? Icons.notifications_active_outlined
+                    : Icons.notifications_outlined,
+              ),
               label: Text(
-                s(context, 'carRemind', {
-                  'n': NexModuleStrings.persian(context)
-                      ? persianDigits('$leadDays')
-                      : '$leadDays',
-                }),
+                s(
+                  context,
+                  CarReminders.on(asset, itemKey) ? 'carRemindOn' : 'carRemind',
+                  {
+                    'n': NexModuleStrings.persian(context)
+                        ? persianDigits('$leadDays')
+                        : '$leadDays',
+                  },
+                ),
               ),
             ),
           ],

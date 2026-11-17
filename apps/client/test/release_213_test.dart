@@ -235,6 +235,7 @@ void main() {
         'parking',
         'medicine',
         'cheques',
+        'maintenance',
       });
       expect(
         NexModuleAlarms.moduleId('a', 'b:c'),

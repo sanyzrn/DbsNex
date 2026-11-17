@@ -15,7 +15,6 @@ void main() {
   /// them through `duesBetween`.
   const duesPending = {
     'habits',
-    'maintenance',
     'occasions',
     'warranty',
     'words',
@@ -27,7 +26,6 @@ void main() {
     'expenses',
     'gold',
     'habits',
-    'maintenance',
     'occasions',
     'price_lens',
     'prompt_studio',

@@ -15,10 +15,11 @@
   request back to `main`. Never resume the retired `codex/2.0-polish` branch.
 - Available modules are **Cycle, Breathing break (Pause), Birthdays & occasions,
   Word by Word, Habits, Converter, Warranties, Gold, Quit Habits, Lent &
-  Borrowed, Prompt Studio, Security toolbox, Parking and Medicine** (`cycle`,
+  Borrowed, Prompt Studio, Security toolbox, Parking, Medicine, Cheques &
+  instalments and Maintenance** (`cycle`,
   `pause`, `occasions`, `words`, `habits`, `converter`, `warranty`, `gold`,
   `smoke_free`, `lent_borrowed`, `prompt_studio`, `security_tools`,
-  `parking`, `medicine`). The authoritative rollout list is
+  `parking`, `medicine`, `cheques`, `maintenance`). The authoritative rollout list is
   `apps/client/lib/modules/module_rollout.dart`; installed and active modules
   are resolved through `nexModulesOn`. Other modules remain **Soon**. The
   owner's rule (2.8.4): a module is made available **as soon as its review is

@@ -38,6 +38,7 @@ const nexAvailableModuleIds = {
   'parking',
   'medicine',
   'cheques',
+  'maintenance',
 };
 
 /// Windows, Linux and macOS. The modules are made for the phone; the desktop

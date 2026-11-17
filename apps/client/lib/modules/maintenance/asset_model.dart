@@ -14,6 +14,8 @@ class MaintenanceAsset {
     this.inspectionExpiresAt,
     this.insuranceLeadDays = defaultCarLeadDays,
     this.inspectionLeadDays = defaultCarLeadDays,
+    this.insuranceRemind = false,
+    this.inspectionRemind = false,
     this.archived = false,
     this.valid = true,
     this.source,
@@ -55,6 +57,12 @@ class MaintenanceAsset {
   final int insuranceLeadDays;
   final int inspectionLeadDays;
 
+  /// Whether the person turned each reminder on (2.8.4). The alarm itself is
+  /// planned from these and the dates — when a date is changed, when Nex
+  /// starts or returns — so it always follows the date written here.
+  final bool insuranceRemind;
+  final bool inspectionRemind;
+
   /// Archived assets keep their full history but leave the home view.
   final bool archived;
 
@@ -78,6 +86,8 @@ class MaintenanceAsset {
         'inspectionExpiresAt': inspectionExpiresAt!.toIso8601String(),
       'insuranceLeadDays': insuranceLeadDays,
       'inspectionLeadDays': inspectionLeadDays,
+      if (insuranceRemind) 'insuranceRemind': true,
+      if (inspectionRemind) 'inspectionRemind': true,
     },
     'archived': archived,
     'schema': 2,
@@ -149,6 +159,8 @@ class MaintenanceAsset {
       inspectionExpiresAt: carDate('inspectionExpiresAt'),
       insuranceLeadDays: leadDays('insuranceLeadDays'),
       inspectionLeadDays: leadDays('inspectionLeadDays'),
+      insuranceRemind: body['insuranceRemind'] == true,
+      inspectionRemind: body['inspectionRemind'] == true,
       archived: body['archived'] == true,
       valid: valid,
       source: Map.of(body),

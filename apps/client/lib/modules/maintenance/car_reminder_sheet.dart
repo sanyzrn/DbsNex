@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'car_logic.dart';
+import 'car_reminders.dart';
 import 'controller.dart';
 import 'local_values.dart';
 import 'maintenance_widgets.dart';
@@ -71,53 +72,18 @@ class _CarReminderSheetState extends State<CarReminderSheet> {
       _busy = true;
       _error = null;
     });
-    // Captured before the write: the words do not read a context across an
-    // await.
-    final title = AppLocalizations.of(context).cycleNotifyTitle;
-    final body = maintenanceStrings(context, 'carReminderBody', {
-      'item': widget.label,
-      'car': widget.asset.nickname,
-      'date': fullDateLabel(context, widget.date),
-    });
+    // Captured before the write: nothing reads a context across an await.
+    final l10n = AppLocalizations.of(context);
     final savedMessage = maintenanceStrings(context, 'carReminderSaved');
     final notSet = maintenanceStrings(context, 'carReminderNotSet');
     try {
-      final next = MaintenanceAsset(
-        id: widget.asset.id,
-        nickname: widget.asset.nickname,
-        type: widget.asset.type,
-        model: widget.asset.model,
-        purchasedAt: widget.asset.purchasedAt,
-        notes: widget.asset.notes,
-        meterKind: widget.asset.meterKind,
-        distanceUnit: widget.asset.distanceUnit,
-        insuranceExpiresAt: widget.asset.insuranceExpiresAt,
-        inspectionExpiresAt: widget.asset.inspectionExpiresAt,
-        insuranceLeadDays: widget.itemKey == 'insurance'
-            ? days
-            : widget.asset.insuranceLeadDays,
-        inspectionLeadDays: widget.itemKey == 'inspection'
-            ? days
-            : widget.asset.inspectionLeadDays,
-        archived: widget.asset.archived,
+      await _write(days: days, on: true);
+      final ok = await CarReminders.planOne(
+        widget.controller.store,
+        widget.asset.id,
+        l10n,
       );
-      await widget.controller.saveAsset(
-        next,
-        existing: widget.asset,
-        editedKeys: [
-          widget.itemKey == 'insurance'
-              ? 'insuranceLeadDays'
-              : 'inspectionLeadDays',
-        ],
-      );
-      final ok = await widget.controller.store.setReminder(
-        '${widget.itemKey}:${widget.asset.id}',
-        sourceKind: 'asset',
-        sourceId: widget.asset.id,
-        at: CarLogic.reminderAt(widget.date, days),
-        title: title,
-        body: body,
-      );
+      if (!ok) await _write(days: days, on: false);
       if (!mounted) return;
       if (ok) {
         Navigator.pop(context);
@@ -134,6 +100,61 @@ class _CarReminderSheetState extends State<CarReminderSheet> {
         setState(() {
           _busy = false;
           _error = notSet;
+        });
+      }
+    }
+  }
+
+  bool get _on => CarReminders.on(widget.asset, widget.itemKey);
+
+  /// Writes this item's lead time and whether its reminder is on.
+  Future<void> _write({required int days, required bool on}) {
+    final insurance = widget.itemKey == 'insurance';
+    final a = widget.asset;
+    return widget.controller.saveAsset(
+      MaintenanceAsset(
+        id: a.id,
+        nickname: a.nickname,
+        type: a.type,
+        model: a.model,
+        purchasedAt: a.purchasedAt,
+        notes: a.notes,
+        meterKind: a.meterKind,
+        distanceUnit: a.distanceUnit,
+        insuranceExpiresAt: a.insuranceExpiresAt,
+        inspectionExpiresAt: a.inspectionExpiresAt,
+        insuranceLeadDays: insurance ? days : a.insuranceLeadDays,
+        inspectionLeadDays: insurance ? a.inspectionLeadDays : days,
+        insuranceRemind: insurance ? on : a.insuranceRemind,
+        inspectionRemind: insurance ? a.inspectionRemind : on,
+        archived: a.archived,
+      ),
+      existing: a,
+      editedKeys: ['${widget.itemKey}LeadDays', '${widget.itemKey}Remind'],
+    );
+  }
+
+  /// Turns this reminder off: the flag goes and so does the alarm.
+  Future<void> _turnOff() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final message = maintenanceStrings(context, 'carReminderOffDone');
+    final notSaved = maintenanceStrings(context, 'carReminderNotSet');
+    try {
+      final lead = CarReminders.leadDays(widget.asset, widget.itemKey);
+      await _write(days: lead, on: false);
+      await widget.controller.store.clearReminder(
+        CarReminders.key(widget.itemKey, widget.asset.id),
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      NexBannerHost.of(context)
+          ?.show(kind: NexBannerKind.done, message: message);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = notSaved;
         });
       }
     }
@@ -224,6 +245,17 @@ class _CarReminderSheetState extends State<CarReminderSheet> {
                 child: Text(s(context, 'carReminderTitle')),
               ),
             ),
+            if (_on) ...[
+              const SizedBox(height: NexSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  key: const ValueKey('maintenance-car-reminder-off'),
+                  onPressed: _busy ? null : _turnOff,
+                  child: Text(s(context, 'carReminderOff')),
+                ),
+              ),
+            ],
           ],
         ),
       ),

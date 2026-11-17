@@ -51,6 +51,29 @@ Not done, and why:
 - **Photos, receipts and live sensors** remain outside the module
   (Platform requests).
 
+## Maintainer review (2.8.4)
+
+Reviewed, completed and made available in 2.8.4.
+
+- **The car's reminders follow its dates.** Before, a reminder was armed once
+  from the sheet: a renewed insurance kept ringing on the old date, an
+  archived car still rang, and nothing turned a reminder off. The car now
+  stores whether each reminder is on (`insuranceRemind` /
+  `inspectionRemind`, written only when true), and `CarReminders.plan` sets
+  or withdraws the alarm from the dates and lead times: when a date or lead
+  time changes on the page, and when Nex starts or returns (the module's
+  `keepUp`). An alarm already set for the same moment is not set again. The
+  sheet has **Turn this reminder off**, and a refused alarm (no permission)
+  does not leave the reminder marked as on.
+- **Shared shapes** (docs/18, rules 1 and 4): `MaintenanceShared.duesBetween`
+  gives insurance and inspection expiries and every service whose rule
+  knows a date; `summarize` gives a line per asset, service, rule, fill-up
+  and rate in the person's words, and nothing for readings, drafts or
+  journals. The module is off both pending lists.
+- Checked: the fuel month is the Jalali month for a solar reader; tomans are
+  converted to whole rials exactly and a fraction below a rial is refused;
+  every screen in English light and Persian dark (gallery in `review/`).
+
 ## What it does
 
 An offline service log for the things a person looks after, with the car as

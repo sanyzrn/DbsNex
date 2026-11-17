@@ -265,9 +265,11 @@ void main() {
 
       final saved = (await store.get('asset', 'a1'))!;
       expect(saved['insuranceLeadDays'], 20);
-      // The module is not rolled out in a test build, so the platform
-      // refuses to schedule; the sheet says so instead of pretending.
+      // A test build has no notification permission, so the platform
+      // refuses to schedule; the sheet says so instead of pretending, and
+      // the reminder is not left marked as on.
       expect(find.textContaining('The reminder was not set'), findsOneWidget);
+      expect(saved.containsKey('insuranceRemind'), isFalse);
     });
 
     testWidgets('a fill-up adds to this month at the chosen rate', (
