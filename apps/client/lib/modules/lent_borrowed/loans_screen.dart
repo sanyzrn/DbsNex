@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'cards_screen.dart';
 import 'irr_unit.dart';
 import 'loan_edit_sheet.dart';
 import 'loan_filter.dart';
@@ -11,8 +12,10 @@ import 'loan_settings.dart';
 import 'loans_screen_body.dart';
 import 'module.dart';
 import 'people_screen.dart';
+import 'splits_screen.dart';
 import 'record_bundle.dart';
 import 'store_state.dart';
+import 'upgrade_strings.dart';
 
 /// The overview: Lent and Borrowed never mix, outstanding comes before
 /// settled, and a due date that has passed is said plainly, at the top,
@@ -113,6 +116,29 @@ class _LoansScreenState extends State<LoansScreen>
     if (saved) setState(() => _unit = unit);
   }
 
+  Future<void> _onMenu(_MenuAction action) async {
+    switch (action) {
+      case _MenuAction.toman:
+        await _setUnit(IrrUnit.toman);
+      case _MenuAction.rial:
+        await _setUnit(IrrUnit.rial);
+      case _MenuAction.splits:
+        if (!mounted) return;
+        await Navigator.push(
+          context,
+          NexPageRoute<void>(
+            builder: (_) => SplitsScreen(store: widget.store, unit: _unit),
+          ),
+        );
+      case _MenuAction.cards:
+        if (!mounted) return;
+        await Navigator.push(
+          context,
+          NexPageRoute<void>(builder: (_) => CardsScreen(store: widget.store)),
+        );
+    }
+  }
+
   Widget _searchBar(BuildContext context) {
     final strings = lentStrings;
     return Padding(
@@ -197,21 +223,29 @@ class _LoansScreenState extends State<LoansScreen>
               ),
             ),
           ),
-          NexPopupMenuButton<IrrUnit>(
+          NexPopupMenuButton<_MenuAction>(
             key: const ValueKey('loans-units'),
             tooltip: strings(context, 'unitLabel'),
             icon: const Icon(Icons.tune),
-            onSelected: (unit) => unawaited(_setUnit(unit)),
+            onSelected: (value) => unawaited(_onMenu(value)),
             itemBuilder: (context) => [
               // A menu that chooses a value: no icons, per the design
               // language's menu rules.
               nexMenuItem(
-                value: IrrUnit.toman,
+                value: _MenuAction.toman,
                 label: strings(context, 'unitToman'),
               ),
               nexMenuItem(
-                value: IrrUnit.rial,
+                value: _MenuAction.rial,
                 label: strings(context, 'unitRial'),
+              ),
+              nexMenuItem(
+                value: _MenuAction.splits,
+                label: upgradeWord(context, 'splitsTitle'),
+              ),
+              nexMenuItem(
+                value: _MenuAction.cards,
+                label: upgradeWord(context, 'cardsTitle'),
               ),
             ],
           ),
@@ -296,3 +330,7 @@ class _LoansScreenState extends State<LoansScreen>
     );
   }
 }
+
+/// What the list's menu offers: the reading unit, and the two pages that
+/// belong to the module but not to the loan list itself.
+enum _MenuAction { toman, rial, splits, cards }
