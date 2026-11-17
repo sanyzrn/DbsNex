@@ -296,7 +296,7 @@ class NexDensityPreview extends StatelessWidget {
                         height: 2,
                         decoration: BoxDecoration(
                           color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(1),
+                          borderRadius: BorderRadius.circular(NexRadius.xs / 2),
                         ),
                       ),
                     ),
