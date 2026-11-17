@@ -20,6 +20,7 @@ import 'package:flutter/foundation.dart'
 /// completed and reviewed, in 2.7.2. In 2.8.1, reviewed and completed by the
 /// module agents: Gold, Quit Habits (`smoke_free`) and Lent & Borrowed come
 /// back, and two new ones arrive — Prompt Studio and the Security toolbox.
+/// In 2.8.4, finished to their briefs and reviewed: Parking and Medicine.
 const nexAvailableModuleIds = {
   'cycle',
   'pause',
@@ -33,6 +34,8 @@ const nexAvailableModuleIds = {
   'lent_borrowed',
   'prompt_studio',
   'security_tools',
+  'parking',
+  'medicine',
 };
 
 /// Windows, Linux and macOS. The modules are made for the phone; the desktop

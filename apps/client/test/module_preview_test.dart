@@ -24,7 +24,8 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('ten add-ons are back, the other five are Soon; their code stays', () {
+  test('twelve add-ons are back, the other three are Soon; their code '
+      'stays', () {
     // Cycle; Pause, which is first-party; and the add-ons reviewed and turned
     // on since 2.4.0 — five more of them in 2.8.1.
     const back = {
@@ -38,6 +39,9 @@ void main() {
       'lent_borrowed',
       'prompt_studio',
       'security_tools',
+      // 2.8.4.
+      'parking',
+      'medicine',
     };
     expect(nexAvailableModuleIds, {'cycle', 'pause', ...back});
     expect(reviewed, back);
@@ -50,12 +54,12 @@ void main() {
   test(
     'a paused add-on keeps its installation choice and is not active',
     () async {
-      await harness.preferences.setModuleOn('parking', true);
-      expect(harness.preferences.isModuleOn('parking'), isTrue);
+      await harness.preferences.setModuleOn('price_lens', true);
+      expect(harness.preferences.isModuleOn('price_lens'), isTrue);
       expect(nexModulesOn(harness.preferences), isEmpty);
       final reloaded = await NexPreferences.load();
       addTearDown(reloaded.dispose);
-      expect(reloaded.isModuleOn('parking'), isTrue);
+      expect(reloaded.isModuleOn('price_lens'), isTrue);
     },
   );
 
