@@ -84,12 +84,6 @@ const List<NexModulePlan> nexModulePlans = [
     NexModuleStage.soon,
   ),
   NexModulePlan(
-    'security-tools',
-    Icons.security_outlined,
-    NexHue.sky,
-    NexModuleStage.soon,
-  ),
-  NexModulePlan(
     'persian-calendar',
     Icons.calendar_month_outlined,
     NexHue.sky,
