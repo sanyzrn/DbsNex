@@ -2291,7 +2291,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingCaptureBody =>
-      'Type it, say it, photograph it or share it from another app. A note exists the moment it has something in it, and it lands at the top of one timeline — no folders to choose first.';
+      'Type it, say it, photograph it or share it from another app. A note exists the moment it has something in it and lands on your timeline — as a list or a grid, by time, type or tag. Give it a reminder and it comes back when it matters.';
 
   @override
   String get onboardingSetupTitle => 'A few quick choices';
@@ -6703,4 +6703,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remindClearsOnCard => 'Removed when done';
+
+  @override
+  String get onboardingModulesTitle => 'Small tools, when you want them';
+
+  @override
+  String get onboardingModulesBody =>
+      'Nex is notes first. Beside them you can add small tools — habits, birthdays, medicines, cheques and instalments, parking, gold and more. Each stays off until you add it and keeps its own data. Tap any to add it now, or later from Tools.';
 }

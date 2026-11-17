@@ -3659,7 +3659,7 @@ abstract class AppLocalizations {
   /// Onboarding page 2 body
   ///
   /// In en, this message translates to:
-  /// **'Type it, say it, photograph it or share it from another app. A note exists the moment it has something in it, and it lands at the top of one timeline — no folders to choose first.'**
+  /// **'Type it, say it, photograph it or share it from another app. A note exists the moment it has something in it and lands on your timeline — as a list or a grid, by time, type or tag. Give it a reminder and it comes back when it matters.'**
   String get onboardingCaptureBody;
 
   /// Onboarding page 5 heading
@@ -10237,6 +10237,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Removed when done'**
   String get remindClearsOnCard;
+
+  /// No description provided for @onboardingModulesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Small tools, when you want them'**
+  String get onboardingModulesTitle;
+
+  /// No description provided for @onboardingModulesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex is notes first. Beside them you can add small tools — habits, birthdays, medicines, cheques and instalments, parking, gold and more. Each stays off until you add it and keeps its own data. Tap any to add it now, or later from Tools.'**
+  String get onboardingModulesBody;
 }
 
 class _AppLocalizationsDelegate

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../modules/module_registry.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/nex_brand.dart';
@@ -14,6 +15,7 @@ import 'guide_screen.dart';
 import '../widgets/timeline_view_choice.dart';
 
 part 'onboarding/onboarding_art.dart';
+part 'onboarding/onboarding_modules.dart';
 part 'onboarding/onboarding_scenes.dart';
 part 'onboarding/onboarding_setup.dart';
 
@@ -55,7 +57,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   int _page = 0;
 
-  static const _pageCount = 5;
+  /// Offered where there are any (2.8.4): on a desktop there are none.
+  late final _modules = _onboardingModules();
+  int get _pageCount => _modules.isEmpty ? 5 : 6;
   bool get _onSetup => _page == _pageCount - 1;
   bool get _hasName => _name.text.trim().isNotEmpty;
 
@@ -242,6 +246,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ],
                       ),
+                      if (_modules.isNotEmpty)
+                        _ModulesPage(
+                          active: _page == 4,
+                          preferences: widget.preferences,
+                          modules: _modules,
+                        ),
                       _SetupPage(preferences: widget.preferences, name: _name),
                     ],
                   ),
@@ -371,6 +381,8 @@ class _StoryPage extends StatelessWidget {
     required this.body,
     this.eyebrow,
     this.points = const [],
+    this.footer,
+    this.artShare = 0.5,
   });
 
   /// Whether this is the page on screen, which is when its picture plays.
@@ -385,6 +397,14 @@ class _StoryPage extends StatelessWidget {
   final String body;
   final List<(IconData, String, NexHue)> points;
 
+  /// Something to do on the page, under the words (the modules page's
+  /// choices).
+  final Widget? footer;
+
+  /// How much of the page's height the picture takes: less where there is
+  /// something to do under the words.
+  final double artShare;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -392,7 +412,10 @@ class _StoryPage extends StatelessWidget {
     // one — large text, a small phone — scrolls instead of overflowing.
     return LayoutBuilder(
       builder: (context, constraints) {
-        final artHeight = (constraints.maxHeight * 0.5).clamp(200.0, 360.0);
+        final artHeight = (constraints.maxHeight * artShare).clamp(
+          artShare < 0.5 ? 150.0 : 200.0,
+          360.0,
+        );
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
           child: ConstrainedBox(
@@ -444,6 +467,10 @@ class _StoryPage extends StatelessWidget {
                         _Point(icon: icon, label: label, hue: hue),
                     ],
                   ),
+                ],
+                if (footer case final footer?) ...[
+                  const SizedBox(height: NexSpacing.md),
+                  footer,
                 ],
                 const SizedBox(height: NexSpacing.md),
               ],

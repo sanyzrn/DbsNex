@@ -361,11 +361,45 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('Step 1 of 5'), findsOneWidget);
+    // Six on a phone: the modules page (2.8.4) comes before the choices.
+    expect(find.bySemanticsLabel('Step 1 of 6'), findsOneWidget);
 
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('Step 2 of 5'), findsOneWidget);
+    expect(find.bySemanticsLabel('Step 2 of 6'), findsOneWidget);
     semantics.dispose();
+  });
+
+  testWidgets('the modules page adds a module as it is tapped (2.8.4)', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    for (var guard = 0; guard < 8; guard++) {
+      if (find.text('Small tools, when you want them').evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Small tools, when you want them'), findsOneWidget);
+    // Cycle asks its own questions in Tools; it is not offered here.
+    expect(find.byKey(const ValueKey('onboarding-module-cycle')), findsNothing);
+    final habits = find.byKey(const ValueKey('onboarding-module-habits'));
+    await tester.ensureVisible(habits);
+    await tester.tap(habits);
+    await tester.pumpAndSettle();
+    expect(preferences.isModuleOn('habits'), isTrue);
+    expect(tester.widget<FilterChip>(habits).selected, isTrue);
+    // A tool that is not available yet is not offered.
+    expect(
+      find.byKey(const ValueKey('onboarding-module-price_lens')),
+      findsNothing,
+    );
   });
 }
