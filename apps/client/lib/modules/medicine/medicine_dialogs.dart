@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'medicine_strings.dart';
+
 import 'package:nex_client/modules/module_api.dart';
 
 /// The questions the medicine screens ask, in one place, all through

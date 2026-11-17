@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
@@ -9,6 +10,7 @@ import 'package:nex_client/modules/medicine/medicine_parse.dart';
 import 'package:nex_client/modules/medicine/medicine_models.dart';
 import 'package:nex_client/modules/medicine/local_values.dart';
 import 'package:nex_client/modules/medicine/local_writes.dart';
+
 import '../../support/more_details.dart';
 import '../../support/nex_harness.dart';
 

@@ -81,12 +81,8 @@ extension _MedicineDetailBody on _MedicineDetailSheetState {
               Text(strength, style: theme.textTheme.bodyLarge),
             const SizedBox(height: NexSpacing.md),
             MedicineInfoSection(body: body),
-            if (!MedicineModels.readArchived(body))
-              NexModuleReminderControl(
-                store: widget.store,
-                sourceKind: MedicineModels.medicine,
-                sourceId: widget.record.id,
-              ),
+            _hardToFindRow(context, body),
+            _reminderBlock(context, body),
             Row(
               children: [
                 Expanded(
@@ -115,6 +111,8 @@ extension _MedicineDetailBody on _MedicineDetailSheetState {
             const SizedBox(height: NexSpacing.lg),
             MedicineHistorySection(doses: _doses, onDelete: _deleteDose),
             const SizedBox(height: NexSpacing.md),
+            _boxesAndPlaces(context),
+            const SizedBox(height: NexSpacing.sm),
             Text(
               strings(context, 'safetyNote'),
               style: theme.textTheme.bodySmall?.copyWith(
@@ -217,12 +215,9 @@ extension _MedicineDetailBody on _MedicineDetailSheetState {
       return;
     }
     await _work(() async {
-      final undo = await LocalWrites.delete(
+      final undo = await MedicineRepository.deleteMedicine(
         widget.store,
-        MedicineModels.medicine,
         widget.record.id,
-        children: MedicineModels.dose,
-        parentField: 'medicineId',
       );
       if (!mounted) {
         return;
