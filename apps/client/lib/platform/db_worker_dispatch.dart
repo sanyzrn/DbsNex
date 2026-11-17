@@ -353,6 +353,7 @@ class _Worker {
           arg('noteId')! as String,
           at is String ? DateTime.parse(at) : null,
           repeat: NoteRepeat.fromWire(arg('repeat') as String?),
+          clears: arg('clears') == true,
         );
       }),
       _DbCommand.markReminderAcked => NexDbWorker._voided(

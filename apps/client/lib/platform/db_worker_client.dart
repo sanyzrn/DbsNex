@@ -414,10 +414,12 @@ mixin _DbClient implements NexDb {
     String noteId,
     DateTime? when, {
     NoteRepeat repeat = NoteRepeat.once,
+    bool clears = false,
   }) => _send<void>(_DbCommand.setDueAt, {
     'noteId': noteId,
     'when': when?.toUtc().toIso8601String(),
     'repeat': repeat.wireName,
+    'clears': clears,
   });
 
   @override

@@ -6682,4 +6682,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String moduleWantIdea(String name) {
     return 'I\'d like $name in Nex.';
   }
+
+  @override
+  String get remindClears => 'Remove the note when done';
+
+  @override
+  String get remindClearsHint =>
+      'When it is done, the note goes to Recently deleted';
+
+  @override
+  String remindClearedNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Done — $count notes moved to Recently deleted',
+      one: 'Done — the note moved to Recently deleted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get remindClearsOnCard => 'Removed when done';
 }

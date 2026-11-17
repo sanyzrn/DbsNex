@@ -4,7 +4,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-
 import 'dart:isolate';
 import 'dart:math';
 import 'dart:io';
@@ -124,15 +123,16 @@ class NexServices {
   final String mediaDir;
   final String backupDir;
 
-  /// The alarms behind the due dates. Owned here rather than passed in
-  /// because every path that can change a due date goes through this class,
-  /// and a reminder that is only scheduled by whichever screen happened to
-  /// set it is a reminder that is missed by the ones that did not.
+  /// The alarms behind the due dates, owned here: every path that changes a
+  /// due date goes through this class, so none can miss scheduling one.
   final reminders = NexReminders();
 
-  /// Notes whose reminder is ringing: rung, and not yet looked at (2.3.0).
-  /// The cards listen to it; [NexRingingServices] keeps it.
+  /// Notes whose reminder is ringing (2.3.0); [NexRingingServices] keeps it.
   final ringing = ValueNotifier<Set<String>>(const {});
+
+  /// Notes a "remove when done" reminder sent to Recently deleted (2.8.4),
+  /// until the timeline has offered their Undo.
+  final reminderCleared = ValueNotifier<List<String>>(const []);
 
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;

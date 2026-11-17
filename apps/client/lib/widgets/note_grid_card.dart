@@ -417,7 +417,9 @@ class _Foot extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                note.dueRepeat == NoteRepeat.once
+                note.dueClears
+                    ? Icons.auto_delete_outlined
+                    : note.dueRepeat == NoteRepeat.once
                     ? Icons.notifications_active_outlined
                     : Icons.repeat_rounded,
                 size: 13,

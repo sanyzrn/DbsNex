@@ -111,9 +111,14 @@ class _DueChip extends StatelessWidget {
     required this.compactLabel,
     required this.label,
     required this.upcoming,
+    this.clears = false,
   });
 
   final DateTime due;
+
+  /// A one-time reminder that removes its note when done (2.8.4): its own
+  /// glyph, so the card says so before it happens.
+  final bool clears;
   final NoteRepeat repeat;
   final String? description;
   final String? compactLabel;
@@ -127,7 +132,9 @@ class _DueChip extends StatelessWidget {
         ? theme.colorScheme.primary
         : theme.colorScheme.outline;
     final text = label;
-    final icon = repeat == NoteRepeat.once
+    final icon = clears
+        ? Icons.auto_delete_outlined
+        : repeat == NoteRepeat.once
         ? Icons.notifications_active_outlined
         : Icons.repeat_rounded;
     Widget labelFor(double maxWidth) {

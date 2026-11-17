@@ -213,6 +213,10 @@ CREATE TABLE IF NOT EXISTS note_tags (
     // reads it after the hand-off list from the notification isolate has
     // long been drained.
     _addColumnIfMissing('notes', 'reminder_acked_at', 'TEXT');
+    // A one-time reminder that takes its note to Recently deleted once it is
+    // answered (2.8.4). Local only, beside the time it belongs to; an older
+    // build ignores it and keeps an ordinary one-time reminder.
+    _addColumnIfMissing('notes', 'due_clears', 'INTEGER');
 
     // Local-only organisation: up to five pinned notes, and a manual
     // position set by dragging in Rearrange mode. Neither is synced or
@@ -812,6 +816,7 @@ CREATE TABLE notes_rebuilt (
   due_at TEXT,
   due_repeat TEXT,
   reminder_acked_at TEXT,
+  due_clears INTEGER,
   pinned_at TEXT,
   is_urgent INTEGER NOT NULL DEFAULT 0,
   set_aside_at TEXT,

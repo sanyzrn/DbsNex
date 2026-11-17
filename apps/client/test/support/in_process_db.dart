@@ -606,12 +606,13 @@ class InProcessDb implements NexDb {
     String noteId,
     DateTime? when, {
     NoteRepeat repeat = NoteRepeat.once,
+    bool clears = false,
   }) async {
     if (failReminders > 0) {
       failReminders--;
       throw StateError('reminder write refused by the test');
     }
-    _repo.setDueAt(noteId, when, repeat: repeat);
+    _repo.setDueAt(noteId, when, repeat: repeat, clears: clears);
   }
 
   @override

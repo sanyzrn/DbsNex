@@ -78,7 +78,7 @@ class SqliteScheduledNoteRepository {
     // note that is not arriving is a surprise later, and a hidden note must
     // not hold one of the five slots on a home it is not on.
     db.execute(
-      'UPDATE notes SET scheduled_until = ?, due_at = NULL, due_repeat = NULL, '
+      'UPDATE notes SET scheduled_until = ?, due_at = NULL, due_repeat = NULL, due_clears = NULL, '
       'reminder_acked_at = NULL, pinned_at = NULL WHERE id = ?',
       [scheduled.releaseAt.toIso8601String(), noteId],
     );

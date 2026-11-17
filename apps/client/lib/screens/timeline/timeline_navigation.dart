@@ -204,6 +204,26 @@ extension _TimelineNavigation on TimelineScreenState {
       }
     };
     _syncRinging();
+    widget.services.reminderCleared.addListener(_onReminderCleared);
+    // A Done pressed while Nex was away is settled at launch, before this
+    // screen listened.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onReminderCleared());
+  }
+
+  /// Notes a "remove when done" reminder sent to Recently deleted (2.8.4):
+  /// one banner says so, and its Undo brings them back as ordinary notes.
+  void _onReminderCleared() {
+    final ids = widget.services.reminderCleared.value;
+    if (!mounted || ids.isEmpty) return;
+    widget.services.reminderCleared.value = const [];
+    final l10n = AppLocalizations.of(context);
+    nexShowBanner(
+      context,
+      message: l10n.remindClearedNotes(ids.length),
+      kind: NexBannerKind.done,
+      actionLabel: l10n.undo,
+      onAction: () => unawaited(widget.services.keepCleared(ids)),
+    );
   }
 
   /// Whether nothing covers the timeline. True before the route is known.
@@ -223,6 +243,7 @@ extension _TimelineNavigation on TimelineScreenState {
   void _unwireRinging() {
     _ringingSync?.cancel();
     widget.services.ringing.removeListener(_onRinging);
+    widget.services.reminderCleared.removeListener(_onReminderCleared);
     widget.services.reminders.onAction = null;
     widget.services.reminders.onOpenRecurring = null;
     widget.services.reminders.onOpenModule = null;

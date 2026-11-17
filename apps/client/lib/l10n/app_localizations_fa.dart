@@ -6584,4 +6584,25 @@ class AppLocalizationsFa extends AppLocalizations {
   String moduleWantIdea(String name) {
     return 'دوست دارم «$name» به نکس اضافه شود.';
   }
+
+  @override
+  String get remindClears => 'پس از انجام، یادداشت حذف شود';
+
+  @override
+  String get remindClearsHint =>
+      'پس از انجام، یادداشت به «اخیراً حذف‌شده» می‌رود';
+
+  @override
+  String remindClearedNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'انجام شد؛ $count یادداشت به «اخیراً حذف‌شده» رفت',
+      one: 'انجام شد؛ یادداشت به «اخیراً حذف‌شده» رفت',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get remindClearsOnCard => 'پس از انجام حذف می‌شود';
 }

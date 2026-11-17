@@ -1558,6 +1558,7 @@ VALUES (?, ?, ?, ?, 'synced')
               'sort_order' ||
               'due_at' ||
               'due_repeat' ||
+              'due_clears' ||
               'reminder_acked_at' => null,
               _ => row[column],
             },
@@ -2326,6 +2327,7 @@ WHERE n.deleted_at IS NULL AND n.scheduled_until IS NULL
     String noteId,
     DateTime? when, {
     NoteRepeat repeat = NoteRepeat.once,
+    bool clears = false,
   }) {
     db.execute(
       // Not a rev bump and not an updated_at touch: a reminder is a thing
@@ -2336,14 +2338,17 @@ WHERE n.deleted_at IS NULL AND n.scheduled_until IS NULL
       // The acknowledgement is cleared with the time. A new time is a new
       // request, and a **Done** from the previous ring must not keep today's
       // nudge from mentioning a reminder that was just set for today.
-      'UPDATE notes SET due_at = ?, due_repeat = ?, reminder_acked_at = NULL '
-      'WHERE id = ?',
+      'UPDATE notes SET due_at = ?, due_repeat = ?, due_clears = ?, '
+      'reminder_acked_at = NULL WHERE id = ?',
       [
         when?.toUtc().toIso8601String(),
         // Cleared alongside the time. A repeat left behind on a note with no
         // reminder is a rule with nothing to apply to, and it would come back
         // the next time one was set.
         when == null ? null : repeat.wireName,
+        // Only a one-time reminder clears its note (2.8.4): a repeating one
+        // has a next turn to keep.
+        when != null && clears && repeat == NoteRepeat.once ? 1 : null,
         noteId,
       ],
     );
@@ -2759,6 +2764,7 @@ LIMIT ?
               ...n.toJson(),
               'due_at': n.dueAt?.toUtc().toIso8601String(),
               'due_repeat': n.dueRepeat.wireName,
+              if (n.dueClears) 'due_clears': true,
               'scheduled_until': waitingUntil[n.id],
             },
         ],
@@ -2968,10 +2974,12 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
           _restoreEnrichment(note);
           if (note.dueAt case final dueAt?) {
             db.execute(
-              'UPDATE notes SET due_at = ?, due_repeat = ? WHERE id = ?',
+              'UPDATE notes SET due_at = ?, due_repeat = ?, due_clears = ? '
+              'WHERE id = ?',
               [
                 dueAt.toUtc().toIso8601String(),
                 note.dueRepeat.wireName,
+                json['due_clears'] == true ? 1 : null,
                 note.id,
               ],
             );

@@ -31,6 +31,7 @@ Future<bool> nexPickReminder({
   // the sheet has one exit and it is the button: the repeat is part of the
   // same answer, chosen before it.
   var repeat = note.dueRepeat;
+  var clears = note.dueClears;
 
   // The standard sheet chrome (glass surface, drag handle, keyboard inset),
   // not a raw showModalBottomSheet: the last four raw call sites were fixed
@@ -51,6 +52,7 @@ Future<bool> nexPickReminder({
         // "cleared" from "dismissed" — which is what the sentinel below is
         // for.
         onClear: () => Navigator.pop(sheetContext, _clearReminder),
+        onClearsChanged: (value) => clears = value,
       ),
     ),
   );
@@ -77,7 +79,12 @@ Future<bool> nexPickReminder({
     );
     return false;
   }
-  await services.setDueAt(note.id, picked.toUtc(), repeat: repeat);
+  await services.setDueAt(
+    note.id,
+    picked.toUtc(),
+    repeat: repeat,
+    clears: clears && repeat == NoteRepeat.once,
+  );
   if (!context.mounted) return true;
   // What an alarm clock says back. "Reminder set" alone is the same sentence
   // whether the alarm lands in ten minutes or, because a date was mis-tapped,
@@ -89,6 +96,7 @@ Future<bool> nexPickReminder({
           nexUntilLabel(l10n, picked),
           nexRepeatLabel(l10n, repeat),
         );
+  final cleared = clears && repeat == NoteRepeat.once && failure == null;
   nexShowBanner(
     context,
     // The OS's own words, appended. Ugly on purpose: "this phone would not
@@ -98,6 +106,8 @@ Future<bool> nexPickReminder({
     // leaves nobody anything to go on.
     message: failure != null
         ? '${l10n.remindNotScheduled} ($failure)'
+        : cleared
+        ? '${l10n.remindSetIn(until)} · ${l10n.remindClearsHint}'
         : l10n.remindSetIn(until),
     kind: failure != null ? NexBannerKind.failed : NexBannerKind.done,
   );

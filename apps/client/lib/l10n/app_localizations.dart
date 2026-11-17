@@ -10213,6 +10213,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I\'d like {name} in Nex.'**
   String moduleWantIdea(String name);
+
+  /// No description provided for @remindClears.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the note when done'**
+  String get remindClears;
+
+  /// No description provided for @remindClearsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When it is done, the note goes to Recently deleted'**
+  String get remindClearsHint;
+
+  /// After a remove-when-done reminder is answered (2.8.4)
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Done — the note moved to Recently deleted} other{Done — {count} notes moved to Recently deleted}}'**
+  String remindClearedNotes(int count);
+
+  /// No description provided for @remindClearsOnCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed when done'**
+  String get remindClearsOnCard;
 }
 
 class _AppLocalizationsDelegate

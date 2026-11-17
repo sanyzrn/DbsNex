@@ -429,7 +429,9 @@ class TimelineModel extends ChangeNotifier {
     final now = DateTime.now().toUtc();
     final spent = [
       for (final note in _all ?? const <Note>[])
-        if (note.dueRepeat == NoteRepeat.once)
+        // A "remove when done" reminder keeps its time until it is
+        // answered: that is what sends its note away (2.8.4).
+        if (note.dueRepeat == NoteRepeat.once && !note.dueClears)
           if (note.dueAt case final due?)
             if (!due.isAfter(now)) note.id,
     ];
@@ -443,7 +445,7 @@ class TimelineModel extends ChangeNotifier {
       // lapsed, is the one mistake this must not make.
       final current = await services.getById(id);
       if (current == null) continue;
-      if (current.dueRepeat != NoteRepeat.once) continue;
+      if (current.dueRepeat != NoteRepeat.once || current.dueClears) continue;
       final due = current.dueAt;
       if (due == null || due.isAfter(DateTime.now().toUtc())) continue;
       // The time goes; a notification it left in the shade stays.

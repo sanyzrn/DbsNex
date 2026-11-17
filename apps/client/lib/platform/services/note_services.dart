@@ -326,9 +326,10 @@ extension NexNoteServices on NexServices {
     String id,
     DateTime? when, {
     NoteRepeat repeat = NoteRepeat.once,
+    bool clears = false,
     bool refresh = true,
   }) async {
-    await worker.setDueAt(id, when, repeat: repeat);
+    await worker.setDueAt(id, when, repeat: repeat, clears: clears);
     final note = await worker.getById(id);
     if (note == null) return;
     if (when == null) {

@@ -2257,5 +2257,9 @@
   "moduleWanted": "می‌خواهمش",
   "moduleWantBanner": "علامت خورد. به سازنده هم بگویید تا زودتر بیاید؟",
   "moduleWantTell": "بگویید",
-  "moduleWantIdea": "دوست دارم «{name}» به نکس اضافه شود."
+  "moduleWantIdea": "دوست دارم «{name}» به نکس اضافه شود.",
+  "remindClears": "پس از انجام، یادداشت حذف شود",
+  "remindClearsHint": "پس از انجام، یادداشت به «اخیراً حذف‌شده» می‌رود",
+  "remindClearedNotes": "{count, plural, =1{انجام شد؛ یادداشت به «اخیراً حذف‌شده» رفت} other{انجام شد؛ {count} یادداشت به «اخیراً حذف‌شده» رفت}}",
+  "remindClearsOnCard": "پس از انجام حذف می‌شود"
 }

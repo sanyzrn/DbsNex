@@ -117,6 +117,7 @@ class _CardStatusMarks extends StatelessWidget {
           child: _DueChip(
             due: due!,
             repeat: note.dueRepeat,
+            clears: note.dueClears,
             description:
                 strings.dueDescription?.call(due!, note.dueRepeat) ?? full,
             compactLabel: strings.dueCompactLabel?.call(due!, note.dueRepeat),

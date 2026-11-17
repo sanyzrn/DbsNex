@@ -67,6 +67,9 @@ extension NexRingingServices on NexServices {
       }
     }
     if (settled.isEmpty) return const {};
+    for (final id in settled) {
+      await clearAnswered(id, done: true);
+    }
     // The same answer stops the card's bell, whichever consumer asked first.
     // The persisted set is edited on its own rather than through [_setRinging]:
     // at launch the notifier is still empty while this set may not be, and
@@ -132,6 +135,7 @@ extension NexRingingServices on NexServices {
       // The next sync retries what this call could not write.
       await NexReminderActions.requeueAcknowledged([noteId]);
     }
+    await clearAnswered(noteId, done: true);
     // Today's plan may already be armed with a line about this reminder.
     _queueDailyNudge();
     if (!ringing.value.contains(noteId)) return;
@@ -142,5 +146,40 @@ extension NexRingingServices on NexServices {
     if (setEquals(ids, ringing.value)) return;
     ringing.value = Set.unmodifiable(ids);
     await _preferences.setRingingNotes(ids);
+  }
+
+  /// A "remove when done" reminder was answered (2.8.4): its note goes to
+  /// Recently deleted — never further — and the timeline offers Undo
+  /// through [reminderCleared]. [done] is **Done** in the shade; otherwise
+  /// the card was opened and closed, which counts only once the reminder's
+  /// time has come. Answers whether the note was moved.
+  Future<bool> clearAnswered(String noteId, {bool done = false}) async {
+    try {
+      final note = await worker.getById(noteId);
+      final due = note?.dueAt;
+      if (note == null ||
+          note.deletedAt != null ||
+          !note.dueClears ||
+          due == null ||
+          (!done && due.isAfter(DateTime.now().toUtc()))) {
+        return false;
+      }
+      await deleteNote(noteId);
+      reminderCleared.value = [...reminderCleared.value, noteId];
+      return true;
+    } catch (error) {
+      unawaited(NexCrashLog.handled('reminder.clear', error));
+      return false;
+    }
+  }
+
+  /// Undo for [clearAnswered]: the note comes back as an ordinary note, its
+  /// spent reminder gone, so closing it again does not send it away again.
+  Future<void> keepCleared(Iterable<String> noteIds) async {
+    for (final id in noteIds) {
+      await undelete(id);
+      await setDueAt(id, null, refresh: false);
+    }
+    await refreshTimeline();
   }
 }

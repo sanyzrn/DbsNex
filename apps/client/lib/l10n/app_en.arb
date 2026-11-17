@@ -3601,5 +3601,10 @@
   "moduleWantBanner": "Marked. Tell the developer too, so it comes sooner?",
   "moduleWantTell": "Tell them",
   "moduleWantIdea": "I'd like {name} in Nex.",
-  "@moduleWantIdea": {"description": "Pre-filled idea sent from a wanted module (2.8.3)", "placeholders": {"name": {"type": "String"}}}
+  "@moduleWantIdea": {"description": "Pre-filled idea sent from a wanted module (2.8.3)", "placeholders": {"name": {"type": "String"}}},
+  "remindClears": "Remove the note when done",
+  "remindClearsHint": "When it is done, the note goes to Recently deleted",
+  "remindClearedNotes": "{count, plural, =1{Done — the note moved to Recently deleted} other{Done — {count} notes moved to Recently deleted}}",
+  "@remindClearedNotes": {"description": "After a remove-when-done reminder is answered (2.8.4)", "placeholders": {"count": {"type": "int"}}},
+  "remindClearsOnCard": "Removed when done"
 }
