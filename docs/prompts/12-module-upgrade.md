@@ -104,44 +104,16 @@ requests** in the README, with how the module behaves without it.
 - **Privacy:** a screen showing money totals or health details offers to
   hide the amounts, or uses `NexSecureWindow` where the brief says so.
 
-## Dates that fall due: one shape, no calendar of your own
+## Shared across modules
 
-Nex will gather every module's due dates into one shared calendar (the
-"life calendar"), the way the app's Recurring page and Cycle already have
-calendars of their own today. So that your module joins it without being
-rewritten:
-
-- **Do not build a full calendar of your own.** A month list, or a simple
-  month view of the module's own dates (such as a cash calendar), is
-  enough. The shared calendar component will replace it.
-- **Work the dates out in one place:** if your module has anything that
-  falls due — a cheque, an instalment, a dose, an insurance expiry, a
-  fund's payment day — produce them from one plain Dart function with no
-  widgets, for a range of days:
-
-  ```dart
-  /// Everything this module has falling due between [from] and [to].
-  List<ModuleDue> duesBetween(DateTime from, DateTime to);
-  ```
-
-  with `ModuleDue` defined in your folder as:
-
-  | Field | Type | Meaning |
-  |---|---|---|
-  | `id` | `String` | stable, so the same item is the same item next time |
-  | `recordKind`, `recordId` | `String` | the record it comes from, to open it |
-  | `at` | `DateTime` | when it falls due (local; date-only items at midnight) |
-  | `title` | `String` | what it is, in the person's own words where possible |
-  | `kind` | `String` | your module's word for it (`cheque-in`, `dose`, …) |
-  | `amountRial` | `int?` | money, when there is any; positive in, negative out |
-  | `done` | `bool` | already paid, taken or cleared |
-  | `private` | `bool` | health or money detail to show only discreetly |
-
-- Your screens and reminders use this function too, so it is tested by
-  use, and unit-tested on its own (month ends, Esfand 29/30, a record
-  missing a field).
-- Describe it in the README under **Platform requests**, as "ready for the
-  shared calendar".
+Read **"Shared across modules"** in `docs/18-module-kit.md` and follow all
+nine rules: dates that fall due in one shape (`duesBetween`, no calendar of
+your own), money in rials, the other party as `person`, a `summarize` line
+per record, records that keep fields they do not know, saving and undo,
+reminder wording and lead times, sharing and hiding, and the shared look.
+Where a piece is not in the kit yet, copy the reference that section names,
+under the same file name and calls; never write a variant of your own. Say
+in the README how the module meets each rule.
 
 ## For an upgrade: audit first
 

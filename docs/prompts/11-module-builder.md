@@ -47,6 +47,11 @@ someone adds it on **Tools → Modules**. Read these files in the repository:
 
 ## The rules
 
+Before these, read **"Shared across modules"** in `docs/18-module-kit.md`:
+the rules every module follows so that the app stays one app (due dates,
+money, people, record summaries, reminders, sharing). They apply here in
+full.
+
 ### 1. Where you may write
 
 - `apps/client/lib/modules/<id>/`: your code, plus `README.md`.

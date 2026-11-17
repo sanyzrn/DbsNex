@@ -23,6 +23,12 @@
   Other modules remain **Soon** pending completion and device review. Preserve
   their code, installation choices and data; never enable them just because
   their source or translations exist. `addons/README.md` tracks scope.
+- **Modules stay one app.** Every module, new or upgraded, follows
+  "Shared across modules" in [`docs/18-module-kit.md`](docs/18-module-kit.md):
+  due dates through `duesBetween`, money in rials, the other party as
+  `person`, a `summarize` line per record, unknown fields kept. Check each
+  module branch against it before merging, and when a shared piece moves
+  into the kit, replace every copy in the same change.
 - **Every new or changed screen follows [`docs/16-design-language.md`](docs/16-design-language.md).**
   Sheets open with `nexShowSheet` (never `showModalBottomSheet`), pages are
   pushed with `NexPageRoute`, spacing and corners come from `NexSpacing` and
