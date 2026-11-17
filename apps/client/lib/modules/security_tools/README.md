@@ -42,7 +42,9 @@ records, telemetry or history.
   order and internal hyphens are retained. See WORDLIST_NOTICE.md.
 - Generated text is hidden until requested, is not localized/transformed,
   and is removed from page state on app focus loss, route disposal or option
-  changes. This is not a guarantee of memory zeroization or screenshot blocking.
+  changes. While the generator is open the window is kept out of screenshots,
+  recordings and the app switcher (SEC-02, carried over in 2.8.1 from the Tools
+  generator this replaced); this is not a guarantee of memory zeroization.
   Explicit Copy uses the existing platform clipboard; it may remain there.
 - Link input is bounded to 4096 UTF-16 units and never saved. Explicit HTTP(S)
   is required. Ambiguous controls, bidi marks, backslashes and malformed hosts

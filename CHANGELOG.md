@@ -22,6 +22,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 - **A ticked line shows on the card.** Ticking a checklist line in a note's details now shows on its card right away.
 - **Imported notes ring on time.** Notes imported from another app's export get their reminders set at once, not after the next start.
 - **A note that cannot be scheduled keeps its reminder.** Scheduling a note with attachments is still refused, but the attempt no longer takes its reminder away.
+- **One password generator.** Making a password now lives in the Security toolbox, which also makes passphrases; the separate generator under Tools is gone. Like the old one, it keeps the screen out of screenshots and the app switcher while it is open.
 
 ## v2.8.0
 

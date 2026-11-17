@@ -77,9 +77,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get toolsSectionPrivate => 'Private';
 
   @override
-  String get toolsSectionEveryday => 'Everyday';
-
-  @override
   String intelligenceStateOn(String provider) {
     return 'On · $provider';
   }
@@ -2782,9 +2779,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get toolsMessagesHint => 'A private space for your words';
 
   @override
-  String get toolsGeneratorHint => 'Create and copy a strong password';
-
-  @override
   String get assistantConfirmMerge => 'Combine these notes into one?';
 
   @override
@@ -4882,9 +4876,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vaultGenerate => 'Generate a new password';
-
-  @override
-  String get vaultGenerator => 'Password generator';
 
   @override
   String get vaultSymbols => 'Include symbols';

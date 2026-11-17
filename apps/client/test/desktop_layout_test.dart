@@ -130,7 +130,7 @@ void main() {
       expect(find.text('Cycle'), findsNothing);
       expect(find.text('Modules'), findsNothing);
       expect(find.text('Add modules'), findsNothing);
-      expect(find.text('Password generator'), findsOneWidget);
+      expect(find.text('Password generator'), findsNothing);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }

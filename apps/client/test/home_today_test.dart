@@ -77,7 +77,7 @@ void main() {
   ) async {
     await h.preferences.setBriefStyle(NexBriefStyle.report);
     await h.preferences.setDisplayName('Saeed');
-    await h.preferences.togglePinnedTool('generator');
+    await h.preferences.togglePinnedTool('vault.message');
     final note = (await h.services.captureText('a tagged note'))!;
     await h.services.addTag(noteId: note.id, name: 'work');
     await open(tester);
@@ -85,7 +85,7 @@ void main() {
     double top(Finder finder) => tester.getRect(finder).top;
     final greeting = find.textContaining('Saeed');
     final recap = find.byKey(const ValueKey('timeline-recap'));
-    final tools = find.byKey(const ValueKey('pinned-tool-generator'));
+    final tools = find.byKey(const ValueKey('pinned-tool-vault.message'));
     final tags = find.byType(TagFilterRow);
     final card = find.byType(NoteCard);
     expect(greeting, findsOneWidget);
@@ -130,20 +130,26 @@ void main() {
   ) async {
     await h.services.captureText('a note');
     await open(tester);
-    expect(find.byKey(const ValueKey('pinned-tool-generator')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('pinned-tool-vault.message')),
+      findsNothing,
+    );
 
     await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
     await tester.pumpAndSettle();
     expect(find.byType(HomeLayoutSheet), findsOneWidget);
-    final chip = find.byKey(const ValueKey('layout-pin-generator'));
+    final chip = find.byKey(const ValueKey('layout-pin-vault.message'));
     await tester.ensureVisible(chip);
     await tester.pumpAndSettle();
     await tester.tap(chip);
     await tester.pumpAndSettle();
-    expect(h.preferences.pinnedTools, ['generator']);
+    expect(h.preferences.pinnedTools, ['vault.message']);
     // On the home screen behind the sheet at once.
     expect(
-      find.byKey(const ValueKey('pinned-tool-generator'), skipOffstage: false),
+      find.byKey(
+        const ValueKey('pinned-tool-vault.message'),
+        skipOffstage: false,
+      ),
       findsOneWidget,
     );
 

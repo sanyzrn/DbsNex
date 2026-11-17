@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -27,10 +28,16 @@ class _SecurityGeneratorState extends State<SecurityGenerator>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // A generated password is a secret from the moment it is on screen:
+    // no screenshots, no recording, no app-switcher preview while this page
+    // is open (SEC-02, carried over from the Tools generator this replaces
+    // in 2.8.1).
+    unawaited(NexSecureWindow.acquirePrivateSurface());
   }
 
   @override
   void dispose() {
+    unawaited(NexSecureWindow.releasePrivateSurface());
     WidgetsBinding.instance.removeObserver(this);
     _secret = null;
     super.dispose();

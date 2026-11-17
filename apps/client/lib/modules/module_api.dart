@@ -12,6 +12,8 @@ export 'package:nex_data/nex_data.dart' show ModuleRecord;
 export 'package:nex_ui/nex_ui.dart';
 
 export '../l10n/app_localizations.dart' show AppLocalizations;
+// A screen showing a secret keeps it out of screenshots and the app switcher.
+export '../platform/secure_window.dart' show NexSecureWindow;
 export '../platform/display_date.dart'
     show
         nexDigits,

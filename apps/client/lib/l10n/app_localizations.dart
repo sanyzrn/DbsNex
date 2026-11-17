@@ -152,12 +152,6 @@ abstract class AppLocalizations {
   /// **'Private'**
   String get toolsSectionPrivate;
 
-  /// No description provided for @toolsSectionEveryday.
-  ///
-  /// In en, this message translates to:
-  /// **'Everyday'**
-  String get toolsSectionEveryday;
-
   /// No description provided for @intelligenceStateOn.
   ///
   /// In en, this message translates to:
@@ -4460,12 +4454,6 @@ abstract class AppLocalizations {
   /// **'A private space for your words'**
   String get toolsMessagesHint;
 
-  /// Line under the password generator tool
-  ///
-  /// In en, this message translates to:
-  /// **'Create and copy a strong password'**
-  String get toolsGeneratorHint;
-
   /// Confirmation for merging notes
   ///
   /// In en, this message translates to:
@@ -7669,12 +7657,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Generate a new password'**
   String get vaultGenerate;
-
-  /// No description provided for @vaultGenerator.
-  ///
-  /// In en, this message translates to:
-  /// **'Password generator'**
-  String get vaultGenerator;
 
   /// No description provided for @vaultSymbols.
   ///
