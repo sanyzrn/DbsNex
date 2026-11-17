@@ -47,7 +47,10 @@ Working convention:
   chase a moving target). Brief widgets live in `timeline_brief_widgets.dart`.
 - `NexNavigationDock.recede` now narrows the capsule to capture, sinks and
   scales its places, and pulses capture; it runs on `_dockMorph`, whose
-  reverse curve overshoots, while the scrim keeps `_dockReceded`.
+  reverse curve overshoots, while the scrim keeps `_dockReceded`. It is
+  built once: a `SingleChildLayoutDelegate` with `relayout`, mapped
+  `FadeTransition`s and a repaint-only scale render object, so the 5,000-note
+  budget still sees no rebuild while it runs.
   `_followDock` counts a fling's glide through `userScrollDirection`.
 
 ### 2.8.0 — the home screen, rebuilt

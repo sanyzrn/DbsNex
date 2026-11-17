@@ -132,8 +132,9 @@ void main() {
     bool away(WidgetTester tester) =>
         tester.widget<NexNavigationDock>(dock).away;
     double shown(WidgetTester tester) => tester
-        .widget<Opacity>(find.byKey(const ValueKey('dock-destinations')))
-        .opacity;
+        .widget<FadeTransition>(find.byKey(const ValueKey('dock-destinations')))
+        .opacity
+        .value;
 
     testWidgets('the destinations step back, capture stays, and turning '
         'round brings them back', (tester) async {
@@ -194,7 +195,9 @@ void main() {
       final capsule = find.byKey(const ValueKey('dock-destinations'));
       double wide() => tester
           .getRect(
-            find.ancestor(of: capsule, matching: find.byType(Positioned)).first,
+            find
+                .ancestor(of: capsule, matching: find.byType(NexGlassSurface))
+                .first,
           )
           .width;
       final whole = wide();
