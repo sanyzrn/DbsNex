@@ -16,9 +16,8 @@ import 'number_input.dart';
 /// the calendar's own range — are refused too, so a Persian year such as
 /// 1405 is never silently stored as the civil year 1405.
 String? parseDateEntry(String raw) {
-  final match = RegExp(
-    r'^(\d{4})[/.\-](\d{1,2})[/.\-](\d{1,2})$',
-  ).firstMatch(normalizeNumber(raw.trim()));
+  final match = RegExp(r'^(\d{4})[/.\-](\d{1,2})[/.\-](\d{1,2})$')
+      .firstMatch(normalizeNumber(raw.trim()));
   if (match == null) return null;
   final year = int.parse(match.group(1)!);
   final month = int.parse(match.group(2)!);

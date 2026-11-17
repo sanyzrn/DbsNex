@@ -3,19 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
-import 'loan_edit_sheet.dart';
-import 'loan_message.dart';
-import 'loan_math.dart';
-import 'loan_model.dart';
+import 'irr_unit.dart';
 import 'loan_date_entry.dart';
-import 'loan_dates.dart';
+import 'loan_edit_sheet.dart';
+import 'loan_math.dart';
+import 'loan_message.dart';
+import 'loan_model.dart';
+import 'loan_settings.dart';
 import 'loan_wording.dart';
-import 'return_history.dart';
-import 'money_format.dart';
 import 'module.dart';
-import 'store_state.dart';
+import 'money_format.dart';
 import 'record_bundle.dart';
+import 'reminder_section.dart';
+import 'return_history.dart';
 import 'return_sheet.dart';
+import 'store_state.dart';
 
 /// One loan's whole story: what is still out, how the due date reads, and
 /// every return in order — the history an edit can never wipe. Recording
@@ -26,10 +28,15 @@ class LoanDetailScreen extends StatefulWidget {
     super.key,
     required this.store,
     required this.loanId,
+    this.unit,
   });
 
   final NexModuleStore store;
   final String loanId;
+
+  /// The unit amounts are said in; read from the module's settings when the
+  /// caller does not already know it.
+  final IrrUnit? unit;
 
   @override
   State<LoanDetailScreen> createState() => _LoanDetailScreenState();
@@ -43,6 +50,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
   int _loadToken = 0;
   bool _writing = false;
   bool _sheetOpen = false;
+  late IrrUnit _unit = widget.unit ?? IrrUnit.toman;
 
   @override
   void initState() {
@@ -81,6 +89,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
   Future<void> _read() async {
     await RecordBundle.recover(widget.store);
     final token = ++_loadToken;
+    final settings = await readLoanSettings(widget.store);
     final body = await widget.store.get('loan', widget.loanId);
     final returns = await widget.store.list('return');
     if (!mounted || token != _loadToken) return;
@@ -91,10 +100,24 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
     }
     // The store's own order, newest first, kept stable within a date so a
     // reload never shuffles the history a person was reading.
-    final history =
+    final history = _orderedHistory(returns);
+    final loan = Loan.fromBody(widget.loanId, body);
+    final ordered = [for (final (_, record) in history) record];
+    setState(() {
+      _loan = loan;
+      _returns = ordered;
+      _unit = settings.irrUnit;
+    });
+    if (LoanMath.standing(loan, ordered).settled) {
+      unawaited(_clearReminder(loan.id));
+    }
+  }
+
+  List<(int, LoanReturn)> _orderedHistory(List<ModuleRecord> records) {
+    final mine =
         [
           for (final (index, record)
-              in returns
+              in records
                   .map(LoanReturn.fromRecord)
                   .where((r) => r.loanId == widget.loanId)
                   .toList()
@@ -104,15 +127,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
           final byDate = b.$2.date.compareTo(a.$2.date);
           return byDate != 0 ? byDate : a.$1.compareTo(b.$1);
         });
-    final loan = Loan.fromBody(widget.loanId, body);
-    final ordered = [for (final (_, record) in history) record];
-    setState(() {
-      _loan = loan;
-      _returns = ordered;
-    });
-    if (LoanMath.standing(loan, ordered).settled) {
-      unawaited(_clearReminder(loan.id));
-    }
+    return mine;
   }
 
   Future<void> _guard(Future<void> Function() action) async {
@@ -158,6 +173,31 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
     );
   });
 
+  /// A reminder that names the person and the amount is a choice, not the
+  /// default: a locked screen is read by whoever is holding the phone. The
+  /// choice is kept on the loan, and an alarm already set is re-worded so the
+  /// switch does what it says rather than only affecting the next one.
+  Future<void> _setReminderDetail(bool detail) => _guard(() async {
+    final loan = _loan;
+    if (loan == null) return;
+    final body = await widget.store.get('loan', loan.id);
+    if (body == null) return;
+    await widget.store.put('loan', loan.id, {
+      ...body,
+      'reminderDetail': detail,
+    });
+    final stored = Loan.fromBody(loan.id, {...body, 'reminderDetail': detail});
+    if (mounted) {
+      await rescheduleLoanReminder(
+        widget.store,
+        stored,
+        LoanMath.standing(stored, _returns),
+        context,
+        _unit,
+      );
+    }
+  });
+
   /// The reminder is the loan's: gone with it, and gone once it is settled.
   Future<void> _clearReminder(String id) async {
     try {
@@ -199,6 +239,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
                         widget.store,
                         editing: loan,
                         returns: _returns,
+                        unit: _unit,
                       ),
                     ),
                   ),
@@ -223,6 +264,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
       ),
       body: recordsBody(
         ListView(
+          key: const ValueKey('loan-detail-body'),
           padding: EdgeInsetsDirectional.fromSTEB(
             NexSpacing.md,
             NexSpacing.sm,
@@ -230,7 +272,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
             NexSpacing.lg + nexBottomInset(context),
           ),
           children: [
-            _SummaryPanel(loan: loan, standing: standing),
+            _SummaryPanel(loan: loan, standing: standing, unit: _unit),
             const SizedBox(height: NexSpacing.md),
             if (!standing.settled) ...[
               FilledButton.icon(
@@ -247,6 +289,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
                             widget.store,
                             loan: loan,
                             returns: _returns,
+                            unit: _unit,
                           ),
                         ),
                       ),
@@ -261,33 +304,33 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
                     : () => unawaited(_recordReturn(standing.outstanding)),
                 child: Text(strings(context, 'markSettled')),
               ),
-              const SizedBox(height: NexSpacing.md),
               if (loan.direction == LoanDirection.lent)
                 TextButton.icon(
                   key: const ValueKey('loan-message'),
-                  onPressed: () =>
-                      unawaited(showLoanMessageSheet(context, loan, standing)),
-                  icon: const Icon(Icons.ios_share),
+                  onPressed: () => unawaited(
+                    showLoanMessageSheet(context, loan, standing, _unit),
+                  ),
+                  icon: const Icon(Icons.chat_bubble_outline),
                   label: Text(strings(context, 'messageTitle')),
                 ),
+              const SizedBox(height: NexSpacing.md),
               // A due date is only worth having if something says so when it
               // comes: an optional system reminder, opened on the due day.
-              NexShelfHeading(
-                icon: Icons.notifications_none,
-                title: strings(context, 'reminderTitle'),
-              ),
-              NexModuleReminderControl(
+              LoanReminderSection(
                 store: widget.store,
-                sourceKind: 'loan',
-                sourceId: loan.id,
-                initial: loan.due == null ? null : parseCivilDate(loan.due!),
-                body: strings(context, 'reminderBody', {'person': person}),
+                loan: loan,
+                standing: standing,
+                unit: _unit,
+                onDetailChanged: _writing
+                    ? (_) {}
+                    : (detail) => unawaited(_setReminderDetail(detail)),
               ),
               const SizedBox(height: NexSpacing.md),
             ],
             LoanReturnHistory(
               loan: loan,
               returns: _returns,
+              unit: _unit,
               onDelete: (record) => unawaited(_deleteReturn(record)),
             ),
             const SizedBox(height: NexSpacing.xl),
@@ -307,9 +350,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
     final body = await widget.store.get('loan', loan.id);
     if (body == null) return;
     final fresh = Loan.fromBody(loan.id, body);
-    final records = (await widget.store.list(
-      'return',
-    )).map(LoanReturn.fromRecord).toList();
+    final records = (await widget.store.list('return'))
+        .map(LoanReturn.fromRecord)
+        .toList();
     final remaining = LoanMath.standing(fresh, records).outstanding;
     if (remaining <= 0) return;
     await widget.store.put('return', widget.store.newId(), {
@@ -319,8 +362,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
     });
   });
 
-  /// Taking a mistaken return back: the SnackBar's Undo re-`put`s the
-  /// complete record, so balances return to exactly what they were.
+  /// Taking a mistaken return back: the banner's Undo re-`put`s the complete
+  /// record, so balances return to exactly what they were.
   Future<void> _deleteReturn(LoanReturn record) => _guard(() async {
     final messenger = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
@@ -343,10 +386,15 @@ class _LoanDetailScreenState extends State<LoanDetailScreen>
 
 /// What the loan is and where it stands, in one panel.
 class _SummaryPanel extends StatelessWidget {
-  const _SummaryPanel({required this.loan, required this.standing});
+  const _SummaryPanel({
+    required this.loan,
+    required this.standing,
+    required this.unit,
+  });
 
   final Loan loan;
   final LoanStanding standing;
+  final IrrUnit unit;
 
   @override
   Widget build(BuildContext context) {
@@ -363,8 +411,20 @@ class _SummaryPanel extends StatelessWidget {
       {'person': person},
     );
     final what = loan.kind == LoanKind.money
-        ? formatMoney(loan.amount, loan.currency, loan.digits, persian)
-        : '${formatNumber(loan.amount, persian)} × ${loan.what.isEmpty ? strings(context, 'item') : loan.what}';
+        ? formatAmount(loan.amount, loan.currency, loan.digits, persian, unit)
+        : strings(context, 'itemTitle', {
+            'n': loan.amount,
+            'what': loan.what.isEmpty ? strings(context, 'item') : loan.what,
+          });
+    final words = loan.kind == LoanKind.money
+        ? formatAmountWords(
+            loan.amount,
+            loan.currency,
+            loan.digits,
+            persian,
+            unit,
+          )
+        : null;
 
     return NexPanel(
       icon: loan.direction == LoanDirection.lent
@@ -381,17 +441,26 @@ class _SummaryPanel extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (words != null)
+            Text(
+              words,
+              key: const ValueKey('loan-total-words'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
           const SizedBox(height: NexSpacing.sm),
           Text(
             standing.settled
                 ? strings(context, 'settledWord')
                 : strings(context, 'outstanding', {
                     'amount': loan.kind == LoanKind.money
-                        ? formatMoney(
+                        ? formatAmount(
                             standing.outstanding,
                             loan.currency,
                             loan.digits,
                             persian,
+                            unit,
                           )
                         : formatNumber(standing.outstanding, persian),
                   }),

@@ -39,21 +39,36 @@ Future<void> settleLoans(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// The detail page is a scrolling list; a test that reads something below
+/// the fold (the return history, the reminder section) brings it into view
+/// the way a person would.
+Future<void> revealInLoanDetail(WidgetTester tester, Finder target) async {
+  final list = find.byKey(const ValueKey('loan-detail-body'));
+  if (list.evaluate().isEmpty) return;
+  await tester.dragUntilVisible(
+    target,
+    list,
+    const Offset(0, -300),
+    maxIteration: 25,
+  );
+  await tester.pumpAndSettle();
+}
+
 /// Creates a record through the real sheet. Defaults describe a money
-/// loan of 500,000 rials to Ali, due in 7 days.
+/// loan of 50,000 tomans (500,000 rials) to Ali, due in 7 days — the sheet
+/// says Iranian amounts in toman unless the person chose rial.
 Future<String> createLoan(
   WidgetTester tester,
   NexModuleStore store, {
   bool borrowed = false,
   bool item = false,
   String person = 'Ali',
-  String amount = '500000',
+  String amount = '50000',
   String what = 'The blue backpack',
   String dueIn = '7',
 }) async {
   await tester.tap(find.byKey(const ValueKey('loans-new')));
   await tester.pumpAndSettle();
-  await openMoreDetails(tester, 'loan-more-toggle');
   if (borrowed) {
     await tester.tap(find.byKey(const ValueKey('loan-field-direction')));
     await tester.pumpAndSettle();
@@ -78,6 +93,10 @@ Future<String> createLoan(
       amount,
     );
   }
+  // The dates and the note are behind one button; opened after the two
+  // answers the sheet asks for first, so nothing above them has to be
+  // scrolled back to.
+  await openMoreDetails(tester, 'loan-more-toggle');
   if (dueIn.isNotEmpty) {
     final preset = find.byKey(ValueKey('loan-due-preset-$dueIn'));
     await tester.ensureVisible(preset);

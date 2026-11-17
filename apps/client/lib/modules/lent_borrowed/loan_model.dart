@@ -44,6 +44,7 @@ class Loan {
     required this.note,
     this.currency = 'IRR',
     this.currencyDecimals,
+    this.reminderDetail = false,
   });
 
   factory Loan.fromRecord(ModuleRecord record) =>
@@ -73,6 +74,9 @@ class Loan {
       issued: issued,
       due: due,
       note: body['note'] is String ? body['note'] as String : '',
+      // A lock screen is read by whoever holds the phone: absent means
+      // private, and only an explicit true reveals the person and amount.
+      reminderDetail: body['reminderDetail'] == true,
     );
   }
 
@@ -87,7 +91,8 @@ class Loan {
 
   final LoanKind kind;
 
-  /// Money: the amount in integer rials. Items: the quantity.
+  /// Money: the amount in integer minor units of [currency] (whole rials for
+  /// IRR, whatever unit they are *said* in). Items: the quantity.
   final int amount;
 
   /// What the item was, for item records. Empty for money.
@@ -103,6 +108,11 @@ class Loan {
   final String note;
   final String currency;
   final int? currencyDecimals;
+
+  /// Whether this record's reminder may name the person and the amount on a
+  /// locked screen. False unless the person turned it on for this record.
+  final bool reminderDetail;
+
   int get digits => moneyDigits(currency, currencyDecimals);
 
   Map<String, Object?> toJson() => {
@@ -117,6 +127,7 @@ class Loan {
     'issued': issued,
     'due': due,
     'note': note,
+    if (reminderDetail) 'reminderDetail': true,
   };
 
   /// An impossible date reads as no due date rather than as a deadline in

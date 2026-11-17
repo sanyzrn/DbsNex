@@ -27,8 +27,15 @@ class LentBorrowedModule extends NexStoredModule {
 
 const lentStrings = NexModuleStrings(
   en: {
-    'amountHint': 'e.g. {example} (dot or ٫ for decimals)',
+    'amountHint': 'e.g. {example}',
+    'amountWordsHint': 'The amount in words appears here.',
     'currency': 'Currency',
+    'unitLabel': 'Say amounts in',
+    'unitToman': 'Toman',
+    'unitRial': 'Rial',
+    'unitNote':
+        'A toman is ten rials. Amounts are stored in rials, so this only '
+        'changes how they are said.',
     'saveError': 'Could not save. Your changes are still here; try again.',
     'loadError': 'Could not load records. Try again.',
     'retry': 'Try again',
@@ -78,7 +85,7 @@ const lentStrings = NexModuleStrings(
     'settledWord': 'Settled',
     'ofTotal': '{done} of {total} returned',
     'dueIn': 'Due in {n} days',
-    'dueIn1': 'Due in 1 day',
+    'dueIn1': 'Due tomorrow',
     'dueTodayWord': 'Due today',
     'overdueBy': '{n} days overdue',
     'overdueBy1': '1 day overdue',
@@ -102,6 +109,10 @@ const lentStrings = NexModuleStrings(
     'moreDetailsHint':
         'When it was lent, when it is due, a few words. All optional.',
     'itemsOut': '{n} items still out',
+    'itemsOut1': '1 item still out',
+    'itemTitle': '{n} × {what}',
+    'rowItemOut': '{n} × {what} still out',
+    'rowItemBack': '{n} × {what} came back',
     'overdueCount': '{n} overdue',
     'searchHint': 'Search a person, item or note',
     'filter_all': 'All',
@@ -114,21 +125,36 @@ const lentStrings = NexModuleStrings(
     'theyOweYou': 'Owes you {amount}',
     'youOweThem': 'You owe {amount}',
     'allSettled': 'All settled',
-    'messageTitle': 'Send a reminder message',
+    'peopleNothingOut': 'Nothing is outstanding with this person.',
+    'messageTitle': 'Reminder message',
     'messageHint':
-        'Pick a tone, then choose where to send it. Nothing is sent by Nex itself.',
+        'Pick a tone and copy it. Nex never sends anything; the share button '
+        'opens your phone’s own sheet.',
     'tone_friendly': 'Friendly',
-    'tone_plain': 'Plain',
+    'tone_neutral': 'Neutral',
     'tone_formal': 'Formal',
-    'messageDue': ' (due {date})',
+    'messageDue': ', due {date}',
     'message_friendly':
-        'Hi {person}! A small reminder about {amount}{due} — whenever you can. Thank you!',
-    'message_plain':
-        'Hi {person}, a reminder that {amount} is still outstanding{due}. Thanks.',
+        'Hi {person}! A small thing about {amount}{due} — whenever it suits '
+        'you, tell me what timing works and I’ll plan around it. Thank you!',
+    'message_neutral':
+        'Hi {person}, I hope you’re well. A gentle reminder about '
+        '{amount}{due}. No rush — let me know what timing works for you.',
     'message_formal':
-        'Dear {person}, this is a reminder that {amount} remains outstanding{due}. Please let me know when it can be settled.',
+        'Dear {person}, I’m sorry to bring this up. May I ask what timing '
+        'would be possible for {amount}{due}? Thank you.',
+    'messageItem': 'the {what}',
+    'messageCopy': 'Copy the message',
+    'messageShare': 'Share',
+    'messageCopied': 'Message copied',
     'reminderTitle': 'Reminder',
-    'reminderBody': 'A loan with {person} is due back.',
+    'reminderHint': 'A one-time alert on the due date you choose.',
+    'reminderShowDetail': 'Show who and how much on the lock screen',
+    'reminderPrivateNote':
+        'Off by default: the notification names neither the person nor the '
+        'amount.',
+    'reminderBodyPrivate': 'A reminder you set for a loan is due. Open Nex.',
+    'reminderBodyDetail': 'The loan with {person} is due back: {amount}.',
     'returnHistory': 'Return history',
     'noReturns': 'Nothing has come back yet.',
     'returnedOn': 'Returned {amount}',
@@ -147,8 +173,15 @@ const lentStrings = NexModuleStrings(
     'editRecord': 'Edit record',
   },
   fa: {
-    'amountHint': 'مثلاً {example} (اعشار با نقطه یا ٫)',
+    'amountHint': 'مثلاً {example}',
+    'amountWordsHint': 'مبلغ به حروف اینجا نوشته می‌شود.',
     'currency': 'ارز',
+    'unitLabel': 'مبلغ‌ها با',
+    'unitToman': 'تومان',
+    'unitRial': 'ریال',
+    'unitNote':
+        'هر تومان ده ریال است. مبلغ‌ها همیشه به ریال ذخیره می‌شوند و این '
+        'انتخاب فقط شیوهٔ گفتن آن‌ها را عوض می‌کند.',
     'saveError': 'ذخیره نشد. تغییراتتان باقی است؛ دوباره تلاش کنید.',
     'loadError': 'اطلاعات بارگذاری نشد. دوباره تلاش کنید.',
     'retry': 'تلاش دوباره',
@@ -221,6 +254,10 @@ const lentStrings = NexModuleStrings(
     'moreDetails': 'تاریخ‌ها و یادداشت',
     'moreDetailsHint': 'کی داده شد، سررسید کی است، چند کلمه. همه اختیاری است.',
     'itemsOut': '{n} وسیله هنوز بیرون است',
+    'itemsOut1': 'یک وسیله هنوز بیرون است',
+    'itemTitle': '{n} عدد {what}',
+    'rowItemOut': '{n} عدد {what} هنوز مانده',
+    'rowItemBack': '{n} عدد {what} برگشت',
     'overdueCount': '{n} مورد گذشته از موعد',
     'searchHint': 'جست‌وجوی شخص، وسیله یا یادداشت',
     'filter_all': 'همه',
@@ -233,20 +270,36 @@ const lentStrings = NexModuleStrings(
     'theyOweYou': 'به شما {amount} بدهکار است',
     'youOweThem': 'شما {amount} بدهکارید',
     'allSettled': 'همه تسویه شده',
+    'peopleNothingOut': 'با این شخص چیزی مانده نیست.',
     'messageTitle': 'پیام یادآوری',
-    'messageHint': 'لحن را انتخاب کنید و بعد مقصد را. نکس خودش چیزی نمی‌فرستد.',
+    'messageHint':
+        'لحن را انتخاب کنید و پیام را کپی کنید. نکس خودش چیزی نمی‌فرستد؛ '
+        'دکمهٔ اشتراک صفحهٔ خود گوشی را باز می‌کند.',
     'tone_friendly': 'دوستانه',
-    'tone_plain': 'معمولی',
+    'tone_neutral': 'معمولی',
     'tone_formal': 'رسمی',
-    'messageDue': ' (موعد {date})',
+    'messageDue': '، موعد {date}',
     'message_friendly':
-        'سلام {person} جان! یک یادآوری کوچک دربارهٔ {amount}{due}؛ هر وقت راحت بودی. ممنون!',
-    'message_plain':
-        'سلام {person}، یادآوری می‌کنم که {amount} هنوز مانده است{due}. ممنون.',
+        'سلام {person} جان! یک یادآوری کوچک دربارهٔ {amount}{due}؛ هر وقت '
+        'راحت بودی بگو چه زمانی برات مناسبه که من هم برنامه‌ام را بچینم. ممنون!',
+    'message_neutral':
+        'سلام {person}، امیدوارم خوب باشی. یک یادآوری آرام دربارهٔ '
+        '{amount}{due}. عجله‌ای نیست؛ فقط بگو چه زمانی برات مناسبه.',
     'message_formal':
-        '{person} عزیز، به‌عنوان یادآوری، {amount} هنوز تسویه نشده است{due}. لطفاً اعلام بفرمایید چه زمانی امکان‌پذیر است.',
+        '{person} عزیز، سلام. شرمنده‌ام که این موضوع را پیش می‌کشم؛ ممکن است '
+        'بفرمایید برای {amount}{due} چه زمانی مقدور است؟ سپاسگزارم.',
+    'messageItem': '{what}',
+    'messageCopy': 'کپی پیام',
+    'messageShare': 'اشتراک‌گذاری',
+    'messageCopied': 'پیام کپی شد',
     'reminderTitle': 'یادآوری',
-    'reminderBody': 'سررسید قرض با {person} رسیده است.',
+    'reminderHint': 'یک یادآوری یک‌باره در روز موعدی که انتخاب می‌کنید.',
+    'reminderShowDetail': 'نمایش نام و مبلغ روی صفحهٔ قفل',
+    'reminderPrivateNote':
+        'به‌طور پیش‌فرض خاموش است: اعلان نه نام را می‌گوید نه مبلغ را.',
+    'reminderBodyPrivate':
+        'موعد یادآوری‌ای که تنظیم کرده بودید رسیده است؛ نکس را باز کنید.',
+    'reminderBodyDetail': 'قرض با {person} سررسید شد: {amount}.',
     'returnHistory': 'تاریخچهٔ برگشت‌ها',
     'noReturns': 'هنوز چیزی برنگشته است.',
     'returnedOn': '{amount} برگشت',
