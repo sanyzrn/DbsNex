@@ -59,6 +59,35 @@ Working convention:
   `encodePng(singleFrame: true)`) and 2.8.3's `*.icon.png` are re-encoded
   once at launch to `*.icon1.png`.
 
+### 2.8.4 — Cheques and Maintenance reviewed; modules go live once approved
+
+- Owner's rule: a module is available as soon as its review is approved
+  (recorded in CLAUDE.md). `nexAvailableModuleIds` adds `parking`,
+  `medicine`, `cheques`, `maintenance`.
+- Cheques (agent/module-cheques.md): instalments in whole tomans when the
+  total is; the month view lists only days with dues and marks deficit
+  days; unused `ai_contract.dart` removed; `keepUp` replans alarms.
+- Maintenance (agent/module-maintenance): car reminders now follow their
+  dates (`insuranceRemind`/`inspectionRemind`, written only when true;
+  `CarReminders.plan` on date/lead change and in `keepUp`, skipping an
+  alarm already set for the same moment), can be turned off, and a refused
+  alarm does not stay marked on; `MaintenanceShared` (duesBetween,
+  summarize); off both pending lists.
+- One-time reminder "Remove the note when done": `notes.due_clears`
+  (INTEGER, local like `due_repeat`, cleared with `due_at`, carried in the
+  JSON archive; no schema bump — older builds read an ordinary reminder).
+  `clearAnswered` soft-deletes on Done (now, or settled from the hand-off at
+  launch) or on closing the card after the time; `reminderCleared` drives
+  one Undo banner; `keepCleared` restores without the spent reminder.
+  `retireSpentReminders` skips such notes until answered.
+- First run: a modules page (`onboarding_modules.dart`) before the choices;
+  chips call `setModuleOn` (not Cycle; none on desktop). Capture page text
+  mentions grid/grouping and reminders.
+- Home tips: `widgets/tips/` — catalogue `nexTips`, pure `NexTipSchedule`,
+  `NexHomeTip` under the pinned tools; state in `home.tip_state`, switch
+  `home.tips` in Home layout.
+- Grid tile: tag dots sit beside the reminder pill instead of being hidden.
+
 ### 2.8.3 — link cards, arranging tools and modules, store readiness
 
 - `NexLinkFace` (platform/link_face.dart) reads a link's address offline:

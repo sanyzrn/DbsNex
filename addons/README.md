@@ -28,15 +28,20 @@ are migrated on open. Re-enable each remaining module individually after a
 device check (TalkBack, notification permission, large text) — add its id to
 `nexAvailableModuleIds` in `apps/client/lib/modules/module_rollout.dart`.
 
-### 2.8.4: Parking, Medicine and Lent & Borrowed upgraded
+### 2.8.4: Parking, Medicine, Cheques & instalments and Maintenance available
 
 From the module briefs (`docs/prompts/module-briefs/`), reviewed and completed
 before merge. Lent & Borrowed (available) gains splits, settle-up and a card
-and IBAN book. Parking and Medicine are finished to their briefs but **stay
-Soon** until they are tried on a phone: one-tap parking with a reminder that
-follows the paid time; medicine for several people, routines whose reminders
-Nex keeps ahead, boxes and their expiry, and where a medicine was found. All
-three give their dates in the shared shape and leave the pending lists.
+and IBAN book. The owner's rule from 2.8.4: a module is made available as soon
+as its review is complete and approved, without waiting for a device test — so
+**Parking** (one-tap parking with a reminder that follows the paid time),
+**Medicine** (several people, routines whose reminders Nex keeps ahead, boxes
+and their expiry), **Cheques & instalments** (`cheques`: cheques both ways,
+instalment plans in whole tomans, a month view, hidden amounts) and
+**Maintenance** (service log, car insurance and inspection reminders that
+follow their dates, fuel log against quotas) join `nexAvailableModuleIds`. All
+give their dates and lines in the shared shape and leave the pending lists.
+Price Lens and Expenses stay Soon.
 
 ### Back in 2.8.1: Gold, Quit Habits, Lent & Borrowed; new: Prompt Studio, Security toolbox
 
