@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'car_logic.dart';
 import 'costs.dart';
 import 'logic.dart';
 import 'maintenance_common.dart';
@@ -16,10 +17,19 @@ import 'units.dart';
 String serviceHistoryText(
   BuildContext context,
   MaintenanceAsset asset,
-  Iterable<ServiceEvent> events,
-) {
+  Iterable<ServiceEvent> events, {
+  Iterable<FuelEntry> fuel = const [],
+  Iterable<FuelRate> rates = const [],
+  DateTime? now,
+}) {
   final s = maintenanceStrings;
   final persian = NexModuleStrings.persian(context);
+  final at = now ?? DateTime.now();
+  final summary = fuelMonthSummary(
+    fuel,
+    at,
+    solar: NexModuleCalendar.solarOf(context),
+  );
   final lines = <String>[
     asset.nickname,
     [
@@ -28,12 +38,30 @@ String serviceHistoryText(
     ].join(' · '),
     if (asset.purchasedAt != null)
       '${s(context, 'purchasedLabel')}: ${fullDateLabel(context, asset.purchasedAt!)}',
+    if (asset.insuranceExpiresAt != null)
+      '${s(context, 'historyInsurance')}: ${fullDateLabel(context, asset.insuranceExpiresAt!)}',
+    if (asset.inspectionExpiresAt != null)
+      '${s(context, 'historyInspection')}: ${fullDateLabel(context, asset.inspectionExpiresAt!)}',
     '',
     s(context, 'historyHeading'),
   ];
   final done = events.where(serviceDateKnown).toList()..sort(compareServices);
   if (done.isEmpty) {
     lines.add(s(context, 'noServices'));
+  }
+  if (summary.litres > 0 || summary.priceRial > 0) {
+    lines.add('');
+    lines.add(s(context, 'historyFuel'));
+    lines.add(
+      '- ${s(context, 'historyFuelLine', {'litres': formatLitres(summary.litres, persian: persian), 'cost': formatToman(summary.priceRial, persian: persian)})}',
+    );
+    for (final rate in rates) {
+      final used = summary.litresByRate[rate.name] ?? 0;
+      if (used == 0) continue;
+      lines.add(
+        '  ${rate.name}: ${formatLitres(used, persian: persian)} / ${formatLitres(rate.quota, persian: persian)}',
+      );
+    }
   }
   for (final event in done) {
     final parts = <String>[

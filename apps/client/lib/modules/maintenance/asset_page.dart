@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'asset_editor.dart';
+import 'car_panel.dart';
 import 'controller.dart';
 import 'costs.dart';
 import 'event_editor.dart';
+import 'fuel_panel.dart';
 import 'logic.dart';
 import 'asset_page_actions.dart';
 import 'maintenance_common.dart';
@@ -217,6 +219,10 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
                 ],
               ),
             ),
+            if (asset.type == 'car') ...[
+              const SizedBox(height: NexSpacing.md),
+              CarPanel(controller: controller, asset: asset, now: _openedAt),
+            ],
             if (!asset.archived) ...[
               const SizedBox(height: NexSpacing.md),
               Text(
@@ -243,6 +249,10 @@ class _AssetPageState extends State<AssetPage> with WidgetsBindingObserver {
                 asset: asset,
                 now: _openedAt,
               ),
+            if (asset.type == 'car') ...[
+              const SizedBox(height: NexSpacing.md),
+              FuelPanel(controller: controller, asset: asset, now: _openedAt),
+            ],
             const SizedBox(height: NexSpacing.md),
             Row(
               children: [

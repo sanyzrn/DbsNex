@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/maintenance/maintenance_screen.dart';
+
 import '../../support/nex_harness.dart';
 
 void main() {
@@ -32,7 +34,30 @@ void main() {
             'type': 'car',
             'meterKind': 'distance',
             'distanceUnit': 'km',
+            'insuranceExpiresAt': now
+                .add(const Duration(days: 23))
+                .toIso8601String(),
+            'inspectionExpiresAt': now
+                .add(const Duration(days: 5))
+                .toIso8601String(),
             'archived': false,
+          });
+          await store.put('fuel_rate', 'quota', {
+            'assetId': 'car',
+            'name': persian ? 'سهمیه' : 'Quota',
+            'quota': 60000,
+          });
+          await store.put('fuel_rate', 'free', {
+            'assetId': 'car',
+            'name': persian ? 'آزاد' : 'Free',
+            'quota': 0,
+          });
+          await store.put('fuel', 'fill', {
+            'assetId': 'car',
+            'date': now.toIso8601String(),
+            'litres': 42500,
+            'priceRial': 1275000,
+            'rate': persian ? 'سهمیه' : 'Quota',
           });
           await store.put('event', 'oil', {
             'assetId': 'car',
@@ -96,7 +121,8 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
           const output = String.fromEnvironment('NEX_CAPTURE');
-          if (output.isNotEmpty && !compact) {
+          Future<void> capture(String name) async {
+            if (output.isEmpty || compact) return;
             await tester.runAsync(() async {
               final image =
                   await (boundary.currentContext!.findRenderObject()!
@@ -106,11 +132,40 @@ void main() {
                 format: ui.ImageByteFormat.png,
               );
               final dir = Directory(output)..createSync(recursive: true);
-              await File(
-                '${dir.path}/maintenance_${persian ? 'fa_dark' : 'en_light'}.png',
-              ).writeAsBytes(bytes!.buffer.asUint8List());
+              await File('${dir.path}/$name.png')
+                  .writeAsBytes(bytes!.buffer.asUint8List());
               image.dispose();
             });
+          }
+
+          final lang = persian ? 'fa_dark' : 'en_light';
+          await capture('maintenance_$lang');
+          if (!compact &&
+              find
+                  .text(persian ? 'خودروی روزانه' : 'Daily car')
+                  .evaluate()
+                  .isNotEmpty) {
+            await tester.tap(
+              find.text(persian ? 'خودروی روزانه' : 'Daily car'),
+            );
+            await tester.pumpAndSettle();
+            await capture('maintenance_${lang}_car');
+            // The fuel section is below the car and interval panels.
+            final page = find
+                .descendant(
+                  of: find.byType(ListView),
+                  matching: find.byType(Scrollable),
+                )
+                .first;
+            await tester.drag(page, const Offset(0, -600));
+            await tester.pumpAndSettle();
+            await capture('maintenance_${lang}_car_fuel');
+            final add = find.byKey(const ValueKey('maintenance-fuel-add'));
+            if (add.evaluate().isNotEmpty) {
+              await tester.tap(add);
+              await tester.pumpAndSettle();
+              await capture('maintenance_${lang}_fuel_sheet');
+            }
           }
           if (compact) {
             await tester.tap(

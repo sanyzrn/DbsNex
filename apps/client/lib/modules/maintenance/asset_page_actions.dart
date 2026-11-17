@@ -53,12 +53,26 @@ Future<void> assetPageMenu(
       case 'unarchive':
         await controller.setArchived(asset, false);
       case 'copyHistory':
-        final text = serviceHistoryText(context, asset, events);
+        final text = serviceHistoryText(
+          context,
+          asset,
+          events,
+          fuel: controller.fuel.where((e) => e.assetId == asset.id),
+          rates: controller.fuelRates.where((r) => r.assetId == asset.id),
+        );
         final copied = s(context, 'historyCopied');
         await nexModuleCopyText(text);
         if (context.mounted) nexShowBanner(context, message: copied);
       case 'shareHistory':
-        await nexModuleShareText(serviceHistoryText(context, asset, events));
+        await nexModuleShareText(
+          serviceHistoryText(
+            context,
+            asset,
+            events,
+            fuel: controller.fuel.where((e) => e.assetId == asset.id),
+            rates: controller.fuelRates.where((r) => r.assetId == asset.id),
+          ),
+        );
       case 'delete':
         final answer = await _confirm(
           context,
