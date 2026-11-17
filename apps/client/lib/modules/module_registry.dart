@@ -1,5 +1,6 @@
 import '../platform/nex_preferences.dart';
 import 'converter/module.dart';
+import 'cheques/module.dart';
 import 'cycle_module.dart';
 import 'expenses/module.dart';
 import 'gold/module.dart';
@@ -40,6 +41,7 @@ const List<NexModule> nexModules = [
   ConverterModule(),
   PromptStudioModule(),
   SecurityToolsModule(),
+  ChequeManagerModule(),
 ];
 
 /// The modules that are part of the app right now.

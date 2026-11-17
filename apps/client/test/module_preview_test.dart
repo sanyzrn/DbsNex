@@ -46,9 +46,12 @@ void main() {
     expect(nexAvailableModuleIds, {'cycle', 'pause', ...back});
     expect(reviewed, back);
     expect(paused, moduleIds.difference(back));
-    // Thirteen existing add-ons plus Prompt Studio and the security toolbox.
-    expect(moduleIds, containsAll(['prompt_studio', 'security_tools']));
-    expect(moduleIds, hasLength(15));
+    // The existing add-ons plus the new Cheques module, still Soon.
+    expect(
+      moduleIds,
+      containsAll(['prompt_studio', 'security_tools', 'cheques']),
+    );
+    expect(moduleIds, hasLength(16));
   });
 
   test(
@@ -63,8 +66,8 @@ void main() {
     },
   );
 
-  test('all modules default off, including the fifteen add-ons', () {
-    expect(moduleIds, hasLength(15));
+  test('all modules default off, including the sixteen add-ons', () {
+    expect(moduleIds, hasLength(16));
     expect(
       nexModules.whereType<NexStoredModule>().map((m) => m.id).toSet(),
       moduleIds,
