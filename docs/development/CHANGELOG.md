@@ -34,6 +34,22 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.1 — what 2.8.0 drew for almost nobody
+
+- `NoteCard` keeps its kind-coloured edge under `nexVisualStyle.minimal`, and
+  the brief card keeps its wash, edge and beam; only high contrast swaps them
+  for the plain outline. Every ramp palette and soft appearance is minimal,
+  so both were missing on nearly every install. `minimal_appearance_test`
+  covers classic, a palette in soft dark and one in night.
+- The brief's heading moves its time under the title and puts the count and
+  arrow in `_FoldPill`; the opened lines are `_ArrivingLine`s inside the
+  card's one `NexAnimatedSize` (the nested `NexReveal` made the outer size
+  chase a moving target). Brief widgets live in `timeline_brief_widgets.dart`.
+- `NexNavigationDock.recede` now narrows the capsule to capture, sinks and
+  scales its places, and pulses capture; it runs on `_dockMorph`, whose
+  reverse curve overshoots, while the scrim keeps `_dockReceded`.
+  `_followDock` counts a fling's glide through `userScrollDirection`.
+
 ### 2.8.0 — the home screen, rebuilt
 
 - `NexSearchPill` and `NexSearchTapRegion` are cut out of `SearchFieldHeader`;

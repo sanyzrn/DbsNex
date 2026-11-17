@@ -5,7 +5,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' show ScrollCacheExtent, ScrollDirection;
 import 'package:flutter/foundation.dart'
     show ValueListenable, compute, listEquals, setEquals;
 
@@ -94,6 +94,7 @@ import 'threads_screen.dart';
 import 'photo_preview_screen.dart';
 import 'settings_sheet.dart';
 
+part 'timeline/timeline_brief_widgets.dart';
 part 'timeline/timeline_header_widgets.dart';
 part 'timeline/timeline_desktop.dart';
 part 'timeline/timeline_grid.dart';
@@ -265,8 +266,17 @@ class TimelineScreenState extends State<TimelineScreen>
   );
   late final Animation<double> _dockReceded = CurvedAnimation(
     parent: _dockRecede,
-    curve: NexMotion.exitCurve,
-    reverseCurve: NexMotion.exitCurve,
+    curve: NexMotion.moveCurve,
+    reverseCurve: NexMotion.moveCurve,
+  );
+
+  /// The dock's own run of it: it opens back out with a little give, which
+  /// takes the value just under 0 (see [NexNavigationDock.recede]). Kept
+  /// apart because what fades with the dock cannot fade past whole.
+  late final Animation<double> _dockMorph = CurvedAnimation(
+    parent: _dockRecede,
+    curve: NexMotion.moveCurve,
+    reverseCurve: const Cubic(0.34, 1.3, 0.64, 1).flipped,
   );
   final ValueNotifier<bool> _dockAway = ValueNotifier(false);
 

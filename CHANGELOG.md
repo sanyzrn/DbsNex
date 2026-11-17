@@ -4,6 +4,13 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.1
+
+- **The kind's edge on list cards, in every look.** The fine outline in each note's colour that 2.7.2 gave list cards was left out in most appearances — every palette and the soft looks — so few people ever saw it. It is now drawn everywhere, as it always was on grid tiles.
+- **The new smart summary shows for everyone.** The summary's soft wash of your accent colour and its edge from 2.8.0 were missing in the same appearances, so it looked as it did before. They now show in every look.
+- **A tidier summary heading.** When the summary was last updated now sits under its name instead of being squeezed beside the arrow. How many lines are folded away and the arrow that opens them sit together in one small button at the end, so opening and folding move nothing else on the card. Opening it now grows the card in one smooth movement, and the hidden lines come in one after another.
+- **A bottom bar that tucks in.** Scrolling down through your notes, the bar now draws in towards **+** and slips away, and **+** gives a small pulse as it takes it in. Scroll back up and the bar opens out again from **+**. A quick flick now hides it just as a slow drag does — before, it often stayed.
+
 ## v2.8.0
 
 - **A new home screen.** The top of Nex is now one calm header for the day — the date, your greeting, the smart summary and your pinned tools — with your notes starting right under it, so far more of them fit on the first screen.

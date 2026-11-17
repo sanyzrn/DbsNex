@@ -69,8 +69,12 @@ extension _TimelineScroll on TimelineScreenState {
   /// other four are a short pull away: back up a little, at the top, at the
   /// end of the list.
   ///
-  /// Only a finger steps them back. A scroll the app starts itself — to a
-  /// reminder's note, back to the top for a search — is not reading.
+  /// Only a person steps them back. A scroll the app starts itself — to a
+  /// reminder's note, back to the top for a search — is not reading. A
+  /// flick counts as a whole, its glide included (2.8.1): it used to count
+  /// only the part under the finger, so a quick flick that sent the list a
+  /// screen down often left the dock up while a slow drag hid it, and which
+  /// one it would be looked random.
   void _followDock(ScrollUpdateNotification notification) {
     final metrics = notification.metrics;
     if (metrics.pixels < _dockWholeAbove ||
@@ -85,7 +89,14 @@ extension _TimelineScroll on TimelineScreenState {
     if (delta == 0) return;
     if (delta.sign != _dockTravel.sign) _dockTravel = 0;
     _dockTravel += delta;
-    if (_dockTravel >= _dockAwayAfter && notification.dragDetails != null) {
+    // Not idle while a finger moves the list and through the glide it
+    // leaves; idle under a scroll the app drives itself.
+    final byPerson =
+        notification.dragDetails != null ||
+        (_scroll.hasClients &&
+            _scroll.positions.length == 1 &&
+            _scroll.position.userScrollDirection != ScrollDirection.idle);
+    if (_dockTravel >= _dockAwayAfter && byPerson) {
       _setDockAway(true);
     } else if (_dockTravel <= -_dockBackAfter) {
       _setDockAway(false);
@@ -101,8 +112,8 @@ extension _TimelineScroll on TimelineScreenState {
     if (away && MediaQuery.accessibleNavigationOf(context)) return;
     _dockAway.value = away;
     _dockRecede
-      ..duration = NexMotion.of(context, NexMotion.exit)
-      ..reverseDuration = NexMotion.of(context, NexMotion.enter);
+      ..duration = NexMotion.of(context, NexMotion.slow)
+      ..reverseDuration = NexMotion.of(context, NexMotion.morph);
     if (away) {
       unawaited(_dockRecede.forward());
     } else {
