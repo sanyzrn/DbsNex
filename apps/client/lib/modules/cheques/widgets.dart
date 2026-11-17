@@ -5,6 +5,8 @@ import 'model.dart';
 import 'privacy.dart';
 import 'strings.dart';
 import 'values.dart';
+import 'money_format.dart';
+import 'irr_unit.dart';
 
 class ChequeChoices extends StatelessWidget {
   const ChequeChoices({
@@ -18,17 +20,16 @@ class ChequeChoices extends StatelessWidget {
   final String value, prefix;
   final ValueChanged<String>? onChanged;
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: NexSpacing.sm,
-    runSpacing: NexSpacing.sm,
-    children: [
+  Widget build(BuildContext context) => NexAdaptiveSegments<String>(
+    segments: [
       for (final v in values)
-        ChoiceChip(
+        ButtonSegment(
+          value: v,
           label: Text(chequeStrings(context, '$prefix$v')),
-          selected: v == value,
-          onSelected: onChanged == null ? null : (_) => onChanged!(v),
         ),
     ],
+    selected: {value},
+    onSelectionChanged: onChanged == null ? null : (v) => onChanged!(v.first),
   );
 }
 
@@ -124,53 +125,19 @@ class ChequeTile extends StatelessWidget {
   }
 }
 
-class ChequeDraftGuard extends StatefulWidget {
-  const ChequeDraftGuard({
-    super.key,
-    required this.draft,
-    required this.busy,
-    required this.child,
-  });
-  final NexModuleFormDraft draft;
-  final bool Function() busy;
-  final Widget child;
-  @override
-  State<ChequeDraftGuard> createState() => _ChequeDraftGuardState();
-}
-
-class _ChequeDraftGuardState extends State<ChequeDraftGuard> {
-  bool _leaving = false;
-  Future<void> _back() async {
-    if (_leaving || widget.busy()) return;
-    FocusManager.instance.primaryFocus?.unfocus();
-    setState(() => _leaving = true);
-    if (!await widget.draft.finish()) {
-      widget.draft.resume();
-      if (mounted) {
-        setState(() => _leaving = false);
-        nexShowBanner(
-          context,
-          message: chequeStrings(context, 'saveError'),
-          kind: NexBannerKind.failed,
-        );
-      }
-      return;
-    }
-    if (mounted) Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) => PopScope<void>(
-    canPop: false,
-    onPopInvokedWithResult: (didPop, _) {
-      if (!didPop) _back();
-    },
-    child: AbsorbPointer(absorbing: _leaving, child: widget.child),
-  );
-}
-
 String chequeMoney(BuildContext context, BigInt rial, {String unit = 'toman'}) {
   if (chequeHidden(context)) return '••••';
+  final integer = int.tryParse(rial.toString());
+  if (integer != null && integer.abs() <= maxMoney) {
+    final formatted = formatAmount(
+      integer,
+      'IRR',
+      0,
+      NexModuleStrings.persian(context),
+      IrrUnit.fromKey(unit),
+    );
+    return formatted.substring(0, formatted.lastIndexOf(' '));
+  }
   final ten = BigInt.from(10);
   final whole = unit == 'rial' ? rial : rial ~/ ten;
   final grouped = whole.toString().replaceAllMapped(

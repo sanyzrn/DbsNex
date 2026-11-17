@@ -12,6 +12,7 @@ import 'strings.dart';
 import 'privacy.dart';
 import 'values.dart';
 import 'widgets.dart';
+import 'share.dart';
 
 class ChequeDetail extends StatefulWidget {
   const ChequeDetail({super.key, required this.repo, required this.id});
@@ -199,6 +200,12 @@ class _ChequeDetailState extends State<ChequeDetail> {
         ),
         actions: [
           const ChequePrivacyButton(),
+          if (c != null && c.valid && !_failed)
+            IconButton(
+              tooltip: s(context, 'share'),
+              onPressed: () => shareCheque(context, c),
+              icon: const Icon(Icons.share_outlined),
+            ),
           if (c != null && !_failed) ...[
             if (c.valid)
               IconButton(

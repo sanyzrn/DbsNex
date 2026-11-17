@@ -35,6 +35,7 @@ void main() {
           'detail',
           'editor',
           'event',
+          'status',
           'empty',
           'plans',
           'planEditor',
@@ -116,6 +117,11 @@ void main() {
               'planEditor' => PlanEditor(repo: planRepo, plan: plan),
               'detail' => ChequeDetail(repo: repo, id: c.id),
               'editor' => ChequeEditor(repo: repo, cheque: c),
+              'status' => ChequeEventEditor(
+                repo: repo,
+                cheque: c,
+                payment: false,
+              ),
               'event' => ChequeEventEditor(
                 repo: repo,
                 cheque: c,
@@ -198,7 +204,7 @@ void main() {
               });
             }
             // Scroll through long forms/details to exercise the lower controls at 2x text.
-            if (scene == 'editor' || scene == 'event') {
+            if (scene == 'editor' || scene == 'event' || scene == 'status') {
               await reachCheque(
                 t,
                 find.byKey(

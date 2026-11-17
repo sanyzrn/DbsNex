@@ -104,6 +104,17 @@ requests** in the README, with how the module behaves without it.
 - **Privacy:** a screen showing money totals or health details offers to
   hide the amounts, or uses `NexSecureWindow` where the brief says so.
 
+## Shared across modules
+
+Read **"Shared across modules"** in `docs/18-module-kit.md` and follow all
+nine rules: dates that fall due in one shape (`duesBetween`, no calendar of
+your own), money in rials, the other party as `person`, a `summarize` line
+per record, records that keep fields they do not know, saving and undo,
+reminder wording and lead times, sharing and hiding, and the shared look.
+Where a piece is not in the kit yet, copy the reference that section names,
+under the same file name and calls; never write a variant of your own. Say
+in the README how the module meets each rule.
+
 ## For an upgrade: audit first
 
 Before changing anything, write an **Audit** section at the top of the

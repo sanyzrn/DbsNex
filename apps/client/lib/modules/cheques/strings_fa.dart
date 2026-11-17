@@ -148,9 +148,12 @@ const chequeFA = <String, String>{
   "upcoming": "سایر پیگیری‌ها",
   "status_registered": "ثبت در صیاد (گزارش شما)",
   "status_handed": "تحویل‌شده",
-  "alarmNamed": "{party} · {amount} {unit} · پیگیری در نکس",
+  "alarmNamed": "{party} · {amount} {unit} · {when} ({date})",
   "plan_before": "چند روز قبل (۱ تا ۳۰)",
   "savePlan": "ذخیرهٔ برنامه",
   "editPlan": "ویرایش برنامه",
   "deletePlanAction": "حذف برنامه",
+  'amountWordsHint': 'مبلغ را پیش از ذخیره با حروف بررسی کن',
+  'currency': 'واحد پول',
+  'share': 'اشتراک‌گذاری',
 };

@@ -152,9 +152,12 @@ const chequeEN = <String, String>{
   "upcoming": "Other follow-ups",
   "status_registered": "Registered in Sayad (your report)",
   "status_handed": "Handed over",
-  "alarmNamed": "{party} · {amount} {unit} · follow up in Nex",
+  "alarmNamed": "{party} · {amount} {unit} · {when} ({date})",
   "plan_before": "Days before (1–30)",
   "savePlan": "Save plan",
   "editPlan": "Edit plan",
   "deletePlanAction": "Delete plan",
+  'amountWordsHint': 'Check the amount in words before saving',
+  'currency': 'Currency',
+  'share': 'Share',
 };

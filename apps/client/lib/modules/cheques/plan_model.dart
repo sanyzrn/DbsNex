@@ -72,40 +72,45 @@ class InstalmentPlan {
       ? []
       : [
           for (var i = 0; i < count; i++)
-            Cheque('plan:$id:$i', {
-              'v': 1,
-              'direction': 'outgoing',
-              'purpose': 'payment',
-              'amountRial': amount(i).toString(),
-              'unit': 'rial',
-              'party': '$title · ${i + 1}/$count',
-              'bank': '',
-              'account': '',
-              'number': '',
-              'sayad': '',
-              'note': '',
-              'due': chequeDayKey(date(i)),
-              'followUp': '',
-              'status': paid(i) ? 'settled' : 'active',
-              'events': paid(i)
-                  ? [
-                      {
-                        'id': 'payment',
-                        'kind': 'payment',
-                        'previous': 'active',
-                        'next': 'settled',
-                        'day': (raw['paid'] as Map)['$i'],
-                        'amountRial': amount(i).toString(),
-                        'note': '',
-                        'target': '',
-                        'voided': false,
-                      },
-                    ]
-                  : <Object?>[],
-              'sayadState': 'unknown',
-              'remind': raw['remind'] == true,
-              'reminderDays': [raw['beforeDays'] ?? 3, 0],
-              'minutes': raw['minutes'] ?? 540,
-            }),
+            Cheque(
+              'plan:$id:$i',
+              {
+                'v': 1,
+                'direction': 'outgoing',
+                'purpose': 'payment',
+                'amountRial': amount(i).toString(),
+                'unit': 'rial',
+                'party': '$title · ${i + 1}/$count',
+                'bank': '',
+                'account': '',
+                'number': '',
+                'sayad': '',
+                'note': '',
+                'due': chequeDayKey(date(i)),
+                'followUp': '',
+                'status': paid(i) ? 'settled' : 'active',
+                'events': paid(i)
+                    ? [
+                        {
+                          'id': 'payment',
+                          'kind': 'payment',
+                          'previous': 'active',
+                          'next': 'settled',
+                          'day': (raw['paid'] as Map)['$i'],
+                          'amountRial': amount(i).toString(),
+                          'note': '',
+                          'target': '',
+                          'voided': false,
+                        },
+                      ]
+                    : <Object?>[],
+                'sayadState': 'unknown',
+                'remind': raw['remind'] == true,
+                'reminderDays': [raw['beforeDays'] ?? 3, 0],
+                'minutes': raw['minutes'] ?? 540,
+              },
+              recordKind: 'plan',
+              recordId: id,
+            ),
         ];
 }

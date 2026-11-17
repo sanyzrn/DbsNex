@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'model.dart';
+import 'dues.dart';
 import 'strings.dart';
 import 'widgets.dart';
 
@@ -24,17 +25,14 @@ class ChequeMonth extends StatelessWidget {
         end = p.month == 12
             ? nexGregorianDate(p.year + 1, 1, 1)
             : nexGregorianDate(p.year, p.month + 1, 1);
-    final selected = rows
-        .where(
-          (c) =>
-              c.valid &&
-              !c.closed &&
-              c.purpose == 'payment' &&
-              c.due != null &&
-              !c.due!.isBefore(start) &&
-              c.due!.isBefore(end),
-        )
+    final dues = ChequeDues(rows)
+        .duesBetween(start, DateTime(end.year, end.month, end.day - 1))
+        .where((d) => !d.done && d.kind != 'cheque-review')
         .toList();
+    final byId = {
+      for (final c in rows) c.recordKind == 'plan' ? c.id : 'cheque:${c.id}': c,
+    };
+    final selected = [for (final d in dues) byId[d.id]!];
     BigInt sum(Iterable<Cheque> xs, String dir) => xs
         .where((c) => c.direction == dir)
         .fold(BigInt.zero, (v, c) => v + c.remaining);

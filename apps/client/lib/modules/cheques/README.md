@@ -4,6 +4,9 @@
 
 Starting main: `4ce8d52354a37d253eaa9643a4f8fd412b4a40af` (initial research
 started on aae8cbba; main's documentation-only advancement was retained).
+PR repair and shared-rules baseline: `9050ad171a5845f8c512927198f73e7007f7db44`.
+Final integration includes main `e3edff3fc5e41ad1c556ab8b96a302940fa83b16`
+(the owner’s 2.8.3 updates, including module ordering).
 The owner then explicitly selected prompt 12 and the cheques brief. The actual
 brief path is `docs/prompts/module-briefs/cheques.md` (not `.md.md`). Work runs
 in the cloud workspace on **agent/module-cheques.md**. No PR is to be opened.
@@ -20,12 +23,12 @@ The earlier, uncommitted cheque work has been kept and extended:
 | State/motion | Persistent list state, no FAB hero | Kept; stateful lists retained, transient follow-up heading uses NexSegmentSwap |
 | Robustness | Drafts, conflict checks, atomic events, Undo | Kept; plan stale-alarm cleanup and tests added |
 | AI | Redacted context / draft proposal contracts | Kept, disconnected from AI until an approved host adapter exists |
-| Integration | Temporary local wiring | Excluded from delivery per prompt 12 |
+| Integration | Missing registry line caused PR CI failure | Registered for the owner’s PR repair; remains Soon |
 
 ## 1. What it does
 
 Screens: Follow up; All (query/direction/status/date range); rolling Outlook;
-Jalali month and its daily cash calendar; cheque detail/history; cheque editor;
+Jalali month list and daily cash flow; cheque detail/history; cheque editor;
 confirmed settlement/status editor; instalment plans and plan editor.
 All features are offline. No bank/Sayad connection, legal advice, card data or
 banking passwords. A self-reported status never establishes authenticity.
@@ -39,8 +42,9 @@ the party/amount on the lock screen; reminders are explicitly off until selected
 ## 2. Record shapes and compatibility
 
 Namespace `cheques`, kind `cheque`, v1. Fields: direction incoming/outgoing;
-purpose payment/guarantee; amountRial a canonical positive whole-Rial decimal
-string (max 24 digits); unit rial/toman; party, bank, account alias, number,
+purpose payment/guarantee; amountRial a positive whole-Rial integer; unit
+rial/toman; person object with name and preserved future fields; legacy party
+string retained as a compatibility alias; bank, account alias, number,
 sayad empty/16 ASCII digits, note; due/followUp civil Gregorian `YYYY-MM-DD`;
 status; archived (derived from closed status for host alarm reconciliation);
 events; sayadState unknown/todo/checked and sayadCheckedDay; remind,
@@ -55,9 +59,9 @@ state without erasing history. Active history locks face amount/direction/purpos
 Max 500 events per cheque. Unknown fields survive valid edits; unsupported or
 corrupt records stay visible, protected from editing and excluded from totals.
 
-Kind `plan`, v1: title; totalRial (whole-Rial decimal string stored once), count
+Kind `plan`, v1: title; totalRial (whole-Rial integer stored once), count
 1..120, months 1..12, first civil date, calendar jalali/gregorian, paid mapping
-zero-based index strings to actual paid civil dates; remind; beforeDays 1..30;
+zero-based index strings to actual paid civil dates; remind; beforeDays selected from 1/3/7/14/30;
 minutes. The first due date's original day anchors every interval; nonexistent
 days clamp to that month's last day and later months recover the original day.
 Amounts divide exactly, with any remainder in the last instalment. Paid
@@ -67,8 +71,8 @@ Unchecking a payment is an explicit reversible local correction, not a refund.
 Derived instalment IDs `plan:<planId>:<zeroBasedIndex>` are never separately
 persisted as cheque records. Totals combine actual cheques and these derived
 rows without duplicating principal. Their source reminder kind/id is plan/planId.
-A future Recurring/due-radar adapter should read outstanding cheque remaining
-amounts/due dates and derive outstanding plan dates with `InstalmentPlan`.
+A future Recurring/due-radar adapter consumes the pure `ChequeDues` snapshot
+and `duesBetween` contract described below.
 Guarantees, transferred and settled rows are excluded from planned cash totals.
 
 Host v1 drafts: cheque:new, cheque:<id>, action:<id>, plan:new, plan:<id>.
@@ -89,7 +93,14 @@ slots are withdrawn; shown notifications are preserved during upkeep. Plan edits
 remove orphaned slots after schedule changes. Financial save success and
 notification scheduling failures are treated separately.
 
-BigInt arithmetic and canonical decimal strings keep large Rial values exact.
+BigInt arithmetic keeps totals and legacy large values exact. New form input
+uses the reference maximum of 9,007,199,254,740,991 rials. Legacy canonical
+24-digit strings are still read without rounding; unchanged editing and full
+settlement remain possible. New amounts use integer rials; legacy values
+above the reference’s interoperable range retain their exact string on write.
+A value outside Dart’s signed integer range has shared amountRial=null,
+never a saturated/truncated amount.
+The source record and local totals retain the complete value.
 Civil dates do not shift through UTC. Persian dates use the host's Jalali API;
 the monthly cash view always groups by Jalali month. Forecast ratios are drawing
 values only. Lists use owned query/scroll controllers and IndexedStack to retain
@@ -97,6 +108,46 @@ state (the stateful-view exception documented by NexSegmentSwap); swapping the
 transient follow-up heading uses the shared fade. FABs have heroTag null.
 No queries are triggered per rendered card or by scrolling. All Dart files are
 under 400 lines, including the editor's private part file.
+
+## Shared across modules — 2.8.2 compliance
+
+1. **One calendar:** no independent calendar/grid. The Jalali cash-flow month
+   list stays a small module view, replaceable by the future life calendar.
+   `ChequeDues.fromRecords(records)` builds an immutable local snapshot of both
+   cheque and plan records. `duesBetween(from, to)` accepts inclusive civil
+   days, returns stable IDs and local midnight, source cheque/id or plan/id,
+   signed remaining rials, done and private=true. Guarantees are review dates
+   without money. Completed/returned/transferred rows are done with zero cash
+   promise. Corrupt/future records are excluded. Month, outlook and reminders
+   consume this same function; no host calendar integration is claimed.
+2. **Money:** copied `money_format.dart`, `amount_field.dart`,
+   `currency_field.dart` and their helper files from `lent_borrowed` with the
+   same public calls. Only module-local strings imports were adapted. All
+   three amount editors use the reference grouping/words and exact parsers;
+   display uses its formatting. Rial/Toman choice remains a presentation value.
+   No foreign-currency UI is added to an Iranian cheque product. Legacy large
+   records use the exact compatibility path described above.
+3. **People:** writes add `person.name`; old `party` remains readable. Editing
+   a name merges into the existing object, keeping id/cards/ibans/unknown keys.
+   No new card/IBAN collection or credentials are introduced.
+4. **Summary:** pure `summarize(ModuleRecord)` returns title/detail/private for
+   supported saved cheques/plans; null for drafts or invalid/foreign records.
+   Nothing is connected to main search, timeline, assistant or daily brief.
+5. **Unknown fields:** repositories merge parent fields, nested person fields
+   and event fields; conflict checks, atomic event writes and raw Undo remain.
+6. **Drafts/Undo:** copied `draft_guard.dart` from the reference with `DraftGuard`
+   calls; only its reference-only draft type was adapted to exported
+   `NexModuleFormDraft`, and strings to this module. No new draft mechanism.
+7. **Reminders:** cheque choices are 0/1/3/7/14/30. Plans always include due day
+   plus one of 1/3/7/14/30; an existing custom legacy offset is kept until
+   explicitly changed, but cannot be newly entered. Named alerts include
+   amount, relative lead time and the exact localized due date.
+8. **Sharing/privacy:** explicit text Share uses `nexModuleShareText`, with the
+   same amount masking as the screen. No photos/image sharing; platform request
+   remains. Hidden input fields also hide the reference amount-in-words helper.
+9. **Look/state:** choices use `NexAdaptiveSegments`; stateful views retain
+   controllers and scrolling. Transient views use `NexSegmentSwap`; every FAB
+   keeps heroTag:null. Main hero uses `NexModuleHero`.
 
 ## 4. Research and assumptions (2026-11-17)
 
@@ -146,15 +197,19 @@ calendar, separate overdue/bounced follow-up, hidden amounts and named reminders
 
 ## 7. Platform requests and future integration
 
-Only this module's source/test folders are delivered. Maintainers must register
-ChequeManagerModule, retire the cheque-manager plan and assign a hero hue. No
-rollout enabling is included. Without registration, the module is not in the UI.
+For the owner’s follow-up request to repair PR CI, the existing gate required
+maintainer registration. This branch now includes only the import/list entry
+and the corresponding catalog-count/list traversal assertions outside the module folders;
+no rollout setting, shared API or gate was changed. The module stays Soon.
+Maintainers can retire the old cheque-manager planned entry and assign its hue.
 Exact notification routing needs host registrations: cheque -> ChequeDetail;
 plan -> PlansPage with instalment index from its reminder key. Until then the
 host's generic notification fallback opens the module rather than its detail.
 
-Camera/photos, OCR, note links, AI tools, file export/image sharing and a phone
-text share-sheet API are not exposed by the current module API. No private
+Camera/photos, OCR, note links, AI tools and file export/image sharing
+are not exposed by the current module API. The existing text share API is now
+used by the detail page’s Share action; bank/account/Sayad/note are omitted
+and hidden amounts stay hidden. No private
 imports/platform channels are used to substitute for them. Manual entry works
 without those APIs. A future Recurring/due-radar integration is described by the
 record shapes above but is not built.
@@ -174,24 +229,30 @@ Flutter 3.47.9 / Dart 3.13.7, not the stale 3.35 example in the prompt. Locked
 `pub get --enforce-lockfile` completed without dependency/lockfile modifications.
 Host SQLite was built from vendored repository source outside the repository.
 
-Temporary local module/hue/notification wiring and catalog-count adjustments
-were used to run integration checks, then removed before delivery. No gate,
-rollout, shared API, registry, other module, app version or global changelog
-change is included in this branch.
+The previous delivery used temporary registration for 169 focused checks and
+4,200 full-client checks, then removed it as prompt 12 required. The resulting
+PR failed the existing registry assertion. The owner requested repair; minimal
+registration is now committed and verified in the delivered tree, with no
+rollout or gate edits. Final checks on the 2.8.3 integration:
 
-- `flutter analyze --no-pub --fatal-infos`: no issues.
-- Changed module/test Dart format check: 31 files, zero remaining changes;
-  all individual Dart files under 400 lines. `git diff --check`: clean.
-- `flutter test --no-pub test/modules/cheques test/module_kit_test.dart
-  --timeout 60s --reporter expanded`: **169 passed** (114 module cases,
-  including 80 visual layout cases), with temporary local registration.
-- Full client `flutter test --no-pub --reporter expanded` with that temporary
-  integration: **07:41 +4200 ~4: All tests passed!** Four pre-existing skips.
-- Temporary shared wiring was restored byte-for-byte to main before staging;
-  the delivered tree is only this module's two folders. Running the gate in
-  a checkout requires the maintainer registration described above.
-- Backend/other-package suites, APK/device, TalkBack and measured performance
-  were not run or claimed.
+- `flutter pub get --enforce-lockfile`: completed; lockfile unchanged.
+- `flutter analyze --no-pub --fatal-infos`: no issues. Analysis of all changed
+  module/test files after the last edits also reports no issues.
+- Focused final run (module, module kit, shared rules, preview, catalog and
+  module arrangement): **01:17 +259: All tests passed!** This includes the
+  repaired catalog test and the final reminder wording in both languages.
+- Full client suite was run: **15:18 +4281 ~4 -1**. Its only failure was the
+  pre-existing catalog test's forward-only scrolling, exposed by registering
+  another Soon card alongside 2.8.3's layout. Its registry iteration crosses
+  the Available/Soon sections. Each lookup now starts at the top; assertions
+  are unchanged, and the complete catalog suites pass in the 259-test rerun.
+  The full suite was not repeated after the final catalog/reminder-text edits;
+  all affected suites were rerun together as reported above.
+- Formatting and `git diff --check`: clean; every module/test Dart file stays
+  within 400 lines. Review gallery: 22 synthetic screenshots, Persian dark and
+  English light. Layout checks include both themes/languages, 2x text and
+  narrow screens; status choices also have a wide-screen check.
+- No APK/device, TalkBack, backend or measured performance result is claimed.
 
 Tests cover exact amounts, numeric scripts, bad dates, guarantees, transfers,
 partial/full settlements and reversal, unknown data, draft/read/write/cleanup
@@ -203,7 +264,7 @@ are synthetic data. No Android APK/device, TalkBack or performance trace claimed
 
 ## Device checklist
 
-1. Register locally while keeping Soon; open cheque editor in Persian and English.
+1. Keep Soon; open cheque editor locally in Persian and English.
 2. Enter Rial/Toman amounts and a Jalali date; test back/draft resume and tab state.
 3. Make partial/full settlements, transfers and reversals; compare exact balance.
 4. Add a 4-month plan; test month-end/leap dates, checking/unchecking payments.
@@ -219,7 +280,7 @@ No owner answer blocks this drop-in delivery. User research should decide the
 preferred unit for plan entry, practical instalment-count limits and lock-screen
 privacy defaults. Current plan entry is explicitly Rial; cheque entry supports
 both units. Real-device notification routing/permissions and accessibility remain
-for owner testing before rollout. API-based image/OCR/AI/sharing need separate
+for owner testing before rollout. API-based image/OCR/AI need separate
 maintainer work; no hidden network or bank integration is proposed.
 
 ## Review gallery
@@ -233,6 +294,7 @@ maintainer work; no hidden network or bank integration is proposed.
 | detail | [EN](review/cheque_detail_en_light.png) | [FA](review/cheque_detail_fa_dark.png) |
 | editor | [EN](review/cheque_editor_en_light.png) | [FA](review/cheque_editor_fa_dark.png) |
 | event | [EN](review/cheque_event_en_light.png) | [FA](review/cheque_event_fa_dark.png) |
+| status | [EN](review/cheque_status_en_light.png) | [FA](review/cheque_status_fa_dark.png) |
 | plans | [EN](review/cheque_plans_en_light.png) | [FA](review/cheque_plans_fa_dark.png) |
 | planEditor | [EN](review/cheque_planEditor_en_light.png) | [FA](review/cheque_planEditor_fa_dark.png) |
 | empty | [EN](review/cheque_empty_en_light.png) | [FA](review/cheque_empty_fa_dark.png) |

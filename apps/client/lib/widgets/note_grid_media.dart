@@ -86,6 +86,7 @@ class _MediaTileState extends State<_MediaTile> {
       ),
     ),
     NexTileBackdrop.collage when widget.photos != null => _collage(),
+    NexTileBackdrop.link => _linkTile(),
     _ => _tile(_photo(_path)),
   };
 
@@ -213,6 +214,8 @@ class _MediaTileState extends State<_MediaTile> {
     Widget picture, {
     Widget? center,
     String? badge,
+    Widget? chip,
+    String? text,
     bool lightPicture = false,
   }) {
     final theme = Theme.of(context);
@@ -220,12 +223,17 @@ class _MediaTileState extends State<_MediaTile> {
     final metrics = widget.metrics;
     const ink = Colors.white;
     final muted = Colors.white.withValues(alpha: 0.82);
-    final caption = [
-      note.title,
-      note.caption,
-      note.displayText,
-      note.originalFilename,
-    ].firstWhere((t) => t != null && t.trim().isNotEmpty, orElse: () => null);
+    final caption =
+        text ??
+        [
+          note.title,
+          note.caption,
+          note.displayText,
+          note.originalFilename,
+        ].firstWhere(
+          (t) => t != null && t.trim().isNotEmpty,
+          orElse: () => null,
+        );
     final words = caption == null
         ? ''
         : NexMarkdownText.preview(caption).replaceAll(RegExp(r'\s+'), ' ');
@@ -280,6 +288,7 @@ class _MediaTileState extends State<_MediaTile> {
                       onPick: widget.onLeadingTap,
                     ),
                     const Spacer(),
+                    ?chip,
                     if (badge != null)
                       Align(
                         alignment: AlignmentDirectional.centerStart,

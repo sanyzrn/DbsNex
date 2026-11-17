@@ -1,14 +1,17 @@
 import 'package:nex_client/modules/module_api.dart';
 
 import 'model.dart';
+import 'dues.dart';
 import 'plan_model.dart';
 import 'strings.dart';
+import 'money_format.dart' show formatNumber;
 
 List<({int days, DateTime at})> chequeAlarmPlan(Cheque c, DateTime now) {
-  if (!c.valid || c.closed || c.raw['remind'] != true || c.actionDay == null) {
-    return [];
-  }
-  final date = c.actionDay!, minutes = c.raw['minutes'] as int;
+  final day = c.actionDay;
+  if (day == null || c.raw['remind'] != true) return [];
+  final dues = ChequeDues([c]).duesBetween(day, day);
+  if (dues.isEmpty || dues.single.done) return [];
+  final date = dues.single.at, minutes = c.raw['minutes'] as int;
   return [
       for (final d in c.raw['reminderDays'] as List)
         (
@@ -52,7 +55,7 @@ Future<bool> armCheque(
             sourceId: c.id,
             at: matching.first.at,
             title: chequeStrings.text(l10n, 'title'),
-            body: chequeAlarmText(c, l10n),
+            body: chequeAlarmText(c, l10n, days: d),
           ) &&
           ok;
     }
@@ -89,7 +92,7 @@ Future<bool> renewPlans(NexModuleStore store, AppLocalizations l10n) async {
                 sourceId: p.id,
                 at: plan[slot].at,
                 title: chequeStrings.text(l10n, 'title'),
-                body: chequeAlarmText(c, l10n),
+                body: chequeAlarmText(c, l10n, days: plan[slot].days),
               ) &&
               ok;
         }
@@ -104,17 +107,28 @@ Future<bool> renewPlans(NexModuleStore store, AppLocalizations l10n) async {
   return ok;
 }
 
-String chequeAlarmText(Cheque c, AppLocalizations l10n) {
+String chequeAlarmText(Cheque c, AppLocalizations l10n, {int days = 0}) {
   if (c.raw['privateAlert'] == true) {
     return chequeStrings.text(l10n, 'alarmBody');
   }
-  final n = c.remaining.toString().replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => ',',
-  );
+  final integer = int.tryParse(c.remaining.toString());
+  final n = integer != null
+      ? formatNumber(integer, l10n.localeName.startsWith('fa'))
+      : c.remaining.toString().replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (_) => ',',
+        );
   return chequeStrings.text(l10n, 'alarmNamed', {
     'party': c.party,
     'amount': nexDigits(n, persian: l10n.localeName.startsWith('fa')),
     'unit': chequeStrings.text(l10n, 'rial'),
+    'when': chequeStrings.text(l10n, days == 0 ? 'today' : 'days', {'n': days}),
+    'date': c.actionDay == null
+        ? ''
+        : nexReadableDate(
+            c.actionDay!,
+            persian: l10n.localeName.startsWith('fa'),
+            solar: l10n.localeName.startsWith('fa'),
+          ),
   });
 }

@@ -5,6 +5,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'plan_model.dart';
 import 'repository.dart';
 import 'values.dart';
+import 'money_format.dart' show maxMoney;
 
 class PlanRepository {
   PlanRepository(this.store);
@@ -28,10 +29,20 @@ class PlanRepository {
     Map<String, Object?> fields,
   ) => serial(() async {
     await fresh(id, expected);
+    final amount = chequeAmount(fields['totalRial'] ?? expected?['totalRial']);
+    final before = fields['beforeDays'] ?? expected?['beforeDays'];
+    if (amount != null &&
+            amount > BigInt.from(maxMoney) &&
+            amount != chequeAmount(expected?['totalRial']) ||
+        !{1, 3, 7, 14, 30}.contains(before) &&
+            before != expected?['beforeDays']) {
+      throw const ChequeFailure('validation');
+    }
     final p = InstalmentPlan(id, {
       ...?expected,
       ...fields,
       'v': 1,
+      'totalRial': storedRials(fields['totalRial'] ?? expected?['totalRial']),
       'paid': expected?['paid'] ?? <String, Object?>{},
     });
     if (!p.valid || p.date(p.count - 1).year > 2100) {
@@ -39,13 +50,11 @@ class PlanRepository {
     }
     if (expected != null &&
         (expected['paid'] as Map).isNotEmpty &&
-        [
-          'totalRial',
-          'count',
-          'months',
-          'first',
-          'calendar',
-        ].any((k) => p.raw[k] != expected[k])) {
+        ['totalRial', 'count', 'months', 'first', 'calendar'].any(
+          (k) => k == 'totalRial'
+              ? chequeAmount(p.raw[k]) != chequeAmount(expected[k])
+              : p.raw[k] != expected[k],
+        )) {
       throw const ChequeFailure('locked');
     }
     await store.put('plan', id, p.raw);

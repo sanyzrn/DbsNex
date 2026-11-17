@@ -11,6 +11,9 @@ import 'strings.dart';
 import 'privacy.dart';
 import 'values.dart';
 import 'widgets.dart';
+import 'draft_guard.dart';
+import 'amount_field.dart';
+import 'irr_unit.dart';
 
 part 'editor_body.dart';
 
@@ -67,14 +70,26 @@ class _ChequeEditorState extends State<ChequeEditor> {
     },
   );
   bool _loading = true, _failed = false, _saving = false;
-  bool _reading = false;
+  bool _reading = false, _amountQueued = false;
   String? _error;
   Cheque? _committed;
   bool get locked => widget.cheque?.locked == true;
   @override
   void initState() {
     super.initState();
+    _fields['amount']!.addListener(_amountChanged);
     unawaited(_load());
+  }
+
+  // The reference groups the controller during dependency changes. Schedule
+  // the secondary conversion after build, so locale/unit changes remain safe.
+  void _amountChanged() {
+    if (_amountQueued) return;
+    _amountQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _amountQueued = false;
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _load() async {
@@ -134,6 +149,7 @@ class _ChequeEditorState extends State<ChequeEditor> {
 
   @override
   void dispose() {
+    _fields['amount']!.removeListener(_amountChanged);
     _draft.close();
     for (final c in _fields.values) {
       c.dispose();
@@ -200,7 +216,12 @@ class _ChequeEditorState extends State<ChequeEditor> {
         'direction': _direction,
         'purpose': _purpose,
         'amountRial':
-            enteredAmount(_fields['amount']!.text, _unit)?.toString() ?? '',
+            editableAmount(
+              _fields['amount']!.text,
+              _unit,
+              original: widget.cheque?.face,
+            )?.toString() ??
+            '',
         'unit': _unit,
         'due': _purpose == 'payment' && _day != null ? chequeDayKey(_day!) : '',
         'followUp': _purpose == 'guarantee' && _day != null

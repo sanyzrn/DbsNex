@@ -134,6 +134,134 @@ Flutter's `material`, `widgets`, `foundation`, `animation`, `painting`,
 `gestures` and `rendering` libraries, and `dart:async`, `math`, `convert`,
 `collection` and `ui` may be imported too.
 
+## Shared across modules (2.8.2)
+
+Modules are separate folders, but to the person they are one app: the same
+"Ali" in every module, the same money, the same dates falling due on one
+calendar. These rules are what keeps that possible. Every module follows
+them — the ones being written now and every one added later — and a
+pull request that adds or upgrades a module is checked against them.
+
+Some pieces are not in the kit yet. Until they are, a module copies the
+**reference** named below, under the same file name and with the same
+calls, so that the kit can later replace every copy in one move. It never
+writes its own variant.
+
+### 1. Dates that fall due: one shape, one calendar
+
+Nex gathers every module's due dates into one shared calendar (the "life
+calendar"). So:
+
+- **No full calendar of a module's own.** A month list, or a simple month
+  view of the module's own dates, is enough; the shared calendar component
+  will replace it.
+- **One function** produces everything a module has falling due — a cheque,
+  an instalment, a dose, an insurance expiry, a payment day — for a range
+  of days, with no widgets:
+
+  ```dart
+  /// Everything this module has falling due between [from] and [to].
+  List<ModuleDue> duesBetween(DateTime from, DateTime to);
+  ```
+
+  | Field | Type | Meaning |
+  |---|---|---|
+  | `id` | `String` | stable, so the same item is the same item next time |
+  | `recordKind`, `recordId` | `String` | the record it comes from, to open it |
+  | `at` | `DateTime` | when it falls due (local; date-only items at midnight) |
+  | `title` | `String` | what it is, in the person's own words where possible |
+  | `kind` | `String` | the module's word for it (`cheque-in`, `dose`, …) |
+  | `amountRial` | `int?` | money, when there is any; positive in, negative out |
+  | `done` | `bool` | already paid, taken or cleared |
+  | `private` | `bool` | health or money detail, shown only discreetly |
+
+  `ModuleDue` is defined in the module's folder with exactly these fields,
+  until the kit provides it. The module's own screens and reminders use the
+  same function, and it is unit-tested on its own: month ends, Esfand 29
+  and 30, a record missing a field.
+
+### 2. Money
+
+- Stored as a whole number of **rials**, in a field whose name ends in
+  `Rial` (`amountRial`, `priceRial`). Never a floating-point number, never
+  tomans.
+- Foreign money is stored as `{"amount": <int, smallest unit>, "currency":
+  "USD"}` with ISO 4217 codes.
+- Shown in tomans or rials with Persian digits and grouping in Persian.
+  Whether a person sees tomans or rials will become one setting for the
+  whole app; until then the module follows the reference.
+- **Reference:** `lent_borrowed/money_format.dart`, `amount_field.dart` and
+  `currency_field.dart`.
+
+### 3. People
+
+- The other party — a borrower, a cheque's payee, a fund member, a family
+  member taking a medicine — is stored in a field named **`person`**, as an
+  object: `{"name": "Ali"}`. The object may later gain an `id` from the
+  app's shared list of people; a module keeps it as it found it.
+- Never a bare string in some fields and an object in others. A module
+  that keeps people of its own (members, family) still stores each one's
+  name under `person.name`.
+- Card numbers and IBANs belong to a person (`person.cards`,
+  `person.ibans`), never to the record that mentions them; never a CVV2,
+  an expiry date, a PIN or a password.
+
+### 4. A line about each record
+
+So that module records can, later and only with the person's consent, be
+found from the main search and mentioned by the daily brief, each module
+has one plain function:
+
+```dart
+/// One line about [record], in the person's own words; null to keep it out.
+ModuleSummary? summarize(ModuleRecord record);
+```
+
+with `ModuleSummary` = `title` (`String`), `detail` (`String?`) and
+`private` (`bool`: health or money, never shown without opting in). Today
+nothing reads it but the module's tests; module records are still never in
+general search, the timeline or assistant tools.
+
+### 5. Records keep what they do not know
+
+Read old records defensively, and **write back every field you did not
+change**, including ones your version does not know: a later version, or
+the platform (a person's `id`), may have added them. Fields are added,
+never renamed or removed.
+
+### 6. Saving, leaving a form, undo
+
+- Saving happens as the person types (`NexModuleFormDraft`,
+  `NexCheckedModuleFormDraft`); leaving a half-written form keeps it.
+- Deleting shows `nexShowBanner` with Undo.
+- **Reference** for leaving a form with unsaved changes:
+  `lent_borrowed/draft_guard.dart`.
+
+### 7. Reminders
+
+- Only through `NexModuleReminderControl` and the store's reminder calls.
+- The words name the thing and when ("Cheque to Ali, 12,000,000 tomans:
+  in 3 days"), never "You have a reminder".
+- Lead times come from one set: on the day, and 1, 3, 7, 14 or 30 days
+  before; a module picks its default from these.
+
+### 8. Sharing, hiding, pictures
+
+- Text is shared with `nexModuleShareText`. Image sharing is not in the
+  kit; ask for it under Platform requests.
+- A screen with money totals or health details can hide them; until the
+  app has one setting for it, the module keeps its own `hideAmounts` and
+  uses `NexSecureWindow` for health data.
+- Photos (a cheque, an invoice, an insurance card) are not in the kit;
+  ask for them, and keep a text reference meanwhile.
+
+### 9. Look and movement
+
+`docs/16-design-language.md` and `docs/26-ui-consistency.md`, and the
+shared pieces they name: `NexAdaptiveSegments` for choices, `NexSegmentSwap`
+for a segment that swaps the view below it, tabs that keep what was typed,
+`heroTag: null` on every floating button, `NexModuleHero` at the top.
+
 ## The gate: `test/module_kit_test.dart`
 
 For every folder under `lib/modules/`, the gate checks five things:
@@ -150,6 +278,13 @@ For every folder under `lib/modules/`, the gate checks five things:
 4. **Registry.** It is in `nexModules`.
 5. **Words.** Both languages have the same keys, every required key is there,
    and no value is empty.
+
+Beside it, `test/module_shared_rules_test.dart` holds the rules of
+"Shared across modules": a module that sets reminders gives its due dates
+through `duesBetween`, every module has `summarize`, and no money field in
+rials can hold a fraction. Modules written before 2.8.2 are listed as
+pending; the lists only shrink, and a new module meets the rules from its
+first commit.
 
 The gate also runs the worked example, `test/module_kit/tally/`: a tally
 counter that is added, used, removed keeping its data, and removed deleting

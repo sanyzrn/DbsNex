@@ -11,6 +11,9 @@ import 'reminders.dart';
 import 'strings.dart';
 import 'values.dart';
 import 'widgets.dart';
+import 'draft_guard.dart';
+import 'amount_field.dart';
+import 'irr_unit.dart';
 
 class PlanEditor extends StatefulWidget {
   const PlanEditor({super.key, required this.repo, this.plan});
@@ -76,6 +79,17 @@ class _PlanEditorState extends State<PlanEditor> {
       }
       remind = data['remind'] == true;
     }
+    final before = int.tryParse(chequeDigits(fields['before']!.text));
+    if (!{
+      1,
+      3,
+      7,
+      14,
+      30,
+      if (widget.plan != null) widget.plan!.raw['beforeDays'],
+    }.contains(before)) {
+      fields['before']!.text = '3';
+    }
     draft.start();
     setState(() {
       loading = false;
@@ -99,7 +113,12 @@ class _PlanEditorState extends State<PlanEditor> {
       committed ??= await widget.repo.save(id, widget.plan?.raw, {
         'title': fields['title']!.text.trim(),
         'totalRial':
-            enteredAmount(fields['total']!.text, 'rial')?.toString() ?? '',
+            editableAmount(
+              fields['total']!.text,
+              'rial',
+              original: widget.plan?.total,
+            )?.toString() ??
+            '',
         'count': int.tryParse(chequeDigits(fields['count']!.text)) ?? 0,
         'months': int.tryParse(chequeDigits(fields['months']!.text)) ?? 0,
         'first': chequeDayKey(day),
@@ -154,7 +173,7 @@ class _PlanEditorState extends State<PlanEditor> {
   @override
   Widget build(BuildContext context) {
     final s = chequeStrings;
-    return ChequeDraftGuard(
+    return DraftGuard(
       draft: draft,
       busy: () => busy || loading,
       child: Scaffold(
@@ -189,30 +208,71 @@ class _PlanEditorState extends State<PlanEditor> {
                           },
                           child: Text(s(context, 'bnpl')),
                         ),
-                        for (final k in fields.keys)
+                        for (final k in fields.keys.where((k) => k != 'before'))
                           Padding(
                             padding: const EdgeInsets.only(
                               bottom: NexSpacing.md,
                             ),
                             child: ChequePrivateInput(
                               hidden: k == 'total' && chequeHidden(context),
-                              child: NexTextField(
-                                key: ValueKey('plan-$k'),
-                                controller: fields[k]!,
-                                minLines: 1,
-                                maxLines: 1,
-                                maxLength: k == 'title' ? 100 : 32,
-                                keyboardType: k == 'title'
-                                    ? TextInputType.text
-                                    : TextInputType.number,
-                                decoration: InputDecoration(
-                                  labelText: s(context, 'plan_$k'),
-                                  counterText: '',
-                                ),
-                              ),
+                              child: k == 'total'
+                                  ? AmountField(
+                                      fieldKey: const ValueKey('plan-total'),
+                                      controller: fields[k]!,
+                                      currency: 'IRR',
+                                      digits: 0,
+                                      unit: IrrUnit.rial,
+                                      label: s(context, 'plan_total'),
+                                    )
+                                  : NexTextField(
+                                      key: ValueKey('plan-$k'),
+                                      controller: fields[k]!,
+                                      minLines: 1,
+                                      maxLines: 1,
+                                      maxLength: k == 'title' ? 100 : 32,
+                                      keyboardType: k == 'title'
+                                          ? TextInputType.text
+                                          : TextInputType.number,
+                                      decoration: InputDecoration(
+                                        labelText: s(context, 'plan_$k'),
+                                        counterText: '',
+                                      ),
+                                    ),
                             ),
                           ),
                         Text(s(context, 'planHint')),
+                        DropdownButtonFormField<int>(
+                          isExpanded: true,
+                          initialValue:
+                              int.tryParse(
+                                chequeDigits(fields['before']!.text),
+                              ) ??
+                              3,
+                          decoration: InputDecoration(
+                            labelText: s(context, 'plan_before'),
+                          ),
+                          items: [
+                            for (final d in {
+                              1,
+                              3,
+                              7,
+                              14,
+                              30,
+                              if (widget.plan != null)
+                                widget.plan!.raw['beforeDays'] as int,
+                            })
+                              DropdownMenuItem(
+                                value: d,
+                                child: Text(s(context, 'remindDays', {'n': d})),
+                              ),
+                          ],
+                          onChanged: (d) {
+                            if (d != null) {
+                              fields['before']!.text = '$d';
+                              draft.changed();
+                            }
+                          },
+                        ),
                         ChequeChoices(
                           values: const ['jalali', 'gregorian'],
                           value: calendar,

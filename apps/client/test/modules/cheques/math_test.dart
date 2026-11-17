@@ -106,7 +106,7 @@ void main() {
   test('unsupported schema, malformed history and invalid direction states are excluded', () {
     for (final patch in [
       <String, Object?>{'v': 9},
-      {'amountRial': 10},
+      {'amountRial': 10.5},
       {
         'events': [3],
       },

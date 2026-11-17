@@ -10,6 +10,9 @@ import 'strings.dart';
 import 'privacy.dart';
 import 'values.dart';
 import 'widgets.dart';
+import 'draft_guard.dart';
+import 'amount_field.dart';
+import 'irr_unit.dart';
 
 class ChequeEventEditor extends StatefulWidget {
   const ChequeEventEditor({
@@ -117,7 +120,11 @@ class _ChequeEventEditorState extends State<ChequeEventEditor> {
   Future<void> _save() async {
     if (_loading || _saving || _failed) return;
     final s = chequeStrings;
-    final amount = enteredAmount(_fields['amount']!.text, _unit);
+    final amount = editableAmount(
+      _fields['amount']!.text,
+      _unit,
+      original: widget.cheque.remaining,
+    );
     if (_committed == null &&
         widget.payment &&
         (amount == null || amount > widget.cheque.remaining)) {
@@ -206,7 +213,7 @@ class _ChequeEventEditorState extends State<ChequeEventEditor> {
   @override
   Widget build(BuildContext context) {
     final s = chequeStrings;
-    return ChequeDraftGuard(
+    return DraftGuard(
       draft: _draft,
       busy: () => _loading || _saving,
       child: Scaffold(
@@ -273,17 +280,13 @@ class _ChequeEventEditorState extends State<ChequeEventEditor> {
                           const SizedBox(height: NexSpacing.sm),
                           ChequePrivateInput(
                             hidden: chequeHidden(context),
-                            child: NexTextField(
-                              key: const ValueKey('cheque-event-amount'),
+                            child: AmountField(
+                              fieldKey: const ValueKey('cheque-event-amount'),
                               controller: _fields['amount']!,
-                              minLines: 1,
-                              maxLines: 1,
-                              maxLength: 32,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                labelText: s(context, 'amount'),
-                                counterText: '',
-                              ),
+                              currency: 'IRR',
+                              digits: 0,
+                              unit: IrrUnit.fromKey(_unit),
+                              label: s(context, 'amount'),
                             ),
                           ),
                         ] else ...[

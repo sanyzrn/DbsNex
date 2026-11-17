@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/cheques/home.dart';
 import 'package:nex_client/modules/cheques/editor.dart';
+import 'package:nex_client/modules/cheques/event_editor.dart';
 import 'package:nex_client/modules/cheques/repository.dart';
 import 'package:nex_client/modules/cheques/model.dart';
 
@@ -105,13 +106,67 @@ void main() {
   }
 
   testWidgets(
+    'amount conversion follows typing and locale without a build error',
+    (t) async {
+      Widget editor(String locale) => MaterialApp(
+        locale: Locale(locale),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ChequeEditor(repo: repo),
+      );
+      await t.pumpWidget(editor('en'));
+      await settleCheque(t);
+      final amount = find.byKey(const ValueKey('cheque-amount'));
+      await t.enterText(amount, '25');
+      await t.pumpAndSettle();
+      expect(find.text('Equivalent: 250 Rial'), findsOneWidget);
+      await t.enterText(amount, '75');
+      await t.pumpAndSettle();
+      expect(find.text('Equivalent: 750 Rial'), findsOneWidget);
+      expect(find.text('Equivalent: 250 Rial'), findsNothing);
+      await t.pumpWidget(editor('fa'));
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+      await settleCheque(t);
+    },
+  );
+
+  testWidgets(
+    'status choices stay readable on wide screens in both languages',
+    (t) async {
+      t.view.physicalSize = const Size(800, 1000);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      for (final locale in ['en', 'fa']) {
+        await t.pumpWidget(
+          MaterialApp(
+            locale: Locale(locale),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: ChequeEventEditor(
+              repo: repo,
+              cheque: Cheque('c', chequeRaw(direction: 'incoming')),
+              payment: false,
+            ),
+          ),
+        );
+        await settleCheque(t);
+        expect(t.takeException(), isNull);
+        await t.pumpWidget(const SizedBox());
+        await settleCheque(t);
+      }
+    },
+  );
+
+  testWidgets(
     'manual registration picks a date and stores exact Toman money once',
     (t) async {
       await newForm(t);
       await save(t);
       final rows = await store.list('cheque');
       expect(rows.length, 1);
-      expect(rows.single.body['amountRial'], '25000');
+      expect(rows.single.body['amountRial'], 25000);
       expect(rows.single.body['unit'], 'toman');
       expect(rows.single.body['remind'], isFalse);
       expect(await store.list('draft'), isEmpty);

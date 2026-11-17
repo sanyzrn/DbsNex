@@ -67,6 +67,8 @@ extension _TimelineCapture on TimelineScreenState {
     } finally {
       reader.close();
     }
+    // Its picture and its site's icon, from the same page (2.8.3).
+    unawaited(NexLinkArt.instance.fetch(noteId, url, page: preview));
     if (!preview.isEmpty) {
       await widget.services.setLinkMetadata(
         noteId,

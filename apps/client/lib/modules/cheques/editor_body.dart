@@ -4,7 +4,7 @@ extension _ChequeEditorBody on _ChequeEditorState {
   Widget _body(BuildContext context) {
     final s = chequeStrings,
         amount = enteredAmount(_fields['amount']!.text, _unit);
-    return ChequeDraftGuard(
+    return DraftGuard(
       draft: _draft,
       busy: () => _loading || _saving,
       child: Scaffold(
@@ -82,20 +82,14 @@ extension _ChequeEditorBody on _ChequeEditorState {
                         const SizedBox(height: NexSpacing.sm),
                         ChequePrivateInput(
                           hidden: chequeHidden(context),
-                          child: NexTextField(
-                            key: const ValueKey('cheque-amount'),
+                          child: AmountField(
+                            fieldKey: const ValueKey('cheque-amount'),
                             controller: _fields['amount']!,
-                            readOnly: locked,
-                            minLines: 1,
-                            maxLines: 1,
-                            maxLength: 32,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText:
-                                  '${s(context, 'amount')} (${s(context, _unit)})',
-                              counterText: '',
-                            ),
-                            onChanged: (_) => _update(() {}),
+                            currency: 'IRR',
+                            digits: 0,
+                            unit: IrrUnit.fromKey(_unit),
+                            enabled: !locked,
+                            label: s(context, 'amount'),
                           ),
                         ),
                         if (amount != null)

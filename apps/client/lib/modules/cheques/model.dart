@@ -14,11 +14,30 @@ const chequeStatuses = [
 const chequeClosed = ['settled', 'transferred', 'returned', 'cancelled'];
 
 class Cheque {
-  Cheque(this.id, Map<String, Object?> body) : raw = Map.unmodifiable(body);
+  Cheque(
+    this.id,
+    Map<String, Object?> body, {
+    this.recordKind = 'cheque',
+    String? recordId,
+  }) : recordId = recordId ?? id,
+       raw = Map.unmodifiable(body);
+  final String recordKind, recordId;
   final String id;
   final Map<String, Object?> raw;
-  String text(String key) => raw[key] is String ? raw[key] as String : '';
-  String get party => text('party');
+  String text(String key) => key == 'party'
+      ? party
+      : raw[key] is String
+      ? raw[key] as String
+      : '';
+  String get party {
+    final person = raw['person'];
+    return person is Map && person['name'] is String
+        ? person['name'] as String
+        : raw['party'] is String
+        ? raw['party'] as String
+        : '';
+  }
+
   String get direction => text('direction');
   String get purpose => text('purpose');
   String get status => text('status');
@@ -49,7 +68,6 @@ class Cheque {
   bool get locked => events.any((e) => e['voided'] != true);
   bool get valid {
     if ([
-      'party',
       'bank',
       'account',
       'number',

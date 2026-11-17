@@ -5,9 +5,12 @@ part of '../timeline_screen.dart';
 extension _TimelineBody on TimelineScreenState {
   /// A recording's card plays it where it is (2.8.2), at the card sizes
   /// with room for a player.
-  Widget? _voicePreview(Note note, NexCardStrings strings) =>
+  Widget? _cardPreview(Note note, NexCardStrings strings) =>
       NexCardVoicePreview.fits(note, NexCardDensity.of(context))
       ? NexCardVoicePreview(note: note, strings: strings)
+      // A link's card says what the page is and which site (2.8.3).
+      : NexCardLinkPreview.fits(note)
+      ? NexCardLinkPreview(note: note)
       : null;
 
   /// The content filter, behind the mockup's icon button.
@@ -474,7 +477,7 @@ extension _TimelineBody on TimelineScreenState {
               note: row.note!,
               strings: cardStrings,
               expanded: widget.preferences.isNoteExpanded(row.note!.id),
-              previewOverride: _voicePreview(row.note!, cardStrings),
+              previewOverride: _cardPreview(row.note!, cardStrings),
             );
           },
           builder: (context, row, index) {
@@ -549,7 +552,7 @@ extension _TimelineBody on TimelineScreenState {
                           note: note,
                           strings: cardStrings,
                           // A recording plays from its card (2.8.2).
-                          previewOverride: _voicePreview(note, cardStrings),
+                          previewOverride: _cardPreview(note, cardStrings),
                           onTap: () => _tapNote(note),
                           onLeadingTap: () => _pickNote(note),
                           selected: _selecting

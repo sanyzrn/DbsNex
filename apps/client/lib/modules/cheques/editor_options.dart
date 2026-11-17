@@ -81,7 +81,7 @@ class ChequeEditorOptions extends StatelessWidget {
               spacing: NexSpacing.sm,
               runSpacing: NexSpacing.sm,
               children: [
-                for (final d in [3, 7, 14, 30, 0])
+                for (final d in [0, 1, 3, 7, 14, 30])
                   FilterChip(
                     label: Text(
                       s(context, d == 0 ? 'remindOnDay' : 'remindDays', {

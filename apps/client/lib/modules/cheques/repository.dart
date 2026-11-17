@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'model.dart';
 import 'values.dart';
+import 'money_format.dart' show maxMoney;
 
 class ChequeFailure implements Exception {
   const ChequeFailure(this.code);
@@ -40,13 +41,23 @@ class ChequeRepository {
   ) => _serial(() async {
     final raw = await _fresh(id, expected);
     final prior = raw == null ? null : Cheque(id, raw);
+    final amount = chequeAmount(fields['amountRial'] ?? raw?['amountRial']);
+    final days = fields['reminderDays'];
+    if (amount != null &&
+            amount > BigInt.from(maxMoney) &&
+            amount != prior?.face ||
+        days is List &&
+            days.any((d) => !{0, 1, 3, 7, 14, 30}.contains(d)) &&
+            jsonEncode(days) != jsonEncode(raw?['reminderDays'])) {
+      throw const ChequeFailure('validation');
+    }
     if (prior != null && !prior.valid) throw const ChequeFailure('invalid');
     if (prior?.locked == true &&
-        [
-          'direction',
-          'purpose',
-          'amountRial',
-        ].any((k) => fields[k] != raw![k])) {
+        ['direction', 'purpose', 'amountRial'].any(
+          (k) => k == 'amountRial'
+              ? chequeAmount(fields[k]) != chequeAmount(raw![k])
+              : fields[k] != raw![k],
+        )) {
       throw const ChequeFailure('locked');
     }
     final body = <String, Object?>{
@@ -56,6 +67,18 @@ class ChequeRepository {
       'status': raw?['status'] ?? 'active',
       'archived': chequeClosed.contains(raw?['status']),
       'events': raw?['events'] ?? <Object?>[],
+    };
+    body['amountRial'] = storedRials(body['amountRial']);
+    final oldPerson = raw?['person'];
+    final suppliedPerson = fields['person'];
+    body['person'] = {
+      if (oldPerson is Map) ...Map<String, Object?>.from(oldPerson),
+      if (suppliedPerson is Map) ...Map<String, Object?>.from(suppliedPerson),
+      'name':
+          fields['party'] ??
+          (suppliedPerson is Map ? suppliedPerson['name'] : null) ??
+          prior?.party ??
+          '',
     };
     final c = Cheque(id, body);
     if (!c.valid) throw const ChequeFailure('validation');
@@ -115,7 +138,7 @@ class ChequeRepository {
       'id': id,
       'kind': kind,
       'day': chequeDayKey(day),
-      'amountRial': amount,
+      'amountRial': storedRials(amount),
       'previous': old.status,
       'next': status,
       'note': note.trim(),

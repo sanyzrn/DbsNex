@@ -1,4 +1,5 @@
 import 'model.dart';
+import 'dues.dart';
 import 'values.dart';
 
 List<Cheque> actionableCheques(Iterable<Cheque> rows) =>
@@ -12,13 +13,14 @@ List<Cheque> actionableCheques(Iterable<Cheque> rows) =>
 
 class ChequeWindow {
   ChequeWindow(this.from, this.to, Iterable<Cheque> rows) {
-    for (final c in rows) {
-      if (!c.valid ||
-          c.closed ||
-          c.purpose != 'payment' ||
-          c.due == null ||
-          c.due!.isBefore(from) ||
-          !c.due!.isBefore(to)) {
+    final snapshot = rows.toList();
+    final ids = ChequeDues(snapshot)
+        .duesBetween(from, DateTime(to.year, to.month, to.day - 1))
+        .where((d) => !d.done && d.kind != 'cheque-review')
+        .map((d) => d.id)
+        .toSet();
+    for (final c in snapshot) {
+      if (!ids.contains(c.recordKind == 'plan' ? c.id : 'cheque:${c.id}')) {
         continue;
       }
       items.add(c);
