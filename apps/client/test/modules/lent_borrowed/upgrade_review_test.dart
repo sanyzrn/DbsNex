@@ -115,6 +115,10 @@ void main() {
         }
 
         Future<void> show(Widget home) async {
+          // A fresh tree each time: a MaterialApp kept across pumps would keep
+          // its Navigator, and a pushed screen would still be on top when the
+          // next "home" is captured.
+          await tester.pumpWidget(const SizedBox());
           await tester.pumpWidget(
             RepaintBoundary(
               key: boundary,
