@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 
 import 'link_reader.dart';
 import 'nex_services.dart';
+import 'link_art.dart';
 
 part 'os_capture/os_capture_requests.dart';
 
@@ -454,6 +455,8 @@ class OsCaptureBridge {
     final reader = LinkReader();
     try {
       final preview = await reader.read(url);
+      // Its picture and its site's icon, from the same page (2.8.3).
+      unawaited(NexLinkArt.instance.fetch(noteId, url, page: preview));
       if (preview.isEmpty) return;
       await services.setLinkMetadata(
         noteId,

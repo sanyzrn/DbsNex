@@ -92,7 +92,10 @@ List<NexTool> nexModuleTools(
 }) {
   final l = AppLocalizations.of(context);
   return [
-    for (final module in nexModulesOn(preferences))
+    for (final module in nexModulesInOrder(
+      nexModulesOn(preferences),
+      preferences,
+    ))
       NexTool(
         id: 'module.${module.id}',
         title: module.title(l),

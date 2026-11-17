@@ -34,6 +34,34 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.3 — link cards, arranging tools and modules, store readiness
+
+- `NexLinkFace` (platform/link_face.dart) reads a link's address offline:
+  known sites' names and colours (never logos), the kind (video, post,
+  profile, repo, article, place, file), a title from Wikipedia/GitHub/
+  slug paths, a YouTube id. `NexLinkArt` (platform/link_art.dart) keeps a
+  cover and an icon per note under app support/link_art: fetched at capture
+  from what `LinkReader` now also parses (og:image, touch icon/icon,
+  /favicon.ico) and through its new `readImage`/`readJson`, same-site only
+  (`nexSameSite`, plus known picture hosts such as ytimg.com), re-encoded in
+  an isolate, `.none` markers for sites that answered with nothing (asked
+  again after 7 days), never written for sites out of reach. `fillIn`
+  backfills up to 24 a launch; `onPageWords` saves a title a later fetch
+  found (YouTube oEmbed). A sweep at launch drops the pictures of notes
+  that are gone or deleted (`noteExists`); deleting never waits on them.
+- Grid: `NexTileBackdrop.link` full-bleed when a cover exists (tiles listen
+  to `NexLinkArt`); `_SiteCard` gets the icon, kind and a `_VideoScreen`.
+  List: `NexCardLinkPreview` through `previewOverride`; `NexSiteMark` shared.
+- `ModuleSettingsScreen` (Arrange): pinned tools reorderable
+  (`setPinnedTools`), module order (`moduleOrder`, `nexModulesInOrder`),
+  pins in plain sight. Modules page: summary, shelves
+  (screens/module_shelves.dart), quick Add/Open on the closed card,
+  "I want this" (`wantedModules`) with a pre-filled `FeedbackSheet`.
+  `NexShelfHeading.trailing`.
+- packages/data: `upgrade_from_2_3_6_test` opens a library written by the
+  2.3.6 repositories themselves (schema 1, fixture kept) and checks every
+  kind of record survives, is searchable and writable.
+
 ### 2.8.2 — tiles that show their notes
 
 - `nexTileBackdropOf` picks a grid tile's picture (photo, collage, video,

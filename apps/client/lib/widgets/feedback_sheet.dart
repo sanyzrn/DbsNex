@@ -25,9 +25,14 @@ class FeedbackSheet extends StatefulWidget {
     this.metrics,
     this.loadDiagnostics,
     this.idea = false,
+    this.initialText,
   });
 
   final FeedbackService service;
+
+  /// Words the idea starts with — a wanted module's name (2.8.3). The
+  /// person still reads it, changes it if they like, and sends it.
+  final String? initialText;
 
   /// An idea for a module, from the foot of the Modules page: the same
   /// sending, in a sheet that asks for nothing else — no kind to pick, no
@@ -46,6 +51,7 @@ class FeedbackSheet extends StatefulWidget {
     BuildContext context, {
     required FeedbackService service,
     bool idea = false,
+    String? initialText,
   }) => nexShowSheet<void>(
     context: context,
     // Draft-guarded, so the sheet's own drag stays off (it pops past the
@@ -53,7 +59,8 @@ class FeedbackSheet extends StatefulWidget {
     // the same arrangement the note editor uses.
     dismissible: false,
     swipeToClose: true,
-    builder: (_) => FeedbackSheet(service: service, idea: idea),
+    builder: (_) =>
+        FeedbackSheet(service: service, idea: idea, initialText: initialText),
   );
 
   @override
@@ -100,6 +107,7 @@ class _FeedbackSheetState extends State<FeedbackSheet>
   @override
   void initState() {
     super.initState();
+    if (widget.initialText case final text?) _controller.text = text;
     _controller.addListener(_onDraftChanged);
     _contact.addListener(_onDraftChanged);
     _readDiagnostics();

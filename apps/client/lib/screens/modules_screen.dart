@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'module_shelves.dart';
 import '../modules/module_plans.dart';
 import '../modules/module_registry.dart';
 import '../platform/nex_preferences.dart';
@@ -13,6 +14,9 @@ import '../widgets/feedback_sheet.dart';
 import '../widgets/module_install.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_shelf.dart';
+import 'module_settings_screen.dart';
+
+part 'modules_plan_card.dart';
 
 /// Tools → Modules: every optional feature Nex ships, and the one place to
 /// add or remove each — see `docs/17-modules.md`.
@@ -41,6 +45,9 @@ class _ModulesScreenState extends State<ModulesScreen>
   String? _expanded;
   String _query = '';
   final _search = TextEditingController();
+
+  /// The shelf of modules on show; null for all of them (2.8.3).
+  String? _category;
 
   String _searchText(String text) => text
       .toLowerCase()
@@ -158,12 +165,37 @@ class _ModulesScreenState extends State<ModulesScreen>
     );
   }
 
+  /// Marks a module still to come as wanted, or takes the mark back; on
+  /// marking, offers to say so to the developer, in the person's own words
+  /// (2.8.3).
+  Future<void> _want(NexModulePlan plan) async {
+    final l10n = AppLocalizations.of(context);
+    final wanted = !widget.preferences.wantedModules.contains(plan.id);
+    nexTick();
+    await widget.preferences.setModuleWanted(plan.id, wanted);
+    if (!wanted || !mounted) return;
+    nexShowBanner(
+      context,
+      message: l10n.moduleWantBanner,
+      actionLabel: l10n.moduleWantTell,
+      onAction: () => unawaited(
+        _suggest(initialText: l10n.moduleWantIdea(plan.title(l10n))),
+      ),
+      haptics: false,
+    );
+  }
+
   /// An idea for a module goes the way any other word to the developer
   /// does, through the feedback service, in a sheet that only asks for the
   /// idea.
-  Future<void> _suggest() async {
+  Future<void> _suggest({String? initialText}) async {
     final service = FeedbackService(preferences: widget.preferences);
-    await FeedbackSheet.show(context, service: service, idea: true);
+    await FeedbackSheet.show(
+      context,
+      service: service,
+      idea: true,
+      initialText: initialText,
+    );
     service.close();
   }
 
@@ -172,7 +204,25 @@ class _ModulesScreenState extends State<ModulesScreen>
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: NexAppBar(title: Text(l10n.modulesTitle)),
+      appBar: NexAppBar(
+        title: Text(l10n.modulesTitle),
+        actions: [
+          IconButton(
+            key: const ValueKey('modules-arrange'),
+            tooltip: l10n.moduleSettingsTip,
+            icon: const Icon(Icons.tune),
+            onPressed: () => Navigator.push(
+              context,
+              NexPageRoute<void>(
+                builder: (_) => ModuleSettingsScreen(
+                  services: widget.services,
+                  preferences: widget.preferences,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: ListenableBuilder(
         listenable: widget.preferences,
         builder: (context, _) {
@@ -188,8 +238,12 @@ class _ModulesScreenState extends State<ModulesScreen>
             return terms.every(searchable.contains);
           }
 
-          final visible = nexModules
-              .where((m) => m.available)
+          bool inShelf(String id) =>
+              _category == null || nexModuleCategory(id) == _category;
+          final everyAvailable = nexModules.where((m) => m.available);
+          final addedCount = everyAvailable.where(shownOn).length;
+          final visible = everyAvailable
+              .where((m) => inShelf(m.id))
               .where(
                 (m) => matches(
                   '${m.title(l10n)} ${m.tagline(l10n)} ${m.about(l10n)} '
@@ -197,15 +251,19 @@ class _ModulesScreenState extends State<ModulesScreen>
                 ),
               )
               .toList();
-          final plans = [
-            for (final m in nexModules)
-              if (!m.available) NexModulePlan.forModule(m),
-            ...nexModulePlans,
-          ].where((p) => matches('${p.title(l10n)} ${p.about(l10n)}')).toList();
-          final added = [
+          final plans =
+              [
+                    for (final m in nexModules)
+                      if (!m.available) NexModulePlan.forModule(m),
+                    ...nexModulePlans,
+                  ]
+                  .where((p) => inShelf(p.id))
+                  .where((p) => matches('${p.title(l10n)} ${p.about(l10n)}'))
+                  .toList();
+          final added = nexModulesInOrder([
             for (final m in visible)
               if (shownOn(m)) m,
-          ];
+          ], widget.preferences);
           final available = [
             for (final m in visible)
               if (!shownOn(m)) m,
@@ -253,6 +311,40 @@ class _ModulesScreenState extends State<ModulesScreen>
                 hintText: l10n.modulesSearchHint,
                 onChanged: (text) => setState(() => _query = text),
               ),
+              const SizedBox(height: NexSpacing.sm),
+              Text(
+                l10n.modulesSummary(
+                  addedCount,
+                  everyAvailable.length - addedCount,
+                ),
+                key: const ValueKey('modules-summary'),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final kind in [null, ...nexModuleCategories])
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          end: NexSpacing.sm,
+                        ),
+                        child: ChoiceChip(
+                          key: ValueKey('modules-shelf-${kind ?? 'all'}'),
+                          label: Text(l10n.moduleCategory(kind ?? 'all')),
+                          selected: _category == kind,
+                          onSelected: (_) {
+                            nexTick();
+                            setState(() => _category = kind);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
               const SizedBox(height: NexSpacing.md),
               Text(l10n.modulesIntro, style: theme.textTheme.bodySmall),
               const SizedBox(height: NexSpacing.md),
@@ -299,7 +391,13 @@ class _ModulesScreenState extends State<ModulesScreen>
                 for (final plan in plans)
                   Padding(
                     padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-                    child: _PlanCard(plan: plan),
+                    child: _PlanCard(
+                      plan: plan,
+                      wanted: widget.preferences.wantedModules.contains(
+                        plan.id,
+                      ),
+                      onWant: () => unawaited(_want(plan)),
+                    ),
                   ),
                 const SizedBox(height: NexSpacing.sm),
               ],
@@ -418,9 +516,23 @@ class _ModuleCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (on && !working)
-                        Icon(Icons.check_circle, color: color, size: 20),
-                      const SizedBox(width: NexSpacing.xs),
+                      // The one thing to do with it, without opening the
+                      // card first (2.8.3): open what is added, add what is
+                      // not.
+                      if (!working)
+                        IconButton(
+                          key: ValueKey(
+                            'module-${module.id}-${on ? 'go' : 'quick-add'}',
+                          ),
+                          tooltip: on ? l10n.moduleOpen : l10n.moduleAdd,
+                          onPressed: busy ? null : (on ? onOpen : onAdd),
+                          icon: Icon(
+                            on
+                                ? Icons.arrow_forward_rounded
+                                : Icons.add_circle_outline,
+                            color: color,
+                          ),
+                        ),
                       Icon(expanded ? Icons.expand_less : Icons.expand_more),
                     ],
                   ),
@@ -515,103 +627,6 @@ class _ModuleCard extends StatelessWidget {
                 ],
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A module still to come: its glyph, its name with a badge for how near it
-/// is, and a line on what it will do. Quieter than an available module's
-/// card — no wash of colour, no button — since there is nothing to do with
-/// it yet but know it is coming.
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan});
-
-  final NexModulePlan plan;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final color = plan.hue.of(theme.brightness);
-    final soon = plan.stage == NexModuleStage.soon;
-    return Container(
-      key: ValueKey('plan-${plan.id}'),
-      padding: const EdgeInsets.all(NexSpacing.md - 4),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(NexRadius.lg),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(NexRadius.md),
-            ),
-            child: Icon(plan.icon, color: color, size: 22),
-          ),
-          const SizedBox(width: NexSpacing.md - 4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: NexSpacing.sm,
-                  runSpacing: NexSpacing.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      plan.title(l10n),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: soon
-                            ? color.withValues(alpha: 0.16)
-                            : scheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(NexRadius.pill),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: NexSpacing.sm,
-                          vertical: 2,
-                        ),
-                        child: Text(
-                          soon ? l10n.moduleStageSoon : l10n.moduleStagePlanned,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: soon
-                                ? nexReadableOn(
-                                    color,
-                                    scheme.surfaceContainerLow,
-                                  )
-                                : scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: NexSpacing.xs),
-                Text(
-                  plan.about(l10n),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    height: 1.55,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

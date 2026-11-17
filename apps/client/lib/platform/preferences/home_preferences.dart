@@ -136,6 +136,13 @@ mixin _HomePreferences on _PreferencesStore {
     return pinned;
   }
 
+  /// Puts the pinned tools in [ids]' order — the order they sit in at the
+  /// top of the timeline (2.8.3).
+  Future<void> setPinnedTools(List<String> ids) async {
+    await _prefs.setStringList('home.pinned_tools', [...ids]);
+    notifyListeners();
+  }
+
   Future<void> _setHomePart(String key, bool value) async {
     await _prefs.setBool('home.$key', value);
     notifyListeners();

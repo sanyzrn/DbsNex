@@ -293,7 +293,11 @@ void main() {
       ),
     ]);
     expect(find.text('W'), findsOneWidget);
-    expect(find.text('wikipedia.org'), findsOneWidget);
+    // Its name, what it is and its title, read from the address (2.8.3).
+    expect(find.text('Wikipedia'), findsOneWidget);
+    expect(find.text('Article'), findsOneWidget);
+    expect(find.text('Isfahan'), findsOneWidget);
+    expect(find.text('wikipedia.org'), findsNothing);
   });
 
   test('the list card plays a recording, and only a recording', () {

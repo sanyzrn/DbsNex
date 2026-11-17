@@ -8,13 +8,17 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../desktop/desktop_note_card.dart' show nexSplitNoteText;
+import '../platform/link_art.dart';
+import '../platform/link_face.dart';
 import '../platform/tile_previews.dart';
 import 'card_audio.dart';
+import 'card_link.dart';
 import 'parallax_image.dart';
 import '../l10n/app_localizations.dart';
 
 part 'note_grid_body.dart';
 part 'note_grid_media.dart';
+part 'note_grid_link.dart';
 
 /// How a grid tile is laid out at each card size (Settings → Appearance →
 /// Card size): how many fit across, how tall a row is, and how large the
@@ -136,7 +140,15 @@ class NexNoteGridCard extends StatelessWidget {
       NexGridMetrics.of(context).heightFor(context);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => note.type == NoteType.link
+      // A link's picture can arrive after its tile is built (2.8.3).
+      ? ListenableBuilder(
+          listenable: NexLinkArt.instance,
+          builder: (context, _) => _card(context),
+        )
+      : _card(context);
+
+  Widget _card(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final dark = scheme.brightness == Brightness.dark;
@@ -161,7 +173,12 @@ class NexNoteGridCard extends StatelessWidget {
         ? BorderSide(color: scheme.outline, width: 1.5)
         : BorderSide(color: tint.withValues(alpha: dark ? 0.16 : 0.10));
     const widestEdge = 2.0;
-    final backdrop = nexTileBackdropOf(note, collages: photos != null);
+    final art = note.type == NoteType.link
+        ? NexLinkArt.instance.of(note.id)
+        : null;
+    final backdrop = art?.cover != null
+        ? NexTileBackdrop.link
+        : nexTileBackdropOf(note, collages: photos != null);
     final label = [
       strings.noteOfType(note.type.name),
       content.title.isNotEmpty ? content.title : content.body,

@@ -43,6 +43,22 @@ const List<NexModule> nexModules = [
 ];
 
 /// The modules that are part of the app right now.
+/// [modules] in the order this person arranged them (2.8.3); one they have
+/// not placed keeps the app's own order, after the ones they have.
+List<NexModule> nexModulesInOrder(
+  Iterable<NexModule> modules,
+  NexPreferences preferences,
+) {
+  final order = preferences.moduleOrder;
+  final list = modules.toList();
+  int place(NexModule m) {
+    final at = order.indexOf(m.id);
+    return at < 0 ? order.length + nexModules.indexOf(m) : at;
+  }
+
+  return list..sort((a, b) => place(a).compareTo(place(b)));
+}
+
 List<NexModule> nexModulesOn(NexPreferences preferences) => [
   for (final module in nexModules)
     if (module.available && module.isOn(preferences)) module,

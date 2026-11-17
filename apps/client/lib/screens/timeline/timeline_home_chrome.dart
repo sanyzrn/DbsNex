@@ -14,15 +14,11 @@ extension _TimelineHomeChrome on TimelineScreenState {
     final prefs = widget.preferences;
     String layout() =>
         '${prefs.showGreeting}|${prefs.showDaySummary}|'
-        '${prefs.showSearchField}|${prefs.showTagRow}|'
-        '${prefs.pinnedTools.join(',')}';
+        '${prefs.showSearchField}|${prefs.showTagRow}';
     final before = layout();
     await nexShowSheet<void>(
       context: context,
-      builder: (_) => HomeLayoutSheet(
-        preferences: widget.preferences,
-        services: widget.services,
-      ),
+      builder: (_) => HomeLayoutSheet(preferences: widget.preferences),
     );
     if (mounted && layout() != before) _rebuild(() {});
   }

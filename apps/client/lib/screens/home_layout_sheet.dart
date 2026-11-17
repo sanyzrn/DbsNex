@@ -5,9 +5,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
-import '../platform/nex_services.dart';
 import '../platform/timeline_shelves.dart';
-import 'tools/tool_catalog.dart';
 
 /// What the home screen shows, and how it looks — one tap from the screen it
 /// changes (2.3.0).
@@ -19,21 +17,16 @@ import 'tools/tool_catalog.dart';
 /// are the two things people change while looking at the result, and the
 /// Settings form for them is three taps and a page away.
 ///
-/// Small on purpose: four tiles that light up when on, the tools that can
-/// sit on the home screen as chips, a strip of three tiny cards to pick a
-/// size from, and a row of four "A"s for the text.
+/// Small on purpose: four tiles that light up when on, a strip of three tiny
+/// cards to pick a size from, and a row of four "A"s for the text.
 ///
-/// The tools are here since 2.8.0. Pinning one used to be a hold on its tile
-/// on the Tools page and nowhere else — a gesture nothing on the home screen
-/// mentioned, for a row that is part of the home screen.
+/// The pinned tools were here from 2.8.0 to 2.8.2; they moved to Arrange
+/// (Tools → the sliders), where they can also be put in order, and left this
+/// sheet about the home screen's own pieces (2.8.3).
 class HomeLayoutSheet extends StatefulWidget {
-  const HomeLayoutSheet({super.key, required this.preferences, this.services});
+  const HomeLayoutSheet({super.key, required this.preferences});
 
   final NexPreferences preferences;
-
-  /// Needed to offer the modules as pinned tools; without it (a test that
-  /// builds the sheet alone) the section lists the tools that need none.
-  final NexServices? services;
 
   @override
   State<HomeLayoutSheet> createState() => _HomeLayoutSheetState();
@@ -46,22 +39,6 @@ class _HomeLayoutSheetState extends State<HomeLayoutSheet> {
     await change;
     if (mounted) setState(() {});
   }
-
-  /// Everything that can be a tile on the home screen: the modules that are
-  /// added first — they are the ones with something live to show — then the
-  /// private tools.
-  List<NexTool> _pinnable(BuildContext context) => [
-    if (widget.services case final services?)
-      ...nexModuleTools(
-        context,
-        services: services,
-        preferences: widget.preferences,
-      ),
-    ...nexPrivateTools(
-      context,
-      biometricOnly: widget.preferences.appLockBiometricOnly,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -154,32 +131,6 @@ class _HomeLayoutSheetState extends State<HomeLayoutSheet> {
                     prefs.setShowTagRow,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: NexSpacing.lg),
-            Text(l10n.layoutPinnedTools, style: label),
-            const SizedBox(height: NexSpacing.xs),
-            Text(
-              l10n.layoutPinnedToolsHint,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: NexSpacing.sm),
-            Wrap(
-              spacing: NexSpacing.sm,
-              runSpacing: NexSpacing.sm,
-              children: [
-                for (final tool in _pinnable(context))
-                  _PinChip(
-                    key: ValueKey('layout-pin-${tool.id}'),
-                    tool: tool,
-                    pinned: prefs.isToolPinned(tool.id),
-                    onTap: () {
-                      nexTick();
-                      unawaited(_then(prefs.togglePinnedTool(tool.id)));
-                    },
-                  ),
               ],
             ),
             const SizedBox(height: NexSpacing.lg),
@@ -366,91 +317,6 @@ class _ToggleTile extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A tool that can be pinned to the home screen: its own mark and name, lit
-/// in its own colour while it is pinned.
-class _PinChip extends StatelessWidget {
-  const _PinChip({
-    super.key,
-    required this.tool,
-    required this.pinned,
-    required this.onTap,
-  });
-
-  final NexTool tool;
-  final bool pinned;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final color = tool.hue.of(theme.brightness);
-    return NexTappable(
-      onTap: onTap,
-      selected: pinned,
-      semanticLabel: tool.title,
-      shape: const StadiumBorder(),
-      child: AnimatedContainer(
-        duration: NexMotion.of(context, NexMotion.standard),
-        curve: NexMotion.curve,
-        padding: const EdgeInsetsDirectional.fromSTEB(
-          NexSpacing.sm,
-          NexSpacing.sm,
-          NexSpacing.md - NexSpacing.xs,
-          NexSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: pinned
-              ? color.withValues(alpha: 0.16)
-              : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(NexRadius.pill),
-          border: Border.all(
-            color: pinned
-                ? color.withValues(alpha: 0.7)
-                : scheme.outlineVariant,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedSwitcher(
-              duration: NexMotion.of(context, NexMotion.pop),
-              switchInCurve: NexMotion.popCurve,
-              transitionBuilder: (child, animation) =>
-                  ScaleTransition(scale: animation, child: child),
-              child: Icon(
-                pinned ? Icons.push_pin_rounded : tool.icon,
-                key: ValueKey(pinned),
-                size: 18,
-                color: pinned
-                    ? nexReadableOn(
-                        color,
-                        Color.alphaBlend(
-                          color.withValues(alpha: 0.16),
-                          scheme.surface,
-                        ),
-                      )
-                    : scheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(width: NexSpacing.sm),
-            Flexible(
-              child: Text(
-                tool.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: scheme.onSurface,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
