@@ -13,6 +13,7 @@ import 'money_format.dart';
 import 'number_input.dart';
 import 'quit_habits.dart';
 import 'smoke_math.dart';
+part 'setup_view.dart';
 
 /// The first-run setup — and the same sheet, prefilled, for correcting the
 /// baseline later. Four honest numbers, no calendar tricks: "I quit N days
@@ -26,6 +27,7 @@ Future<void> showSetupSheet(
   BuildContext context,
   NexModuleStore store, {
   QuitAttempt? editing,
+  QuitAttempt? resumeFrom,
   String habit = defaultHabit,
   String name = '',
   bool choose = false,
@@ -36,6 +38,7 @@ Future<void> showSetupSheet(
   builder: (context) => _SetupSheet(
     store: store,
     editing: editing,
+    resumeFrom: resumeFrom,
     habit: editing?.habit ?? habit,
     name: editing?.name ?? name,
     choose: choose && editing == null,
@@ -46,6 +49,7 @@ class _SetupSheet extends StatefulWidget {
   const _SetupSheet({
     required this.store,
     required this.editing,
+    required this.resumeFrom,
     required this.habit,
     required this.name,
     required this.choose,
@@ -53,6 +57,7 @@ class _SetupSheet extends StatefulWidget {
 
   final NexModuleStore store;
   final QuitAttempt? editing;
+  final QuitAttempt? resumeFrom;
   final String habit;
   final String name;
   final bool choose;
@@ -61,7 +66,7 @@ class _SetupSheet extends StatefulWidget {
   State<_SetupSheet> createState() => _SetupSheetState();
 }
 
-class _SetupSheetState extends State<_SetupSheet> {
+abstract class _SetupLogic extends State<_SetupSheet> {
   late final TextEditingController _daysAgo;
   late final TextEditingController _perDay;
   late final TextEditingController _price;
@@ -81,6 +86,7 @@ class _SetupSheetState extends State<_SetupSheet> {
   bool _saving = false;
   late final FormDraft _draft;
   bool _restoring = true;
+  bool _loadFailed = false;
   late String _currency;
   late int _digits;
   late DateTime _anchor = DateTime.now();
@@ -100,38 +106,44 @@ class _SetupSheetState extends State<_SetupSheet> {
   void initState() {
     super.initState();
     final editing = widget.editing;
-    _currency = editing?.currency ?? 'IRR';
-    _digits = editing?.digits ?? 0;
+    final baseline = editing ?? widget.resumeFrom;
+    _currency = baseline?.currency ?? 'IRR';
+    _digits = baseline?.digits ?? 0;
     final now = DateTime.now();
+    _later = editing?.startedAt.isAfter(now) == true;
     _daysAgo = TextEditingController(
       text: editing == null
           ? '0'
           // Editing shows the current start as "days ago", so correcting it
           // is the same gesture as setting it.
-          : '${SmokeSetupMath.daysAgoOf(editing.startedAt, now)}',
+          : '${_later ? SmokeMath.elapsedDays(now, editing.startedAt) : SmokeSetupMath.daysAgoOf(editing.startedAt, now)}',
     );
     _perDay = TextEditingController(
-      text: '${editing?.cigarettesPerDay ?? _preset.perDay}',
+      text: '${baseline?.cigarettesPerDay ?? _preset.perDay}',
     );
     _price = TextEditingController(
-      text: moneyInput(editing?.pricePerPackMinor ?? 0, _digits),
+      text: moneyInput(baseline?.pricePerPackMinor ?? 0, _digits),
     );
     _perPack = TextEditingController(
-      text: '${editing?.perPack ?? (_preset.packs ? 20 : 1)}',
+      text: '${baseline?.perPack ?? (_preset.packs ? 20 : 1)}',
     );
     _name = TextEditingController(text: widget.name);
     _minutes = TextEditingController(
-      text: '${editing?.minutesPerUnit ?? _preset.minutesPerUnit}',
+      text: '${baseline?.minutesPerUnit ?? _preset.minutesPerUnit}',
     );
     _goal = TextEditingController(
-      text: (editing?.goalMinor ?? 0) == 0
+      text: (baseline?.goalMinor ?? 0) == 0
           ? ''
-          : moneyInput(editing!.goalMinor, _digits),
+          : moneyInput(baseline!.goalMinor, _digits),
     );
-    _why = TextEditingController(text: editing?.why ?? '');
+    _why = TextEditingController(text: baseline?.why ?? '');
     _draft = FormDraft(
       widget.store,
-      'quit:${widget.editing?.id ?? 'new'}',
+      widget.editing != null
+          ? 'quit:${widget.editing!.id}'
+          : widget.choose || widget.habit == defaultHabit
+          ? 'quit:new'
+          : 'quit:${widget.resumeFrom?.key ?? quitHabitKey(widget.habit, widget.name)}:new',
       widget.editing?.toJson() ?? const {},
       {
         'daysAgo': _daysAgo,
@@ -159,6 +171,13 @@ class _SetupSheetState extends State<_SetupSheet> {
   Future<void> _restoreDraft() async {
     final body = await _draft.load();
     if (!mounted) return;
+    if (_draft.loadFailed) {
+      setState(() {
+        _restoring = false;
+        _loadFailed = true;
+      });
+      return;
+    }
     if (body != null) {
       _draft.apply(body);
       _currency = currencyCode(body['currency']);
@@ -172,7 +191,10 @@ class _SetupSheetState extends State<_SetupSheet> {
       _details = _details || body['details'] == true;
     }
     _draft.start();
-    setState(() => _restoring = false);
+    setState(() {
+      _restoring = false;
+      _loadFailed = false;
+    });
   }
 
   @override
@@ -239,13 +261,18 @@ class _SetupSheetState extends State<_SetupSheet> {
     if (_saving) return;
     setState(() => _saving = true);
 
-    final startedAt = _later
+    final unchangedDay =
+        widget.editing != null &&
+        _later == widget.editing!.startedAt.isAfter(_anchor) &&
+        days ==
+            (_later
+                ? SmokeMath.elapsedDays(_anchor, widget.editing!.startedAt)
+                : SmokeSetupMath.daysAgoOf(widget.editing!.startedAt, _anchor));
+    final startedAt = unchangedDay
+        ? widget.editing!.startedAt
+        : _later
         // Begins at the start of that day: a plan, counted from then.
         ? DateTime(_anchor.year, _anchor.month, _anchor.day + days!)
-        : widget.editing != null &&
-              days ==
-                  SmokeSetupMath.daysAgoOf(widget.editing!.startedAt, _anchor)
-        ? widget.editing!.startedAt
         : DateTime(
             _anchor.year,
             _anchor.month,
@@ -269,13 +296,24 @@ class _SetupSheetState extends State<_SetupSheet> {
       habit: _habit,
       name: _habit == 'custom' ? customName : '',
       why: _why.text.trim(),
+      nextStep: (widget.editing ?? widget.resumeFrom)?.nextStep ?? '',
+      habitKey: _habit == 'custom'
+          ? (widget.editing ?? widget.resumeFrom)?.key
+          : null,
       goalMinor: goal ?? 0,
       minutesPerUnit: minutes.clamp(0, 1440),
     );
     final body = <String, Object?>{...attempt.toJson()};
     final id = _recordId;
     final saved = await storeWrite(context, () async {
-      await widget.store.put('quit', id, body);
+      final prior = widget.editing == null
+          ? null
+          : await widget.store.get('quit', id);
+      final merged = {...?prior}
+        ..remove('why')
+        ..remove('goalMinor')
+        ..remove('minutesPerUnit');
+      await widget.store.put('quit', id, {...merged, ...body});
     });
     if (!mounted) return;
     if (!saved) setState(() => _saving = false);
@@ -291,291 +329,6 @@ class _SetupSheetState extends State<_SetupSheet> {
       }
     }
   }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_restoring) _draft.changed();
-    final strings = smokeFreeStrings;
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
-    return DraftGuard(
-      draft: _draft,
-      busy: () => _saving,
-      child: AbsorbPointer(
-        absorbing: _restoring || _saving,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsetsDirectional.symmetric(
-              horizontal: NexSpacing.md,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(height: NexSpacing.md),
-                Text(
-                  strings(
-                    context,
-                    _editing
-                        ? 'setupEditTitle'
-                        : widget.choose
-                        ? 'chooseHabit'
-                        : 'setupTitle',
-                  ),
-                  style: theme.textTheme.titleLarge,
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                if (widget.choose) ...[
-                  Wrap(
-                    spacing: NexSpacing.sm,
-                    runSpacing: NexSpacing.xs,
-                    children: [
-                      for (final preset in quitPresets)
-                        ChoiceChip(
-                          key: ValueKey('quit-preset-${preset.key}'),
-                          avatar: Icon(preset.icon, size: 18),
-                          label: Text(strings(context, 'habit_${preset.key}')),
-                          selected: _habit == preset.key,
-                          onSelected: _saving
-                              ? null
-                              : (_) => setState(() {
-                                  _habit = preset.key;
-                                  _perDay.text = '${preset.perDay}';
-                                  _perPack.text = preset.packs ? '20' : '1';
-                                  _minutes.text = '${preset.minutesPerUnit}';
-                                }),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                ],
-                if (_habit == 'custom') ...[
-                  NexAutoDirection(
-                    controller: _name,
-                    builder: (context, direction) => TextField(
-                      key: const ValueKey('quit-field-name'),
-                      controller: _name,
-                      textDirection: direction,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: strings(context, 'customName'),
-                        hintText: strings(context, 'customNameHint'),
-                        errorText: _nameError,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                ],
-                if (_preset.safety) ...[
-                  NexPanel(
-                    key: const ValueKey('quit-safety'),
-                    icon: Icons.health_and_safety_outlined,
-                    child: Text(
-                      strings(context, 'safetyNote'),
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                ],
-                if (_details) ...[
-                  Text(
-                    strings(context, 'explainBaseline'),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                ],
-                if (!_editing) ...[
-                  SegmentedButton<bool>(
-                    key: const ValueKey('quit-start-mode'),
-                    showSelectedIcon: false,
-                    segments: [
-                      ButtonSegment(
-                        value: false,
-                        label: Text(strings(context, 'startedAlready')),
-                      ),
-                      ButtonSegment(
-                        value: true,
-                        label: Text(strings(context, 'startsLater')),
-                      ),
-                    ],
-                    selected: {_later},
-                    onSelectionChanged: (s) => setState(() {
-                      _later = s.first;
-                      _daysAgo.text = _later ? '1' : '0';
-                    }),
-                  ),
-                  const SizedBox(height: NexSpacing.md),
-                ],
-                _NumberField(
-                  key: const ValueKey('smoke-field-days'),
-                  controller: _daysAgo,
-                  label: strings(
-                    context,
-                    _later ? 'startsInDaysLabel' : 'daysAgoLabel',
-                  ),
-                  hint: _later ? null : strings(context, 'daysAgoHint'),
-                  errorText: _daysError,
-                ),
-                const SizedBox(height: NexSpacing.md),
-                NexMoreDetails(
-                  toggleKey: const ValueKey('quit-details-toggle'),
-                  open: _details,
-                  onChanged: (open) => setState(() => _details = open),
-                  title: strings(context, 'addDetails'),
-                  hint: strings(context, 'addDetailsHint'),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _NumberField(
-                        key: const ValueKey('smoke-field-perday'),
-                        controller: _perDay,
-                        label: _preset.packs
-                            ? strings(context, 'perDayLabel')
-                            : strings(context, 'perDayUnitsLabel', {
-                                'unit': _unit(context),
-                              }),
-                        errorText: _perDayError,
-                      ),
-                      const SizedBox(height: NexSpacing.md),
-                      CurrencyField(
-                        key: const ValueKey('smoke-field-currency'),
-                        value: _currency,
-                        onChanged: _saving
-                            ? null
-                            : (code) => setState(() {
-                                _currency = code;
-                                _digits = moneyDigits(code);
-                                _price.clear();
-                              }),
-                      ),
-                      const SizedBox(height: NexSpacing.md),
-                      _NumberField(
-                        decimal: _digits > 0,
-                        suffix: _currency,
-                        key: const ValueKey('smoke-field-price'),
-                        controller: _price,
-                        label: strings(
-                          context,
-                          _preset.packs ? 'priceLabel' : 'unitPriceLabel',
-                        ),
-                        errorText: _priceError,
-                        hint: strings(context, 'amountHint', {
-                          'example': localDigits(
-                            moneyInput(12345, _digits),
-                            NexModuleStrings.persian(context),
-                          ),
-                        }),
-                      ),
-                      if (_preset.packs) ...[
-                        const SizedBox(height: NexSpacing.md),
-                        _NumberField(
-                          key: const ValueKey('smoke-field-perpack'),
-                          controller: _perPack,
-                          label: strings(context, 'perPackLabel'),
-                          errorText: _perPackError,
-                        ),
-                      ],
-                      const SizedBox(height: NexSpacing.md),
-                      _NumberField(
-                        key: const ValueKey('quit-field-minutes'),
-                        controller: _minutes,
-                        label: strings(context, 'minutesLabel'),
-                      ),
-                      const SizedBox(height: NexSpacing.md),
-                      _NumberField(
-                        key: const ValueKey('quit-field-goal'),
-                        decimal: _digits > 0,
-                        suffix: _currency,
-                        controller: _goal,
-                        label: strings(context, 'goalLabel'),
-                        errorText: _goalError,
-                      ),
-                      const SizedBox(height: NexSpacing.md),
-                      NexTextField(
-                        key: const ValueKey('quit-field-why'),
-                        controller: _why,
-                        minLines: 2,
-                        maxLines: 4,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          labelText: strings(context, 'whyLabel'),
-                          hintText: strings(context, 'whyHint'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: NexSpacing.lg),
-                FilledButton(
-                  key: const ValueKey('smoke-save'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                  ),
-                  onPressed: _saving ? null : () => _save(),
-                  child: _saving
-                      ? const NexInlineSpinner(size: 20)
-                      : Text(
-                          strings(
-                            context,
-                            _editing ? 'setupEditTitle' : 'startAttempt',
-                          ),
-                        ),
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                TextButton(
-                  onPressed: _saving
-                      ? null
-                      : () async {
-                          await _draft.clear();
-                          if (context.mounted) Navigator.of(context).pop();
-                        },
-                  child: Text(l10n.cancel),
-                ),
-                const SizedBox(height: NexSpacing.md),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A whole-number field: left-to-right digits, no symbols, a plain
-/// keyboard. The number a person writes here is an amount or a count —
-/// never prose.
-class _NumberField extends StatelessWidget {
-  const _NumberField({
-    super.key,
-    required this.controller,
-    required this.label,
-    this.hint,
-    this.errorText,
-    this.decimal = false,
-    this.suffix,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final String? hint;
-  final String? errorText;
-  final bool decimal;
-  final String? suffix;
-
-  @override
-  Widget build(BuildContext context) => TextField(
-    controller: controller,
-    keyboardType: TextInputType.numberWithOptions(decimal: decimal),
-    textDirection: TextDirection.ltr,
-    decoration: InputDecoration(
-      labelText: label,
-      hintText: hint,
-      errorText: errorText,
-      suffixText: suffix,
-    ),
-  );
 }
 
 /// The start date expressed as "N days ago" — the sheet's honest way of

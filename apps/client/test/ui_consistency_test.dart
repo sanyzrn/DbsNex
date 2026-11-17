@@ -48,7 +48,7 @@ void main() {
     ratchet(
       'a number in BorderRadius.circular / Radius.circular',
       count(RegExp(r'(?<![A-Za-z])(Border)?Radius\.circular\(\s*[0-9]')),
-      8,
+      7,
       'Use NexRadius.xs/sm/md/lg/xl.',
     );
   });

@@ -14,6 +14,7 @@ import 'quit_model.dart';
 import 'quit_widgets.dart';
 import 'setup_sheet.dart';
 import 'smoke_math.dart';
+import 'quit_day_clock.dart';
 
 /// The smoke-free dashboard: the days kept, the honest estimates built from
 /// the person's own baseline, and the cravings logged in one tap. The
@@ -40,6 +41,9 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
   List<QuitAttempt> _attempts = const [];
   List<Craving> _cravings = const [];
   StreamSubscription<void>? _changes;
+  late final _days = QuitDayClock(() {
+    if (mounted) setState(() {});
+  });
   int _loadToken = 0;
   bool _writing = false;
 
@@ -47,18 +51,25 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _days.start();
     _changes = widget.store.changes.listen((_) => unawaited(_load()));
     unawaited(_load());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(_load());
+    if (state == AppLifecycleState.resumed) {
+      _days.start();
+      unawaited(_load());
+    } else {
+      _days.stop();
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _days.stop();
     unawaited(_changes?.cancel());
     super.dispose();
   }
@@ -213,6 +224,7 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
                       widget.store,
                       habit: past.isEmpty ? _preset.key : past.first.habit,
                       name: past.isEmpty ? '' : past.first.name,
+                      resumeFrom: past.firstOrNull,
                     ),
                   ),
                   past: past,
@@ -260,9 +272,8 @@ class _SmokeFreeScreenState extends State<SmokeFreeScreen>
     if (choice != true || !mounted) return;
     final saved = await _recordLapse(restart: true, reason: 'restart');
     if (saved && mounted) {
-      NexBannerHost.of(
-        context,
-      )?.show(message: smokeFreeStrings(context, 'newAttemptStarted'));
+      NexBannerHost.of(context)
+          ?.show(message: smokeFreeStrings(context, 'newAttemptStarted'));
     }
   }
 
