@@ -72,6 +72,13 @@ void main() {
         '%D8%B3%D9%84%D8%A7%D9%85-%D8%AF%D9%86%DB%8C%D8%A7',
       );
       expect(persian.title, 'سلام دنیا');
+      final known = NexLinkFace.of(
+        'https://www.zoomit.ir/tech-iran/446439-barghe-man-not-working/',
+      );
+      expect(
+        (known.name, known.kind, known.title),
+        ('Zoomit', NexLinkKind.article, 'Barghe man not working'),
+      );
       expect(NexLinkFace.of('https://example.com/p/8f3a9c2e1b').title, isNull);
       expect(NexLinkFace.of('https://example.com/').title, isNull);
       final file = NexLinkFace.of('https://example.com/docs/report-2026.pdf');

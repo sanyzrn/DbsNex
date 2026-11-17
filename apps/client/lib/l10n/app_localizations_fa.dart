@@ -6507,4 +6507,88 @@ class AppLocalizationsFa extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get moduleSettingsTitle => 'چیدمان ابزارها و ماژول‌ها';
+
+  @override
+  String get moduleSettingsTip => 'چیدمان';
+
+  @override
+  String get moduleSettingsHome => 'روی صفحهٔ اصلی';
+
+  @override
+  String get moduleSettingsHomeHint =>
+      'بالای یادداشت‌هایتان می‌نشینند. بکشید تا ترتیبشان عوض شود.';
+
+  @override
+  String get moduleSettingsHomeEmpty =>
+      'هنوز چیزی سنجاق نشده. سنجاق کنار هر ابزار را در پایین بزنید تا بالای یادداشت‌هایتان بیاید.';
+
+  @override
+  String get moduleSettingsYours => 'ماژول‌های شما';
+
+  @override
+  String get moduleSettingsYoursHint =>
+      'بکشید تا ترتیبشان در صفحهٔ ابزارها مشخص شود.';
+
+  @override
+  String get moduleSettingsNoModules => 'هنوز ماژولی اضافه نکرده‌اید.';
+
+  @override
+  String get moduleDragTip => 'برای جابه‌جایی بکشید';
+
+  @override
+  String modulesSummary(int added, int available) {
+    final intl.NumberFormat addedNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String addedString = addedNumberFormat.format(added);
+    final intl.NumberFormat availableNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String availableString = availableNumberFormat.format(available);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      added,
+      locale: localeName,
+      other: '$addedString اضافه‌شده',
+      zero: 'هیچ‌کدام اضافه نشده',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      available,
+      locale: localeName,
+      other: '$availableString برای افزودن',
+      zero: 'چیزی برای افزودن نمانده',
+    );
+    return '$_temp0 · $_temp1';
+  }
+
+  @override
+  String moduleCategory(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'money': 'پول',
+      'health': 'سلامت و عادت',
+      'everyday': 'روزمره',
+      'work': 'امنیت و کار',
+      'other': 'همه',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get moduleWant => 'این را می‌خواهم';
+
+  @override
+  String get moduleWanted => 'می‌خواهمش';
+
+  @override
+  String get moduleWantBanner =>
+      'علامت خورد. به سازنده هم بگویید تا زودتر بیاید؟';
+
+  @override
+  String get moduleWantTell => 'بگویید';
+
+  @override
+  String moduleWantIdea(String name) {
+    return 'دوست دارم «$name» به نکس اضافه شود.';
+  }
 }

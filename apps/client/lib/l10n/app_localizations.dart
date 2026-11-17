@@ -10129,6 +10129,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{kind, select, video{Video} post{Post} profile{Profile} repo{Code repository} article{Article} place{Place} file{File} other{Page}}'**
   String tileLinkKind(String kind);
+
+  /// Page where pinned tools and module order are arranged (2.8.3)
+  ///
+  /// In en, this message translates to:
+  /// **'Arrange tools and modules'**
+  String get moduleSettingsTitle;
+
+  /// Tooltip of the button that opens the arrange page (2.8.3)
+  ///
+  /// In en, this message translates to:
+  /// **'Arrange'**
+  String get moduleSettingsTip;
+
+  /// No description provided for @moduleSettingsHome.
+  ///
+  /// In en, this message translates to:
+  /// **'On your home screen'**
+  String get moduleSettingsHome;
+
+  /// No description provided for @moduleSettingsHomeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'They sit at the top of your notes. Drag to change their order.'**
+  String get moduleSettingsHomeHint;
+
+  /// No description provided for @moduleSettingsHomeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is pinned yet. Tap the pin beside a tool below and it appears at the top of your notes.'**
+  String get moduleSettingsHomeEmpty;
+
+  /// No description provided for @moduleSettingsYours.
+  ///
+  /// In en, this message translates to:
+  /// **'Your modules'**
+  String get moduleSettingsYours;
+
+  /// No description provided for @moduleSettingsYoursHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to set their order on the Tools page.'**
+  String get moduleSettingsYoursHint;
+
+  /// No description provided for @moduleSettingsNoModules.
+  ///
+  /// In en, this message translates to:
+  /// **'No modules added yet.'**
+  String get moduleSettingsNoModules;
+
+  /// No description provided for @moduleDragTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to move'**
+  String get moduleDragTip;
+
+  /// Under the Modules search: how many modules are added and how many can be (2.8.3)
+  ///
+  /// In en, this message translates to:
+  /// **'{added, plural, =0{None added} other{{added} added}} · {available, plural, =0{nothing left to add} other{{available} to add}}'**
+  String modulesSummary(int added, int available);
+
+  /// Filter chips on the Modules page (2.8.3)
+  ///
+  /// In en, this message translates to:
+  /// **'{kind, select, money{Money} health{Health and habits} everyday{Everyday} work{Security and work} other{All}}'**
+  String moduleCategory(String kind);
+
+  /// On a module that is still to come: marks it as wanted (2.8.3)
+  ///
+  /// In en, this message translates to:
+  /// **'I want this'**
+  String get moduleWant;
+
+  /// No description provided for @moduleWanted.
+  ///
+  /// In en, this message translates to:
+  /// **'You want this'**
+  String get moduleWanted;
+
+  /// No description provided for @moduleWantBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked. Tell the developer too, so it comes sooner?'**
+  String get moduleWantBanner;
+
+  /// No description provided for @moduleWantTell.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell them'**
+  String get moduleWantTell;
+
+  /// Pre-filled idea sent from a wanted module (2.8.3)
+  ///
+  /// In en, this message translates to:
+  /// **'I\'d like {name} in Nex.'**
+  String moduleWantIdea(String name);
 }
 
 class _AppLocalizationsDelegate

@@ -161,7 +161,9 @@ class NexLinkFace {
       kind = NexLinkKind.file;
       title = _decode(last);
     }
-    if (title == null && kind == NexLinkKind.page && brand == null) {
+    // Known sites too: an article on Zoomit or Virgool is as much an article
+    // as one anywhere else (2.8.3).
+    if (title == null && kind == NexLinkKind.page) {
       title = _slugTitle(segments);
       if (title != null) kind = NexLinkKind.article;
     }

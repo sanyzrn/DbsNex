@@ -18,11 +18,15 @@ class NexShelfHeading extends StatelessWidget {
     required this.icon,
     required this.title,
     this.note,
+    this.trailing,
   });
 
   final IconData icon;
   final String title;
   final String? note;
+
+  /// An action at the heading's end, such as Arrange (2.8.3).
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +50,7 @@ class NexShelfHeading extends StatelessWidget {
                   ),
                 ),
               ),
+              ?trailing,
             ],
           ),
           if (note != null)

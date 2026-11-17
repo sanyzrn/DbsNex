@@ -2243,5 +2243,21 @@
   "cardPause": "مکث",
   "tilePdfPages": "{count, plural, other{{count} صفحه}}",
   "tileMorePhotos": "+{count}",
-  "tileLinkKind": "{kind, select, video{ویدئو} post{پست} profile{پروفایل} repo{مخزن کد} article{مطلب} place{مکان} file{فایل} other{صفحه}}"
+  "tileLinkKind": "{kind, select, video{ویدئو} post{پست} profile{پروفایل} repo{مخزن کد} article{مطلب} place{مکان} file{فایل} other{صفحه}}",
+  "moduleSettingsTitle": "چیدمان ابزارها و ماژول‌ها",
+  "moduleSettingsTip": "چیدمان",
+  "moduleSettingsHome": "روی صفحهٔ اصلی",
+  "moduleSettingsHomeHint": "بالای یادداشت‌هایتان می‌نشینند. بکشید تا ترتیبشان عوض شود.",
+  "moduleSettingsHomeEmpty": "هنوز چیزی سنجاق نشده. سنجاق کنار هر ابزار را در پایین بزنید تا بالای یادداشت‌هایتان بیاید.",
+  "moduleSettingsYours": "ماژول‌های شما",
+  "moduleSettingsYoursHint": "بکشید تا ترتیبشان در صفحهٔ ابزارها مشخص شود.",
+  "moduleSettingsNoModules": "هنوز ماژولی اضافه نکرده‌اید.",
+  "moduleDragTip": "برای جابه‌جایی بکشید",
+  "modulesSummary": "{added, plural, =0{هیچ‌کدام اضافه نشده} other{{added} اضافه‌شده}} · {available, plural, =0{چیزی برای افزودن نمانده} other{{available} برای افزودن}}",
+  "moduleCategory": "{kind, select, money{پول} health{سلامت و عادت} everyday{روزمره} work{امنیت و کار} other{همه}}",
+  "moduleWant": "این را می‌خواهم",
+  "moduleWanted": "می‌خواهمش",
+  "moduleWantBanner": "علامت خورد. به سازنده هم بگویید تا زودتر بیاید؟",
+  "moduleWantTell": "بگویید",
+  "moduleWantIdea": "دوست دارم «{name}» به نکس اضافه شود."
 }

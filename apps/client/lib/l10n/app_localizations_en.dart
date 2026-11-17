@@ -6605,4 +6605,88 @@ class AppLocalizationsEn extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get moduleSettingsTitle => 'Arrange tools and modules';
+
+  @override
+  String get moduleSettingsTip => 'Arrange';
+
+  @override
+  String get moduleSettingsHome => 'On your home screen';
+
+  @override
+  String get moduleSettingsHomeHint =>
+      'They sit at the top of your notes. Drag to change their order.';
+
+  @override
+  String get moduleSettingsHomeEmpty =>
+      'Nothing is pinned yet. Tap the pin beside a tool below and it appears at the top of your notes.';
+
+  @override
+  String get moduleSettingsYours => 'Your modules';
+
+  @override
+  String get moduleSettingsYoursHint =>
+      'Drag to set their order on the Tools page.';
+
+  @override
+  String get moduleSettingsNoModules => 'No modules added yet.';
+
+  @override
+  String get moduleDragTip => 'Drag to move';
+
+  @override
+  String modulesSummary(int added, int available) {
+    final intl.NumberFormat addedNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String addedString = addedNumberFormat.format(added);
+    final intl.NumberFormat availableNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String availableString = availableNumberFormat.format(available);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      added,
+      locale: localeName,
+      other: '$addedString added',
+      zero: 'None added',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      available,
+      locale: localeName,
+      other: '$availableString to add',
+      zero: 'nothing left to add',
+    );
+    return '$_temp0 · $_temp1';
+  }
+
+  @override
+  String moduleCategory(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'money': 'Money',
+      'health': 'Health and habits',
+      'everyday': 'Everyday',
+      'work': 'Security and work',
+      'other': 'All',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get moduleWant => 'I want this';
+
+  @override
+  String get moduleWanted => 'You want this';
+
+  @override
+  String get moduleWantBanner =>
+      'Marked. Tell the developer too, so it comes sooner?';
+
+  @override
+  String get moduleWantTell => 'Tell them';
+
+  @override
+  String moduleWantIdea(String name) {
+    return 'I\'d like $name in Nex.';
+  }
 }

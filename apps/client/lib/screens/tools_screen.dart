@@ -11,6 +11,7 @@ import '../widgets/nex_banner.dart';
 import '../widgets/nex_shelf.dart';
 import '../widgets/vault_open_builder.dart';
 import '../modules/module_rollout.dart' show nexDesktopPlatform;
+import 'module_settings_screen.dart';
 import 'modules_screen.dart';
 import 'tools/tool_catalog.dart';
 
@@ -83,6 +84,21 @@ class ToolsScreen extends StatelessWidget {
                   icon: Icons.extension_outlined,
                   title: l.modulesTitle,
                   note: l.toolsPinHint,
+                  // Their order and their pins, in one place (2.8.3).
+                  trailing: IconButton(
+                    key: const ValueKey('tools-arrange'),
+                    tooltip: l.moduleSettingsTip,
+                    icon: const Icon(Icons.tune),
+                    onPressed: () => Navigator.push(
+                      context,
+                      NexPageRoute<void>(
+                        builder: (_) => ModuleSettingsScreen(
+                          services: services,
+                          preferences: preferences,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: NexSpacing.sm),
                 ListenableBuilder(
