@@ -48,6 +48,7 @@ const parkingStrings = NexModuleStrings(
     'reminderPast': 'That moment has passed. Pick fewer minutes.',
     'reminderBad': 'Write a whole number of minutes.',
     'reminderNotSet': 'The reminder was not set. Check that notifications are allowed for Nex.',
+    'reminderTitle': 'Parking: {minutes} min left',
     'reminderBody': 'Paid parking ends soon: {place}',
     'defaultVehicle': 'The car',
     'floorShort': 'Floor {value}',
@@ -198,6 +199,7 @@ const parkingStrings = NexModuleStrings(
     'reminderBad': 'یک عدد درست از دقیقه بنویسید.',
     'reminderNotSet':
         'یادآوری تنظیم نشد. بررسی کنید اعلان‌های Nex اجازه داشته باشند.',
+    'reminderTitle': 'پارکینگ: {minutes} دقیقه مانده',
     'reminderBody': 'زمان پارکینگ پرداختی به‌زودی تمام می‌شود: {place}',
     'defaultVehicle': 'ماشین',
     'floorShort': 'طبقهٔ {value}',

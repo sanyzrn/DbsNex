@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'parking_fields.dart';
+import 'parking_alarm.dart';
 import 'parking_logic.dart';
-import 'parking_models.dart';
 import 'parking_strings.dart';
 
 /// The quick reminder a paid parking offers: some minutes before the written
@@ -23,6 +23,7 @@ class ParkingQuickReminder extends StatelessWidget {
     required this.expiresAt,
     required this.place,
     required this.floor,
+    this.minutes,
   });
 
   final NexModuleStore store;
@@ -30,6 +31,10 @@ class ParkingQuickReminder extends StatelessWidget {
   final DateTime expiresAt;
   final String place;
   final String floor;
+
+  /// How many minutes before the end the reminder rings, when one is set
+  /// (2.8.4); null when there is none.
+  final int? minutes;
 
   Future<void> _open(BuildContext context) async {
     final set = await nexShowSheet<bool>(
@@ -56,19 +61,27 @@ class ParkingQuickReminder extends StatelessWidget {
     return Wrap(
       spacing: NexSpacing.sm,
       children: [
+        // What is set says so, and only what is set can be cleared (2.8.4).
         TextButton.icon(
           key: const ValueKey('parking-quick-remind'),
           onPressed: () => unawaited(_open(context)),
-          icon: const Icon(Icons.notifications_active_outlined),
-          label: Text(strings(context, 'quickRemind')),
-        ),
-        TextButton(
-          key: const ValueKey('parking-quick-remind-clear'),
-          onPressed: () => unawaited(
-            store.clearReminder('${ParkingModels.session}:$recordId'),
+          icon: Icon(
+            minutes == null
+                ? Icons.notifications_none_outlined
+                : Icons.notifications_active,
           ),
-          child: Text(AppLocalizations.of(context).remindClear),
+          label: Text(
+            minutes == null
+                ? strings(context, 'quickRemind')
+                : strings(context, 'quickReminderSet', {'minutes': minutes!}),
+          ),
         ),
+        if (minutes != null)
+          TextButton(
+            key: const ValueKey('parking-quick-remind-clear'),
+            onPressed: () => unawaited(ParkingAlarm.disarm(store, recordId)),
+            child: Text(AppLocalizations.of(context).remindClear),
+          ),
       ],
     );
   }
@@ -132,17 +145,13 @@ class _ParkingReminderSheetState extends State<ParkingReminderSheet> {
       _error = null;
     });
     try {
-      final where = widget.place.trim().isEmpty
-          ? parkingStrings(context, 'detailsTitle')
-          : widget.place.trim();
-      final at = ParkingLogic.reminderAt(widget.expiresAt, minutes);
-      final ok = await widget.store.setReminder(
-        '${ParkingModels.session}:${widget.recordId}',
-        sourceKind: ParkingModels.session,
-        sourceId: widget.recordId,
-        at: at,
-        title: AppLocalizations.of(context).cycleNotifyTitle,
-        body: parkingStrings(context, 'reminderBody', {'place': where}),
+      final ok = await ParkingAlarm.arm(
+        context,
+        widget.store,
+        widget.recordId,
+        expiresAt: widget.expiresAt,
+        minutes: minutes,
+        place: widget.place,
       );
       if (!mounted) {
         return;

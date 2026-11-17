@@ -6,6 +6,7 @@ import 'parking_logic.dart';
 import 'parking_models.dart';
 import 'parking_quick_reminder.dart';
 import 'parking_strings.dart';
+import 'parking_alarm.dart';
 
 /// The rows and cards of the parking screen, kept apart so the screen file
 /// stays about flow and storage. Everything shown here was typed by the
@@ -165,6 +166,7 @@ class ParkingActiveCard extends StatelessWidget {
               expiresAt: expiresAt,
               place: place,
               floor: floor,
+              minutes: ParkingAlarm.minutesOf(body),
             )
           else
             NexModuleReminderControl(

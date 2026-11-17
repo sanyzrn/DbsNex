@@ -37,15 +37,29 @@ What was below the brief and is now fixed:
 
 Not done, and why:
 
-- **The shared `duesBetween` and `summarize`** (docs/18, rules 1 and 4). The
-  module has no dates falling due other than a paid-until the person typed,
-  but adding the shared functions would take `parking` off the central
-  pending lists in `test/module_shared_rules_test.dart`, which this task may
-  not edit. They are requested under Platform requests; the module already
-  reads old records defensively and keeps fields it does not know.
+- **The shared `duesBetween` and `summarize`** were left for the
+  maintainers, who could edit the central pending lists; added in the
+  review below.
 - **A "where's my car" home-screen card** is described as Later in the brief
   and deliberately not built (see Open questions).
 - **A photo of the spot and GPS** stay out of reach (Platform requests).
+
+## Maintainer review (2.8.4)
+
+Checked against the brief, `docs/18` and the design rules; merged with these
+changes:
+
+- **The reminder follows the paid time.** The minutes it rings before the
+  end are kept on the parking (`remindMinutes`), so an edit that moves the
+  end moves the reminder (`ParkingAlarm.follow`), and one that leaves no room
+  for it, or removes the paid time, takes it back. Before, the alarm kept
+  ringing at the old end.
+- **The reminder says what it is.** Its title was the Cycle module's generic
+  "Nex reminder"; it is "Parking: 10 min left" now, the place in its body.
+- **What is set shows.** The card's button reads "Reminder 10 min before the
+  end" once one is set, and Clear appears only then.
+- **`duesBetween` and `summarize`** added (parking_shared.dart), and parking
+  taken off the central pending lists.
 
 ## What it does
 
@@ -80,7 +94,8 @@ All records stay in this module's own store and follow its backup and
 delete-data policy.
 
 - **session v1** — `vehicle`, `place`, `floor`, `spot`, `landmark`,
-  `startedAt`; optional `foundAt`, `expiresAt`, `lat`, `lng`. Instants are
+  `startedAt`; optional `foundAt`, `expiresAt`, `lat`, `lng`, and
+  `remindMinutes` (2.8.4: the minutes before the end a reminder rings). Instants are
   UTC ISO strings; legacy timestamps without an offset keep the old local
   reading. `place` may now be empty (added by this upgrade it was always
   allowed to be absent on old records). Unknown fields are preserved on edit
@@ -147,14 +162,13 @@ local, and no permission beyond the opt-in notification is requested.
 
 ## Shared across modules
 
-- **Dates falling due (`duesBetween`)** — not added. Parking has no calendar
-  of its own; the only dated thing is the paid-until the person typed, and
-  adding the function requires editing the central pending list, outside this
-  task. Requested under Platform requests.
+- **Dates falling due (`duesBetween`)** — `ParkingShared.duesBetween`
+  (parking_shared.dart): each parking's paid-until, done once it is closed.
 - **Money** — none; the module stores no amounts.
 - **People** — none; a parking names a vehicle, not a person.
-- **A line per record (`summarize`)** — not added, same central-list reason;
-  requested. Records remain out of general search until the kit reads it.
+- **A line per record (`summarize`)** — `ParkingShared.summarize`: a
+  parking by its place (or vehicle) with floor, spot and landmark, a
+  remembered place by its name; drafts, searches and journals give none.
 - **Unknown fields** — kept: edits merge onto the raw record, and the
   favourite write spreads the old body.
 - **Saving, leaving a form, Undo** — the existing draft/checkpoint flow and
@@ -216,9 +230,8 @@ FA: پارک کردن حالا با یک لمس انجام می‌شود و هم
    meanwhile the landmark text stands in.
 3. **Minutes-scale lead times** in the shared reminder vocabulary: the
    documented set is days, but a parking meter needs 5/10/15/30 minutes.
-4. **`duesBetween` and `summarize` in the kit** for parking, and the central
-   pending lists updated by the maintainers; this module may not edit
-   `test/module_shared_rules_test.dart`.
+4. **`ModuleDue` and `ModuleSummary` in the kit**, so this module's own
+   definitions (parking_shared.dart) can go.
 5. **Image sharing** for a spot card (text is shared today).
 6. **Atomic compare-and-write / group transactions** for multi-window races;
    the local serialization, fresh reads and recovery journal are the honest

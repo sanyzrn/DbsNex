@@ -19,7 +19,6 @@ void main() {
     'maintenance',
     'medicine',
     'occasions',
-    'parking',
     'warranty',
     'words',
   };
@@ -34,7 +33,6 @@ void main() {
     'maintenance',
     'medicine',
     'occasions',
-    'parking',
     'price_lens',
     'prompt_studio',
     'security_tools',

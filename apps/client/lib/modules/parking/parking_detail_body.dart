@@ -147,6 +147,7 @@ extension _ParkingDetailBody on _ParkingDetailPageState {
                       expiresAt: expiresAt,
                       place: ParkingModels.readString(body, 'place'),
                       floor: ParkingModels.readString(body, 'floor'),
+                      minutes: ParkingAlarm.minutesOf(body),
                     )
                   else
                     NexModuleReminderControl(

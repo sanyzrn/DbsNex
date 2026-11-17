@@ -13,6 +13,7 @@ import 'parking_models.dart';
 import 'parking_parse.dart';
 import 'parking_strings.dart';
 import 'parking_writes.dart';
+import 'parking_alarm.dart';
 
 part 'parking_editor_body.dart';
 
@@ -269,6 +270,13 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
         );
       }
       await _session.draft.clear();
+      // A reminder set some minutes before the end follows a changed end
+      // (2.8.4).
+      if (keys.contains('expiresAt') && mounted) {
+        try {
+          await ParkingAlarm.follow(context, widget.store, _session.recordId);
+        } catch (_) {}
+      }
       // Remembered places are a convenience; the parking commit is authoritative.
       try {
         await ParkingWrites.rememberPlace(widget.store, const [], body);
