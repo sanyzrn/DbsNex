@@ -7,6 +7,7 @@ import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/link_art.dart';
 import 'package:nex_client/platform/link_face.dart';
 import 'package:nex_client/platform/link_reader.dart';
+import 'package:nex_client/widgets/card_link.dart';
 import 'package:nex_client/widgets/note_grid_card.dart';
 import 'package:nex_client/widgets/parallax_image.dart';
 import 'package:nex_core/nex_core.dart';
@@ -291,5 +292,28 @@ void main() {
     final host = tester.widget<Text>(find.text('example.com'));
     expect(host.textDirection, TextDirection.ltr);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the list card: the address\'s title, and the site by its '
+      'name and kind instead of a bare address', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexSoftLightTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NexCardDensityScope(
+            density: NexCardDensity.standard,
+            child: NexCardLinkPreview(
+              note: link('l', 'https://www.youtube.com/@nexapp'),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('@nexapp'), findsOneWidget);
+    expect(find.text('YouTube'), findsOneWidget);
+    expect(find.text(' · Profile'), findsOneWidget);
+    expect(NexCardLinkPreview.fits(link('x', '')), isFalse);
   });
 }

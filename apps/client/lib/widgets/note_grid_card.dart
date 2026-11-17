@@ -12,6 +12,7 @@ import '../platform/link_art.dart';
 import '../platform/link_face.dart';
 import '../platform/tile_previews.dart';
 import 'card_audio.dart';
+import 'card_link.dart';
 import 'parallax_image.dart';
 import '../l10n/app_localizations.dart';
 

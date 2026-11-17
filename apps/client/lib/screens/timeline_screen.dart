@@ -24,6 +24,7 @@ import '../platform/note_copy.dart';
 import '../platform/file_opener.dart';
 import '../platform/hold_menu.dart';
 import '../widgets/card_audio.dart';
+import '../widgets/card_link.dart';
 import '../widgets/nex_pull_refresh.dart';
 import '../widgets/route_probe.dart';
 import '../widgets/translate_sheet.dart';

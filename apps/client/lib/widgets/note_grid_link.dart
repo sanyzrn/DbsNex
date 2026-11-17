@@ -1,103 +1,5 @@
 part of 'note_grid_card.dart';
 
-/// What a link's tile calls it: the page's own title, or the one its address
-/// spells out — never the address again, which the site's name already says.
-String _linkWords(Note note, String title, NexLinkFace face) {
-  final url = (note.linkUrl ?? '').trim();
-  final bare = title.trim().toLowerCase().replaceFirst(
-    RegExp(r'^(https?://)?(www\.)?'),
-    '',
-  );
-  final host = face.host.toLowerCase();
-  final onlyAddress =
-      title.trim().isEmpty ||
-      title.trim() == url ||
-      bare == host ||
-      bare.startsWith('$host/') && !title.contains(' ');
-  return onlyAddress ? (face.title ?? '') : title;
-}
-
-/// The colour a site is drawn in: its own when it is one people know, one
-/// worked out from its address otherwise — the same site, the same colour.
-Color _siteColor(NexLinkFace face, ColorScheme scheme) {
-  if (face.brandColor case final brand?) return Color(brand);
-  final hue =
-      face.host.codeUnits.fold<int>(7, (h, c) => (h * 31 + c) & 0xffff) % 360;
-  return HSLColor.fromAHSL(
-    1,
-    hue.toDouble(),
-    0.55,
-    scheme.brightness == Brightness.dark ? 0.62 : 0.46,
-  ).toColor();
-}
-
-/// The site's mark: its own icon when it gave one, otherwise its initial on
-/// its colour (2.8.3).
-class _SiteMark extends StatelessWidget {
-  const _SiteMark({
-    required this.face,
-    required this.icon,
-    required this.size,
-    required this.tint,
-  });
-
-  final NexLinkFace face;
-  final File? icon;
-  final double size;
-  final Color tint;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = _siteColor(face, scheme);
-    final radius = BorderRadius.circular(size * 0.3);
-    if (icon case final file?) {
-      return Container(
-        width: size,
-        height: size,
-        padding: EdgeInsets.all(size * 0.14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: radius,
-          border: Border.all(color: color.withValues(alpha: 0.35)),
-        ),
-        child: Image.file(
-          file,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.medium,
-          cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
-          errorBuilder: (context, error, stack) => const SizedBox.shrink(),
-        ),
-      );
-    }
-    final letter = face.name.isEmpty
-        ? '#'
-        : face.name.characters.first.toUpperCase();
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color, Color.lerp(color, tint, 0.4)!],
-        ),
-      ),
-      child: Text(
-        letter,
-        style: TextStyle(
-          color: nexReadableOn(Colors.white, color),
-          fontWeight: FontWeight.w800,
-          fontSize: size * 0.48,
-          height: 1,
-        ),
-      ),
-    );
-  }
-}
-
 /// A video with no picture yet — saved offline, or from a site out of
 /// reach: a small screen in the site's colour with Play on it, so it reads
 /// as a video at a glance (2.8.3).
@@ -164,7 +66,7 @@ class _SiteCard extends StatelessWidget {
     final face = NexLinkFace.of(note.linkUrl ?? '');
     final icon = NexLinkArt.instance.of(note.id)?.icon;
     const markSize = 34.0;
-    final words = _linkWords(note, title, face);
+    final words = nexLinkHeadline(note, title, face);
     final kind = face.kind == NexLinkKind.page
         ? null
         : AppLocalizations.of(context).tileLinkKind(face.kind.name);
@@ -186,7 +88,7 @@ class _SiteCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            _SiteMark(face: face, icon: icon, size: markSize, tint: tint),
+            NexSiteMark(face: face, icon: icon, size: markSize, tint: tint),
             const SizedBox(width: NexSpacing.sm),
             Expanded(
               child: Column(
@@ -227,7 +129,7 @@ class _SiteCard extends StatelessWidget {
           const SizedBox(height: NexSpacing.sm),
           SizedBox(
             height: screen,
-            child: _VideoScreen(color: _siteColor(face, scheme)),
+            child: _VideoScreen(color: nexSiteColor(face, scheme)),
           ),
         ],
         if (lines > 0) ...[
@@ -255,7 +157,7 @@ extension on _MediaTileState {
     final cover = art?.cover;
     if (cover == null) return widget.fallback(context);
     final face = NexLinkFace.of(note.linkUrl ?? '');
-    final words = _linkWords(note, note.title ?? '', face);
+    final words = nexLinkHeadline(note, note.title ?? '', face);
     final kind = face.kind == NexLinkKind.page
         ? null
         : AppLocalizations.of(context).tileLinkKind(face.kind.name);
@@ -276,7 +178,7 @@ extension on _MediaTileState {
       child: Row(
         key: const ValueKey('grid-link-site'),
         children: [
-          _SiteMark(face: face, icon: art?.icon, size: 20, tint: widget.tint),
+          NexSiteMark(face: face, icon: art?.icon, size: 20, tint: widget.tint),
           const SizedBox(width: NexSpacing.xs + 2),
           Flexible(
             child: Text(
