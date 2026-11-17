@@ -31,7 +31,9 @@ class _TotalPanel extends StatelessWidget {
           ),
           const SizedBox(height: NexSpacing.xs),
           Text(
-            '${split.people.length} · ${split.people.join('، ')}',
+            // The count in the reader's digits, the names with their comma.
+            '${formatNumber(split.people.length, persian)} · '
+            '${split.people.join(persian ? '، ' : ', ')}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

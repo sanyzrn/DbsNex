@@ -7,44 +7,60 @@ import 'split_model.dart';
 Map<String, int> splitParts(SplitCost cost) {
   final names = cost.parts.keys.toList()..sort();
   if (names.isEmpty || cost.amount <= 0) return const {};
-  switch (cost.mode) {
-    case SplitMode.equal:
-      final base = cost.amount ~/ names.length;
-      var rest = cost.amount % names.length;
-      return {for (final name in names) name: base + (rest-- > 0 ? 1 : 0)};
-    case SplitMode.shares:
-      final weights = {
-        for (final name in names) name: cost.parts[name]!.clamp(1, maxMoney),
-      };
-      final totalWeight = weights.values.fold(0, (a, b) => a + b);
-      final base = <String, int>{};
-      final remainders = <(String, int)>[];
-      for (final name in names) {
-        final product = BigInt.from(cost.amount) * BigInt.from(weights[name]!);
-        final divisor = BigInt.from(totalWeight);
-        base[name] = (product ~/ divisor).toInt();
-        remainders.add((name, (product % divisor).toInt()));
-      }
-      var rest = cost.amount - base.values.fold(0, (a, b) => a + b);
-      remainders.sort((a, b) {
-        final byRemainder = b.$2.compareTo(a.$2);
-        return byRemainder != 0 ? byRemainder : a.$1.compareTo(b.$1);
-      });
-      for (final (name, _) in remainders) {
-        if (rest <= 0) break;
-        base[name] = base[name]! + 1;
-        rest--;
-      }
-      return base;
-    case SplitMode.amounts:
-      if (cost.parts.values.fold(0, (a, b) => a + b) != cost.amount) {
-        // A broken cost contributes nothing rather than inventing money.
-        return const {};
-      }
-      return {
-        for (final name in names) name: cost.parts[name]!.clamp(0, cost.amount),
-      };
+  if (cost.mode == SplitMode.amounts) {
+    if (cost.parts.values.fold(0, (a, b) => a + b) != cost.amount) {
+      // A broken cost contributes nothing rather than inventing money.
+      return const {};
+    }
+    return {
+      for (final name in names) name: cost.parts[name]!.clamp(0, cost.amount),
+    };
   }
+  // A cost in whole tomans is shared in whole tomans (2.8.4): divided to the
+  // rial, 100,000 tomans among three read as 33,333.4 tomans — a tenth no
+  // one can pay. The leftover tomans go one each, as the rials did. Once:
+  // a toman, never a further power of ten.
+  final unit = cost.amount % _toman == 0 ? _toman : 1;
+  final inUnits = _divide(cost.amount ~/ unit, cost, names);
+  return {
+    for (final MapEntry(:key, :value) in inUnits.entries) key: value * unit,
+  };
+}
+
+/// Ten rials: a toman.
+const _toman = 10;
+
+/// [amount] divided among [names] the way [cost] says, every unit of it
+/// given to someone.
+Map<String, int> _divide(int amount, SplitCost cost, List<String> names) {
+  if (cost.mode == SplitMode.equal) {
+    final base = amount ~/ names.length;
+    var rest = amount % names.length;
+    return {for (final name in names) name: base + (rest-- > 0 ? 1 : 0)};
+  }
+  final weights = {
+    for (final name in names) name: cost.parts[name]!.clamp(1, maxMoney),
+  };
+  final totalWeight = weights.values.fold(0, (a, b) => a + b);
+  final base = <String, int>{};
+  final remainders = <(String, int)>[];
+  for (final name in names) {
+    final product = BigInt.from(amount) * BigInt.from(weights[name]!);
+    final divisor = BigInt.from(totalWeight);
+    base[name] = (product ~/ divisor).toInt();
+    remainders.add((name, (product % divisor).toInt()));
+  }
+  var rest = amount - base.values.fold(0, (a, b) => a + b);
+  remainders.sort((a, b) {
+    final byRemainder = b.$2.compareTo(a.$2);
+    return byRemainder != 0 ? byRemainder : a.$1.compareTo(b.$1);
+  });
+  for (final (name, _) in remainders) {
+    if (rest <= 0) break;
+    base[name] = base[name]! + 1;
+    rest--;
+  }
+  return base;
 }
 
 /// One person's net position in a split: positive means the group owes them,

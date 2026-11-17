@@ -15,7 +15,6 @@ void main() {
   /// them through `duesBetween`.
   const duesPending = {
     'habits',
-    'lent_borrowed',
     'maintenance',
     'medicine',
     'occasions',
@@ -29,7 +28,6 @@ void main() {
     'expenses',
     'gold',
     'habits',
-    'lent_borrowed',
     'maintenance',
     'medicine',
     'occasions',

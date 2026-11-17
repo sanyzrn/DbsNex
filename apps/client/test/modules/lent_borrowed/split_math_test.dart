@@ -29,6 +29,43 @@ void main() {
   );
 
   group('dividing one cost', () {
+    test('a cost in whole tomans is shared in whole tomans, still adding '
+        'up exactly (2.8.4)', () {
+      // 100,000 tomans among three: 33,334 + 33,333 + 33,333 tomans, not
+      // 33,333.4.
+      final parts = splitParts(
+        cost(
+          amount: 1000000,
+          payer: 'Ali',
+          mode: SplitMode.equal,
+          parts: const {'Reza': 0, 'Ali': 0, 'Sara': 0},
+        ),
+      );
+      expect(parts.values.every((v) => v % 10 == 0), isTrue);
+      expect(parts.values.fold(0, (a, b) => a + b), 1000000);
+      expect(parts.values.toSet(), {333340, 333330});
+      final weighted = splitParts(
+        cost(
+          amount: 1000000,
+          payer: 'Ali',
+          mode: SplitMode.shares,
+          parts: const {'Ali': 1, 'Sara': 2},
+        ),
+      );
+      expect(weighted.values.every((v) => v % 10 == 0), isTrue);
+      expect(weighted.values.fold(0, (a, b) => a + b), 1000000);
+      // Rials that are not whole tomans are still shared to the rial.
+      final odd = splitParts(
+        cost(
+          amount: 1000001,
+          payer: 'Ali',
+          mode: SplitMode.equal,
+          parts: const {'Ali': 0, 'Sara': 0},
+        ),
+      );
+      expect(odd.values.fold(0, (a, b) => a + b), 1000001);
+    });
+
     test('equal shares keep every rial, remainder spread by name', () {
       final parts = splitParts(
         cost(
@@ -39,9 +76,11 @@ void main() {
         ),
       );
       expect(parts.values.fold(0, (a, b) => a + b), 100);
-      expect(parts['Ali'], 34);
-      expect(parts['Reza'], 33);
-      expect(parts['Sara'], 33);
+      // Ten tomans: four, three and three — the leftover toman to the first
+      // name (2.8.4; to the rial it was 34, 33 and 33).
+      expect(parts['Ali'], 40);
+      expect(parts['Reza'], 30);
+      expect(parts['Sara'], 30);
     });
 
     test('shares weigh the division and keep the remainder', () {

@@ -45,6 +45,42 @@ brief does not ask for one, and the module already keeps names and amounts off
 the lock screen unless asked. It is listed under Open questions rather than
 decided for the owner.
 
+## Maintainer review (2.8.4)
+
+Merged after checking the brief, `docs/18` and the design rules; changed:
+
+- **Shares in whole tomans.** A cost that is a whole number of tomans is
+  divided in tomans: 100,000 tomans among three is 33,334, 33,333 and
+  33,333 — not 33,333.4, a tenth no one can pay. The parts still add up to
+  the cost exactly; a cost in odd rials is divided to the rial as before.
+- **The bank table, corrected and filled out.** 639346 is Sina Bank, not
+  Saman; Refah Kargaran is 589463, not 627872. Twenty more issuer prefixes
+  people pay from every day (Shahr, Ayandeh, Karafarin, Dey, Resalat,
+  Gardeshgari, Iran Zamin and others) — only ones known for certain, so an
+  unknown prefix still reads as "Bank not recognised".
+- **Persian digits on the split page.** The head count beside the names
+  was in Latin digits, and the names were joined with a Persian comma in
+  English too.
+- **`duesBetween` and `summarize`** (`loan_shared.dart`): each loan's due
+  date with what is still out, signed in for lent and out for borrowed, in
+  rials only, private; a line for a loan and a split, none for returns,
+  settings, drafts or the card book. The module left the central pending
+  lists.
+
+Against "Shared across modules" (this branch predates the section):
+
+| Rule | Here |
+| --- | --- |
+| 1 Dates falling due | `LoanShared.duesBetween` |
+| 2 Money | whole rials; the live `amount` field keeps its name (rule 5) |
+| 3 People | `person` stays a plain string: people's records already say it that way, and a live module's fields are never reshaped |
+| 4 A line per record | `LoanShared.summarize` |
+| 5 Unknown fields | kept on loans, returns and splits; a `card` record deliberately keeps only its four fields, so nothing like a CVV2 can ever ride along |
+| 6 Saving, Undo | drafts, journaled deletes, banner Undo |
+| 7 Reminders | the loan's own due-date reminder, private by default |
+| 8 Sharing, hiding | text through `nexModuleShareText`; hiding amounts is an open question |
+| 9 Look | shared pieces, `heroTag: null`, both languages and themes |
+
 ## 1. What it does
 
 Remember who owes whom — money in the currency it was lent in, or a thing lent

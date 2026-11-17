@@ -29,6 +29,10 @@ void main() {
       expect(bankOf('6037991234567893')?.en, 'Bank Melli Iran');
       expect(bankOf('6104339999999999')?.fa, 'بانک ملت');
       expect(bankOf('9999991234567893'), isNull);
+      // Corrected in review (2.8.4): 639346 is Sina, Refah is 589463.
+      expect(bankOf('6393461234567890')?.en, 'Sina Bank');
+      expect(bankOf('5894631234567890')?.en, 'Bank Refah Kargaran');
+      expect(bankOf('5028061234567890')?.fa, 'بانک شهر');
       expect(bankOf('6037'), isNull);
       expect(cardTableChecked, '2026-11-17');
     });
