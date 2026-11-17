@@ -473,18 +473,26 @@ class _Foot extends StatelessWidget {
           ),
       ],
     );
+    // The tags' dots stay beside a reminder (2.8.4): a reminder used to
+    // take their place, so a tile with one lost its tags' colours.
+    final start = reminder == null
+        ? tagDots
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (tags.isNotEmpty) ...[tagDots, const SizedBox(width: 2)],
+              Flexible(child: reminder),
+            ],
+          );
     // Both ends take only what they need, the reminder first; the time
     // stays at the far edge and gives way only when the row is full.
     if (reminder != null && !roomForBoth) {
-      return Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: reminder,
-      );
+      return Align(alignment: AlignmentDirectional.centerStart, child: start);
     }
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Flexible(flex: 3, child: reminder ?? tagDots),
+        Flexible(flex: 3, child: start),
         const SizedBox(width: NexSpacing.xs),
         Flexible(
           child: Text(
