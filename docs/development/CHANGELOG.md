@@ -34,6 +34,26 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.4 — three module branches reviewed: Parking, Lent & Borrowed, Medicine
+
+- Parking (agent/module-parking, stays Soon): `ParkingAlarm` keeps a
+  pre-end reminder's minutes on the session (`remindMinutes`) and moves or
+  takes it back when the paid time is edited; reminder titled by itself;
+  `ParkingShared` (duesBetween, summarize).
+- Lent & Borrowed (agent/module-lent_borrowed.md, live): splits, settle-up,
+  card and IBAN book. Review: whole-toman shares (`splitParts` divides in
+  tomans once when a cost is a multiple of 10 rials), issuer table corrected
+  (639346 Sina; Refah 589463) and extended, Persian digits on the split
+  page, `LoanShared`. `person` stays a string: live fields are not
+  reshaped.
+- Medicine (agent/module-medicine.md, stays Soon): people, routines, boxes,
+  places, run-out estimate. Review: reminders planned by `keepUp` on start
+  and resume (they were planned only on opening the cabinet, eight per
+  medicine); every-day routines use `setDailyReminder`; others eight days
+  ahead (32 per medicine, 160 per cabinet); `person` as `{"name"}`,
+  `priceRial`; `MedicineShared`.
+- All three leave the pending lists of `module_shared_rules_test`.
+
 ### 2.8.3 — link cards, arranging tools and modules, store readiness
 
 - `NexLinkFace` (platform/link_face.dart) reads a link's address offline:
