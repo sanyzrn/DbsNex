@@ -146,66 +146,79 @@ class _SecurityGeneratorState extends State<SecurityGenerator>
                 : (v) => _change(() => _phrase = v.first),
           ),
           const SizedBox(height: NexSpacing.md),
-          Wrap(
-            spacing: NexSpacing.sm,
-            runSpacing: NexSpacing.sm,
-            children: [
-              for (final n in _phrase ? [6, 7, 8] : [16, 24, 32, 48, 64])
-                ChoiceChip(
-                  label: Text(
-                    s(context, _phrase ? 'wordCount' : 'characters', {'n': n}),
-                  ),
-                  selected: (_phrase ? _words : _length) == n,
-                  onSelected: _copying
-                      ? null
-                      : (_) => _change(() {
-                          if (_phrase) {
-                            _words = n;
-                          } else {
-                            _length = n;
-                          }
-                        }),
-                ),
-            ],
-          ),
-          const SizedBox(height: NexSpacing.md),
-          if (!_phrase)
-            NexMoreDetails(
-              open: _details,
-              onChanged: (v) => setState(() => _details = v),
-              title: s(context, 'compatibility'),
-              child: Column(
-                children: [
-                  Text(s(context, 'groupNote')),
-                  _option('upper', _upper, (v) => _upper = v),
-                  _option('lower', _lower, (v) => _lower = v),
-                  _option('digits', _digits, (v) => _digits = v),
-                  _option('symbols', _symbols, (v) => _symbols = v),
-                  _option('exclude', _exclude, (v) => _exclude = v),
-                ],
-              ),
-            ),
-          if (_phrase) ...[
-            Text(s(context, 'phraseNote')),
-            TextButton(
-              onPressed: () => nexShowDialog<void>(
-                context: context,
-                builder: (c) => NexAlertDialog(
-                  title: Text(s(c, 'wordAbout')),
-                  content: NexDialogBody(
-                    child: SelectableText(s(c, 'wordLicense')),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(c),
-                      child: Text(AppLocalizations.of(c).closeLabel),
-                    ),
+          // A password's options or a passphrase's: one fades into the
+          // other, the button below easing to its new place (2.8.2).
+          NexSegmentSwap(
+            selection: _phrase,
+            resize: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Wrap(
+                  spacing: NexSpacing.sm,
+                  runSpacing: NexSpacing.sm,
+                  children: [
+                    for (final n in _phrase ? [6, 7, 8] : [16, 24, 32, 48, 64])
+                      ChoiceChip(
+                        label: Text(
+                          s(context, _phrase ? 'wordCount' : 'characters', {
+                            'n': n,
+                          }),
+                        ),
+                        selected: (_phrase ? _words : _length) == n,
+                        onSelected: _copying
+                            ? null
+                            : (_) => _change(() {
+                                if (_phrase) {
+                                  _words = n;
+                                } else {
+                                  _length = n;
+                                }
+                              }),
+                      ),
                   ],
                 ),
-              ),
-              child: Text(s(context, 'wordCredit')),
+                const SizedBox(height: NexSpacing.md),
+                if (!_phrase)
+                  NexMoreDetails(
+                    open: _details,
+                    onChanged: (v) => setState(() => _details = v),
+                    title: s(context, 'compatibility'),
+                    child: Column(
+                      children: [
+                        Text(s(context, 'groupNote')),
+                        _option('upper', _upper, (v) => _upper = v),
+                        _option('lower', _lower, (v) => _lower = v),
+                        _option('digits', _digits, (v) => _digits = v),
+                        _option('symbols', _symbols, (v) => _symbols = v),
+                        _option('exclude', _exclude, (v) => _exclude = v),
+                      ],
+                    ),
+                  ),
+                if (_phrase) ...[
+                  Text(s(context, 'phraseNote')),
+                  TextButton(
+                    onPressed: () => nexShowDialog<void>(
+                      context: context,
+                      builder: (c) => NexAlertDialog(
+                        title: Text(s(c, 'wordAbout')),
+                        content: NexDialogBody(
+                          child: SelectableText(s(c, 'wordLicense')),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(c),
+                            child: Text(AppLocalizations.of(c).closeLabel),
+                          ),
+                        ],
+                      ),
+                    ),
+                    child: Text(s(context, 'wordCredit')),
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
           const SizedBox(height: NexSpacing.md),
           FilledButton.icon(
             key: const ValueKey('security-generate'),

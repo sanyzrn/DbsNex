@@ -54,6 +54,61 @@ void main() {
     await t.pumpAndSettle();
   }
 
+  testWidgets('Buy, Sell and Melted switch in place: no page, nothing '
+      'lost (2.8.2)', (t) async {
+    await t.pumpWidget(host(GoldScreen(store: store())));
+    await t.pumpAndSettle();
+    await fill(t, 'weight', '3');
+    final route = ModalRoute.of(t.element(find.byType(GoldScreen)));
+
+    await reveal(t, find.text('Sell'));
+    await t.tap(find.text('Sell'));
+    await t.pumpAndSettle();
+    // The same screen: selling is a tab of it, not a page over it.
+    expect(ModalRoute.of(t.element(find.byType(GoldScreen))), route);
+    expect(route!.isCurrent, isTrue);
+    expect(find.byType(GoldMarketPage), findsNothing);
+    expect(find.byType(GoldMarketPanel), findsOneWidget);
+    await fill(t, 'sellWeight', '2.5');
+
+    await reveal(t, find.text('Melted gold'));
+    await t.tap(find.text('Melted gold'));
+    await t.pumpAndSettle();
+    await reveal(t, find.text('Buy'));
+    await t.tap(find.text('Buy'));
+    await t.pumpAndSettle();
+    // What was typed in Buy is still there, without a reload.
+    expect(
+      t
+          .widget<EditableText>(
+            find.descendant(
+              of: find.byKey(const ValueKey('gold-weight')),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .controller
+          .text,
+      '3',
+    );
+    await reveal(t, find.text('Sell'));
+    await t.tap(find.text('Sell'));
+    await t.pumpAndSettle();
+    expect(
+      t
+          .widget<EditableText>(
+            find.descendant(
+              of: find.byKey(const ValueKey('gold-sellWeight')),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .controller
+          .text,
+      '2.5',
+    );
+    // No save button where there is nothing to save.
+    expect(find.byKey(const ValueKey('gold-save-fab')), findsNothing);
+  });
+
   testWidgets(
     'purchase requires explicit making, with market defaults already filled',
     (t) async {

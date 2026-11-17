@@ -43,7 +43,11 @@ extension _TimelineShelves on TimelineScreenState {
     ].join('|');
     final before = _rowsCache.view;
     _rowsCache.view = view;
-    if (before != null && before != view && !_searching) _fadeInBody();
+    if (before != null && before != view && !_searching) {
+      // The old view stays, as a picture, while the new one comes (2.8.2).
+      _dissolve.capture(context, _stickyLine);
+      _fadeInBody();
+    }
   }
 
   /// One heading, the same in the list, the grid and the desktop.

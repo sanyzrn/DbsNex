@@ -236,6 +236,8 @@ class _LoansScreenState extends State<LoansScreen>
       floatingActionButton: _loans.isEmpty
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('loans-new'),
               onPressed: () => unawaited(
                 _openEditor(
@@ -257,7 +259,10 @@ class _LoansScreenState extends State<LoansScreen>
                 child: TabBarView(
                   controller: _tabs,
                   children: [
+                    // Each tab comes back where it was left, not at its top
+                    // (2.8.2).
                     LoanListBody(
+                      key: const PageStorageKey('loans-lent'),
                       direction: LoanDirection.lent,
                       loans: _loans,
                       returns: _returns,
@@ -269,6 +274,7 @@ class _LoansScreenState extends State<LoansScreen>
                           unawaited(_openEditor(LoanDirection.lent)),
                     ),
                     LoanListBody(
+                      key: const PageStorageKey('loans-borrowed'),
                       direction: LoanDirection.borrowed,
                       loans: _loans,
                       returns: _returns,

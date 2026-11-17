@@ -225,198 +225,204 @@ extension _TimelineLayout on TimelineScreenState {
                     // the sponsor service keeps its own traffic limits.
                     child: NotificationListener<ScrollNotification>(
                       onNotification: _onScroll,
-                      child: _wrapInRefresh(
-                        enabled:
-                            showSummary &&
-                            widget.preferences.briefStyle.usesModel,
-                        child: CustomScrollView(
-                          scrollCacheExtent: ScrollCacheExtent.pixels(900),
-                          controller: _scroll,
-                          // Always scrollable, so a short list still bounces rather
-                          // than feeling locked.
-                          physics: _PinchHoldPhysics(
-                            holding: () => _multiTouch,
-                            parent: _pullRefresh.physics(
-                              parent: const AlwaysScrollableScrollPhysics(),
-                            ),
-                          ),
-                          slivers: [
-                            // The day's header: the date and the greeting.
-                            // It collapses to nothing rather than leaving the
-                            // list, the same reason the headers below do.
-                            SliverToBoxAdapter(
-                              key: const ValueKey('timeline-header'),
-                              child: NexTapGuarded(
-                                controller: _guard,
-                                child: AnimatedSize(
-                                  // The token itself, not `NexMotion.of`:
-                                  // at zero an AnimatedSize ticks inside its
-                                  // own layout, which is an assertion.
-                                  duration: NexMotion.slow,
-                                  curve: NexMotion.curve,
-                                  alignment: Alignment.topCenter,
-                                  child: _searching
-                                      ? const SizedBox(width: double.infinity)
-                                      : desktop
-                                      ? Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal:
-                                                _desktopGutter - NexSpacing.md,
-                                          ),
-                                          child: _header(l10n),
-                                        )
-                                      : _HeroRecede(
-                                          scroll: _scroll,
-                                          child: _header(l10n),
-                                        ),
-                                ),
+                      child: _ViewDissolveLayer(
+                        dissolve: _dissolve,
+                        fade: _searchFade,
+                        child: _wrapInRefresh(
+                          enabled:
+                              showSummary &&
+                              widget.preferences.briefStyle.usesModel,
+                          child: CustomScrollView(
+                            scrollCacheExtent: ScrollCacheExtent.pixels(900),
+                            controller: _scroll,
+                            // Always scrollable, so a short list still bounces rather
+                            // than feeling locked.
+                            physics: _PinchHoldPhysics(
+                              holding: () => _multiTouch,
+                              parent: _pullRefresh.physics(
+                                parent: const AlwaysScrollableScrollPhysics(),
                               ),
                             ),
-                            // A wide window keeps the field as the list's
-                            // first row. Both headers are always in the list,
-                            // keyed, and collapse to zero extent rather than
-                            // leaving it: a sliver list that changes length
-                            // while another sliver changes its pinning leaves
-                            // the viewport painting a child it never laid
-                            // out. Kept while a search is running even when
-                            // it is switched off, or the field the app bar
-                            // icon just asked for would not exist.
-                            if (desktop &&
-                                (widget.preferences.showSearchField ||
-                                    _searching))
-                              SliverPersistentHeader(
-                                key: const ValueKey('search-header'),
-                                delegate: SearchFieldHeader(
-                                  gutter: _desktopGutter,
-                                  maxWidth: 560,
-                                  extent:
-                                      math.max(
-                                        nexMinTapTarget,
-                                        MediaQuery.textScalerOf(context)
-                                                    .scale(16) *
-                                                1.5 +
-                                            16,
-                                      ) +
-                                      NexSpacing.md * 2,
-                                  anchor: _searchAnchor,
-                                  controller: _search.query,
-                                  focusNode: _searchFocus,
-                                  searching: _searching,
-                                  onTap: () => unawaited(revealSearch()),
-                                  onChanged: (_) => _search.schedule(),
-                                  onSubmitted: (_) => unawaited(_search.run()),
-                                  onClear: _exitSearch,
-                                  filterCount: _search.activeFilterCount,
-                                  trailing: NexTapGuarded(
-                                    controller: _guard,
-                                    child: _FilterButton(
-                                      round: true,
-                                      active: otherFilters,
-                                      onPressed: () =>
-                                          unawaited(_pickFilters()),
-                                    ),
-                                  ),
-                                  onShowFilters: () => unawaited(
-                                    nexShowSearchFilterSheet(
-                                      context,
-                                      search: _search,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            // The brief: the app reading the day back, right
-                            // under the greeting it follows on from. Its own
-                            // sliver, so a brief that comes and goes never
-                            // renumbers a row of the list under it.
-                            if (showSummary)
+                            slivers: [
+                              // The day's header: the date and the greeting.
+                              // It collapses to nothing rather than leaving the
+                              // list, the same reason the headers below do.
                               SliverToBoxAdapter(
-                                child: NexRefreshCompletion(
-                                  pulse: _refreshPulse,
-                                  // The brief listens to the model for itself:
-                                  // a commitments-only change repaints the
-                                  // card without rebuilding every note with it.
-                                  child: ListenableBuilder(
-                                    listenable: _model,
-                                    builder: (context, _) => _briefCard(l10n),
+                                key: const ValueKey('timeline-header'),
+                                child: NexTapGuarded(
+                                  controller: _guard,
+                                  child: AnimatedSize(
+                                    // The token itself, not `NexMotion.of`:
+                                    // at zero an AnimatedSize ticks inside its
+                                    // own layout, which is an assertion.
+                                    duration: NexMotion.slow,
+                                    curve: NexMotion.curve,
+                                    alignment: Alignment.topCenter,
+                                    child: _searching
+                                        ? const SizedBox(width: double.infinity)
+                                        : desktop
+                                        ? Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal:
+                                                  _desktopGutter -
+                                                  NexSpacing.md,
+                                            ),
+                                            child: _header(l10n),
+                                          )
+                                        : _HeroRecede(
+                                            scroll: _scroll,
+                                            child: _header(l10n),
+                                          ),
                                   ),
                                 ),
                               ),
-                            // Tools pinned from the Tools page: one row of
-                            // small live tiles closing the day's header.
-                            // Always in the list, keyed, and collapsed to
-                            // nothing in a search — that is about notes —
-                            // for the reason the headers above are.
-                            SliverToBoxAdapter(
-                              key: const ValueKey('pinned-tools'),
-                              child: PinnedTools(
-                                services: widget.services,
-                                preferences: widget.preferences,
-                                hidden: _searching,
-                              ),
-                            ),
-                            // Where the notes begin. Without the row, a
-                            // pinned hairline still carries the sticky day.
-                            if (!showTagRow)
-                              SliverPersistentHeader(
-                                pinned: true,
-                                delegate: _FilterRowHeader(
-                                  visible: !_searching,
-                                  extent: 1,
-                                  lineKey: _stickyLine,
-                                  below: TimelineStickyDay(
-                                    day: _stickyDay,
-                                    scroll: _scroll,
-                                  ),
-                                  child: const SizedBox.shrink(),
-                                ),
-                              ),
-                            if (showTagRow)
-                              SliverPersistentHeader(
-                                key: const ValueKey('filter-header'),
-                                pinned: true,
-                                delegate: _FilterRowHeader(
-                                  visible: !_searching,
-                                  lineKey: _stickyLine,
-                                  below: TimelineStickyDay(
-                                    day: _stickyDay,
-                                    scroll: _scroll,
-                                  ),
-                                  extent:
-                                      math.max(
-                                        nexMinTapTarget,
-                                        MediaQuery.textScalerOf(context)
-                                                    .scale(14) *
-                                                1.5 +
-                                            16,
-                                      ) +
-                                      NexSpacing.sm +
-                                      NexSpacing.sm,
-                                  child: NexTapGuarded(
-                                    controller: _guard,
-                                    child: _notesToolbar(l10n, otherFilters),
+                              // A wide window keeps the field as the list's
+                              // first row. Both headers are always in the list,
+                              // keyed, and collapse to zero extent rather than
+                              // leaving it: a sliver list that changes length
+                              // while another sliver changes its pinning leaves
+                              // the viewport painting a child it never laid
+                              // out. Kept while a search is running even when
+                              // it is switched off, or the field the app bar
+                              // icon just asked for would not exist.
+                              if (desktop &&
+                                  (widget.preferences.showSearchField ||
+                                      _searching))
+                                SliverPersistentHeader(
+                                  key: const ValueKey('search-header'),
+                                  delegate: SearchFieldHeader(
+                                    gutter: _desktopGutter,
+                                    maxWidth: 560,
+                                    extent:
+                                        math.max(
+                                          nexMinTapTarget,
+                                          MediaQuery.textScalerOf(context)
+                                                      .scale(16) *
+                                                  1.5 +
+                                              16,
+                                        ) +
+                                        NexSpacing.md * 2,
+                                    anchor: _searchAnchor,
+                                    controller: _search.query,
+                                    focusNode: _searchFocus,
+                                    searching: _searching,
+                                    onTap: () => unawaited(revealSearch()),
+                                    onChanged: (_) => _search.schedule(),
+                                    onSubmitted: (_) =>
+                                        unawaited(_search.run()),
+                                    onClear: _exitSearch,
+                                    filterCount: _search.activeFilterCount,
+                                    trailing: NexTapGuarded(
+                                      controller: _guard,
+                                      child: _FilterButton(
+                                        round: true,
+                                        active: otherFilters,
+                                        onPressed: () =>
+                                            unawaited(_pickFilters()),
+                                      ),
+                                    ),
+                                    onShowFilters: () => unawaited(
+                                      nexShowSearchFilterSheet(
+                                        context,
+                                        search: _search,
+                                      ),
+                                    ),
                                   ),
                                 ),
+                              // The brief: the app reading the day back, right
+                              // under the greeting it follows on from. Its own
+                              // sliver, so a brief that comes and goes never
+                              // renumbers a row of the list under it.
+                              if (showSummary)
+                                SliverToBoxAdapter(
+                                  child: NexRefreshCompletion(
+                                    pulse: _refreshPulse,
+                                    // The brief listens to the model for itself:
+                                    // a commitments-only change repaints the
+                                    // card without rebuilding every note with it.
+                                    child: ListenableBuilder(
+                                      listenable: _model,
+                                      builder: (context, _) => _briefCard(l10n),
+                                    ),
+                                  ),
+                                ),
+                              // Tools pinned from the Tools page: one row of
+                              // small live tiles closing the day's header.
+                              // Always in the list, keyed, and collapsed to
+                              // nothing in a search — that is about notes —
+                              // for the reason the headers above are.
+                              SliverToBoxAdapter(
+                                key: const ValueKey('pinned-tools'),
+                                child: PinnedTools(
+                                  services: widget.services,
+                                  preferences: widget.preferences,
+                                  hidden: _searching,
+                                ),
                               ),
-                            for (final sliver in _bodySlivers(l10n))
-                              SliverFadeTransition(
-                                opacity: _searchFadeIn,
-                                sliver: sliver,
+                              // Where the notes begin. Without the row, a
+                              // pinned hairline still carries the sticky day.
+                              if (!showTagRow)
+                                SliverPersistentHeader(
+                                  pinned: true,
+                                  delegate: _FilterRowHeader(
+                                    visible: !_searching,
+                                    extent: 1,
+                                    lineKey: _stickyLine,
+                                    below: TimelineStickyDay(
+                                      day: _stickyDay,
+                                      scroll: _scroll,
+                                    ),
+                                    child: const SizedBox.shrink(),
+                                  ),
+                                ),
+                              if (showTagRow)
+                                SliverPersistentHeader(
+                                  key: const ValueKey('filter-header'),
+                                  pinned: true,
+                                  delegate: _FilterRowHeader(
+                                    visible: !_searching,
+                                    lineKey: _stickyLine,
+                                    below: TimelineStickyDay(
+                                      day: _stickyDay,
+                                      scroll: _scroll,
+                                    ),
+                                    extent:
+                                        math.max(
+                                          nexMinTapTarget,
+                                          MediaQuery.textScalerOf(context)
+                                                      .scale(14) *
+                                                  1.5 +
+                                              16,
+                                        ) +
+                                        NexSpacing.sm +
+                                        NexSpacing.sm,
+                                    child: NexTapGuarded(
+                                      controller: _guard,
+                                      child: _notesToolbar(l10n, otherFilters),
+                                    ),
+                                  ),
+                                ),
+                              for (final sliver in _bodySlivers(l10n))
+                                SliverFadeTransition(
+                                  opacity: _searchFadeIn,
+                                  sliver: sliver,
+                                ),
+                              // And the sponsor goes last, under the notes.
+                              // Nothing about a card that pays for itself earns
+                              // the top of somebody's own page.
+                              if (_sponsorCard() case final card?)
+                                SliverToBoxAdapter(child: card),
+                              // The capture button floats over the list, and on a
+                              // device with a three-button navigation bar the system's
+                              // own bar sits under that — the last card has to clear
+                              // both, or it cannot be read or tapped.
+                              SliverToBoxAdapter(
+                                child: SizedBox(
+                                  height: nexDockClearance(context),
+                                ),
                               ),
-                            // And the sponsor goes last, under the notes.
-                            // Nothing about a card that pays for itself earns
-                            // the top of somebody's own page.
-                            if (_sponsorCard() case final card?)
-                              SliverToBoxAdapter(child: card),
-                            // The capture button floats over the list, and on a
-                            // device with a three-button navigation bar the system's
-                            // own bar sits under that — the last card has to clear
-                            // both, or it cannot be read or tapped.
-                            SliverToBoxAdapter(
-                              child: SizedBox(
-                                height: nexDockClearance(context),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -658,6 +664,8 @@ extension _TimelineLayout on TimelineScreenState {
                   unawaited(runCaptureShortcut(shortcut));
                 },
                 builder: (context, glyph) => FloatingActionButton(
+                  // No hero: a page's button never flies into another's (2.8.2).
+                  heroTag: null,
                   key: _captureAnchor,
                   onPressed: () {
                     if (_claimedByOverlay()) return;

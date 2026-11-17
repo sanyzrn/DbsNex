@@ -121,6 +121,8 @@ extension _MedicineScreenBody on _MedicineScreenState {
       floatingActionButton: _loading || _loadFailed || _medicines.isEmpty
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('medicine-fab'),
               onPressed: _busy ? null : () => unawaited(_add()),
               label: Text(strings(context, 'addMedicine')),

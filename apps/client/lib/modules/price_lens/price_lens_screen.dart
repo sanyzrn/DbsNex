@@ -167,6 +167,8 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
       // With no offer yet the empty state carries the one primary action.
       floatingActionButton: options.isNotEmpty && options.length < 4
           ? FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('lens-add'),
               onPressed: () => unawaited(_editOption()),
               icon: const Icon(Icons.add),

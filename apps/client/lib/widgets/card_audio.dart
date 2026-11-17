@@ -159,7 +159,8 @@ String nexDefaultDurationLabel(int milliseconds) {
 /// A recording on a card: Play, the recording's shape, and its time.
 ///
 /// The shape is the note's own, read from the file and drawn in its kind's
-/// colour; a touch or a drag along it moves playback there. Time counts down
+/// colour; once it is playing or paused, a touch or a drag along it moves
+/// playback there. Time counts down
 /// what is left while it plays, and shows the whole length while it does not.
 class NexCardVoice extends StatelessWidget {
   const NexCardVoice({
@@ -243,8 +244,13 @@ class NexCardVoice extends StatelessWidget {
                             room - 6,
                           ),
                           played: tint,
-                          onSeek: (fraction) =>
-                              unawaited(audio.seek(note, fraction)),
+                          // Only the recording already playing or paused
+                          // moves under a touch: until then the card opens
+                          // its note wherever it is touched but Play.
+                          onSeek: mine
+                              ? (fraction) =>
+                                    unawaited(audio.seek(note, fraction))
+                              : null,
                         ),
                       ),
                       if (left.inMilliseconds > 0) ...[

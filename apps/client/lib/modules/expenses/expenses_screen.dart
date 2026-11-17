@@ -174,6 +174,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               (controller.txs.isEmpty && controller.customCategories.isEmpty)
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('expenses-add'),
               onPressed: () => unawaited(_add()),
               icon: const Icon(Icons.add),

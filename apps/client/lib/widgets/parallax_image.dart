@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 /// A picture filling its box that drifts against the scroll (2.8.2).
 ///
@@ -43,8 +44,8 @@ class NexParallaxImage extends StatelessWidget {
           ? child
           : AnimatedOpacity(
               opacity: frame == null ? 0 : 1,
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
+              duration: NexMotion.of(context, NexMotion.exit),
+              curve: NexMotion.curve,
               child: child,
             ),
     );

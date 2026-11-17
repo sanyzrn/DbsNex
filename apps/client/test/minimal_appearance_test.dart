@@ -10,7 +10,7 @@ import 'support/nex_harness.dart';
 
 /// What 2.7.2 and 2.8.0 drew was missing on the owner's phone (2.8.1): the
 /// list card's edge in its kind's colour, and the brief's wash of the
-/// accent. Both were switched off under a *minimal* appearance, and every
+/// accent (which 2.8.2 took back to the plain card). Both were switched off under a *minimal* appearance, and every
 /// designed palette and soft appearance is one — so they were drawn for
 /// almost nobody, and every test ran on the one look that is not.
 void main() {
@@ -69,14 +69,35 @@ void main() {
         expect(shape.side.color.a, greaterThan(0));
       });
 
-      testWidgets('the brief sits on its wash of the accent', (tester) async {
+      testWidgets('the brief is the plain card ground again (2.8.2)', (
+        tester,
+      ) async {
         await open(tester);
-        final surface = tester.widget<DecoratedBox>(
+        final surface = tester.widget<NexGlassSurface>(
           find.byKey(const ValueKey('timeline-recap-surface')),
         );
-        final decoration = surface.decoration as BoxDecoration;
-        expect(decoration.gradient, isNotNull);
-        expect(decoration.border, isNotNull);
+        expect(surface.blur, isFalse);
+        final scheme = Theme.of(
+          tester.element(find.byKey(const ValueKey('timeline-recap'))),
+        ).colorScheme;
+        expect(surface.fallbackColor, scheme.surfaceContainerLowest);
+        // The surface's own ground: the first box under it. (Deeper ones
+        // are the panel's, such as the fade on folded words.)
+        final ground =
+            tester
+                    .widgetList<DecoratedBox>(
+                      find.descendant(
+                        of: find.byKey(
+                          const ValueKey('timeline-recap-surface'),
+                        ),
+                        matching: find.byType(DecoratedBox),
+                      ),
+                    )
+                    .first
+                    .decoration
+                as BoxDecoration;
+        expect(ground.gradient, isNull);
+        expect(ground.color, scheme.surfaceContainerLowest);
       });
 
       testWidgets('the brief\'s heading: the time under its name, the fold '

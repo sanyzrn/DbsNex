@@ -3,10 +3,16 @@ import '../platform/crash_reporter.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart'
-    show RenderAbstractViewport, ScrollCacheExtent, ScrollDirection;
+    show
+        OffsetLayer,
+        RenderAbstractViewport,
+        RenderRepaintBoundary,
+        ScrollCacheExtent,
+        ScrollDirection;
 import 'package:flutter/foundation.dart'
     show ValueListenable, compute, listEquals, setEquals;
 
@@ -117,6 +123,7 @@ part 'timeline/timeline_selection.dart';
 part 'timeline/timeline_commands.dart';
 part 'timeline/timeline_rows.dart';
 part 'timeline/timeline_shelves.dart';
+part 'timeline/timeline_view_fade.dart';
 
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({
@@ -291,8 +298,12 @@ class TimelineScreenState extends State<TimelineScreen>
 
   void _fadeInBody() {
     _searchFade.duration = NexMotion.of(context, NexMotion.enter);
-    unawaited(_searchFade.forward(from: 0));
+    unawaited(_searchFade.forward(from: 0).whenComplete(_dissolve.clear));
   }
+
+  /// The old view's last frame, fading out over the new — see
+  /// [_ViewDissolve].
+  final _ViewDissolve _dissolve = _ViewDissolve();
 
   /// The note rows on screen, and the day of the one passing under the
   /// filter row — see [TimelineStickyDay].
@@ -749,6 +760,7 @@ class TimelineScreenState extends State<TimelineScreen>
     _search.removeListener(_onSearchChanged);
     _search.dispose();
     _searchFade.dispose();
+    _dissolve.dispose();
     _dockRecede.dispose();
     _dockAway.dispose();
     _searchFocus.dispose();

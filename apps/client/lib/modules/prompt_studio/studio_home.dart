@@ -222,6 +222,8 @@ class _StudioHomeState extends State<StudioHome> {
       floatingActionButton: _loading || _failed
           ? null
           : FloatingActionButton.extended(
+              // No hero: a page's button never flies into another's (2.8.2).
+              heroTag: null,
               key: const ValueKey('studio-add'),
               onPressed: _busy ? null : () => _edit(),
               icon: const Icon(Icons.add),
@@ -279,43 +281,56 @@ class _StudioHomeState extends State<StudioHome> {
                   onSelectionChanged: (v) => setState(() => _filter = v.first),
                 ),
                 const SizedBox(height: NexSpacing.md),
-                if (visible.isEmpty)
-                  NexEmptyState(
-                    icon: Icons.edit_note,
-                    message: s(context, _items.isEmpty ? 'empty' : 'noMatches'),
-                  ),
-                for (final entry in visible) _tile(entry),
-                if (_filter != 2 && _search.text.isEmpty) ...[
-                  const SizedBox(height: NexSpacing.md),
-                  NexShelfHeading(
-                    icon: Icons.lightbulb_outline,
-                    title: s(context, 'starters'),
-                  ),
-                  Wrap(
-                    spacing: NexSpacing.sm,
-                    runSpacing: NexSpacing.sm,
+                // Library, favourites or blocks: the list fades from one to
+                // the other (2.8.2).
+                NexSegmentSwap(
+                  selection: _filter,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      for (final (label, body) in [
-                        ('starterBrief', 'briefBody'),
-                        ('starterCode', 'codeBody'),
-                        ('starterImage', 'imageBody'),
-                      ])
-                        ActionChip(
-                          label: Text(s(context, label)),
-                          avatar: const Icon(Icons.add),
-                          onPressed: () => _edit(
-                            draftKey:
-                                '$body:${NexModuleStrings.persian(context)}',
-                            seed: {
-                              'title': s(context, label),
-                              'body': s(context, body),
-                              'block': false,
-                            },
+                      if (visible.isEmpty)
+                        NexEmptyState(
+                          icon: Icons.edit_note,
+                          message: s(
+                            context,
+                            _items.isEmpty ? 'empty' : 'noMatches',
                           ),
                         ),
+                      for (final entry in visible) _tile(entry),
+                      if (_filter != 2 && _search.text.isEmpty) ...[
+                        const SizedBox(height: NexSpacing.md),
+                        NexShelfHeading(
+                          icon: Icons.lightbulb_outline,
+                          title: s(context, 'starters'),
+                        ),
+                        Wrap(
+                          spacing: NexSpacing.sm,
+                          runSpacing: NexSpacing.sm,
+                          children: [
+                            for (final (label, body) in [
+                              ('starterBrief', 'briefBody'),
+                              ('starterCode', 'codeBody'),
+                              ('starterImage', 'imageBody'),
+                            ])
+                              ActionChip(
+                                label: Text(s(context, label)),
+                                avatar: const Icon(Icons.add),
+                                onPressed: () => _edit(
+                                  draftKey:
+                                      '$body:${NexModuleStrings.persian(context)}',
+                                  seed: {
+                                    'title': s(context, label),
+                                    'body': s(context, body),
+                                    'block': false,
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
-                ],
+                ),
               ],
             ),
     );
