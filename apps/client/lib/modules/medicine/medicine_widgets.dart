@@ -5,6 +5,7 @@ import 'medicine_fields.dart';
 import 'medicine_logic.dart';
 import 'medicine_models.dart';
 import 'medicine_parse.dart';
+import 'medicine_sections.dart';
 import 'medicine_strings.dart';
 
 part 'medicine_widgets_more.dart';
@@ -84,9 +85,8 @@ class MedicineLabel extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: NexSpacing.xs),
     child: Text(
       text,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
+      style: Theme.of(context).textTheme.bodySmall
+          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
     ),
   );
 }
@@ -103,9 +103,8 @@ class MedicineMark extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Text(
       text,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: on ? scheme.error : scheme.onSurfaceVariant,
-      ),
+      style: Theme.of(context).textTheme.bodySmall
+          ?.copyWith(color: on ? scheme.error : scheme.onSurfaceVariant),
     );
   }
 }
@@ -128,12 +127,12 @@ class MedicineInfoSection extends StatelessWidget {
     final instructions = MedicineModels.readString(body, 'instructions');
     final purpose = MedicineModels.readString(body, 'purpose');
     final days = MedicineModels.readString(body, 'days');
-    final times = MedicineModels.readTimes(body);
     final quantity = MedicineModels.readCount(body, 'quantity');
     final doseUnits = MedicineModels.readCount(body, 'doseUnits');
     final expiresAt = MedicineModels.readDate(body, 'expiresAt');
     final expiry = MedicineLogic.expiryOf(expiresAt, DateTime.now());
     final refillThreshold = MedicineModels.readCount(body, 'refillThreshold');
+    final person = MedicineModels.readPerson(body);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,6 +160,11 @@ class MedicineInfoSection extends StatelessWidget {
                     : strings(context, 'expiryLabel'),
                 on: expiry.expired,
               ),
+            if (person.isNotEmpty)
+              MedicineMark(
+                strings(context, 'personFor', {'person': person}),
+                on: false,
+              ),
           ],
         ),
         const SizedBox(height: NexSpacing.md),
@@ -181,25 +185,7 @@ class MedicineInfoSection extends StatelessWidget {
           Text(instructions, style: theme.textTheme.bodyMedium),
           const SizedBox(height: NexSpacing.md),
         ],
-        if (times.isNotEmpty || days.isNotEmpty) ...[
-          MedicineLabel(strings(context, 'timesLabel')),
-          Text(
-            [
-              if (times.isNotEmpty)
-                times.map((t) => MedicineFields.digits(context, t)).join(' · '),
-              if (days.isNotEmpty) days,
-            ].join(' — '),
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: NexSpacing.xs),
-          Text(
-            strings(context, 'timesNote'),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: NexSpacing.md),
-        ],
+        MedicineScheduleSection(body: body, days: days),
         if (purpose.isNotEmpty) ...[
           MedicineLabel(strings(context, 'purposeLabel')),
           Text(purpose, style: theme.textTheme.bodyMedium),

@@ -38,9 +38,8 @@ class LocalValues {
   }
 
   static DateTime? day(String text) {
-    final match = RegExp(
-      r'^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$',
-    ).firstMatch(ascii(text.trim()));
+    final match = RegExp(r'^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$')
+        .firstMatch(ascii(text.trim()));
     if (match == null) {
       return null;
     }

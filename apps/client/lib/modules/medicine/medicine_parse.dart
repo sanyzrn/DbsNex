@@ -29,4 +29,14 @@ class MedicineParse {
     }
     return LocalValues.day(written) ?? invalid;
   }
+
+  /// A calendar day a record needs — a box's expiry, a start or end date.
+  /// Null when nothing was written; [invalid] when what was written is not
+  /// a real day in the calendar's range.
+  static DateTime? day(String written) {
+    if (written.trim().isEmpty) {
+      return null;
+    }
+    return LocalValues.day(written) ?? invalid;
+  }
 }

@@ -15,6 +15,11 @@ class MedicineFields {
   /// Two digits with a leading zero, for month, day, hour and minute.
   static String two(int value) => value < 10 ? '0$value' : '$value';
 
+  /// A calendar day as the editor's field writes it: `yyyy/MM/dd`, the
+  /// civil day the record keeps.
+  static String dateText(DateTime day) =>
+      '${day.year}/${two(day.month)}/${two(day.day)}';
+
   /// ASCII digits in [text] as the interface's digits — «۱۴۰۵» on the
   /// Persian side, "1405" in English. The app's own `nexDigits`
   /// is exposed through the module API and handles the conversion.

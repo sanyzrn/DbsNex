@@ -1,18 +1,24 @@
 import 'dart:async';
+
 import 'local_writes.dart';
 import 'medicine_repository.dart';
 
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'medicine_box_sheet.dart';
 import 'medicine_dialogs.dart';
 import 'medicine_editor.dart';
 import 'medicine_logic.dart';
 import 'medicine_models.dart';
+import 'medicine_place_sheet.dart';
+import 'medicine_schedule.dart';
+import 'medicine_sections.dart';
 import 'medicine_strings.dart';
 import 'medicine_widgets.dart';
 
 part 'medicine_detail_body.dart';
+part 'medicine_detail_extras.dart';
 
 /// One medicine, in full: everything the person wrote about it, the doses
 /// they logged, and the two log actions — «Taken» and «Skipped» — tied to
@@ -34,6 +40,8 @@ class MedicineDetailSheet extends StatefulWidget {
 
 class _MedicineDetailSheetState extends State<MedicineDetailSheet> {
   List<ModuleRecord> _doses = const [];
+  List<ModuleRecord> _boxes = const [];
+  List<ModuleRecord> _sources = const [];
   Map<String, Object?>? _body;
   StreamSubscription<void>? _changes;
   int _loadSeq = 0;
@@ -69,6 +77,8 @@ class _MedicineDetailSheetState extends State<MedicineDetailSheet> {
         widget.record.id,
       );
       final doses = await widget.store.list(MedicineModels.dose);
+      final boxes = await widget.store.list(MedicineModels.box);
+      final sources = await widget.store.list(MedicineModels.source);
       if (!mounted || seq != _loadSeq) {
         return;
       }
@@ -77,6 +87,8 @@ class _MedicineDetailSheetState extends State<MedicineDetailSheet> {
         _loadFailed = false;
         _body = body;
         _doses = MedicineLogic.dosesFor(doses, widget.record.id);
+        _boxes = MedicineLogic.boxesFor(boxes, widget.record.id);
+        _sources = MedicineLogic.sourcesFor(sources, widget.record.id);
       });
     } catch (_) {
       if (!mounted || seq != _loadSeq) {
