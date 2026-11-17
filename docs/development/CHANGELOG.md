@@ -47,8 +47,8 @@ Working convention:
   an isolate, `.none` markers for sites that answered with nothing (asked
   again after 7 days), never written for sites out of reach. `fillIn`
   backfills up to 24 a launch; `onPageWords` saves a title a later fetch
-  found (YouTube oEmbed). `purgeNote` forgets without waiting; a sweep at
-  launch drops pictures of notes that are gone.
+  found (YouTube oEmbed). A sweep at launch drops the pictures of notes
+  that are gone or deleted (`noteExists`); deleting never waits on them.
 - Grid: `NexTileBackdrop.link` full-bleed when a cover exists (tiles listen
   to `NexLinkArt`); `_SiteCard` gets the icon, kind and a `_VideoScreen`.
   List: `NexCardLinkPreview` through `previewOverride`; `NexSiteMark` shared.

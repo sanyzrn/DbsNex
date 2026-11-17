@@ -91,11 +91,9 @@ extension NexLibraryServices on NexServices {
   Future<void> purgeDeletedBefore(DateTime cutoff) =>
       worker.purgeDeletedBefore(cutoff);
 
-  Future<void> purgeNote(String id) async {
-    await worker.purgeNote(id);
-    // Its link picture goes with it (2.8.3), without the delete waiting.
-    unawaited(NexLinkArt.instance.forget(id));
-  }
+  /// A link's picture is not let go of here: the sweep at the next launch
+  /// does that for every note that is gone (2.8.3).
+  Future<void> purgeNote(String id) => worker.purgeNote(id);
 
   /// Whether [id] is a note the library still shows — not deleted.
   Future<bool> noteExists(String id) async => await worker.getById(id) != null;
