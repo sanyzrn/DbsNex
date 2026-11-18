@@ -16,7 +16,7 @@ mixin _ModulePreferences on _PreferencesStore {
       _prefs.getStringList('modules.order') ?? const [];
   Future<void> setModuleOrder(List<String> ids) async {
     await _prefs.setStringList('modules.order', [...ids]);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Modules still to come that this person said they want (2.8.3): marked
@@ -27,7 +27,7 @@ mixin _ModulePreferences on _PreferencesStore {
     final all = wantedModules;
     wanted ? all.add(id) : all.remove(id);
     await _prefs.setStringList('modules.wanted', all.toList()..sort());
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Pause (2.4.0): the breathing mode last chosen, and whether a session

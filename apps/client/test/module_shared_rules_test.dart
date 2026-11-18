@@ -13,16 +13,7 @@ import 'package:path/path.dart' as p;
 void main() {
   /// Modules with reminders or dates falling due that do not yet produce
   /// them through `duesBetween`.
-  const duesPending = {
-    'habits',
-    'lent_borrowed',
-    'maintenance',
-    'medicine',
-    'occasions',
-    'parking',
-    'warranty',
-    'words',
-  };
+  const duesPending = {'habits', 'occasions', 'warranty', 'words'};
 
   /// Modules without a `summarize` line per record yet.
   const summaryPending = {
@@ -30,11 +21,7 @@ void main() {
     'expenses',
     'gold',
     'habits',
-    'lent_borrowed',
-    'maintenance',
-    'medicine',
     'occasions',
-    'parking',
     'price_lens',
     'prompt_studio',
     'security_tools',

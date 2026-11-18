@@ -34,6 +34,78 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.4 — three module branches reviewed: Parking, Lent & Borrowed, Medicine
+
+- Parking (agent/module-parking, stays Soon): `ParkingAlarm` keeps a
+  pre-end reminder's minutes on the session (`remindMinutes`) and moves or
+  takes it back when the paid time is edited; reminder titled by itself;
+  `ParkingShared` (duesBetween, summarize).
+- Lent & Borrowed (agent/module-lent_borrowed.md, live): splits, settle-up,
+  card and IBAN book. Review: whole-toman shares (`splitParts` divides in
+  tomans once when a cost is a multiple of 10 rials), issuer table corrected
+  (639346 Sina; Refah 589463) and extended, Persian digits on the split
+  page, `LoanShared`. `person` stays a string: live fields are not
+  reshaped.
+- Medicine (agent/module-medicine.md, stays Soon): people, routines, boxes,
+  places, run-out estimate. Review: reminders planned by `keepUp` on start
+  and resume (they were planned only on opening the cabinet, eight per
+  medicine); every-day routines use `setDailyReminder`; others eight days
+  ahead (32 per medicine, 160 per cabinet); `person` as `{"name"}`,
+  `priceRial`; `MedicineShared`.
+- All three leave the pending lists of `module_shared_rules_test`.
+- 2.8.3 follow-ups: `setLinkMetadata(keepTime:)` — the background fill
+  keeps `updated_at` (the timeline order) and writes nothing when the words
+  are unchanged; link icons are kept as one frame (`decodeImage(frame: 0)`,
+  `encodePng(singleFrame: true)`) and 2.8.3's `*.icon.png` are re-encoded
+  once at launch to `*.icon1.png`.
+
+### 2.8.4 — Cheques and Maintenance reviewed; modules go live once approved
+
+- Owner's rule: a module is available as soon as its review is approved
+  (recorded in CLAUDE.md). `nexAvailableModuleIds` adds `parking`,
+  `medicine`, `cheques`, `maintenance`.
+- Cheques (agent/module-cheques.md): instalments in whole tomans when the
+  total is; the month view lists only days with dues and marks deficit
+  days; unused `ai_contract.dart` removed; `keepUp` replans alarms.
+- Maintenance (agent/module-maintenance): car reminders now follow their
+  dates (`insuranceRemind`/`inspectionRemind`, written only when true;
+  `CarReminders.plan` on date/lead change and in `keepUp`, skipping an
+  alarm already set for the same moment), can be turned off, and a refused
+  alarm does not stay marked on; `MaintenanceShared` (duesBetween,
+  summarize); off both pending lists.
+- One-time reminder "Remove the note when done": `notes.due_clears`
+  (INTEGER, local like `due_repeat`, cleared with `due_at`, carried in the
+  JSON archive; no schema bump — older builds read an ordinary reminder).
+  `clearAnswered` soft-deletes on Done (now, or settled from the hand-off at
+  launch) or on closing the card after the time; `reminderCleared` drives
+  one Undo banner; `keepCleared` restores without the spent reminder.
+  `retireSpentReminders` skips such notes until answered.
+- First run: a modules page (`onboarding_modules.dart`) before the choices;
+  chips call `setModuleOn` (not Cycle; none on desktop). Capture page text
+  mentions grid/grouping and reminders.
+- Home tips: `widgets/tips/` — catalogue `nexTips`, pure `NexTipSchedule`,
+  `NexHomeTip` under the pinned tools; state in `home.tip_state`, switch
+  `home.tips` in Home layout.
+- Grid tile: tag dots sit beside the reminder pill instead of being hidden.
+
+### 2.8.4 — UI performance audit (NEX-UI-01…12) applied
+
+- From the audit patch on e3edff3f (`nex-ui-performance`), applied with a
+  three-way merge onto 2.8.4 (one context conflict in `home_preferences.dart`
+  from the tip settings; the merged `_Foot` keeps 2.8.4's tag dots beside the
+  reminder and adds the `_footFits` memo).
+- Preferences: typed-text setters persist at once but notify after 400 ms
+  of quiet (`_TypingNotifyPreferences`, `_notifyNow` everywhere else); app
+  lock timing moved to its own part to stay under 800 lines.
+- Capture sheet rebuilds only on empty↔non-empty; `NexLinkFace.of` memo and
+  static patterns; vault filter memo; loans standings in one bucketed pass;
+  skeleton shimmer painted, not rebuilt; assistant edge glow stops turning
+  while covered; module hero entrance caches its card; card strings and
+  child indices hoisted in search and threads; images decoded at their
+  shown size (portrait, wordmark, logo, video frame, PDF page); module
+  search and grid foot regexes/painters cached.
+- Tests: rebuild/notify counters and a budget-tagged host bench.
+
 ### 2.8.3 — link cards, arranging tools and modules, store readiness
 
 - `NexLinkFace` (platform/link_face.dart) reads a link's address offline:

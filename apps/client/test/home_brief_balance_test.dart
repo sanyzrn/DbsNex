@@ -187,6 +187,10 @@ void main() {
           h.preferences.lastRecap!.split('\n').length,
           lessThanOrEqualTo(8),
         );
+        // The instruction's notify settles while the app is still mounted
+        // (typed-text notifications wait for a typing pause); let it land
+        // before the tree goes, so no armed wait outlives the test.
+        await tester.pump(const Duration(milliseconds: 450));
         await tester.pumpWidget(const SizedBox());
       },
     );

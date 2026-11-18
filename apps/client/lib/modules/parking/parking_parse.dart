@@ -29,9 +29,8 @@ class ParkingParse {
       return null;
     }
     final date = LocalValues.day(dateText);
-    final m = RegExp(
-      r'^(\d{1,2}):(\d{1,2})$',
-    ).firstMatch(LocalValues.ascii(timeText.trim()));
+    final m = RegExp(r'^(\d{1,2}):(\d{1,2})$')
+        .firstMatch(LocalValues.ascii(timeText.trim()));
     if (date == null || m == null) {
       return invalid;
     }

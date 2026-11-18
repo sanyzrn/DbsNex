@@ -1,16 +1,18 @@
 import 'package:nex_client/modules/module_api.dart';
 
+import 'medicine_strings_upgrade.dart';
+
 /// Medicine cabinet — the words it shows, in both languages, kept inside
 /// the module as `NexModuleStrings` requires. Numbers passed as arguments
 /// come out in Persian digits on the Persian side.
 const medicineStrings = NexModuleStrings(
   en: {
+    ...medicineStringsUpgradeEn,
     'dateHint': 'YYYY/MM/DD',
     'timeLimit': 'Up to {count} times. Remove one or clear this entry.',
     'unknownLog': 'Unknown record type',
     'keepDraft': 'Keep draft & close',
-    'undoFailed':
-        'Could not undo. A later change may conflict; retry after checking the record.',
+    'undoFailed': 'Could not undo. A later change may conflict; retry after checking the record.',
     'takenLimited': 'Taken · recorded stock was insufficient',
     'loadFailed': 'Could not load your records. Retry before editing.',
     'retry': 'Retry',
@@ -31,6 +33,8 @@ const medicineStrings = NexModuleStrings(
     'heroOne': '1 medicine',
     'heroCaption': 'Stock and expiry, in your own numbers.',
     'emptyMessage': 'Add your first medicine — a name is enough to begin.',
+    'allPeople': 'Everyone',
+    'noMedicinesFor': 'No medicine for this person yet.',
     'addMedicine': 'Add a medicine',
     'archived': 'Archived',
     'showArchived': 'Show archived',
@@ -111,19 +115,20 @@ const medicineStrings = NexModuleStrings(
     'discard': 'Leave',
     'keepWriting': 'Keep writing',
     'saveFailed': 'Could not save. Nothing was lost — try again.',
-    'moreDetails': 'Times, stock and expiry',
+    'moreDetails': 'Schedule, stock and expiry',
     'moreDetailsHint': 'All optional — you can add them later.',
+
     'safetyNote':
         'This app does not check doses, interactions or timing. Your '
         'clinician or pharmacist is the source for medical instructions.',
   },
   fa: {
+    ...medicineStringsUpgradeFa,
     'dateHint': 'سال/ماه/روز',
     'timeLimit': 'تا {count} ساعت؛ یکی را بردارید یا این ورودی را پاک کنید.',
     'unknownLog': 'نوع گزارش نامشخص',
     'keepDraft': 'نگهداری پیش‌نویس و بستن',
-    'undoFailed':
-        'بازگردانی انجام نشد؛ شاید اطلاعات بعداً تغییر کرده است. رکورد را بررسی کنید.',
+    'undoFailed': 'بازگردانی انجام نشد؛ شاید اطلاعات بعداً تغییر کرده است. رکورد را بررسی کنید.',
     'takenLimited': 'مصرف ثبت شد · موجودی ثبت‌شده کافی نبود',
     'loadFailed': 'خواندن اطلاعات انجام نشد. پیش از ویرایش دوباره تلاش کنید.',
     'retry': 'تلاش دوباره',
@@ -145,6 +150,7 @@ const medicineStrings = NexModuleStrings(
     'heroCaption': 'موجودی و انقضا، با اعداد خودتان.',
     'emptyMessage':
         'اولین دارو را اضافه کنید — همین که نامش را بنویسید کافی است.',
+    'allPeople': 'همه',
     'addMedicine': 'افزودن دارو',
     'archived': 'آرشیو',
     'showArchived': 'نمایش آرشیو',
@@ -225,8 +231,9 @@ const medicineStrings = NexModuleStrings(
     'discard': 'خروج',
     'keepWriting': 'ادامه بدهم',
     'saveFailed': 'ذخیره نشد. چیزی از دست نرفت — دوباره تلاش کنید.',
-    'moreDetails': 'ساعت‌ها، موجودی و انقضا',
+    'moreDetails': 'برنامه، موجودی و انقضا',
     'moreDetailsHint': 'همه اختیاری است؛ بعداً هم می‌شود افزود.',
+
     'safetyNote':
         'این برنامه دوز، تداخل یا زمان را بررسی نمی‌کند. منبعِ دستورهای '
         'پزشکی، پزشک یا داروساز شماست.',

@@ -204,20 +204,22 @@ void main() {
       ),
     );
 
+    // The wordmark decodes at display size — a ResizeImage over the asset
+    // — so read through the wrapper.
+    String assetOf(Image image) => switch (image.image) {
+      AssetImage(:final assetName) => assetName,
+      ResizeImage(:final imageProvider) => assetOf(Image(image: imageProvider)),
+      _ => '',
+    };
+
     await pumpWithBrightness(Brightness.light);
     await tester.pumpAndSettle();
     Image image = tester.widget(find.byType(Image).first);
-    expect(
-      (image.image as AssetImage).assetName,
-      'assets/branding/text_logo_light.png',
-    );
+    expect(assetOf(image), 'assets/branding/text_logo_light.png');
 
     await pumpWithBrightness(Brightness.dark);
     await tester.pumpAndSettle();
     image = tester.widget(find.byType(Image).first);
-    expect(
-      (image.image as AssetImage).assetName,
-      'assets/branding/text_logo_dark.png',
-    );
+    expect(assetOf(image), 'assets/branding/text_logo_dark.png');
   });
 }

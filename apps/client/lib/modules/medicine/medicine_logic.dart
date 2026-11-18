@@ -2,6 +2,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'local_values.dart';
 import 'medicine_models.dart';
+import 'medicine_schedule.dart';
 
 /// Everything the medicine screens work out from a record and a clock —
 /// kept free of widgets so it can be tested on its own. No function here
@@ -53,6 +54,32 @@ class MedicineLogic {
     return sum.toInt();
   }
 
+  /// About how many days the recorded stock lasts at the recorded
+  /// routine: quantity ÷ (units per dose × times a day × how much of the
+  /// week the schedule covers). Null unless the person wrote the stock,
+  /// the units per dose and at least one time — the module never invents
+  /// a use rate. This is arithmetic on their numbers, not medical advice.
+  static int? runsOutInDays({
+    required int? quantity,
+    required int? doseUnits,
+    required MedicineSchedule schedule,
+  }) {
+    if (quantity == null || quantity <= 0) {
+      return quantity == 0 ? 0 : null;
+    }
+    final perDay = schedule.unitsPerDay(doseUnits);
+    if (perDay == null || perDay <= 0) {
+      return null;
+    }
+    final days = (quantity / perDay).floor();
+    return days < 0 ? 0 : days;
+  }
+
+  /// The person's early warning: at or under the days they chose (ten by
+  /// default), it is time to start looking for more.
+  static bool runoutWarning(int? days, int warnDays) =>
+      days != null && days <= warnDays;
+
   // ------------------------------------------------------- states
 
   /// What the list can honestly say about the expiry date the person
@@ -71,6 +98,21 @@ class MedicineLogic {
       return (expired: true, soon: false);
     }
     return (expired: false, soon: day.difference(today).inDays <= 7);
+  }
+
+  /// The cabinet's longer view of one box: already expired, inside the
+  /// next [soonDays], or neither.
+  static ({bool expired, bool soon}) expiryBucket(
+    DateTime expiresAt,
+    DateTime now, {
+    int soonDays = 90,
+  }) {
+    final today = LocalValues.civil(now.toLocal());
+    final day = LocalValues.civil(expiresAt);
+    if (!day.isAfter(today)) {
+      return (expired: true, soon: false);
+    }
+    return (expired: false, soon: day.difference(today).inDays <= soonDays);
   }
 
   /// Whether the quantity has reached the refill threshold the person
@@ -95,6 +137,27 @@ class MedicineLogic {
         dose,
   ];
 
+  /// The boxes that belong to [medicineId], newest first as the store
+  /// returned them.
+  static List<ModuleRecord> boxesFor(
+    Iterable<ModuleRecord> boxes,
+    String medicineId,
+  ) => [
+    for (final box in boxes)
+      if (MedicineModels.readString(box.body, 'medicineId') == medicineId) box,
+  ];
+
+  /// The places logged for [medicineId], newest first as the store
+  /// returned them.
+  static List<ModuleRecord> sourcesFor(
+    Iterable<ModuleRecord> sources,
+    String medicineId,
+  ) => [
+    for (final source in sources)
+      if (MedicineModels.readString(source.body, 'medicineId') == medicineId)
+        source,
+  ];
+
   /// Whether a new medicine may be written: a name, at least. The
   /// duplicate-name question is the screen's to ask, not the writer's to
   /// answer — a person may well keep two things with one name.
@@ -104,4 +167,7 @@ class MedicineLogic {
   /// surrounding space — what a person would read as the same word.
   static bool sameName(String a, String b) =>
       a.trim().toLowerCase() == b.trim().toLowerCase();
+
+  /// Whether a routine time named [time] on [day] is still ahead.
+  static bool isAhead(DateTime time, DateTime now) => time.isAfter(now);
 }

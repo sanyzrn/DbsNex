@@ -323,4 +323,33 @@ void main() {
     expect(find.text(' · Profile'), findsOneWidget);
     expect(NexCardLinkPreview.fits(link('x', '')), isFalse);
   });
+
+  group('a moving icon is kept still (2.8.4)', () {
+    img.Image moving() {
+      final first = img.Image(width: 32, height: 32);
+      img.fill(first, color: img.ColorRgb8(200, 0, 0));
+      final second = img.Image(width: 32, height: 32);
+      img.fill(second, color: img.ColorRgb8(0, 0, 200));
+      return first..addFrame(second);
+    }
+
+    test('only its first frame is kept', () {
+      final still = NexLinkArt.debugStill(img.encodeGif(moving()))!;
+      final read = img.decodePng(still)!;
+      expect(read.numFrames, 1);
+      expect(read.getPixel(4, 4).r, 200);
+    });
+
+    testWidgets('one 2.8.3 kept with every frame is brought to one, under '
+        'its new name', (tester) async {
+      final legacy = File('${dir.path}/old.icon.png')
+        ..writeAsBytesSync(img.encodePng(moving()));
+      NexLinkArt.instance.debugUse(dir);
+      await tester.runAsync(NexLinkArt.instance.open);
+      expect(legacy.existsSync(), isFalse);
+      final icon = NexLinkArt.instance.of('old')!.icon!;
+      expect(icon.path, endsWith('old.icon1.png'));
+      expect(img.decodePng(icon.readAsBytesSync())!.numFrames, 1);
+    });
+  });
 }

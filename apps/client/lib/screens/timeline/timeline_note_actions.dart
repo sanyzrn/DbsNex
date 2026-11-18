@@ -532,6 +532,8 @@ extension _TimelineNoteActions on TimelineScreenState {
         noteId: noteId,
       ),
     );
+    // Opened and closed after a "remove when done" reminder rang (2.8.4).
+    if (await widget.services.clearAnswered(noteId)) return;
     await widget.services.refreshTimeline();
   }
 
@@ -600,6 +602,9 @@ extension _TimelineNoteActions on TimelineScreenState {
       await deleteWithUndo(note);
       return;
     }
+    // Opened and closed after a "remove when done" reminder rang: it is
+    // answered, and the note goes to Recently deleted with an Undo (2.8.4).
+    if (await widget.services.clearAnswered(note.id)) return;
     // Most edits have already refreshed the stream inside their save path.
     // A checklist tick or another metadata-only write may not have done so;
     // compare one row before deciding whether the full timeline is stale.

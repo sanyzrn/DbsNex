@@ -15,14 +15,19 @@
   request back to `main`. Never resume the retired `codex/2.0-polish` branch.
 - Available modules are **Cycle, Breathing break (Pause), Birthdays & occasions,
   Word by Word, Habits, Converter, Warranties, Gold, Quit Habits, Lent &
-  Borrowed, Prompt Studio and Security toolbox** (`cycle`, `pause`,
-  `occasions`, `words`, `habits`, `converter`, `warranty`, `gold`,
-  `smoke_free`, `lent_borrowed`, `prompt_studio`, `security_tools`).
-  The authoritative rollout list is `apps/client/lib/modules/module_rollout.dart`;
-  installed and active modules are resolved through `nexModulesOn`.
-  Other modules remain **Soon** pending completion and device review. Preserve
-  their code, installation choices and data; never enable them just because
-  their source or translations exist. `addons/README.md` tracks scope.
+  Borrowed, Prompt Studio, Security toolbox, Parking, Medicine, Cheques &
+  instalments and Maintenance** (`cycle`,
+  `pause`, `occasions`, `words`, `habits`, `converter`, `warranty`, `gold`,
+  `smoke_free`, `lent_borrowed`, `prompt_studio`, `security_tools`,
+  `parking`, `medicine`, `cheques`, `maintenance`). The authoritative rollout list is
+  `apps/client/lib/modules/module_rollout.dart`; installed and active modules
+  are resolved through `nexModulesOn`. Other modules remain **Soon**. The
+  owner's rule (2.8.4): a module is made available **as soon as its review is
+  complete and approved** — finished to its brief, checked against
+  `docs/18`, its tests green — in the same release, without waiting for a
+  device test. Never enable one just because its source or translations
+  exist. Preserve the code, installation choices and data of Soon modules.
+  `addons/README.md` tracks scope.
 - **Modules stay one app.** Every module, new or upgraded, follows
   "Shared across modules" in [`docs/18-module-kit.md`](docs/18-module-kit.md):
   due dates through `duesBetween`, money in rials, the other party as

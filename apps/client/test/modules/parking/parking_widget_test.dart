@@ -5,12 +5,12 @@ import 'package:nex_client/modules/parking/parking_screen.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
-import '../../support/add_button.dart';
 import '../../support/more_details.dart';
+import 'parking_test_support.dart';
 
 /// The parking screen, used the way a person uses it: empty at first, a
-/// parking saved, found, edited, deleted and undone — with the vehicle
-/// question and persistence checked on the way.
+/// parking saved, found and edited — with the vehicle question checked on
+/// the way.
 void main() {
   Future<NexTestHarness> pumpScreen(
     WidgetTester tester, {
@@ -18,7 +18,7 @@ void main() {
   }) async {
     final h = harness ?? await NexTestHarness.create(name: 'parking_ui_');
     if (harness == null) addTearDown(h.dispose);
-    await _pump(
+    await pumpParkingHome(
       tester,
       ParkingScreen(store: NexModuleStore(h.services, 'parking')),
     );
@@ -29,34 +29,61 @@ void main() {
     testWidgets('says what to do when nothing is parked yet', (tester) async {
       await pumpScreen(tester);
       expect(find.byKey(const ValueKey('parking-empty')), findsOneWidget);
-      expect(addButton('parking-fab', 'parking-empty-add'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('parking-park-details')),
+        findsOneWidget,
+      );
       // The first action lives in the empty state itself, not only on the
       // floating button.
       expect(find.byKey(const ValueKey('parking-empty-add')), findsOneWidget);
-      expect(find.text('Parked here'), findsOneWidget);
+      expect(find.text('I parked'), findsOneWidget);
+      expect(find.text('Park with details'), findsOneWidget);
     });
 
-    testWidgets('the empty state button parks a car', (tester) async {
+    testWidgets('one tap parks the car with nothing filled in', (tester) async {
       final h = await pumpScreen(tester);
       await tester.tap(find.byKey(const ValueKey('parking-empty-add')));
       await tester.pumpAndSettle();
-      await openMoreDetails(tester, 'parking-more-toggle');
-      await tester.enterText(
-        find.byKey(const ValueKey('parking-field-place')),
-        'Saba mall',
-      );
-      await _tapSave(tester);
+
       final sessions = await h.services.moduleRecords('parking', 'session');
       expect(sessions, hasLength(1));
-      expect(sessions.single.body['place'], 'Saba mall');
+      expect(sessions.single.body['place'], '');
+      expect(sessions.single.body.containsKey('foundAt'), isFalse);
       expect(find.byKey(const ValueKey('parking-empty')), findsNothing);
+      // Every other field is offered from the card afterwards.
+      expect(find.byKey(const ValueKey('parking-add-where')), findsOneWidget);
+      expect(find.byKey(const ValueKey('parking-found')), findsOneWidget);
+    });
+
+    testWidgets('a second one-tap parking remembers the last vehicle', (
+      tester,
+    ) async {
+      final h = await pumpScreen(tester);
+      await createParking(tester, place: 'North lot', vehicle: 'Car');
+      await tester.tap(find.byKey(const ValueKey('parking-found')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('parking-fab')));
+      await tester.pumpAndSettle();
+
+      final open = (await h.services.moduleRecords(
+        'parking',
+        'session',
+      )).where((r) => !r.body.containsKey('foundAt')).toList();
+      expect(open, hasLength(1));
+      expect(open.single.body['vehicle'], 'Car');
+      expect(open.single.body['place'], '');
     });
 
     testWidgets('writes a parking and shows it as the open one', (
       tester,
     ) async {
       final h = await pumpScreen(tester);
-      await _create(tester, place: 'Saba mall', vehicle: 'Car', floor: '-1');
+      await createParking(
+        tester,
+        place: 'Saba mall',
+        vehicle: 'Car',
+        floor: '-1',
+      );
 
       final sessions = await h.services.moduleRecords('parking', 'session');
       expect(sessions, hasLength(1));
@@ -69,24 +96,21 @@ void main() {
       expect(find.byKey(const ValueKey('parking-found')), findsOneWidget);
     });
 
-    testWidgets('without a place it says so and saves nothing', (tester) async {
+    testWidgets('every field is optional, even the place', (tester) async {
       final h = await pumpScreen(tester);
-      await tester.tap(addButton('parking-fab', 'parking-empty-add'));
+      await tester.tap(find.byKey(const ValueKey('parking-park-details')));
       await tester.pumpAndSettle();
       await openMoreDetails(tester, 'parking-more-toggle');
-      // Something is written, so leaving would lose work — but a place
-      // is still missing, and saving says so.
       await tester.enterText(
         find.byKey(const ValueKey('parking-field-vehicle')),
         'Car',
       );
-      await _tapSave(tester);
-      expect(find.text('Write where you parked.'), findsOneWidget);
-      expect(await h.services.moduleRecords('parking', 'session'), isEmpty);
-      await tester.binding.handlePopRoute();
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('parking-discard')));
-      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      final sessions = await h.services.moduleRecords('parking', 'session');
+      expect(sessions, hasLength(1));
+      expect(sessions.single.body['vehicle'], 'Car');
+      expect(sessions.single.body['place'], '');
       expect(find.byKey(const ValueKey('parking-save')), findsNothing);
     });
 
@@ -94,7 +118,7 @@ void main() {
       tester,
     ) async {
       await pumpScreen(tester);
-      await _create(tester, place: 'Saba mall', floor: '1');
+      await createParking(tester, place: 'Saba mall', floor: '1');
       expect(find.byKey(const ValueKey('parking-empty')), findsNothing);
       expect(find.text('Saba mall'), findsWidgets);
 
@@ -102,10 +126,10 @@ void main() {
       await tester.tap(find.text('Saba mall').last);
       await tester.pumpAndSettle();
       expect(
-        _fieldText(tester, const ValueKey('parking-field-place')),
+        fieldText(tester, const ValueKey('parking-field-place')),
         'Saba mall',
       );
-      expect(_fieldText(tester, const ValueKey('parking-field-floor')), '1');
+      expect(fieldText(tester, const ValueKey('parking-field-floor')), '1');
 
       // Nothing was typed by hand, so leaving asks nothing and closes.
       await tester.binding.handlePopRoute();
@@ -117,7 +141,7 @@ void main() {
   group('finding the car', () {
     testWidgets('records foundAt and keeps it in history', (tester) async {
       final h = await pumpScreen(tester);
-      await _create(tester, place: 'Saba mall');
+      await createParking(tester, place: 'Saba mall');
       await tester.tap(find.byKey(const ValueKey('parking-found')));
       await tester.pumpAndSettle();
 
@@ -133,12 +157,12 @@ void main() {
       tester,
     ) async {
       final h = await pumpScreen(tester);
-      await _create(tester, place: 'North lot', vehicle: 'Car');
-      await _create(tester, place: 'South lot', vehicle: 'Motorbike');
+      await createParking(tester, place: 'North lot', vehicle: 'Car');
+      await createParking(tester, place: 'South lot', vehicle: 'Motorbike');
       expect(find.byKey(const ValueKey('parking-found')), findsNWidgets(2));
 
       // The same vehicle again: the question appears.
-      await _create(
+      await createParking(
         tester,
         place: 'East lot',
         vehicle: 'CAR',
@@ -165,8 +189,8 @@ void main() {
       'answering "keep it open" keeps the sole active session and the editor',
       (tester) async {
         final h = await pumpScreen(tester);
-        await _create(tester, place: 'North lot', vehicle: 'Car');
-        await _create(
+        await createParking(tester, place: 'North lot', vehicle: 'Car');
+        await createParking(
           tester,
           place: 'East lot',
           vehicle: 'Car',
@@ -181,7 +205,7 @@ void main() {
         expect(sessions.single.body.containsKey('foundAt'), isFalse);
         expect(find.byKey(const ValueKey('parking-save')), findsOneWidget);
         expect(
-          _fieldText(tester, const ValueKey('parking-field-place')),
+          fieldText(tester, const ValueKey('parking-field-place')),
           'East lot',
         );
       },
@@ -191,8 +215,8 @@ void main() {
       tester,
     ) async {
       final h = await pumpScreen(tester);
-      await _create(tester, place: 'North lot', vehicle: 'Car');
-      await _create(
+      await createParking(tester, place: 'North lot', vehicle: 'Car');
+      await createParking(
         tester,
         place: 'East lot',
         vehicle: 'Car',
@@ -213,11 +237,11 @@ void main() {
       tester,
     ) async {
       final h = await pumpScreen(tester);
-      await _create(tester, place: 'North lot', vehicle: 'Car');
+      await createParking(tester, place: 'North lot', vehicle: 'Car');
       await tester.tap(find.byKey(const ValueKey('parking-found')));
       await tester.pumpAndSettle();
-      await _create(tester, place: 'South lot', vehicle: 'Car');
-      await _create(tester, place: 'East lot', vehicle: 'Motorbike');
+      await createParking(tester, place: 'South lot', vehicle: 'Car');
+      await createParking(tester, place: 'East lot', vehicle: 'Motorbike');
 
       // Edit the open parking.
       await tester.tap(find.byKey(const ValueKey('parking-active-edit')).first);
@@ -226,7 +250,7 @@ void main() {
         find.byKey(const ValueKey('parking-field-place')),
         'West lot',
       );
-      await _tapSave(tester);
+      await tapSave(tester);
       await tester.pumpAndSettle();
 
       final sessions = await h.services.moduleRecords('parking', 'session');
@@ -242,315 +266,4 @@ void main() {
       );
     });
   });
-
-  group('deleting', () {
-    testWidgets('one closed parking goes, and Undo brings it back', (
-      tester,
-    ) async {
-      final h = await pumpScreen(tester);
-      await _create(tester, place: 'North lot');
-      await tester.tap(find.byKey(const ValueKey('parking-found')));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.delete_outline));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('parking-delete-confirm')));
-      await tester.pumpAndSettle();
-      expect(await h.services.moduleRecords('parking', 'session'), isEmpty);
-
-      // Undo restores exactly what was there.
-      await tester.tap(find.byKey(const ValueKey('parking-undo')));
-      await tester.pumpAndSettle();
-      final restored = await h.services.moduleRecords('parking', 'session');
-      expect(restored, hasLength(1));
-      expect(restored.single.body['place'], 'North lot');
-      expect(find.text('North lot'), findsWidgets);
-    });
-
-    testWidgets('clearing the whole history is undoable in one piece', (
-      tester,
-    ) async {
-      final h = await pumpScreen(tester);
-      await _create(tester, place: 'First stop');
-      await tester.tap(find.byKey(const ValueKey('parking-found')));
-      await tester.pumpAndSettle();
-      await _create(tester, place: 'Second stop');
-      await tester.tap(find.byKey(const ValueKey('parking-found')));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const ValueKey('parking-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Clear past parking'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('parking-clear-confirm')));
-      await tester.pumpAndSettle();
-      expect(await h.services.moduleRecords('parking', 'session'), isEmpty);
-
-      await tester.tap(find.byKey(const ValueKey('parking-undo')));
-      await tester.pumpAndSettle();
-      expect(
-        await h.services.moduleRecords('parking', 'session'),
-        hasLength(2),
-      );
-    });
-  });
-
-  group('durations as words', () {
-    Future<NexTestHarness> seedOpen(
-      WidgetTester tester,
-      Duration parked,
-    ) async {
-      final h = await pumpScreen(tester);
-      await h.services.modulePut('parking', 'session', 'seed', {
-        'v': 1,
-        'place': 'North lot',
-        'startedAt': DateTime.now().subtract(parked).toUtc().toIso8601String(),
-      });
-      await tester.pumpAndSettle();
-      return h;
-    }
-
-    testWidgets('a whole number of hours says no zero minutes', (tester) async {
-      await seedOpen(tester, const Duration(hours: 2));
-      expect(find.text('Parked for 2 h'), findsOneWidget);
-      expect(find.textContaining('2 h 0 min'), findsNothing);
-    });
-
-    testWidgets('a whole number of days says no zero hours', (tester) async {
-      await seedOpen(tester, const Duration(days: 3));
-      expect(find.text('Parked for 3 d'), findsOneWidget);
-      expect(find.textContaining('3 d 0 h'), findsNothing);
-    });
-
-    testWidgets('mixed durations keep both units', (tester) async {
-      await seedOpen(tester, const Duration(hours: 26, minutes: 1));
-      expect(find.text('Parked for 1 d 2 h'), findsOneWidget);
-    });
-  });
-
-  group('search', () {
-    testWidgets('finds the place and remembers the query', (tester) async {
-      final h = await pumpScreen(tester);
-      await _create(tester, place: 'North lot');
-      await tester.tap(find.byKey(const ValueKey('parking-search')));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('parking-field-search')),
-        'north',
-      );
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      expect(find.text('North lot'), findsWidgets);
-
-      final queries = await h.services.moduleRecords('parking', 'search');
-      expect(queries, hasLength(1));
-      expect(queries.single.body['query'], 'north');
-    });
-
-    testWidgets('a query with no matches says so', (tester) async {
-      await pumpScreen(tester);
-      await _create(tester, place: 'North lot');
-      await tester.tap(find.byKey(const ValueKey('parking-search')));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('parking-field-search')),
-        'museum',
-      );
-      await tester.pump();
-      expect(find.text('Nothing matches “museum”.'), findsOneWidget);
-      expect(find.text('North lot'), findsNothing);
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('the editor', () {
-    testWidgets('a broken paid time is told in full words', (tester) async {
-      await pumpScreen(tester);
-      await tester.tap(addButton('parking-fab', 'parking-empty-add'));
-      await tester.pumpAndSettle();
-      await openMoreDetails(tester, 'parking-more-toggle');
-      await tester.enterText(
-        find.byKey(const ValueKey('parking-field-place')),
-        'North lot',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('parking-field-expiry-date')),
-        '2026/02/30',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('parking-field-expiry-time')),
-        '12:00',
-      );
-      // The focused field schedules its own scroll; settle it before the
-      // button is dragged into reach.
-      await tester.pumpAndSettle();
-      await _tapSave(tester);
-      expect(
-        find.text('The date or the time is not written right'),
-        findsOneWidget,
-      );
-      // The old, misleading "Not a number" is gone.
-      expect(find.text('Not a number'), findsNothing);
-      expect(find.byKey(const ValueKey('parking-save')), findsOneWidget);
-    });
-
-    testWidgets('a paid time can be taken back off the record', (tester) async {
-      final h = await pumpScreen(tester);
-      await _create(tester, place: 'North lot', expiry: '2099/01/01 00:00');
-      final before = await h.services.moduleRecords('parking', 'session');
-      expect(before.single.body.containsKey('expiresAt'), isTrue);
-
-      // Edit the open parking and clear the paid time in one tap.
-      await tester.tap(find.byKey(const ValueKey('parking-active-edit')));
-      await tester.pumpAndSettle();
-      final clear = find.byKey(const ValueKey('parking-clear-time'));
-      await Scrollable.ensureVisible(tester.element(clear), alignment: 0.4);
-      await tester.pumpAndSettle();
-      await tester.tap(clear);
-      await tester.pumpAndSettle();
-      await _tapSave(tester);
-
-      final after = await h.services.moduleRecords('parking', 'session');
-      expect(after.single.body.containsKey('expiresAt'), isFalse);
-      // The countdown line is gone with it.
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is Text && w.data!.startsWith('Ends in'),
-        ),
-        findsNothing,
-      );
-    });
-
-    testWidgets('Today writes the date zero padded', (tester) async {
-      await pumpScreen(tester);
-      await tester.tap(addButton('parking-fab', 'parking-empty-add'));
-      await tester.pumpAndSettle();
-      await openMoreDetails(tester, 'parking-more-toggle');
-      final chip = find.byKey(const ValueKey('parking-today'));
-      await Scrollable.ensureVisible(tester.element(chip), alignment: 0.4);
-      await tester.pumpAndSettle();
-      await tester.tap(chip);
-      await tester.pump();
-      expect(
-        _fieldText(tester, const ValueKey('parking-field-expiry-date')),
-        matches(RegExp(r'^\d{4}/\d{2}/\d{2}$')),
-      );
-    });
-  });
-
-  group('row actions', () {
-    testWidgets('a double tap on edit opens one sheet, not two', (
-      tester,
-    ) async {
-      await pumpScreen(tester);
-      await _create(tester, place: 'North lot');
-      final edit = find.byKey(const ValueKey('parking-active-edit'));
-      await tester.tap(edit);
-      await tester.tap(edit);
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('parking-save')), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('persistence and isolation', () {
-    testWidgets('a reopened screen finds everything where it was', (
-      tester,
-    ) async {
-      final h = await pumpScreen(tester);
-      await _create(tester, place: 'North lot');
-      await _pump(
-        tester,
-        ParkingScreen(store: NexModuleStore(h.services, 'parking')),
-      );
-      expect(find.text('North lot'), findsWidgets);
-    });
-
-    testWidgets('another module sees none of it', (tester) async {
-      final h = await pumpScreen(tester);
-      await _create(tester, place: 'North lot');
-      expect(await h.services.moduleRecords('other', 'session'), isEmpty);
-      expect(await h.services.moduleRecords('other', 'place'), isEmpty);
-    });
-  });
 }
-
-// ------------------------------------------------------------------ helpers
-
-Future<void> _pump(WidgetTester tester, Widget home) async {
-  await tester.pumpWidget(
-    MaterialApp(
-      locale: const Locale('en'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: home,
-    ),
-  );
-  await tester.pumpAndSettle();
-}
-
-/// Writes a parking through the sheet, as a person would.
-Future<void> _create(
-  WidgetTester tester, {
-  String place = 'North lot',
-  String vehicle = '',
-  String floor = '',
-  String expiry = '',
-  bool expectSave = true,
-}) async {
-  await tester.tap(addButton('parking-fab', 'parking-empty-add'));
-  await tester.pumpAndSettle();
-  await openMoreDetails(tester, 'parking-more-toggle');
-  if (vehicle.isNotEmpty) {
-    await tester.enterText(
-      find.byKey(const ValueKey('parking-field-vehicle')),
-      vehicle,
-    );
-  }
-  await tester.enterText(
-    find.byKey(const ValueKey('parking-field-place')),
-    place,
-  );
-  if (floor.isNotEmpty) {
-    await tester.enterText(
-      find.byKey(const ValueKey('parking-field-floor')),
-      floor,
-    );
-  }
-  if (expiry.isNotEmpty) {
-    await tester.enterText(
-      find.byKey(const ValueKey('parking-field-expiry-date')),
-      expiry.split(' ').first,
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('parking-field-expiry-time')),
-      expiry.split(' ').last,
-    );
-  }
-  await _tapSave(tester);
-  if (expectSave) {
-    await tester.pumpAndSettle();
-  }
-}
-
-Future<void> _tapSave(WidgetTester tester) async {
-  // `ensureVisible` can leave the button half under the screen edge, so
-  // the sheet's list is dragged until the button is actually tappable.
-  final sheetList = find
-      .descendant(
-        of: find.byType(SingleChildScrollView),
-        matching: find.byType(Scrollable),
-      )
-      .first;
-  final save = find.byKey(const ValueKey('parking-save'));
-  for (var attempt = 0; attempt < 10; attempt++) {
-    if (save.hitTestable().evaluate().isNotEmpty) break;
-    await tester.drag(sheetList, const Offset(0, -120));
-    await tester.pumpAndSettle();
-  }
-  await tester.tap(save);
-  await tester.pumpAndSettle();
-}
-
-String _fieldText(WidgetTester tester, Key key) =>
-    (tester.widget<TextField>(find.byKey(key)).controller!).text;

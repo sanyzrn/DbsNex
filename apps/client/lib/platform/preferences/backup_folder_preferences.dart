@@ -43,7 +43,7 @@ mixin _BackupFolderPreferences on _PreferencesStore {
     await _prefs.remove(_kBackupFolderLastAt);
     await _prefs.remove(_kBackupFolderFailedAt);
     await _prefs.remove(_kBackupFolderFailure);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> clearBackupFolder() async {
@@ -57,7 +57,7 @@ mixin _BackupFolderPreferences on _PreferencesStore {
     ]) {
       await _prefs.remove(key);
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> markBackupFolderCopied() async {
@@ -67,7 +67,7 @@ mixin _BackupFolderPreferences on _PreferencesStore {
     );
     await _prefs.remove(_kBackupFolderFailedAt);
     await _prefs.remove(_kBackupFolderFailure);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> markBackupFolderFailed(
@@ -82,6 +82,6 @@ mixin _BackupFolderPreferences on _PreferencesStore {
       _kBackupFolderFailure,
       detail == null ? why.name : '${why.name}:$detail',
     );
-    notifyListeners();
+    _notifyNow();
   }
 }

@@ -100,8 +100,14 @@ abstract interface class NexDb {
   /// caption and no excerpt.
   Future<bool> saveSummaryIfCurrent(String id, String? source, String text);
 
-  /// Fetched link metadata. A null field is left alone rather than cleared.
-  Future<void> setLinkMetadata(String id, {String? title, String? excerpt});
+  /// Fetched link metadata. A null field is left alone rather than cleared;
+  /// [keepTime] leaves the note's time, and its place, as they are.
+  Future<void> setLinkMetadata(
+    String id, {
+    String? title,
+    String? excerpt,
+    bool keepTime = false,
+  });
 
   Future<void> toggleChecklistItem(String id, int index);
 
@@ -307,7 +313,12 @@ abstract interface class NexDb {
 
   Future<void> setTagColor({required String tagId, String? color});
 
-  Future<void> setDueAt(String noteId, DateTime? when, {NoteRepeat repeat});
+  Future<void> setDueAt(
+    String noteId,
+    DateTime? when, {
+    NoteRepeat repeat,
+    bool clears,
+  });
 
   /// Records that **Done** was pressed for [id]'s reminder at [at].
   ///

@@ -10,6 +10,12 @@ class MaintenanceAsset {
     this.notes,
     this.meterKind = MeterKind.none,
     this.distanceUnit = DistanceUnit.km,
+    this.insuranceExpiresAt,
+    this.inspectionExpiresAt,
+    this.insuranceLeadDays = defaultCarLeadDays,
+    this.inspectionLeadDays = defaultCarLeadDays,
+    this.insuranceRemind = false,
+    this.inspectionRemind = false,
     this.archived = false,
     this.valid = true,
     this.source,
@@ -38,6 +44,25 @@ class MaintenanceAsset {
   /// The distance unit, when [meterKind] is distance.
   final DistanceUnit distanceUnit;
 
+  /// The third-party insurance expiry, for a car. A calendar day, typed by
+  /// the person — never fetched or guessed.
+  final DateTime? insuranceExpiresAt;
+
+  /// The technical inspection expiry, for a car.
+  final DateTime? inspectionExpiresAt;
+
+  /// How many days before each expiry the optional device reminder rings.
+  /// Fourteen by default, editable; stored on the asset so it survives a
+  /// restart without another settings record.
+  final int insuranceLeadDays;
+  final int inspectionLeadDays;
+
+  /// Whether the person turned each reminder on (2.8.4). The alarm itself is
+  /// planned from these and the dates — when a date is changed, when Nex
+  /// starts or returns — so it always follows the date written here.
+  final bool insuranceRemind;
+  final bool inspectionRemind;
+
   /// Archived assets keep their full history but leave the home view.
   final bool archived;
 
@@ -54,6 +79,16 @@ class MaintenanceAsset {
     if (notes != null && notes!.isNotEmpty) 'notes': notes,
     'meterKind': meterKind.name,
     if (meterKind == MeterKind.distance) 'distanceUnit': distanceUnit.name,
+    if (type == 'car') ...{
+      if (insuranceExpiresAt != null)
+        'insuranceExpiresAt': insuranceExpiresAt!.toIso8601String(),
+      if (inspectionExpiresAt != null)
+        'inspectionExpiresAt': inspectionExpiresAt!.toIso8601String(),
+      'insuranceLeadDays': insuranceLeadDays,
+      'inspectionLeadDays': inspectionLeadDays,
+      if (insuranceRemind) 'insuranceRemind': true,
+      if (inspectionRemind) 'inspectionRemind': true,
+    },
     'archived': archived,
     'schema': 2,
   };
@@ -93,6 +128,24 @@ class MaintenanceAsset {
     final distanceUnit = distanceName == 'mi'
         ? DistanceUnit.mi
         : DistanceUnit.km;
+    DateTime? carDate(String key) {
+      final raw = _stringOf(body, key);
+      if (raw == null) return null;
+      final parsed = maintenanceCalendar(raw);
+      if (parsed == null) valid = false;
+      return parsed;
+    }
+
+    int leadDays(String key) {
+      final raw = body[key];
+      if (raw == null) return defaultCarLeadDays;
+      if (raw is! int || raw < 0 || raw > 365) {
+        valid = false;
+        return defaultCarLeadDays;
+      }
+      return raw;
+    }
+
     return MaintenanceAsset(
       id: id,
       nickname: nickname.isEmpty ? id : nickname,
@@ -102,6 +155,12 @@ class MaintenanceAsset {
       notes: _stringOf(body, 'notes'),
       meterKind: meterKind,
       distanceUnit: distanceUnit,
+      insuranceExpiresAt: carDate('insuranceExpiresAt'),
+      inspectionExpiresAt: carDate('inspectionExpiresAt'),
+      insuranceLeadDays: leadDays('insuranceLeadDays'),
+      inspectionLeadDays: leadDays('inspectionLeadDays'),
+      insuranceRemind: body['insuranceRemind'] == true,
+      inspectionRemind: body['inspectionRemind'] == true,
       archived: body['archived'] == true,
       valid: valid,
       source: Map.of(body),

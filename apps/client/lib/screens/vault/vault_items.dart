@@ -1,32 +1,81 @@
 part of '../vault_screen.dart';
 
+/// What the vault list remembered, and what it was keyed on.
+///
+/// The list's rebuild triggers are mostly not search: a copy tap (the
+/// copied-field feedback and the timer that clears it), a reveal toggle, a
+/// favorite flip — each re-ran the whole join→toLowerCase→contains→sort
+/// pass to arrive at the same list. Entries are immutable and every reload
+/// produces a new list instance, so the identity of that instance, with the
+/// query and toggles, is a sound key.
+class _VaultFilterCache {
+  _VaultFilterCache(
+    this.source,
+    this.query,
+    this.favorites,
+    this.kind,
+    this.focusId,
+    this.result,
+  );
+
+  final List<VaultEntry> source;
+  final String query;
+  final bool favorites;
+  final VaultKind kind;
+  final String? focusId;
+  final List<VaultEntry> result;
+}
+
 /// The vault's list and what each item shows: logins, bank cards, their
 /// fields and menus.
 extension _VaultItems on _VaultScreenState {
-  Widget _list(AppLocalizations l, ThemeData theme) {
+  /// The entries the list shows, remembered across the rebuilds that change
+  /// nothing about them.
+  List<VaultEntry> _visibleEntries() {
     final query = search.text.trim().toLowerCase();
+    final cache = _filterCache;
+    if (cache != null &&
+        identical(cache.source, entries) &&
+        cache.query == query &&
+        cache.favorites == favorites &&
+        cache.kind == widget.kind &&
+        cache.focusId == widget.focusId) {
+      return cache.result;
+    }
     final items =
-        entries
-            .where(
-              (e) =>
-                  e.kind == widget.kind &&
-                  (widget.focusId == null || e.id == widget.focusId) &&
-                  (!favorites || e.favorite) &&
-                  [
-                    e.title,
-                    e.value('login'),
-                    e.value('website'),
-                    e.value('bank'),
-                    e.value('holder'),
-                  ].join(' ').toLowerCase().contains(query),
-            )
-            .toList()
-          ..sort((a, b) {
-            final favorite = (b.favorite ? 1 : 0).compareTo(a.favorite ? 1 : 0);
-            return favorite != 0
-                ? favorite
-                : b.updatedAt.compareTo(a.updatedAt);
-          });
+        [
+          for (final e in entries)
+            if (e.kind == widget.kind &&
+                (widget.focusId == null || e.id == widget.focusId) &&
+                (!favorites || e.favorite) &&
+                // An empty query contains in everything; the haystack is not
+                // even built for it.
+                (query.isEmpty ||
+                    [
+                      e.title,
+                      e.value('login'),
+                      e.value('website'),
+                      e.value('bank'),
+                      e.value('holder'),
+                    ].join(' ').toLowerCase().contains(query)))
+              e,
+        ]..sort((a, b) {
+          final favorite = (b.favorite ? 1 : 0).compareTo(a.favorite ? 1 : 0);
+          return favorite != 0 ? favorite : b.updatedAt.compareTo(a.updatedAt);
+        });
+    _filterCache = _VaultFilterCache(
+      entries,
+      query,
+      favorites,
+      widget.kind,
+      widget.focusId,
+      items,
+    );
+    return items;
+  }
+
+  Widget _list(AppLocalizations l, ThemeData theme) {
+    final items = _visibleEntries();
     final password = widget.kind == VaultKind.password;
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(
@@ -107,7 +156,7 @@ extension _VaultItems on _VaultScreenState {
                       ),
                       const SizedBox(height: NexSpacing.md),
                       Text(
-                        query.isNotEmpty || favorites
+                        _filterCache?.query.isNotEmpty == true || favorites
                             ? l.vaultNoResults
                             : l.vaultEmpty,
                         style: theme.textTheme.titleMedium,

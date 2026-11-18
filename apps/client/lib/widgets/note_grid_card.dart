@@ -363,6 +363,12 @@ class _Top extends StatelessWidget {
 }
 
 /// The reminder with its time, the tags, and when the note was last touched.
+/// Whether a reminder's full label fits its row, remembered across builds —
+/// the same shape as `_lineHeights` in note_grid_body.dart. A tile rebuilt
+/// for anything but its words used to lay the label out again to answer the
+/// same question; keys compare [TextStyle] by value.
+final Map<Record, bool> _footFits = {};
+
 class _Foot extends StatelessWidget {
   const _Foot({
     required this.note,
@@ -417,7 +423,9 @@ class _Foot extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                note.dueRepeat == NoteRepeat.once
+                note.dueClears
+                    ? Icons.auto_delete_outlined
+                    : note.dueRepeat == NoteRepeat.once
                     ? Icons.notifications_active_outlined
                     : Icons.repeat_rounded,
                 size: 13,
@@ -432,14 +440,35 @@ class _Foot extends StatelessWidget {
                         color: color,
                         fontWeight: FontWeight.w700,
                       );
-                      final painter = TextPainter(
-                        text: TextSpan(text: full, style: style),
-                        textScaler: MediaQuery.textScalerOf(context),
-                        textDirection: Directionality.of(context),
-                        maxLines: 1,
-                      )..layout();
-                      final fits = painter.width <= constraints.maxWidth;
-                      painter.dispose();
+                      final scaler = MediaQuery.textScalerOf(context);
+                      final locale = Localizations.maybeLocaleOf(context);
+                      final direction = Directionality.of(context);
+                      final width = constraints.maxWidth;
+                      final key = (
+                        full,
+                        width,
+                        style,
+                        scaler,
+                        locale,
+                        direction,
+                      );
+                      final known = _footFits[key];
+                      final bool fits;
+                      if (known != null) {
+                        fits = known;
+                      } else {
+                        if (_footFits.length > 300) _footFits.clear();
+                        final painter = TextPainter(
+                          text: TextSpan(text: full, style: style),
+                          textScaler: scaler,
+                          textDirection: direction,
+                          locale: locale,
+                          maxLines: 1,
+                        )..layout();
+                        fits = painter.width <= width;
+                        painter.dispose();
+                        _footFits[key] = fits;
+                      }
                       return Text(
                         fits || short == null ? full : short,
                         maxLines: 1,
@@ -473,18 +502,26 @@ class _Foot extends StatelessWidget {
           ),
       ],
     );
+    // The tags' dots stay beside a reminder (2.8.4): a reminder used to
+    // take their place, so a tile with one lost its tags' colours.
+    final start = reminder == null
+        ? tagDots
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (tags.isNotEmpty) ...[tagDots, const SizedBox(width: 2)],
+              Flexible(child: reminder),
+            ],
+          );
     // Both ends take only what they need, the reminder first; the time
     // stays at the far edge and gives way only when the row is full.
     if (reminder != null && !roomForBoth) {
-      return Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: reminder,
-      );
+      return Align(alignment: AlignmentDirectional.centerStart, child: start);
     }
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Flexible(flex: 3, child: reminder ?? tagDots),
+        Flexible(flex: 3, child: start),
         const SizedBox(width: NexSpacing.xs),
         Flexible(
           child: Text(

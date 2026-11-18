@@ -15,7 +15,7 @@ mixin _LibraryPreferences on _PreferencesStore {
 
   Future<void> setCollapsedTimelineGroups(Set<String> keys) async {
     await _prefs.setStringList('timeline.collapsed', keys.toList()..sort());
-    notifyListeners();
+    _notifyNow();
   }
 
   /// The reader's own order of the home's shelves, by kind or by tag
@@ -28,7 +28,7 @@ mixin _LibraryPreferences on _PreferencesStore {
     List<String> keys,
   ) async {
     await _prefs.setStringList('timeline.shelf_order.${by.name}', keys);
-    notifyListeners();
+    _notifyNow();
   }
 
   /* ------------------------------------------------------- Expanded cards */
@@ -78,7 +78,7 @@ mixin _LibraryPreferences on _PreferencesStore {
       'timeline.expanded',
       _expandedNoteIds.toList()..sort(),
     );
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Whether the orphaned-media sweep is due — see
@@ -113,7 +113,7 @@ mixin _LibraryPreferences on _PreferencesStore {
       'search.saved',
       updated.take(NexPreferences.maxSavedSearches).toList(),
     );
-    notifyListeners();
+    _notifyNow();
   }
 
   /// The last few searches that were used — a result opened from them, or
@@ -135,12 +135,12 @@ mixin _LibraryPreferences on _PreferencesStore {
       'search.recent',
       updated.take(NexPreferences.maxRecentSearches).toList(),
     );
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> clearRecentSearches() async {
     await _prefs.remove('search.recent');
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> removeSavedSearch(String query) async {
@@ -149,6 +149,6 @@ mixin _LibraryPreferences on _PreferencesStore {
         if (saved != query) saved,
     ];
     await _prefs.setStringList('search.saved', remaining);
-    notifyListeners();
+    _notifyNow();
   }
 }

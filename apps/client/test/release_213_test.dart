@@ -232,6 +232,10 @@ void main() {
         'lent_borrowed',
         'prompt_studio',
         'security_tools',
+        'parking',
+        'medicine',
+        'cheques',
+        'maintenance',
       });
       expect(
         NexModuleAlarms.moduleId('a', 'b:c'),

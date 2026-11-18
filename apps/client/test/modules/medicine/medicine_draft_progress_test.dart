@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'package:nex_client/modules/medicine/medicine_editor.dart';
 import 'package:nex_client/modules/medicine/medicine_repository.dart';
 import 'package:nex_client/modules/medicine/medicine_detail.dart';
+
 import '../../support/nex_harness.dart';
 
 void main() {

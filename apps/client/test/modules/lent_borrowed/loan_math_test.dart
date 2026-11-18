@@ -180,4 +180,57 @@ void main() {
       expect(civilDateKey(DateTime(2026, 3, 7)), '2026-03-07');
     });
   });
+
+  // NEX-UI-05: the screen's build used to scan the whole returns list twice
+  // per loan (the filter pass, then the standings map) and the summary once
+  // more; one bucketed pass answers all of them.
+  group('one pass over a whole list', () {
+    test('standingsOf answers exactly what per-loan asks would', () {
+      final loans = [
+        loan(id: 'a', amount: 100000, due: '2026-10-20'),
+        loan(id: 'b', amount: 50000, due: '2026-10-11'),
+        loan(id: 'c', amount: 7000, due: '2026-10-12'),
+        loan(id: 'd', amount: 900, due: null),
+      ];
+      final returns = [
+        ret('r1', 40000, loanId: 'a', date: '2026-10-03'),
+        ret('r2', 60000, loanId: 'a', date: '2026-10-04'),
+        ret('r3', 7000, loanId: 'c', date: '2026-10-05'),
+        ret('r4', 900, loanId: 'd', date: '2026-10-06'),
+      ];
+      final standings = LoanMath.standingsOf(loans, returns, today: today);
+      expect(standings.keys, containsAll(['a', 'b', 'c', 'd']));
+      for (final loan in loans) {
+        final per = LoanMath.standing(loan, returns, today: today);
+        final one = standings[loan.id]!;
+        expect(one.outstanding, per.outstanding, reason: 'loan ${loan.id}');
+        expect(one.returned, per.returned, reason: 'loan ${loan.id}');
+        expect(one.due.status, per.due.status, reason: 'loan ${loan.id}');
+      }
+      expect(standings['a']!.settled, isTrue); // fully returned
+      expect(standings['b']!.outstanding, 50000); // nothing returned
+    });
+
+    test('the whole pass shares one today', () {
+      final loans = [loan(id: 'a', due: '2026-10-12')];
+      // A per-loan read of DateTime.now() can straddle midnight; the pass
+      // reads it once. Two loans in one build cannot disagree.
+      final before = LoanMath.standingsOf(loans, const [], today: today);
+      final after = LoanMath.standingsOf(loans, const [], today: today);
+      expect(before['a']!.due.status, after['a']!.due.status);
+    });
+
+    test('returns bucket by the loan they answer', () {
+      final returns = [
+        ret('r1', 10, loanId: 'a'),
+        ret('r2', 20, loanId: 'b'),
+        ret('r3', 30, loanId: 'a'),
+      ];
+      final buckets = LoanMath.returnsByLoan(returns);
+      expect(buckets.keys.toSet(), {'a', 'b'});
+      expect(buckets['a']!.length, 2);
+      expect(buckets['b']!.single.id, 'r2');
+      expect(LoanMath.returnsByLoan(const []), isEmpty);
+    });
+  });
 }

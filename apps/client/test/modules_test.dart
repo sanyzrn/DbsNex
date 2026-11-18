@@ -74,9 +74,8 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             theme: dark ? nexDarkTheme(liquidGlass: true) : nexLightTheme(),
             builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: const TextScaler.linear(1.6)),
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: const TextScaler.linear(1.6)),
               child: child!,
             ),
             home: ModulesScreen(
@@ -161,6 +160,13 @@ void main() {
     await show();
     expect(find.text('Nothing added yet'), findsOneWidget);
     for (final module in nexModules) {
+      // Available and Soon cards occupy separate sections. Registry order
+      // crosses those sections, so each lookup starts at the top of the list.
+      tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position
+          .jumpTo(0);
+      await tester.pumpAndSettle();
       final card = find.byKey(
         ValueKey('${module.available ? 'module' : 'plan'}-${module.id}'),
       );

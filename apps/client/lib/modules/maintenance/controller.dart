@@ -8,6 +8,7 @@ import 'units.dart';
 import 'logic.dart';
 import 'local_writes.dart';
 part 'controller_conversion.dart';
+part 'controller_car.dart';
 
 /// One queue includes mutation and its reload; raw journals preserve whole sets.
 class MaintenanceController extends ChangeNotifier {
@@ -25,6 +26,8 @@ class MaintenanceController extends ChangeNotifier {
   List<ServiceEvent> events = const [];
   List<IntervalRule> rules = const [];
   List<MaintenanceReading> readings = const [];
+  List<FuelEntry> fuel = const [];
+  List<FuelRate> fuelRates = const [];
   List<ModuleRecord> invalidRules = const [];
   final _undos = <String, Future<void> Function()>{};
   @override
@@ -47,6 +50,8 @@ class MaintenanceController extends ChangeNotifier {
         store.list('event'),
         store.list('rule'),
         store.list('reading'),
+        store.list('fuel'),
+        store.list('fuel_rate'),
       ]);
       if (_disposed || token != _loadToken) return;
       assets = [
@@ -61,6 +66,8 @@ class MaintenanceController extends ChangeNotifier {
       readings = [
         for (final r in result[3]) ?MaintenanceReading.fromBody(r.id, r.body),
       ];
+      fuel = [for (final r in result[4]) ?FuelEntry.fromBody(r.id, r.body)];
+      fuelRates = [for (final r in result[5]) ?FuelRate.fromBody(r.id, r.body)];
       loading = false;
       readFailed = false;
       _notify();
@@ -162,6 +169,10 @@ class MaintenanceController extends ChangeNotifier {
         'notes',
         'meterKind',
         'distanceUnit',
+        'insuranceExpiresAt',
+        'inspectionExpiresAt',
+        'insuranceLeadDays',
+        'inspectionLeadDays',
         'schema',
       ];
       final body = _merge(
@@ -209,7 +220,7 @@ class MaintenanceController extends ChangeNotifier {
     () => LocalWrites.serial(store, () async {
       await _parent(id, allowArchived: true);
       final after = <LocalChange>[];
-      for (final kind in ['event', 'rule', 'reading']) {
+      for (final kind in ['event', 'rule', 'reading', 'fuel', 'fuel_rate']) {
         for (final row in await store.list(kind)) {
           if (row.body['assetId'] == id) {
             after.add((kind: kind, id: row.id, body: null));
@@ -243,6 +254,7 @@ class MaintenanceController extends ChangeNotifier {
   Future<void> _delete(String kind, String id) => _mutate(() async {
     _undos['$kind:$id'] = await LocalWrites.delete(store, kind, id);
   });
+  String newFuelId() => 'fuel-${store.newId()}';
   Future<void> deleteEvent(String id) => _delete('event', id);
   Future<void> deleteRule(String id) => _delete('rule', id);
   Future<void> deleteReading(String id) => _delete('reading', id);
@@ -371,25 +383,4 @@ class MaintenanceController extends ChangeNotifier {
       ]);
     }),
   );
-  Future<void> saveReading(MaintenanceReading reading, {String? draftId}) =>
-      _mutate(
-        () => LocalWrites.serial(store, () async {
-          final parent = MaintenanceAsset.fromBody(
-            reading.assetId,
-            await _parent(reading.assetId),
-          );
-          if (parent.meterKind != reading.kind ||
-              MaintenanceReading.fromBody(reading.id, reading.toBody()) ==
-                  null) {
-            throw StateError('Invalid current meter');
-          }
-          if (reading.at.isAfter(DateTime.now().toUtc())) {
-            throw StateError('Future reading');
-          }
-          await LocalWrites.apply(store, [
-            (kind: 'reading', id: reading.id, body: reading.toBody()),
-            if (draftId != null) (kind: 'draft', id: draftId, body: null),
-          ]);
-        }),
-      );
 }

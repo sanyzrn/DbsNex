@@ -39,6 +39,50 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('covered, the turn rests until it is seen again', (tester) async {
+    final covered = ValueNotifier<bool>(false);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(),
+          child: Scaffold(
+            body: NexAmbientEdgeGlow(
+              colors: nexAssistantSpectrum,
+              covered: covered,
+              child: const Text('assistant'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(border(), findsOneWidget);
+    expect(
+      tester.binding.hasScheduledFrame,
+      isTrue,
+      reason: 'still turning while the assistant is the route in view',
+    );
+
+    covered.value = true;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(
+      tester.binding.hasScheduledFrame,
+      isFalse,
+      reason: 'a note opened over the chat rests the turn — nobody can see it',
+    );
+
+    covered.value = false;
+    await tester.pump();
+    expect(
+      tester.binding.hasScheduledFrame,
+      isTrue,
+      reason: 'coming back to the chat, the light moves again',
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('with reduced motion the border stays, still', (tester) async {
     await show(tester, still: true);
     await tester.pump();

@@ -4,7 +4,9 @@ import 'package:nex_client/modules/module_api.dart';
 import 'parking_fields.dart';
 import 'parking_logic.dart';
 import 'parking_models.dart';
+import 'parking_quick_reminder.dart';
 import 'parking_strings.dart';
+import 'parking_alarm.dart';
 
 /// The rows and cards of the parking screen, kept apart so the screen file
 /// stays about flow and storage. Everything shown here was typed by the
@@ -53,21 +55,12 @@ class ParkingActiveCard extends StatelessWidget {
             ParkingLogic.elapsedOf(body, now),
           );
     final expiry = ParkingLogic.expiryOf(body, now);
-    final expiryText = expiry.over
-        ? strings(context, 'mayHaveExpired', {
-            'duration': ParkingFields.duration(
-              context,
-              strings,
-              Duration(minutes: expiry.minutes),
-            ),
-          })
-        : strings(context, 'expiresIn', {
-            'duration': ParkingFields.duration(
-              context,
-              strings,
-              Duration(minutes: expiry.minutes),
-            ),
-          });
+    final expiryLeft = ParkingFields.duration(
+      context,
+      strings,
+      Duration(minutes: expiry.minutes),
+    );
+    final expiresAt = ParkingModels.readDate(body, 'expiresAt');
 
     return NexPanel(
       child: Column(
@@ -113,15 +106,35 @@ class ParkingActiveCard extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (ParkingModels.readDate(body, 'expiresAt') != null) ...[
-            const SizedBox(height: NexSpacing.xs),
+          if (expiresAt != null) ...[
+            const SizedBox(height: NexSpacing.sm),
+            // The number a person glances at from across the car park: how
+            // long is left, large, with what it means underneath.
             Text(
-              expiryText,
-              style: theme.textTheme.bodyMedium?.copyWith(
+              expiryLeft,
+              key: const ValueKey('parking-time-left'),
+              style: theme.textTheme.headlineLarge?.copyWith(
+                color: expiry.over ? scheme.error : scheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              strings(context, expiry.over ? 'timeLeftOver' : 'timeLeft'),
+              style: theme.textTheme.bodySmall?.copyWith(
                 color: expiry.over ? scheme.error : scheme.onSurfaceVariant,
               ),
             ),
           ],
+          if (place.isEmpty)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                key: const ValueKey('parking-add-where'),
+                onPressed: onEdit,
+                icon: const Icon(Icons.add_location_alt_outlined),
+                label: Text(strings(context, 'addWhere')),
+              ),
+            ),
           const SizedBox(height: NexSpacing.md),
           SizedBox(
             width: double.infinity,
@@ -141,14 +154,27 @@ class ParkingActiveCard extends StatelessWidget {
           ),
           // Opt-in: an OS alert for when paid time runs out or the car is
           // needed. Wired to this record, so the platform auto-cancels when
-          // the parking is deleted — and «Found my car» clears it too
-          // (parking_repository.dart).
-          NexModuleReminderControl(
-            key: const ValueKey('parking-reminders'),
-            store: store,
-            sourceKind: ParkingModels.session,
-            sourceId: record.id,
-          ),
+          // the parking is deleted — and «I'm back» clears it too
+          // (parking_repository.dart). A parking with a paid time counts
+          // back from it (ten minutes by default) instead of asking for an
+          // arbitrary moment.
+          if (expiresAt != null)
+            ParkingQuickReminder(
+              key: const ValueKey('parking-quick-reminder'),
+              store: store,
+              recordId: record.id,
+              expiresAt: expiresAt,
+              place: place,
+              floor: floor,
+              minutes: ParkingAlarm.minutesOf(body),
+            )
+          else
+            NexModuleReminderControl(
+              key: const ValueKey('parking-reminders'),
+              store: store,
+              sourceKind: ParkingModels.session,
+              sourceId: record.id,
+            ),
         ],
       ),
     );
@@ -166,9 +192,8 @@ class ParkingActiveCard extends StatelessWidget {
       Flexible(
         child: Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ),
     ],
@@ -235,10 +260,19 @@ class ParkingHistoryRow extends StatelessWidget {
 
 /// A remembered place, one tap from a new parking.
 class ParkingPlaceRow extends StatelessWidget {
-  const ParkingPlaceRow({super.key, required this.record, this.onTap});
+  const ParkingPlaceRow({
+    super.key,
+    required this.record,
+    this.onTap,
+    this.onFavourite,
+  });
 
   final ModuleRecord record;
   final VoidCallback? onTap;
+
+  /// Marks or unmarks this place as a favourite. A favourite is only a
+  /// shortcut: it fills the editor, it never parks the car by itself.
+  final ValueChanged<bool>? onFavourite;
 
   @override
   Widget build(BuildContext context) {
@@ -248,16 +282,25 @@ class ParkingPlaceRow extends StatelessWidget {
     final floor = ParkingModels.readString(body, 'floor');
     final spot = ParkingModels.readString(body, 'spot');
     final details = [floor, spot].where((s) => s.isNotEmpty).join(' · ');
+    final favourite = ParkingModels.isFavourite(body);
 
     return ListTile(
       key: ValueKey('parking-place-${record.id}'),
       onTap: onTap,
       leading: NexIconTile(
-        Icons.bookmark_outline,
+        favourite ? Icons.star_outline : Icons.bookmark_outline,
         color: NexHue.sky.of(theme.brightness),
       ),
       title: Text(place, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: details.isEmpty ? null : Text(details, maxLines: 1),
+      trailing: IconButton(
+        key: ValueKey('parking-favourite-${record.id}'),
+        tooltip: parkingStrings(context, 'markFavourite'),
+        isSelected: favourite,
+        icon: const Icon(Icons.star_outline),
+        selectedIcon: const Icon(Icons.star),
+        onPressed: onFavourite == null ? null : () => onFavourite!(!favourite),
+      ),
     );
   }
 }

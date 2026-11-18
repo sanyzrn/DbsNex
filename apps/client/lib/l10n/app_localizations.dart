@@ -3659,7 +3659,7 @@ abstract class AppLocalizations {
   /// Onboarding page 2 body
   ///
   /// In en, this message translates to:
-  /// **'Type it, say it, photograph it or share it from another app. A note exists the moment it has something in it, and it lands at the top of one timeline — no folders to choose first.'**
+  /// **'Type it, say it, photograph it or share it from another app. A note exists the moment it has something in it and lands on your timeline — as a list or a grid, by time, type or tag. Give it a reminder and it comes back when it matters.'**
   String get onboardingCaptureBody;
 
   /// Onboarding page 5 heading
@@ -10213,6 +10213,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I\'d like {name} in Nex.'**
   String moduleWantIdea(String name);
+
+  /// No description provided for @remindClears.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the note when done'**
+  String get remindClears;
+
+  /// No description provided for @remindClearsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When it is done, the note goes to Recently deleted'**
+  String get remindClearsHint;
+
+  /// After a remove-when-done reminder is answered (2.8.4)
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Done — the note moved to Recently deleted} other{Done — {count} notes moved to Recently deleted}}'**
+  String remindClearedNotes(int count);
+
+  /// No description provided for @remindClearsOnCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed when done'**
+  String get remindClearsOnCard;
+
+  /// No description provided for @onboardingModulesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Small tools, when you want them'**
+  String get onboardingModulesTitle;
+
+  /// No description provided for @onboardingModulesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex is notes first. Beside them you can add small tools — habits, birthdays, medicines, cheques and instalments, parking, gold and more. Each stays off until you add it and keeps its own data. Tap any to add it now, or later from Tools.'**
+  String get onboardingModulesBody;
+
+  /// No description provided for @tipLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tip'**
+  String get tipLabel;
+
+  /// No description provided for @tipClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close this tip'**
+  String get tipClose;
+
+  /// No description provided for @tipTurnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'No more tips'**
+  String get tipTurnOff;
+
+  /// No description provided for @tipOpenTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Tools'**
+  String get tipOpenTools;
+
+  /// No description provided for @layoutTips.
+  ///
+  /// In en, this message translates to:
+  /// **'Tips'**
+  String get layoutTips;
+
+  /// No description provided for @tipReminderClearsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders that tidy up'**
+  String get tipReminderClearsTitle;
+
+  /// No description provided for @tipReminderClearsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A one-time reminder can remove its note once it is done: choose “Remove the note when done” beside Repeat. Done in the notification, or opening the note after it rings, sends it to Recently deleted — with Undo.'**
+  String get tipReminderClearsBody;
+
+  /// No description provided for @tipModulesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Small tools beside your notes'**
+  String get tipModulesTitle;
+
+  /// No description provided for @tipModulesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Habits, birthdays, medicines, cheques and instalments, parking and more are in Tools. Add only the ones you want.'**
+  String get tipModulesBody;
+
+  /// No description provided for @tipPinToolsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your tools on the home screen'**
+  String get tipPinToolsTitle;
+
+  /// No description provided for @tipPinToolsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold a tool on the Tools page to pin it above your notes, one tap away.'**
+  String get tipPinToolsBody;
+
+  /// No description provided for @tipFlickPlusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Flick + to skip a step'**
+  String get tipFlickPlusTitle;
+
+  /// No description provided for @tipFlickPlusBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Flick + to the left to record a voice note, or to the right to open the camera. Choose what each side does in Settings → Gestures and menus.'**
+  String get tipFlickPlusBody;
+
+  /// No description provided for @tipSendLaterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a note to the future'**
+  String get tipSendLaterTitle;
+
+  /// No description provided for @tipSendLaterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the send button instead of tapping it, and the note arrives when you choose — tomorrow morning, next month, next year.'**
+  String get tipSendLaterBody;
+
+  /// No description provided for @tipGridTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes as tiles'**
+  String get tipGridTitle;
+
+  /// No description provided for @tipGridBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The switch at the end of the tag row turns the list into a grid: photos fill their tiles, and voice notes play right on them.'**
+  String get tipGridBody;
+
+  /// No description provided for @tipGroupByTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group by what, not when'**
+  String get tipGroupByTitle;
+
+  /// No description provided for @tipGroupByBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Home layout can group your notes by kind or by tag instead of by day, each on its own shelf.'**
+  String get tipGroupByBody;
+
+  /// No description provided for @tipPinchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fold every day at once'**
+  String get tipPinchTitle;
+
+  /// No description provided for @tipPinchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinch two fingers together on the timeline to fold every day, and spread them to open them all again.'**
+  String get tipPinchBody;
+
+  /// No description provided for @tipPinNoteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep a note on top'**
+  String get tipPinNoteTitle;
+
+  /// No description provided for @tipPinNoteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold a note and choose Pin. Up to five notes stay at the top of your timeline.'**
+  String get tipPinNoteBody;
+
+  /// No description provided for @tipSelectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Many notes at once'**
+  String get tipSelectTitle;
+
+  /// No description provided for @tipSelectBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a card\'s round icon to start picking notes, then tag, pin, archive or delete them together.'**
+  String get tipSelectBody;
+
+  /// No description provided for @tipArchiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of sight, not deleted'**
+  String get tipArchiveTitle;
+
+  /// No description provided for @tipArchiveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive takes a note off the home screen until a time you choose — this evening, next week — and brings it back by itself.'**
+  String get tipArchiveBody;
+
+  /// No description provided for @tipLockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock Nex with your fingerprint'**
+  String get tipLockTitle;
+
+  /// No description provided for @tipLockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on App lock in Settings, and Nex opens only for you.'**
+  String get tipLockBody;
+
+  /// No description provided for @tipBackupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A copy somewhere safe'**
+  String get tipBackupTitle;
+
+  /// No description provided for @tipBackupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'“Automatic copy to a folder” in Settings saves your notes once a day to a folder you choose — on the phone, Google Drive or Nextcloud — so they survive losing the phone.'**
+  String get tipBackupBody;
+
+  /// No description provided for @tipWidgetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex on your home screen'**
+  String get tipWidgetTitle;
+
+  /// No description provided for @tipWidgetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the Nex Timeline widget from your launcher to start a note, a voice note or a photo in one tap.'**
+  String get tipWidgetBody;
+
+  /// No description provided for @tipShareInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save from any app'**
+  String get tipShareInTitle;
+
+  /// No description provided for @tipShareInBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Share anything to Nex, or select words in another app and choose “Save to Nex” from the menu.'**
+  String get tipShareInBody;
+
+  /// No description provided for @tipTrashTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted is not gone'**
+  String get tipTrashTitle;
+
+  /// No description provided for @tipTrashBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted notes wait 30 days in Library → Trash, where any of them can be restored.'**
+  String get tipTrashBody;
+
+  /// No description provided for @tipGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything Nex can do'**
+  String get tipGuideTitle;
+
+  /// No description provided for @tipGuideBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The guide walks through every part of the app, and it is always in Settings.'**
+  String get tipGuideBody;
 }
 
 class _AppLocalizationsDelegate

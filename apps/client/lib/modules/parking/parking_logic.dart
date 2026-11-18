@@ -103,6 +103,19 @@ class ParkingLogic {
     return (over: false, minutes: diff.inMinutes);
   }
 
+  // ---------------------------------------------------------- reminders
+
+  /// The moment a reminder should ring for a paid parking: [minutes] before
+  /// the written end. Kept here so the arithmetic is tested without a
+  /// widget; a reminder is never set in the past.
+  static DateTime reminderAt(DateTime expiresAt, int minutes) =>
+      expiresAt.subtract(Duration(minutes: minutes));
+
+  /// Whether a reminder [minutes] before [expiresAt] still makes sense at
+  /// [now]: a positive lead time whose moment is still ahead.
+  static bool reminderFits(DateTime expiresAt, int minutes, DateTime now) =>
+      minutes > 0 && reminderAt(expiresAt, minutes).isAfter(now);
+
   // ------------------------------------------------ duration formatting
 
   /// A duration split the way both languages show it: up to an hour in

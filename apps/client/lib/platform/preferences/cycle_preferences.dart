@@ -38,14 +38,14 @@ mixin _CyclePreferences on _PreferencesStore {
   Future<void> setCycleTypical({int? cycle, int? period}) async {
     if (cycle != null) await _prefs.setInt('cycle.typical_cycle', cycle);
     if (period != null) await _prefs.setInt('cycle.typical_period', period);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// What «Cycle» is for right now — see [CycleMode].
   CycleMode get cycleMode => CycleMode.fromWire(_prefs.getString('cycle.mode'));
   Future<void> setCycleMode(CycleMode mode) async {
     await _prefs.setString('cycle.mode', mode.name);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// In [CycleMode.pregnant]: the first day of the last period, from which
@@ -61,7 +61,7 @@ mixin _CyclePreferences on _PreferencesStore {
     } else {
       await _prefs.setString('cycle.pregnancy_start', '$day');
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Whether the assistant may read a summary of «Cycle» when asked about
@@ -95,7 +95,7 @@ mixin _CyclePreferences on _PreferencesStore {
       (_prefs.getInt('cycle.pill_minutes') ?? 21 * 60).clamp(0, 24 * 60 - 1);
   Future<void> setCyclePillMinutes(int minutes) async {
     await _prefs.setInt('cycle.pill_minutes', minutes);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Forgets everything above — part of "delete all cycle data".
@@ -115,6 +115,6 @@ mixin _CyclePreferences on _PreferencesStore {
     ]) {
       await _prefs.remove(key);
     }
-    notifyListeners();
+    _notifyNow();
   }
 }

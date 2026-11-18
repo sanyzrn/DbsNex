@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:nex_client/modules/module_api.dart';
 
 typedef LocalChange = ({String kind, String id, Map<String, Object?>? body});
@@ -132,15 +133,17 @@ class LocalWrites {
     String id, {
     String? children,
     String? parentField,
+    List<String> moreChildren = const [],
   }) => serial(store, () async {
     final parent = await store.get(kind, id);
     if (parent == null) {
       throw StateError('Record no longer exists');
     }
+    final childKinds = [?children, ...moreChildren];
     final after = <LocalChange>[
-      if (children != null)
-        for (final r in await store.list(children))
-          if (r.body[parentField] == id) (kind: children, id: r.id, body: null),
+      for (final child in childKinds)
+        for (final r in await store.list(child))
+          if (r.body[parentField] == id) (kind: child, id: r.id, body: null),
       (kind: 'draft', id: '$kind:$id', body: null),
       (kind: kind, id: id, body: null),
     ];

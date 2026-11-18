@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'local_writes.dart';
 
 import 'package:flutter/material.dart';
@@ -6,11 +7,17 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'medicine_detail.dart';
 import 'medicine_editor.dart';
+import 'medicine_expiry_page.dart';
 import 'medicine_logic.dart';
 import 'medicine_models.dart';
+import 'medicine_reminders.dart';
+import 'medicine_schedule.dart';
+import 'medicine_settings.dart';
 import 'medicine_strings.dart';
+import 'medicine_today_page.dart';
 
 part 'medicine_screen_body.dart';
+part 'medicine_rows.dart';
 
 /// «My medicines» — the list a person reads on opening the app: what is
 /// active, what is archived, and nothing that claims to have been
@@ -27,7 +34,15 @@ class MedicineScreen extends StatefulWidget {
 class _MedicineScreenState extends State<MedicineScreen>
     with WidgetsBindingObserver {
   List<ModuleRecord> _medicines = const [];
+  List<ModuleRecord> _boxes = const [];
   bool _showArchived = false;
+
+  /// Null means everyone; otherwise the person's name as written.
+  String? _peopleFilter;
+
+  /// Whether this screen asked the system to keep it out of screenshots.
+  bool _secure = false;
+  bool _secureHeld = false;
 
   StreamSubscription<void>? _changes;
 
@@ -44,6 +59,7 @@ class _MedicineScreenState extends State<MedicineScreen>
     WidgetsBinding.instance.addObserver(this);
     _changes = widget.store.changes.listen((_) => unawaited(_load()));
     unawaited(_load());
+    unawaited(_restoreSecure());
   }
 
   @override
@@ -57,7 +73,80 @@ class _MedicineScreenState extends State<MedicineScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_changes?.cancel());
+    if (_secureHeld) {
+      unawaited(NexSecureWindow.releasePrivateSurface());
+    }
     super.dispose();
+  }
+
+  /// The saved choice, applied before anything is painted over it: names,
+  /// times and stock are health details, and keeping them out of the app
+  /// switcher is a choice a person makes once.
+  Future<void> _restoreSecure() async {
+    final secure = await MedicineSettings.secure(widget.store);
+    if (!mounted) {
+      return;
+    }
+    if (secure) {
+      final held = await NexSecureWindow.acquirePrivateSurface();
+      if (!mounted) {
+        return;
+      }
+      _secureHeld = held;
+    }
+    _paint(() => _secure = secure);
+  }
+
+  Future<void> _toggleSecure() async {
+    final next = !_secure;
+    try {
+      await MedicineSettings.setSecure(widget.store, next);
+      if (next) {
+        _secureHeld = await NexSecureWindow.acquirePrivateSurface();
+      } else if (_secureHeld) {
+        await NexSecureWindow.releasePrivateSurface();
+        _secureHeld = false;
+      }
+      if (!mounted) {
+        return;
+      }
+      _paint(() => _secure = next);
+      NexBannerHost.of(context)?.show(
+        message: medicineStrings(context, next ? 'secureOn' : 'secureOff'),
+      );
+    } catch (_) {
+      if (mounted) {
+        NexBannerHost.of(context)?.show(
+          kind: NexBannerKind.failed,
+          message: medicineStrings(context, 'saveFailed'),
+        );
+      }
+    }
+  }
+
+  Future<void> _openToday() async {
+    await Navigator.of(context).push(
+      NexPageRoute<void>(
+        builder: (_) => MedicineTodayPage(store: widget.store),
+      ),
+    );
+  }
+
+  Future<void> _openExpiry() async {
+    await Navigator.of(context).push(
+      NexPageRoute<void>(
+        builder: (_) => MedicineExpiryPage(store: widget.store),
+      ),
+    );
+  }
+
+  Future<void> _runMenu(String value) async {
+    switch (value) {
+      case 'expiry':
+        await _openExpiry();
+      case 'secure':
+        await _toggleSecure();
+    }
   }
 
   Future<void> _load() async {
@@ -66,14 +155,19 @@ class _MedicineScreenState extends State<MedicineScreen>
       await LocalWrites.recover(widget.store);
 
       final medicines = await widget.store.list(MedicineModels.medicine);
+      final boxes = await widget.store.list(MedicineModels.box);
       if (!mounted || seq != _loadSeq) {
         return;
       }
       setState(() {
         _medicines = medicines;
+        _boxes = boxes;
         _loading = false;
         _loadFailed = false;
       });
+      // The routine's next moments are armed here, on every open and after
+      // every change; the platform keeps them while the app is closed.
+      unawaited(MedicineReminders.sync(context, widget.store, medicines));
     } catch (_) {
       if (!mounted || seq != _loadSeq) {
         return;
@@ -179,133 +273,4 @@ class _MedicineScreenState extends State<MedicineScreen>
 
   @override
   Widget build(BuildContext context) => _view(context);
-}
-
-/// One medicine on the active list: the name as it was written, the
-/// strength beside it, and the states worth reading on opening — stock,
-/// expiry, refill — all from numbers the person wrote themselves.
-class _MedicineRow extends StatelessWidget {
-  const _MedicineRow({required this.record, required this.onOpen});
-
-  final ModuleRecord record;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = medicineStrings;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final body = record.body;
-    final name = MedicineModels.readString(body, 'name');
-    final strength = MedicineModels.readString(body, 'strength');
-    final packageUnit = MedicineModels.readString(body, 'package');
-    final quantity = MedicineModels.readCount(body, 'quantity');
-    final refillThreshold = MedicineModels.readCount(body, 'refillThreshold');
-    final expiry = MedicineLogic.expiryOf(
-      MedicineModels.readDate(body, 'expiresAt'),
-      DateTime.now(),
-    );
-
-    final marks = <Widget>[
-      if (quantity != null)
-        Text(
-          quantity == 0
-              ? strings(context, 'quantityNone')
-              : strings(context, 'quantityLeft', {
-                  'count': quantity,
-                  'unit': packageUnit.isEmpty
-                      ? MedicineModels.readString(body, 'strength')
-                      : packageUnit,
-                }),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: MedicineLogic.needsRefill(quantity, refillThreshold)
-                ? scheme.error
-                : scheme.onSurfaceVariant,
-          ),
-        ),
-      if (expiry.expired)
-        Text(
-          strings(context, 'expired'),
-          style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
-        )
-      else if (expiry.soon)
-        Text(
-          strings(context, 'expiringSoon'),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-      if (MedicineLogic.needsRefill(quantity, refillThreshold) && quantity != 0)
-        Text(
-          strings(context, 'refillSoon'),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.xs),
-      child: ListTile(
-        key: ValueKey('medicine-row-${record.id}'),
-        onTap: onOpen,
-        leading: NexIconTile(
-          Icons.medication_outlined,
-          color: NexHue.rose.of(theme.brightness),
-        ),
-        title: Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleMedium,
-        ),
-        subtitle: marks.isEmpty
-            ? (strength.isEmpty ? null : Text(strength, maxLines: 1))
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (strength.isNotEmpty) Text(strength, maxLines: 1),
-                  Wrap(spacing: NexSpacing.sm, children: marks),
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-/// One archived medicine, one tap from coming back.
-class _ArchivedRow extends StatelessWidget {
-  const _ArchivedRow({
-    required this.record,
-    required this.onUnarchive,
-    required this.onOpen,
-  });
-
-  final ModuleRecord record;
-  final VoidCallback onUnarchive;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListTile(
-      key: ValueKey('medicine-archived-${record.id}'),
-      onTap: onOpen,
-      leading: NexIconTile(
-        Icons.inventory_2_outlined,
-        color: NexHue.slate.of(theme.brightness),
-      ),
-      title: Text(
-        MedicineModels.readString(record.body, 'name'),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-      ),
-      trailing: TextButton(
-        key: ValueKey('medicine-unarchive-${record.id}'),
-        onPressed: onUnarchive,
-        child: Text(medicineStrings(context, 'unarchive')),
-      ),
-    );
-  }
 }

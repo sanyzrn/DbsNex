@@ -77,6 +77,7 @@ class Note {
     this.setAsideUntil,
     this.dueAt,
     this.dueRepeat = NoteRepeat.once,
+    this.dueClears = false,
     this.reminderAckedAt,
     this.sortOrder,
     this.attachmentCount = 0,
@@ -178,6 +179,12 @@ class Note {
   /// scheduled on *this* device's OS, so it is not something another device
   /// can honour and not something a JSON export means anything by.
   final NoteRepeat dueRepeat;
+
+  /// A one-time reminder that takes its note away once it is answered
+  /// (2.8.4): **Done** in the shade, or the card opened and closed after it
+  /// rang. The note goes to Recently deleted, never further, and an Undo is
+  /// offered. Local only, like [dueRepeat], and cleared with [dueAt].
+  final bool dueClears;
 
   /// When **Done** was pressed for this note's reminder, stored in UTC, or
   /// null. Local only, like [pinnedAt]: an acknowledgement is what the
@@ -394,6 +401,7 @@ class Note {
     DateTime? dueAt,
     bool clearDueAt = false,
     NoteRepeat? dueRepeat,
+    bool? dueClears,
     DateTime? reminderAckedAt,
     int? sortOrder,
     bool clearSortOrder = false,
@@ -444,6 +452,7 @@ class Note {
           : (setAsideUntil ?? this.setAsideUntil),
       dueAt: clearDueAt ? null : (dueAt ?? this.dueAt),
       dueRepeat: dueRepeat ?? this.dueRepeat,
+      dueClears: dueClears ?? this.dueClears,
       reminderAckedAt: reminderAckedAt ?? this.reminderAckedAt,
       sortOrder: clearSortOrder ? null : (sortOrder ?? this.sortOrder),
       attachmentCount: attachmentCount ?? this.attachmentCount,
@@ -506,6 +515,7 @@ class Note {
           ? DateTime.parse(row['due_at']! as String).toUtc()
           : null,
       dueRepeat: NoteRepeat.fromWire(row['due_repeat'] as String?),
+      dueClears: row['due_clears'] == 1 || row['due_clears'] == true,
       reminderAckedAt: (row['reminder_acked_at'] as String?) != null
           ? DateTime.parse(row['reminder_acked_at']! as String).toUtc()
           : null,
@@ -571,6 +581,7 @@ bool nexSameNote(Note a, Note b) {
       a.setAsideUntil != b.setAsideUntil ||
       a.dueAt != b.dueAt ||
       a.dueRepeat != b.dueRepeat ||
+      a.dueClears != b.dueClears ||
       a.reminderAckedAt != b.reminderAckedAt ||
       a.sortOrder != b.sortOrder ||
       a.attachmentCount != b.attachmentCount) {

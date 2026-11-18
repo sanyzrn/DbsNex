@@ -300,6 +300,45 @@ void main() {
     expect(find.text('wikipedia.org'), findsNothing);
   });
 
+  testWidgets('a tile with a reminder keeps its tags\' dots beside it '
+      '(2.8.4)', (tester) async {
+    final tagged = Note(
+      id: 'r',
+      type: NoteType.text,
+      content: 'Call the plumber',
+      dueAt: DateTime.now().toUtc().add(const Duration(hours: 3)),
+      tags: [
+        Tag(id: 't', name: 'home', color: '#E53935', createdAt: DateTime(2026)),
+      ],
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+      deviceId: 'd',
+      rev: 1,
+      syncState: SyncState.pending,
+    );
+    for (final height in [208.0, 160.0]) {
+      await host(tester, [
+        NexNoteGridCard(
+          note: tagged,
+          strings: NexCardStrings.fallback,
+          onTap: () {},
+        ),
+      ], height: height);
+      expect(find.byKey(const ValueKey('grid-reminder')), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration! as BoxDecoration).shape == BoxShape.circle &&
+              (w.decoration! as BoxDecoration).color == const Color(0xFFE53935),
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   test('the list card plays a recording, and only a recording', () {
     final voice = note('s', NoteType.voice, uri: '/v.m4a', durationMs: 1000);
     // Every size has two preview rows at least: room for the player.

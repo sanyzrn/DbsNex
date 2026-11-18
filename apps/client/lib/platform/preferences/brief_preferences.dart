@@ -18,7 +18,7 @@ mixin _BriefPreferences on _PreferencesStore {
 
   Future<void> setBriefStyle(NexBriefStyle value) async {
     await _prefs.setString('brief.style', value.wireName);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// How the brief sounds, under the styles that have a model write anything.
@@ -33,7 +33,7 @@ mixin _BriefPreferences on _PreferencesStore {
 
   Future<void> setBriefTone(AiResponseStyle value) async {
     await _prefs.setString('brief.tone', value.wireName);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// How many lines the card may fill — see [NexBriefLength].
@@ -42,7 +42,7 @@ mixin _BriefPreferences on _PreferencesStore {
 
   Future<void> setBriefLength(NexBriefLength value) async {
     await _prefs.setString('brief.length', value.wireName);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Whether the day summary on the timeline is folded.
@@ -71,7 +71,7 @@ mixin _BriefPreferences on _PreferencesStore {
             : trimmed.substring(0, NexPreferences.briefInstructionMaxLength),
       );
     }
-    notifyListeners();
+    _notifyTypingSettled();
   }
 
   /* --------------------------------------------------------- AI day summary */

@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'editor_checkpoint.dart';
 import 'parking_repository.dart';
 
@@ -12,6 +13,7 @@ import 'parking_models.dart';
 import 'parking_parse.dart';
 import 'parking_strings.dart';
 import 'parking_writes.dart';
+import 'parking_alarm.dart';
 
 part 'parking_editor_body.dart';
 
@@ -202,8 +204,9 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
       ParkingModels.lngMin,
       ParkingModels.lngMax,
     );
-    if (_place.text.trim().isEmpty ||
-        expiry == ParkingParse.invalid ||
+    // Every field is optional: a person in a hurry may have parked the car
+    // and only have time to tap once. A place is a convenience, not a rule.
+    if (expiry == ParkingParse.invalid ||
         (lat != null && lat.isNaN) ||
         (lng != null && lng.isNaN)) {
       setState(() {
@@ -267,6 +270,13 @@ class _ParkingEditorSheetState extends State<ParkingEditorSheet> {
         );
       }
       await _session.draft.clear();
+      // A reminder set some minutes before the end follows a changed end
+      // (2.8.4).
+      if (keys.contains('expiresAt') && mounted) {
+        try {
+          await ParkingAlarm.follow(context, widget.store, _session.recordId);
+        } catch (_) {}
+      }
       // Remembered places are a convenience; the parking commit is authoritative.
       try {
         await ParkingWrites.rememberPlace(widget.store, const [], body);

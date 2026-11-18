@@ -126,6 +126,32 @@ void main() {
     expect(repo.getById(note.id)!.rev, before);
   });
 
+  test('words found later keep the link in its place; the same words write '
+      'nothing (2.8.4)', () {
+    final note = capture(NoteType.link, 'https://example.com/old');
+    final placed = repo.getById(note.id)!;
+
+    // Filled in in the background, long after it was saved: not an edit.
+    repo.setLinkMetadata(note.id, title: 'An old page', keepTime: true);
+    final filled = repo.getById(note.id)!;
+    expect(filled.title, 'An old page');
+    expect(filled.updatedAt, placed.updatedAt, reason: 'its place is kept');
+    expect(filled.rev, placed.rev + 1, reason: 'the words still sync');
+
+    // The same words again: no revision, nothing to sync.
+    repo.setLinkMetadata(note.id, title: 'An old page', keepTime: true);
+    expect(repo.getById(note.id)!.rev, filled.rev);
+
+    // At capture the time moves, as before.
+    repo.setLinkMetadata(note.id, title: 'A newer title');
+    expect(
+      repo.getById(note.id)!.updatedAt.isAfter(placed.updatedAt) ||
+          repo.getById(note.id)!.updatedAt == placed.updatedAt,
+      isTrue,
+    );
+    expect(repo.getById(note.id)!.title, 'A newer title');
+  });
+
   test('a database from before these types can still store one', () {
     // v1's schema pinned `CHECK (type IN ('text','voice','photo','file'))`, and
     // SQLite cannot drop a constraint in place — so without the rebuild in

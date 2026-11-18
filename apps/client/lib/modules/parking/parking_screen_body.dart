@@ -18,6 +18,12 @@ extension _ParkingScreenBody on _ParkingScreenState {
         : _sessions
               .where((record) => !ParkingLogic.isActive(record.body))
               .toList();
+    final favourites = _places
+        .where((record) => ParkingModels.isFavourite(record.body))
+        .toList();
+    final recentPlaces = _places
+        .where((record) => !ParkingModels.isFavourite(record.body))
+        .toList();
 
     history.sort(
       (a, b) => (ParkingModels.readDate(b.body, 'startedAt') ?? DateTime(0))
@@ -30,6 +36,14 @@ extension _ParkingScreenBody on _ParkingScreenState {
       appBar: NexAppBar(
         title: Text(strings(context, 'title')),
         actions: [
+          IconButton(
+            key: const ValueKey('parking-park-details'),
+            tooltip: strings(context, 'parkWithDetails'),
+            icon: const Icon(Icons.add_location_alt_outlined),
+            onPressed: _busy || _loading || _loadFailed
+                ? null
+                : () => unawaited(_newParking()),
+          ),
           IconButton(
             key: const ValueKey('parking-search'),
             tooltip: AppLocalizations.of(context).search,
@@ -74,19 +88,39 @@ extension _ParkingScreenBody on _ParkingScreenState {
                     message: strings(context, 'emptyMessage'),
                     // The empty state carries its own first action, not
                     // only the floating button below the fold.
-                    action: FilledButton.tonalIcon(
-                      key: const ValueKey('parking-empty-add'),
-                      onPressed: _busy || _loading || _loadFailed
-                          ? null
-                          : () => unawaited(_newParking()),
-                      icon: const Icon(Icons.local_parking_outlined),
-                      label: Text(strings(context, 'parkedHere')),
+                    action: Column(
+                      children: [
+                        FilledButton.tonalIcon(
+                          key: const ValueKey('parking-empty-add'),
+                          onPressed: _busy || _loading || _loadFailed
+                              ? null
+                              : () => unawaited(_quickPark()),
+                          icon: const Icon(Icons.local_parking_outlined),
+                          label: Text(strings(context, 'parkNow')),
+                        ),
+                        TextButton.icon(
+                          key: const ValueKey('parking-empty-details'),
+                          onPressed: _busy || _loading || _loadFailed
+                              ? null
+                              : () => unawaited(_newParking()),
+                          icon: const Icon(Icons.add_location_alt_outlined),
+                          label: Text(strings(context, 'parkWithDetails')),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             )
-          : _list(context, strings, active, history, searching),
+          : _list(
+              context,
+              strings,
+              active,
+              history,
+              searching,
+              favourites,
+              recentPlaces,
+            ),
       // One primary action per page: with nothing yet it is the button in
       // the empty state, not a second one floating beside it.
       floatingActionButton:
@@ -96,8 +130,8 @@ extension _ParkingScreenBody on _ParkingScreenState {
               // No hero: a page's button never flies into another's (2.8.2).
               heroTag: null,
               key: const ValueKey('parking-fab'),
-              onPressed: _busy ? null : () => unawaited(_newParking()),
-              label: Text(strings(context, 'parkedHere')),
+              onPressed: _busy ? null : () => unawaited(_quickPark()),
+              label: Text(strings(context, 'parkNow')),
               icon: const Icon(Icons.local_parking_outlined),
             ),
     );
@@ -132,6 +166,8 @@ extension _ParkingScreenBody on _ParkingScreenState {
     List<ModuleRecord> active,
     List<ModuleRecord> history,
     bool searching,
+    List<ModuleRecord> favourites,
+    List<ModuleRecord> recentPlaces,
   ) => ListView(
     padding: const EdgeInsets.fromLTRB(
       NexSpacing.md,
@@ -190,16 +226,31 @@ extension _ParkingScreenBody on _ParkingScreenState {
               onEdit: () => unawaited(_editParking(record)),
             ),
           ),
-      if (!searching && _places.isNotEmpty) ...[
+      if (!searching && favourites.isNotEmpty) ...[
+        NexShelfHeading(
+          icon: Icons.star_outline,
+          title: strings(context, 'favouritePlaces'),
+        ),
+        const SizedBox(height: NexSpacing.sm),
+        for (final place in favourites.take(4))
+          ParkingPlaceRow(
+            record: place,
+            onTap: () => unawaited(_newParking(place)),
+            onFavourite: (value) => unawaited(_toggleFavourite(place, value)),
+          ),
+        const SizedBox(height: NexSpacing.md),
+      ],
+      if (!searching && recentPlaces.isNotEmpty) ...[
         NexShelfHeading(
           icon: Icons.bookmark_outline,
           title: strings(context, 'recentPlaces'),
         ),
         const SizedBox(height: NexSpacing.sm),
-        for (final place in _places.take(4))
+        for (final place in recentPlaces.take(4))
           ParkingPlaceRow(
             record: place,
             onTap: () => unawaited(_newParking(place)),
+            onFavourite: (value) => unawaited(_toggleFavourite(place, value)),
           ),
         const SizedBox(height: NexSpacing.md),
       ],

@@ -170,12 +170,17 @@ mixin _DbClient implements NexDb {
       });
 
   @override
-  Future<void> setLinkMetadata(String id, {String? title, String? excerpt}) =>
-      _send<void>(_DbCommand.setLinkMetadata, {
-        'id': id,
-        'title': title,
-        'excerpt': excerpt,
-      });
+  Future<void> setLinkMetadata(
+    String id, {
+    String? title,
+    String? excerpt,
+    bool keepTime = false,
+  }) => _send<void>(_DbCommand.setLinkMetadata, {
+    'id': id,
+    'title': title,
+    'excerpt': excerpt,
+    'keepTime': keepTime,
+  });
 
   @override
   Future<void> toggleChecklistItem(String id, int index) =>
@@ -409,10 +414,12 @@ mixin _DbClient implements NexDb {
     String noteId,
     DateTime? when, {
     NoteRepeat repeat = NoteRepeat.once,
+    bool clears = false,
   }) => _send<void>(_DbCommand.setDueAt, {
     'noteId': noteId,
     'when': when?.toUtc().toIso8601String(),
     'repeat': repeat.wireName,
+    'clears': clears,
   });
 
   @override

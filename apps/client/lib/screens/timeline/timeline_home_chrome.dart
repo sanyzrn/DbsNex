@@ -5,6 +5,28 @@ part of '../timeline_screen.dart';
 /// timeline_layout.dart and timeline_ai_header.dart, which were at the size
 /// limit.
 extension _TimelineHomeChrome on TimelineScreenState {
+  /// Where a home tip's button leads (2.8.4).
+  void _openTipTarget(NexTipTarget target) {
+    switch (target) {
+      case NexTipTarget.tools:
+        unawaited(
+          Navigator.push<void>(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => ToolsScreen(
+                services: widget.services,
+                preferences: widget.preferences,
+              ),
+            ),
+          ),
+        );
+      case NexTipTarget.homeLayout:
+        unawaited(_openHomeLayout());
+      case NexTipTarget.guide:
+        unawaited(GuideScreen.show(context));
+    }
+  }
+
   /// The home layout sheet, one tap from the screen it changes.
   Future<void> _openHomeLayout() async {
     if (_claimedByOverlay()) return;

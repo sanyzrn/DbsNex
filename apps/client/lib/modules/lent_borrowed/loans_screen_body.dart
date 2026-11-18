@@ -40,10 +40,12 @@ class LoanListBody extends StatelessWidget {
     final strings = lentStrings;
     final all = loans.where((l) => l.direction == direction).toList();
     final summary = LoanSummary.of(all, returns);
+    // One standings pass feeds the filter, the ranking and the rows; the
+    // build used to scan the returns list twice per loan.
+    final standings = LoanMath.standingsOf(all, returns);
     final mine = [
       for (final loan in all)
-        if (loanMatches(loan, query) &&
-            filter.allows(LoanMath.standing(loan, returns)))
+        if (loanMatches(loan, query) && filter.allows(standings[loan.id]!))
           loan,
     ];
     if (all.isEmpty) {
@@ -88,9 +90,6 @@ class LoanListBody extends StatelessWidget {
         ],
       );
     }
-    final standings = {
-      for (final loan in mine) loan.id: LoanMath.standing(loan, returns),
-    };
     // Newest saved first within a rank: the store's own order, kept stable
     // so a reload never shuffles the loans a person was looking at.
     final ranked =

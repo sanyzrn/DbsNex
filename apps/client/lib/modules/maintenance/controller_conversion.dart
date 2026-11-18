@@ -68,3 +68,28 @@ extension MaintenanceUnitChanges on MaintenanceController {
     }),
   );
 }
+
+/// Writing the current meter (the quick odometer update).
+extension MaintenanceReadingWrites on MaintenanceController {
+  Future<void> saveReading(MaintenanceReading reading, {String? draftId}) =>
+      _mutate(
+        () => LocalWrites.serial(store, () async {
+          final parent = MaintenanceAsset.fromBody(
+            reading.assetId,
+            await _parent(reading.assetId),
+          );
+          if (parent.meterKind != reading.kind ||
+              MaintenanceReading.fromBody(reading.id, reading.toBody()) ==
+                  null) {
+            throw StateError('Invalid current meter');
+          }
+          if (reading.at.isAfter(DateTime.now().toUtc())) {
+            throw StateError('Future reading');
+          }
+          await LocalWrites.apply(store, [
+            (kind: 'reading', id: reading.id, body: reading.toBody()),
+            if (draftId != null) (kind: 'draft', id: draftId, body: null),
+          ]);
+        }),
+      );
+}

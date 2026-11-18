@@ -64,6 +64,8 @@ class AboutScreen extends StatelessWidget {
                         ? 'assets/branding/text_logo_dark.png'
                         : 'assets/branding/text_logo_light.png',
                     width: 160,
+                    // 1024px artwork shown at 160 logical.
+                    cacheWidth: 480,
                     semanticLabel: 'Nex',
                   ),
                 ),

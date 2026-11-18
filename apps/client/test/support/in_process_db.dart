@@ -273,7 +273,13 @@ class InProcessDb implements NexDb {
     String id, {
     String? title,
     String? excerpt,
-  }) async => _repo.setLinkMetadata(id, title: title, excerpt: excerpt);
+    bool keepTime = false,
+  }) async => _repo.setLinkMetadata(
+    id,
+    title: title,
+    excerpt: excerpt,
+    keepTime: keepTime,
+  );
 
   @override
   Future<void> toggleChecklistItem(String id, int index) async =>
@@ -600,12 +606,13 @@ class InProcessDb implements NexDb {
     String noteId,
     DateTime? when, {
     NoteRepeat repeat = NoteRepeat.once,
+    bool clears = false,
   }) async {
     if (failReminders > 0) {
       failReminders--;
       throw StateError('reminder write refused by the test');
     }
-    _repo.setDueAt(noteId, when, repeat: repeat);
+    _repo.setDueAt(noteId, when, repeat: repeat, clears: clears);
   }
 
   @override

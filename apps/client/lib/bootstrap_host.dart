@@ -421,6 +421,9 @@ class _Wordmark extends StatelessWidget {
         ? 'assets/branding/dark_splash.png'
         : 'assets/branding/light_splash.png',
     width: 192,
+    // The artwork is 1024px wide; the wordmark shows at 192 logical, and a
+    // failure shell has no use for a full-resolution texture.
+    cacheWidth: 576,
     semanticLabel: 'Nex',
   );
 }

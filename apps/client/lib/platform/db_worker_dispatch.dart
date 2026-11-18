@@ -177,6 +177,7 @@ class _Worker {
           arg('id')! as String,
           title: arg('title') as String?,
           excerpt: arg('excerpt') as String?,
+          keepTime: arg('keepTime') == true,
         ),
       ),
       _DbCommand.toggleChecklistItem => NexDbWorker._voided(
@@ -352,6 +353,7 @@ class _Worker {
           arg('noteId')! as String,
           at is String ? DateTime.parse(at) : null,
           repeat: NoteRepeat.fromWire(arg('repeat') as String?),
+          clears: arg('clears') == true,
         );
       }),
       _DbCommand.markReminderAcked => NexDbWorker._voided(

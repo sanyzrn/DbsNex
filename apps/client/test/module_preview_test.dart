@@ -24,7 +24,8 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('ten add-ons are back, the other five are Soon; their code stays', () {
+  test('fourteen add-ons are back, the other two are Soon; their code '
+      'stays', () {
     // Cycle; Pause, which is first-party; and the add-ons reviewed and turned
     // on since 2.4.0 — five more of them in 2.8.1.
     const back = {
@@ -38,29 +39,37 @@ void main() {
       'lent_borrowed',
       'prompt_studio',
       'security_tools',
+      // 2.8.4.
+      'parking',
+      'medicine',
+      'cheques',
+      'maintenance',
     };
     expect(nexAvailableModuleIds, {'cycle', 'pause', ...back});
     expect(reviewed, back);
     expect(paused, moduleIds.difference(back));
-    // Thirteen existing add-ons plus Prompt Studio and the security toolbox.
-    expect(moduleIds, containsAll(['prompt_studio', 'security_tools']));
-    expect(moduleIds, hasLength(15));
+    // The existing add-ons plus the new Cheques module, still Soon.
+    expect(
+      moduleIds,
+      containsAll(['prompt_studio', 'security_tools', 'cheques']),
+    );
+    expect(moduleIds, hasLength(16));
   });
 
   test(
     'a paused add-on keeps its installation choice and is not active',
     () async {
-      await harness.preferences.setModuleOn('parking', true);
-      expect(harness.preferences.isModuleOn('parking'), isTrue);
+      await harness.preferences.setModuleOn('price_lens', true);
+      expect(harness.preferences.isModuleOn('price_lens'), isTrue);
       expect(nexModulesOn(harness.preferences), isEmpty);
       final reloaded = await NexPreferences.load();
       addTearDown(reloaded.dispose);
-      expect(reloaded.isModuleOn('parking'), isTrue);
+      expect(reloaded.isModuleOn('price_lens'), isTrue);
     },
   );
 
-  test('all modules default off, including the fifteen add-ons', () {
-    expect(moduleIds, hasLength(15));
+  test('all modules default off, including the sixteen add-ons', () {
+    expect(moduleIds, hasLength(16));
     expect(
       nexModules.whereType<NexStoredModule>().map((m) => m.id).toSet(),
       moduleIds,

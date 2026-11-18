@@ -31,6 +31,7 @@ class ReminderWheel extends StatefulWidget {
     this.solarCalendar = false,
     required this.onSubmit,
     this.onClear,
+    this.onClearsChanged,
     this.schedule = false,
   });
 
@@ -51,6 +52,10 @@ class ReminderWheel extends StatefulWidget {
 
   final void Function(DateTime when, NoteRepeat repeat) onSubmit;
   final VoidCallback? onClear;
+
+  /// Offers "Remove the note when done" beside a one-time repeat (2.8.4),
+  /// and tells the caller each time it is turned on or off.
+  final ValueChanged<bool>? onClearsChanged;
 
   /// How far ahead the day wheel goes. A year of rows costs nothing — the
   /// wheel builds lazily — and a reminder further out than that is a calendar
@@ -83,6 +88,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
   late int _hour;
   late int _minute;
   late NoteRepeat _repeat = widget.note?.dueRepeat ?? NoteRepeat.once;
+  late bool _clears = widget.note?.dueClears ?? false;
 
   @override
   void initState() {
@@ -380,11 +386,32 @@ class _ReminderWheelState extends State<ReminderWheel> {
           ),
           if (!widget.schedule) ...[
             const SizedBox(height: NexSpacing.sm),
-            Center(
-              child: _RepeatChip(
-                repeat: _repeat,
-                onChanged: (value) => setState(() => _repeat = value),
-              ),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: NexSpacing.sm,
+              runSpacing: NexSpacing.xs,
+              children: [
+                _RepeatChip(
+                  repeat: _repeat,
+                  onChanged: (value) => setState(() => _repeat = value),
+                ),
+                // Only a one-time reminder can be the last thing a note does.
+                if (widget.onClearsChanged != null &&
+                    _repeat == NoteRepeat.once)
+                  FilterChip(
+                    key: const ValueKey('reminder-clears'),
+                    avatar: _clears
+                        ? null
+                        : const Icon(Icons.auto_delete_outlined, size: 16),
+                    label: Text(l10n.remindClears),
+                    tooltip: l10n.remindClearsHint,
+                    selected: _clears,
+                    onSelected: (value) {
+                      setState(() => _clears = value);
+                      widget.onClearsChanged!(value);
+                    },
+                  ),
+              ],
             ),
           ],
           Padding(

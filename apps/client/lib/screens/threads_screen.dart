@@ -279,6 +279,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final notes = _notes;
+    // One set of card strings for every row, not one per row per rebuild —
+    // the same hoist the timeline's body made.
+    final cardStrings = nexCardStrings(context);
     return Scaffold(
       appBar: NexAppBar(
         title: Text(_name, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -322,7 +325,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
                     Expanded(
                       child: NoteCard(
                         note: note,
-                        strings: nexCardStrings(context),
+                        strings: cardStrings,
                         onTap: () => unawaited(_open(note)),
                       ),
                     ),

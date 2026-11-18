@@ -36,7 +36,7 @@ mixin _ProfilePreferences on _PreferencesStore {
     }
     _profileMirror = file;
     await _writeProfileMirror();
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> _profileWrites = Future.value();
@@ -108,7 +108,7 @@ mixin _ProfilePreferences on _PreferencesStore {
     } else {
       await _prefs.setString('profile.portrait', value.encode());
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   /// [displayName] cut to its first two words, for the places that render it
@@ -137,7 +137,7 @@ mixin _ProfilePreferences on _PreferencesStore {
       );
     }
     await _writeProfileMirror();
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setProfilePhotoPath(String? value) async {
@@ -147,7 +147,7 @@ mixin _ProfilePreferences on _PreferencesStore {
     } else {
       await _prefs.setString('profile.photo', path);
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setProfileBirthday(DateTime? value) async {
@@ -160,7 +160,7 @@ mixin _ProfilePreferences on _PreferencesStore {
       );
     }
     await _writeProfileMirror();
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setProfileBio(String value) async {

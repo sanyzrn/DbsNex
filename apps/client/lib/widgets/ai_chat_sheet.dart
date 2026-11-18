@@ -21,6 +21,7 @@ import 'assistant_settings.dart';
 import 'package:nex_ai/cloud.dart';
 
 import '../platform/cycle_summary.dart';
+import '../platform/route_observer.dart';
 import '../platform/app_guide.dart';
 import '../platform/assistant_citations.dart';
 import '../platform/chat_history.dart';
@@ -163,7 +164,7 @@ class AiChatSheet extends StatefulWidget {
   State<AiChatSheet> createState() => _AiChatSheetState();
 }
 
-class _AiChatSheetState extends State<AiChatSheet> {
+class _AiChatSheetState extends State<AiChatSheet> with RouteAware {
   final _input = TextEditingController();
   final _turns = <ChatMessage>[];
 
@@ -257,6 +258,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
   String? _failure;
   String? _retryText;
 
+  /// True while another route covers this sheet — see [NexAmbientEdgeGlow.covered].
+  final _covered = ValueNotifier<bool>(false);
+  ModalRoute<void>? _route;
+
   @override
   void initState() {
     super.initState();
@@ -341,7 +346,27 @@ class _AiChatSheetState extends State<AiChatSheet> {
   void _rebuild(VoidCallback change) => setState(change);
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of<void>(context);
+    if (_route != route) {
+      if (_route != null) nexRouteObserver.unsubscribe(this);
+      _route = route;
+      if (route != null) nexRouteObserver.subscribe(this, route);
+    }
+  }
+
+  /// A note opened from the chat, or anything else pushed over the sheet:
+  /// the border stays drawn but its turning rests while nobody can see it.
+  @override
+  void didPushNext() => _covered.value = true;
+
+  @override
+  void didPopNext() => _covered.value = false;
+
+  @override
   void dispose() {
+    nexRouteObserver.unsubscribe(this);
     _voiceLimit?.cancel();
     // Closed mid-sentence: the microphone is let go and the clip deleted.
     if (_voice case final recorder?) {
@@ -396,6 +421,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
       // as the assistant is up, so the mode is visible from anywhere on the
       // display rather than only from the sheet you happen to be looking at.
       colors: nexAssistantSpectrum,
+      covered: _covered,
       child: DraggableScrollableSheet(
         controller: _sheet,
         // Starts as a question, not a room you moved into.

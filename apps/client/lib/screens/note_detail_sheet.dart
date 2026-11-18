@@ -501,7 +501,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             Expanded(
                               child: Text(
                                 '${l10n.detailsReminder}: '
-                                '${nexDueCardDescription(context, due, note.dueRepeat)}',
+                                '${nexDueCardDescription(context, due, note.dueRepeat)}'
+                                '${note.dueClears ? ' · ${l10n.remindClearsOnCard}' : ''}',
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
                                       color: Theme.of(context)

@@ -359,6 +359,17 @@ extension _TimelineLayout on TimelineScreenState {
                                   hidden: _searching,
                                 ),
                               ),
+                              // Now and then, one tip (2.8.4): keyed and
+                              // collapsed to nothing, like the row above.
+                              SliverToBoxAdapter(
+                                key: const ValueKey('home-tip'),
+                                child: NexHomeTip(
+                                  preferences: widget.preferences,
+                                  notes: _model.all ?? const <Note>[],
+                                  hidden: _searching || _selecting,
+                                  onOpen: _openTipTarget,
+                                ),
+                              ),
                               // Where the notes begin. Without the row, a
                               // pinned hairline still carries the sticky day.
                               if (!showTagRow)

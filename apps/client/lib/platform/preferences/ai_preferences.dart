@@ -17,7 +17,7 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> acceptModelLicense(String modelId) async {
     await _prefs.setBool('ai.model.license.$modelId', true);
-    notifyListeners();
+    _notifyNow();
   }
 
   bool get cloudAiOptIn => _prefs.getBool('ai.cloud_opt_in') ?? false;
@@ -45,7 +45,7 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiEntitlement(AiEntitlement value) async {
     await _prefs.setString('ai.entitlement', value.name);
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setAiCapabilities(AiCapabilities value) async {
@@ -55,7 +55,7 @@ mixin _AiPreferences on _PreferencesStore {
     await _prefs.setBool('ai.semantic', value.semanticSearch);
     await _prefs.setBool('ai.summary', value.summarization);
     await _prefs.setBool('ai.related', value.relatedNotes);
-    notifyListeners();
+    _notifyNow();
   }
 
   /* ------------------------------------------------------------ AI provider */
@@ -70,7 +70,7 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiEnabled(bool value) async {
     await _prefs.setBool('ai.enabled', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// The capabilities actually in force: all off while the master switch is.
@@ -85,7 +85,7 @@ mixin _AiPreferences on _PreferencesStore {
     } else {
       await _prefs.setString('ai.searchModel.path', path);
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   AiCapabilities get effectiveAiCapabilities => aiEnabled
@@ -137,7 +137,7 @@ mixin _AiPreferences on _PreferencesStore {
     // Output language is part of the brief fingerprint. Keep its readable
     // cache and success time until a permitted automatic or manual refresh.
     // The greeting independently follows the interface language.
-    notifyListeners();
+    _notifyNow();
   }
 
   Future<void> setAiProvider(AiProviderConfig config) async {
@@ -210,7 +210,7 @@ mixin _AiPreferences on _PreferencesStore {
         _secureApiKeys[wireName] = config.apiKey;
       }
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Stores what a capability check found for [config]'s provider (2.1.8),
@@ -233,7 +233,7 @@ mixin _AiPreferences on _PreferencesStore {
     ]) {
       await _prefs.setString('ai.$name.$wireName', map[name]!);
     }
-    notifyListeners();
+    _notifyNow();
   }
 
   /* ------------------------------------------------------------- Assistant */
@@ -254,7 +254,7 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiCreativity(AiCreativity value) async {
     await _prefs.setString('ai.creativity', value.wireName);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// How long its answers are allowed to be.
@@ -263,7 +263,7 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiAnswerLength(AiAnswerLength value) async {
     await _prefs.setString('ai.answerLength', value.wireName);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// How the assistant should sound — one of five presets, or the user's own
@@ -291,7 +291,7 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiResponseStyle(AiResponseStyle value) async {
     await _prefs.setString('ai.responseStyle', value.wireName);
-    notifyListeners();
+    _notifyNow();
   }
 
   String get aiUserName => _prefs.getString('ai.userName') ?? '';
@@ -301,6 +301,7 @@ mixin _AiPreferences on _PreferencesStore {
       'ai.userName',
       value,
       NexPreferences.aiUserNameMaxLength,
+      typing: true,
     );
   }
 
@@ -339,7 +340,7 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiNotesOnly(bool value) async {
     await _prefs.setBool('ai.notesOnly', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// Whether what was said to the assistant is put in the box to check
@@ -349,7 +350,7 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiVoiceReview(bool value) async {
     await _prefs.setBool('ai.voiceReview', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   String get aiInstruction => _prefs.getString('ai.instruction') ?? '';
@@ -366,7 +367,7 @@ mixin _AiPreferences on _PreferencesStore {
             : trimmed.substring(0, NexPreferences.aiInstructionMaxLength),
       );
     }
-    notifyListeners();
+    _notifyTypingSettled();
   }
 
   /// Whether the smart summary and the greeting may use as many tokens as
@@ -379,7 +380,7 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiSummaryUnlimited(bool value) async {
     await _prefs.setBool('brief.unlimited_tokens', value);
-    notifyListeners();
+    _notifyNow();
   }
 
   /// How many recent notes are sent with each question.
@@ -395,6 +396,6 @@ mixin _AiPreferences on _PreferencesStore {
 
   Future<void> setAiNotesContextCount(int value) async {
     await _prefs.setInt('ai.notesContext', value);
-    notifyListeners();
+    _notifyNow();
   }
 }

@@ -4,6 +4,23 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.4
+
+- **Four more modules.** Ready to add from Tools:
+  - **Parking** remembers where you left the car — floor, spot, a landmark — and how long you have paid for, with a reminder before the time runs out.
+  - **Medicine** keeps your medicine cabinet: what each is for, when to take it with reminders that keep coming, and when a box expires.
+  - **Cheques & instalments** follows the cheques you wrote and received and your instalment plans: what falls due this week and this month, what has been paid, and a reminder before each date. Amounts can be hidden with one tap.
+  - **Maintenance** is a service log for your car and the things at home, with what is due next by date or by kilometres. A car also gets its insurance and inspection dates, each with a reminder that follows the date when you renew, and a fuel log against your own monthly quotas.
+- **Reminders that tidy up.** A one-time reminder can now remove its note once it is done: choose "Remove the note when done" beside Repeat. Press Done in the notification, or open the note after it rings and close it, and the note goes to Recently deleted — with Undo, which brings it back as an ordinary note.
+- **A tip, now and then.** The home screen sometimes shows one short tip about something Nex can do — never on your first day, never at night, and less often if you keep closing them. Turn them off in Home layout.
+- **Meet the modules on day one.** The first-run pages now include the modules, and you can add any of them right there.
+- **Smoother typing and lighter screens.** Typing in the capture box or a settings field no longer makes the whole app redraw behind it, link cards and the vault list do less work as they update, and profile photos and previews are loaded at the size they are shown, using less memory.
+- **Tags beside reminders.** In the grid, a note with a reminder shows its tag colours again, next to the reminder.
+- **Split a shared cost.** Lent & Borrowed now has Splits for a trip or a shared month: add who's in and each cost — divided equally, by shares or by exact amounts — and see everyone's balance and the fewest payments that settle it. Shares come out in whole tomans, and your own payment becomes a loan record with one tap.
+- **A book of cards and IBANs.** Save a person's card number or IBAN once: it's checked offline, the bank is named from the card's first digits, it copies in one tap, and the reminder message to that person can carry it.
+- **Links stay where they were.** An older link whose title or picture is filled in later no longer jumps to the top of your notes; it keeps its place.
+- **Steady site icons.** A site whose icon is animated no longer makes its mark on the card flicker; it shows a still icon.
+
 ## v2.8.3
 
 - **Links that show what they point at.** A link's card now shows the page's own picture and the site's icon, and a YouTube link its thumbnail and title. Pictures come straight from the site, are kept on your phone, and are fetched once later for links saved earlier or while offline.
