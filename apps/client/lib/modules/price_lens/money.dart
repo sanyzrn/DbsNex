@@ -128,7 +128,7 @@ String formatPriceNumber(int minor, int exponent, {required bool persian}) {
         .replaceAll(RegExp(r'0+$'), '');
     text = fraction.isEmpty
         ? whole
-        : '$whole.${persian ? persianLocal(fraction) : fraction}';
+        : '$whole${persian ? '٫${persianLocal(fraction)}' : '.$fraction'}';
   }
   return negative ? '−$text' : text;
 }
@@ -159,7 +159,9 @@ String groupLocal(String digits, bool persian) {
   return persian ? persianLocal(reversed) : reversed;
 }
 
-String persianLocal(String text) => nexDigits(text, persian: true);
+/// Persian digits, and the Persian decimal separator «٫» (2.8.4).
+String persianLocal(String text) =>
+    nexDigits(text, persian: true).replaceAll('.', '٫');
 
 Map<String, Object?> priceMetadata(String code) => {
   'currency_code': code,

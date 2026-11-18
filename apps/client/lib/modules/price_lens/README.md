@@ -21,6 +21,19 @@ references were reviewed first. Baseline module + kit: **147 passed**
 | Look / access | Custom pills, all fields at once, one file over 400 lines | **Done:** shared adaptive choices, optional details, retained tab state, money masking, files below 400 lines; FA/EN × light/dark × 320×480 at 2× checked |
 | Shared projections | No record summary; purchase dates are historical | **Done locally:** pure private summaries and empty due projection. **Integration pending:** protected shared test still lists this module in `summaryPending`; see Platform requests |
 
+## Maintainer review (2.8.4)
+
+Reviewed after merge and made available; the protected shared-rules test no
+longer lists `price_lens` as pending a `summarize`. Persian fixes seen on
+the review screens:
+
+- A unit price was forced left to right, so it read «ریال / کیلوگرم ۱۲۰٬۰۰۰»;
+  it follows the page now: «۱۲۰٬۰۰۰ ریال / کیلوگرم».
+- Decimals use «٫» (`persianLocal`, the money formatter, pack quantities):
+  «از ۱ کیلوگرم به ۰٫۷۵ کیلوگرم», not «0.75».
+- Facts on one line are joined with «،» in Persian (`lensSep`): a middle dot
+  beside a number reads as the Persian zero, so «۱ · کیلوگرم» looked like «۱۰».
+
 ## What it does
 
 A fully offline shelf companion: compare actual offers, remember your own

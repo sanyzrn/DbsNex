@@ -88,6 +88,26 @@ Working convention:
   `home.tips` in Home layout.
 - Grid tile: tag dots sit beside the reminder pill instead of being hidden.
 
+### 2.8.4 — Word by Word, Expenses and Price Lens reviewed
+
+- Words (agent/module-words, live): decks, typed and multiple-choice review,
+  daily goal instead of the streak, progress sheet, `duesBetween`/`summarize`.
+  Review: a typed answer matches one sense split by «؛ ; ، , /», a space and a
+  half-space are one gap, alef maksura folds to ی; `wordsCardDeck` treats a
+  deck that has gone as no deck; Persian wording.
+- Expenses (agent/module-expenses): whole rials, Jalali month, per-category
+  change, income/left, recurring templates offered on their day, amount
+  range, share text, hidden amounts; 2.1.x IRR minor units read `~/ 100`
+  (checked against the old `money.dart`). Review: `review_284_test.dart`
+  restores year-boundary month comparison and past-64-bit totals the
+  replaced tests held; Persian ezafe «هٔ» and «هم‌رسانی».
+- Price Lens (agent/module-price_lens): products, histories, shopping list,
+  privacy, canonical `priceRial` with a legacy boundary. Review: unit price
+  no longer forced LTR; Persian decimal «٫»; `lensSep` joins facts with «،»
+  in Persian (a middle dot beside a digit read as ۰); off `summaryPending`.
+- All three available: every add-on is now in `nexAvailableModuleIds`; tests
+  that needed a Soon add-on use an unshipped id or the desktop override.
+
 ### 2.8.4 — UI performance audit (NEX-UI-01…12) applied
 
 - From the audit patch on e3edff3f (`nex-ui-performance`), applied with a

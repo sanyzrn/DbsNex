@@ -164,7 +164,7 @@ class LensResultPanel extends StatelessWidget {
         if (result.unitPriceMinor case final price?)
           '${result.isBest ? '✓ ' : '• '}${s(context, 'unitPriceOf', {'label': result.option.label, 'price': lensMoney(context, price, result.option.currency), 'unit': unitWord})}'
         else
-          '• ${result.option.label} · ${s(context, 'notComparable')}',
+          '• ${result.option.label}${lensSep(context)}${s(context, 'notComparable')}',
     ];
     return lines.join('\n');
   }
@@ -221,7 +221,7 @@ class _ResultRow extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: NexSpacing.xs),
         child: Text(
-          '${result.option.label} · ${s(context, 'notComparable')}',
+          '${result.option.label}${lensSep(context)}${s(context, 'notComparable')}',
           style: theme.textTheme.bodyMedium,
         ),
       );

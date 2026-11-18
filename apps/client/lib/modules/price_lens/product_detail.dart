@@ -97,7 +97,7 @@ class _LensProductPageState extends State<LensProductPage> {
                       latest.currency,
                     ),
                     caption:
-                        '${memoryQuantity(context, latest)} · ${lensFullDate(context, latest.date)}',
+                        '${memoryQuantity(context, latest)}${lensSep(context)}${lensFullDate(context, latest.date)}',
                   ),
                   const SizedBox(height: NexSpacing.md),
                   NexPanel(

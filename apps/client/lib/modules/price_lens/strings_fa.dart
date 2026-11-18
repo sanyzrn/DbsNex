@@ -95,7 +95,7 @@ const _lensfa = <String, String>{
   'commonUnitLabel': 'قیمت به ازای',
   'resultTitle': 'ارزان‌ترین به ازای {unit}',
   'bestLabel': 'ارزان‌ترین',
-  'unitPriceOf': '{label} · {price} به ازای {unit}',
+  'unitPriceOf': '{label}، {price} به ازای {unit}',
   'savingsVsBest': '{extra} بیشتر از ارزان‌ترین',
   'tieNote': '{n} پیشنهاد در پایین‌ترین قیمت برابرند',
   'notComparable': 'قابل مقایسه نیست — یکاهای متفاوت',
@@ -123,7 +123,7 @@ const _lensfa = <String, String>{
   'memoryHint':
       'فقط قیمت‌هایی که خودتان با تاریخشان وارد کرده‌اید — نه نرخ بازار',
   'saveToMemory': 'یاد این قیمت باش',
-  'memoryOf': '{label} · {price} در {date}',
+  'memoryOf': '{label}، {price} در {date}',
   'memorySame': 'برای همین، در {date} مبلغ {price} وارد کرده‌اید',
   'memoryHigher': 'الان {diff} بیشتر از چیزی است که در {date} وارد کردید',
   'memoryLower': 'الان {diff} کمتر از چیزی است که در {date} وارد کردید',
@@ -140,7 +140,7 @@ const _lensfa = <String, String>{
   'deleteSavedTitle': 'این مقایسه حذف شود؟',
   'savedDeleteBody': 'به ماشین‌حساب و حافظه‌ی قیمت کاری ندارد.',
   'savedDeleted': 'حذف شد',
-  'comparisonOf': '{n} پیشنهاد · {date}',
+  'comparisonOf': '{n} پیشنهاد، {date}',
   'replaceOffersTitle': 'پیشنهادهای فعلی جایگزین شوند؟',
   'replaceOffersBody':
       'پیشنهادهای ماشین‌حساب با این مقایسه‌ی ذخیره‌شده جایگزین می‌شوند.',

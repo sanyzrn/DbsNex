@@ -309,8 +309,8 @@ void _screenCases2() {
       );
       await addOption(tester, label: 'برنج درشت', price: '115', quantity: '1');
       expect(find.text('ارزان‌ترین به ازای کیلوگرم'), findsOneWidget);
-      expect(find.text('برنج · ۱۲۰ ریال به ازای کیلوگرم'), findsOneWidget);
-      expect(find.text('برنج درشت · ۱۱۵ ریال به ازای کیلوگرم'), findsOneWidget);
+      expect(find.text('برنج، ۱۲۰ ریال به ازای کیلوگرم'), findsOneWidget);
+      expect(find.text('برنج درشت، ۱۱۵ ریال به ازای کیلوگرم'), findsOneWidget);
       expect(find.text('۵ ریال بیشتر از ارزان‌ترین'), findsOneWidget);
       expect(find.text('ارزان‌ترین'), findsOneWidget);
     });

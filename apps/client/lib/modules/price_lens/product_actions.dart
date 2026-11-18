@@ -27,8 +27,12 @@ String memoryQuantity(
     priceUnitOf(m.unitKey)!,
     unit,
   )!;
-  final raw = amount.toDecimalString(digits: 6);
-  return '${nexDigits(raw, persian: NexModuleStrings.persian(context))} ${priceLensStrings(context, 'unit${unit.key[0].toUpperCase()}${unit.key.substring(1)}')}';
+  final persian = NexModuleStrings.persian(context);
+  // «۰٫۷۵ کیلوگرم» in Persian, the decimal separator included (2.8.4).
+  final raw = amount
+      .toDecimalString(digits: 6)
+      .replaceAll('.', persian ? '٫' : '.');
+  return '${nexDigits(raw, persian: persian)} ${priceLensStrings(context, 'unit${unit.key[0].toUpperCase()}${unit.key.substring(1)}')}';
 }
 
 String memoryChangeLabel(
@@ -162,7 +166,7 @@ String productShareText(BuildContext context, LensProduct product) {
         lensMoney(context, m.exactPaid, m.currency),
         memoryQuantity(context, m),
         if (m.shop.isNotEmpty) m.shop,
-      ].join(' · '),
+      ].join(lensSep(context)),
     s(context, 'estimateOnly'),
   ].join('\n');
 }

@@ -21,7 +21,6 @@ void main() {
     'gold',
     'habits',
     'occasions',
-    'price_lens',
     'prompt_studio',
     'security_tools',
     'smoke_free',

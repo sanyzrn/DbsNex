@@ -203,7 +203,7 @@ class _LensProductsPageState extends State<LensProductsPage> {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         Text(
-                          '${memoryQuantity(context, latest)} · ${lensFullDate(context, latest.date)}',
+                          '${memoryQuantity(context, latest)}${lensSep(context)}${lensFullDate(context, latest.date)}',
                         ),
                         if (latest.shop.isNotEmpty)
                           NexTextDirection(

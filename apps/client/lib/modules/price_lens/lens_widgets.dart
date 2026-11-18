@@ -8,6 +8,7 @@ import 'money_render.dart';
 import 'money.dart' show persianLocal;
 import 'privacy.dart';
 import 'options.dart';
+import 'price_lens_common.dart' show lensSep;
 import 'rational.dart';
 import 'strings.dart';
 import 'units.dart';
@@ -157,7 +158,7 @@ class LensOptionCard extends StatelessWidget {
                           Fraction(option.shippingMinor!),
                           option.currency,
                         ),
-                    ].join(' · '),
+                    ].join(lensSep(context)),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -178,7 +179,6 @@ class LensOptionCard extends StatelessWidget {
                     const SizedBox(height: NexSpacing.sm),
                     Text(
                       '${lensMoney(context, unitPrice, option.currency)}${commonUnitKey == null ? '' : ' / ${unitWordOf(context, commonUnitKey!)}'}',
-                      textDirection: TextDirection.ltr,
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: (result?.isBest ?? false)
                             ? hue

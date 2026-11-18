@@ -202,6 +202,12 @@ Future<void> confirmPriceLensDiscard(BuildContext context) async {
 
 /// "2026/10/13" — "1405/07/20" where the app is set to Jalali — in the
 /// locale's own digits, through the shared label.
+/// What sits between two facts on one line: «،» in Persian, where a
+/// middle dot beside a number reads as the Persian zero («۱ · کیلو» looked
+/// like «۱۰») (2.8.4), and « · » in English.
+String lensSep(BuildContext context) =>
+    NexModuleStrings.persian(context) ? '، ' : ' · ';
+
 String lensFullDate(BuildContext context, DateTime date) =>
     NexModuleStrings.persian(context)
     ? nexReadableDate(date, solar: true, persian: true)
