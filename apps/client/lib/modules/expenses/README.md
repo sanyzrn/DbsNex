@@ -28,6 +28,18 @@ that keep a malformed record visible and out of totals, the shared multiline
 note editor, the shared date label and calendar button, the category sheet
 with custom categories, budgets that never roll over, and `NexModuleHero`.
 
+## Maintainer review (2.8.4)
+
+Reviewed after merge and made available. Checked: a 2.1.x rial amount was
+stored in IRR minor units (ISO exponent 2 in the old `money.dart`), so
+`amount ~/ 100` is exact, and anything else stays an incomplete record;
+totals are `BigInt`; the month before is the shared `NexModuleMonth.shift`.
+The upgrade replaced the 2.1.x test files; what they held that the new ones
+did not — a month compared across a year boundary (Farvardin with Esfand,
+January with December) and totals past a 64-bit sum — is kept in
+`review_284_test.dart`. Persian: the ezafe is written «هٔ» as in the rest of
+the app, and «هم‌رسانی» as the app says it.
+
 ## What it does
 
 A voluntary offline payment book for a household: write down what you paid in

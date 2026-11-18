@@ -30,13 +30,17 @@ void main() {
     test('active means available and added, and nothing else does', () async {
       final prefs = harness.preferences;
       expect(nexModuleActive('habits', prefs), isFalse);
-      expect(nexModuleActive('expenses', prefs), isFalse, reason: 'still Soon');
+      expect(
+        nexModuleActive('price_lens', prefs),
+        isFalse,
+        reason: 'still Soon',
+      );
       expect(nexModuleActive('no-such-module', prefs), isFalse);
       await prefs.setModuleOn('habits', true);
-      await prefs.setModuleOn('expenses', true);
+      await prefs.setModuleOn('price_lens', true);
       expect(nexModuleActive('habits', prefs), isTrue);
       expect(
-        nexModuleActive('expenses', prefs),
+        nexModuleActive('price_lens', prefs),
         isFalse,
         reason: 'a saved choice is not availability',
       );

@@ -17,19 +17,19 @@ const _expensePersian = <String, String>{
   'title': 'هزینه‌ها',
   'tagline': 'پرداختی را در چند ثانیه ثبت کنید؛ ماه را بدون صفحه‌گسترده ببینید',
   'about':
-      'دفترچه‌ی شخصی و خصوصیِ پرداخت‌ها و درآمدهای شما، فقط روی همین دستگاه. '
+      'دفترچهٔ شخصی و خصوصیِ پرداخت‌ها و درآمدهای شما، فقط روی همین دستگاه. '
       'بدون اتصال به بانک و بدون حدس‌وگمان: جمع‌ها دقیقاً همان چیزی است که خودتان '
       'وارد کرده‌اید.',
   'point1': 'ثبت سریع',
   'point2': 'تصویر ماهانه',
-  'point3': 'بودجه‌ی دسته‌ها',
-  'point4': 'همرسانی ماه',
+  'point3': 'بودجهٔ دسته‌ها',
+  'point4': 'هم‌رسانی ماه',
 
   'thisMonth': 'این ماه',
   'lastMonth': 'ماه گذشته',
   'monthsAgo': '{n} ماه پیش',
   'monthsAhead': '{n} ماه بعد',
-  'allTime': 'همه‌ی زمان‌ها',
+  'allTime': 'همهٔ زمان‌ها',
   'previousMonth': 'ماه قبل',
   'nextMonth': 'ماه بعد',
   'goCurrent': 'بازگشت به این ماه',
@@ -45,14 +45,14 @@ const _expensePersian = <String, String>{
   'categoryMore': '{pct}٪ بیشتر از ماه قبل',
   'categoryLess': '{pct}٪ کمتر از ماه قبل',
   'categorySame': 'تقریباً برابر ماه قبل',
-  'basedOnEntered': 'فقط بر پایه‌ی چیزی که وارد کرده‌اید — نه موجودی بانک',
+  'basedOnEntered': 'فقط بر پایهٔ چیزی که وارد کرده‌اید — نه موجودی بانک',
   'recentTitle': 'ثبت‌های اخیر',
   'noRecords': 'هنوز چیزی ثبت نشده',
   'addFirst': 'افزودن پرداخت',
   'noResults': 'چیزی پیدا نشد',
   'searchHint': 'جست‌وجو در یادداشت، فروشنده، حساب',
   'clearFilters': 'پاک‌کردن جست‌وجو و صافی‌ها',
-  'amountRangeLabel': 'محدوده‌ی مبلغ',
+  'amountRangeLabel': 'محدودهٔ مبلغ',
   'minLabel': 'از',
   'maxLabel': 'تا',
   'incompleteRecord': 'ثبت ناقص',
@@ -81,7 +81,7 @@ const _expensePersian = <String, String>{
   'cat-salary': 'حقوق',
   'cat-other': 'متفرقه',
   'categoriesTitle': 'دسته‌ها',
-  'newCategory': 'دسته‌ی جدید',
+  'newCategory': 'دستهٔ جدید',
   'categoryNameHint': 'در هر دو زبان همین‌طور نمایش داده می‌شود',
   'categoryNameEmpty': 'یک نام برای دسته بنویسید',
   'deleteCategoryTitle': 'دسته حذف شود؟',
@@ -89,7 +89,7 @@ const _expensePersian = <String, String>{
   'defaultCategoryNote': 'دسته‌های پیش‌فرض حذف نمی‌شوند',
   'add': 'افزودن',
 
-  'newExpenseTitle': 'هزینه‌ی جدید',
+  'newExpenseTitle': 'هزینهٔ جدید',
   'newIncomeTitle': 'درآمد جدید',
   'editExpenseTitle': 'ویرایش هزینه',
   'editIncomeTitle': 'ویرایش درآمد',
@@ -121,7 +121,7 @@ const _expensePersian = <String, String>{
   'delete': 'حذف',
   'undo': 'بازگردانی',
   'discard': 'دور انداختن',
-  'keepEditing': 'ادامه‌ی ویرایش',
+  'keepEditing': 'ادامهٔ ویرایش',
   'discardTitle': 'این ثبت دور انداخته شود؟',
   'discardBody': 'چیزی که تا حالا نوشته‌اید از بین می‌رود.',
   'deletedTx': 'حذف شد',
@@ -132,8 +132,8 @@ const _expensePersian = <String, String>{
   'chooseCategory': 'انتخاب دسته',
 
   'budgetsTitle': 'بودجه‌ها',
-  'overallLimit': 'سقف ماهانه — همه‌ی دسته‌ها',
-  'budgetFor': 'بودجه‌ی {month}',
+  'overallLimit': 'سقف ماهانه — همهٔ دسته‌ها',
+  'budgetFor': 'بودجهٔ {month}',
   'setBudget': 'تعیین بودجه',
   'editBudget': 'ویرایش بودجه',
   'clearBudget': 'حذف بودجه',
@@ -142,7 +142,7 @@ const _expensePersian = <String, String>{
   'budgetOver': 'بیشتر از بودجه',
   'budgetNote':
       'بودجه به ماه بعد منتقل نمی‌شود و تغییرش چیزی از ثبت‌ها عوض نمی‌کند. '
-      'خرج‌شده، باقی‌مانده و اضافه، حساب ساده‌ی حسابی‌اند.',
+      'خرج‌شده، باقی‌مانده و اضافه، حساب سادهٔ حسابی‌اند.',
 
   'templatesTitle': 'قالب‌ها',
   'templatesHint': 'قالب فقط فرم ورود را پر می‌کند وقتی خودتان تأیید کنید — هیچ پرداختی در پس‌زمینه انجام نمی‌شود',
@@ -167,7 +167,7 @@ const _expensePersian = <String, String>{
 
   'hideAmounts': 'پنهان‌کردن مبلغ‌ها',
   'showAmounts': 'نمایش مبلغ‌ها',
-  'shareMonth': 'همرسانی این ماه',
+  'shareMonth': 'هم‌رسانی این ماه',
   'shareTitle': 'هزینه‌های {month}',
   'shareTotal': 'جمع هزینه: {amount}',
   'shareIncome': 'درآمد: {amount}',
