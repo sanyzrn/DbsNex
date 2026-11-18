@@ -901,10 +901,13 @@ ORDER BY
   n.rowid DESC
 ''';
     final rows = tagId == null
-        ? db.select(
+        ? _db.selectCached(
             // Aliased like the tagged query below, because the tie-break has
             // to name `n.rowid`: in that one `note_tags` has a rowid too, and
             // a bare `rowid` in a join is ambiguous.
+            //
+            // Through the statement cache: this is the query behind every
+            // timeline load, refresh and page — identical text every time.
             '''
 SELECT n.* FROM notes n
 WHERE deleted_at IS NULL
@@ -915,7 +918,7 @@ LIMIT ? OFFSET ?
 ''',
             [nowIso, nowIso, limit, offset],
           )
-        : db.select(
+        : _db.selectCached(
             '''
 SELECT n.* FROM notes n
 INNER JOIN note_tags nt ON nt.note_id = n.id
@@ -957,7 +960,10 @@ LIMIT ? OFFSET ?
         at + 500 > noteIds.length ? noteIds.length : at + 500,
       );
       final placeholders = List.filled(chunk.length, '?').join(',');
-      for (final row in db.select('''
+      // Cached, though the text varies with the chunk's arity: the timeline
+      // asks with the same page size almost every time, and the cache's own
+      // bound is what keeps a pathological mix of arities from growing it.
+      for (final row in _db.selectCached('''
 SELECT note_id, COUNT(*) AS n FROM note_attachments
 WHERE deleted_at IS NULL AND note_id IN ($placeholders)
 GROUP BY note_id
@@ -977,7 +983,8 @@ GROUP BY note_id
         at + 500 > noteIds.length ? noteIds.length : at + 500,
       );
       final placeholders = List.filled(chunk.length, '?').join(',');
-      for (final row in db.select('''
+      // Cached like [attachmentCounts]: same page size, same text, most times.
+      for (final row in _db.selectCached('''
 SELECT nt.note_id AS owner, t.* FROM tags t
 INNER JOIN note_tags nt ON nt.tag_id = t.id
 WHERE nt.note_id IN ($placeholders)
@@ -1098,7 +1105,9 @@ ORDER BY t.name COLLATE NOCASE
 
   @override
   List<Tag> listTags() {
-    final rows = db.select('SELECT * FROM tags ORDER BY name COLLATE NOCASE');
+    final rows = _db.selectCached(
+      'SELECT * FROM tags ORDER BY name COLLATE NOCASE',
+    );
     return rows.map(Tag.fromRow).toList();
   }
 
@@ -3286,7 +3295,10 @@ WHERE id = ?
   /// The `notes.rowid` a note's search row is keyed on, or null when the
   /// note is not there.
   int? _noteRowid(String noteId) {
-    final rows = db.select('SELECT rowid FROM notes WHERE id = ?', [noteId]);
+    final rows = _db.selectCached(
+      'SELECT rowid FROM notes WHERE id = ?',
+      [noteId],
+    );
     return rows.isEmpty ? null : rows.first['rowid'] as int;
   }
 
@@ -3295,16 +3307,18 @@ WHERE id = ?
     if (rowid == null) {
       // No note, no search row — the open-time repair is what re-adds one
       // for a note that comes back.
-      db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+      _db.executeCached('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
       return;
     }
-    db.execute('DELETE FROM notes_fts WHERE rowid = ?', [rowid]);
+    // The three statements here run once per note write; cached, the write
+    // path stops paying their parse on every capture, edit and sync apply.
+    _db.executeCached('DELETE FROM notes_fts WHERE rowid = ?', [rowid]);
     if (content.isEmpty) return;
     // Folded, so every spelling of a word is one token
     // (see [nexSearchIndexText]). The rowid is the note's own — see
     // [deleteSearchRow] for why that makes the delete above one lookup
     // rather than a scan of the whole index.
-    db.execute(
+    _db.executeCached(
       'INSERT INTO notes_fts (rowid, note_id, content) VALUES (?, ?, ?)',
       [rowid, noteId, nexSearchIndexText(content)],
     );

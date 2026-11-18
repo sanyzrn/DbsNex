@@ -329,6 +329,7 @@ extension NexScheduledReminders on NexReminders {
     } catch (error) {
       onDiagnostic?.call('reminder.cancel failed: ${error.runtimeType}');
     }
+    await NexReminderActions.forgetArmed(NexReminders._idFor(noteId));
     await NexReminderActions.forget(noteId);
   }
 
@@ -340,6 +341,7 @@ extension NexScheduledReminders on NexReminders {
     if (!NexReminders.supported) return;
     await initialise();
     await _withdraw(NexReminders._idFor(noteId));
+    await NexReminderActions.forgetArmed(NexReminders._idFor(noteId));
   }
 
   /// The recurring items a **Done** was pressed for, and when, read once.
@@ -429,8 +431,14 @@ extension NexScheduledReminders on NexReminders {
           NexReminders.commitmentIdFor(commitment.id),
       for (final note in scheduled) NexReminders.arrivalIdFor(note.id),
     };
+    // The ids the OS is holding right now, from the prune's own queue read —
+    // and null when that read failed, because an unreadable queue is not
+    // evidence that anything is held. Null means every alarm is said again,
+    // exactly as before the skip existed.
+    Set<int>? held;
     try {
       final pending = await _plugin.pendingNotificationRequests();
+      held = {for (final request in pending) request.id};
       for (final request in pending) {
         final id = request.id;
         // Reserved ids are never touched — none of them is a note, so none of
@@ -457,41 +465,73 @@ extension NexScheduledReminders on NexReminders {
     } catch (_) {
       // The queue could not be read: adding still happens below, and the
       // ghosts wait for the next launch rather than failing this one.
+      held = null;
     }
 
-    final armed = <Note>[];
+    // The notes are armed without a per-alarm queue read — the batch below
+    // asks once for all of them — because a full sweep used to make the
+    // platform traffic grow with the square of the reminder count: one
+    // `pendingNotificationRequests()` — the whole queue, serialised — per
+    // note, on every launch and every return to the app.
+    //
+    // The rebuild itself now skips what the queue already holds *and* the
+    // recorded signature says is unchanged (see [NexNoteReminders.schedule]'s
+    // `knownArmed`): a sweep where nothing moved costs one queue read and no
+    // `zonedSchedule` at all, instead of one per note. The prune above is
+    // what keeps that safe — the ids it read are the same ids the skip
+    // trusts, so an alarm the OS dropped is re-armed the moment the queue
+    // stops naming it, without any separate bookkeeping to go stale.
+    final armed = <(String noteId, int alarmId)>[];
+    // What the shortcut kept: those are verified by the queue read that named
+    // them a moment ago, and asking again about alarms this sweep did not set
+    // is the traffic the batch exists to avoid.
+    final skipped = <int>{};
     for (final note in upcoming) {
-      // Batched verification: each `schedule` used to read the whole alarm
-      // queue back for itself — R re-arms deserialized R×R entries in the
-      // first seconds of a launch — where one read after the sweep answers
-      // for all of them.
-      if (await schedule(note, verify: false)) armed.add(note);
+      // A note whose time is past answers false: it was withdrawn, not
+      // armed, and is not something to report as missing below.
+      if (await schedule(
+        note,
+        verify: false,
+        knownArmed: held,
+        skippedArmed: skipped,
+      )) {
+        final alarmId = NexReminders._idFor(note.id);
+        if (!skipped.contains(alarmId)) armed.add((note.id, alarmId));
+      }
     }
+    await _verifyArmed(armed);
     for (final commitment in commitments) {
       await scheduleCommitment(commitment);
     }
     for (final note in scheduled) {
       await scheduleArrival(note);
     }
-    // The one queue read the whole batch is verified with: any wanted note
-    // alarm the system still does not hold is the failure `_verify` would
-    // have reported per note.
-    if (armed.isNotEmpty) {
-      try {
-        final pending = await _plugin.pendingNotificationRequests();
-        final held = {for (final request in pending) request.id};
-        for (final note in armed) {
-          if (held.contains(NexReminders._idFor(note.id))) continue;
-          lastError = 'the system did not keep the alarm';
-          onDiagnostic?.call(
-            'reminder ${note.id} -> not kept by the system '
-            '(re-arm sweep, ${upcoming.length} asked)',
-          );
-        }
-      } catch (_) {
-        // The queue could not be read: not evidence either way, same as
-        // `_verify`'s own read failing.
+  }
+
+  /// One queue read for every alarm the sweep just set: which of them the
+  /// system kept. A missing one is reported the way the single-note
+  /// verification reports it, and the last note's answer is the one left in
+  /// [lastError] — the same value a note-by-note pass would have left there.
+  Future<void> _verifyArmed(List<(String, int)> armed) async {
+    if (armed.isEmpty) return;
+    try {
+      final pending = await _plugin.pendingNotificationRequests();
+      final present = {for (final request in pending) request.id};
+      for (final (noteId, alarmId) in armed) {
+        if (present.contains(alarmId)) continue;
+        const missed = 'the system did not keep the alarm';
+        onDiagnostic?.call('reminder $noteId -> $missed');
+        // The signature just written for this alarm does not stand: the
+        // system was asked and is not holding it, and the next sweep must
+        // ask again rather than trust the record.
+        await NexReminderActions.forgetArmed(alarmId);
+        // Only the last note's answer survives in `lastError`, exactly as
+        // the last of the old per-note verifications did.
+        if ((noteId, alarmId) == armed.last) lastError = missed;
       }
+    } catch (_) {
+      // The queue could not be read: not evidence either way, so nothing is
+      // reported as missing.
     }
   }
 }

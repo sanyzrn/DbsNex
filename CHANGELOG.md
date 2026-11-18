@@ -4,6 +4,11 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.7
+
+- **The screen stays still while you pick notes.** The dates card and the tip no longer vanish when you start picking — they stay where they were, dimmed and untouchable like the rest, so the list no longer jumps.
+- **Lighter on every return.** Coming back to the app no longer sets every reminder again when nothing changed, a large Word by Word deck is read once instead of several times, and a sync server that is down is retried less and less often instead of every five minutes.
+
 ## v2.8.6
 
 - **Picking notes stays on the notes.** While several notes are picked, holding another card picks it too instead of opening its menu, and nothing else on the card or the home screen acts in the middle of the choice — a recording's play button, a link, a checklist, the filters, the pinned tools and the recap wait, dimmed, until you finish.

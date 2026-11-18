@@ -55,6 +55,20 @@ class _Worker {
   var localSearch = false;
   Future<void> _syncTail = Future<void>.value();
 
+  /// The sync client, kept across cycles rather than built per cycle.
+  ///
+  /// A fresh `http.Client` per cycle meant a fresh connection pool per
+  /// cycle: every request after the first re-did DNS, TCP and TLS even
+  /// within one cycle's push–pull–media round trips that the pool was built
+  /// to serve, and back-to-back cycles (a write-triggered cycle thirty
+  /// seconds after the last) threw the pool away with the client. The client
+  /// lives with the worker isolate — closed when the worker closes, and
+  /// rebuilt only when the endpoint or token it was built for changes, which
+  /// is the one thing it cannot adapt to (both are baked into every request
+  /// it sends).
+  SyncClient? _syncClient;
+  String? _syncClientKey;
+
   // What decides the library's vector space between them: the provider
   // last configured, and whether the on-device search model is in use.
   // Either message can arrive first, so each one re-decides from both.
@@ -520,26 +534,36 @@ class _Worker {
       _DbCommand.close => NexDbWorker._voided(() {
         _cloudAdapter?.close();
         _cloudAdapter = null;
+        _syncClient?.close();
+        _syncClient = null;
+        _syncClientKey = null;
       }),
     };
   }
 
   Future<SyncResult> _sync(String url, String? token) {
     final result = _syncTail.then((_) async {
-      final client = SyncClient(
-        baseUrl: url,
-        deviceId: boot.deviceId,
-        repo: repo,
-        bearerToken: token,
-        // The isolate's media tree, so the cycle can move the bytes behind
-        // the hashes the notes reference (see SyncClient.mediaDir).
-        mediaDir: boot.mediaDir,
-      );
-      try {
-        return await client.sync();
-      } finally {
-        client.close();
+      // The same endpoint and token reuse the same client — see
+      // [_syncClient]. A change in either is the one rebuild trigger.
+      final key = '$url|${token ?? ''}';
+      if (_syncClient == null || key != _syncClientKey) {
+        _syncClient?.close();
+        _syncClient = SyncClient(
+          baseUrl: url,
+          deviceId: boot.deviceId,
+          repo: repo,
+          bearerToken: token,
+          // The isolate's media tree, so the cycle can move the bytes behind
+          // the hashes the notes reference (see SyncClient.mediaDir).
+          mediaDir: boot.mediaDir,
+        );
+        _syncClientKey = key;
       }
+      // A failed cycle leaves the client in place on purpose: the failure
+      // was the request's, not the pool's, and the next cycle — whenever
+      // the scheduler's backoff allows it — starts warm rather than from a
+      // cold handshake. The [SyncClient] itself holds no per-cycle state.
+      return _syncClient!.sync();
     });
     _syncTail = result.then<void>((_) {}, onError: (Object _, StackTrace _) {});
     return result;

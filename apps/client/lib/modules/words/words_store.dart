@@ -9,6 +9,7 @@ import 'dart:async';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'words_decks.dart';
+import 'words_deck_cache.dart';
 import 'words_models.dart';
 import 'words_scheduler.dart';
 import 'words_dates.dart';
@@ -42,13 +43,14 @@ class WordsRepository {
   /// Fires after this module's records change — what a list rebuilds on.
   Stream<void> get changes => _store.changes;
 
-  /// Every card, newest first as the store keeps them.
+  /// Every card, newest first as the store keeps them. The parse is cached
+  /// against each record's stamp (see `words_deck_cache.dart`): this runs on
+  /// every screen reload, every `keepUp` at launch and resume, and behind
+  /// `dues` and `glance`, and the deck is almost always the same deck.
   Future<List<WordCard>> loadCards() async {
     await RecordBundle.recover(_store);
     final records = await _store.list(cardKind);
-    return [
-      for (final record in records) WordCard.fromRecord(record.id, record.body),
-    ];
+    return wordsCardsFromRecords(records);
   }
 
   /// Saves a card (creating it when its id is new). Returns false when the

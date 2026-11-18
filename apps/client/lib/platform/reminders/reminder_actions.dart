@@ -34,6 +34,96 @@ abstract final class NexReminderActions {
   static const _metKey = 'reminders.met';
   static const _languageKey = 'reminders.language';
   static String _textKey(String noteId) => 'reminders.text.$noteId';
+  static String _armedKey(int alarmId) => 'reminders.armed.$alarmId';
+
+  /// What identifies the alarm `schedule` would set, for one note, in one
+  /// comparable line — the sweep's "already said exactly this" check.
+  ///
+  /// Everything the OS is told that could differ between two sweeps is in
+  /// here: when it fires, whether it repeats, how exact it may be, whether it
+  /// hides from the lock screen, and the words it says. Nothing else goes in:
+  /// a field the alarm does not carry would make the check skip re-arms the
+  /// alarm needs, and a field left out is a change the OS would never hear
+  /// about.
+  ///
+  /// A one-off signs its instant. A repeating one signs the *series' wall
+  /// clock* — hour and minute in the device's zone — because that is what the
+  /// OS holds ("fires at this time every day") while the instant the sweep
+  /// computes for it rolls forward with every passing day; signing that
+  /// instant would re-arm every repeat on every sweep and save nothing. A
+  /// zone change moves the wall clock and the signature with it, which is
+  /// correct: the alarm genuinely fires at a different local time then.
+  ///
+  /// Lives here, beside the store that keeps what it describes, and visible
+  /// to tests because the schedule path it guards runs only on a phone.
+  @visibleForTesting
+  static String armedSignatureFor({
+    required DateTime when,
+    required NoteRepeat repeat,
+    required AndroidScheduleMode mode,
+    required bool secret,
+    required String title,
+    required String? text,
+  }) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final local = when.toLocal();
+    final time = repeat == NoteRepeat.once
+        ? when.toUtc().millisecondsSinceEpoch.toString()
+        : '${two(local.hour)}:${two(local.minute)}';
+    // The body is length-prefixed: a body that is absent, one that is empty
+    // and one that happens to read "3:null" are three different things for
+    // the OS, and the signature has to keep them apart.
+    return '$time|${repeat.wireName}|${mode.name}|${secret ? 1 : 0}'
+        '|$title\n${text?.length}:$text';
+  }
+
+  /// What the OS was last told an alarm is, so a sweep can tell "already
+  /// holding exactly this" from "must be said again".
+  ///
+  /// A signature is written only after the `zonedSchedule` behind it returned
+  /// without throwing, and withdrawn whenever the alarm is taken back or the
+  /// system would not confirm it. It is a *claim about this install*, not
+  /// about the OS: a reinstall or a cleared-data reset loses it and the next
+  /// sweep re-arms everything, which is exactly the failure mode the full
+  /// rebuild has always covered. The OS's own pending queue — read once per
+  /// sweep — is the other half: a signature only ever *skips* a re-arm when
+  /// the queue says the alarm is still there, so a phone that dropped its
+  /// alarm list heals on the next sweep without any invalidation logic.
+  static Future<void> rememberArmed(int alarmId, String signature) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Written when it differs, for the same reason [remember] is: the sweep
+      // touches every note's alarm, and a disk write per note is the cost the
+      // sweep just finished shedding.
+      if (prefs.getString(_armedKey(alarmId)) == signature) return;
+      await prefs.setString(_armedKey(alarmId), signature);
+    } catch (error) {
+      unawaited(NexCrashLog.handled('reminder.action', error));
+    }
+  }
+
+  /// Takes the claim back — the alarm is gone, or its scheduling failed, and
+  /// the next sweep must say it again rather than trust a stale signature.
+  static Future<void> forgetArmed(int alarmId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_armedKey(alarmId));
+    } catch (error) {
+      unawaited(NexCrashLog.handled('reminder.action', error));
+    }
+  }
+
+  /// Whether [signature] is the one recorded for [alarmId]. False when
+  /// nothing is recorded — or when preferences cannot be read: an unreadable
+  /// record is not evidence of a matching alarm, and the caller re-arms.
+  static Future<bool> armedMatches(int alarmId, String signature) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_armedKey(alarmId)) == signature;
+    } catch (_) {
+      return false;
+    }
+  }
 
   static List<AndroidNotificationAction> androidActions(
     NexChannelText text, {
