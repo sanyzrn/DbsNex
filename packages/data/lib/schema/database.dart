@@ -948,7 +948,60 @@ CREATE TABLE notes_rebuilt (
     }
   }
 
-  void close() => db.close();
+  /* ---------------------------------------------------- prepared statements */
+
+  /// Prepared statements, kept by their SQL text.
+  ///
+  /// `db.select` and `db.execute` prepare, run and finalise on every call:
+  /// correct, and it throws away the parse-and-plan work a hot query does
+  /// identically every time. The timeline read, its tag and attachment
+  /// joins, the FTS upsert behind every note write, and the tag list are
+  /// each one of a small fixed set of statements, run over and over. They
+  /// go through [selectCached] and [executeCached] instead; everything else
+  /// keeps the one-shot path — including the queries this library builds
+  /// with a varying `IN (…)` arity, which would make an unbounded set of
+  /// distinct SQL texts if cached blindly. The bound below is the guard:
+  /// past it the cache is emptied rather than grown, so even a misuse
+  /// cannot turn it into a leak.
+  ///
+  /// Statements are tied to this connection's handle: they are disposed
+  /// with it in [close], and SQLite re-prepares a surviving statement on
+  /// its own when the schema changes under it (`sqlite3_prepare_v2`
+  /// semantics), which is why a migration is not a cache flush.
+  final _statements = <String, PreparedStatement>{};
+  static const _statementCacheLimit = 128;
+
+  /// The statement for [sql], prepared once and reset between runs.
+  PreparedStatement _statement(String sql) {
+    final cached = _statements[sql];
+    if (cached != null) return cached;
+    if (_statements.length >= _statementCacheLimit) _statements.clear();
+    return _statements[sql] = db.prepare(sql, persistent: true);
+  }
+
+  /// [select], through the statement cache — for SQL that is fixed text and
+  /// run often. Parameters are bound per run; the rows a run returns are
+  /// this run's alone (values are copied out before the statement resets),
+  /// so two cached runs' results do not alias each other.
+  ResultSet selectCached(String sql, [List<Object?> parameters = const []]) =>
+      _statement(sql).select(parameters);
+
+  /// [execute], through the statement cache — the write-side twin of
+  /// [selectCached], for the fixed upserts and deletes behind note writes.
+  void executeCached(String sql, [List<Object?> parameters = const []]) =>
+      _statement(sql).execute(parameters);
+
+  /// How many statements the cache holds — for tests of the bound itself.
+  /// Nothing outside this package's own suite should read it.
+  int get debugStatementCacheSize => _statements.length;
+
+  void close() {
+    for (final statement in _statements.values) {
+      statement.close();
+    }
+    _statements.clear();
+    db.close();
+  }
 
   /// Copies this database file into [backupDir], keeping [backupRetention] newest.
   File createBackup(String backupDir) {

@@ -138,6 +138,6 @@ void main() {
     await reminders.syncFromLibrary(notes);
 
     expect(reminders.lastError, 'the system did not keep the alarm');
-    expect(diagnostics.any((line) => line.contains('not kept')), isTrue);
+    expect(diagnostics.any((line) => line.contains('did not keep')), isTrue);
   });
 }

@@ -378,21 +378,28 @@ extension _TimelineLayout on TimelineScreenState {
                               // What the modules have falling due (2.8.4).
                               SliverToBoxAdapter(
                                 key: const ValueKey('tool-dates-row'),
-                                child: NexToolDates(
-                                  services: widget.services,
-                                  preferences: widget.preferences,
-                                  hidden: _searching || _selecting,
+                                // Kept in place while notes are picked,
+                                // only quieted (2.8.7): taking it away
+                                // made the list jump under the finger.
+                                child: _quietWhilePicking(
+                                  NexToolDates(
+                                    services: widget.services,
+                                    preferences: widget.preferences,
+                                    hidden: _searching,
+                                  ),
                                 ),
                               ),
                               // Now and then, one tip (2.8.4): keyed and
                               // collapsed to nothing, like the row above.
                               SliverToBoxAdapter(
                                 key: const ValueKey('home-tip'),
-                                child: NexHomeTip(
-                                  preferences: widget.preferences,
-                                  notes: _model.all ?? const <Note>[],
-                                  hidden: _searching || _selecting,
-                                  onOpen: _openTipTarget,
+                                child: _quietWhilePicking(
+                                  NexHomeTip(
+                                    preferences: widget.preferences,
+                                    notes: _model.all ?? const <Note>[],
+                                    hidden: _searching,
+                                    onOpen: _openTipTarget,
+                                  ),
                                 ),
                               ),
                               // Where the notes begin. Without the row, a

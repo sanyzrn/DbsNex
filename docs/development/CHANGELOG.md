@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.7 — independent audit wave 2; selection keeps the header
+
+- Reminder sweep skips `zonedSchedule` when the OS queue holds the id and
+  the recorded armed signature matches (`armedSignatureFor`, forgotten on
+  withdraw/failure/missing); batch verify only for alarms actually set.
+- Words deck parse cache keyed by record `updated_at` (`words_deck_cache`).
+- Auto-sync backoff 5→10→20→40→60 min; one `SyncClient` per pairing.
+- `selectCached`/`executeCached` statement cache (128, cleared when full)
+  for timeline, tags, attachment counts and FTS upsert.
+- Selection: the dates card and the tip stay, quieted, instead of hiding.
+
 ### 2.8.6 — selection lock, dates card fold, whole greetings
 
 - Selection: `NoteContextMenu.onHold` (a hold picks while picking, list,

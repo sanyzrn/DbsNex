@@ -77,16 +77,36 @@ extension NexNoteReminders on NexReminders {
     return await ios?.requestPermissions(alert: true, sound: true) ?? false;
   }
 
-  /// Schedules (or reschedules) the reminder for one note.
+  /// Schedules (or reschedules) the reminder for one note, and answers
+  /// whether an alarm was actually set — a note whose time is already past
+  /// is deliberately withdrawn, not armed.
   ///
-  /// [verify] reads back the alarm queue to confirm the system kept this
-  /// alarm — one queue deserialization per note. The launch re-arm sweeps
-  /// every upcoming reminder through here and asks once for the whole batch
-  /// instead (see `syncFromLibrary`): R re-arms asking per note was R×R queue
-  /// reads in the app's first seconds.
-  /// Answers whether an alarm was set: a note whose time has passed is
-  /// withdrawn, not armed, and the sweep's batch check must not call it lost.
-  Future<bool> schedule(Note note, {bool verify = true}) async {
+  /// [verify] asks the system afterwards that the alarm is really there —
+  /// one read of the whole pending queue per note. The one-note paths keep
+  /// it; the launch-and-return rebuild passes [false] and asks once for the
+  /// whole batch, where a queue read per note made the sweep's platform
+  /// traffic grow with the square of the reminder count.
+  ///
+  /// [knownArmed] is the sweep's shortcut: the ids the OS's pending queue
+  /// already holds, read once before the batch. An id in it whose recorded
+  /// signature matches what this call would say (see
+  /// [NexReminderActions.armedSignatureFor]) needs no `zonedSchedule` at all — the
+  /// alarm is not merely present but current, and re-arming it would be the
+  /// same words, at the same instant, through the same channel, once per note
+  /// on every launch and every return. Anything else — a changed time,
+  /// changed words, a lost signature, a queue that could not be read —
+  /// schedules as always. The one-note paths pass nothing and always
+  /// schedule: they are rare, and their own `verify` is their ground truth.
+  ///
+  /// [skippedArmed], when given, collects the ids the shortcut kept — what
+  /// the sweep uses to leave the batch verification to the alarms it actually
+  /// set, rather than asking the queue again about ones it did not touch.
+  Future<bool> schedule(
+    Note note, {
+    bool verify = true,
+    Set<int>? knownArmed,
+    Set<int>? skippedArmed,
+  }) async {
     final when = note.dueAt;
     if (!NexReminders.supported || when == null) return false;
     // Cleared on entry. It reports what happened to *this* alarm, and a value
@@ -110,8 +130,10 @@ extension NexNoteReminders on NexReminders {
             note.dueRepeat,
             DateTime.now(),
           );
+    final alarmId = NexReminders._idFor(note.id);
     if (!at.isAfter(DateTime.now().toUtc())) {
-      await _withdraw(NexReminders._idFor(note.id));
+      await _withdraw(alarmId);
+      await NexReminderActions.forgetArmed(alarmId);
       _reportInitialisationWarning();
       return false;
     }
@@ -126,9 +148,30 @@ extension NexNoteReminders on NexReminders {
         : NexReminders._clamp(body.split('\n').first, 60);
     final text = NexReminders.bodyBeyond(title, body);
     final secret = hideOnLockScreen?.call() ?? false;
+    // Everything about the alarm the OS would be told, in one comparable
+    // line — checked against what it was told before any call below is made.
+    final signature = NexReminderActions.armedSignatureFor(
+      when: when,
+      repeat: note.dueRepeat,
+      mode: _scheduleMode,
+      secret: secret,
+      title: title,
+      text: text,
+    );
+    if (knownArmed != null && knownArmed.contains(alarmId)) {
+      if (await NexReminderActions.armedMatches(alarmId, signature)) {
+        // Kept, not re-armed: the queue read that filled [knownArmed] is the
+        // evidence the alarm exists, the signature the evidence it is this
+        // one. The batch verify below covers only alarms a sweep actually
+        // set, so there is nothing left to ask the system here.
+        skippedArmed?.add(alarmId);
+        onDiagnostic?.call('reminder ${note.id} unchanged, kept');
+        return true;
+      }
+    }
     try {
       await _plugin.zonedSchedule(
-        id: NexReminders._idFor(note.id),
+        id: alarmId,
         title: nexNotificationText(title),
         body: nexNotificationText(text),
         scheduledDate: NexReminders.scheduledDateFor(at),
@@ -148,9 +191,16 @@ extension NexNoteReminders on NexReminders {
         },
         payload: note.id,
       );
-      lastError = verify ? await _verify(NexReminders._idFor(note.id)) : null;
+      await NexReminderActions.rememberArmed(alarmId, signature);
+      final missed = verify ? await _verify(alarmId) : null;
+      lastError = missed;
+      // The system answered but is not holding the alarm: the signature just
+      // written must not stand, or the next sweep would trust it and skip the
+      // very re-arm that would fix this.
+      if (missed != null) await NexReminderActions.forgetArmed(alarmId);
       // What "In an hour" will say again, kept where the button's own
-      // isolate can read it.
+      // isolate can read it. The signature match above already proved these
+      // words unchanged, so the skipped path writes nothing either.
       await NexReminderActions.remember(
         note.id,
         title: title,
@@ -173,9 +223,10 @@ extension NexNoteReminders on NexReminders {
       // that never registered. Still not an error thrown at someone mid-
       // capture — the due date stays on the note either way — but no longer
       // invisible: [lastError] is what the sheet reads before telling anyone
-      // their reminder is set.
+      // their reminder is set. The signature goes with it — a claim that the
+      // alarm was set is exactly what just failed.
+      await NexReminderActions.forgetArmed(alarmId);
       lastError = '$error';
-      _reportInitialisationWarning();
       return false;
     }
     // A schedule that succeeded does not get to hide the timezone problem:

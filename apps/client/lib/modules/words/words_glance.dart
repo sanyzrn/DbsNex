@@ -1,6 +1,7 @@
 import 'package:nex_client/modules/module_api.dart';
 
 import 'words_dates.dart';
+import 'words_deck_cache.dart';
 import 'words_models.dart';
 import 'words_practice.dart';
 import 'words_scheduler.dart' as scheduler;
@@ -16,9 +17,9 @@ Future<ModuleGlance?> wordsGlance(
 ) async {
   String t(String key, [Map<String, Object?> args = const {}]) =>
       wordsStrings.text(l10n, key, args);
-  final cards = (await store.list('card'))
-      .map((r) => WordCard.fromRecord(r.id, r.body))
-      .toList();
+  // Through the shared parse cache — the glance runs beside `keepUp` and the
+  // home screen's `dues` on the same, mostly unchanged, deck.
+  final cards = wordsCardsFromRecords(await store.list('card'));
   if (cards.isEmpty) return ModuleGlance(headline: l10n.pinWordsEmpty);
   final settings = WordsSettings.fromRecord(
     await store.get('settings', WordsSettings.recordId) ?? const {},
