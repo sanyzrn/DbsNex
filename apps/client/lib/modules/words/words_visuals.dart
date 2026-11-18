@@ -3,13 +3,10 @@
 /// meter on each row, and the language badge.
 library;
 
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'words_models.dart';
-import 'words_scheduler.dart';
 import 'words_strings.dart';
 
 /// The deck's colours: ink to violet.
@@ -41,32 +38,11 @@ Color wordsStageColor(WordsStage stage) => switch (stage) {
   WordsStage.learned => const Color(0xFF22D3EE),
 };
 
-/// Days in a row, ending today or yesterday, with at least one answer.
-int wordsStreak(Iterable<WordCard> cards, DateTime today) {
-  final days = <String>{
-    for (final card in cards)
-      for (final entry in card.log)
-        if (entry.at.length >= 10) entry.at.substring(0, 10),
-  };
-  String iso(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-      '${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
-  var day = DateTime(today.year, today.month, today.day);
-  if (!days.contains(iso(day))) {
-    day = DateTime(day.year, day.month, day.day - 1);
-    if (!days.contains(iso(day))) return 0;
-  }
-  var streak = 0;
-  while (days.contains(iso(day))) {
-    streak++;
-    day = DateTime(day.year, day.month, day.day - 1);
-  }
-  return streak;
-}
-
 /// The card at the top of the home page: how many words wait, the ladder
-/// of how well they are known, the streak, and the way in.
+/// of how well they are known, today's small goal, and the way in.
+///
+/// There is no streak here on purpose: a missed day costs nothing, and a
+/// row of days would say otherwise (2.8.4).
 class WordsDeckCard extends StatelessWidget {
   const WordsDeckCard({
     super.key,
@@ -75,11 +51,18 @@ class WordsDeckCard extends StatelessWidget {
     required this.caption,
     required this.action,
     required this.settings,
+    this.goal = 0,
+    this.reviewedToday = 0,
   });
 
   final List<WordCard> cards;
   final String headline;
   final String caption;
+
+  /// The daily goal in answers, and how many were already given today.
+  /// Zero means the person chose no goal, and nothing is shown.
+  final int goal;
+  final int reviewedToday;
 
   /// Start review, or the line saying there is nothing to review.
   final Widget action;
@@ -97,7 +80,7 @@ class WordsDeckCard extends StatelessWidget {
       for (final stage in WordsStage.values)
         stage: active.where((c) => wordsStageOf(c) == stage).length,
     };
-    final streak = wordsStreak(cards, DateTime.now());
+    final goalMet = goal > 0 && reviewedToday >= goal;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: wordsDeckGradient,
@@ -128,24 +111,34 @@ class WordsDeckCard extends StatelessWidget {
                           color: white.withValues(alpha: 0.9),
                         ),
                       ),
-                      if (streak >= 2) ...[
+                      if (goal > 0) ...[
                         const SizedBox(width: NexSpacing.sm),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: white.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(NexRadius.pill),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: NexSpacing.sm,
-                              vertical: 2,
+                        Flexible(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(
+                                NexRadius.pill,
+                              ),
                             ),
-                            child: Text(
-                              strings(context, 'streak', {'count': streak}),
-                              key: const ValueKey('words-streak'),
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: white,
-                                fontWeight: FontWeight.w600,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: NexSpacing.sm,
+                                vertical: 2,
+                              ),
+                              child: Text(
+                                // Said as a fact, never as a debt: what is
+                                // done today, and what was asked for.
+                                strings(
+                                  context,
+                                  goalMet ? 'goalMet' : 'goalToday',
+                                  {'done': reviewedToday, 'goal': goal},
+                                ),
+                                key: const ValueKey('words-goal'),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: white,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -310,139 +303,4 @@ class _CardStack extends StatelessWidget {
       ),
     ),
   );
-}
-
-/// Five short bars, filled to how far up the ladder a word is; an outline
-/// for a new one.
-class WordsStrength extends StatelessWidget {
-  const WordsStrength({super.key, required this.card});
-
-  final WordCard card;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final stage = wordsStageOf(card);
-    final filled = card.isNew ? 0 : math.min(5, card.step + 1);
-    final color = card.paused
-        ? scheme.outline
-        : stage == WordsStage.fresh
-        ? scheme.primary
-        : wordsStageColor(stage);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        for (var i = 0; i < 5; i++) ...[
-          if (i > 0) const SizedBox(width: 2),
-          Container(
-            width: 4,
-            height: 6.0 + i * 2.5,
-            decoration: BoxDecoration(
-              color: i < filled ? color : null,
-              border: i < filled
-                  ? null
-                  : Border.all(color: scheme.outline.withValues(alpha: 0.6)),
-              borderRadius: BorderRadius.circular(NexRadius.xs),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-/// Two letters for a language — «EN», «FR», «فا» — on a colour of its own,
-/// the same colour for the same language everywhere.
-class WordsLanguageBadge extends StatelessWidget {
-  const WordsLanguageBadge({super.key, required this.language});
-
-  final String language;
-
-  static const _hues = [
-    Color(0xFF6366F1),
-    Color(0xFF0EA5E9),
-    Color(0xFF10B981),
-    Color(0xFFF59E0B),
-    Color(0xFFEF4444),
-    Color(0xFFEC4899),
-    Color(0xFF8B5CF6),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final trimmed = language.trim();
-    final letters = trimmed.isEmpty
-        ? '·'
-        : trimmed.characters.take(2).toString().toUpperCase();
-    final hue = trimmed.isEmpty
-        ? Theme.of(context).colorScheme.outline
-        : _hues[trimmed.toLowerCase().codeUnits.fold(0, (a, b) => a + b) %
-              _hues.length];
-    return Container(
-      width: 40,
-      height: 40,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: hue.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(NexRadius.md),
-      ),
-      child: Text(
-        letters,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: hue,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-/// The ladder a word climbs — 1, 3, 7, 14, 30 and 60 days — with the rung it
-/// stands on lit and the ones below it filled.
-class WordsRungs extends StatelessWidget {
-  const WordsRungs({super.key, required this.card});
-
-  final WordCard card;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final persian = NexModuleStrings.persian(context);
-    final at = card.isNew ? -1 : card.step.clamp(0, wordsLadder.length - 1);
-    final color = wordsStageColor(wordsStageOf(card));
-    return Row(
-      key: const ValueKey('words-card-rungs'),
-      children: [
-        for (var i = 0; i < wordsLadder.length; i++) ...[
-          if (i > 0) const SizedBox(width: NexSpacing.xs),
-          Expanded(
-            child: Column(
-              children: [
-                Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: i <= at ? color : scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(NexRadius.pill),
-                    border: i == at
-                        ? Border.all(color: scheme.onSurface, width: 1.2)
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  nexDigits('${wordsLadder[i]}', persian: persian),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: i == at ? scheme.onSurface : scheme.onSurfaceVariant,
-                    fontWeight: i == at ? FontWeight.w700 : null,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
 }

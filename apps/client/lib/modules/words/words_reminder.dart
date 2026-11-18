@@ -13,9 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'words_models.dart';
-import 'words_scheduler.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
+import 'words_summary.dart';
 
 const _reminderId = 'reminder';
 const _reminderKey = 'words:review';
@@ -38,16 +38,13 @@ Future<WordsReminder> wordsReadReminder(NexModuleStore store) async {
 /// How many cards are waiting on [day]: due on or before it, plus the new
 /// ones a session may introduce.
 int wordsWaitingOn(List<WordCard> cards, DateTime day, int newPerDay) {
-  final iso = isoDay(day);
-  var due = 0;
+  // Due days come from the module's one `duesBetween`, the same list the
+  // shared calendar would read (docs/18, rule 1): everything due on or
+  // before [day], overdue cards included.
+  final due = duesBetween(cards, DateTime(1970), day).length;
   var fresh = 0;
   for (final card in cards) {
-    if (card.paused) continue;
-    if (card.isNew) {
-      fresh++;
-    } else if (card.due.isNotEmpty && card.due.compareTo(iso) <= 0) {
-      due++;
-    }
+    if (!card.paused && card.isNew) fresh++;
   }
   return due + (newPerDay == 0 ? fresh : fresh.clamp(0, newPerDay));
 }
