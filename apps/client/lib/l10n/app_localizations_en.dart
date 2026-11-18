@@ -6692,10 +6692,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String remindClearedNotes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Done — $count notes moved to Recently deleted',
+      other: 'Done — $countString notes moved to Recently deleted',
       one: 'Done — the note moved to Recently deleted',
     );
     return '$_temp0';
@@ -6844,4 +6848,82 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tipGuideBody =>
       'The guide walks through every part of the app, and it is always in Settings.';
+
+  @override
+  String get toolDatesTitle => 'Dates from your tools';
+
+  @override
+  String get toolDatesToday => 'today';
+
+  @override
+  String get toolDatesTomorrow => 'tomorrow';
+
+  @override
+  String toolDatesIn(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'in $countString days',
+      one: 'in 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String toolDatesLate(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString days late',
+      one: '1 day late',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String toolDatesMore(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$countString more',
+      one: '+1 more',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String toolDatesCount(String title, int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$title · $countString';
+  }
+
+  @override
+  String get layoutToolDates => 'Tool dates';
+
+  @override
+  String get tipToolDatesTitle => 'Your tools\' dates, on the home screen';
+
+  @override
+  String get tipToolDatesBody =>
+      'A cheque, an instalment, a car\'s insurance or a fund\'s payment day: what is late or falls due this week appears above your notes. Money and health show only the tool\'s name. Turn it off in Home layout.';
+
+  @override
+  String toolDatesWhat(String title, String what) {
+    return '$title · $what';
+  }
 }

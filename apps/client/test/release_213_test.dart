@@ -238,6 +238,8 @@ void main() {
         'maintenance',
         'expenses',
         'price_lens',
+        'assets',
+        'family_fund',
       });
       expect(
         NexModuleAlarms.moduleId('a', 'b:c'),

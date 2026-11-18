@@ -10483,6 +10483,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The guide walks through every part of the app, and it is always in Settings.'**
   String get tipGuideBody;
+
+  /// No description provided for @toolDatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dates from your tools'**
+  String get toolDatesTitle;
+
+  /// No description provided for @toolDatesToday.
+  ///
+  /// In en, this message translates to:
+  /// **'today'**
+  String get toolDatesToday;
+
+  /// No description provided for @toolDatesTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'tomorrow'**
+  String get toolDatesTomorrow;
+
+  /// No description provided for @toolDatesIn.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{in 1 day} other{in {count} days}}'**
+  String toolDatesIn(int count);
+
+  /// No description provided for @toolDatesLate.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day late} other{{count} days late}}'**
+  String toolDatesLate(int count);
+
+  /// No description provided for @toolDatesMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{+1 more} other{+{count} more}}'**
+  String toolDatesMore(int count);
+
+  /// No description provided for @toolDatesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} · {count}'**
+  String toolDatesCount(String title, int count);
+
+  /// No description provided for @layoutToolDates.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool dates'**
+  String get layoutToolDates;
+
+  /// No description provided for @tipToolDatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your tools\' dates, on the home screen'**
+  String get tipToolDatesTitle;
+
+  /// No description provided for @tipToolDatesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A cheque, an instalment, a car\'s insurance or a fund\'s payment day: what is late or falls due this week appears above your notes. Money and health show only the tool\'s name. Turn it off in Home layout.'**
+  String get tipToolDatesBody;
+
+  /// No description provided for @toolDatesWhat.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} · {what}'**
+  String toolDatesWhat(String title, String what);
 }
 
 class _AppLocalizationsDelegate

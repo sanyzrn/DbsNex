@@ -2,17 +2,6 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'options.dart';
 
-class ModuleSummary {
-  const ModuleSummary({
-    required this.title,
-    this.detail,
-    required this.private,
-  });
-  final String title;
-  final String? detail;
-  final bool private;
-}
-
 ModuleSummary? summarize(ModuleRecord record) {
   if (record.module != 'price_lens') return null;
   if (record.kind == 'memory') {
@@ -36,24 +25,6 @@ ModuleSummary? summarize(ModuleRecord record) {
     );
   }
   return null;
-}
-
-class ModuleDue {
-  const ModuleDue({
-    required this.id,
-    required this.recordKind,
-    required this.recordId,
-    required this.at,
-    required this.title,
-    required this.kind,
-    required this.amountRial,
-    required this.done,
-    required this.private,
-  });
-  final String id, recordKind, recordId, title, kind;
-  final DateTime at;
-  final int? amountRial;
-  final bool done, private;
 }
 
 /// A historical shopping date is not something falling due. This module

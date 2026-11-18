@@ -98,6 +98,7 @@ import 'camera_sheet.dart';
 import 'tools_screen.dart';
 import 'guide_screen.dart';
 import '../widgets/tips/home_tip.dart';
+import '../widgets/tool_dates.dart';
 import '../widgets/tips/nex_tips.dart';
 import 'tools/pinned_tools.dart';
 import 'intelligence_screen.dart';

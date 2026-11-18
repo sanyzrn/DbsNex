@@ -59,6 +59,9 @@ void main() {
         'occasions',
         'prompt_studio',
         'security_tools',
+        'cheques',
+        'assets',
+        'family_fund',
       ];
       final accents = <String, Color>{};
       await tester.pumpWidget(

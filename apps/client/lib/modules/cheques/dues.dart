@@ -3,25 +3,6 @@ import 'package:nex_client/modules/module_api.dart';
 import 'model.dart';
 import 'plan_model.dart';
 
-/// Temporary local copy of the exact contract in docs/18, rule 1.
-class ModuleDue {
-  const ModuleDue({
-    required this.id,
-    required this.recordKind,
-    required this.recordId,
-    required this.at,
-    required this.title,
-    required this.kind,
-    required this.amountRial,
-    required this.done,
-    required this.private,
-  });
-  final String id, recordKind, recordId, title, kind;
-  final DateTime at;
-  final int? amountRial;
-  final bool done, private;
-}
-
 /// An immutable snapshot. No storage, locale, widgets, clock or permissions.
 class ChequeDues {
   ChequeDues(Iterable<Cheque> rows) : rows = List.unmodifiable(rows);

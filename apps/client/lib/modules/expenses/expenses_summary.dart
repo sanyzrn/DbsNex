@@ -9,53 +9,10 @@
 library;
 
 import 'package:nex_client/modules/module_api.dart'
-    show ModuleRecord, NexModuleMonth;
+    show ModuleDue, ModuleRecord, ModuleSummary, NexModuleMonth;
 
 import 'models.dart';
 import 'money.dart';
-
-/// One thing this module has falling due, for the shared life calendar.
-class ModuleDue {
-  const ModuleDue({
-    required this.id,
-    required this.recordKind,
-    required this.recordId,
-    required this.at,
-    required this.title,
-    required this.kind,
-    this.amountRial,
-    this.done = false,
-    this.private = false,
-  });
-
-  /// Stable: the same rent for the same month is the same item next time.
-  final String id;
-  final String recordKind;
-  final String recordId;
-
-  /// When it falls due — local, at midnight for a date-only item.
-  final DateTime at;
-  final String title;
-  final String kind;
-
-  /// Positive in, negative out.
-  final int? amountRial;
-
-  /// Already written down for that month.
-  final bool done;
-
-  /// Money detail: shown only discreetly.
-  final bool private;
-}
-
-/// One line about a record, for the consent-gated search and brief later.
-class ModuleSummary {
-  const ModuleSummary({required this.title, this.detail, this.private = false});
-
-  final String title;
-  final String? detail;
-  final bool private;
-}
 
 /// The recurring templates, read as dates: «rent, the 5th of every month».
 ///

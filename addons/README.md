@@ -41,7 +41,7 @@ instalment plans in whole tomans, a month view, hidden amounts) and
 **Maintenance** (service log, car insurance and inspection reminders that
 follow their dates, fuel log against quotas) join `nexAvailableModuleIds`. All
 give their dates and lines in the shared shape and leave the pending lists.
-Word by Word (live) gained decks, typed and multiple-choice review and a daily goal; **Expenses** and **Price Lens** were reviewed in the same release and made available, so every add-on is now available.
+Word by Word (live) gained decks, typed and multiple-choice review and a daily goal; **Expenses** and **Price Lens** were reviewed in the same release and made available, so every add-on is now available. Two new modules joined in the same release, reviewed and available: **Asset book** (`assets` — gold by weight, coins and currency with your own dated prices, value in 18k grams and dollars, gold goals, a covered book) and **Family fund** (`family_fund` — a rotating family loan fund: shares, monthly contributions, draws with history, loans and instalments, monthly alerts for the manager). `ModuleDue` and `ModuleSummary` moved into the kit, and the home screen's «Dates from your tools» reads every module's `duesBetween` through `NexStoredModule.dues`.
 
 ### Back in 2.8.1: Gold, Quit Habits, Lent & Borrowed; new: Prompt Studio, Security toolbox
 

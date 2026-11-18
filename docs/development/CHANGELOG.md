@@ -88,6 +88,26 @@ Working convention:
   `home.tips` in Home layout.
 - Grid tile: tag dots sit beside the reminder pill instead of being hidden.
 
+### 2.8.4 — Asset book, Family fund; module dates reach the home screen
+
+- Assets (agent/module-assets): registered (hue 112), reviewed, available.
+  Persian in the formal register; currencies named in title and picker,
+  amounts with their code.
+- Family fund (agent/module-family_fund): registered (hue 324), reviewed,
+  available. `FundReminderUpkeep` (keepUp) moves a rung alert to the next
+  contribution/draw day at the same clock time; Persian lines join with ،
+  and label with : (`fund_text.dart`); alert title no longer doubles صندوق.
+- Kit: `ModuleDue`/`ModuleSummary` in `module_shared.dart` (exported by
+  `module_api`); every module copy removed (family fund's positional calls
+  rewritten). `NexStoredModule.dues(store, from, to)` and `dueLabel`
+  implemented by parking, lent_borrowed, medicine, cheques, expenses,
+  maintenance and family_fund.
+- Home: `NexToolDates` (`widgets/tool_dates.dart`) under the pinned tools —
+  late and this week's open dues, private ones grouped under the module
+  name, tap opens the module; `home.tool_dates` switch in Home layout; a
+  `tool-dates` tip. Plural counts use `decimalPattern` for Persian digits
+  (also `remindClearedNotes`).
+
 ### 2.8.4 — Word by Word, Expenses and Price Lens reviewed
 
 - Words (agent/module-words, live): decks, typed and multiple-choice review,

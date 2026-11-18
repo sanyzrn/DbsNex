@@ -148,6 +148,14 @@ mixin _HomePreferences on _PreferencesStore {
     _notifyNow();
   }
 
+  /// Whether the home screen gathers the modules' dates — what is overdue
+  /// and what falls due this week (2.8.4). On by default; money and health
+  /// items show only their module's name.
+  bool get showToolDates => _prefs.getBool('home.tool_dates') ?? true;
+
+  Future<void> setShowToolDates(bool value) =>
+      _setHomePart('tool_dates', value);
+
   /// Whether the home screen shows a tip now and then (2.8.4). On by
   /// default; the schedule keeps them rare.
   bool get showTips => _prefs.getBool('home.tips') ?? true;

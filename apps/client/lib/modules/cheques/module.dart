@@ -5,6 +5,7 @@ import 'home.dart';
 import 'privacy.dart';
 import 'reminders.dart';
 import 'strings.dart';
+import 'dues.dart';
 
 class ChequeManagerModule extends NexStoredModule {
   const ChequeManagerModule();
@@ -22,4 +23,14 @@ class ChequeManagerModule extends NexStoredModule {
   @override
   Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) =>
       renewCheques(store, l10n);
+
+  @override
+  Future<List<ModuleDue>> dues(
+    NexModuleStore store,
+    DateTime from,
+    DateTime to,
+  ) async => ChequeDues.fromRecords([
+    ...await store.list('cheque'),
+    ...await store.list('plan'),
+  ]).duesBetween(from, to);
 }

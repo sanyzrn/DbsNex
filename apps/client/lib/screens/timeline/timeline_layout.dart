@@ -359,6 +359,15 @@ extension _TimelineLayout on TimelineScreenState {
                                   hidden: _searching,
                                 ),
                               ),
+                              // What the modules have falling due (2.8.4).
+                              SliverToBoxAdapter(
+                                key: const ValueKey('tool-dates-row'),
+                                child: NexToolDates(
+                                  services: widget.services,
+                                  preferences: widget.preferences,
+                                  hidden: _searching || _selecting,
+                                ),
+                              ),
                               // Now and then, one tip (2.8.4): keyed and
                               // collapsed to nothing, like the row above.
                               SliverToBoxAdapter(
