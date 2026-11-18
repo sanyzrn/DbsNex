@@ -5,6 +5,7 @@ import 'package:nex_client/modules/price_lens/option_editor.dart';
 import 'package:nex_client/modules/price_lens/options.dart';
 import 'package:nex_client/modules/price_lens/rational.dart';
 import 'package:nex_client/modules/price_lens/price_lens_screen.dart';
+
 import 'lens_test_store.dart';
 import '../../support/nex_harness.dart';
 

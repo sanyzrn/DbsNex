@@ -69,8 +69,8 @@ void _screenCases3() {
         findsNothing,
       );
       expect(find.text('Cheapest per kg'), findsOneWidget);
-      expect(find.text('Bag 750g · 120 IRR per kg'), findsOneWidget);
-      expect(find.text('Bag 1kg · 115 IRR per kg'), findsOneWidget);
+      expect(find.text('Bag 750g · 120 rials per kg'), findsOneWidget);
+      expect(find.text('Bag 1kg · 115 rials per kg'), findsOneWidget);
     });
   });
 }

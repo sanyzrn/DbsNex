@@ -10,10 +10,15 @@ import 'option_editor_sections.dart';
 import 'price_lens_common.dart';
 import 'rational.dart';
 import 'strings.dart';
+import 'storage_money.dart';
 import 'units.dart';
 import 'local_values.dart';
+import 'draft_guard.dart';
+import 'legacy_amount_entry.dart';
+import 'privacy.dart';
 
 part 'option_editor_actions.dart';
+part 'editor_draft.dart';
 part 'option_editor_fields.dart';
 
 /// The offer editor: what it is, the total price with its currency
@@ -25,15 +30,37 @@ Future<void> showOptionEditor(
   BuildContext context, {
   required ValueChanged<PriceOption> onSave,
   PriceOption? existing,
+  NexModuleStore? store,
+  Future<void> Function(PriceOption)? persist,
+  bool priceEntry = false,
 }) => nexShowSheet(
   context: context,
   dismissible: false,
   swipeToClose: true,
-  builder: (_) => OptionEditorSheet(existing: existing, onSave: onSave),
+  builder: lensRouteBuilder(
+    context,
+    OptionEditorSheet(
+      existing: existing,
+      onSave: onSave,
+      store: store,
+      persist: persist,
+      priceEntry: priceEntry,
+    ),
+  ),
 );
 
 class OptionEditorSheet extends StatefulWidget {
-  const OptionEditorSheet({super.key, required this.onSave, this.existing});
+  const OptionEditorSheet({
+    super.key,
+    required this.onSave,
+    this.existing,
+    this.store,
+    this.persist,
+    this.priceEntry = false,
+  });
+  final NexModuleStore? store;
+  final Future<void> Function(PriceOption)? persist;
+  final bool priceEntry;
 
   final PriceOption? existing;
   final ValueChanged<PriceOption> onSave;
@@ -47,7 +74,7 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
     text: widget.existing?.label ?? '',
   );
   late final TextEditingController _price = TextEditingController(
-    text: initialPriceText(widget.existing),
+    text: widget.priceEntry ? '' : initialPriceText(widget.existing),
   );
   late final TextEditingController _quantity = TextEditingController(
     text: initialQuantityText(widget.existing),
@@ -65,6 +92,14 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
     text: initialShippingText(widget.existing, _currency.exponent),
   );
 
+  late final _product = TextEditingController(
+    text: widget.existing?.productName ?? '',
+  );
+  late final _shop = TextEditingController(
+    text: widget.priceEntry ? '' : widget.existing?.shop ?? '',
+  );
+  late bool _details = widget.existing != null && !widget.priceEntry;
+
   late PriceCurrency _currency = initialCurrencyOf(widget.existing);
   late IrrUnit _irrUnit = IrrUnit.rial;
   late String _unitKey = priceUnitOf(widget.existing?.unitKey)?.key ?? 'kg';
@@ -77,11 +112,47 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
     text: _initialDateText,
   );
 
-  late final String _id =
-      widget.existing?.id ?? 'opt-${DateTime.now().microsecondsSinceEpoch}';
+  late String _id = widget.priceEntry
+      ? widget.store!.newId()
+      : widget.existing?.id ??
+            widget.store?.newId() ??
+            'opt-${DateTime.now().microsecondsSinceEpoch}';
   bool _dateConfirmed = true;
   bool _unitConfirmed = true, _currencyConfirmed = true;
-  bool _saving = false;
+  bool _saving = false, _initializing = true, _refreshPending = false;
+  bool _loading = false, _loadFailed = false;
+  PriceOption? _committed;
+  Map<String, TextEditingController> get _controllers => {
+    'label': _label,
+    'price': _price,
+    'quantity': _quantity,
+    'count': _count,
+    'paid': _paidCount,
+    'discount': _discount,
+    'shipping': _shipping,
+    'date': _dateText,
+    'productName': _product,
+    'shop': _shop,
+  };
+  late final NexModuleFormDraft? _draft = widget.store == null
+      ? null
+      : NexModuleFormDraft(
+          widget.store!,
+          'offer:${widget.priceEntry ? 'price-${widget.existing?.productLabel ?? 'new'}' : widget.existing?.id ?? 'new'}',
+          widget.priceEntry
+              ? {'entry': 'price'}
+              : widget.existing?.toBody() ?? {},
+          _controllers,
+          () => {
+            'recordId': _id,
+            'currency': _currency.code,
+            'unit': _unitKey,
+            'irrUnit': _irrUnit.name,
+            'discountKind': _discountKind.name,
+            'details': _details,
+          },
+        );
+
   bool _dirty = false;
   bool _showErrors = false;
 
@@ -119,7 +190,10 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
         LocalValues.day(_initialDateText) != null;
     // Typing and the shared calendar button both change the controller,
     // so the controller — not onChanged — marks the sheet dirty.
-    _dateText.addListener(_markDirty);
+    for (final c in _controllers.values) {
+      c.addListener(_markDirty);
+    }
+    unawaited(_loadDraft());
   }
 
   void _paint(VoidCallback action) {
@@ -128,7 +202,12 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
 
   @override
   void dispose() {
-    _dateText.removeListener(_markDirty);
+    _draft?.close();
+    for (final c in _controllers.values) {
+      c.removeListener(_markDirty);
+    }
+    _product.dispose();
+    _shop.dispose();
     _dateText.dispose();
     _label.dispose();
     _price.dispose();
@@ -140,10 +219,28 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
     super.dispose();
   }
 
-  void _markDirty() => setState(() => _dirty = true);
+  void _markDirty() {
+    if (_initializing) return;
+    _dirty = true;
+    _draft?.changed();
+    if (WidgetsBinding.instance.schedulerPhase.name != 'persistentCallbacks') {
+      if (mounted) setState(() {});
+      return;
+    }
+    if (_refreshPending) return;
+    _refreshPending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshPending = false;
+      if (mounted) setState(() {});
+    });
+  }
 
-  PriceAmountResult get _parsedPrice =>
-      parseMoneyIn(_price.text, _currency, _irrUnit);
+  PriceAmountResult get _parsedPrice => parseMoneyIn(
+    _price.text,
+    _currency,
+    _irrUnit,
+    legacyMinor: widget.priceEntry ? null : widget.existing?.priceMinor,
+  );
 
   Fraction? get _parsedQuantity => fractionFromDecimal(_quantity.text);
 
@@ -151,10 +248,12 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = priceLensStrings;
-    return PopScope(
-      canPop: !_dirty && !_saving,
+    final body = PopScope(
+      canPop: _draft != null || !_dirty && !_saving,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && !_saving) unawaited(confirmPriceLensDiscard(context));
+        if (_draft == null && !didPop && !_saving) {
+          unawaited(confirmPriceLensDiscard(context));
+        }
       },
       child: Padding(
         padding: const EdgeInsetsDirectional.fromSTEB(
@@ -173,6 +272,8 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
                   context,
                   widget.existing == null
                       ? 'newOptionTitle'
+                      : widget.priceEntry
+                      ? 'newPrice'
                       : 'editOptionTitle',
                 ),
                 style: theme.textTheme.titleLarge,
@@ -183,7 +284,25 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: editorFields(context),
+                  children: _loading
+                      ? [const LinearProgressIndicator()]
+                      : _loadFailed
+                      ? [
+                          Text(s(context, 'loadFailed')),
+                          TextButton(
+                            onPressed: _loadDraft,
+                            child: Text(s(context, 'retry')),
+                          ),
+                        ]
+                      : [
+                          AbsorbPointer(
+                            absorbing: _saving || _committed != null,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: editorFields(context),
+                            ),
+                          ),
+                        ],
                 ),
               ),
             ),
@@ -197,15 +316,24 @@ class _OptionEditorSheetState extends State<OptionEditorSheet> {
               ),
             FilledButton(
               key: const ValueKey('lens-save'),
-              onPressed: _saving ? null : () => unawaited(_save()),
+              onPressed: _saving || _loading || _loadFailed
+                  ? null
+                  : () => unawaited(_save()),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
               ),
-              child: Text(s(context, 'save')),
+              child: Text(s(context, _committed == null ? 'save' : 'retry')),
             ),
           ],
         ),
       ),
     );
+    return _draft == null
+        ? body
+        : DraftGuard(
+            draft: _draft,
+            busy: () => _saving || _loading,
+            child: body,
+          );
   }
 }

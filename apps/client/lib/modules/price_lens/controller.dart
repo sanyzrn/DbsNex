@@ -6,6 +6,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'options.dart';
 import 'units.dart';
 import 'local_writes.dart';
+import 'storage_money.dart';
 
 /// Only explicit memories/comparisons persist; the live calculator is scratch.
 class PriceLensController extends ChangeNotifier {
@@ -22,6 +23,7 @@ class PriceLensController extends ChangeNotifier {
   List<PriceMemory> memories = const [];
   List<SavedComparison> saved = const [];
   List<ModuleRecord> invalidMemories = const [], invalidSaved = const [];
+  List<ModuleRecord> shopping = const [];
   final _undos = <String, Future<void> Function()>{};
   @override
   void dispose() {
@@ -41,10 +43,12 @@ class PriceLensController extends ChangeNotifier {
       final result = await Future.wait([
         store.list('memory'),
         store.list('comparison'),
+        store.list('shopping'),
       ]);
       if (_disposed || token != _loadToken) return;
       memories = [
-        for (final row in result[0]) ?PriceMemory.fromBody(row.id, row.body),
+        for (final row in result[0])
+          ?PriceMemory.fromBody(row.id, row.body, recordedAt: row.updatedAt),
       ];
       saved = [
         for (final row in result[1])
@@ -58,6 +62,7 @@ class PriceLensController extends ChangeNotifier {
         for (final row in result[1])
           if (SavedComparison.fromBody(row.id, row.body) == null) row,
       ];
+      shopping = result[2];
       loading = false;
       readFailed = false;
       _notify();
@@ -92,7 +97,16 @@ class PriceLensController extends ChangeNotifier {
         throw StateError('Incomplete memory');
       }
       final raw = await store.get('memory', memory.id);
-      final merged = {...?raw, ...body};
+      if (raw != null && !priceSchemaKnown(raw)) {
+        throw StateError('Unsupported memory version');
+      }
+      final merged = {...keepUnknown(raw, memoryFields), ...body};
+      if (raw?['person'] is Map && body['person'] is Map) {
+        merged['person'] = {...raw!['person'] as Map, ...body['person'] as Map};
+      }
+      if (raw?.containsKey('price') == true && !body.containsKey('price')) {
+        merged['price'] = memory.priceMinor;
+      }
       for (final key in ['paid_num', 'paid_den']) {
         if (!body.containsKey(key)) merged.remove(key);
       }
@@ -123,11 +137,50 @@ class PriceLensController extends ChangeNotifier {
         options: snapshot,
         commonUnitKey: commonUnitKey,
       ).toBody();
-      await LocalWrites.apply(store, [
-        (kind: 'comparison', id: target, body: body),
-      ]);
+      await LocalWrites.serial(store, () async {
+        final raw = await store.get('comparison', target);
+        if (raw != null && !priceSchemaKnown(raw)) {
+          throw StateError('Unsupported comparison version');
+        }
+        final merged = {...?raw, ...body};
+        if (commonUnitKey == null) merged.remove('commonUnit');
+        await LocalWrites.apply(store, [
+          (kind: 'comparison', id: target, body: merged),
+        ]);
+      });
     });
   }
+
+  bool bought(String productKey) {
+    final row = shopping
+        .where((r) => r.body['productKey'] == productKey)
+        .firstOrNull;
+    return row?.body['v'] == 1 && row?.body['bought'] == true;
+  }
+
+  Future<void> setBought(String productKey, bool bought) => _mutate(
+    () => LocalWrites.serial(store, () async {
+      final matching = (await store.list('shopping'))
+          .where((r) => r.body['productKey'] == productKey);
+      final old = matching.isEmpty ? null : matching.first;
+      if (old != null && old.body['v'] != 1) {
+        throw StateError('Unsupported list version');
+      }
+      final id = old?.id ?? store.newId();
+      await LocalWrites.apply(store, [
+        (
+          kind: 'shopping',
+          id: id,
+          body: {
+            ...?old?.body,
+            'v': 1,
+            'productKey': productKey,
+            'bought': bought,
+          },
+        ),
+      ]);
+    }),
+  );
 
   Future<void> _delete(String kind, String id) => _mutate(() async {
     _undos['$kind:$id'] = await LocalWrites.delete(store, kind, id);

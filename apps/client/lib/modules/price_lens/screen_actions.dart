@@ -32,13 +32,14 @@ extension _ScreenActions on _PriceLensScreenState {
           unitKey: option.unitKey,
           packageCount: option.packageCount,
           date: date,
+          productName: option.productName,
+          person: option.person,
         ),
       );
       _pendingMemoryIds.remove(option.id);
       if (mounted) {
-        NexBannerHost.of(
-          context,
-        )?.show(message: priceLensStrings(context, 'saved'));
+        NexBannerHost.of(context)
+            ?.show(message: priceLensStrings(context, 'saved'));
       }
     } catch (_) {
       if (mounted) lensWriteFailure(context);
@@ -47,8 +48,18 @@ extension _ScreenActions on _PriceLensScreenState {
     }
   }
 
-  void _reset() {
-    if (_writing) return;
+  Future<void> _reset() async {
+    if (_writing || !_scratchReady || _scratchFailed) return;
+    _paint(() => _writing = true);
+    final cleared = await _scratch.clear();
+    _paint(() => _writing = false);
+    if (!cleared) {
+      _scratch.resume();
+      if (mounted) lensWriteFailure(context);
+      return;
+    }
+    _scratch.resume();
+    if (!mounted) return;
     final previous = List<PriceOption>.of(options), oldUnit = commonUnitKey;
     _paint(() {
       options = [];
@@ -62,6 +73,7 @@ extension _ScreenActions on _PriceLensScreenState {
           _paint(() {
             options = previous;
             commonUnitKey = oldUnit;
+            _workspaceChanged();
           });
         }
       },
@@ -69,6 +81,7 @@ extension _ScreenActions on _PriceLensScreenState {
   }
 
   Future<void> _menu(String action) async {
+    if (_writing) return;
     try {
       switch (action) {
         case 'save':
@@ -82,16 +95,18 @@ extension _ScreenActions on _PriceLensScreenState {
           );
           _pendingComparisonId = null;
           if (mounted) {
-            NexBannerHost.of(
-              context,
-            )?.show(message: priceLensStrings(context, 'saved'));
+            NexBannerHost.of(context)
+                ?.show(message: priceLensStrings(context, 'saved'));
           }
         case 'memory':
           if (!mounted) return;
           await Navigator.push<void>(
             context,
             NexPageRoute<void>(
-              builder: (_) => LensMemoryPage(controller: controller),
+              builder: lensRouteBuilder(
+                context,
+                LensMemoryPage(controller: controller),
+              ),
             ),
           );
         case 'saved':
@@ -99,14 +114,18 @@ extension _ScreenActions on _PriceLensScreenState {
           await Navigator.push<void>(
             context,
             NexPageRoute<void>(
-              builder: (_) => LensSavedPage(
-                controller: controller,
-                hasCalculatorOffers: options.isNotEmpty,
-                onOpenUnit: (unit) => commonUnitKey = unit,
-                onOpen: (restored) => _paint(() {
-                  options = restored.take(4).toList();
-                  // Common unit restored by the paired callback.
-                }),
+              builder: lensRouteBuilder(
+                context,
+                LensSavedPage(
+                  controller: controller,
+                  hasCalculatorOffers: options.isNotEmpty,
+                  onOpenUnit: (unit) => commonUnitKey = unit,
+                  onOpen: (restored) => _paint(() {
+                    options = restored.take(4).toList();
+                    _workspaceChanged();
+                    // Common unit restored by the paired callback.
+                  }),
+                ),
               ),
             ),
           );

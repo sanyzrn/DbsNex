@@ -38,9 +38,9 @@ void _screenCases1() {
         unitKey: 'l',
       );
       expect(find.text('Cheapest per L'), findsOneWidget);
-      expect(find.text('Two 500ml · 100 IRR per L'), findsOneWidget);
-      expect(find.text('One litre · 120 IRR per L'), findsOneWidget);
-      expect(find.text('20 IRR more than the cheapest'), findsOneWidget);
+      expect(find.text('Two 500ml · 100 rials per L'), findsOneWidget);
+      expect(find.text('One litre · 120 rials per L'), findsOneWidget);
+      expect(find.text('20 rials more than the cheapest'), findsOneWidget);
       expect(find.text('Cheapest'), findsOneWidget);
       // The multi-pack card says what it holds; no paid/received line
       // was typed, so none is implied.
@@ -61,9 +61,9 @@ void _screenCases1() {
       );
       await addOption(tester, label: 'Bag 1kg', price: '115', quantity: '1');
       expect(find.text('Cheapest per kg'), findsOneWidget);
-      expect(find.text('Bag 750g · 120 IRR per kg'), findsOneWidget);
-      expect(find.text('Bag 1kg · 115 IRR per kg'), findsOneWidget);
-      expect(find.text('5 IRR more than the cheapest'), findsOneWidget);
+      expect(find.text('Bag 750g · 120 rials per kg'), findsOneWidget);
+      expect(find.text('Bag 1kg · 115 rials per kg'), findsOneWidget);
+      expect(find.text('5 rials more than the cheapest'), findsOneWidget);
       final smallestNote = find.textContaining(
         'The smallest package is not always the cheapest',
       );
@@ -86,8 +86,8 @@ void _screenCases1() {
       await tester.tap(find.byKey(const ValueKey('lens-common-g')));
       await tester.pumpAndSettle();
       expect(find.text('Cheapest per g'), findsOneWidget);
-      expect(find.text('Bag 750g · 0.12 IRR per g'), findsOneWidget);
-      expect(find.text('Bag 1kg · 0.115 IRR per g'), findsOneWidget);
+      expect(find.text('Bag 750g · 0.12 rials per g'), findsOneWidget);
+      expect(find.text('Bag 1kg · 0.115 rials per g'), findsOneWidget);
     });
 
     testWidgets('a 2+1 free offer is honestly cheaper per piece', (
@@ -111,8 +111,8 @@ void _screenCases1() {
         unitKey: 'piece',
       );
       expect(find.text('Cheapest per piece'), findsOneWidget);
-      expect(find.text('Three for two · 100 IRR per piece'), findsOneWidget);
-      expect(find.text('Single · 110 IRR per piece'), findsOneWidget);
+      expect(find.text('Three for two · 100 rials per piece'), findsOneWidget);
+      expect(find.text('Single · 110 rials per piece'), findsOneWidget);
       expect(find.textContaining('paid 2, received 3'), findsOneWidget);
     });
 
@@ -158,7 +158,7 @@ void _screenCases1() {
       // and fixed-discount fields do — the typed number is tomans.
       expect(
         tester.widget<TextField>(priceField()).decoration!.suffixText,
-        'Tomans',
+        'tomans',
       );
       await tester.enterText(find.byKey(const ValueKey('lens-label')), 'Rice');
       await tester.pump();
@@ -169,7 +169,7 @@ void _screenCases1() {
       await tester.tap(find.byKey(const ValueKey('lens-save')));
       await tester.pumpAndSettle();
       // 25 tomans = 250 rials.
-      expect(find.text('Total payable: 250 IRR'), findsOneWidget);
+      expect(find.text('Total payable: 250 rials'), findsOneWidget);
     });
 
     testWidgets('reset clears the offers and keeps the saved history', (
@@ -216,7 +216,7 @@ void _screenCases1() {
         unitKey: 'g',
       );
       await addOption(tester, label: 'Bag 1kg', price: '115', quantity: '1');
-      expect(find.text('Bag 750g · 120 IRR per kg'), findsOneWidget);
+      expect(find.text('Bag 750g · 120 rials per kg'), findsOneWidget);
 
       await tester.tap(find.text('Bag 750g'));
       await tester.pumpAndSettle();
@@ -225,11 +225,11 @@ void _screenCases1() {
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('lens-save')));
       await tester.pumpAndSettle();
-      expect(find.text('Bag 750g · 80 IRR per kg'), findsOneWidget);
-      expect(find.text('Bag 1kg · 115 IRR per kg'), findsOneWidget);
+      expect(find.text('Bag 750g · 80 rials per kg'), findsOneWidget);
+      expect(find.text('Bag 1kg · 115 rials per kg'), findsOneWidget);
       // The edited offer is now the cheapest.
       expect(
-        find.textContaining('35 IRR more than the cheapest'),
+        find.textContaining('35 rials more than the cheapest'),
         findsOneWidget,
       );
     });
@@ -271,10 +271,13 @@ void _screenCases1() {
         expect(find.text('Name the offer'), findsOneWidget);
         expect(find.text('New offer'), findsOneWidget); // still open
 
-        // Negative prices are refused; explicit free offers are supported.
-        await tester.enterText(priceField(), '-1');
+        // The shared amount field groups digits and removes non-money input.
+        await tester.enterText(priceField(), '12000');
         await tester.pump();
-        expect(find.text('Numbers only — no signs or letters'), findsOneWidget);
+        expect(
+          tester.widget<TextField>(priceField()).controller!.text,
+          '12,000',
+        );
         // A non-numeric quantity is named too (errors are live now).
         await tester.enterText(
           find.byKey(const ValueKey('lens-quantity')),
@@ -286,15 +289,13 @@ void _screenCases1() {
           findsAtLeast(1),
         );
 
-        // Leaving with unsaved work asks; discard closes it.
+        // In-module editors now retain their draft on Back.
         // The sheet has no × — it closes the way back does.
         await tester
             .state<NavigatorState>(find.byType(Navigator).first)
             .maybePop();
         await tester.pumpAndSettle();
-        expect(find.text('Discard this offer?'), findsOneWidget);
-        await tester.tap(find.text('Discard'));
-        await tester.pumpAndSettle();
+        expect(find.text('Discard this offer?'), findsNothing);
         expect(find.text('Add an offer to start comparing'), findsOneWidget);
       },
     );

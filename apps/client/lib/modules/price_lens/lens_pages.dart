@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'controller.dart';
-import 'money.dart';
+import 'money_render.dart';
+import 'privacy.dart';
 import 'options.dart';
 import 'price_lens_common.dart';
 import 'strings.dart';
-import 'comparison.dart';
 import 'lens_undo.dart';
 import 'history_status.dart';
 part 'lens_saved_page.dart';
@@ -97,7 +97,10 @@ class _LensMemoryPageState extends State<LensMemoryPage> {
     final persian = NexModuleStrings.persian(context);
     final memories = widget.controller.memories;
     return Scaffold(
-      appBar: NexAppBar(title: Text(s(context, 'memoryTitle'))),
+      appBar: NexAppBar(
+        title: Text(s(context, 'memoryTitle')),
+        actions: const [LensPrivacyButton()],
+      ),
       body: SafeArea(
         child: widget.controller.readFailed
             ? LensReadError(controller: widget.controller)
@@ -171,10 +174,7 @@ class _MemoryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = priceLensStrings;
-    final exponent = priceExponentOf(memory.currency);
-    final price =
-        '${formatMinorFraction(memory.exactPaid, exponent, persian: persian)} '
-        '${memory.currency}';
+    final price = lensMoney(context, memory.exactPaid, memory.currency);
     final line = s(context, 'memoryOf', {
       'label': memory.label,
       'price': price,
