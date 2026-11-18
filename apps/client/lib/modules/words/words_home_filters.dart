@@ -44,7 +44,7 @@ extension _HomeFilters on _WordsScreenState {
                   ),
                   const SizedBox(width: NexSpacing.xs + 2),
                 ],
-                if (_cards.any((card) => card.deckId.isEmpty))
+                if (_cards.any((card) => wordsCardDeck(_decks, card).isEmpty))
                   FilterChip(
                     key: const ValueKey('words-deck-chip-none'),
                     avatar: const Icon(Icons.folder_off_outlined, size: 16),

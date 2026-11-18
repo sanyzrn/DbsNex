@@ -121,7 +121,7 @@ mixin _WordsHomeLogic on State<WordsScreen>, WidgetsBindingObserver {
     }
     final deckFilter = _deckFilter;
     if (deckFilter != null) {
-      cards = cards.where((card) => card.deckId == deckFilter);
+      cards = cards.where((card) => wordsCardDeck(_decks, card) == deckFilter);
     }
     if (query.isNotEmpty) {
       cards = cards.where((card) {

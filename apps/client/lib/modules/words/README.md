@@ -51,6 +51,22 @@ review screens.
 | A13 | Saving, drafts, undo with its whole history, the duplicate question, the date repair, the reminder's wording | Audited and kept as they were; tests unchanged |
 | A14 | Pronunciation, a home-screen card and a review inside the notification | **Not done** — outside the module API; see *Platform requests* |
 
+## Maintainer review (2.8.4)
+
+Reviewed after merge; saved fields keep their meaning (a card without
+`deckId` is «no deck», a settings record without `goalPerDay` reads 10, and
+every write keeps unknown fields). Changes:
+
+- **Typed answers that a Persian reader would call right.** One sense of a
+  meaning is enough when the senses are separated by «؛», «;», «،», «,» or
+  «/», not only by new lines — «تاب‌آور» for «تاب‌آور؛ کسی که…»; a space and a
+  half-space are the same gap («می روم» = «می‌روم»); the Arabic «ى» reads as «ی».
+- **A word whose deck has gone is «no deck»** (`wordsCardDeck`): removed on
+  another phone, or named by an older draft, it no longer falls out of every
+  deck filter.
+- Persian wording: the typing mode is «نوشتن», a wrong answer says
+  «این نبود؛ پاسخ درست این است.»; the hint names half-spaces and senses.
+
 ## What it does
 
 An offline vocabulary box that now also teaches: keep the words you meet,

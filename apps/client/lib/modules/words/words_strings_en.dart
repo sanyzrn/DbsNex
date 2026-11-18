@@ -189,7 +189,8 @@ const Map<String, String> wordsStringsEn = {
   'answerLabel': 'Your answer',
   'checkAnswer': 'Check',
   'forgivingHint':
-      'Case, spacing and the Persian forms of ی and ک are forgiven.',
+      'Case, spaces and half-spaces and the Persian forms of ی and ک are '
+      'forgiven, and one of the meanings is enough.',
   'answerRight': 'Right.',
   'answerWrong': 'Not quite — here is the answer.',
   'answerYouWrote': 'You wrote: {text}',

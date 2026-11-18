@@ -32,7 +32,7 @@ String wordsNormalize(String text) {
       // Harakat, Quranic marks and superscript alef.
       case >= 0x064B && <= 0x065F || 0x0670 || (>= 0x06D6 && <= 0x06ED):
         continue;
-      case 0x064A || 0x0626:
+      case 0x064A || 0x0626 || 0x0649:
         buffer.write('ی');
       case 0x0643:
         buffer.write('ک');
@@ -60,15 +60,23 @@ String wordsNormalize(String text) {
 }
 
 /// Whether [typed] is one of the answers [expected] holds. A meaning may
-/// carry several senses on their own lines, and any of them is right.
+/// carry several senses — on their own lines, or after «;», «؛», «,», «،»
+/// or «/» — and the whole meaning or any one of them is right (2.8.4: «تاب‌آور»
+/// for «تاب‌آور؛ کسی که…»). Spaces and half-spaces count as the same gap,
+/// so «می روم» matches «می‌روم».
 bool wordsAnswerMatches(String typed, String expected) {
-  final answer = wordsNormalize(typed);
+  final answer = _gapless(wordsNormalize(typed));
   if (answer.isEmpty) return false;
-  for (final line in expected.split(RegExp(r'[\r\n]+'))) {
-    if (wordsNormalize(line) == answer) return true;
+  if (_gapless(wordsNormalize(expected)) == answer) return true;
+  for (final sense in expected.split(_senseBreak)) {
+    if (_gapless(wordsNormalize(sense)) == answer) return true;
   }
   return false;
 }
+
+final _senseBreak = RegExp(r'[\r\n;؛,،/]+');
+
+String _gapless(String text) => text.replaceAll(' ', '');
 
 /// The side of [card] that is asked for: the meaning, or the word itself
 /// when the meaning is shown first.

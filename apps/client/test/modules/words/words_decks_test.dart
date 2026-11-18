@@ -102,6 +102,10 @@ void main() {
       expect(wordsDeckName([reading], reading.id), 'Reading');
       expect(wordsDeckName([reading], 'gone'), isNull);
       expect(wordsDeckName([reading], ''), isNull);
+      // A word naming a deck that has gone reads as «no deck» (2.8.4), so
+      // the «no deck» chip still finds it.
+      expect(wordsCardDeck([reading], saved!.copyWith(deckId: 'gone')), '');
+      expect(wordsCardDeck([reading], saved), reading.id);
       expect(
         sortDecks([
           const WordsDeck(id: 'b', name: 'travel'),

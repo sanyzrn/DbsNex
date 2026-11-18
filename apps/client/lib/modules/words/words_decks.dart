@@ -56,6 +56,13 @@ String? wordsDeckName(List<WordsDeck> decks, String id) {
   return null;
 }
 
+/// The deck [card] sits in, as the screens see it: its `deckId` when that
+/// deck exists, and «no deck» when it is empty or names a deck that has
+/// gone (removed on another phone, or named by an older draft) — such a
+/// word must never fall out of every deck filter.
+String wordsCardDeck(List<WordsDeck> decks, WordCard card) =>
+    wordsDeckName(decks, card.deckId) == null ? '' : card.deckId;
+
 /// How many of [cards] sit in the deck [id] — the «words without a deck»
 /// chip counts an empty id the same way.
 int wordsInDeck(Iterable<WordCard> cards, String id) =>

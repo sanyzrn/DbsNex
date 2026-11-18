@@ -5,6 +5,7 @@ import 'package:nex_client/modules/words/words_dates.dart';
 import 'package:nex_client/modules/words/words_scheduler.dart';
 import 'package:nex_client/modules/words/words_store.dart';
 import 'package:nex_client/modules/words/words_batch_parse.dart';
+
 import '../../support/nex_harness.dart';
 
 void main() {
@@ -127,10 +128,8 @@ void main() {
         expect(model.lapses, 0);
       }
       expect(
-        WordsSettings.fromRecord({
-          'newPerDay': -5,
-          'sessionLimit': -1,
-        }).newPerDay,
+        WordsSettings.fromRecord({'newPerDay': -5, 'sessionLimit': -1})
+            .newPerDay,
         10,
       );
       expect(
@@ -251,12 +250,10 @@ void main() {
       final store = NexModuleStore(harness.services, 'words');
       final original = card('x');
       await store.put('card', 'x', {...original.toRecord(), 'future': true});
-      final first = await WordsRepository(
-        store,
-      ).answer(original, WordsGrade.good, 'event');
-      final retry = await WordsRepository(
-        store,
-      ).answer(original, WordsGrade.easy, 'event');
+      final first = await WordsRepository(store)
+          .answer(original, WordsGrade.good, 'event');
+      final retry = await WordsRepository(store)
+          .answer(original, WordsGrade.easy, 'event');
       expect(first.status, WordsAnswerStatus.saved);
       expect(retry.status, WordsAnswerStatus.saved);
       final saved = await store.get('card', 'x');

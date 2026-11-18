@@ -65,6 +65,26 @@ void main() {
       expect(wordsAnswerMatches('luck', meaning), isFalse);
     });
 
+    test(
+      'one sense of a meaning separated by punctuation is right (2.8.4)',
+      () {
+        const meaning = 'تاب‌آور؛ کسی که پس از دشواری توان دوباره پیدا می‌کند';
+        expect(wordsAnswerMatches('تاب آور', meaning), isTrue);
+        expect(wordsAnswerMatches(meaning, meaning), isTrue);
+        expect(wordsAnswerMatches('happy', 'glad, happy / cheerful'), isTrue);
+        expect(
+          wordsAnswerMatches('cheerful', 'glad, happy / cheerful'),
+          isTrue,
+        );
+        expect(wordsAnswerMatches('sad', 'glad, happy / cheerful'), isFalse);
+      },
+    );
+
+    test('a space and a half-space are the same gap (2.8.4)', () {
+      expect(wordsAnswerMatches('می روم', 'می‌روم'), isTrue);
+      expect(wordsAnswerMatches('مصطفى', 'مصطفی'), isTrue);
+    });
+
     test('an empty answer is never right', () {
       expect(wordsAnswerMatches('   ', 'able to recover'), isFalse);
       expect(wordsAnswerMatches('', ''), isFalse);

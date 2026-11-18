@@ -176,16 +176,15 @@ const Map<String, String> wordsStringsFa = {
   // ---------------------------------------------------------- practice
   'practiceMode': 'روش پرسیدن کارت‌ها',
   'modeFlashcard': 'کارت',
-  'modeType': 'تایپ',
+  'modeType': 'نوشتن',
   'modeChoose': 'انتخاب',
   'askForMeaning': 'معنایش چیست؟',
   'askForWord': 'این کدام واژه است؟',
   'answerLabel': 'پاسخ شما',
   'checkAnswer': 'بررسی',
-  'forgivingHint':
-      'بزرگی و کوچکی حرف‌ها، فاصله‌ها و شکل عربی یا فارسی ی و ک مهم نیستند.',
+  'forgivingHint': 'بزرگی و کوچکی حرف‌ها، فاصله و نیم‌فاصله و شکل عربی یا فارسی ی و ک مهم نیستند؛ یکی از معناها هم کافی است.',
   'answerRight': 'درست بود.',
-  'answerWrong': 'کاملاً نه — پاسخ این است.',
+  'answerWrong': 'این نبود؛ پاسخ درست این است.',
   'answerYouWrote': 'نوشتید: {text}',
 
   // ---------------------------------------------------------- progress
