@@ -35,6 +35,7 @@ extension _TimelineDesktop on TimelineScreenState {
                         key: ValueKey('menu-${note.id}'),
                         entriesBuilder: (menuContext, width) =>
                             _holdEntries(note, menuContext, width),
+                        onHold: _selecting ? () => _pickNote(note) : null,
                         child: NexDesktopNoteCard(
                           note: note,
                           strings: strings,

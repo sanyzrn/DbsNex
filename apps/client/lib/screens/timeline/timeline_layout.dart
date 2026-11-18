@@ -56,36 +56,41 @@ extension _TimelineLayout on TimelineScreenState {
                   ),
                   if (searchInBar)
                     Expanded(
-                      child: NexSearchTapRegion(
-                        searching: _searching,
-                        controller: _search.query,
-                        focusNode: _searchFocus,
-                        onClear: _exitSearch,
-                        child: NexSearchPill(
-                          anchor: _searchAnchor,
+                      child: _quietWhilePicking(
+                        NexSearchTapRegion(
+                          searching: _searching,
                           controller: _search.query,
                           focusNode: _searchFocus,
-                          searching: _searching,
-                          onTap: () => unawaited(revealSearch()),
-                          onChanged: (_) => _search.schedule(),
-                          onSubmitted: (_) => unawaited(_search.run()),
                           onClear: _exitSearch,
-                          filterCount: _search.activeFilterCount,
-                          onShowFilters: () => unawaited(
-                            nexShowSearchFilterSheet(context, search: _search),
+                          child: NexSearchPill(
+                            anchor: _searchAnchor,
+                            controller: _search.query,
+                            focusNode: _searchFocus,
+                            searching: _searching,
+                            onTap: () => unawaited(revealSearch()),
+                            onChanged: (_) => _search.schedule(),
+                            onSubmitted: (_) => unawaited(_search.run()),
+                            onClear: _exitSearch,
+                            filterCount: _search.activeFilterCount,
+                            onShowFilters: () => unawaited(
+                              nexShowSearchFilterSheet(
+                                context,
+                                search: _search,
+                              ),
+                            ),
+                            // With no tag row to head, the timeline's own
+                            // filter lives inside the field's end.
+                            resting: showTagRow
+                                ? null
+                                : _FilterButton(
+                                    inField: true,
+                                    active: otherFilters,
+                                    onPressed: () {
+                                      if (_claimedByOverlay()) return;
+                                      unawaited(_pickFilters());
+                                    },
+                                  ),
                           ),
-                          // With no tag row to head, the timeline's own
-                          // filter lives inside the field's end.
-                          resting: showTagRow
-                              ? null
-                              : _FilterButton(
-                                  inField: true,
-                                  active: otherFilters,
-                                  onPressed: () {
-                                    if (_claimedByOverlay()) return;
-                                    unawaited(_pickFilters());
-                                  },
-                                ),
                         ),
                       ),
                     ),
@@ -117,7 +122,8 @@ extension _TimelineLayout on TimelineScreenState {
             IconButton(
               tooltip: l10n.search,
               icon: const Icon(Icons.search),
-              onPressed: () => unawaited(revealSearch()),
+              // Not in the middle of picking notes (2.8.6).
+              onPressed: _selecting ? null : () => unawaited(revealSearch()),
             ),
           // Not while searching: the layout is the home screen's, and a
           // sheet over search results changing what is above the notes
@@ -129,7 +135,7 @@ extension _TimelineLayout on TimelineScreenState {
               // two identical icons on one screen meaning two different
               // things is worse than either.
               icon: const Icon(Icons.dashboard_customize_outlined),
-              onPressed: () => unawaited(_openHomeLayout()),
+              onPressed: _selecting ? null : () => unawaited(_openHomeLayout()),
             ),
           // The library and the gear used to be here. They are the two things
           // on this screen somebody reaches for with a thumb rather than with
@@ -251,28 +257,33 @@ extension _TimelineLayout on TimelineScreenState {
                                 key: const ValueKey('timeline-header'),
                                 child: NexTapGuarded(
                                   controller: _guard,
-                                  child: AnimatedSize(
-                                    // The token itself, not `NexMotion.of`:
-                                    // at zero an AnimatedSize ticks inside its
-                                    // own layout, which is an assertion.
-                                    duration: NexMotion.slow,
-                                    curve: NexMotion.curve,
-                                    alignment: Alignment.topCenter,
-                                    child: _searching
-                                        ? const SizedBox(width: double.infinity)
-                                        : desktop
-                                        ? Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal:
-                                                  _desktopGutter -
-                                                  NexSpacing.md,
+                                  child: _quietWhilePicking(
+                                    AnimatedSize(
+                                      // The token itself, not `NexMotion.of`:
+                                      // at zero an AnimatedSize ticks inside its
+                                      // own layout, which is an assertion.
+                                      duration: NexMotion.slow,
+                                      curve: NexMotion.curve,
+                                      alignment: Alignment.topCenter,
+                                      child: _searching
+                                          ? const SizedBox(
+                                              width: double.infinity,
+                                            )
+                                          : desktop
+                                          ? Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal:
+                                                        _desktopGutter -
+                                                        NexSpacing.md,
+                                                  ),
+                                              child: _header(l10n),
+                                            )
+                                          : _HeroRecede(
+                                              scroll: _scroll,
+                                              child: _header(l10n),
                                             ),
-                                            child: _header(l10n),
-                                          )
-                                        : _HeroRecede(
-                                            scroll: _scroll,
-                                            child: _header(l10n),
-                                          ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -340,9 +351,12 @@ extension _TimelineLayout on TimelineScreenState {
                                     // The brief listens to the model for itself:
                                     // a commitments-only change repaints the
                                     // card without rebuilding every note with it.
-                                    child: ListenableBuilder(
-                                      listenable: _model,
-                                      builder: (context, _) => _briefCard(l10n),
+                                    child: _quietWhilePicking(
+                                      ListenableBuilder(
+                                        listenable: _model,
+                                        builder: (context, _) =>
+                                            _briefCard(l10n),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -353,10 +367,12 @@ extension _TimelineLayout on TimelineScreenState {
                               // for the reason the headers above are.
                               SliverToBoxAdapter(
                                 key: const ValueKey('pinned-tools'),
-                                child: PinnedTools(
-                                  services: widget.services,
-                                  preferences: widget.preferences,
-                                  hidden: _searching,
+                                child: _quietWhilePicking(
+                                  PinnedTools(
+                                    services: widget.services,
+                                    preferences: widget.preferences,
+                                    hidden: _searching,
+                                  ),
                                 ),
                               ),
                               // What the modules have falling due (2.8.4).
@@ -418,7 +434,9 @@ extension _TimelineLayout on TimelineScreenState {
                                         NexSpacing.sm,
                                     child: NexTapGuarded(
                                       controller: _guard,
-                                      child: _notesToolbar(l10n, otherFilters),
+                                      child: _quietWhilePicking(
+                                        _notesToolbar(l10n, otherFilters),
+                                      ),
                                     ),
                                   ),
                                 ),

@@ -90,7 +90,7 @@ class _ModulePeekState extends State<ModulePeek> {
           today.subtract(const Duration(days: 60)),
           today.add(ModulePeek.ahead),
         ))
-          if (!due.done) due,
+          if (!due.isOver(today)) due,
       ]..sort((a, b) => a.at.compareTo(b.at));
     } catch (_) {}
     return (glance, dues);

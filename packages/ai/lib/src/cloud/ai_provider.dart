@@ -2274,6 +2274,11 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       'Never include a name or any placeholder for one. No emoji, no quotes, '
       'no full stop, no comma at the end, never a question, never advice, '
       'never a summary. Use ordinary words and write in one language only. '
+      // A vocative ran straight into the rest (2.8.6): «سلام کله‌گنجشکیِ
+      // ایده‌پرداز این‌قدر سرت شلوغه» — a comma belongs after the nickname.
+      'Punctuate inside the phrase as a careful writer would: when it opens '
+      'by calling them something — a greeting or a playful nickname — put a '
+      'comma after that before the rest. '
       // The complaint that started this (2.4.0): the Persian greetings read
       // like translations. Friends do not greet each other in written,
       // formal Persian.
@@ -2297,7 +2302,7 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
       maxTokens: unlimitedSummary ? null : 80,
       timeout: timeout,
     );
-    final phrase = _plausible(_clamped(cleanDecorativeReply(reply), 8));
+    final phrase = _plausible(greetingPhrase(cleanDecorativeReply(reply)));
     return target.acceptsGreeting(phrase) ? phrase : null;
   }, purpose: DisclosurePurpose.greeting);
 
@@ -2962,17 +2967,28 @@ class CloudAIAdapter implements AIAdapter, QueryEmbeddingAdapter {
   ///
   /// Returns null for an empty reply so callers can treat "the model said
   /// nothing" and "there is no provider" the same way.
-  static String? _clamped(String? reply, int maxWords) {
-    final text = reply?.trim().replaceAll(RegExp(r'\s+'), ' ');
+  /// The greeting as the model wrote it, whole, or nothing (2.8.6).
+  ///
+  /// It used to be cut at eight words with an ellipsis, and the name went on
+  /// after the cut: «… سرمون سوت…، سعید». A greeting is never shown broken
+  /// off: a phrase a little over the asked length is kept as it is, one at a
+  /// natural pause (a comma) is kept up to it, and anything longer is not a
+  /// greeting — the app's own line stands in.
+  @visibleForTesting
+  static String? greetingPhrase(String? reply, {int maxWords = 12}) {
+    final text = reply
+        ?.trim()
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'[\s,،.…]+$'), '');
     if (text == null || text.isEmpty) return null;
-    final words = text.split(' ');
-    if (words.length <= maxWords) return text;
-    final cut = words.take(maxWords).join(' ');
-    // Prefer ending where the model ended a sentence, rather than mid-clause
-    // with an ellipsis — but only if that does not throw most of it away.
-    final stop = cut.lastIndexOf(RegExp(r'[.!?…؟۔]'));
-    if (stop > cut.length ~/ 2) return cut.substring(0, stop + 1);
-    return '$cut…';
+    if (text.split(' ').length <= maxWords) return text;
+    final pause = text.lastIndexOf(RegExp('[,،]'));
+    if (pause > 0) {
+      final head = text.substring(0, pause).trim();
+      final count = head.split(' ').length;
+      if (count >= 2 && count <= maxWords) return head;
+    }
+    return null;
   }
 
   /// Drops a reply that is not a sentence at all.

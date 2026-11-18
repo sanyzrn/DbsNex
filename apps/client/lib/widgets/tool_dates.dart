@@ -12,6 +12,7 @@ import '../modules/nex_stored_module.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'module_peek.dart';
+import 'nex_fold_pill.dart';
 
 /// One line of the home screen's dates from your tools.
 class NexToolDate {
@@ -21,6 +22,7 @@ class NexToolDate {
     required this.title,
     required this.at,
     this.count = 1,
+    this.grouped = false,
   });
 
   /// Stable and unique on the card: the due item's id, or the module's for
@@ -35,6 +37,11 @@ class NexToolDate {
 
   /// How many private items of the module this line stands for.
   final int count;
+
+  /// A module's private items under its name: said with how many there
+  /// are even when it is one (2.8.6) — the name alone read as the module
+  /// itself being due.
+  final bool grouped;
 }
 
 /// What the home screen says about the modules' dates (2.8.4): what is
@@ -42,7 +49,9 @@ class NexToolDate {
 /// on, through each module's own `duesBetween`. Pure, so the rules are
 /// tested as written.
 ///
-/// - Done items are left out; overdue ones are looked for up to 60 days back.
+/// - Done items are left out, and so is a day that has gone by (a birthday,
+///   a warranty's end: [ModuleDue.passes]); a task still to do is looked
+///   for up to 60 days back and said to be late.
 /// - A private item (money, health) never shows its title or amount: a
 ///   module's private items share one line under the module's name, at the
 ///   earliest of their days, with how many there are.
@@ -58,7 +67,7 @@ List<NexToolDate> nexToolDates(
   for (final MapEntry(key: module, value: dues) in byModule.entries) {
     final open = [
       for (final due in dues)
-        if (!due.done && due.at.isBefore(end)) due,
+        if (!due.isOver(today) && due.at.isBefore(end)) due,
     ];
     final private = open.where((d) => d.private).toList()
       ..sort((a, b) => a.at.compareTo(b.at));
@@ -70,6 +79,7 @@ List<NexToolDate> nexToolDates(
           title: module.title(l10n),
           at: private.first.at,
           count: private.length,
+          grouped: true,
         ),
       );
     }
@@ -113,7 +123,11 @@ class NexToolDates extends StatefulWidget {
   final bool hidden;
   final DateTime Function()? clock;
 
-  static const limit = 4;
+  /// Lines shown while the card is folded, like the recap's two (2.8.6).
+  static const folded = 2;
+
+  /// Lines shown open; the rest are counted.
+  static const limit = 10;
 
   @override
   State<NexToolDates> createState() => _NexToolDatesState();
@@ -124,6 +138,7 @@ class _NexToolDatesState extends State<NexToolDates> {
   StreamSubscription<String>? _changes;
   String _modulesOn = '';
   int _loads = 0;
+  late bool _opened = widget.preferences.toolDatesOpen;
 
   DateTime get _now => widget.clock?.call() ?? DateTime.now();
 
@@ -207,6 +222,12 @@ class _NexToolDatesState extends State<NexToolDates> {
     );
   }
 
+  void _toggle() {
+    nexTick();
+    setState(() => _opened = !_opened);
+    unawaited(widget.preferences.setToolDatesOpen(_opened));
+  }
+
   String _when(AppLocalizations l10n, DateTime at, DateTime today) =>
       nexToolDateWhen(l10n, at, today);
 
@@ -244,7 +265,11 @@ class _NexToolDatesState extends State<NexToolDates> {
   ) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final shown = lines.take(NexToolDates.limit).toList();
+    final folds = lines.length > NexToolDates.folded;
+    final open = _opened && folds;
+    final shown = lines
+        .take(open ? NexToolDates.limit : NexToolDates.folded)
+        .toList();
     final more = lines.length - shown.length;
     return Semantics(
       container: true,
@@ -261,33 +286,55 @@ class _NexToolDatesState extends State<NexToolDates> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.event_note_outlined,
-                      size: 18,
-                      color: scheme.primary,
-                    ),
-                    const SizedBox(width: NexSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        l10n.toolDatesTitle,
-                        style: theme.textTheme.titleSmall,
+              InkWell(
+                key: const ValueKey('tool-dates-fold'),
+                onTap: folds ? _toggle : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.md,
+                    vertical: NexSpacing.xs,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.event_note_outlined,
+                        size: 18,
+                        color: scheme.primary,
                       ),
-                    ),
-                    if (more > 0)
-                      Text(
-                        l10n.toolDatesMore(more),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.toolDatesTitle,
+                          style: theme.textTheme.titleSmall,
                         ),
                       ),
-                  ],
+                      if (folds)
+                        NexFoldPill(
+                          id: 'tool-dates',
+                          collapsed: !open,
+                          more: open
+                              ? null
+                              : l10n.toolDatesMore(lines.length - shown.length),
+                          style: theme.textTheme.labelMedium,
+                        ),
+                    ],
+                  ),
                 ),
               ),
               for (final line in shown) _row(context, l10n, line, today),
+              if (open && more > 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.md,
+                    vertical: NexSpacing.xs,
+                  ),
+                  child: Text(
+                    l10n.toolDatesMore(more),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -319,7 +366,7 @@ class _NexToolDatesState extends State<NexToolDates> {
             const SizedBox(width: NexSpacing.sm),
             Expanded(
               child: Text(
-                line.count > 1
+                line.grouped || line.count > 1
                     ? l10n.toolDatesCount(line.title, line.count)
                     : line.title,
                 maxLines: 1,

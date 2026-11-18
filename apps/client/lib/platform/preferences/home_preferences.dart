@@ -156,6 +156,14 @@ mixin _HomePreferences on _PreferencesStore {
   Future<void> setShowToolDates(bool value) =>
       _setHomePart('tool_dates', value);
 
+  /// Whether the dates card is open to every line (2.8.6) rather than its
+  /// nearest two. Remembered quietly: folding a card is not a setting that
+  /// should rebuild the app.
+  bool get toolDatesOpen => _prefs.getBool('home.tool_dates_open') ?? false;
+
+  Future<void> setToolDatesOpen(bool value) =>
+      _prefs.setBool('home.tool_dates_open', value);
+
   /// Whether the home screen shows a tip now and then (2.8.4). On by
   /// default; the schedule keeps them rare.
   bool get showTips => _prefs.getBool('home.tips') ?? true;

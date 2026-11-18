@@ -389,6 +389,27 @@ void main() {
         );
       });
 
+      test('a greeting is never cut off with an ellipsis (2.8.6)', () {
+        expect(
+          CloudAIAdapter.greetingPhrase(
+            'سلام کله‌گنجشکیِ ایده‌پرداز، این‌قدر سرت شلوغه سرمون سوت کشید',
+          ),
+          'سلام کله‌گنجشکیِ ایده‌پرداز، این‌قدر سرت شلوغه سرمون سوت کشید',
+        );
+        expect(
+          CloudAIAdapter.greetingPhrase('Good morning, friend.'),
+          'Good morning, friend',
+        );
+        // Far too long: up to its last pause, or nothing at all.
+        final long = List.filled(14, 'word').join(' ');
+        expect(CloudAIAdapter.greetingPhrase(long), isNull);
+        expect(
+          CloudAIAdapter.greetingPhrase('Hey there sleepy head, $long'),
+          'Hey there sleepy head',
+        );
+        expect(adapterReplying(long).headline('a note'), completion(isNull));
+      });
+
       test('a stuck decoder is refused', () {
         expect(
           adapterReplying('The morning quiet ᅳᅳᅳᅳᅳ').headline('a note'),

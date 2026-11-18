@@ -35,6 +35,7 @@ class OccasionsShared {
                 title: occasion.title,
                 kind: occasion.kind.name,
                 private: occasion.kind == OccasionKind.memorial,
+                passes: true,
               ),
     ]..sort((a, b) => a.at.compareTo(b.at));
   }

@@ -6790,7 +6790,7 @@ class AppLocalizationsFa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$countString روز گذشته',
+      other: '$countString روز عقب افتاده',
     );
     return '$_temp0';
   }

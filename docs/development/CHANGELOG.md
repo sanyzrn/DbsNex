@@ -34,6 +34,25 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.6 — selection lock, dates card fold, whole greetings
+
+- Selection: `NoteContextMenu.onHold` (a hold picks while picking, list,
+  grid and desktop); `_pickShield` routes every touch on a card to pick and
+  keeps its inner controls (voice play, link, checklist) inert;
+  `_quietWhilePicking` dims and disables the header, recap, pinned tools
+  and filter row; search and Home layout buttons and a heading's Ask,
+  Delete and Move wait. Test in `bulk_select_test.dart`.
+- Dates card: `ModuleDue.passes` / `isOver(today)` — Occasions and the
+  warranty end are days, not tasks, and leave once gone (card, quick view,
+  assistant). The card folds to two lines with the recap's pill, now the
+  shared `NexFoldPill` (`widgets/nex_fold_pill.dart`); state in
+  `home.tool_dates_open`. A private group always shows its count.
+  Persian «N روز عقب افتاده».
+- Greeting: `CloudAIAdapter.greetingPhrase` replaces the 8-word clamp with
+  an ellipsis — whole up to 12 words, else up to its last comma, else none;
+  the prompt asks for a comma after an opening vocative; a cached greeting
+  ending in «…» is not shown.
+
 ### 2.8.5 — modules at a glance, the quick view, the assistant and tools
 
 - Kit: `ModuleGlance` / `ModuleGlanceFact`, `nexDueWhen`, `nexTomanText`;

@@ -53,6 +53,84 @@ void main() {
     expect(lines.first.at, DateTime(2026, 11, 15));
   });
 
+  test(
+    'a birthday that has gone by is not late; a cheque still is (2.8.6)',
+    () {
+      final occasions = nexModulesById['occasions']!;
+      final cheques = nexModulesById['cheques']!;
+      ModuleDue day(String id, DateTime at) => ModuleDue(
+        id: id,
+        recordKind: 'occasion',
+        recordId: id,
+        at: at,
+        title: 'Sara',
+        kind: 'birthday',
+        passes: true,
+      );
+      final lines = nexToolDates(
+        {
+          occasions: [
+            day('gone', DateTime(2026, 11, 1)),
+            day('today', DateTime(2026, 11, 18)),
+          ],
+          cheques: [due('late', DateTime(2026, 11, 10), private: true)],
+        },
+        l10n,
+        now,
+      );
+      expect(lines.map((l) => l.id), ['private:cheques', 'occasions:today']);
+      // One private item still says it is one, under the module's name.
+      expect(lines.first.grouped, isTrue);
+      expect(lines.first.count, 1);
+    },
+  );
+
+  testWidgets('the card shows the nearest two and folds open to the rest', (
+    tester,
+  ) async {
+    final h = await NexTestHarness.create(name: 'tool_dates_fold_');
+    addTearDown(h.dispose);
+    await h.preferences.setModuleOn('maintenance', true);
+    final soon = DateTime.now().add(const Duration(days: 3));
+    final day = DateTime(soon.year, soon.month, soon.day).toIso8601String();
+    await tester.runAsync(() async {
+      final store = NexModuleStore(h.services, 'maintenance');
+      for (final name in ['Pride', 'Peugeot']) {
+        await store.put('asset', name, {
+          'nickname': name,
+          'type': 'car',
+          'meterKind': 'none',
+          'insuranceExpiresAt': day,
+          'inspectionExpiresAt': day,
+          'schema': 2,
+        });
+      }
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NexToolDates(services: h.services, preferences: h.preferences),
+        ),
+      ),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('in 3 days'), findsNWidgets(2));
+    expect(find.text('+2 more'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('tool-dates-fold')));
+    await tester.pumpAndSettle();
+    expect(find.text('in 3 days'), findsNWidgets(4));
+    expect(h.preferences.toolDatesOpen, isTrue);
+    await tester.tap(find.byKey(const ValueKey('tool-dates-fold')));
+    await tester.pumpAndSettle();
+    expect(find.text('in 3 days'), findsNWidgets(2));
+  });
+
   testWidgets('a car whose insurance ends this week is on the home card, '
       'and the switch in Home layout takes it away', (tester) async {
     final h = await NexTestHarness.create(name: 'tool_dates_');

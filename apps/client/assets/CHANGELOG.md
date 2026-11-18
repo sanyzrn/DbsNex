@@ -4,6 +4,12 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.6
+
+- **Picking notes stays on the notes.** While several notes are picked, holding another card picks it too instead of opening its menu, and nothing else on the card or the home screen acts in the middle of the choice — a recording's play button, a link, a checklist, the filters, the pinned tools and the recap wait, dimmed, until you finish.
+- **A tidier dates card.** The dates from your tools now fold like the recap: the nearest two, with an arrow to open the rest, and it remembers how you left it. A birthday or an occasion no longer lingers as "17 days late" — it leaves once its day has gone — while a cheque still to settle stays, marked late. A money or health line now says how many items it stands for.
+- **Greetings in one piece.** The greeting at the top is no longer cut off with "…" before your name, and a playful opening gets its comma.
+
 ## v2.8.5
 
 - **Pinned tools tell you what they hold.** Instead of "open to view", each pinned module now shows its own news: the next cheque and when, where the car is parked and the time left, today's habits, the words waiting, the next dose, this month's spending, the days since you quit. Money tools never show an amount there.

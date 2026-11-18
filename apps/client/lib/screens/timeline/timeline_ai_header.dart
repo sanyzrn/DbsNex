@@ -407,8 +407,13 @@ extension _TimelineAiHeader on TimelineScreenState {
         },
       );
       if (mounted && language == _headlineLanguage) {
+        // A greeting kept from before 2.8.6 may have been cut off with an
+        // ellipsis; the app's own line stands in for it rather than a phrase
+        // broken off before the name.
+        final clean = CloudAIAdapter.cleanDecorativeReply(text);
         _rebuild(
-          () => _aiHeadlineText = CloudAIAdapter.cleanDecorativeReply(text),
+          () => _aiHeadlineText =
+              clean != null && clean.trimRight().endsWith('…') ? null : clean,
         );
       }
     } finally {

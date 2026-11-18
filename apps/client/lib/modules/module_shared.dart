@@ -51,6 +51,7 @@ class ModuleDue {
     this.amountRial,
     this.done = false,
     this.private = false,
+    this.passes = false,
   });
 
   /// Stable, so the same item is the same item next time.
@@ -77,6 +78,16 @@ class ModuleDue {
 
   /// Health or money detail, shown only discreetly.
   final bool private;
+
+  /// A day rather than a task (2.8.6): a birthday or a warranty's end is
+  /// over once it has gone by, never «17 days late» — nothing is left to do.
+  final bool passes;
+
+  /// Whether nothing is left to show for it on [today]: done, or a day
+  /// that has gone by.
+  bool isOver(DateTime today) =>
+      done ||
+      (passes && at.isBefore(DateTime(today.year, today.month, today.day)));
 }
 
 /// One line about a record, in the person's own words.

@@ -548,19 +548,25 @@ extension _TimelineBody on TimelineScreenState {
                       child: NoteContextMenu(
                         entriesBuilder: (menuContext, width) =>
                             _holdEntries(note, menuContext, width),
-                        child: NoteCard(
-                          note: note,
-                          strings: cardStrings,
-                          // A recording plays from its card (2.8.2).
-                          previewOverride: _cardPreview(note, cardStrings),
-                          onTap: () => _tapNote(note),
-                          onLeadingTap: () => _pickNote(note),
-                          selected: _selecting
-                              ? _selected.contains(note.id)
-                              : null,
-                          expanded: widget.preferences.isNoteExpanded(note.id),
-                          ringing: widget.services.ringing.value.contains(
-                            note.id,
+                        onHold: _selecting ? () => _pickNote(note) : null,
+                        child: _pickShield(
+                          note,
+                          NoteCard(
+                            note: note,
+                            strings: cardStrings,
+                            // A recording plays from its card (2.8.2).
+                            previewOverride: _cardPreview(note, cardStrings),
+                            onTap: () => _tapNote(note),
+                            onLeadingTap: () => _pickNote(note),
+                            selected: _selecting
+                                ? _selected.contains(note.id)
+                                : null,
+                            expanded: widget.preferences.isNoteExpanded(
+                              note.id,
+                            ),
+                            ringing: widget.services.ringing.value.contains(
+                              note.id,
+                            ),
                           ),
                         ),
                       ),
