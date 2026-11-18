@@ -257,10 +257,7 @@ void main() {
       title: 't',
       text: 'b',
     );
-    expect(
-      once(start),
-      isNot(once(start.add(const Duration(minutes: 1)))),
-    );
+    expect(once(start), isNot(once(start.add(const Duration(minutes: 1)))));
     // Exactness is part of the alarm: a permission granted between sweeps
     // re-arms, rather than leaving a quieter alarm in place.
     expect(

@@ -59,13 +59,18 @@ void main() {
     expect(page1.length, 10);
     expect(page2.length, 10);
     expect(
-      page1.map((n) => n.id).toSet().intersection(page2.map((n) => n.id).toSet()),
+      page1
+          .map((n) => n.id)
+          .toSet()
+          .intersection(page2.map((n) => n.id).toSet()),
       isEmpty,
       reason: 'two cached pages of the same query are two answers',
     );
     // And a third read of the first page is still the first page.
-    expect(repo.listTimeline(limit: 10, offset: 0).map((n) => n.id),
-        page1.map((n) => n.id));
+    expect(
+      repo.listTimeline(limit: 10, offset: 0).map((n) => n.id),
+      page1.map((n) => n.id),
+    );
   });
 
   test('the bound on the cache is real', () {
@@ -88,7 +93,9 @@ void main() {
     // the upsert both went through the same cached statements.
     repo.updateContent('searchable', 'the fable of the search row');
     expect(
-      repo.search(SearchFilters(query: 'fable')).where((n) => n.id == 'searchable'),
+      repo
+          .search(SearchFilters(query: 'fable'))
+          .where((n) => n.id == 'searchable'),
       isNotEmpty,
     );
     expect(

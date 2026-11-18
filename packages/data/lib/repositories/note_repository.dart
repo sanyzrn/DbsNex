@@ -3295,10 +3295,9 @@ WHERE id = ?
   /// The `notes.rowid` a note's search row is keyed on, or null when the
   /// note is not there.
   int? _noteRowid(String noteId) {
-    final rows = _db.selectCached(
-      'SELECT rowid FROM notes WHERE id = ?',
-      [noteId],
-    );
+    final rows = _db.selectCached('SELECT rowid FROM notes WHERE id = ?', [
+      noteId,
+    ]);
     return rows.isEmpty ? null : rows.first['rowid'] as int;
   }
 

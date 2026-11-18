@@ -88,9 +88,7 @@ void main() {
   });
 
   test('a deck past the bound parses without caching', () {
-    final records = [
-      for (var i = 0; i < 4097; i++) record('big$i'),
-    ];
+    final records = [for (var i = 0; i < 4097; i++) record('big$i')];
     final first = wordsCardsFromRecords(records);
     expect(first.length, 4097);
     expect(debugWordsDeckCache, isEmpty);

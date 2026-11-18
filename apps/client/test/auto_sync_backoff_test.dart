@@ -68,9 +68,6 @@ void main() {
     expect(attempts, 24);
     expect(waited.inHours, greaterThanOrEqualTo(20));
     // …while the flat cooldown's first 24 attempts cover two hours.
-    expect(
-      const Duration(minutes: 5) * 24,
-      const Duration(hours: 2),
-    );
+    expect(const Duration(minutes: 5) * 24, const Duration(hours: 2));
   });
 }
