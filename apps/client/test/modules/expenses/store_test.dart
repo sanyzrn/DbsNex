@@ -1,22 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/expenses/controller.dart';
-import 'package:nex_client/modules/expenses/logic.dart';
 import 'package:nex_client/modules/expenses/models.dart';
+import 'package:nex_client/modules/expenses/money.dart';
 import 'package:nex_client/modules/module_api.dart';
-import 'package:nex_client/platform/nex_services.dart';
 
 import '../../support/nex_harness.dart';
+import 'expense_test_store.dart';
 
-/// The controller over a real store: writes land, reloads are ordered,
-/// edits move months, deletions restore exactly, and no other module
-/// can see any of it.
+/// The controller over a real store: saving, correcting with unknown fields
+/// kept, deleting with exact Undo, budgets, templates, the one-tap monthly
+/// log, and the two settings a person chooses.
 void main() {
   late NexTestHarness harness;
-  late NexModuleStore store;
   late ExpensesController controller;
+  late NexModuleStore store;
 
   setUp(() async {
-    harness = await NexTestHarness.create(name: 'nex_exp_');
+    harness = await NexTestHarness.create(name: 'nex_expctrl_');
     store = NexModuleStore(harness.services, 'expenses');
     controller = ExpensesController(store);
     await controller.load();
@@ -27,229 +27,193 @@ void main() {
     await harness.dispose();
   });
 
-  ExpenseTx expense(
-    String id,
-    DateTime date, {
-    int amount = 100000,
-    String category = 'cat-food',
-    String currency = 'IRR',
-  }) => ExpenseTx(
-    id: id,
-    type: 'expense',
-    amount: amount,
-    currency: currency,
-    date: date,
-    categoryId: category,
-  );
+  Future<void> until(bool Function() done) async {
+    for (var i = 0; i < 200; i++) {
+      if (done()) return;
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    fail('the controller never read the record');
+  }
 
-  test(
-    'a saved transaction is read back exactly, newest saved first',
-    () async {
-      await controller.saveTx(expense('tx-a', DateTime(2026, 10, 1)));
-      await controller.saveTx(expense('tx-b', DateTime(2026, 10, 2)));
-      expect(controller.txs, hasLength(2));
-      expect(controller.txs.first.id, 'tx-b'); // list() is newest-saved first
-      expect(controller.txs.first.amount, 100000);
-      expect(controller.txs.first.categoryId, 'cat-food');
-    },
-  );
-
-  test(
-    'editing a record across a monthly boundary moves the aggregates',
-    () async {
-      final original = expense('tx-move', DateTime(2026, 10, 31, 23, 30));
-      await controller.saveTx(original);
-      expect(txsInMonth(controller.txs, '2026-10'), hasLength(1));
-      expect(txsInMonth(controller.txs, '2026-11'), isEmpty);
-
-      final moved = ExpenseTx(
-        id: 'tx-move',
+  ExpenseTx payment(String id, {int amountRial = 250000, String? note}) =>
+      ExpenseTx(
+        id: id,
         type: 'expense',
-        amount: original.amount,
-        currency: 'IRR',
-        date: DateTime(2026, 11, 1, 0, 15),
-        categoryId: 'cat-food',
+        amountRial: amountRial,
+        date: DateTime(2026, 10, 5, 12),
+        categoryId: 'cat-groceries',
+        note: note,
       );
-      await controller.saveTx(moved);
-      expect(txsInMonth(controller.txs, '2026-10'), isEmpty);
-      expect(txsInMonth(controller.txs, '2026-11'), hasLength(1));
 
-      // January/December, the other boundary direction.
-      await controller.saveTx(
-        ExpenseTx(
-          id: 'tx-dec',
-          type: 'expense',
-          amount: 5,
-          currency: 'IRR',
-          date: DateTime(2026, 12, 31, 23, 59),
-          categoryId: 'cat-food',
-        ),
-      );
-      await controller.saveTx(
-        ExpenseTx(
-          id: 'tx-dec',
-          type: 'expense',
-          amount: 5,
-          currency: 'IRR',
-          date: DateTime(2027, 1, 1),
-          categoryId: 'cat-food',
-        ),
-      );
-      expect(txsInMonth(controller.txs, '2026-12'), isEmpty);
-      expect(txsInMonth(controller.txs, '2027-01'), hasLength(1));
-    },
-  );
+  test('a payment is saved as whole rials and read back', () async {
+    await controller.saveTx(payment('tx-1'));
+    final raw = await store.get('tx', 'tx-1');
+    expect(raw!['amountRial'], 250000);
+    expect(raw['schema'], 3);
+    expect(raw.containsKey('amount'), isFalse);
+    expect(raw.containsKey('currency'), isFalse);
+    expect(controller.txs.single.amountRial, 250000);
+  });
 
-  test('deletion and Undo restore the exact body', () async {
-    final original = expense('tx-undo', DateTime(2026, 10, 5), amount: 4242);
-    await controller.saveTx(original);
-    await controller.deleteTx('tx-undo');
-    expect(controller.txs, isEmpty);
-    await controller.restoreTx(original);
-    expect(controller.txs, hasLength(1));
-    expect(controller.txs.first.amount, 4242);
-    expect(controller.txs.first.id, 'tx-undo');
+  test('a payment of nothing is refused', () async {
+    await expectLater(
+      controller.saveTx(payment('tx-0', amountRial: 0)),
+      throwsA(isA<StateError>()),
+    );
+    expect(await store.get('tx', 'tx-0'), isNull);
+  });
+
+  test('correcting keeps fields this version does not know', () async {
+    await store.put('tx', 'tx-2', {
+      'type': 'expense',
+      'amountRial': 100000,
+      'date': '2026-10-05T12:00:00',
+      'category': 'cat-rent',
+      'futureField': {'by': 'a later version'},
+    });
+    await until(() => controller.txById('tx-2') != null);
+    final existing = controller.txById('tx-2')!;
+    await controller.saveTx(
+      ExpenseTx(
+        id: 'tx-2',
+        type: 'expense',
+        amountRial: 120000,
+        date: existing.date,
+        categoryId: 'cat-rent',
+        note: 'October',
+      ),
+      existing: existing,
+    );
+    final raw = (await store.get('tx', 'tx-2'))!;
+    expect(raw['amountRial'], 120000);
+    expect(raw['note'], 'October');
+    expect(raw['futureField'], {'by': 'a later version'});
+  });
+
+  test('editing a 2.1.x payment converts it once, not twice', () async {
+    await store.put('tx', 'tx-old', {
+      'type': 'expense',
+      'amount': 125000,
+      'currency': 'IRR',
+      'currency_exponent': 2,
+      'date': '2026-10-05T12:00:00',
+    });
+    await until(() => controller.txById('tx-old') != null);
+    final existing = controller.txById('tx-old')!;
+    expect(existing.amountRial, 1250);
+    await controller.saveTx(
+      ExpenseTx(
+        id: existing.id,
+        type: 'expense',
+        amountRial: existing.amountRial,
+        date: existing.date,
+        note: 'checked',
+      ),
+      existing: existing,
+    );
+    final raw = (await store.get('tx', 'tx-old'))!;
+    expect(raw['amountRial'], 1250);
+    expect(raw.containsKey('amount'), isFalse);
+    expect(raw.containsKey('currency'), isFalse);
+  });
+
+  test('deleting offers Undo that restores the exact record', () async {
+    await store.put('tx', 'tx-3', {
+      'type': 'expense',
+      'amountRial': 9000,
+      'date': '2026-10-05T12:00:00',
+      'futureField': 'kept',
+    });
+    await until(() => controller.txById('tx-3') != null);
+    final before = await store.get('tx', 'tx-3');
+    await controller.deleteTx('tx-3');
+    expect(await store.get('tx', 'tx-3'), isNull);
+    await controller.restoreTx(controller.txById('tx-3') ?? payment('tx-3'));
+    expect(await store.get('tx', 'tx-3'), before);
   });
 
   test(
-    'budgets: deterministic id, replace, clear, per month and currency',
+    'a budget is the month it was set for, and moves with its category',
     () async {
-      const budget = ExpenseBudget(
-        month: '2026-10',
-        currency: 'IRR',
-        amount: 500000,
-        categoryId: 'cat-food',
+      await controller.saveBudget(
+        const ExpenseBudget(start: '2026-10-01', amountRial: 2000000),
       );
-      await controller.saveBudget(budget);
-      expect(controller.budgets, hasLength(1));
-      expect(
-        controller.budgetFor('2026-10', 'cat-food', 'IRR')!.amount,
-        500000,
-      );
-
-      // Same key replaces, never duplicates.
+      expect(controller.budgets.single.amountRial, 2000000);
+      final existing = controller.budgetFor('2026-10-01', null)!;
       await controller.saveBudget(
         const ExpenseBudget(
-          month: '2026-10',
-          currency: 'IRR',
-          amount: 600000,
-          categoryId: 'cat-food',
+          start: '2026-10-01',
+          categoryId: 'cat-groceries',
+          amountRial: 1500000,
         ),
+        existing: existing,
       );
-      expect(controller.budgets, hasLength(1));
-      expect(controller.budgets.first.amount, 600000);
-
-      // Another month or currency is another budget.
-      await controller.saveBudget(
-        const ExpenseBudget(month: '2026-11', currency: 'IRR', amount: 1),
+      expect(controller.budgetFor('2026-10-01', null), isNull);
+      expect(
+        controller.budgetFor('2026-10-01', 'cat-groceries')!.amountRial,
+        1500000,
       );
-      await controller.saveBudget(
-        const ExpenseBudget(month: '2026-10', currency: 'USD', amount: 2),
-      );
-      expect(controller.budgets, hasLength(3));
-      expect(controller.budgetFor('2026-10', null, 'USD')!.amount, 2);
-
-      await controller.clearBudget('2026-10', 'cat-food', 'IRR');
-      expect(controller.budgets, hasLength(2));
-      expect(controller.budgetFor('2026-10', 'cat-food', 'IRR'), isNull);
-
-      // A budget change never erases transactions.
-      expect(controller.txs, isEmpty);
+      await controller.clearBudget('2026-10-01', 'cat-groceries');
+      expect(controller.budgets, isEmpty);
     },
   );
 
-  test(
-    'categories: add, read, delete; defaults are synthesized, not stored',
-    () async {
-      expect(controller.customCategories, isEmpty);
-      await controller.addCategory('Coffee');
-      expect(controller.customCategories, hasLength(1));
-      expect(controller.customCategories.first.label, 'Coffee');
-      await controller.addCategory('   '); // blank is refused
-      expect(controller.customCategories, hasLength(1));
-      await controller.deleteCategory(controller.customCategories.first);
-      expect(controller.customCategories, isEmpty);
-      // And nothing was ever written for the defaults.
-      expect(await store.list('cat'), isEmpty);
-    },
-  );
-
-  test('templates: save, list, delete', () async {
-    await controller.saveTemplate(
-      const ExpenseTemplate(
-        id: '',
-        label: 'Rent',
-        type: 'expense',
-        amount: 2500000,
-        currency: 'IRR',
-        categoryId: 'cat-home',
-      ),
+  test('a recurring template writes one month, once', () async {
+    const template = ExpenseTemplate(
+      id: 'tpl-rent',
+      label: 'Rent',
+      type: 'expense',
+      amountRial: 120000000,
+      categoryId: 'cat-rent',
+      day: 5,
+      calendar: 'jalali',
     );
-    expect(controller.templates, hasLength(1));
-    expect(controller.templates.first.label, 'Rent');
-    expect(controller.templates.first.id, isNotEmpty);
-    await controller.deleteTemplate(controller.templates.first.id);
-    expect(controller.templates, isEmpty);
-  });
-
-  test('editor defaults are remembered and rial stays the default', () async {
-    expect(controller.preferredCurrencyCode, 'IRR');
-    expect(controller.preferredIrrUnit, 'rial');
-    await controller.rememberEditorDefaults(
-      currencyCode: 'USD',
-      irrUnit: 'rial',
-    );
-    expect(controller.preferredCurrencyCode, 'USD');
-    await controller.rememberEditorDefaults(
-      currencyCode: 'IRR',
-      irrUnit: 'toman',
-    );
-    expect(controller.preferredIrrUnit, 'toman');
-  });
-
-  test(
-    'records persist across a fresh controller, as after reopening',
-    () async {
-      await controller.saveTx(expense('tx-persist', DateTime(2026, 10, 2)));
-      await controller.addCategory('Books');
-      await controller.saveBudget(
-        const ExpenseBudget(month: '2026-10', currency: 'IRR', amount: 5),
-      );
-      await controller.saveTemplate(
-        const ExpenseTemplate(
-          id: '',
-          label: 'Bus',
-          type: 'expense',
-          amount: 1000,
-          currency: 'IRR',
-        ),
-      );
-
-      final reopened = ExpensesController(store);
-      await reopened.load();
-      expect(reopened.txs, hasLength(1));
-      expect(reopened.customCategories.first.label, 'Books');
-      expect(reopened.budgets, hasLength(1));
-      expect(reopened.templates, hasLength(1));
-      reopened.dispose();
-    },
-  );
-
-  test('no other module sees these records', () async {
-    await controller.saveTx(expense('tx-isolated', DateTime(2026, 10, 2)));
-    final other = NexModuleStore(harness.services, 'maintenance');
-    expect(await other.list('tx'), isEmpty);
+    await controller.saveTemplate(template);
+    final dueDay = DateTime(2026, 10, 27);
+    final id = await controller.logTemplate(template, dueDay: dueDay);
+    expect(id, isNotNull);
+    final logged = controller.txById(id!)!;
+    expect(logged.amountRial, 120000000);
+    expect(logged.templateId, 'tpl-rent');
     expect(
-      await harness.services.moduleRecords('expenses', 'tx'),
-      hasLength(1),
+      logged.period,
+      monthStartIso(NexModuleMonth.of(dueDay, solar: true)),
     );
-    expect(await harness.services.moduleRecords('other', 'tx'), isEmpty);
+    expect(await controller.logTemplate(template, dueDay: dueDay), isNull);
+    expect(controller.txs.where((t) => t.templateId == 'tpl-rent').length, 1);
   });
 
-  test('ids from the store are unique and prefixed', () {
-    final a = controller.newTxId();
-    final b = controller.newTxId();
-    expect(a, isNot(b));
-    expect(a, startsWith('tx-'));
+  test('the unit and hiding amounts are remembered', () async {
+    expect(controller.unit, ExpenseUnit.toman);
+    await controller.rememberUnit(ExpenseUnit.rial);
+    await controller.setHideAmounts(true);
+    expect(controller.unit, ExpenseUnit.rial);
+    expect(controller.hideAmounts, isTrue);
+    final again = ExpensesController(store);
+    await again.load();
+    expect(again.unit, ExpenseUnit.rial);
+    expect(again.hideAmounts, isTrue);
+    again.dispose();
+  });
+
+  test('a read that fails says so instead of showing an empty book', () async {
+    final fault = ExpenseFaultStore(harness.services)..failRead = true;
+    final failing = ExpensesController(fault);
+    await failing.load();
+    expect(failing.readFailed, isTrue);
+    expect(failing.loading, isFalse);
+    failing.dispose();
+  });
+
+  test('an interrupted write is rolled back on the next read', () async {
+    final fault = ExpenseFaultStore(harness.services)..failAfterTx = true;
+    final broken = ExpensesController(fault);
+    await broken.load();
+    await expectLater(
+      broken.saveTx(payment('tx-9')),
+      throwsA(isA<StateError>()),
+    );
+    broken.dispose();
+    expect(await store.get('tx', 'tx-9'), isNull);
   });
 }

@@ -3,60 +3,42 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
-import 'expenses_widgets.dart';
 import 'models.dart';
 import 'money.dart';
+import 'money_input.dart';
 import 'strings.dart';
 
 /// The form pieces the transaction editor, the template editor and the
-/// budget editor share: the amount field with its per-currency rules,
-/// the currency and category pickers, the rial/toman choice, and the
-/// date and time rows. Everything is 48dp at the tap floor, LTR where
-/// numbers are, and worded from the module's strings.
+/// budget editor share: the amount field (grouped as it is typed, in Persian
+/// digits on the Persian side, with the rial/toman choice) and the category
+/// picker. Everything is 48dp at the tap floor, LTR where numbers are, and
+/// worded from the module's strings.
 
-/// Which unit an IRR amount is entered in.
-enum IrrUnit { rial, toman }
-
-extension IrrUnitName on IrrUnit {
-  String label(BuildContext context) => switch (this) {
-    IrrUnit.rial => expenseStrings(context, 'rialUnit'),
-    IrrUnit.toman => expenseStrings(context, 'tomanUnit'),
-  };
-}
-
-/// The amount field: digits only, one decimal separator at most, and
-/// the rules of the chosen currency enforced live — [onChanged] hears
-/// the parsed minor units whenever they are valid, and the error text
-/// appears as soon as the input stops being money.
+/// The amount field: digits in either script, grouping as the person types,
+/// and at most the unit's own decimals — [onValid] hears the whole rials
+/// whenever the text is money, and the error text appears as soon as it is
+/// not.
 class ExpensesAmountField extends StatefulWidget {
   const ExpensesAmountField({
     super.key,
     required this.controller,
-    required this.currency,
     required this.unit,
     required this.onUnitChanged,
     this.showAllErrors = false,
     this.onValid,
-    this.initialMinor,
     this.allowZero = false,
   });
 
   final TextEditingController controller;
-  final ExpenseCurrency currency;
+  final ExpenseUnit unit;
+  final ValueChanged<ExpenseUnit> onUnitChanged;
 
-  /// Only meaningful for IRR; other currencies ignore it.
-  final IrrUnit unit;
-  final ValueChanged<IrrUnit> onUnitChanged;
-
-  /// Set after a failed Save: "zero" is quiet while typing (a person
-  /// may simply not have started) but must be said when it blocks.
+  /// Set after a failed Save: "zero" is quiet while typing (a person may
+  /// simply not have started) but must be said when it blocks.
   final bool showAllErrors;
 
-  /// Called with the valid minor units, or null.
+  /// Called with the whole rials, or null.
   final ValueChanged<int?>? onValid;
-
-  /// Prefills from an existing record.
-  final int? initialMinor;
   final bool allowZero;
 
   @override
@@ -64,58 +46,81 @@ class ExpensesAmountField extends StatefulWidget {
 }
 
 class _ExpensesAmountFieldState extends State<ExpensesAmountField> {
+  bool _persian = false;
+  bool _grouping = false;
+
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final error = _errorOf(context);
-    final suffix = widget.currency.code == 'IRR'
-        ? widget.unit.label(context)
-        : widget.currency.code;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          expenseStrings(context, 'amountLabel'),
-          style: theme.textTheme.labelLarge,
-        ),
-        const SizedBox(height: NexSpacing.xs),
-        TextField(
-          key: const ValueKey('expenses-amount'),
-          controller: widget.controller,
-          autofocus: widget.controller.text.isEmpty,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          textDirection: TextDirection.ltr,
-          textAlign: TextAlign.end,
-          style: theme.textTheme.headlineSmall,
-          decoration: InputDecoration(
-            suffixText: suffix,
-            errorText: error,
-            hintText: expenseStrings(context, 'amountHint'),
-          ),
-          // Rebuilds the field so the error text follows the typing,
-          // and tells the sheet whenever the amount becomes valid.
-          onChanged: (text) {
-            setState(() {});
-            widget.onValid?.call(_minorOrNull());
-          },
-        ),
-        if (widget.currency.code == 'IRR') ...[
-          const SizedBox(height: NexSpacing.sm),
-          _IrrUnitToggle(unit: widget.unit, onChanged: widget.onUnitChanged),
-          Text(
-            expenseStrings(context, 'tomanHint'),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ],
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _persian = NexModuleStrings.persian(context);
+    // Not only what is typed: a draft, an edited record and the unit switch
+    // all put a number in this controller, and every one of them has to read
+    // in the script of the page.
+    _group();
+  }
+
+  @override
+  void didUpdateWidget(ExpensesAmountField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onChanged);
+      widget.controller.addListener(_onChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() {
+    if (_grouping) return;
+    _grouping = true;
+    _group();
+    _grouping = false;
+    if (mounted) setState(() {});
+    widget.onValid?.call(
+      parseExpenseAmount(
+        widget.controller.text,
+        widget.unit,
+        allowZero: widget.allowZero,
+      ).rials,
     );
   }
 
+  /// Groups as the person types and puts the caret back where it was.
+  void _group() {
+    final value = widget.controller.value;
+    final grouped = groupAmountEdit(
+      value.text,
+      value.selection.baseOffset < 0
+          ? value.text.length
+          : value.selection.baseOffset,
+      widget.unit.decimals,
+      persian: _persian,
+    );
+    if (grouped.text == value.text) return;
+    widget.controller.value = TextEditingValue(
+      text: grouped.text,
+      selection: TextSelection.collapsed(offset: grouped.caret),
+    );
+  }
+
+  ExpenseAmountResult get _parsed => parseExpenseAmount(
+    widget.controller.text,
+    widget.unit,
+    allowZero: widget.allowZero,
+  );
+
   String? _errorOf(BuildContext context) {
-    final result = _parse();
-    return switch (result.error) {
+    return switch (_parsed.error) {
       null => null,
       // Quiet until there is something to say: empty is just "not
       // started", and zero/negative only matter when Save is refused.
@@ -131,143 +136,71 @@ class _ExpensesAmountFieldState extends State<ExpensesAmountField> {
     };
   }
 
-  ExpenseAmountResult _parse() =>
-      widget.currency.code == 'IRR' && widget.unit == IrrUnit.toman
-      ? parseTomanAmount(widget.controller.text, allowZero: widget.allowZero)
-      : parseExpenseAmount(
-          widget.controller.text,
-          widget.currency,
-          allowZero: widget.allowZero,
-        );
-
-  int? _minorOrNull() => _parse().minor;
-}
-
-class _IrrUnitToggle extends StatelessWidget {
-  const _IrrUnitToggle({required this.unit, required this.onChanged});
-
-  final IrrUnit unit;
-  final ValueChanged<IrrUnit> onChanged;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    String labelOf(IrrUnit u) => u.label(context);
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.xs),
-      child: SegmentedButton<IrrUnit>(
-        segments: [
-          for (final u in IrrUnit.values)
-            ButtonSegment(value: u, label: Text(labelOf(u))),
-        ],
-        selected: {unit},
-        onSelectionChanged: (set) => onChanged(set.first),
-        showSelectedIcon: false,
-        style: ButtonStyle(
-          visualDensity: VisualDensity.standard,
-          textStyle: WidgetStatePropertyAll(theme.textTheme.labelLarge),
-        ),
-      ),
-    );
-  }
-}
-
-/// A row that opens the currency picker sheet.
-class ExpensesCurrencyRow extends StatelessWidget {
-  const ExpensesCurrencyRow({
-    super.key,
-    required this.currency,
-    required this.onChanged,
-  });
-
-  final ExpenseCurrency currency;
-  final ValueChanged<ExpenseCurrency> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      key: const ValueKey('expenses-currency'),
-      onTap: () => unawaited(
-        _pickCurrency(context).then((picked) {
-          if (picked != null) onChanged(picked);
-        }),
-      ),
-      borderRadius: BorderRadius.circular(NexRadius.md),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: expenseStrings(context, 'currencyLabel'),
-          contentPadding: const EdgeInsetsDirectional.symmetric(
-            horizontal: NexSpacing.md,
-            vertical: NexSpacing.md,
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${currency.code} · ${expenseStrings(context, 'currency-${currency.code}')}',
-                textDirection: TextDirection.ltr,
-                textAlign: TextAlign.start,
-              ),
-            ),
-            Icon(DirectionalChevron.end(context), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<ExpenseCurrency?> _pickCurrency(BuildContext context) =>
-      nexShowSheet<ExpenseCurrency>(
-        context: context,
-        builder: (sheetContext) => _CurrencyPickerSheet(selected: currency),
-      );
-}
-
-class _CurrencyPickerSheet extends StatelessWidget {
-  const _CurrencyPickerSheet({required this.selected});
-
-  final ExpenseCurrency selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListView(
-      shrinkWrap: true,
-      padding: const EdgeInsetsDirectional.fromSTEB(
-        NexSpacing.md,
-        NexSpacing.md,
-        NexSpacing.md,
-        NexSpacing.md,
-      ),
+    final persian = NexModuleStrings.persian(context);
+    final unitWord = expenseUnitWord(widget.unit, persian: persian);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          expenseStrings(context, 'currencyLabel'),
-          style: theme.textTheme.titleLarge,
+          expenseStrings(context, 'amountLabel'),
+          style: theme.textTheme.labelLarge,
+        ),
+        const SizedBox(height: NexSpacing.xs),
+        TextField(
+          key: const ValueKey('expenses-amount'),
+          controller: widget.controller,
+          autofocus: widget.controller.text.isEmpty,
+          keyboardType: TextInputType.numberWithOptions(
+            decimal: widget.unit.decimals > 0,
+          ),
+          // Digits run left to right in both languages; in Persian the
+          // field starts at the right, beside the unit word.
+          textDirection: persian ? TextDirection.rtl : TextDirection.ltr,
+          textAlign: TextAlign.start,
+          style: theme.textTheme.headlineSmall,
+          decoration: InputDecoration(
+            suffixText: unitWord,
+            hintText: expenseStrings(context, 'amountHint'),
+            errorText: _errorOf(context),
+          ),
+          onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: NexSpacing.sm),
-        for (final currency in expenseCurrencies)
-          ListTile(
-            title: Text(
-              currency.code,
-              textDirection: TextDirection.ltr,
-              style: theme.textTheme.titleMedium,
-            ),
-            subtitle: Text(
-              expenseStrings(context, 'currency-${currency.code}'),
-            ),
-            trailing: currency.code == selected.code
-                ? const Icon(Icons.check)
-                : null,
-            onTap: () => Navigator.pop(context, currency),
+        NexAdaptiveSegments<ExpenseUnit>(
+          segments: [
+            for (final unit in ExpenseUnit.values)
+              ButtonSegment(
+                value: unit,
+                label: Text(
+                  expenseStrings(
+                    context,
+                    unit == ExpenseUnit.rial ? 'rialUnit' : 'tomanUnit',
+                  ),
+                ),
+              ),
+          ],
+          selected: {widget.unit},
+          onSelectionChanged: (set) {
+            if (set.isNotEmpty) widget.onUnitChanged(set.first);
+          },
+        ),
+        const SizedBox(height: NexSpacing.xs),
+        Text(
+          expenseStrings(context, 'tomanHint'),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
+        ),
       ],
     );
   }
 }
 
-/// A row that opens the category picker sheet: defaults plus the
-/// person's own, income ones first for income.
+/// A row that opens the category picker sheet: defaults plus the person's
+/// own, income ones first for income.
 class ExpensesCategoryRow extends StatelessWidget {
   const ExpensesCategoryRow({
     super.key,
@@ -286,7 +219,7 @@ class ExpensesCategoryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = selectedId == null
         ? expenseStrings(context, 'categoryNone')
-        : _nameOf(context, selectedId!);
+        : categoryNameOf(context, selectedId!, customCategories);
     return InkWell(
       key: const ValueKey('expenses-category'),
       onTap: () => unawaited(
@@ -295,31 +228,46 @@ class ExpensesCategoryRow extends StatelessWidget {
         }),
       ),
       borderRadius: BorderRadius.circular(NexRadius.md),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: expenseStrings(context, 'categoryLabel'),
-          contentPadding: const EdgeInsetsDirectional.symmetric(
-            horizontal: NexSpacing.md,
-            vertical: NexSpacing.md,
-          ),
+      // A plain bordered row rather than an InputDecorator: the floating
+      // label of a decorated field is clipped by the row's own border at
+      // large text sizes, and this one has to read as a field, not a caption.
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: NexSpacing.md,
+          vertical: NexSpacing.sm,
         ),
-        child: Row(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(NexRadius.sm),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(child: Text(name)),
-            Icon(DirectionalChevron.end(context), size: 20),
+            Text(
+              expenseStrings(context, 'categoryLabel'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    name,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                Icon(DirectionalChevron.end(context), size: 20),
+              ],
+            ),
           ],
         ),
       ),
     );
-  }
-
-  String _nameOf(BuildContext context, String id) {
-    for (final custom in customCategories) {
-      if (custom.id == id) return custom.label;
-    }
-    return defaultExpenseCategoryIds.contains(id)
-        ? expenseStrings(context, id)
-        : expenseStrings(context, 'cat-other');
   }
 
   Future<String?> _pickCategory(BuildContext context) => nexShowSheet<String>(
@@ -330,6 +278,21 @@ class ExpensesCategoryRow extends StatelessWidget {
       forIncome: forIncome,
     ),
   );
+}
+
+/// The name of a category — the person's own words, or the built-in word in
+/// the language of the page.
+String categoryNameOf(
+  BuildContext context,
+  String id,
+  List<ExpenseCategory> customCategories,
+) {
+  for (final custom in customCategories) {
+    if (custom.id == id) return custom.label;
+  }
+  return defaultExpenseCategoryIds.contains(id)
+      ? expenseStrings(context, id)
+      : expenseStrings(context, 'cat-other');
 }
 
 class _CategoryPickerSheet extends StatelessWidget {
@@ -353,13 +316,6 @@ class _CategoryPickerSheet extends StatelessWidget {
         if (id != 'cat-salary' || !forIncome) id,
       ...customCategories.map((c) => c.id),
     ];
-    String nameOf(String id) {
-      for (final custom in customCategories) {
-        if (custom.id == id) return custom.label;
-      }
-      return expenseStrings(context, id);
-    }
-
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsetsDirectional.fromSTEB(
@@ -376,11 +332,24 @@ class _CategoryPickerSheet extends StatelessWidget {
         const SizedBox(height: NexSpacing.sm),
         for (final id in ids)
           ListTile(
-            title: Text(nameOf(id)),
+            title: Text(categoryNameOf(context, id, customCategories)),
             trailing: id == selectedId ? const Icon(Icons.check) : null,
             onTap: () => Navigator.pop(context, id),
           ),
       ],
     );
   }
+}
+
+/// A chevron that points the way the reading direction goes.
+class DirectionalChevron {
+  static IconData start(BuildContext context) =>
+      Directionality.of(context) == TextDirection.rtl
+      ? Icons.chevron_right
+      : Icons.chevron_left;
+
+  static IconData end(BuildContext context) =>
+      Directionality.of(context) == TextDirection.rtl
+      ? Icons.chevron_left
+      : Icons.chevron_right;
 }

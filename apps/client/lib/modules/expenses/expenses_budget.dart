@@ -4,23 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'controller.dart';
+import 'editor_draft.dart';
 import 'expenses_fields.dart';
-import 'expenses_widgets.dart';
+import 'expenses_undo.dart';
 import 'models.dart';
 import 'money.dart';
 import 'strings.dart';
-import 'editor_draft.dart';
-import 'expenses_undo.dart';
 
 part 'expenses_budget_choices.dart';
 
 /// Sets (or clears) one month's budget for a category — or the overall
-/// monthly limit — in one currency. The arithmetic it produces is on
-/// the overview: spent, left, over by.
+/// monthly limit. The arithmetic it produces is on the overview: spent,
+/// left, over by. A budget belongs to the month a person is reading, so it
+/// is keyed by that month's first day, whatever calendar that month is in.
 Future<void> showExpensesBudgetEditor(
   BuildContext context, {
   required ExpensesController controller,
-  required String month,
+  required NexModuleMonth month,
   ExpenseBudget? existing,
 }) => nexShowSheet(
   context: context,
@@ -38,7 +38,7 @@ class _BudgetSheet extends StatefulWidget {
   });
 
   final ExpensesController controller;
-  final String month;
+  final NexModuleMonth month;
   final ExpenseBudget? existing;
 
   @override
@@ -47,17 +47,13 @@ class _BudgetSheet extends StatefulWidget {
 
 class _BudgetSheetState extends State<_BudgetSheet> {
   late String? _categoryId = widget.existing?.categoryId;
-  late ExpenseCurrency _currency =
-      expenseCurrencyOf(widget.existing?.currency) ??
-      expenseCurrencyOf(widget.controller.preferredCurrencyCode) ??
-      expenseCurrencyOf('IRR')!;
+  late ExpenseUnit _unit = widget.controller.unit;
   late final TextEditingController _amount = TextEditingController(
     text: widget.existing == null
         ? ''
-        : majorTextOfMinor(widget.existing!.amount, _currency.exponent),
+        : expenseAmountInput(widget.existing!.amountRial, _unit),
   );
   late final ExpenseEditorDraft _draft;
-  IrrUnit _unit = IrrUnit.rial;
   bool _dirty = false;
   @override
   void initState() {
@@ -66,21 +62,14 @@ class _BudgetSheetState extends State<_BudgetSheet> {
       store: widget.controller.store,
       kind: 'budget',
       existingId: widget.existing?.id,
-      base: widget.existing?.toBody() ?? {'month': widget.month},
-      scope: widget.existing == null ? 'budget:${widget.month}:new' : null,
+      base: widget.existing?.toBody() ?? {'start': monthStartIso(widget.month)},
+      scope: widget.existing == null
+          ? 'budget:${monthStartIso(widget.month)}:new'
+          : null,
       fields: {'amount': _amount},
-      extra: () => {
-        'currency': _currency.code,
-        'unit': _unit.name,
-        'category': _categoryId,
-      },
+      extra: () => {'unit': _unit.key, 'category': _categoryId},
       applyExtra: (b) {
-        _currency =
-            expenseCurrencyOf(
-              b['currency'] is String ? b['currency'] as String : null,
-            ) ??
-            _currency;
-        _unit = b['unit'] == 'toman' ? IrrUnit.toman : IrrUnit.rial;
+        _unit = ExpenseUnit.fromKey(b['unit']);
         _categoryId = b['category'] is String ? b['category'] as String : null;
         _dirty = true;
       },
@@ -106,11 +95,12 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     super.dispose();
   }
 
+  ExpenseAmountResult get _parsed =>
+      parseExpenseAmount(_amount.text, _unit, allowZero: true);
+
   Future<void> _save() async {
-    final parsed = _unit == IrrUnit.toman && _currency.code == 'IRR'
-        ? parseTomanAmount(_amount.text, allowZero: true)
-        : parseExpenseAmount(_amount.text, _currency, allowZero: true);
-    if (parsed.error != null || parsed.minor == null) {
+    final parsed = _parsed;
+    if (parsed.error != null || parsed.rials == null) {
       setState(() => _showErrors = true);
       return;
     }
@@ -120,10 +110,9 @@ class _BudgetSheetState extends State<_BudgetSheet> {
       if (!await _draft.finish()) throw StateError('Draft flush failed');
       await widget.controller.saveBudget(
         ExpenseBudget(
-          month: widget.month,
+          start: monthStartIso(widget.month),
           categoryId: _categoryId,
-          currency: _currency.code,
-          amount: parsed.minor!,
+          amountRial: parsed.rials!,
         ),
         existing: widget.existing,
         draftId: _draft.draftId,
@@ -148,9 +137,8 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     try {
       if (!await _draft.finish()) throw StateError('Draft flush failed');
       await widget.controller.clearBudget(
-        widget.month,
+        widget.existing!.start,
         widget.existing!.categoryId,
-        widget.existing!.currency,
       );
       ExpensesUndo.offer(
         messenger,
@@ -208,9 +196,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
               ),
               const SizedBox(height: NexSpacing.xs),
               Text(
-                s(context, 'budgetFor', {
-                  'month': monthLabel(context, widget.month),
-                }),
+                s(context, 'budgetFor', {'month': widget.month.title(context)}),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -230,34 +216,16 @@ class _BudgetSheetState extends State<_BudgetSheet> {
                         },
                       ),
                       const SizedBox(height: NexSpacing.md),
-                      ExpensesCurrencyRow(
-                        currency: _currency,
-                        onChanged: (currency) {
-                          _currency = currency;
-                          _changed();
-                        },
-                      ),
-                      const SizedBox(height: NexSpacing.md),
                       ExpensesAmountField(
                         controller: _amount,
-                        currency: _currency,
+                        unit: _unit,
                         showAllErrors: _showErrors,
                         allowZero: true,
-                        unit: _unit,
                         onValid: (_) => _changed(),
                         onUnitChanged: (unit) {
-                          final minor = _unit == IrrUnit.toman
-                              ? parseTomanAmount(_amount.text).minor
-                              : parseExpenseAmount(
-                                  _amount.text,
-                                  _currency,
-                                  allowZero: true,
-                                ).minor;
-                          if (minor != null) {
-                            _amount.text = majorTextOfMinor(
-                              minor,
-                              unit == IrrUnit.toman ? 3 : _currency.exponent,
-                            );
+                          final rials = _parsed.rials;
+                          if (rials != null) {
+                            _amount.text = expenseAmountInput(rials, unit);
                           }
                           _unit = unit;
                           _changed();

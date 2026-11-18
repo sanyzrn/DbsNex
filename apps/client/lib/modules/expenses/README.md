@@ -1,192 +1,297 @@
-# Expenses (`expenses`)
+# Expenses (`expenses`) — «هزینه‌ها»
+
+## Audit (2.8.4 upgrade)
+
+What the module did before this pass, screen by screen, and what was below the
+brief or the standard of `lent_borrowed`.
+
+| # | Before | The brief or the standard | Status |
+|---|---|---|---|
+| A1 | Home: totals per **currency** (14 ISO codes), an overall month change, budgets, category bars, filter chips, search, records. | One Iranian book: whole rials, one total, tomans or rials said the way `lent_borrowed` says them. | done |
+| A2 | Month buckets were **Gregorian**; a Jalali span hint under the title. | “A month is a Jalali month in Persian.” | done |
+| A3 | Month change only overall, per currency. | Change **per category** — “groceries +18%”. | done |
+| A4 | Net per currency; income existed but nothing said what is left. | Income optional, so the month can show what is left. | done |
+| A5 | Templates were a generic prefill: no day, no offer. | Recurring payments kept as templates; on their day the module offers “log this month’s”; it never logs by itself. | done |
+| A6 | Nothing shared a month. | Share a month as text with `nexModuleShareText`. | done |
+| A7 | Search matched words; category chips filtered; no amount range. | Find a payment by words, category **or amount range**. | done |
+| A8 | Defaults: food, transport, home, bills, health, fun, clothes, gifts, education, salary, other. | Categories that fit an Iranian household: groceries, rent, bills, transport, health, children, gifts. | done |
+| A9 | No `summarize`, no `duesBetween` (shared rules 1 and 4). | One line per record; one function for everything falling due. | done |
+| A10 | A money screen with no way to hide amounts. | Privacy: offer to hide the amounts (shared rule 8). | done |
+| A11 | Entry: type, amount, currency picker, date, time, category, note, merchant, account — one wall of fields. | “A payment written down in seconds: amount, category, today by default; everything else optional.” | done |
+| A12 | `SegmentedButton` for type; grouping only for a currency’s decimals. | `NexAdaptiveSegments`; grouping as typed, Persian digits in Persian. | done |
+| A13 | Tests were currency-centric; no Jalali-month, recurring, share, summary or legacy-upgrade test. | Upgrade: Jalali months, rials, recurrence, sharing, one compatibility test. | done |
+| A14 | README lacked the seven sections, the device checklist and open questions. | Prompt 12’s README. | done |
+
+What was already right and was kept: raw persistent drafts and the discard
+prompt, the journaled recoverable write with guarded Undo, defensive readers
+that keep a malformed record visible and out of totals, the shared multiline
+note editor, the shared date label and calendar button, the category sheet
+with custom categories, budgets that never roll over, and `NexModuleHero`.
 
 ## What it does
 
-A voluntary offline payment book: expense/income, month or all time, per-currency
-totals/net, accessible category bars, filters/search, manual monthly budgets,
-custom categories and confirmed reusable templates. Amount, currency, date/time,
-category, merchant/source, account label and notes are entered by the person.
-An incomplete payment is visible in all-time, excluded from calculations and
-repairable; a missing date requires explicit selection rather than inventing one.
+A voluntary offline payment book for a household: write down what you paid in
+seconds, and see where the month went without a spreadsheet.
 
-Transaction, budget and template editors retain raw drafts, including unfinished
-amounts and choices. Back asks Keep editing / Keep draft & close / Discard.
-Saving completes inside the form; failure retains text and shows an inline error.
-Delete has guarded Undo; categories retain their original identity, and category/
-template Undo is accessible above the open sheet. Read errors have Retry.
+- **A payment in seconds.** Expense or income, the amount (Persian or English
+  digits, grouped as you type), a category, and today. The day, the clock, a
+  note, the merchant and an account label sit behind one optional card.
+- **The month at a glance.** What the month cost, what came in, what is left,
+  spending per category, and each category against last month (“groceries
+  18% more”).
+- **The month you read.** A Jalali month in Persian, the Gregorian one in
+  English — the app’s own calendar (`NexModuleMonth`).
+- **Budgets that stay calm.** A budget per category or for everything, with
+  spent, left and over by; over is stated quietly, never in red.
+- **Recurring payments.** Rent, the internet, a subscription: kept as
+  templates with a day of the month. On that day the module offers “log this
+  month’s”, and one tap writes it. Nothing is ever written by itself.
+- **Find a payment** by words, by category, or by an amount range.
+- **Share a month** as plain text — the categories, the total, what is left.
+- **Hide the amounts** in one tap when someone is looking over your shoulder.
 
-No bank credentials, bank sync, OCR, advice/predictions, alerts, background charges,
-automatic FX, transfers or cross-module loan/expense inference. A repayment in
-Lent & Borrowed does not automatically count here. Templates never charge anything.
-Module records follow Nex backups/removal; offline is not a claim that core backups
-never leave the device or that this module adds its own encryption.
+No bank connection, no SMS reading, no OCR, no advice, no predictions, no
+background charges, no exchange rates, no transfers. A repayment in Lent &
+Borrowed does not count here; the module cannot read another module’s data.
+Records follow Nex backups and removal.
 
 ## Records
 
-Only this module's NexModuleStore. Stable IDs; JSON-compatible values; ISO timestamps.
+Only the module’s own `NexModuleStore`. Stable ids; JSON-compatible values;
+ISO timestamps. Money is **whole rials** (`docs/18-module-kit.md`, rule 2).
 
-| Kind | ID | Fields |
+| Kind | Id | Fields |
 |---|---|---|
-| tx | tx-<store ID>; resumed drafts keep that ID | type expense/income, amount integer minor units, currency legacy alias, currency_code, currency_exponent, date, optional category/note/merchant/account, schema 2 |
-| cat | cat-<store ID> | label, schema 1; eleven defaults are localized synthesized IDs |
-| budget | budget-YYYY-MM-<category or all>-<currency> | month, optional category, amount, currency + explicit code/exponent, schema 2 |
-| tpl | stable store ID | label, type, amount, currency + code/exponent, optional category/note/merchant, schema 2 |
-| settings | main | currency, irrUnit rial/toman, schema; unknown keys retained |
-| draft | tx:new / tx:<id> / tx:template:<id>:new / tpl:new / budget:<month>:new or budget:<id> | v 1, base JSON fingerprint, raw field strings (amount, dateText, note, …) + choices + stable recordId |
-| operation | store ID | v 1, raw before-images and committed flag for recoverable writes/deletes |
+| tx | `tx-<store id>`; a resumed draft keeps its id | type `expense`/`income`, `amountRial` (int), `date` (ISO 8601, local), optional `category`, `note`, `merchant`, `account`, optional `templateId` + `period` (the first civil day of the month a recurring payment settles), `schema` 3 |
+| cat | `cat-<store id>` | `label`, `schema` 1; the built-in categories are not records — they come from the module’s strings (`cat-groceries`, `cat-rent`, …) |
+| budget | `budget-<YYYY-MM-DD>-<category or all>` | `start` (the month’s first civil day), `amountRial`, optional `category`, `schema` 3 |
+| tpl | stable store id | `label`, `type`, `amountRial`, optional `category`, `note`, `merchant`, optional `day` 1–31 and `calendar` `jalali`/`gregorian`, `schema` 3 |
+| settings | `main` | `unit` `rial`/`toman`, `hideAmounts` bool, `schema`; unknown keys retained |
+| draft | `tx:new`, `tx:<id>`, `tx:template:<id>:new`, `tpl:new`, `budget:<start>:new`, `budget:<id>` | v 1, base fingerprint, raw field strings, choices, stable `recordId` |
+| operation | store id | v 1, raw before-images and a committed flag for recoverable writes/deletes |
 
 ~~~json
-{"schema":2,"type":"expense","amount":1250,"currency":"USD",
-"currency_code":"USD","currency_exponent":2,"date":"2026-10-14T12:30:00",
-"category":"cat-food","note":"Entered payment"}
+{"schema":3,"type":"expense","amountRial":1250000,
+ "date":"2026-11-05T12:30:00","category":"cat-groceries","note":"نان"}
 ~~~
 
-Legacy schema 1/missing schema is readable using a known currency's exponent.
-No monetary rescaling is invented during migration. Conflicting currency aliases/
-exponents, unsupported codes, bad types/amounts and impossible dates make payments
-incomplete. Legacy zero payments remain readable; new payments must be positive.
-Malformed auxiliary records remain stored and are excluded by their readers.
-Unknown fields survive fresh edits and exact deletion Undo. Empty optional fields
-are removed only when the person clears them, preserving other newly changed data.
-Date/time text in drafts keeps the raw typed day (dateText) beside the composed
-ISO stamp and dateConfirmed, so a half-typed day survives a reopen and an
-incomplete record still never invents a date.
+**Records written before this upgrade still open.** A 2.1.x payment stored an
+`amount` in the minor units of a `currency`; the rial’s ISO exponent is 2, so
+a whole-rial amount is read as `amount ~/ 100` **exactly**, once. A payment in
+another currency, or one holding a fraction of a rial, is kept and shown as an
+**incomplete record** — visible, repairable, excluded from totals — because no
+exchange rate may be invented here. A 2.1.x budget (`month: "2026-11"`) opens
+as the first day of that month; a 2.1.x template converts its rial amount the
+same way. Editing one of these writes `amountRial` and drops the old currency
+keys, keeping every field this version does not know.
 
-Deleting a payment includes its edit draft. Interrupted uncommitted operations roll
-back from raw before-images on read/reopen; a committed marker only needs cleanup.
-Undo refuses to overwrite later edits. Replacing a budget's category/currency moves
-the original identity recoverably; it does not duplicate the original budget or
-silently overwrite another existing destination. Payments are never changed by this.
+An impossible or missing date, a bad type, a bad amount or a broken record
+makes an incomplete record, never a crash and never a silent drop. Unknown
+fields survive an edit; optional fields are removed only when the person
+clears them. Interrupted writes roll back from their before-images on the
+next read or reopen; a committed marker only needs cleanup. Undo refuses to
+overwrite a later edit. Deleting a payment takes its edit draft with it.
 
 ## Decisions
 
-- Fourteen explicitly selectable currencies: IRR/USD/EUR/GBP/JPY/KWD/AED/SAR/TRY/
-  CHF/CAD/AUD/CNY/INR. Curated offline catalogue, not every ISO currency. Exponents
-  were verified on 2026-10-14 against [SIX ISO 4217 List One](https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml),
-  published 2026-09-17. JPY 0; KWD 3; other offered codes 2, including IRR.
-- Stored amounts are integer minor units, 1..10^15 per new payment/template;
-  budgets allow zero. 1 rial = 100 ISO minor units; 1 toman = 10 rials = 1000.
-  IRR entry/display is labelled. Switching rial/toman re-expresses the exact amount.
-  A currency choice is denomination, not conversion. No FX is supplied or inferred.
-- ASCII/Persian/Arabic digits and period/Arabic decimal separators work. A comma
-  is explicitly treated as a decimal separator; grouping, signs, exponent notation,
-  NaN/infinity, excess precision and excess amount are refused. No input rounding.
-- Every currency has separate expense/income/net, category totals and budgets.
-  BigInt aggregate intermediates/results prevent 64-bit or web-safe-integer wrapping;
-  only bounded integer amounts enter JSON. Percentage labels are integer half-up;
-  progress converts a bounded integer ratio for paint only. Zero budget with no
-  spending has zero progress; spending against zero shows the actual overage.
-- Month buckets use the local calendar. ISO offset/UTC timestamps are converted
-  to the device's local timezone; legacy naive timestamps retain written local time.
-  Month lengths and relative day arithmetic use civil UTC coordinates, avoiding DST
-  23/25-hour mistakes. Relative month distance is exact, not capped at 1200 months.
-  Buckets are civil months and are named as such — a bucket is never relabelled with
-  a month it is not. The dates of records themselves read through the shared label
-  (`nexModuleDateLabel`) in the app's chosen calendar, Jalali included.
-- The payment date is typed civil text — yyyy/MM/dd, one separator style, Persian or
-  Arabic digits accepted, 1900–2100 — or chosen on the shared calendar button
-  (`NexModuleDateEntry`; the Jalali calendar when the app's calendar says so). A
-  valid typed day composes with the separately picked time; an impossible one is
-  refused, never guessed. Storage stays ISO 8601 civil at the boundary.
-- Notes (payment and template) are the platform's shared multiline editor
-  (`NexTextField`, at least two lines); merchant and account labels stay one line
-  and follow their content's direction.
-- Edits merge changed fields into a fresh body, retaining fresh corrections to
-  untouched fields and unknown metadata; a deleted edited payment is not recreated.
-  Drafts have stable IDs and are drained before the journaled save. Optional default
-  currency write failure cannot turn a successfully saved payment into a duplicate.
-- Operations serialize per store instance; public API has no database transaction/
-  compare-and-write. Independent multi-window/external writers need platform support.
-  Local journal recovery is useful without claiming global ACID guarantees.
-- Currency-labelled amounts wrap at small widths; category bars have text/semantics.
-  Filter/search limits the payment list; overview totals remain for the selected
-  month/all-time scope. A negative net is arithmetic, not a financial warning.
+- **One currency, whole rials.** The brief is an Iranian household book and
+  the shared rule says “whole integers in rials, stored once”. The
+  fourteen-currency catalogue of 2.1.x is therefore gone: one total, one
+  budget per month, and no exchange rate anywhere. The unit (rial or toman) is
+  how the number is *said*, never how it is kept; a toman is ten rials, so a
+  toman amount may carry one decimal and nothing is rounded. The module is
+  Soon, so this is a change to code nobody has data in; the old shapes still
+  open, as above.
+- **A month is the month a person reads.** `NexModuleMonth` gives the Jalali
+  month in Persian and the Gregorian one in English. A budget is keyed by that
+  month’s **first civil day**, so it keeps its meaning whichever calendar the
+  app shows, and “budget for this month” cannot drift.
+- **Recurring, never automatic.** A template with a `day` is recurring. The
+  day is counted in the calendar it was set in, and that calendar is stored
+  with it, so “the 5th” keeps meaning the 5th of that month after a language
+  change. The home offers the payment from its day until the month is written
+  down; a payment carries `templateId` and `period`, which is exactly what
+  says “this month is done”. One tap logs it, with Undo; nothing is scheduled
+  and nothing is written without the tap. No reminders are requested by this
+  module (the brief asks for an offer on the day, not a notification).
+- **Amounts are parsed strictly.** Latin, Persian and Arabic digits; grouping
+  separators and spaces are layout; one decimal separator, at most the unit’s
+  own digits; no signs, letters, exponent notation, leading zeros or
+  over-precision. The field groups while typing and keeps the caret, copied
+  from `lent_borrowed/money_input.dart` with the same calls, as the kit asks.
+  The most a record can hold is 10^15 rials.
+- **Budgets never roll over.** Zero is a valid budget; spending against zero
+  shows the actual overage. Changing a budget never touches payments.
+- **Income is optional and says what is left.** The month shows spent,
+  received, and left (received − spent). A negative left is arithmetic, said
+  plainly, never a warning.
+- **Each category against last month.** The percent exists only when the month
+  before had spending in that category; a percentage of nothing is not shown.
+- **Sharing is text.** The month’s categories, total, income and left, in the
+  chosen unit and the language of the page, through `nexModuleShareText`.
+  There is no image sharing in the kit; see Platform requests.
+- **Privacy.** The money screen offers to hide the amounts (its own
+  `hideAmounts` setting, shared rule 8) and replaces them with dots. Health
+  data is not here, so `NexSecureWindow` is not used.
+- **Shared shapes.** `duesBetween` is `ExpenseSchedule.duesBetween(from, to)`,
+  built from the templates and the logged months, and the controller exposes
+  it as the one function the home and (later) the shared calendar call.
+  `summarize` is in `expenses_summary.dart`; `ModuleDue` and `ModuleSummary`
+  are copied there with the exact fields of `docs/18-module-kit.md`, as
+  `words_summary.dart` does, until the kit provides them. The summary line
+  uses the person’s own words and Latin figures, because the record reaches
+  it without a language; it is marked private (money).
+- **Legacy ids and the built-in categories.** The older category ids stay, so
+  a payment written with `cat-food` keeps its word; groceries, rent and
+  children join them.
+- **Unchanged by design:** no bank/SMS/network, no advice, no automatic
+  transfers, no cross-module inference.
 
 ## Guide
 
-EN: Record only payments you want in this manual book. Select expense or income,
-the currency and its amount, date/time and category. Verify the labelled unit;
-rials and tomans are choices only for IRR. The overview shows what you entered,
-separately for every currency, not your bank balance. Set a monthly category or
-overall budget, including zero; unused amounts never roll forward. Filter or search
-the list without changing the month's overview. Keep a draft to finish later;
-failed saves retain your input. Templates prefill a payment you must confirm.
-Category deletion preserves payments; Undo restores the same original category.
+EN: Choose Expense or Income, type the amount (tomans or rials — the switch
+re-words the same money), and a category; today is already the date. Open “Add
+details” only when you want to change the day or add a note. The overview is
+what you entered this month, not a bank balance; each category shows its
+change against last month. Set a monthly budget for a category or for
+everything — over is information, not a warning. A template with a day (rent,
+the internet) is offered on that day: one tap writes that month, and Undo takes
+it back. Find a payment with the search field and the amount range, share the
+month as text, and hide the amounts with the eye when someone is looking.
 
-FA: فقط پرداخت‌هایی را که می‌خواهید در این دفتر ثبت کنید. هزینه یا درآمد، ارز،
-مبلغ، تاریخ و دسته را انتخاب و واحد مبلغ را بررسی کنید. ریال و تومان فقط برای
-IRR هستند. جمع‌ها برای هر ارز جدا و بر پایهٔ دادهٔ شما هستند، نه موجودی بانک.
-بودجهٔ ماهانهٔ دسته یا کل را حتی صفر تعیین کنید؛ باقی‌مانده به ماه بعد منتقل
-نمی‌شود. جست‌وجو و فیلتر فقط فهرست پرداخت‌ها را محدود می‌کنند. پیش‌نویس را برای
-بعد نگه دارید؛ خطای ذخیره متن را پاک نمی‌کند. قالب فقط فرم را پر می‌کند و ثبت
-پرداخت تأیید شما را می‌خواهد. حذف دسته، پرداخت‌ها را حذف نمی‌کند؛ بازگردانی همان
-شناسهٔ قبلی را برمی‌گرداند. تاریخ ناقص را صریحاً انتخاب کنید؛ تاریخ فرضی ثبت نمی‌شود.
+FA: هزینه یا درآمد را انتخاب کنید، مبلغ را بنویسید (تومان یا ریال؛ تغییر واحد
+همان پول را با واژه‌ی دیگر می‌گوید) و دسته را بزنید؛ تاریخ امروز است. «جزئیات
+بیشتر» را فقط برای تغییر روز یا یادداشت باز کنید. نمای ماه همان چیزی است که
+وارد کرده‌اید، نه موجودی بانک؛ هر دسته تغییرش را نسبت به ماه قبل نشان می‌دهد.
+بودجه‌ی ماهانه برای یک دسته یا همه بگذارید — بیشتر شدن، اطلاع است نه هشدار.
+قالبی که روز دارد (اجاره، اینترنت) در همان روز پیشنهاد می‌شود: یک ضربه همان ماه
+را می‌نویسد و بازگردانی برمی‌گرداند. پرداخت را با جست‌وجو و محدوده‌ی مبلغ پیدا
+کنید، ماه را به‌صورت متن همرسانی کنید و با چشم، مبلغ‌ها را پنهان کنید.
 
-## Changelog
+## Changelog (2.8.4)
 
-EN: Corrected exact international currency metadata, huge aggregates, Unicode
-input, strict dates and month calculations. Added raw persistent drafts, visible
-retry/errors, same-ID category/payment Undo and recoverable budget corrections.
-Improved Nex layouts for compact screens, large text, both languages and themes.
-Upgraded to the shared platform pieces: multiline notes (NexTextField), a typed
-civil date with the shared Jalali calendar button beside it, and record dates
-shown through the shared date label in the app's chosen calendar. Template
-deletion now asks first, like payments and categories.
+EN: Expenses is now an Iranian household book: whole rials with a rial/toman
+switch and grouping as you type, a Jalali month in Persian, each category’s
+change against last month, income that shows what is left, monthly budgets
+that stay calm, recurring payments (rent, internet, a subscription) offered on
+their day and written with one tap, categories for groceries, rent and
+children, search by amount range, sharing a month as text, hidden amounts in
+one tap, and a payment form that asks only for the amount, the category and
+today. Payments and budgets from earlier versions still open and keep their
+money.
 
-FA: ارز و مبلغ دقیق، رقم فارسی/عربی، تاریخ و جمع‌های بزرگ اصلاح شد. پیش‌نویس خام،
-خطای قابل‌مشاهده، تلاش دوباره، بازگردانی با شناسهٔ اصلی و اصلاح قابل‌بازیابی بودجه
-اضافه شد. نمایش Nex در صفحهٔ کوچک، متن بزرگ، دو زبان و دو تم بهبود یافت.
-یادداشت‌ها چندخطی شدند (NexTextField)، تاریخ پرداخت به‌صورت تایپی میلادی با
-دکمهٔ تقویم مشترک جلالی کنارش ثبت می‌شود و تاریخ ثبت‌ها با برچسب مشترک در
-تقویمِ انتخابی نمایش می‌یابد. حذف قالب هم مثل پرداخت و دسته ابتدا تأیید می‌گیرد.
+FA: «هزینه‌ها» حالا دفتر یک خانه‌ی ایرانی است: مبلغ به ریالِ کامل با کلید
+ریال/تومان و جداکننده‌ی رقم هنگام تایپ، ماه جلالی در فارسی، تغییر هر دسته
+نسبت به ماه قبل، درآمد و باقی‌مانده، بودجه‌ی ماهانه‌ی آرام، پرداخت‌های
+تکرارشونده (اجاره، اینترنت، اشتراک) که روزِ خودشان پیشنهاد و با یک ضربه ثبت
+می‌شوند، دسته‌های خوراکی، اجاره و فرزند، جست‌وجو با محدوده‌ی مبلغ، همرسانی ماه
+به‌صورت متن، پنهان‌کردن مبلغ‌ها با یک ضربه، و فرمی که فقط مبلغ، دسته و امروز را
+می‌پرسد. پرداخت‌ها و بودجه‌های نسخه‌های قبل باز می‌شوند و پولشان را حفظ می‌کنند.
 
 ## Platform requests
 
-**Fulfilled (2.1.3):** the public native multiline editor and the shared Jalali
-picker/formatter are in the module API and now used here — payment and template
-notes are the shared `NexTextField`, the payment date is typed civil text with the
-shared calendar button (`NexModuleDateEntry`, Jalali when the app's calendar says
-so), and every absolute date a person reads goes through `nexModuleDateLabel`.
-Storage stayed ISO 8601 civil throughout.
-
-Still requested: optional atomic batch/compare-and-write for independent writers;
-the module's local journal is the current fallback. No bank/network/notification
-integration is required for the core.
+- **Image sharing** for a month (a picture of the breakdown for a family
+  group). Meanwhile the month is shared as text.
+- **A recurring source in the app’s Recurring page and the “due radar”.** The
+  shape is ready (see Later); a platform reader can build `ModuleDue`s from it
+  through `duesBetween`.
+- **A notification on the day** a recurring payment falls due, through the
+  shared reminder controls. Today the offer is on the module’s home only; no
+  notification is scheduled, and nothing is written without the tap.
+- **Atomic compare-and-write** for independent writers. The module’s own
+  journal covers a single writer; multi-window edits still need platform
+  support.
 
 ## Checks
 
-Linux (module review pass on base f196440), Flutter 3.35.5, Dart 3.9.2; reviewed
-2026-10-14.
+Linux, Flutter 3.47.9 (stable, Dart 3.13.7), module review pass on base
+`e3edff3f`, 2026-11-18. The whole suite also reported one unrelated
+`photo_capture_policy_test.dart` timeout while the runner was suspended; it
+passes alone (`flutter test test/photo_capture_policy_test.dart` → 4 passed).
 
 ~~~text
-dart format lib/modules/expenses test/modules/expenses      # 0 changed
-flutter analyze --fatal-infos                                # No issues found
-flutter test test/module_kit_test.dart -j 2                  # 40 passed
-flutter test test/modules/expenses -j 2                      # 95 passed
+dart format lib/modules/expenses test/modules/expenses   # 0 changed
+flutter analyze --fatal-infos                            # No issues found
+flutter test test/module_kit_test.dart \
+  test/module_shared_rules_test.dart test/modules/expenses -j 4   # 191 passed
+flutter test -j 4                                        # 4131 passed, 4 skipped
 ~~~
 
-This pass: 87 module tests kept green and 8 added — the shared calendar button
-beside the typed day, a typed day round-tripping into storage and back into the
-editor, the typed clock surviving a changed day, an impossible day refused (and a
-Persian-digit day accepted), a day picked on the Jalali calendar saving exactly,
-multiline payment and template notes through NexTextField, and template deletion
-asking first with Undo still restoring the exact record. Tests cover calculations,
-14 currency exponents, fractional IRR/JPY/KWD, no mixed sums, strict dates, huge
-totals, unknown/raw fields, correction, rollback-after-commit fault, Undo
-conflicts, actual draft/read/save/template/category journeys, reopen and
-isolation. Real Nex widget renders cover Persian dark/English light and 320×480
-at scale 2 with reduced motion, including the payment editor. They are
-synthetic-data widget renders, not device screenshots. Native keyboard,
-Android/iOS builds and TalkBack/VoiceOver need maintainer/device acceptance.
+The module’s tests cover: strict rial parsing in three digit scripts with
+grouping and bounds; grouping-while-typing and the caret; the toman’s tenth;
+totals, income and left; month membership for Gregorian and Jalali months;
+each category’s change (and no percent without a previous month); budget
+standing, overage and zero; filters by words, category and amount range;
+recurring due dates including 31-day months, Esfand 29/30, a Jalali day and
+the “already written” flag; the summary line; saving, correcting with unknown
+fields kept, legacy conversion once, deleting with exact Undo, budgets moving
+with their category, the one-tap monthly log (twice refused), the two
+settings, a failed read and an interrupted write; the screen’s empty state,
+seconds-long entry, Persian digits, income and left, correcting, deleting with
+Undo, month navigation, filters, budgets, the recurring offer (and none before
+its day), hiding amounts, templates with a day, share text in both languages,
+a failed read, an incomplete record, Persian dark at 320×480 with 2× text, and
+the upgrade test that opens 2.1.x records and checks nothing was lost.
 
-No source edits outside this module's lib/test are delivered. Registry registration
-is temporary; maintainer const-registers ExpensesModule(), checks current planned
-IDs and integrates Guide/Changelog separately. No Commit/Push/ZIP.
+Screenshots in `review/`: `expenses_home_en_light.png`,
+`expenses_home_fa_dark.png`, `expenses_editor_en_light.png`,
+`expenses_editor_fa_dark.png`. They are widget renders over synthetic data,
+not device screenshots.
 
-## This month against last (2.1.13)
+## Device checklist
 
-Under each currency's totals for a month, «Last month X · this month is N%
-more/less» — computed in that currency only, from valid expenses (income is not
-spending), rounded to the nearest whole percent with integer arithmetic. Shown
-only when the month before has spending in that currency; a percentage of
-nothing is not shown.
+1. Open Expenses with nothing saved: the empty state and its one button.
+2. Add an expense with the Persian keyboard: digits appear as typed, grouped;
+   switch rial/toman and check the number does not change, only its words.
+3. Save with only an amount and a category: the record shows today.
+4. Add income, then check “Left” says received − spent.
+5. Switch the language to Persian: the month is Jalali; move back a month and
+   forward, including Esfand (29/30 days).
+6. Set a category budget, spend past it, and check the quiet “over by” line.
+7. Make a template with a day of the month; come back on/after that day and
+   use “log this month’s”; check it appears once, and Undo takes it back.
+8. Search by a word, a category and an amount range.
+9. Share a month and read the text in a messaging app.
+10. Hide the amounts, then show them again.
+11. Kill and reopen the app: the draft you left, the unit, the hidden state
+    and the records are as you left them.
+12. Back up and restore, then remove the module with “keep data” and add it
+    back.
+13. Dark and light, text scale 2.0, and a small phone: nothing clipped.
+
+## Later (described, not built)
+
+The recurring payments are ready to feed the app’s Recurring page and a “due
+radar”. A template is the record kind **`tpl`**:
+
+~~~json
+{"label":"اجاره","type":"expense","amountRial":120000000,
+ "category":"cat-rent","day":1,"calendar":"jalali","schema":3}
+~~~
+
+`day` (1–31, clamped to the month’s length) and `calendar` are the recurrence;
+`ExpenseSchedule.duesBetween(from, to)` turns every recurring template into
+`ModuleDue`s — `recordKind: "tpl"`, `recordId`, `at` (local midnight),
+`title` (the template’s label), `kind: "expense-recurring"`, `amountRial`
+(negative for an expense, positive for income), `done` (this month already has
+a payment with the same `templateId` and `period`), `private: true` — with a
+stable id `tpl-<template id>-<month’s first day>`. A platform reader can use
+that function unchanged; nothing in the module needs to move for it.
+
+## Open questions
+
+- Is toman the right default unit for a fresh install, or should the module
+  start on rials and let the person switch?
+- Should a month follow the app’s calendar setting (as now), or always be
+  Jalali even in an English interface?
+- When a recurring payment’s day is set in one calendar and the app switches
+  to the other, is keeping the original calendar (as now) the right answer, or
+  should “the 5th” always mean the 5th of the month currently shown?
+- Should budgets be per month only (as now, no rollover), or offer a “carry
+  what is left” choice?
+- Is one overall budget plus category budgets the right shape, or should a
+  category budget be capped by the overall one in the arithmetic?
+- Should a legacy payment in a foreign currency be offered a one-tap “convert
+  to rials at today’s rate I type myself”, instead of staying incomplete?
+- Should sharing include the merchants and notes, or only categories and
+  totals (as now)?
