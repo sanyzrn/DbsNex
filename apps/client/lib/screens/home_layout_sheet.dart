@@ -147,7 +147,15 @@ class _HomeLayoutSheetState extends State<HomeLayoutSheet> {
                   ),
                 ),
                 const SizedBox(width: NexSpacing.sm),
-                const Expanded(child: SizedBox.shrink()),
+                Expanded(
+                  child: toggle(
+                    'tool_dates',
+                    Icons.event_note_outlined,
+                    l10n.layoutToolDates,
+                    prefs.showToolDates,
+                    prefs.setShowToolDates,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: NexSpacing.lg),

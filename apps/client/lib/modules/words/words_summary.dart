@@ -12,36 +12,6 @@ import 'package:nex_client/modules/module_api.dart';
 import 'words_dates.dart';
 import 'words_models.dart';
 
-/// One thing this module has falling due: a word's next review day.
-class ModuleDue {
-  const ModuleDue({
-    required this.id,
-    required this.recordKind,
-    required this.recordId,
-    required this.at,
-    required this.title,
-    required this.kind,
-    this.amountRial,
-    this.done = false,
-    this.private = false,
-  });
-
-  /// Stable across calls: the card and the day it falls on.
-  final String id;
-  final String recordKind;
-  final String recordId;
-
-  /// Local midnight of the day it falls due.
-  final DateTime at;
-  final String title;
-
-  /// The module's word for it — `review` here.
-  final String kind;
-  final int? amountRial;
-  final bool done;
-  final bool private;
-}
-
 /// Everything Word by Word has falling due between [from] and [to],
 /// oldest first. Paused cards and cards never answered wait for nothing;
 /// a card whose due day is unreadable is left out rather than guessed at.
@@ -73,16 +43,6 @@ List<ModuleDue> duesBetween(
   }
   dues.sort((a, b) => a.at.compareTo(b.at));
   return dues;
-}
-
-/// One line about a record, for the day the person lets the app mention
-/// their words. Nothing reads it yet.
-class ModuleSummary {
-  const ModuleSummary({required this.title, this.detail, this.private = false});
-
-  final String title;
-  final String? detail;
-  final bool private;
 }
 
 /// A card as one line: the word, then its first meaning and its language.

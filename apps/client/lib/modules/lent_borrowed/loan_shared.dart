@@ -4,43 +4,6 @@ import 'loan_math.dart';
 import 'loan_model.dart';
 import 'split_model.dart';
 
-/// Something of this module's falling due, in the shape every module uses
-/// for the shared calendar (docs/18, rule 1). Defined here until the kit
-/// provides it.
-class ModuleDue {
-  const ModuleDue({
-    required this.id,
-    required this.recordKind,
-    required this.recordId,
-    required this.at,
-    required this.title,
-    required this.kind,
-    this.amountRial,
-    this.done = false,
-    this.private = false,
-  });
-
-  final String id;
-  final String recordKind;
-  final String recordId;
-  final DateTime at;
-  final String title;
-  final String kind;
-  final int? amountRial;
-  final bool done;
-  final bool private;
-}
-
-/// One line about a record, for the search and the brief later (docs/18,
-/// rule 4). Defined here until the kit provides it.
-class ModuleSummary {
-  const ModuleSummary({required this.title, this.detail, this.private = false});
-
-  final String title;
-  final String? detail;
-  final bool private;
-}
-
 /// Lent & borrowed in the shared shape (2.8.4).
 ///
 /// What falls due is a loan's due date; its amount is what is still out —

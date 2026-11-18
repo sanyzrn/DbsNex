@@ -12,6 +12,7 @@ import 'nex_module.dart';
 import 'module_dates.dart';
 import 'nex_module_store.dart';
 import 'nex_module_strings.dart';
+import 'module_shared.dart';
 
 /// The module every module after «Cycle» is: words, a look and a screen —
 /// and nothing else to get wrong.
@@ -36,6 +37,21 @@ abstract class NexStoredModule extends NexModule {
   /// ahead without waiting for its screen to be opened (2.4.0). Nothing may
   /// be shown from here. Does nothing unless a module needs it.
   Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) async {}
+
+  /// What this module has falling due between [from] and [to] — the same
+  /// `duesBetween` its own screens use — for the home screen's dates from
+  /// your tools (2.8.4). Nothing here may be shown by the module itself.
+  /// None unless a module keeps dates.
+  Future<List<ModuleDue>> dues(
+    NexModuleStore store,
+    DateTime from,
+    DateTime to,
+  ) async => const [];
+
+  /// A word for a kind of date this module has falling due, when its title
+  /// alone does not say it — a car's «Pride» is due for insurance or for
+  /// inspection (2.8.4). Null to show the title alone.
+  String? dueLabel(AppLocalizations l10n, String kind) => null;
 
   /// Optional on-device fact for the daily brief; never supplied to AI.
   Future<String?> briefLine(

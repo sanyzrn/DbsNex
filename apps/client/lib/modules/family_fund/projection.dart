@@ -2,34 +2,9 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'model.dart';
 
-class ModuleSummary {
-  const ModuleSummary(this.title, this.detail, {required this.private});
-  final String title;
-  final String? detail;
-  final bool private;
-}
-
 ModuleSummary? summarize(ModuleRecord record) {
   final fund = Fund.read(record);
-  return fund == null ? null : ModuleSummary(fund.name, null, private: true);
-}
-
-class ModuleDue {
-  const ModuleDue(
-    this.id,
-    this.recordId,
-    this.at,
-    this.title,
-    this.kind,
-    this.amountRial,
-    this.done,
-  );
-  final String id, recordId, title, kind;
-  final DateTime at;
-  final int? amountRial;
-  final bool done;
-  String get recordKind => 'fund';
-  bool get private => true;
+  return fund == null ? null : ModuleSummary(title: fund.name, private: true);
 }
 
 class FundDues {
@@ -42,35 +17,41 @@ class FundDues {
       if (!month.first.isBefore(fund.start.first)) ...[
         for (final m in fund.active(month))
           ModuleDue(
-            'payment:${fund.id}:$key:${m['id']}',
-            fund.id,
-            dueDay(month, fund.paymentDay),
-            nameOf(m),
-            'fund-contribution',
-            fund.shareRial * (m['shares'] as int),
-            fund.payment(month, m['id']) != null,
+            id: 'payment:${fund.id}:$key:${m['id']}',
+            recordKind: 'fund',
+            recordId: fund.id,
+            at: dueDay(month, fund.paymentDay),
+            title: nameOf(m),
+            kind: 'fund-contribution',
+            amountRial: fund.shareRial * (m['shares'] as int),
+            done: fund.payment(month, m['id']) != null,
+            private: true,
           ),
         ModuleDue(
-          'draw:${fund.id}:$key',
-          fund.id,
-          dueDay(month, fund.drawDay),
-          fund.name,
-          'fund-draw',
-          null,
-          drawDone,
+          id: 'draw:${fund.id}:$key',
+          recordKind: 'fund',
+          recordId: fund.id,
+          at: dueDay(month, fund.drawDay),
+          title: fund.name,
+          kind: 'fund-draw',
+          amountRial: null,
+          done: drawDone,
+          private: true,
         ),
       ],
       for (final l in fund.loans)
         for (final (i, part) in rows(l['instalments']).indexed)
           if (fundMonth(DateTime.parse(part['due'] as String)) == month)
             ModuleDue(
-              'instalment:${fund.id}:${l['draw']}:$i',
-              fund.id,
-              DateTime.parse(part['due'] as String),
-              nameOf(l),
-              'fund-instalment',
-              part['amountRial'] as int,
-              part['paidAt'] != null,
+              id: 'instalment:${fund.id}:${l['draw']}:$i',
+              recordKind: 'fund',
+              recordId: fund.id,
+              at: DateTime.parse(part['due'] as String),
+              title: nameOf(l),
+              kind: 'fund-instalment',
+              amountRial: part['amountRial'] as int,
+              done: part['paidAt'] != null,
+              private: true,
             ),
     ];
   }

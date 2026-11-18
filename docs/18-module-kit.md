@@ -175,10 +175,18 @@ calendar"). So:
   | `done` | `bool` | already paid, taken or cleared |
   | `private` | `bool` | health or money detail, shown only discreetly |
 
-  `ModuleDue` is defined in the module's folder with exactly these fields,
-  until the kit provides it. The module's own screens and reminders use the
-  same function, and it is unit-tested on its own: month ends, Esfand 29
-  and 30, a record missing a field.
+  `ModuleDue` is in the kit (`module_shared.dart`, through `module_api`)
+  since 2.8.4, when the copies in each module's folder were replaced. The
+  module's own screens and reminders use the same function, and it is
+  unit-tested on its own: month ends, Esfand 29 and 30, a record missing a
+  field.
+- **The home screen reads it** (2.8.4): a module with dates overrides
+  `NexStoredModule.dues(store, from, to)` — loading its records and calling
+  its `duesBetween` — and, when a title alone does not say which date it is,
+  `dueLabel(l10n, kind)`. «Dates from your tools» on the home screen lists
+  what is late or falls due this week; a `private` item shows only its
+  module's name, grouped, never its title or amount. Switched in Home
+  layout.
 
 ### 2. Money
 
@@ -218,8 +226,8 @@ ModuleSummary? summarize(ModuleRecord record);
 ```
 
 with `ModuleSummary` = `title` (`String`), `detail` (`String?`) and
-`private` (`bool`: health or money, never shown without opting in). Today
-nothing reads it but the module's tests; module records are still never in
+`private` (`bool`: health or money, never shown without opting in), in the
+kit since 2.8.4. Today nothing reads it but the module's tests; module records are still never in
 general search, the timeline or assistant tools.
 
 ### 5. Records keep what they do not know

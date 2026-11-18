@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'loans_screen.dart';
+import 'loan_model.dart';
+import 'loan_shared.dart';
 
 /// Lent & borrowed — who owes whom, for money or things, and what has
 /// come back. The direction of a debt is never mixed up, and the
@@ -23,6 +25,16 @@ class LentBorrowedModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => LoansScreen(store: store);
+
+  @override
+  Future<List<ModuleDue>> dues(
+    NexModuleStore store,
+    DateTime from,
+    DateTime to,
+  ) async => LoanShared(
+    (await store.list('loan')).map(Loan.fromRecord).toList(),
+    (await store.list('return')).map(LoanReturn.fromRecord).toList(),
+  ).duesBetween(from, to);
 }
 
 const lentStrings = NexModuleStrings(

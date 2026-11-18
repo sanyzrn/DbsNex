@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'car_reminders.dart';
 import 'maintenance_screen.dart';
 import 'strings.dart';
+import 'maintenance_shared.dart';
 
 /// **Maintenance** — a private log of upkeep for owned things.
 ///
@@ -34,4 +35,21 @@ class MaintenanceModule extends NexStoredModule {
   @override
   Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) =>
       CarReminders.planAll(store, l10n);
+
+  @override
+  Future<List<ModuleDue>> dues(
+    NexModuleStore store,
+    DateTime from,
+    DateTime to,
+  ) async => MaintenanceShared.fromRecords({
+    for (final kind in const ['asset', 'event', 'rule', 'reading'])
+      kind: await store.list(kind),
+  }).duesBetween(from, to);
+
+  @override
+  String? dueLabel(AppLocalizations l10n, String kind) => switch (kind) {
+    'insurance-expiry' => maintenanceStrings.text(l10n, 'insuranceLabel'),
+    'inspection-expiry' => maintenanceStrings.text(l10n, 'inspectionLabel'),
+    _ => null,
+  };
 }

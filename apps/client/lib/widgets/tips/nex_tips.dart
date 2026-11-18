@@ -75,6 +75,17 @@ final List<NexTip> nexTips = [
     fresh: true,
   ),
   NexTip(
+    id: 'tool-dates',
+    icon: Icons.event_note_outlined,
+    hue: NexHue.sky,
+    title: (l) => l.tipToolDatesTitle,
+    body: (l) => l.tipToolDatesBody,
+    when: (c) => c.modulesOn > 0,
+    target: NexTipTarget.homeLayout,
+    action: (l) => l.layoutTitle,
+    fresh: true,
+  ),
+  NexTip(
     id: 'modules',
     icon: Icons.widgets_outlined,
     hue: NexHue.violet,

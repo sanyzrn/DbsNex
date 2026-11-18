@@ -3,6 +3,8 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'parking_screen.dart';
 import 'parking_strings.dart';
+import 'parking_models.dart';
+import 'parking_shared.dart';
 
 /// Where I parked — a stored module, one folder wide.
 ///
@@ -25,4 +27,13 @@ class ParkingModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => ParkingScreen(store: store);
+
+  @override
+  Future<List<ModuleDue>> dues(
+    NexModuleStore store,
+    DateTime from,
+    DateTime to,
+  ) async =>
+      ParkingShared(await store.list(ParkingModels.session))
+          .duesBetween(from, to);
 }

@@ -4,6 +4,8 @@ import 'package:nex_client/modules/module_api.dart';
 import 'medicine_reminders.dart';
 import 'medicine_screen.dart';
 import 'medicine_strings.dart';
+import 'medicine_models.dart';
+import 'medicine_shared.dart';
 
 /// Medicine cabinet — a stored module, one folder wide.
 ///
@@ -32,4 +34,15 @@ class MedicineModule extends NexStoredModule {
   @override
   Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) async =>
       MedicineReminders.plan(store, await store.list('medicine'), l10n);
+
+  @override
+  Future<List<ModuleDue>> dues(
+    NexModuleStore store,
+    DateTime from,
+    DateTime to,
+  ) async => MedicineShared(
+    medicines: await store.list(MedicineModels.medicine),
+    doses: await store.list(MedicineModels.dose),
+    boxes: await store.list(MedicineModels.box),
+  ).duesBetween(from, to);
 }

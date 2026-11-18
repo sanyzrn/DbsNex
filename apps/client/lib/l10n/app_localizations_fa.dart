@@ -6594,10 +6594,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String remindClearedNotes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'انجام شد؛ $count یادداشت به «اخیراً حذف‌شده» رفت',
+      other: 'انجام شد؛ $countString یادداشت به «اخیراً حذف‌شده» رفت',
       one: 'انجام شد؛ یادداشت به «اخیراً حذف‌شده» رفت',
     );
     return '$_temp0';
@@ -6746,4 +6750,79 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get tipGuideBody =>
       'راهنما همهٔ بخش‌های برنامه را توضیح می‌دهد و همیشه در تنظیمات هست.';
+
+  @override
+  String get toolDatesTitle => 'تاریخ‌های ابزارها';
+
+  @override
+  String get toolDatesToday => 'امروز';
+
+  @override
+  String get toolDatesTomorrow => 'فردا';
+
+  @override
+  String toolDatesIn(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString روز دیگر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String toolDatesLate(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString روز گذشته',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String toolDatesMore(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString مورد دیگر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String toolDatesCount(String title, int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$title ($countString مورد)';
+  }
+
+  @override
+  String get layoutToolDates => 'تاریخ ابزارها';
+
+  @override
+  String get tipToolDatesTitle => 'تاریخ‌های ابزارها، روی صفحهٔ اصلی';
+
+  @override
+  String get tipToolDatesBody =>
+      'چک، قسط، بیمهٔ ماشین یا روز واریز صندوق: هر چه عقب افتاده یا این هفته سررسید می‌شود بالای یادداشت‌ها می‌آید. برای پول و سلامت فقط نام ابزار دیده می‌شود. از «چیدمان خانه» خاموش می‌شود.';
+
+  @override
+  String toolDatesWhat(String title, String what) {
+    return '$title، $what';
+  }
 }

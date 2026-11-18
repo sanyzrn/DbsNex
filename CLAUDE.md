@@ -16,10 +16,11 @@
 - Available modules are **Cycle, Breathing break (Pause), Birthdays & occasions,
   Word by Word, Habits, Converter, Warranties, Gold, Quit Habits, Lent &
   Borrowed, Prompt Studio, Security toolbox, Parking, Medicine, Cheques &
-  instalments, Maintenance, Expenses and Price Lens** (`cycle`,
+  instalments, Maintenance, Expenses, Price Lens, Asset book and Family
+  fund** (`cycle`,
   `pause`, `occasions`, `words`, `habits`, `converter`, `warranty`, `gold`,
   `smoke_free`, `lent_borrowed`, `prompt_studio`, `security_tools`,
-  `parking`, `medicine`, `cheques`, `maintenance`, `expenses`, `price_lens`). The authoritative rollout list is
+  `parking`, `medicine`, `cheques`, `maintenance`, `expenses`, `price_lens`, `assets`, `family_fund`). The authoritative rollout list is
   `apps/client/lib/modules/module_rollout.dart`; installed and active modules
   are resolved through `nexModulesOn`. Other modules remain **Soon**. The
   owner's rule (2.8.4): a module is made available **as soon as its review is

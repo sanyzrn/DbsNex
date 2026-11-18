@@ -3,6 +3,8 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'expenses_screen.dart';
 import 'strings.dart';
+import 'expenses_summary.dart';
+import 'models.dart';
 
 /// **Expenses** — a voluntary, fully offline book of payments.
 ///
@@ -29,4 +31,20 @@ class ExpensesModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => ExpensesScreen(store: store);
+
+  @override
+  Future<List<ModuleDue>> dues(
+    NexModuleStore store,
+    DateTime from,
+    DateTime to,
+  ) async => ExpenseSchedule(
+    templates: [
+      for (final row in await store.list('tpl'))
+        ?ExpenseTemplate.fromBody(row.id, row.body),
+    ],
+    txs: [
+      for (final row in await store.list('tx'))
+        ExpenseTx.fromBody(row.id, row.body),
+    ],
+  ).duesBetween(from, to);
 }

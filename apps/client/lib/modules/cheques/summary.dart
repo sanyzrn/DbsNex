@@ -4,18 +4,6 @@ import 'model.dart';
 import 'plan_model.dart';
 import 'values.dart';
 
-/// Temporary local copy of docs/18, rule 4. No caller is connected to search/AI.
-class ModuleSummary {
-  const ModuleSummary({
-    required this.title,
-    this.detail,
-    required this.private,
-  });
-  final String title;
-  final String? detail;
-  final bool private;
-}
-
 ModuleSummary? summarize(ModuleRecord record) {
   if (record.module != 'cheques') return null;
   if (record.kind == 'cheque') {

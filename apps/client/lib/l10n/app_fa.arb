@@ -2302,5 +2302,16 @@
   "tipTrashTitle": "حذف‌شده، از دست‌رفته نیست",
   "tipTrashBody": "یادداشت‌های حذف‌شده ۳۰ روز در کتابخانه ← سطل زباله می‌مانند و هر کدام را می‌شود برگرداند.",
   "tipGuideTitle": "هر کاری که نکس می‌کند",
-  "tipGuideBody": "راهنما همهٔ بخش‌های برنامه را توضیح می‌دهد و همیشه در تنظیمات هست."
+  "tipGuideBody": "راهنما همهٔ بخش‌های برنامه را توضیح می‌دهد و همیشه در تنظیمات هست.",
+  "toolDatesTitle": "تاریخ‌های ابزارها",
+  "toolDatesToday": "امروز",
+  "toolDatesTomorrow": "فردا",
+  "toolDatesIn": "{count, plural, other{{count} روز دیگر}}",
+  "toolDatesLate": "{count, plural, other{{count} روز گذشته}}",
+  "toolDatesMore": "{count, plural, other{{count} مورد دیگر}}",
+  "toolDatesCount": "{title} ({count} مورد)",
+  "layoutToolDates": "تاریخ ابزارها",
+  "tipToolDatesTitle": "تاریخ‌های ابزارها، روی صفحهٔ اصلی",
+  "tipToolDatesBody": "چک، قسط، بیمهٔ ماشین یا روز واریز صندوق: هر چه عقب افتاده یا این هفته سررسید می‌شود بالای یادداشت‌ها می‌آید. برای پول و سلامت فقط نام ابزار دیده می‌شود. از «چیدمان خانه» خاموش می‌شود.",
+  "toolDatesWhat": "{title}، {what}"
 }
