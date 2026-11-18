@@ -13,18 +13,15 @@ import 'package:path/path.dart' as p;
 void main() {
   /// Modules with reminders or dates falling due that do not yet produce
   /// them through `duesBetween`.
-  const duesPending = {'habits', 'occasions', 'warranty'};
+  const duesPending = <String>{};
 
   /// Modules without a `summarize` line per record yet.
   const summaryPending = {
     'converter',
     'gold',
-    'habits',
-    'occasions',
     'prompt_studio',
     'security_tools',
     'smoke_free',
-    'warranty',
   };
 
   final folders = Directory(p.join('lib', 'modules'))

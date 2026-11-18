@@ -10549,6 +10549,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{title} · {what}'**
   String toolDatesWhat(String title, String what);
+
+  /// No description provided for @peekNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet. Open it to begin.'**
+  String get peekNothing;
+
+  /// No description provided for @peekComing.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming up'**
+  String get peekComing;
+
+  /// No description provided for @peekOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {module}'**
+  String peekOpen(String module);
+
+  /// No description provided for @moneyToman.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} toman'**
+  String moneyToman(String amount);
 }
 
 class _AppLocalizationsDelegate

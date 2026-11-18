@@ -6825,4 +6825,20 @@ class AppLocalizationsFa extends AppLocalizations {
   String toolDatesWhat(String title, String what) {
     return '$title، $what';
   }
+
+  @override
+  String get peekNothing => 'هنوز چیزی اینجا نیست؛ برای شروع بازش کنید.';
+
+  @override
+  String get peekComing => 'پیش رو';
+
+  @override
+  String peekOpen(String module) {
+    return 'باز کردن «$module»';
+  }
+
+  @override
+  String moneyToman(String amount) {
+    return '$amount تومان';
+  }
 }

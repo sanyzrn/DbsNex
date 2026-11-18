@@ -80,7 +80,11 @@ List<NexToolDate> nexToolDates(
         NexToolDate(
           id: '${module.id}:${due.id}',
           module: module,
-          title: what == null ? due.title : l10n.toolDatesWhat(due.title, what),
+          title: what == null
+              ? due.title
+              : due.title.isEmpty
+              ? what
+              : l10n.toolDatesWhat(due.title, what),
           at: due.at,
         ),
       );
@@ -88,6 +92,10 @@ List<NexToolDate> nexToolDates(
   }
   return lines..sort((a, b) => a.at.compareTo(b.at));
 }
+
+/// «today», «tomorrow», «in 3 days» or «2 days late» — see [nexDueWhen].
+String nexToolDateWhen(AppLocalizations l10n, DateTime at, DateTime today) =>
+    nexDueWhen(l10n, at, today);
 
 /// The card itself, above the notes, when there is anything to say.
 class NexToolDates extends StatefulWidget {
@@ -185,18 +193,8 @@ class _NexToolDatesState extends State<NexToolDates> {
     );
   }
 
-  String _when(AppLocalizations l10n, DateTime at, DateTime today) {
-    final day = DateTime(at.year, at.month, at.day);
-    final days = DateTime.utc(
-      day.year,
-      day.month,
-      day.day,
-    ).difference(DateTime.utc(today.year, today.month, today.day)).inDays;
-    if (days < 0) return l10n.toolDatesLate(-days);
-    if (days == 0) return l10n.toolDatesToday;
-    if (days == 1) return l10n.toolDatesTomorrow;
-    return l10n.toolDatesIn(days);
-  }
+  String _when(AppLocalizations l10n, DateTime at, DateTime today) =>
+      nexToolDateWhen(l10n, at, today);
 
   @override
   Widget build(BuildContext context) {

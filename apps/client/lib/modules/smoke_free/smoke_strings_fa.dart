@@ -239,4 +239,7 @@ const smokeWordsFa = {
   'remember': 'دلیلت را یادت بیار',
   'moduleAbout': 'آنچه ترک می\u200cکنید را بشمارید',
   'recordLapseGeneric': 'لغزش کردم',
+  'glanceEmpty': 'شمارش روزهای رهایی را شروع کنید',
+  'glanceDays': '{n} روز رها',
+  'glanceSaved': 'پس‌انداز تا امروز',
 };

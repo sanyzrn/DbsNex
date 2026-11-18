@@ -4,6 +4,7 @@ import 'package:nex_client/modules/module_api.dart';
 import 'loans_screen.dart';
 import 'loan_model.dart';
 import 'loan_shared.dart';
+import 'loan_glance.dart';
 
 /// Lent & borrowed — who owes whom, for money or things, and what has
 /// come back. The direction of a debt is never mixed up, and the
@@ -35,6 +36,13 @@ class LentBorrowedModule extends NexStoredModule {
     (await store.list('loan')).map(Loan.fromRecord).toList(),
     (await store.list('return')).map(LoanReturn.fromRecord).toList(),
   ).duesBetween(from, to);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => loanGlance(store, l10n, now);
 }
 
 const lentStrings = NexModuleStrings(
@@ -183,7 +191,14 @@ const lentStrings = NexModuleStrings(
     'untitledPerson': 'Someone',
     'more': 'More',
     'editRecord': 'Edit record',
-  },
+    'glanceNone': 'Nothing lent or borrowed',
+    'glanceOpen': '{n} open',
+    'glanceLate': '{n} past their day',
+    'glanceSides': '{lent} lent · {borrowed} borrowed',
+    'glanceOwedToMe': 'Owed to you',
+    'glanceIOwe': 'You owe',
+    'glanceItems': 'Things lent or borrowed',
+},
   fa: {
     'amountHint': 'مثلاً {example}',
     'amountWordsHint': 'مبلغ به حروف اینجا نوشته می‌شود.',
@@ -328,5 +343,12 @@ const lentStrings = NexModuleStrings(
     'untitledPerson': 'یک نفر',
     'more': 'بیشتر',
     'editRecord': 'ویرایش ثبت',
-  },
+    'glanceNone': 'قرض و طلب بازی ندارید',
+    'glanceOpen': '{n} مورد باز',
+    'glanceLate': '{n} مورد از موعد گذشته',
+    'glanceSides': '{lent} طلب، {borrowed} بدهی',
+    'glanceOwedToMe': 'طلب شما',
+    'glanceIOwe': 'بدهی شما',
+    'glanceItems': 'وسیله‌های قرضی',
+},
 );

@@ -237,4 +237,7 @@ const smokeWordsEn = {
   'remember': 'Remember why',
   'moduleAbout': 'Count what you quit',
   'recordLapseGeneric': 'I slipped',
+  'glanceEmpty': 'Start counting your free days',
+  'glanceDays': '{n} days free',
+  'glanceSaved': 'Kept so far',
 };

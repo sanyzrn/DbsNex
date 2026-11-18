@@ -3663,5 +3663,11 @@
   "tipToolDatesTitle": "Your tools' dates, on the home screen",
   "tipToolDatesBody": "A cheque, an instalment, a car's insurance or a fund's payment day: what is late or falls due this week appears above your notes. Money and health show only the tool's name. Turn it off in Home layout.",
   "toolDatesWhat": "{title} · {what}",
-  "@toolDatesWhat": {"placeholders": {"title": {"type": "String"}, "what": {"type": "String"}}}
+  "@toolDatesWhat": {"placeholders": {"title": {"type": "String"}, "what": {"type": "String"}}},
+  "peekNothing": "Nothing here yet. Open it to begin.",
+  "peekComing": "Coming up",
+  "peekOpen": "Open {module}",
+  "@peekOpen": {"placeholders": {"module": {"type": "String"}}},
+  "moneyToman": "{amount} toman",
+  "@moneyToman": {"placeholders": {"amount": {"type": "String"}}}
 }

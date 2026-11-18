@@ -202,7 +202,12 @@ const warrantyStrings = NexModuleStrings(
     'discard': 'Leave',
     'keepWriting': 'Keep writing',
     'saveFailed': 'Could not save. Nothing was lost — try again.',
-  },
+    'glanceEmpty': 'Add your first purchase',
+    'glanceCovered': '{n} purchases covered',
+    'glanceNextEnds': '{what} ends next',
+    'glanceSoon': '{n} end within 30 days',
+    'glanceCoveredLabel': 'Still covered',
+},
   fa: {
     // کارت و صفحه.
     'title': 'گارانتی‌ها',
@@ -390,5 +395,10 @@ const warrantyStrings = NexModuleStrings(
     'discard': 'خروج',
     'keepWriting': 'ادامه بدهم',
     'saveFailed': 'ذخیره نشد. چیزی از دست نرفت — دوباره تلاش کنید.',
-  },
+    'glanceEmpty': 'اولین خرید را اضافه کنید',
+    'glanceCovered': '{n} خرید زیر پوشش',
+    'glanceNextEnds': 'نزدیک‌ترین پایان: {what}',
+    'glanceSoon': '{n} مورد تا ۳۰ روز تمام می‌شود',
+    'glanceCoveredLabel': 'هنوز زیر پوشش',
+},
 );

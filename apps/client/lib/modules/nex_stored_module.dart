@@ -48,6 +48,15 @@ abstract class NexStoredModule extends NexModule {
     DateTime to,
   ) async => const [];
 
+  /// Two lines for its pinned tile and the facts of its quick view (2.8.5);
+  /// null for the tile's plain «open to view». Read on the home screen, so
+  /// it is quick and reads only this module's own records.
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) async => null;
+
   /// A word for a kind of date this module has falling due, when its title
   /// alone does not say it — a car's «Pride» is due for insurance or for
   /// inspection (2.8.4). Null to show the title alone.

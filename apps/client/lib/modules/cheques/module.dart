@@ -6,6 +6,7 @@ import 'privacy.dart';
 import 'reminders.dart';
 import 'strings.dart';
 import 'dues.dart';
+import 'glance.dart';
 
 class ChequeManagerModule extends NexStoredModule {
   const ChequeManagerModule();
@@ -33,4 +34,11 @@ class ChequeManagerModule extends NexStoredModule {
     ...await store.list('cheque'),
     ...await store.list('plan'),
   ]).duesBetween(from, to);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => chequeGlance(store, l10n, now);
 }

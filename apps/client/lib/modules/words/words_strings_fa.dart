@@ -201,4 +201,8 @@ const Map<String, String> wordsStringsFa = {
   'progressWeekEmpty': 'این هفته هنوز مروری نبوده.',
   'progressWeekLine': '{reviews} مرور · {again} دوباره',
   'weekDayTip': '{day}: {count} مرور',
+  'glanceGoal': 'هدف امروز',
+  'glanceTotal': 'واژه‌های نگه‌داشته',
+  'glanceWeek': 'پاسخ‌های این هفته',
+  'glanceReviewsToday': '{n} واژه برای مرور',
 };

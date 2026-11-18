@@ -178,4 +178,13 @@ const _expensePersian = <String, String>{
   'barSemantics': '{category}: {amount}، {percent} درصدِ هزینه',
   'netSemantics': 'خرج‌شده {amount}، باقی‌مانده {left}',
   'monthNavSemantics': 'نمایش {month}',
+  'glanceEmpty': 'اولین پرداخت را بنویسید',
+  'glanceSpent': '{amount} این ماه',
+  'glanceCount': '{n} پرداخت این ماه',
+  'glanceOffer': 'ثبت امروز: {what}',
+  'glanceSpentLabel': 'خرج این ماه',
+  'glanceIncome': 'درآمد',
+  'glanceLeft': 'باقی‌مانده',
+  'glanceTop': 'بیشترین دسته',
+  'glanceToLog': 'تکرارشونده، ثبت امروز',
 };

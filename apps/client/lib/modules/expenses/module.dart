@@ -5,6 +5,7 @@ import 'expenses_screen.dart';
 import 'strings.dart';
 import 'expenses_summary.dart';
 import 'models.dart';
+import 'expenses_glance.dart';
 
 /// **Expenses** — a voluntary, fully offline book of payments.
 ///
@@ -47,4 +48,11 @@ class ExpensesModule extends NexStoredModule {
         ExpenseTx.fromBody(row.id, row.body),
     ],
   ).duesBetween(from, to);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => expensesGlance(store, l10n, now);
 }

@@ -3,6 +3,7 @@ import 'package:nex_core/nex_core.dart';
 import '../../l10n/app_localizations.dart';
 import '../../modules/module_registry.dart';
 import '../../modules/nex_module_store.dart';
+import '../../modules/nex_stored_module.dart';
 import '../../modules/habits/habit_math.dart';
 import '../../modules/habits/habit_model.dart';
 import '../../modules/habits/week_settings.dart';
@@ -38,6 +39,14 @@ Future<NexPinnedSummary?> nexPinnedModuleSummary({
   if (!nexModulesOn(preferences).any((module) => module.id == id)) return null;
   final at = now ?? DateTime.now();
   final store = NexModuleStore(services, id);
+  // The module's own words first (2.8.5); the cases below are for the ones
+  // that have not said them yet, and for Pause and Cycle, which are not
+  // folder modules.
+  if (nexModulesById[id] case final NexStoredModule module) {
+    if (await module.glance(store, l10n, at) case final glance?) {
+      return NexPinnedSummary(glance.headline, glance.detail, glance.progress);
+    }
+  }
   switch (id) {
     case 'habits':
       final habits = (await store.list('habit'))

@@ -6926,4 +6926,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String toolDatesWhat(String title, String what) {
     return '$title · $what';
   }
+
+  @override
+  String get peekNothing => 'Nothing here yet. Open it to begin.';
+
+  @override
+  String get peekComing => 'Coming up';
+
+  @override
+  String peekOpen(String module) {
+    return 'Open $module';
+  }
+
+  @override
+  String moneyToman(String amount) {
+    return '$amount toman';
+  }
 }

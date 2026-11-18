@@ -6,6 +6,7 @@ import 'habit_reminder.dart';
 import 'habit_math.dart';
 import 'habit_model.dart';
 import 'week_settings.dart';
+import 'habits_shared.dart';
 
 /// Habits — an encouraging, one-tap habit tracker. Small progress made
 /// visible, without guilt: missed intervals are forgiven explicitly, never
@@ -33,9 +34,9 @@ class HabitsModule extends NexStoredModule {
   @override
   Future<String?> briefLine(NexModuleStore store, AppLocalizations l10n) async {
     final habits = (await store.list('habit')).map(Habit.fromRecord);
-    final checks = (await store.list(
-      'check',
-    )).map(HabitCheck.fromRecord).toList();
+    final checks = (await store.list('check'))
+        .map(HabitCheck.fromRecord)
+        .toList();
     final firstDay = readFirstDay(await store.get('settings', 'week'));
     final now = DateTime.now();
     var remaining = 0;
@@ -61,6 +62,44 @@ class HabitsModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => HabitsScreen(store: store);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => habitsGlance(store, l10n, now);
+
+  @override
+  String? dueLabel(AppLocalizations l10n, String kind) {
+    if (!kind.startsWith('habits-today:')) return null;
+    final n = int.tryParse(kind.substring('habits-today:'.length)) ?? 0;
+    return strings.text(l10n, 'briefLeft', {'n': n});
+  }
+
+  /// On the home screen, today's habits are one line (2.8.5): «3 habits left
+  /// for today», not a line each.
+  @override
+  Future<List<ModuleDue>> dues(
+    NexModuleStore store,
+    DateTime from,
+    DateTime to,
+  ) async {
+    final left = (await HabitsShared.load(store)).duesBetween(from, to);
+    if (left.isEmpty) return const [];
+    return [
+      ModuleDue(
+        id: 'habits:${left.first.at.toIso8601String().substring(0, 10)}',
+        recordKind: 'habit',
+        recordId: left.first.recordId,
+        at: left.first.at,
+        // One habit by its name; more as a count, said by [dueLabel] in the
+        // page's language.
+        title: left.length == 1 ? left.first.title : '',
+        kind: left.length == 1 ? 'habit' : 'habits-today:${left.length}',
+      ),
+    ];
+  }
 }
 
 const habitsStrings = NexModuleStrings(
@@ -188,8 +227,7 @@ const habitsStrings = NexModuleStrings(
     "tplUnit_read": "pages",
     "tplUnit_language": "minutes",
     'weekStart': 'Week starts on',
-    'weekStartHint':
-        'Applies to all weekly targets. Changing it recalculates summaries; check-ins stay intact.',
+    'weekStartHint': 'Applies to all weekly targets. Changing it recalculates summaries; check-ins stay intact.',
     'weekday1': 'Monday',
     'weekday2': 'Tuesday',
     'weekday3': 'Wednesday',
@@ -239,8 +277,7 @@ const habitsStrings = NexModuleStrings(
     'oneCheckin': '{n} check-in',
     'recentDays': 'Last {n} days',
     'calendar': 'Calendar',
-    'calendarHint':
-        'Tap a day to mark it done, or tap again to take it back. Days to come stay closed.',
+    'calendarHint': 'Tap a day to mark it done, or tap again to take it back. Days to come stay closed.',
     'previousMonth': 'Previous month',
     'nextMonth': 'Next month',
     'dayDone': '{date}, done',
@@ -248,8 +285,7 @@ const habitsStrings = NexModuleStrings(
     'rateTitle': 'How often',
     'rateDays': 'Last {n} days: {done} of {days} days · {pct}%',
     'rateWeeks': 'Last {weeks} finished weeks: {done} met the target · {pct}%',
-    'rateNote':
-        'Only the days since you started count; the week in progress is left out.',
+    'rateNote': 'Only the days since you started count; the week in progress is left out.',
     'wd1': 'M',
     'wd2': 'T',
     'wd3': 'W',
@@ -292,6 +328,8 @@ const habitsStrings = NexModuleStrings(
     'yesterday': 'Yesterday',
     'daysAgo': '{n} days ago',
     'nameRequired': 'Give the habit a name first',
+    'glanceLeft': 'To do',
+    'glanceDone': 'Done',
   },
   fa: {
     "icon_stretch": "کشش",
@@ -417,8 +455,7 @@ const habitsStrings = NexModuleStrings(
     "tplUnit_read": "صفحه",
     "tplUnit_language": "دقیقه",
     'weekStart': 'روز شروع هفته',
-    'weekStartHint':
-        'برای همهٔ هدف‌های هفتگی است. با تغییر آن، آمار دوباره محاسبه می‌شود و ثبت‌ها می‌مانند.',
+    'weekStartHint': 'برای همهٔ هدف‌های هفتگی است. با تغییر آن، آمار دوباره محاسبه می‌شود و ثبت‌ها می‌مانند.',
     'weekday1': 'دوشنبه',
     'weekday2': 'سه‌شنبه',
     'weekday3': 'چهارشنبه',
@@ -467,8 +504,7 @@ const habitsStrings = NexModuleStrings(
     'oneCheckin': '{n} ثبت',
     'recentDays': '{n} روز اخیر',
     'calendar': 'تقویم',
-    'calendarHint':
-        'روی یک روز بزنید تا انجام‌شده شود، دوباره بزنید تا برگردد. روزهای آینده بسته‌اند.',
+    'calendarHint': 'روی یک روز بزنید تا انجام‌شده شود، دوباره بزنید تا برگردد. روزهای آینده بسته‌اند.',
     'previousMonth': 'ماه قبل',
     'nextMonth': 'ماه بعد',
     'dayDone': '{date}، انجام شد',
@@ -476,8 +512,7 @@ const habitsStrings = NexModuleStrings(
     'rateTitle': 'چند بار',
     'rateDays': '{n} روز اخیر: {done} از {days} روز · {pct}٪',
     'rateWeeks': '{weeks} هفتهٔ تمام‌شده: {done} هفته به هدف رسید · {pct}٪',
-    'rateNote':
-        'فقط روزهای پس از شروع حساب می‌شوند؛ هفتهٔ در جریان کنار گذاشته شده است.',
+    'rateNote': 'فقط روزهای پس از شروع حساب می‌شوند؛ هفتهٔ در جریان کنار گذاشته شده است.',
     'wd1': 'د',
     'wd2': 'س',
     'wd3': 'چ',
@@ -519,5 +554,7 @@ const habitsStrings = NexModuleStrings(
     'yesterday': 'دیروز',
     'daysAgo': '{n} روز پیش',
     'nameRequired': 'اول یک نام برای عادت بنویسید',
+    'glanceLeft': 'مانده',
+    'glanceDone': 'انجام شد',
   },
 );

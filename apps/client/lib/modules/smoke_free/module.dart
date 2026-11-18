@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'quit_home_screen.dart';
 import 'smoke_strings.dart';
+import 'quit_glance.dart';
 export 'smoke_strings.dart';
 
 /// Quit Habits — a private, compassionate companion for quitting smoking,
@@ -30,4 +31,11 @@ class SmokeFreeModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => QuitHomeScreen(store: store);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => quitGlance(store, l10n, now);
 }

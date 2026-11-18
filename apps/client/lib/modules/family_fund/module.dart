@@ -6,6 +6,7 @@ import 'screen.dart';
 import 'strings.dart';
 import 'model.dart';
 import 'projection.dart';
+import 'fund_glance.dart';
 
 export 'strings.dart';
 
@@ -36,4 +37,11 @@ class FamilyFundModule extends NexStoredModule {
     for (final fund in (await store.list('fund')).map(Fund.read).nonNulls)
       ...FundDues(fund).duesBetween(from, to),
   ]..sort((a, b) => a.at.compareTo(b.at));
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => fundGlance(store, l10n, now);
 }
