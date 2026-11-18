@@ -305,4 +305,8 @@ const _maintenanceen = <String, String>{
   'editDate': 'Change',
   'reminderAt': 'Rings {time}',
   'fuelPriceUnit': 'tomans',
+  'glanceEmpty': 'Add your car or a thing to look after',
+  'glanceAllClear': 'Nothing due by date',
+  'glanceAssets': '{n} things looked after',
+  'glanceAssetsLabel': 'Things looked after',
 };

@@ -74,6 +74,9 @@ const studioStrings = NexModuleStrings(
     "more": "More actions",
     "details": "Category & personal notes",
     "blockLabel": "Reusable block",
+    'glanceEmpty': 'Keep your first prompt',
+    'glancePrompts': '{n} prompts',
+    'glanceFavorites': '{n} favourites',
   },
   fa: {
     "slotOne": "۱ جای خالی",
@@ -147,5 +150,8 @@ const studioStrings = NexModuleStrings(
     "more": "کارهای بیشتر",
     "details": "دسته‌بندی و یادداشت شخصی",
     "blockLabel": "قطعهٔ قابل‌استفادهٔ مجدد",
+    'glanceEmpty': 'اولین پرامپت را نگه دارید',
+    'glancePrompts': '{n} پرامپت',
+    'glanceFavorites': '{n} محبوب',
   },
 );

@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'converter_screen.dart';
 import 'converter_strings.dart';
+import 'converter_glance.dart';
 
 /// A converter for the three calendars and the measuring systems a person in
 /// Iran meets in a normal week: a Gregorian date on a visa form, a lunar date
@@ -26,4 +27,11 @@ class ConverterModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => ConverterScreen(store: store);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => converterGlance(store, l10n, now);
 }

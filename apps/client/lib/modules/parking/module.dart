@@ -5,6 +5,7 @@ import 'parking_screen.dart';
 import 'parking_strings.dart';
 import 'parking_models.dart';
 import 'parking_shared.dart';
+import 'parking_glance.dart';
 
 /// Where I parked — a stored module, one folder wide.
 ///
@@ -36,4 +37,11 @@ class ParkingModule extends NexStoredModule {
   ) async =>
       ParkingShared(await store.list(ParkingModels.session))
           .duesBetween(from, to);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => parkingGlance(store, l10n, now);
 }

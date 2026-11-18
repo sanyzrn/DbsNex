@@ -297,4 +297,8 @@ const _maintenancefa = <String, String>{
   'editDate': 'تغییر',
   'reminderAt': 'زنگ در {time}',
   'fuelPriceUnit': 'تومان',
+  'glanceEmpty': 'ماشین یا وسیله‌ای برای نگهداری اضافه کنید',
+  'glanceAllClear': 'سررسید تاریخ‌داری نیست',
+  'glanceAssets': '{n} وسیله زیر نظر',
+  'glanceAssetsLabel': 'وسیله‌های زیر نظر',
 };

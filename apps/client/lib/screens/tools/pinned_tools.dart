@@ -8,6 +8,8 @@ import '../../l10n/app_localizations.dart';
 import '../../modules/module_registry.dart';
 import '../../platform/nex_preferences.dart';
 import '../../platform/nex_services.dart';
+import '../../modules/nex_stored_module.dart';
+import '../../widgets/module_peek.dart';
 import '../../widgets/nex_shelf.dart';
 import '../../widgets/vault_open_builder.dart';
 import '../tools_screen.dart' show nexToggleToolPin;
@@ -176,6 +178,21 @@ class _PinnedToolsState extends State<PinnedTools> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _tap(BuildContext context, NexTool tool) async {
+    final id = tool.id.startsWith('module.')
+        ? tool.id.substring('module.'.length)
+        : null;
+    if (nexModulesById[id] case final NexStoredModule module) {
+      return nexShowModulePeek(
+        context,
+        module: module,
+        services: widget.services,
+        preferences: widget.preferences,
+      );
+    }
+    return tool.push(context);
+  }
+
   @override
   void dispose() {
     _generation++;
@@ -233,7 +250,9 @@ class _PinnedToolsState extends State<PinnedTools> with WidgetsBindingObserver {
                             badge: tool.locked
                                 ? nexLockBadge(open: open)
                                 : null,
-                            onTap: () => unawaited(tool.push(context)),
+                            // A folder module opens its quick view first
+                            // (2.8.5); the module is one button further.
+                            onTap: () => unawaited(_tap(context, tool)),
                             onLongPress: () => unawaited(
                               nexToggleToolPin(
                                 context,

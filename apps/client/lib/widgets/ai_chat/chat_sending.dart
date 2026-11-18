@@ -210,6 +210,19 @@ extension _ChatSending on _AiChatSheetState {
     );
     if (!mounted || generation != _sendGeneration) return;
     _guide = guide;
+    String tools;
+    try {
+      tools = await nexToolsForAssistant(
+        services: widget.services,
+        preferences: widget.preferences,
+        l10n: l10n,
+        budget: _adapter.answersOnDevice ? 700 : 1600,
+      );
+    } catch (_) {
+      tools = '';
+    }
+    if (!mounted || generation != _sendGeneration) return;
+    _tools = tools;
     bool gentle;
     try {
       gentle = await nexCycleGentleToday(

@@ -6,6 +6,7 @@ import 'medicine_screen.dart';
 import 'medicine_strings.dart';
 import 'medicine_models.dart';
 import 'medicine_shared.dart';
+import 'medicine_glance.dart';
 
 /// Medicine cabinet — a stored module, one folder wide.
 ///
@@ -40,9 +41,26 @@ class MedicineModule extends NexStoredModule {
     NexModuleStore store,
     DateTime from,
     DateTime to,
-  ) async => MedicineShared(
-    medicines: await store.list(MedicineModels.medicine),
-    doses: await store.list(MedicineModels.dose),
-    boxes: await store.list(MedicineModels.box),
-  ).duesBetween(from, to);
+  ) async {
+    // A dose that was not marked before today is not a task left to do: the
+    // home screen's dates start today for doses (2.8.5), while a box's
+    // expiry still counts from [from].
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
+    return [
+      for (final due in MedicineShared(
+        medicines: await store.list(MedicineModels.medicine),
+        doses: await store.list(MedicineModels.dose),
+        boxes: await store.list(MedicineModels.box),
+      ).duesBetween(from, to))
+        if (due.kind != 'dose' || !due.at.isBefore(start)) due,
+    ];
+  }
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => medicineGlance(store, l10n, now);
 }

@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'occasion_reminders.dart';
 import 'occasions_screen.dart';
+import 'occasions_shared.dart';
 
 /// Birthdays and occasions — dates that matter, kept in the calendar they
 /// are celebrated in. A Jalali date returns on the same Jalali day every
@@ -33,6 +34,22 @@ class OccasionsModule extends NexStoredModule {
   @override
   Future<void> keepUp(NexModuleStore store, AppLocalizations l10n) =>
       renewOccasionReminders(store, l10n);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => occasionsGlance(store, l10n, now);
+
+  @override
+  Future<List<ModuleDue>> dues(
+    NexModuleStore store,
+    DateTime from,
+    DateTime to,
+  ) async =>
+      OccasionsShared.fromRecords(await store.list('occasion'))
+          .duesBetween(from, to);
 }
 
 const occasionsStrings = NexModuleStrings(
@@ -180,6 +197,8 @@ const occasionsStrings = NexModuleStrings(
     'discardBody': 'What you wrote here has not been saved.',
     'more': 'More',
     'invalidTitle': 'This date is not complete',
+    'glanceEmpty': 'Add a birthday or a date that matters',
+    'glanceThisMonth': 'In the next 30 days',
   },
   fa: {
     'title': 'تولدها و مناسبت‌ها',
@@ -323,5 +342,7 @@ const occasionsStrings = NexModuleStrings(
     'discardBody': 'آنچه این‌جا نوشتید ذخیره نشده است.',
     'more': 'بیشتر',
     'invalidTitle': 'این تاریخ کامل نیست',
+    'glanceEmpty': 'یک تولد یا تاریخ مهم اضافه کنید',
+    'glanceThisMonth': 'در ۳۰ روز آینده',
   },
 );

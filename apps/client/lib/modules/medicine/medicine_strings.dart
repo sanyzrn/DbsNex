@@ -121,6 +121,14 @@ const medicineStrings = NexModuleStrings(
     'safetyNote':
         'This app does not check doses, interactions or timing. Your '
         'clinician or pharmacist is the source for medical instructions.',
+    'glanceEmpty': 'Add your first medicine',
+    'glanceNoDoses': 'No doses today',
+    'glanceDoses': '{done} of {total} doses today',
+    'glanceNext': 'Next at {time}',
+    'glanceExpiring': '{n} boxes expire this month',
+    'glanceTaken': 'Taken',
+    'glanceWaiting': 'Waiting',
+    'glanceBoxOf': 'A box of {name} expires',
   },
   fa: {
     ...medicineStringsUpgradeFa,
@@ -237,5 +245,13 @@ const medicineStrings = NexModuleStrings(
     'safetyNote':
         'این برنامه دوز، تداخل یا زمان را بررسی نمی‌کند. منبعِ دستورهای '
         'پزشکی، پزشک یا داروساز شماست.',
+    'glanceEmpty': 'اولین دارو را اضافه کنید',
+    'glanceNoDoses': 'امروز نوبتی نیست',
+    'glanceDoses': '{done} از {total} نوبت امروز',
+    'glanceNext': 'بعدی ساعت {time}',
+    'glanceExpiring': '{n} جعبه این ماه منقضی می‌شود',
+    'glanceTaken': 'خورده شد',
+    'glanceWaiting': 'مانده',
+    'glanceBoxOf': 'جعبهٔ {name} منقضی می‌شود',
   },
 );

@@ -140,6 +140,11 @@ const securityStrings = NexModuleStrings(
     "contactBody": "Use the service’s official recovery route. If payment information was exposed, contact your bank through a known official channel.",
     "downloads": "Review downloads and prompts",
     "downloadsBody": "Do not run unexpected downloads or grant new permissions. Update your browser/device and seek trusted technical help if something was installed or unusual behavior continues.",
+    'glanceEmpty': 'Check your first account',
+    'glanceAllDone': 'Every account is in order',
+    'glanceOpen': '{n} accounts have a step left',
+    'glanceAccounts': '{n} accounts',
+    'glanceChecks': '{done} of {total}',
   },
   fa: {
     "codecTitle": "تبدیل متن",
@@ -282,5 +287,10 @@ const securityStrings = NexModuleStrings(
     "contactBody": "از مسیر رسمی بازیابی سرویس استفاده کن. اگر اطلاعات پرداخت افشا شده، از کانال رسمی و شناخته‌شده با بانک تماس بگیر.",
     "downloads": "دانلودها و درخواست‌ها را مرور کن",
     "downloadsBody": "دانلود غیرمنتظره را اجرا نکن و مجوز تازه نده. مرورگر و دستگاه را به‌روز کن؛ اگر چیزی نصب شده یا رفتار غیرعادی ادامه دارد، از فرد فنی مورداعتماد کمک بگیر.",
+    'glanceEmpty': 'اولین حساب را بررسی کنید',
+    'glanceAllDone': 'همهٔ حساب‌ها مرتب‌اند',
+    'glanceOpen': '{n} حساب یک قدم مانده دارند',
+    'glanceAccounts': '{n} حساب',
+    'glanceChecks': '{done} از {total}',
   },
 );

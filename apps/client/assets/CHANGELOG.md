@@ -4,6 +4,14 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 ## Unreleased
 
+## v2.8.5
+
+- **Pinned tools tell you what they hold.** Instead of "open to view", each pinned module now shows its own news: the next cheque and when, where the car is parked and the time left, today's habits, the words waiting, the next dose, this month's spending, the days since you quit. Money tools never show an amount there.
+- **A quick look before you open a tool.** Tap a pinned module — or a line in the dates card — and its quick view opens over the home screen: the main fact, a few details and what is coming up in the next month. Open the module itself only when you want to change something.
+- **More dates on the home card.** Warranties that are ending, birthdays and occasions, today's habits and the words waiting for review now join cheques, instalments and the car's papers in the dates card. A remembrance stays private there.
+- **The assistant can know your tools.** Turn on **Let it see my tools** in the assistant's settings and you can ask "what do I have this week?" — it answers from your notes and your tools together. It is off until you turn it on; money and health tools are given only as a count, never a name or an amount.
+- **Medicine no longer floods the dates card.** Doses from earlier days no longer appear as late on the home screen.
+
 ## v2.8.4
 
 - **Four more modules.** Ready to add from Tools:

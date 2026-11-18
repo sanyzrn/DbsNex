@@ -187,4 +187,13 @@ const _expenseEnglish = <String, String>{
   'barSemantics': '{category}: {amount}, {percent} percent of spending',
   'netSemantics': 'Spent {amount}, left {left}',
   'monthNavSemantics': 'Showing {month}',
+  'glanceEmpty': 'Write down your first payment',
+  'glanceSpent': '{amount} this month',
+  'glanceCount': '{n} payments this month',
+  'glanceOffer': 'To log today: {what}',
+  'glanceSpentLabel': 'Spent this month',
+  'glanceIncome': 'Came in',
+  'glanceLeft': 'Left',
+  'glanceTop': 'Largest category',
+  'glanceToLog': 'Recurring, to log today',
 };

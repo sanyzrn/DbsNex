@@ -17,7 +17,6 @@ const warrantyStrings = NexModuleStrings(
     'point2': 'What ends in 30 days, at the top',
     'point3': 'Claims kept as dated notes',
     'point4': 'Nothing leaves this phone',
-
     // The list.
     'heroEyebrow': 'Coverage',
     'heroCovered': '{count} covered',
@@ -45,7 +44,6 @@ const warrantyStrings = NexModuleStrings(
     'endedYesterday': 'Ended yesterday',
     'noResults': 'Nothing matches.',
     'statusOn': 'until {date}',
-
     // The editor.
     'editPurchase': 'Edit purchase',
     'addTitle': 'Add a purchase',
@@ -115,7 +113,6 @@ const warrantyStrings = NexModuleStrings(
     'note': 'Note',
     'noteHint': 'Anything worth remembering',
     'save': 'Save purchase',
-
     // The reminder offered at save.
     'reminderTitle': 'Remind me before it ends',
     'reminderLeadLabel': 'How early',
@@ -133,7 +130,6 @@ const warrantyStrings = NexModuleStrings(
         'the notification permission.',
     'reminderBody': '“{name}” ends on {date}.',
     'reminderTitleText': 'Warranty ending',
-
     // Details.
     'detailsTitle': 'Warranty',
     'purchasedLabel': 'Purchased',
@@ -177,7 +173,6 @@ const warrantyStrings = NexModuleStrings(
         'claim is due. It is removed when the purchase is deleted or '
         'archived.',
     'archive': 'Archive',
-
     // Questions, failures and fields.
     'coverageRequired':
         'Enter a valid end date or 1–{months} months ending by {year}.',
@@ -202,6 +197,11 @@ const warrantyStrings = NexModuleStrings(
     'discard': 'Leave',
     'keepWriting': 'Keep writing',
     'saveFailed': 'Could not save. Nothing was lost — try again.',
+    'glanceEmpty': 'Add your first purchase',
+    'glanceCovered': '{n} purchases covered',
+    'glanceNextEnds': '{what} ends next',
+    'glanceSoon': '{n} end within 30 days',
+    'glanceCoveredLabel': 'Still covered',
   },
   fa: {
     // کارت و صفحه.
@@ -216,7 +216,6 @@ const warrantyStrings = NexModuleStrings(
     'point2': 'آنچه در ۳۰ روز آینده تمام می‌شود، بالای فهرست',
     'point3': 'مراجعه‌ها و تعمیرها به‌صورت یادداشت تاریخ‌دار',
     'point4': 'هیچ چیزی از این گوشی بیرون نمی‌رود',
-
     // فهرست.
     'heroEyebrow': 'پوشش',
     'heroCovered': '{count} در پوشش',
@@ -244,7 +243,6 @@ const warrantyStrings = NexModuleStrings(
     'endedYesterday': 'دیروز تمام شد',
     'noResults': 'چیزی پیدا نشد.',
     'statusOn': 'تا {date}',
-
     // ویرایشگر.
     'editPurchase': 'ویرایش خرید',
     'addTitle': 'افزودن خرید',
@@ -310,7 +308,6 @@ const warrantyStrings = NexModuleStrings(
     'note': 'یادداشت',
     'noteHint': 'هر چه ارزش یادآوری دارد',
     'save': 'ثبت خرید',
-
     // یادآوری هنگام ذخیره.
     'reminderTitle': 'قبل از پایان یادم بیاور',
     'reminderLeadLabel': 'چند روز قبل',
@@ -326,7 +323,6 @@ const warrantyStrings = NexModuleStrings(
         'خرید ذخیره شد، ولی یادآوری تنظیم نشد. مجوز اعلان را بررسی کنید.',
     'reminderBody': 'گارانتی «{name}» در {date} تمام می‌شود.',
     'reminderTitleText': 'پایان گارانتی',
-
     // جزئیات.
     'detailsTitle': 'گارانتی',
     'purchasedLabel': 'خرید',
@@ -368,7 +364,6 @@ const warrantyStrings = NexModuleStrings(
         'هشدار گوشی، خودتان تنظیمش می‌کنید — برای پایان گارانتی یا سررسید '
         'پیگیری. با حذف یا آرشیو خرید برداشته می‌شود.',
     'archive': 'آرشیو کردن',
-
     // پرسش‌ها، خطاها و فیلدها.
     'coverageRequired': 'تاریخ پایان معتبر یا مدت ۱ تا {months} ماه، حداکثر تا سال {year} وارد کنید.',
     'dateHint': 'سال/ماه/روز',
@@ -390,5 +385,10 @@ const warrantyStrings = NexModuleStrings(
     'discard': 'خروج',
     'keepWriting': 'ادامه بدهم',
     'saveFailed': 'ذخیره نشد. چیزی از دست نرفت — دوباره تلاش کنید.',
+    'glanceEmpty': 'اولین خرید را اضافه کنید',
+    'glanceCovered': '{n} خرید زیر پوشش',
+    'glanceNextEnds': 'نزدیک‌ترین پایان: {what}',
+    'glanceSoon': '{n} مورد تا ۳۰ روز تمام می‌شود',
+    'glanceCoveredLabel': 'هنوز زیر پوشش',
   },
 );

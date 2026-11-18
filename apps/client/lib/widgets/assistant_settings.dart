@@ -6,7 +6,9 @@ import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+
 import 'package:nex_ai/cloud.dart';
+
 import '../platform/nex_preferences.dart';
 import 'choice_cards.dart';
 import 'settings_group.dart';
@@ -308,6 +310,15 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                     unawaited(preferences.setAiNotesOnly(value)),
                 title: Text(l10n.assistantScope),
                 subtitle: Text(l10n.assistantScopeSubtitle),
+              ),
+              NexSwitchTile(
+                key: const ValueKey('assistant-use-tools'),
+                secondary: const Icon(Icons.widgets_outlined),
+                value: preferences.aiUseTools,
+                onChanged: (value) =>
+                    unawaited(preferences.setAiUseTools(value)),
+                title: Text(l10n.assistantUseTools),
+                subtitle: Text(l10n.assistantUseToolsSubtitle),
               ),
               // Only where the assistant can hear: the provider takes audio.
               if (preferences.aiProvider.supportsTranscription)

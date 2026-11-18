@@ -5,6 +5,7 @@ import 'car_reminders.dart';
 import 'maintenance_screen.dart';
 import 'strings.dart';
 import 'maintenance_shared.dart';
+import 'maintenance_glance.dart';
 
 /// **Maintenance** — a private log of upkeep for owned things.
 ///
@@ -52,4 +53,11 @@ class MaintenanceModule extends NexStoredModule {
     'inspection-expiry' => maintenanceStrings.text(l10n, 'inspectionLabel'),
     _ => null,
   };
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => maintenanceGlance(store, l10n, now);
 }

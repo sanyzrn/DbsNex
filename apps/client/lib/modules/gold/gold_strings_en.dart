@@ -307,4 +307,8 @@ const Map<String, String> goldStringsEn = {
   'parse_tooManyDecimals': 'Too many decimal places.',
   'parse_negative': 'A negative amount is not meaningful here.',
   'parse_tooBig': 'Too large.',
+  'glanceEmpty': 'Make your first estimate',
+  'glanceSaved': '{n} estimates saved',
+  'glanceLatest': 'Latest: {when}',
+  'glanceUntitled': 'Estimate',
 };

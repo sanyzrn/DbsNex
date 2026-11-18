@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'gold_screen.dart';
 import 'gold_strings.dart';
+import 'gold_glance.dart';
 
 /// «Gold Check» — offline buying, buyback and market conversions for Iran.
 ///
@@ -28,4 +29,11 @@ class GoldModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => GoldScreen(store: store);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => goldGlance(store, l10n, now);
 }

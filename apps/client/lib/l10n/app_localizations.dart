@@ -4334,6 +4334,18 @@ abstract class AppLocalizations {
   /// **'Full'**
   String get assistantLengthFull;
 
+  /// Assistant settings switch: the assistant reads a summary of the modules.
+  ///
+  /// In en, this message translates to:
+  /// **'Let it see my tools'**
+  String get assistantUseTools;
+
+  /// Under assistantUseTools.
+  ///
+  /// In en, this message translates to:
+  /// **'What your tools have coming up in the next two weeks goes with each question, so it can answer \"what\'s due this week?\". Money and health tools only as a count.'**
+  String get assistantUseToolsSubtitle;
+
   /// Switch limiting the assistant to the notes and the app
   ///
   /// In en, this message translates to:
@@ -10538,6 +10550,18 @@ abstract class AppLocalizations {
   /// **'Your tools\' dates, on the home screen'**
   String get tipToolDatesTitle;
 
+  /// No description provided for @tipToolPeekTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A quick look at a tool'**
+  String get tipToolPeekTitle;
+
+  /// No description provided for @tipToolPeekBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a pinned module for its quick view: what it holds and what is coming up, right here. Open it only when you want to change something.'**
+  String get tipToolPeekBody;
+
   /// No description provided for @tipToolDatesBody.
   ///
   /// In en, this message translates to:
@@ -10549,6 +10573,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{title} · {what}'**
   String toolDatesWhat(String title, String what);
+
+  /// No description provided for @peekNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet. Open it to begin.'**
+  String get peekNothing;
+
+  /// No description provided for @peekComing.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming up'**
+  String get peekComing;
+
+  /// No description provided for @peekOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {module}'**
+  String peekOpen(String module);
+
+  /// No description provided for @moneyToman.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} toman'**
+  String moneyToman(String amount);
 }
 
 class _AppLocalizationsDelegate

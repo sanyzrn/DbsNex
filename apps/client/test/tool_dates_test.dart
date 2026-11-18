@@ -97,6 +97,16 @@ void main() {
     expect(find.text('Pride · Technical inspection'), findsOneWidget);
     expect(find.text('in 3 days'), findsNWidgets(2));
     expect(tester.takeException(), isNull);
+    // A line opens the module's quick view first (2.8.5).
+    await tester.tap(find.text('Pride · Third-party insurance'));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('peek-open')), findsOneWidget);
+    expect(find.text('Coming up'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
     await h.preferences.setShowToolDates(false);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),

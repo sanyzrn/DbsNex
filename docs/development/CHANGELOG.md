@@ -34,6 +34,27 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.5 — modules at a glance, the quick view, the assistant and tools
+
+- Kit: `ModuleGlance` / `ModuleGlanceFact`, `nexDueWhen`, `nexTomanText`;
+  `NexStoredModule.glance(store, l10n, now)` implemented by every stored
+  module (`*_glance.dart` / `*_shared.dart`). `pinned_module_summary.dart`
+  asks the glance first; only Pause and Cycle keep their own cases.
+- Quick view: `widgets/module_peek.dart` (`nexShowModulePeek`), opened from
+  a pinned module tile and from a «Dates from your tools» line.
+- Dates card: `dues` for Occasions (`OccasionsShared`, remembrances
+  private), Warranties (`WarrantyShared`, coverage end), Habits (one
+  combined `habits-today:N` line) and Word by Word (`words-review:N`);
+  empty-title + `dueLabel` lines; Medicine drops doses before today.
+  `duesPending` is empty; `summaryPending` shrank to five.
+- Assistant: `ai.useTools` (off by default, switch in assistant settings);
+  `platform/tools_for_assistant.dart` builds a bounded «Your tools» block
+  read again before every question and added to the notes context; money,
+  health and belongings modules (`nexToolsKeptOnPhone`) only as a count.
+  `canAct` still depends on notes only.
+- Tip `tool-peek`. Tests: `module_glance_test.dart`,
+  `tools_for_assistant_test.dart`.
+
 ### 2.8.4 — three module branches reviewed: Parking, Lent & Borrowed, Medicine
 
 - Parking (agent/module-parking, stays Soon): `ParkingAlarm` keeps a

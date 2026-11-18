@@ -209,4 +209,8 @@ const Map<String, String> wordsStringsEn = {
   'progressWeekEmpty': 'No reviews this week yet.',
   'progressWeekLine': '{reviews} reviews · {again} again',
   'weekDayTip': '{day}: {count} reviews',
+  'glanceGoal': 'Today\'s goal',
+  'glanceTotal': 'Words kept',
+  'glanceWeek': 'Answers this week',
+  'glanceReviewsToday': '{n} words to review',
 };
