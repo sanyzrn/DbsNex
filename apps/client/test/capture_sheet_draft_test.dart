@@ -120,7 +120,10 @@ void main() {
     () async {
       await boot();
       final note = await services.captureDraft('interrupted', 'f');
-      services.captureJournal.write('interrupted', 'full recovered sentence');
+      await services.captureJournal.write(
+        'interrupted',
+        'full recovered sentence',
+      );
       await services.recoverCaptureDrafts();
       await services.recoverCaptureDrafts();
       final notes = await db.timeline();
@@ -138,7 +141,7 @@ void main() {
       // the process died: the note is newer than the journal.
       await boot();
       final note = await services.captureDraft('stale', 'first words');
-      services.captureJournal.write('stale', 'first words');
+      await services.captureJournal.write('stale', 'first words');
       await Future<void>.delayed(const Duration(milliseconds: 5));
       await db.updateNote(note!.id, 'first words and the rest');
 
@@ -152,7 +155,7 @@ void main() {
   test('a failed recovery retains the journal for another launch', () async {
     await boot();
     await services.captureDraft('retry', 'old');
-    services.captureJournal.write('retry', 'new');
+    await services.captureJournal.write('retry', 'new');
     db.failUpdates = 1;
     await services.recoverCaptureDrafts();
     expect(services.captureJournal.pending().single.text, 'new');
@@ -169,7 +172,7 @@ void main() {
       // whitespace used to come back as a note of blank lines.
       await boot();
       await services.captureDraft('ws', 'words');
-      services.captureJournal.write('ws', '   ');
+      await services.captureJournal.write('ws', '   ');
       await services.recoverCaptureDrafts();
       expect(await db.timeline(), isEmpty);
       expect(services.captureJournal.pending(), isEmpty);

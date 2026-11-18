@@ -37,8 +37,14 @@ class NoteContextMenu extends StatefulWidget {
     required this.child,
     this.entries = const [],
     this.entriesBuilder,
+    this.onHold,
   });
   final Widget child;
+
+  /// What a hold does instead of opening the menu — while notes are being
+  /// picked, a hold picks this one too (2.8.6): a menu of one note's
+  /// actions in the middle of a selection acted on the wrong note.
+  final VoidCallback? onHold;
   final List<NoteMenuEntry> entries;
   final List<NoteMenuEntry> Function(BuildContext context, double width)?
   entriesBuilder;
@@ -61,6 +67,10 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
   bool _ducking = false;
 
   void _open([Offset? position]) {
+    if (widget.onHold case final hold?) {
+      hold();
+      return;
+    }
     final builder = widget.entriesBuilder;
     if (builder == null) {
       if (widget.entries.isNotEmpty) _controller.open(position: position);

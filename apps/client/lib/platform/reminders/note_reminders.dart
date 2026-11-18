@@ -78,9 +78,17 @@ extension NexNoteReminders on NexReminders {
   }
 
   /// Schedules (or reschedules) the reminder for one note.
-  Future<void> schedule(Note note) async {
+  ///
+  /// [verify] reads back the alarm queue to confirm the system kept this
+  /// alarm — one queue deserialization per note. The launch re-arm sweeps
+  /// every upcoming reminder through here and asks once for the whole batch
+  /// instead (see `syncFromLibrary`): R re-arms asking per note was R×R queue
+  /// reads in the app's first seconds.
+  /// Answers whether an alarm was set: a note whose time has passed is
+  /// withdrawn, not armed, and the sweep's batch check must not call it lost.
+  Future<bool> schedule(Note note, {bool verify = true}) async {
     final when = note.dueAt;
-    if (!NexReminders.supported || when == null) return;
+    if (!NexReminders.supported || when == null) return false;
     // Cleared on entry. It reports what happened to *this* alarm, and a value
     // left over from an earlier one is how a reminder that was scheduled
     // perfectly well gets announced as having failed.
@@ -105,7 +113,7 @@ extension NexNoteReminders on NexReminders {
     if (!at.isAfter(DateTime.now().toUtc())) {
       await _withdraw(NexReminders._idFor(note.id));
       _reportInitialisationWarning();
-      return;
+      return false;
     }
 
     // The same treatment a card gets: a reminder is the note's words on a
@@ -140,7 +148,7 @@ extension NexNoteReminders on NexReminders {
         },
         payload: note.id,
       );
-      lastError = await _verify(NexReminders._idFor(note.id));
+      lastError = verify ? await _verify(NexReminders._idFor(note.id)) : null;
       // What "In an hour" will say again, kept where the button's own
       // isolate can read it.
       await NexReminderActions.remember(
@@ -167,10 +175,13 @@ extension NexNoteReminders on NexReminders {
       // invisible: [lastError] is what the sheet reads before telling anyone
       // their reminder is set.
       lastError = '$error';
+      _reportInitialisationWarning();
+      return false;
     }
     // A schedule that succeeded does not get to hide the timezone problem:
     // on a phone whose zone never loaded, "set for 9:00" was quietly set for
     // a different 9:00 than the one on the clock.
     _reportInitialisationWarning();
+    return true;
   }
 }

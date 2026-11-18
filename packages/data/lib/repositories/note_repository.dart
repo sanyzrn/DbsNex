@@ -828,6 +828,36 @@ WHERE id = ?
     );
   }
 
+  /// Which of [ids] are live notes, in one pass — the batched form of asking
+  /// `getById != null` per id, which crossed the whole repository read (note
+  /// row, tags, attachment counts) once per id.
+  ///
+  /// Public for the worker command the link-art sweep reads: at every launch
+  /// it walks the pictures on disk and asks this of every note that has one.
+  /// A superset member, like `backup` and `undelete` — not on the core port.
+  List<String> existingNoteIds(List<String> ids) {
+    if (ids.isEmpty) return const [];
+    final found = <String>[];
+    // SQLite's default host-parameter ceiling; chunks keep any library size
+    // inside it.
+    const chunkSize = 500;
+    for (var start = 0; start < ids.length; start += chunkSize) {
+      final chunk = ids.sublist(
+        start,
+        (start + chunkSize).clamp(0, ids.length),
+      );
+      final rows = db.select(
+        'SELECT id FROM notes WHERE deleted_at IS NULL AND id IN '
+        '(${List.filled(chunk.length, '?').join(',')})',
+        chunk,
+      );
+      for (final row in rows) {
+        found.add(row['id'] as String);
+      }
+    }
+    return found;
+  }
+
   /// Timeline page, most recently touched first (FR-2.2 / FR-2.5).
   ///
   /// Ordered by `updated_at`, not `created_at`: editing a note's content,
@@ -2625,11 +2655,20 @@ LIMIT ?
       // normalises every Persian spelling but leaves Latin letters cased,
       // and the index keeps the note's own case. Without it, "NERA" stopped
       // finding "Generator" the moment the FTS pass missed it.
+      //
+      // It is also pure cost when the needle holds nothing it can fold: a
+      // Persian or digit-only needle matches the same rows either way, and
+      // `lower(f.content)` allocates a lower-cased copy of every note's text
+      // on the way. Those needles search the content as it lies; the rest
+      // keep the case-insensitive pass. (Measured on 50,000 notes: the
+      // allocation is a third of the pass's cost for a Persian needle.)
+      final needleIsCased = _asciiCased.hasMatch(needle);
+      final substringColumn = needleIsCased ? 'lower(f.content)' : 'f.content';
       for (final row in db.select(
         '''
 SELECT f.note_id AS id FROM notes_fts f
 JOIN notes n ON n.id = f.note_id
-WHERE instr(lower(f.content), ?) > 0 AND $filter
+WHERE instr($substringColumn, ?) > 0 AND $filter
 ORDER BY n.created_at DESC, n.rowid DESC
 LIMIT ?
 ''',
@@ -2642,6 +2681,11 @@ LIMIT ?
     }
     return ids;
   }
+
+  /// Letters whose case `lower()` can fold — the only ones the substring
+  /// pass needs it for. Everything else (Persian after the fold, digits,
+  /// punctuation) already matches the content exactly as stored.
+  static final _asciiCased = RegExp(r'[A-Za-z]');
 
   /// One ranked list for [filters]: its keyword matches fused with
   /// [semantic], the ids a meaning search found, best first (W2.2). Meaning

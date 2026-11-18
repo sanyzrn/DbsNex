@@ -2309,7 +2309,7 @@
   "toolDatesToday": "امروز",
   "toolDatesTomorrow": "فردا",
   "toolDatesIn": "{count, plural, other{{count} روز دیگر}}",
-  "toolDatesLate": "{count, plural, other{{count} روز گذشته}}",
+  "toolDatesLate": "{count, plural, other{{count} روز عقب افتاده}}",
   "toolDatesMore": "{count, plural, other{{count} مورد دیگر}}",
   "toolDatesCount": "{title} ({count} مورد)",
   "layoutToolDates": "تاریخ ابزارها",

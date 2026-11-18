@@ -290,11 +290,19 @@ class NexLinkArt extends ChangeNotifier {
     if (had) notifyListeners();
   }
 
-  /// Lets go of the pictures of every note [exists] no longer finds.
-  Future<void> sweep(Future<bool> Function(String noteId) exists) async {
+  /// Lets go of the pictures of every note [existsAmong] no longer finds,
+  /// asked as one batch: the ids are the sweep's whole question, and one
+  /// round trip answers it where one per id used to queue behind every
+  /// other command the worker is running at launch.
+  Future<void> sweep(
+    Future<Set<String>> Function(List<String> noteIds) existsAmong,
+  ) async {
     await _folder();
-    for (final id in {..._known.keys, ..._empty.keys}.toList()) {
-      if (!await exists(id)) await forget(id);
+    final ids = {..._known.keys, ..._empty.keys}.toList();
+    if (ids.isEmpty) return;
+    final existing = await existsAmong(ids);
+    for (final id in ids) {
+      if (!existing.contains(id)) await forget(id);
     }
   }
 

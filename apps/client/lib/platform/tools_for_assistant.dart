@@ -63,7 +63,7 @@ String nexToolsContext(
   for (final report in reports) {
     final open = [
       for (final due in report.dues)
-        if (!due.done) due,
+        if (!due.isOver(today)) due,
     ]..sort((a, b) => a.at.compareTo(b.at));
     if (nexToolsKeptOnPhone.contains(report.id)) {
       // Not even that it is in use, unless something is coming up.

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -14,11 +15,12 @@ void main() {
   tearDown(() => root.deleteSync(recursive: true));
 
   group('CaptureJournal.writeSoon', () {
-    test('holds the text until flushed', () {
+    test('holds the text until flushed', () async {
       final journal = CaptureJournal(root.path);
       journal.writeSoon('a', 'hello');
       expect(journal.pending(), isEmpty);
       journal.flushPending();
+      await journal.flush();
       expect(journal.pending().single.text, 'hello');
     });
 
@@ -29,15 +31,40 @@ void main() {
       await Future<void>.delayed(
         CaptureJournal.settle + const Duration(milliseconds: 100),
       );
+      await journal.flush();
       expect(journal.pending().single.text, 'hi');
     });
 
-    test('complete drops a write still waiting', () {
+    test('complete drops a write still waiting', () async {
       final journal = CaptureJournal(root.path);
       journal.writeSoon('a', 'hello');
       journal.complete('a');
       journal.flushPending();
+      await journal.flush();
       expect(journal.pending(), isEmpty);
+    });
+
+    test('a complete after an in-flight write wins', () async {
+      final journal = CaptureJournal(root.path);
+      unawaited(journal.write('a', 'hello'));
+      journal.complete('a');
+      await journal.flush();
+      expect(journal.pending(), isEmpty);
+      expect(
+        root.listSync(recursive: true).whereType<File>(),
+        isEmpty,
+        reason:
+            'the journal write and its staging file both land before '
+            'the deletion runs, and neither is left behind',
+      );
+    });
+
+    test('writes land in the order they were asked for', () async {
+      final journal = CaptureJournal(root.path);
+      unawaited(journal.write('a', 'first'));
+      unawaited(journal.write('a', 'second'));
+      await journal.flush();
+      expect(journal.pending().single.text, 'second');
     });
   });
 

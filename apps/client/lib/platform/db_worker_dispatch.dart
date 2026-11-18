@@ -296,6 +296,9 @@ class _Worker {
         message.command,
         arg,
       ),
+      _DbCommand.notesExist => repo.existingNoteIds(
+        (arg('ids')! as List).cast<String>(),
+      ),
       _DbCommand.scheduleNote => scheduled.schedule(
         arg('noteId')! as String,
         DateTime.parse(arg('releaseAt')! as String),
@@ -368,7 +371,20 @@ class _Worker {
       _DbCommand.briefWaitingNotes => repo.listBriefWaiting(
         limit: arg('limit')! as int,
       ),
-      _DbCommand.backup => repo.backupSnapshot(arg('dir')! as String).path,
+      // The snapshot runs in its own isolate on its own connection (see
+      // `snapshotDatabaseFromPath`): `VACUUM INTO` is a synchronous call that
+      // grows with the library, and on this isolate it was a pause every
+      // capture, read and search queued behind — the automatic backup fires
+      // five seconds after an ordinary launch of exactly the kind that is
+      // about to capture something. Off this isolate the worker's chain
+      // never sees it (the command also runs off the chain — `_background`).
+      // An in-memory test library has no file to open from the side, so it
+      // falls back to the in-process snapshot: tests wait by design, and
+      // blocking this isolate costs nothing a test can observe.
+      _DbCommand.backup => (await NexDbWorker._snapshotAside(
+        db,
+        arg('dir')! as String,
+      )).path,
       _DbCommand.exportArchive => (await repo.exportArchive(
         outputPath: arg('outputPath')! as String,
         mediaRoot: arg('mediaRoot')! as String,

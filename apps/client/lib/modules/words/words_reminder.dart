@@ -12,10 +12,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'words_dates.dart';
 import 'words_models.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
-import 'words_summary.dart';
 
 const _reminderId = 'reminder';
 const _reminderKey = 'words:review';
@@ -37,16 +37,57 @@ Future<WordsReminder> wordsReadReminder(NexModuleStore store) async {
 
 /// How many cards are waiting on [day]: due on or before it, plus the new
 /// ones a session may introduce.
-int wordsWaitingOn(List<WordCard> cards, DateTime day, int newPerDay) {
-  // Due days come from the module's one `duesBetween`, the same list the
-  // shared calendar would read (docs/18, rule 1): everything due on or
-  // before [day], overdue cards included.
-  final due = duesBetween(cards, DateTime(1970), day).length;
-  var fresh = 0;
-  for (final card in cards) {
-    if (!card.paused && card.isNew) fresh++;
+int wordsWaitingOn(List<WordCard> cards, DateTime day, int newPerDay) =>
+    _WaitingDeck(cards, newPerDay).waitingOn(day);
+
+/// The counts [wordsNextReminder] walks up to sixty days asking for, in a
+/// shape that answers each day without walking the deck again: the due days
+/// sorted once (ISO days compare as strings), counted per day with a binary
+/// search, and the day-independent term for new cards held apart.
+///
+/// The walk used to rebuild `duesBetween(...)` — a full pass over the deck
+/// and a sort — per day, which put the reminder's re-arming at sixty full
+/// deck scans whenever the next waiting day was far off.
+final class _WaitingDeck {
+  _WaitingDeck(List<WordCard> cards, int newPerDay)
+    : dueDays = [
+        // The cards `duesBetween` counts for a day from 1970 on: not paused,
+        // not new, a due day that parses, and not before that day one.
+        for (final card in cards)
+          if (!card.paused &&
+              !card.isNew &&
+              wordsParseDay(card.due) != null &&
+              card.due.compareTo('1970-01-01') >= 0)
+            card.due,
+      ]..sort(),
+      _freshTerm = _freshCards(cards, newPerDay);
+
+  final List<String> dueDays;
+  final int _freshTerm;
+
+  /// New cards a session may introduce, held to the day's allowance.
+  static int _freshCards(List<WordCard> cards, int newPerDay) {
+    var fresh = 0;
+    for (final card in cards) {
+      if (!card.paused && card.isNew) fresh++;
+    }
+    return newPerDay == 0 ? fresh : fresh.clamp(0, newPerDay);
   }
-  return due + (newPerDay == 0 ? fresh : fresh.clamp(0, newPerDay));
+
+  /// Due on or before [day], plus the new-card term.
+  int waitingOn(DateTime day) {
+    final iso = wordsIsoDay(day);
+    var lo = 0, hi = dueDays.length;
+    while (lo < hi) {
+      final mid = (lo + hi) >> 1;
+      if (dueDays[mid].compareTo(iso) <= 0) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo + _freshTerm;
+  }
 }
 
 /// When the reminder should next ring, and for how many cards; null when
@@ -57,6 +98,7 @@ int wordsWaitingOn(List<WordCard> cards, DateTime day, int newPerDay) {
   required int newPerDay,
   required DateTime now,
 }) {
+  final waiting = _WaitingDeck(cards, newPerDay);
   for (var ahead = 0; ahead <= 60; ahead++) {
     final day = DateTime(now.year, now.month, now.day + ahead);
     final at = DateTime(
@@ -67,7 +109,7 @@ int wordsWaitingOn(List<WordCard> cards, DateTime day, int newPerDay) {
       minutes % 60,
     );
     if (!at.isAfter(now)) continue;
-    final count = wordsWaitingOn(cards, day, newPerDay);
+    final count = waiting.waitingOn(day);
     if (count > 0) return (at: at, count: count);
   }
   return null;

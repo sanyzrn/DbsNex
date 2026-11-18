@@ -675,23 +675,7 @@ class SettingsSheet extends StatelessWidget {
           text:
               '${l10n.exportTitle} backup restore export complete recovery '
               'پشتیبان بازیابی خروجی',
-          child: FutureBuilder<List<File>>(
-            future: services.listBackups(),
-            builder: (context, snapshot) => _Row(
-              icon: Icons.import_export,
-              title: l10n.exportTitle,
-              value: l10n.backupCount(snapshot.data?.length ?? 0),
-              onTap: () => Navigator.push(
-                context,
-                NexPageRoute<void>(
-                  builder: (_) => BackupScreen(
-                    services: services,
-                    preferences: preferences,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          child: _BackupCountRow(services: services, preferences: preferences),
         ),
         _Searchable(
           text: 'import Google Keep Takeout archive درون‌ریزی',
@@ -747,4 +731,47 @@ class SettingsSheet extends StatelessWidget {
       ],
     ),
   ];
+}
+
+/// The backup row's count, asked for once per visit.
+///
+/// The sheet rebuilds on every preference write — the whole `_groups` tree
+/// is built again — and a `FutureBuilder` inline in that build started a
+/// fresh `listBackups()` directory read each time. The future lives in the
+/// state here, so the count is read when the sheet opens and survives every
+/// rebuild under it.
+class _BackupCountRow extends StatefulWidget {
+  const _BackupCountRow({required this.services, required this.preferences});
+
+  final NexServices services;
+  final NexPreferences preferences;
+
+  @override
+  State<_BackupCountRow> createState() => _BackupCountRowState();
+}
+
+class _BackupCountRowState extends State<_BackupCountRow> {
+  late final Future<List<File>> _backups = widget.services.listBackups();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return FutureBuilder<List<File>>(
+      future: _backups,
+      builder: (context, snapshot) => _Row(
+        icon: Icons.import_export,
+        title: l10n.exportTitle,
+        value: l10n.backupCount(snapshot.data?.length ?? 0),
+        onTap: () => Navigator.push(
+          context,
+          NexPageRoute<void>(
+            builder: (_) => BackupScreen(
+              services: widget.services,
+              preferences: widget.preferences,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

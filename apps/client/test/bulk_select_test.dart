@@ -341,4 +341,37 @@ void main() {
     expect(tester.widget<NexNoteGridCard>(tiles.first).selected, isTrue);
     expect(bar(), findsOneWidget);
   });
+
+  testWidgets('while picking, a hold picks too and the header is inert', (
+    tester,
+  ) async {
+    await open(tester);
+    await select(tester, 'alpha note');
+    expect(selectedOf(tester, 'beta note'), isFalse);
+    // No menu of one note's actions in the middle of a choice (2.8.6).
+    await tester.longPress(card('beta note'));
+    await tester.pumpAndSettle();
+    expect(find.text('Select'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
+    expect(selectedOf(tester, 'beta note'), isTrue);
+    expect(count('2 selected'), findsOneWidget);
+    // And again, to put it back.
+    await tester.longPress(card('beta note'));
+    await tester.pumpAndSettle();
+    expect(selectedOf(tester, 'beta note'), isFalse);
+    // The home layout button waits until the choice is made.
+    final layout = tester.widget<IconButton>(
+      find.ancestor(
+        of: find.byIcon(Icons.dashboard_customize_outlined),
+        matching: find.byType(IconButton),
+      ),
+    );
+    expect(layout.onPressed, isNull);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is IgnorePointer && w.ignoring && w.child is AnimatedOpacity,
+      ),
+      findsWidgets,
+    );
+  });
 }

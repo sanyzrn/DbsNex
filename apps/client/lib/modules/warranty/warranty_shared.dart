@@ -28,6 +28,7 @@ class WarrantyShared {
               at: DateTime(end.year, end.month, end.day),
               title: WarrantyModels.readString(record.body, 'product').trim(),
               kind: 'coverage-end',
+              passes: true,
             ),
   ]..sort((a, b) => a.at.compareTo(b.at));
 

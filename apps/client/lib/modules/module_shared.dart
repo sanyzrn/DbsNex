@@ -22,13 +22,17 @@ String nexDueWhen(AppLocalizations l10n, DateTime at, DateTime today) {
   return l10n.toolDatesIn(days);
 }
 
+/// Where a whole-toman figure's thousands separators go, compiled once —
+/// every money line a module shows pays this once, not one compile each.
+final RegExp _tomanGroups = RegExp(r'\B(?=(\d{3})+(?!\d))');
+
 /// Whole rials said in tomans, grouped, in the page's digits: «۱۲,۵۰۰ تومان».
 /// A tenth of a toman is kept, never rounded away.
 String nexTomanText(BigInt rial, AppLocalizations l10n) {
   final negative = rial.isNegative;
   final abs = rial.abs();
   final whole = (abs ~/ BigInt.from(10)).toString().replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    _tomanGroups,
     (_) => ',',
   );
   final tenth = abs % BigInt.from(10);
@@ -51,6 +55,7 @@ class ModuleDue {
     this.amountRial,
     this.done = false,
     this.private = false,
+    this.passes = false,
   });
 
   /// Stable, so the same item is the same item next time.
@@ -77,6 +82,16 @@ class ModuleDue {
 
   /// Health or money detail, shown only discreetly.
   final bool private;
+
+  /// A day rather than a task (2.8.6): a birthday or a warranty's end is
+  /// over once it has gone by, never «17 days late» — nothing is left to do.
+  final bool passes;
+
+  /// Whether nothing is left to show for it on [today]: done, or a day
+  /// that has gone by.
+  bool isOver(DateTime today) =>
+      done ||
+      (passes && at.isBefore(DateTime(today.year, today.month, today.day)));
 }
 
 /// One line about a record, in the person's own words.

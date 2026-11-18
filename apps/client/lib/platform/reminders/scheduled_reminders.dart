@@ -459,14 +459,39 @@ extension NexScheduledReminders on NexReminders {
       // ghosts wait for the next launch rather than failing this one.
     }
 
+    final armed = <Note>[];
     for (final note in upcoming) {
-      await schedule(note);
+      // Batched verification: each `schedule` used to read the whole alarm
+      // queue back for itself — R re-arms deserialized R×R entries in the
+      // first seconds of a launch — where one read after the sweep answers
+      // for all of them.
+      if (await schedule(note, verify: false)) armed.add(note);
     }
     for (final commitment in commitments) {
       await scheduleCommitment(commitment);
     }
     for (final note in scheduled) {
       await scheduleArrival(note);
+    }
+    // The one queue read the whole batch is verified with: any wanted note
+    // alarm the system still does not hold is the failure `_verify` would
+    // have reported per note.
+    if (armed.isNotEmpty) {
+      try {
+        final pending = await _plugin.pendingNotificationRequests();
+        final held = {for (final request in pending) request.id};
+        for (final note in armed) {
+          if (held.contains(NexReminders._idFor(note.id))) continue;
+          lastError = 'the system did not keep the alarm';
+          onDiagnostic?.call(
+            'reminder ${note.id} -> not kept by the system '
+            '(re-arm sweep, ${upcoming.length} asked)',
+          );
+        }
+      } catch (_) {
+        // The queue could not be read: not evidence either way, same as
+        // `_verify`'s own read failing.
+      }
     }
   }
 }

@@ -34,6 +34,37 @@ Working convention:
 
 ## Unreleased
 
+### 2.8.6 — selection lock, dates card fold, whole greetings
+
+- Selection: `NoteContextMenu.onHold` (a hold picks while picking, list,
+  grid and desktop); `_pickShield` routes every touch on a card to pick and
+  keeps its inner controls (voice play, link, checklist) inert;
+  `_quietWhilePicking` dims and disables the header, recap, pinned tools
+  and filter row; search and Home layout buttons and a heading's Ask,
+  Delete and Move wait. Test in `bulk_select_test.dart`.
+- Dates card: `ModuleDue.passes` / `isOver(today)` — Occasions and the
+  warranty end are days, not tasks, and leave once gone (card, quick view,
+  assistant). The card folds to two lines with the recap's pill, now the
+  shared `NexFoldPill` (`widgets/nex_fold_pill.dart`); state in
+  `home.tool_dates_open`. A private group always shows its count.
+  Persian «N روز عقب افتاده».
+- Greeting: `CloudAIAdapter.greetingPhrase` replaces the 8-word clamp with
+  an ellipsis — whole up to 12 words, else up to its last comma, else none;
+  the prompt asks for a comma after an opening vocative; a cached greeting
+  ending in «…» is not shown.
+- Performance (two audits, applied together): `idx_notes_home` gains
+  `created_at` (threads list/forNote ~140× at 50k), `idx_notes_shelves`,
+  partial media indexes; thread notes/suggest tags batched; `nearestMiss`
+  `INDEXED BY idx_notes_created_at`; substring pass skips `lower()` for
+  uncased needles; backup snapshot off the worker chain; crash log appends;
+  capture journal async; voice recovery async; reminder sweep verifies once
+  (only alarms actually armed — `schedule` returns bool) and `remember`
+  skips unchanged writes; link-art sweep in one `existingNoteIds` read;
+  words reminder via sorted due days + binary search; habits `today()`
+  O(H+C); static regexes; settings backup count read once; dates card
+  re-reads only the changed module (250 ms debounce, parallel full load,
+  cached lines keyed on dues/day/locale/hidden).
+
 ### 2.8.5 — modules at a glance, the quick view, the assistant and tools
 
 - Kit: `ModuleGlance` / `ModuleGlanceFact`, `nexDueWhen`, `nexTomanText`;

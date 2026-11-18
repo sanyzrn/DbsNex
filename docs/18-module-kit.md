@@ -193,6 +193,11 @@ calendar"). So:
   (`habits-today:3`); `dueLabel` phrases the kind in the page's language and
   the home card shows the label alone. `dues` never returns items before
   today that nobody can act on any more (a medicine dose of last week).
+- **Days and tasks** (2.8.6): a due that is a day rather than something to
+  do — a birthday, a warranty's end — sets `passes: true`; once its day has
+  gone it leaves the card, the quick view and the assistant
+  (`ModuleDue.isOver(today)`) instead of reading as late. A task (a cheque,
+  an instalment, an expired insurance) stays until it is done, marked late.
 
 ### 2. Money
 

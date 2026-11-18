@@ -21,6 +21,11 @@ abstract interface class NexDb {
 
   Future<Note?> getById(String id);
 
+  /// Which of [ids] are live notes, as one read — the batched form of the
+  /// per-id `getById != null` the link-art sweep used to cross the isolate
+  /// once per link with a picture, at every launch.
+  Future<List<String>> existingNoteIds(List<String> ids);
+
   Future<Note?> captureText(String content);
   Future<Note?> captureShared(Map<String, String> payload);
 

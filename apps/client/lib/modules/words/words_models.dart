@@ -260,9 +260,12 @@ class WordsSettings {
   };
 }
 
-/// Folds case-less duplication: trims, collapses whitespace runs.
+/// Folds case-less duplication: trims, collapses whitespace runs. The
+/// pattern is compiled once — this runs several times per card of a deck.
+final RegExp _whitespaceRun = RegExp(r'\s+');
+
 String foldWhitespace(String text) =>
-    text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    text.trim().replaceAll(_whitespaceRun, ' ');
 
 int? _int(Object? value) {
   if (value is int && value.abs() <= 9007199254740991) return value;

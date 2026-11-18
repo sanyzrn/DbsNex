@@ -38,6 +38,33 @@ extension _TimelineSelection on TimelineScreenState {
     if (picking) unawaited(widget.services.answerRinging(note.id));
   }
 
+  /// A card while notes are being picked (2.8.6): a touch anywhere on it
+  /// picks it or puts it back — never its play button, its link, its
+  /// checklist or its fold, which act on one note in the middle of a
+  /// choice about several. Outside a selection, the card as it is.
+  Widget _pickShield(Note note, Widget card) {
+    if (!_selecting) return card;
+    return GestureDetector(
+      key: ValueKey('pick-shield-${note.id}'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _pickNote(note),
+      child: IgnorePointer(child: card),
+    );
+  }
+
+  /// Everything above the notes while notes are being picked (2.8.6): seen,
+  /// dimmed, and not touchable — a filter, a pinned tool or the recap
+  /// changing the list under a half-made choice lost picks without a word.
+  /// Scrolling over it still works.
+  Widget _quietWhilePicking(Widget child) => IgnorePointer(
+    ignoring: _selecting,
+    child: AnimatedOpacity(
+      opacity: _selecting ? 0.45 : 1,
+      duration: NexMotion.of(context, NexMotion.fast),
+      child: child,
+    ),
+  );
+
   void _endSelection() {
     if (!_selecting) return;
     _rebuild(_selected.clear);

@@ -157,6 +157,7 @@ extension _TimelineGrid on TimelineScreenState {
         key: ValueKey('grid-menu-${note.id}'),
         entriesBuilder: (menuContext, width) =>
             _holdEntries(note, menuContext, width),
+        onHold: _selecting ? () => _pickNote(note) : null,
         // The same two moments the list marks: a note asked for from
         // outside (a reminder, a widget row) is found by this anchor and
         // lit, and a note just captured lands with its receipt.
@@ -183,22 +184,25 @@ extension _TimelineGrid on TimelineScreenState {
                 _rebuild(() => landedId = null);
               }
             },
-            child: NexNoteGridCard(
-              key: ValueKey('grid-${note.id}'),
-              note: note,
-              strings: strings,
-              onTap: () => _tapNote(note),
-              onLeadingTap: () => _pickNote(note),
-              selected: _selecting ? _selected.contains(note.id) : null,
-              ringing: widget.services.ringing.value.contains(note.id),
-              photos: _tilePhotos,
-              // Ticked where it is seen (2.8.2); not while notes are being
-              // picked, when a touch on a tile picks it.
-              onToggleItem: _selecting
-                  ? null
-                  : (index) => unawaited(
-                      widget.services.toggleChecklistItem(note.id, index),
-                    ),
+            child: _pickShield(
+              note,
+              NexNoteGridCard(
+                key: ValueKey('grid-${note.id}'),
+                note: note,
+                strings: strings,
+                onTap: () => _tapNote(note),
+                onLeadingTap: () => _pickNote(note),
+                selected: _selecting ? _selected.contains(note.id) : null,
+                ringing: widget.services.ringing.value.contains(note.id),
+                photos: _tilePhotos,
+                // Ticked where it is seen (2.8.2); not while notes are being
+                // picked, when a touch on a tile picks it.
+                onToggleItem: _selecting
+                    ? null
+                    : (index) => unawaited(
+                        widget.services.toggleChecklistItem(note.id, index),
+                      ),
+              ),
             ),
           ),
         ),
