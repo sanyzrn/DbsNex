@@ -238,6 +238,7 @@ void main() {
         'maintenance',
         'expenses',
         'price_lens',
+        'assets',
       });
       expect(
         NexModuleAlarms.moduleId('a', 'b:c'),

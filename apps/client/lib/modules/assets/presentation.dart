@@ -6,10 +6,36 @@ import 'model.dart';
 import 'money_format.dart';
 import 'strings.dart';
 
+/// The currencies people in Iran hold most, by name (2.8.4); any other is
+/// shown by its code.
+const _currencyNames = <String, (String, String)>{
+  'USD': ('US dollar', 'دلار آمریکا'),
+  'EUR': ('Euro', 'یورو'),
+  'GBP': ('British pound', 'پوند انگلیس'),
+  'AED': ('UAE dirham', 'درهم امارات'),
+  'TRY': ('Turkish lira', 'لیر ترکیه'),
+  'CNY': ('Chinese yuan', 'یوان چین'),
+  'IQD': ('Iraqi dinar', 'دینار عراق'),
+  'CAD': ('Canadian dollar', 'دلار کانادا'),
+  'AUD': ('Australian dollar', 'دلار استرالیا'),
+  'JPY': ('Japanese yen', 'ین ژاپن'),
+  'KWD': ('Kuwaiti dinar', 'دینار کویت'),
+  'CHF': ('Swiss franc', 'فرانک سوئیس'),
+  'RUB': ('Russian rouble', 'روبل روسیه'),
+  'AFN': ('Afghan afghani', 'افغانی'),
+};
+
+/// A currency's name in the page's language, or its code.
+String currencyName(BuildContext c, String code) {
+  final names = _currencyNames[code];
+  if (names == null) return code;
+  return NexModuleStrings.persian(c) ? names.$2 : names.$1;
+}
+
 String marketLabel(BuildContext c, AssetMarket m, {bool forQuote = false}) {
   if (m.custom) return m.name;
   return switch (m.type) {
-    AssetType.currency => m.code,
+    AssetType.currency => currencyName(c, m.code),
     AssetType.coin => assetStrings(c, m.code),
     AssetType.gold => assetStrings(c, forQuote ? 'metalRate' : 'gold'),
     AssetType.other => assetStrings(c, 'other'),

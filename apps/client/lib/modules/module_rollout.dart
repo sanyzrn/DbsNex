@@ -41,6 +41,7 @@ const nexAvailableModuleIds = {
   'maintenance',
   'expenses',
   'price_lens',
+  'assets',
 };
 
 /// Windows, Linux and macOS. The modules are made for the phone; the desktop

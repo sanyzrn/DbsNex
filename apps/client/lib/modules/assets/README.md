@@ -31,6 +31,17 @@ The module awaits platform registration and rollout review.
   weight and fineness. The amount remaining stays meaningful even while
   prices are missing.
 
+## Maintainer review (2.8.4)
+
+Registered (`nexModules`, hue 112 — a money green between Habits and Price
+Lens), reviewed and made available. Checked: whole-rial money with `BigInt`
+sums, gold valued as 18k rate × net grams × fineness ⁄ 750, edits keep
+unknown fields and refuse a conflicting body, the cover holds the secure
+window. Changes: the Persian speaks as the rest of Nex does («شما»: «دوباره
+تلاش کنید», «دفتر پوشیده است»); a currency is named («دلار آمریکا», «یورو»
+for the common ones, else its code) in its title and the picker, and its
+amount carries its code («۴۵۰ USD»).
+
 ## Records
 
 All data is stored with `NexModuleStore` in the module's own local storage.

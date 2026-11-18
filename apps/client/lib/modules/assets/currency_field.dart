@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'currency_scales.dart';
 import 'module.dart';
+import 'presentation.dart' show currencyName;
 
 class CurrencyField extends StatelessWidget {
   const CurrencyField({
@@ -36,7 +37,11 @@ class CurrencyField extends StatelessWidget {
         if (code != 'IRR')
           DropdownMenuItem(
             value: code,
-            child: Text(code, textDirection: TextDirection.ltr),
+            child: Text(
+              currencyName(context, code) == code
+                  ? code
+                  : '${currencyName(context, code)} ($code)',
+            ),
           ),
     ],
     onChanged: onChanged == null

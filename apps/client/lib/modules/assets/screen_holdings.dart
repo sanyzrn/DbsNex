@@ -80,6 +80,8 @@ extension _HoldingsTab on _AssetsScreenState {
     final shownQty = switch (market.type) {
       AssetType.gold => s('goldQuantity', {'n': qty, 'fineness': h.fineness}),
       AssetType.coin => s('coinQuantity', {'n': qty}),
+      // «۴۵۰ USD»: the amount with its code, which reads in both languages.
+      AssetType.currency => '$qty ${market.code}',
       _ => qty,
     };
     return NexPanel(

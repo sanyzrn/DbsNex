@@ -252,8 +252,8 @@ void main() {
       await tap(t, find.text('Add holding'));
       await tap(t, find.text('Gold'));
       await tap(t, find.text('Currency').last);
-      await tap(t, find.text('USD'));
-      await tap(t, find.text('EUR').last);
+      await tap(t, find.text('US dollar (USD)'));
+      await tap(t, find.text('Euro (EUR)').last);
       await t.enterText(find.byType(TextField).first, '25.75');
       await t.enterText(find.byType(TextField).at(1), '120000');
       await tap(t, find.text('Save'));

@@ -1,4 +1,5 @@
 import '../platform/nex_preferences.dart';
+import 'assets/module.dart';
 import 'converter/module.dart';
 import 'cheques/module.dart';
 import 'cycle_module.dart';
@@ -31,6 +32,7 @@ const List<NexModule> nexModules = [
   LentBorrowedModule(),
   ExpensesModule(),
   GoldModule(),
+  AssetsModule(),
   WordsModule(),
   ParkingModule(),
   MedicineModule(),

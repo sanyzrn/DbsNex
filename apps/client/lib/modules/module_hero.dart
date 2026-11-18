@@ -45,6 +45,8 @@ const _moduleHues = <String, double>{
   'security_tools': 200,
   // 2.8.4: the sky it declares, between Parking and Lent & borrowed.
   'cheques': 222,
+  // 2.8.4: a money green between Habits and Price Lens.
+  'assets': 112,
 };
 
 /// The top of a module's home page: one large, calm statement of where things
