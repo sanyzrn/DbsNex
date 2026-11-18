@@ -4,21 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'controller.dart';
+import 'editor_draft.dart';
+import 'expenses_app_bar.dart';
 import 'expenses_budget.dart';
 import 'expenses_editors.dart';
+import 'expenses_menu.dart';
+import 'expenses_fields.dart';
+import 'expenses_filters.dart';
+import 'expenses_home_helpers.dart';
 import 'expenses_rows.dart';
-import 'expenses_sheets.dart';
-import 'expenses_templates.dart';
+import 'expenses_undo.dart';
 import 'expenses_widgets.dart';
 import 'logic.dart';
 import 'models.dart';
 import 'strings.dart';
 
-/// The Expenses home: one month at a time — or all time — with its
-/// totals per currency, budgets, category breakdown and records, and
-/// the one primary action, adding a payment. Everything recomputes
-/// from the records on every change; nothing is cached across opens
-/// except what the store itself keeps.
+/// The Expenses home: one month at a time — or all time — with what it
+/// cost, what is left of what came in, the categories with their change
+/// against last month, budgets, the recurring payments that have come due,
+/// filters and the records. Everything recomputes from the records on every
+/// change; nothing is cached across opens except what the store keeps.
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key, required this.store});
 
@@ -32,21 +37,24 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   late final ExpensesController controller = ExpensesController(widget.store);
 
   /// Null: the all-time view.
-  String? _month;
+  bool _allTime = false;
+
+  /// Months from the one containing today; negative is earlier.
+  int _offset = 0;
 
   String? _categoryFilter;
   bool _searching = false;
   final _search = TextEditingController();
+  final _min = TextEditingController();
+  final _max = TextEditingController();
 
-  /// Captured once per open: the "home" grouping the brief asks for is
-  /// computed when the module is opened, not live against a ticking
-  /// clock.
+  /// Captured once per open: a month is computed from the day the module
+  /// was opened, not against a ticking clock.
   late final DateTime _openedAt = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _month = monthKeyOf(_openedAt);
     unawaited(controller.load());
     controller.addListener(_onControllerChanged);
   }
@@ -60,68 +68,56 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     controller.removeListener(_onControllerChanged);
     controller.dispose();
     _search.dispose();
+    _min.dispose();
+    _max.dispose();
     super.dispose();
   }
 
-  String _categoryName(String id) {
-    for (final custom in controller.customCategories) {
-      if (custom.id == id) return custom.label;
-    }
-    return defaultExpenseCategoryIds.contains(id)
-        ? expenseStrings(context, id)
-        : expenseStrings(context, 'cat-other');
-  }
+  String _categoryName(String id) =>
+      categoryNameOf(context, id, controller.customCategories);
 
-  List<ExpenseTx> get _scope => txsInMonth(controller.txs, _month).toList();
+  NexModuleMonth _monthOf(bool solar) =>
+      NexModuleMonth.of(_openedAt, solar: solar).shift(_offset);
 
-  List<ExpenseTx> get _visible {
-    var visible = searchTxs(_scope, _search.text, _categoryName);
-    if (_categoryFilter != null) {
-      visible = visible.where(
-        (tx) => (tx.categoryId ?? 'cat-other') == _categoryFilter,
-      );
-    }
-    return sortedByDate(visible);
-  }
+  List<ExpenseTx> _scope(NexModuleMonth? month, bool solar) =>
+      txsInMonth(controller.txs, month, solar: solar).toList();
 
-  void _previousMonth() => setState(() {
-    final previous = previousMonthKey(_month ?? monthKeyOf(_openedAt));
-    if (previous != null) _month = previous;
+  void _previousMonth() => setState(() => _offset--);
+
+  void _nextMonth() => setState(() => _offset++);
+
+  void _toCurrentMonth() => setState(() {
+    _allTime = false;
+    _offset = 0;
   });
 
-  void _nextMonth() => setState(() {
-    final next = nextMonthKey(_month ?? monthKeyOf(_openedAt));
-    if (next != null) _month = next;
-  });
-
-  void _toCurrentMonth() => setState(() => _month = monthKeyOf(DateTime.now()));
-
-  void _allTime() => setState(() => _month = null);
+  void _allTimeView() => setState(() => _allTime = true);
 
   Future<void> _add() => showExpensesTxEditor(context, controller: controller);
 
   Future<void> _edit(ExpenseTx tx) =>
       showExpensesTxEditor(context, controller: controller, existing: tx);
 
-  Future<void> _useTemplate(ExpenseTemplate template) =>
-      showExpensesTxEditor(context, controller: controller, template: template);
-
-  Future<void> _menu(String action) async {
-    switch (action) {
-      case 'categories':
-        await showExpensesCategories(context, controller: controller);
-      case 'templates':
-        await showExpensesTemplates(
-          context,
-          controller: controller,
-          onUse: (template) => unawaited(_useTemplate(template)),
-        );
-      case 'budgets':
-        await showExpensesBudgetEditor(
-          context,
-          controller: controller,
-          month: _month ?? monthKeyOf(DateTime.now()),
-        );
+  /// Writes this month's occurrence down, once, and offers Undo for it.
+  Future<void> _log(ExpensesDueOffer offer) async {
+    final messenger = NexBannerHost.of(context);
+    final message = expenseStrings(context, 'logDone', {
+      'label': offer.template.label,
+    });
+    final undoLabel = expenseStrings(context, 'undo');
+    final undoFailure = expenseStrings(context, 'undoFailed');
+    try {
+      final id = await controller.logTemplate(offer.template, dueDay: offer.at);
+      if (id == null || !mounted) return;
+      ExpensesUndo.offer(
+        messenger,
+        message: message,
+        undoLabel: undoLabel,
+        failureMessage: undoFailure,
+        restore: () => controller.deleteTx(id),
+      );
+    } catch (_) {
+      if (mounted) expenseWriteFailure(context);
     }
   }
 
@@ -129,57 +125,81 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = expenseStrings;
-    final visible = _visible;
-    final totals = expenseTotals(controller.txs.where((tx) => _inScope(tx)));
-    final budgetStatuses = _month == null
+    final solar = NexModuleCalendar.solarOf(context);
+    final month = _monthOf(solar);
+    final unit = controller.unit;
+    final hidden = controller.hideAmounts;
+    final scope = _scope(_allTime ? null : month, solar);
+    final totals = expenseTotals(scope);
+    final visible = sortedByDate(
+      filterTxs(
+        scope,
+        query: _search.text,
+        categoryId: _categoryFilter,
+        minRial: rialsOf(_min, unit),
+        maxRial: rialsOf(_max, unit),
+        categoryName: _categoryName,
+      ),
+    );
+    final budgets = _allTime
         ? const <ExpenseBudgetStatus>[]
-        : expenseBudgetStatuses(controller.budgets, _month!, _scope);
+        : expenseBudgetStatuses(controller.budgets, month, controller.txs);
+    final change = _allTime
+        ? null
+        : expenseMonthChange(controller.txs, month: month, solar: solar);
+    final offers = _allTime
+        ? const <ExpensesDueOffer>[]
+        : dueOffersFor(controller, month, now: _openedAt);
+    final slices = _allTime
+        ? const <ExpenseCategorySlice>[]
+        : expenseCategoryBreakdown(scope, month: month, solar: solar);
+    final empty =
+        controller.txs.isEmpty &&
+        controller.customCategories.isEmpty &&
+        controller.templates.isEmpty;
+    // A label that cannot fit beside an icon at 2× text is not shown: the
+    // button keeps its one action, and its words move into the tooltip.
+    final roomForWords =
+        MediaQuery.textScalerOf(context).scale(14) <= 20 &&
+        MediaQuery.sizeOf(context).width >= 360;
     return Scaffold(
-      appBar: NexAppBar(
-        title: Text(s(context, 'title')),
-        actions: [
-          IconButton(
-            tooltip: s(context, 'searchLabel'),
-            onPressed: () => setState(() => _searching = !_searching),
-            icon: const Icon(Icons.search),
+      appBar: ExpensesAppBar(
+        title: s(context, 'title'),
+        hiddenAmounts: hidden,
+        searching: _searching,
+        showShare: !_allTime,
+        onToggleAmounts: () => unawaited(controller.setHideAmounts(!hidden)),
+        onSearch: () => setState(() => _searching = !_searching),
+        onMenu: (action) => unawaited(
+          showExpensesMenu(
+            context,
+            controller: controller,
+            action: action,
+            month: month,
+            scope: _scope(month, solar),
+            categoryName: _categoryName,
           ),
-          NexPopupMenuButton<String>(
-            tooltip: s(context, 'title'),
-            onSelected: (action) => unawaited(_menu(action)),
-            itemBuilder: (menuContext) => [
-              nexMenuItem(
-                value: 'budgets',
-                icon: Icons.savings_outlined,
-                label: s(menuContext, 'budgetsTitle'),
-              ),
-              nexMenuItem(
-                value: 'categories',
-                icon: Icons.category_outlined,
-                label: s(menuContext, 'categoriesTitle'),
-              ),
-              nexMenuItem(
-                value: 'templates',
-                icon: Icons.bookmarks_outlined,
-                label: s(menuContext, 'templatesTitle'),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
       // One primary action per page: with nothing yet it is the button in
       // the empty state, not a second one floating beside it.
-      floatingActionButton:
-          controller.loading ||
-              controller.readFailed ||
-              (controller.txs.isEmpty && controller.customCategories.isEmpty)
+      floatingActionButton: controller.loading || controller.readFailed || empty
           ? null
-          : FloatingActionButton.extended(
+          : roomForWords
+          ? FloatingActionButton.extended(
               // No hero: a page's button never flies into another's (2.8.2).
               heroTag: null,
               key: const ValueKey('expenses-add'),
               onPressed: () => unawaited(_add()),
               icon: const Icon(Icons.add),
               label: Text(s(context, 'addFirst')),
+            )
+          : FloatingActionButton(
+              heroTag: null,
+              key: const ValueKey('expenses-add'),
+              tooltip: s(context, 'addFirst'),
+              onPressed: () => unawaited(_add()),
+              child: const Icon(Icons.add),
             ),
       body: SafeArea(
         child: controller.loading
@@ -215,88 +235,107 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       hintText: s(context, 'searchHint'),
                       onChanged: (_) => setState(() {}),
                     ),
+                    const SizedBox(height: NexSpacing.sm),
+                    ExpensesRangeFilter(
+                      min: _min,
+                      max: _max,
+                      unit: unit,
+                      onChanged: () => setState(() {}),
+                      onClear: () => setState(() {
+                        _search.clear();
+                        _min.clear();
+                        _max.clear();
+                        _categoryFilter = null;
+                      }),
+                    ),
                     const SizedBox(height: NexSpacing.md),
                   ],
-                  _month == null
-                      ? _AllTimeHeader(onBack: _toCurrentMonth)
+                  _allTime
+                      ? ExpensesAllTimeHeader(onBack: _toCurrentMonth)
                       : ExpensesMonthNav(
-                          month: _month!,
-                          now: _openedAt,
+                          month: month,
+                          offset: _offset,
                           onPrevious: _previousMonth,
                           onNext: _nextMonth,
-                          onAllTime: _allTime,
+                          onAllTime: _allTimeView,
                           onCurrent: _toCurrentMonth,
                         ),
                   const SizedBox(height: NexSpacing.md),
                   if (controller.txs.any((tx) => !tx.valid))
                     TextButton(
-                      onPressed: _allTime,
+                      key: const ValueKey('expenses-incomplete'),
+                      onPressed: _allTimeView,
                       child: Text(s(context, 'incompleteRecord')),
                     ),
-                  // The true empty state: nothing anywhere, ever. A
-                  // month with no records is not this — it shows the
-                  // overview with its quiet "nothing in this view".
-                  if (controller.txs.isEmpty &&
-                      controller.customCategories.isEmpty)
+                  // The true empty state: nothing anywhere, ever. A month
+                  // with no records is not this — it shows the overview with
+                  // its quiet "nothing in this view".
+                  if (empty)
                     NexEmptyState(
                       icon: Icons.account_balance_wallet_outlined,
                       message: s(context, 'noRecords'),
-                      action: FilledButton.icon(
+                      action: FilledButton(
                         key: const ValueKey('expenses-add'),
                         onPressed: () => unawaited(_add()),
-                        icon: const Icon(Icons.add),
-                        label: Text(s(context, 'addFirst')),
+                        child: Text(s(context, 'addFirst')),
                       ),
                     )
                   else ...[
-                    for (final total in totals)
-                      Padding(
-                        padding: const EdgeInsetsDirectional.only(
-                          bottom: NexSpacing.md,
-                        ),
-                        child: ExpensesTotalsPanel(
-                          totals: total,
-                          change: _month == null
-                              ? null
-                              : expenseMonthChange(
-                                  controller.txs,
-                                  _month!,
-                                  currency: total.currency,
-                                ),
-                        ),
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        bottom: NexSpacing.md,
                       ),
-                    if (totals.length > 1)
-                      Padding(
-                        padding: const EdgeInsetsDirectional.only(
-                          bottom: NexSpacing.md,
-                        ),
-                        child: Text(
-                          s(context, 'perCurrency'),
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                      child: ExpensesTotalsPanel(
+                        totals: totals,
+                        unit: unit,
+                        change: change,
+                        hidden: hidden,
                       ),
-                    if (budgetStatuses.isNotEmpty) ...[
+                    ),
+                    if (offers.isNotEmpty)
+                      ExpensesDuePanel(
+                        offers: offers,
+                        unit: unit,
+                        hidden: hidden,
+                        onLog: (offer) => unawaited(_log(offer)),
+                      ),
+                    if (budgets.isNotEmpty) ...[
                       ExpensesBudgetsPanel(
-                        statuses: budgetStatuses,
+                        statuses: budgets,
                         categoryName: _categoryName,
+                        unit: unit,
+                        hidden: hidden,
                         onEdit: (status) => unawaited(
                           showExpensesBudgetEditor(
                             context,
                             controller: controller,
-                            month: status.budget.month,
+                            month: month,
                             existing: status.budget,
                           ),
                         ),
                       ),
                       const SizedBox(height: NexSpacing.md),
                     ],
-                    ..._breakdownPanels(),
-                    const SizedBox(height: NexSpacing.sm),
+                    if (slices.isNotEmpty) ...[
+                      ExpensesBreakdownPanel(
+                        slices: slices,
+                        expenseTotal: totals.expense,
+                        unit: unit,
+                        hidden: hidden,
+                        categoryName: _categoryName,
+                        onCategory: (id) => setState(
+                          () => _categoryFilter = id == _categoryFilter
+                              ? null
+                              : id,
+                        ),
+                      ),
+                      const SizedBox(height: NexSpacing.md),
+                    ],
                     ExpensesFilterChips(
-                      categories: _categoriesInScope(),
+                      categories: categoriesInScope(
+                        scope,
+                        selected: _categoryFilter,
+                      ),
                       selected: _categoryFilter,
                       categoryName: _categoryName,
                       onSelect: (id) => setState(() => _categoryFilter = id),
@@ -308,9 +347,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           vertical: NexSpacing.xl,
                         ),
                         child: Text(
-                          // An empty month and an empty search are
-                          // different facts, said differently.
-                          _scope.isEmpty
+                          // An empty month and an empty search are different
+                          // facts, said differently.
+                          scope.isEmpty
                               ? s(context, 'nothingSpent')
                               : s(context, 'noResults'),
                           textAlign: TextAlign.center,
@@ -330,83 +369,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           categoryName: _categoryName,
                           onTap: () => unawaited(_edit(tx)),
                           now: _openedAt,
+                          unit: unit,
+                          hidden: hidden,
+                          label: templateLabelOf(controller.templates, tx),
                         ),
                     ],
                   ],
                 ],
               ),
       ),
-    );
-  }
-
-  bool _inScope(ExpenseTx tx) =>
-      _month == null || monthKeyOf(tx.date) == _month;
-
-  List<Widget> _breakdownPanels() {
-    final panels = <Widget>[];
-    for (final total in expenseTotals(_scope)) {
-      if (total.expense <= BigInt.zero) continue;
-      final slices = expenseCategoryBreakdown(_scope, currency: total.currency);
-      if (slices.isEmpty) continue;
-      panels.add(
-        Padding(
-          padding: const EdgeInsetsDirectional.only(bottom: NexSpacing.md),
-          child: ExpensesBreakdownPanel(
-            slices: slices,
-            currency: total.currency,
-            expenseTotal: total.expense,
-            categoryName: _categoryName,
-            onCategory: (id) => setState(
-              () => _categoryFilter = id == _categoryFilter ? null : id,
-            ),
-          ),
-        ),
-      );
-    }
-    return panels;
-  }
-
-  List<String> _categoriesInScope() {
-    final ids = <String>[];
-    for (final tx in _scope) {
-      if (!tx.valid || tx.isIncome) continue;
-      final id = tx.categoryId ?? 'cat-other';
-      if (!ids.contains(id)) ids.add(id);
-    }
-    // The chosen category stays in the row even in a month that has none of
-    // it: without the chip there is no visible control left that lifts the
-    // filter, and a month of "nothing found" with no way out is where a
-    // feature goes to die. The chip is how the filter comes off — it has to
-    // remain.
-    final filter = _categoryFilter;
-    if (filter != null && !ids.contains(filter)) ids.add(filter);
-    return ids;
-  }
-}
-
-/// The all-time header: what it is, and the way back to this month.
-class _AllTimeHeader extends StatelessWidget {
-  const _AllTimeHeader({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            expenseStrings(context, 'allTime'),
-            style: theme.textTheme.titleMedium,
-          ),
-        ),
-        TextButton.icon(
-          onPressed: onBack,
-          icon: const Icon(Icons.calendar_today_outlined, size: 18),
-          label: Text(expenseStrings(context, 'thisMonth')),
-        ),
-      ],
     );
   }
 }

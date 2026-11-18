@@ -1,198 +1,176 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/expenses/money.dart';
+import 'package:nex_client/modules/expenses/money_input.dart';
 
-/// The money layer: ISO 4217 minor units, integer-only, per-currency
-/// rules, rial/toman entry, and formatting in both digit systems.
+/// Money is whole rials, said in tomans or rials: what a person types in
+/// either script, what the field groups while they type, and what every
+/// screen then prints — all exact, never floating point, never rounded.
 void main() {
-  group('the currency catalogue', () {
-    test('exponents follow ISO 4217', () {
-      final byCode = {for (final c in expenseCurrencies) c.code: c};
-      expect(byCode['JPY']!.exponent, 0);
-      expect(byCode['KWD']!.exponent, 3);
-      expect(byCode['USD']!.exponent, 2);
-      expect(byCode['EUR']!.exponent, 2);
-      expect(byCode['IRR']!.exponent, 2);
+  group('typed amounts', () {
+    test('tomans are ten rials, and a tenth of a toman is one rial', () {
+      expect(parseExpenseAmount('1250000', ExpenseUnit.toman).rials, 12500000);
+      expect(parseExpenseAmount('12.5', ExpenseUnit.toman).rials, 125);
+      expect(parseExpenseAmount('0.1', ExpenseUnit.toman).rials, 1);
+      expect(parseExpenseAmount('12750000', ExpenseUnit.rial).rials, 12750000);
     });
 
-    test('lookup and defensive exponent', () {
-      expect(expenseCurrencyOf('IRR')!.code, 'IRR');
-      expect(expenseCurrencyOf('XYZ'), isNull);
-      // The catalogue wins over a stored exponent that disagrees.
-      expect(expenseExponentOf('JPY', 2), 0);
-      expect(expenseExponentOf('JPY', null), 0);
-      // Unknown code with a sane stored exponent keeps it.
-      expect(expenseExponentOf('BHD', 3), 3);
-      expect(expenseExponentOf('BHD', 'x'), 2);
-      expect(expenseExponentOf(null, 99), 2);
+    test('Persian, Arabic and Latin digits all read the same', () {
+      expect(parseExpenseAmount('۱۲٬۵۰۰', ExpenseUnit.toman).rials, 125000);
+      expect(parseExpenseAmount('١٢٥٠٠', ExpenseUnit.toman).rials, 125000);
+      expect(parseExpenseAmount('۱۲۵۰', ExpenseUnit.rial).rials, 1250);
     });
 
-    test('names exist in both languages', () {
-      for (final c in expenseCurrencies) {
-        expect(c.nameEn.trim(), isNotEmpty);
-        expect(c.nameFa.trim(), isNotEmpty);
-        expect(c.code, matches(RegExp(r'^[A-Z]{3}$')));
+    test('grouping is layout, and a trailing zero in the fraction is free', () {
+      expect(parseExpenseAmount('1,250,000', ExpenseUnit.rial).rials, 1250000);
+      expect(parseExpenseAmount('1 250 000', ExpenseUnit.rial).rials, 1250000);
+      expect(parseExpenseAmount('1.50', ExpenseUnit.toman).rials, 15);
+      expect(parseExpenseAmount('1٫5', ExpenseUnit.toman).rials, 15);
+    });
+
+    test('a rial has no smaller part, and nothing is silently rounded', () {
+      expect(
+        parseExpenseAmount('12.5', ExpenseUnit.rial).error,
+        ExpenseAmountError.tooPrecise,
+      );
+      expect(
+        parseExpenseAmount('0.09', ExpenseUnit.toman).error,
+        ExpenseAmountError.tooPrecise,
+      );
+    });
+
+    test(
+      'empty, negative, zero, letters and the bound are refused by name',
+      () {
+        expect(
+          parseExpenseAmount('', ExpenseUnit.toman).error,
+          ExpenseAmountError.empty,
+        );
+        expect(
+          parseExpenseAmount('-5', ExpenseUnit.toman).error,
+          ExpenseAmountError.negative,
+        );
+        expect(
+          parseExpenseAmount('−5', ExpenseUnit.toman).error,
+          ExpenseAmountError.negative,
+        );
+        expect(
+          parseExpenseAmount('0', ExpenseUnit.toman).error,
+          ExpenseAmountError.zero,
+        );
+        expect(
+          parseExpenseAmount('0', ExpenseUnit.toman, allowZero: true).rials,
+          0,
+        );
+        expect(
+          parseExpenseAmount('12a', ExpenseUnit.toman).error,
+          ExpenseAmountError.notANumber,
+        );
+        expect(
+          parseExpenseAmount('1e6', ExpenseUnit.toman).error,
+          ExpenseAmountError.notANumber,
+        );
+        expect(
+          parseExpenseAmount('9999999999999999', ExpenseUnit.toman).error,
+          ExpenseAmountError.tooLarge,
+        );
+      },
+    );
+
+    test('the field’s own text round-trips exactly', () {
+      for (final rials in [1, 9, 10, 125, 120, 1250000, expenseAmountMax]) {
+        for (final unit in ExpenseUnit.values) {
+          if (unit == ExpenseUnit.rial && rials % 10 != 0) continue;
+          final text = expenseAmountInput(rials, unit);
+          expect(parseExpenseAmount(text, unit).rials, rials, reason: text);
+        }
       }
+      expect(expenseAmountInput(125, ExpenseUnit.toman), '12.5');
+      expect(expenseAmountInput(120, ExpenseUnit.toman), '12');
+      expect(expenseAmountInput(1250, ExpenseUnit.rial), '1250');
     });
   });
 
-  group('parsing amounts', () {
-    final irr = expenseCurrencyOf('IRR')!;
-    final usd = expenseCurrencyOf('USD')!;
-    final jpy = expenseCurrencyOf('JPY')!;
-    final kwd = expenseCurrencyOf('KWD')!;
-
-    test('whole and decimal rials', () {
-      expect(parseExpenseAmount('1250', irr).minor, 125000);
-      expect(parseExpenseAmount('1250.5', irr).minor, 125050);
-      expect(parseExpenseAmount('1250.50', irr).minor, 125050);
-      expect(parseExpenseAmount('0.01', irr).minor, 1);
-      // A comma is accepted as a decimal separator, not grouping.
-      expect(parseExpenseAmount('1250,5', irr).minor, 125050);
+  group('grouping as typed', () {
+    test('groups threes and keeps the caret where it was', () {
+      final grouped = groupAmountEdit('1250000', 7, 0);
+      expect(grouped.text, '1,250,000');
+      expect(grouped.caret, 9);
     });
 
-    test('tomans: one toman is 10 rials is 1000 minor units', () {
-      expect(parseTomanAmount('12').minor, 12000);
-      expect(parseTomanAmount('12.5').minor, 12500);
-      expect(parseTomanAmount('12.55').minor, 12550);
-      // The dinar is the floor: a thousandth of a toman.
-      expect(parseTomanAmount('12.555').minor, 12555);
-      expect(parseTomanAmount('12.5555').error, ExpenseAmountError.tooPrecise);
+    test('Persian digits and separators on the Persian side', () {
+      expect(groupAmountEdit('1250000', 7, 0, persian: true).text, '۱٬۲۵۰٬۰۰۰');
+      expect(groupAmountEdit('12.5', 4, 1, persian: true).text, '۱۲٫۵');
     });
 
-    test('precision is refused, never rounded', () {
-      expect(
-        parseExpenseAmount('12.5', jpy).error,
-        ExpenseAmountError.tooPrecise,
-      );
-      expect(
-        parseExpenseAmount('12.5555', usd).error,
-        ExpenseAmountError.tooPrecise,
-      );
-      expect(
-        parseExpenseAmount('12.5555', kwd).error,
-        ExpenseAmountError.tooPrecise,
-      );
-      // Exactly at the exponent is fine.
-      expect(parseExpenseAmount('12.555', kwd).minor, 12555);
+    test('letters are dropped, not turned into money', () {
+      expect(groupAmountEdit('12a5', 4, 1).text, '125');
+      expect(groupAmountEdit('007', 3, 0).text, '7');
+      expect(groupAmountEdit('1.2.3', 5, 1).text, '1.2');
     });
 
-    test('junk is refused', () {
-      expect(parseExpenseAmount('', usd).error, ExpenseAmountError.empty);
-      expect(parseExpenseAmount('   ', usd).error, ExpenseAmountError.empty);
-      expect(
-        parseExpenseAmount('abc', usd).error,
-        ExpenseAmountError.notANumber,
-      );
-      expect(parseExpenseAmount('-5', usd).error, ExpenseAmountError.negative);
-      expect(
-        parseExpenseAmount('+5', usd).error,
-        ExpenseAmountError.notANumber,
-      );
-      expect(
-        parseExpenseAmount('1 000', usd).error,
-        ExpenseAmountError.notANumber,
-      );
-      expect(
-        parseExpenseAmount('1.2.3', usd).error,
-        ExpenseAmountError.notANumber,
-      );
-      expect(
-        parseExpenseAmount('12,5,5', irr).error,
-        ExpenseAmountError.notANumber,
-      );
-      expect(
-        parseExpenseAmount('1e5', usd).error,
-        ExpenseAmountError.notANumber,
-      );
-      expect(parseExpenseAmount('٥', usd).minor, 500);
-    });
-
-    test('zero and magnitude bounds', () {
-      expect(parseExpenseAmount('0', usd).error, ExpenseAmountError.zero);
-      expect(parseExpenseAmount('0.00', usd).error, ExpenseAmountError.zero);
-      expect(parseTomanAmount('0').error, ExpenseAmountError.zero);
-      // The bound is on minor units: JPY's exponent is 0, so the
-      // bound itself is writable in yen.
-      expect(
-        parseExpenseAmount('1000000000000000', jpy).minor,
-        expenseAmountMax,
-      );
-      expect(
-        parseExpenseAmount('1000000000000001', jpy).error,
-        ExpenseAmountError.tooLarge,
-      );
-      expect(
-        parseExpenseAmount('10000000000000000', usd).error,
-        ExpenseAmountError.tooLarge,
-      );
-      expect(expenseAmountInRange(expenseAmountMax), isTrue);
-      expect(expenseAmountInRange(expenseAmountMax + 1), isFalse);
-      expect(expenseAmountInRange(0), isFalse);
+    test('a rial field refuses a separator by dropping it', () {
+      expect(groupAmountEdit('12.5', 4, 0).text, '125');
     });
   });
 
-  group('formatting', () {
-    test('grouped, code-bearing, in both digit systems', () {
-      final irr = expenseCurrencyOf('IRR')!;
-      expect(formatExpenseNumber(125000, 2, persian: false), '1,250');
-      expect(formatExpenseNumber(125050, 2, persian: false), '1,250.5');
-      expect(formatExpenseNumber(12550, 2, persian: false), '125.5');
-      expect(formatExpenseNumber(12555, 2, persian: false), '125.55');
-      expect(formatExpenseNumber(1200, 0, persian: false), '1,200');
-      expect(formatExpenseNumber(12555, 3, persian: false), '12.555');
-      // Negative and signed forms.
-      expect(formatExpenseNumber(-125000, 2, persian: false), '−1,250');
+  group('saying an amount', () {
+    test('states the total in the unit chosen, grouped', () {
       expect(
-        formatExpenseNumber(125000, 2, persian: false, signed: true),
-        '+1,250',
+        formatExpenseAmount(12500000, ExpenseUnit.toman, persian: false),
+        '1,250,000 tomans',
       );
-      expect(formatExpenseNumber(-1250, 2, persian: false), '−12.5');
-      expect(formatExpenseNumber(0, 2, persian: false), '0');
-      // Persian digits and the Arabic thousands separator.
-      expect(formatExpenseNumber(125000, 2, persian: true), '۱٬۲۵۰');
-      expect(groupDigits('1250000', persian: true), '۱٬۲۵۰٬۰۰۰');
-      expect(groupDigits('1250000', persian: false), '1,250,000');
-      expect(persianDigits('a1b2'), 'a۱b۲');
-      expect(irr.code, 'IRR');
-    });
-
-    test('tomans are exact to three decimals', () {
-      expect(formatTomanNumber(1250500, persian: false), '1,250.5');
-      expect(formatTomanNumber(12000, persian: false), '12');
-      expect(formatTomanNumber(1, persian: false), '0.001');
-      expect(formatTomanNumber(12555, persian: false), '12.555');
       expect(
-        formatTomanNumber(12550, persian: true),
-        '۱۲.۵۵'.replaceAll('۵۵', '۵۵'),
+        formatExpenseAmount(12500000, ExpenseUnit.rial, persian: false),
+        '12,500,000 rials',
+      );
+      expect(
+        formatExpenseAmount(12500000, ExpenseUnit.toman, persian: true),
+        '۱٬۲۵۰٬۰۰۰ تومان',
+      );
+      expect(
+        formatExpenseAmount(1250, ExpenseUnit.rial, persian: true),
+        '۱٬۲۵۰ ریال',
       );
     });
 
-    test('the editor round-trips through majorTextOfMinor', () {
-      String roundTrip(int minor, int exponent) => parseExpenseAmount(
-        majorTextOfMinor(minor, exponent),
-        expenseCurrencyOf('USD')!,
-      ).minor.toString();
-      expect(majorTextOfMinor(1255, 2), '12.55');
-      expect(majorTextOfMinor(1250, 2), '12.5');
-      expect(majorTextOfMinor(1200, 2), '12');
-      expect(majorTextOfMinor(1200, 0), '1200');
-      expect(majorTextOfMinor(1, 2), '0.01');
-      expect(roundTrip(1255, 2), '1255');
-      expect(roundTrip(1250, 2), '1250');
-      expect(roundTrip(1200, 2), '1200');
+    test('no empty decimals, and the toman’s tenth shows when it carries', () {
+      expect(
+        formatExpenseNumber(12000000, ExpenseUnit.toman, persian: false),
+        '1,200,000',
+      );
+      expect(
+        formatExpenseNumber(125, ExpenseUnit.toman, persian: false),
+        '12.5',
+      );
+      expect(
+        formatExpenseNumber(-125, ExpenseUnit.toman, persian: false),
+        '−12.5',
+      );
+      expect(
+        formatExpenseNumber(
+          125,
+          ExpenseUnit.toman,
+          persian: false,
+          signed: true,
+        ),
+        '+12.5',
+      );
     });
   });
 
-  group('integer percentages', () {
-    test('half-up, clamped, zero-safe', () {
-      expect(expensePercentOf(0, 100), 0);
-      expect(expensePercentOf(50, 0), 0);
-      expect(expensePercentOf(50, 100), 50);
-      expect(expensePercentOf(1, 3), 33);
-      expect(expensePercentOf(2, 3), 67);
-      expect(expensePercentOf(349, 1000), 35);
-      expect(expensePercentOf(1000, 1000), 100);
-      expect(expensePercentOf(1001, 1000), 100);
-    });
+  test('shares and bars are integer math', () {
+    expect(expensePercentOf(BigInt.from(18), BigInt.from(100)), 18);
+    expect(expensePercentOf(BigInt.from(0), BigInt.from(0)), 0);
+    expect(expensePercentOf(BigInt.from(200), BigInt.from(100)), 100);
+    expect(expenseProgress(BigInt.from(50), BigInt.from(100)), 0.5);
+    expect(expenseProgress(BigInt.from(150), BigInt.from(100)), 1);
+    expect(expenseProgress(BigInt.from(0), BigInt.from(0)), 0);
+  });
+
+  test('only whole rials in the module’s bounds are storable', () {
+    expect(expenseAmountInRange(0), isFalse);
+    expect(expenseAmountInRange(1), isTrue);
+    expect(expenseAmountInRange(expenseAmountMax), isTrue);
+    expect(expenseAmountInRange(expenseAmountMax + 1), isFalse);
   });
 }

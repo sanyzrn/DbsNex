@@ -24,7 +24,7 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('fourteen add-ons are back, the other two are Soon; their code '
+  test('all sixteen add-ons are available since 2.8.4; their code '
       'stays', () {
     // Cycle; Pause, which is first-party; and the add-ons reviewed and turned
     // on since 2.4.0 — five more of them in 2.8.1.
@@ -44,11 +44,13 @@ void main() {
       'medicine',
       'cheques',
       'maintenance',
+      'expenses',
+      'price_lens',
     };
     expect(nexAvailableModuleIds, {'cycle', 'pause', ...back});
     expect(reviewed, back);
     expect(paused, moduleIds.difference(back));
-    // The existing add-ons plus the new Cheques module, still Soon.
+    expect(paused, isEmpty);
     expect(
       moduleIds,
       containsAll(['prompt_studio', 'security_tools', 'cheques']),
@@ -59,12 +61,13 @@ void main() {
   test(
     'a paused add-on keeps its installation choice and is not active',
     () async {
-      await harness.preferences.setModuleOn('price_lens', true);
-      expect(harness.preferences.isModuleOn('price_lens'), isTrue);
+      // No add-on is Soon since 2.8.4: one a later build has not shipped.
+      await harness.preferences.setModuleOn('future_module', true);
+      expect(harness.preferences.isModuleOn('future_module'), isTrue);
       expect(nexModulesOn(harness.preferences), isEmpty);
       final reloaded = await NexPreferences.load();
       addTearDown(reloaded.dispose);
-      expect(reloaded.isModuleOn('price_lens'), isTrue);
+      expect(reloaded.isModuleOn('future_module'), isTrue);
     },
   );
 

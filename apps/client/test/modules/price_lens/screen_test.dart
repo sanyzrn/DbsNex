@@ -67,6 +67,13 @@ Future<void> addOption(
   await tester.pump();
   await tester.enterText(find.byKey(const ValueKey('lens-quantity')), quantity);
   await tester.pump();
+  if (unitKey != 'kg') {
+    await tester.ensureVisible(find.byKey(ValueKey('lens-unit-$unitKey')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('lens-unit-$unitKey')));
+    await tester.pumpAndSettle();
+  }
+  await openDetails(tester);
   await tester.enterText(find.byKey(const ValueKey('lens-count')), count);
   await tester.pump();
   if (paidCount != null) {
@@ -76,13 +83,15 @@ Future<void> addOption(
     );
     await tester.pump();
   }
-  if (unitKey != 'kg') {
-    await tester.ensureVisible(find.byKey(ValueKey('lens-unit-$unitKey')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('lens-unit-$unitKey')));
-    await tester.pumpAndSettle();
-  }
   await tester.tap(find.byKey(const ValueKey('lens-save')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> openDetails(WidgetTester tester) async {
+  final toggle = find.byKey(const ValueKey('lens-details'));
+  await tester.ensureVisible(toggle);
+  await tester.pumpAndSettle();
+  await tester.tap(toggle);
   await tester.pumpAndSettle();
 }
 

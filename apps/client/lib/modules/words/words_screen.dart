@@ -12,7 +12,11 @@ import 'words_batch_sheet.dart';
 import 'words_card_page.dart';
 import 'words_card_row.dart';
 import 'words_daily_cap.dart';
+import 'words_deck_picker.dart';
+import 'words_decks.dart';
 import 'words_models.dart';
+import 'words_practice.dart';
+import 'words_progress_sheet.dart';
 import 'words_reminder.dart';
 import 'words_review_page.dart';
 import 'words_scheduler.dart';
@@ -20,6 +24,7 @@ import 'words_store.dart';
 import 'words_strings.dart';
 import 'words_visuals.dart';
 part 'words_home_logic.dart';
+part 'words_home_filters.dart';
 
 enum _StatusFilter { all, newWords, due, learned, paused }
 
@@ -46,6 +51,12 @@ class _WordsScreenState extends State<WordsScreen>
       appBar: NexAppBar(
         title: Text(strings(context, 'title')),
         actions: [
+          IconButton(
+            key: const ValueKey('words-progress'),
+            tooltip: strings(context, 'progressTitle'),
+            onPressed: _loading || _failed ? null : _openProgress,
+            icon: const Icon(Icons.insights_outlined),
+          ),
           IconButton(
             key: const ValueKey('words-copy-list'),
             tooltip: strings(context, 'copyListTip'),
@@ -188,6 +199,8 @@ class _WordsScreenState extends State<WordsScreen>
         WordsDeckCard(
           key: const ValueKey('words-hero'),
           cards: _cards,
+          goal: _goal,
+          reviewedToday: _reviewedToday,
           headline: nexDigits(
             waiting > 0
                 ? strings(context, 'heroWaiting', {'count': waiting})
@@ -250,105 +263,6 @@ class _WordsScreenState extends State<WordsScreen>
             ),
           ),
         ],
-      ],
-    );
-  }
-
-  Widget _searchAndFilters(BuildContext context, ThemeData theme) {
-    final strings = wordsStrings;
-    final tags =
-        _cards
-            .map((card) => card.tag)
-            .where((tag) => tag.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        NexSearchField(
-          fieldKey: const ValueKey('words-search'),
-          controller: _search,
-          hintText: strings(context, 'searchHint'),
-          onChanged: (value) => setState(() => _query = value.trim()),
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        // One row that scrolls sideways, statuses then tags: two wrapped
-        // rows of chips used to break apart at odd places (2.4.0).
-        SingleChildScrollView(
-          key: const ValueKey('words-filters'),
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final entry in [
-                (_StatusFilter.all, 'filterAll'),
-                (_StatusFilter.newWords, 'filterNew'),
-                (_StatusFilter.due, 'filterDue'),
-                (_StatusFilter.learned, 'filterLearned'),
-                (_StatusFilter.paused, 'filterPaused'),
-              ]) ...[
-                ChoiceChip(
-                  key: ValueKey('words-filter-${entry.$2}'),
-                  label: Text(strings(context, entry.$2)),
-                  selected: _filter == entry.$1,
-                  showCheckmark: false,
-                  onSelected: (_) => setState(() => _filter = entry.$1),
-                ),
-                const SizedBox(width: NexSpacing.xs + 2),
-              ],
-              if (tags.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: NexSpacing.xs,
-                  ),
-                  child: SizedBox(
-                    height: 24,
-                    child: VerticalDivider(
-                      width: 1,
-                      color: theme.colorScheme.outlineVariant,
-                    ),
-                  ),
-                ),
-              for (final tag in _showAllTags ? tags : tags.take(8)) ...[
-                const SizedBox(width: NexSpacing.xs + 2),
-                FilterChip(
-                  avatar: const Icon(Icons.sell_outlined, size: 16),
-                  label: Text(tag),
-                  selected: _tagFilter == tag,
-                  showCheckmark: false,
-                  onSelected: (_) => setState(
-                    () => _tagFilter = _tagFilter == tag ? null : tag,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        if (tags.length > 8)
-          TextButton(
-            onPressed: () => setState(() => _showAllTags = !_showAllTags),
-            child: Text(
-              strings(context, _showAllTags ? 'tagsLess' : 'tagsAll', {
-                'count': tags.length,
-              }),
-            ),
-          ),
-        if (_tagFilter != null ||
-            _filter != _StatusFilter.all ||
-            _query.isNotEmpty)
-          TextButton(
-            key: const ValueKey('words-clear-filters'),
-            onPressed: () {
-              _search.clear();
-              setState(() {
-                _tagFilter = null;
-                _filter = _StatusFilter.all;
-                _query = '';
-              });
-            },
-            child: Text(strings(context, 'clearFilters')),
-          ),
-        const SizedBox(height: NexSpacing.md),
       ],
     );
   }

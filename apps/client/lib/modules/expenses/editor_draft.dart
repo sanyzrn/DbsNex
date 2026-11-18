@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
+
 import 'form_draft.dart';
 import 'strings.dart';
 
@@ -120,9 +122,8 @@ class ExpensesDraftFrame extends StatelessWidget {
                   expenseStrings(context, 'saveFailed'),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(color: Theme.of(context).colorScheme.error),
                 ),
               ),
             Flexible(
@@ -132,8 +133,8 @@ class ExpensesDraftFrame extends StatelessWidget {
         );
 }
 
-void expenseWriteFailure(BuildContext context) =>
-    NexBannerHost.of(context)?.show(
+void expenseWriteFailure(BuildContext context) => NexBannerHost.of(context)
+    ?.show(
       kind: NexBannerKind.failed,
       message: expenseStrings(context, 'saveFailed'),
     );

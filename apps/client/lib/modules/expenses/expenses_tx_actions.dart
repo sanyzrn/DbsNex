@@ -1,19 +1,14 @@
 part of 'expenses_editors.dart';
 
 extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
-  ExpenseAmountResult get _parsed =>
-      _currency.code == 'IRR' && _irrUnit == IrrUnit.toman
-      ? parseTomanAmount(_amount.text)
-      : parseExpenseAmount(_amount.text, _currency);
+  ExpenseAmountResult get _parsed => parseExpenseAmount(_amount.text, _unit);
 
-  /// The typed civil day, or null while the text is not one yet. The
-  /// old date button kept a separate confirmed flag; the field makes
-  /// confirmation a property of the text itself.
+  /// The typed civil day, or null while the text is not one yet.
   DateTime? get _typedDay => LocalValues.day(_dateText.text);
 
-  /// The text the field opens with: the stored day for a readable
-  /// record, today for a new payment, and nothing for an incomplete
-  /// one, whose missing date must be chosen explicitly.
+  /// The text the field opens with: the stored day for a readable record,
+  /// today for a new payment, and nothing for an incomplete one, whose
+  /// missing date must be chosen explicitly.
   String _initialDateText() {
     final existing = widget.existing;
     if (existing == null) return expensesDateEntryText(DateTime.now());
@@ -24,8 +19,8 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     return '';
   }
 
-  /// A resumed draft's date state: the raw typed text when the draft
-  /// kept one, else the day it stored — never a day the record lacks.
+  /// A resumed draft's date state: the raw typed text when the draft kept
+  /// one, else the day it stored — never a day the record lacks.
   void _resumeDate(Map<String, Object?> body) {
     final stamp = LocalValues.stamp(body['date']);
     if (stamp != null) _date = stamp.toLocal();
@@ -37,18 +32,18 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     }
   }
 
-  /// Quiet while a person is mid-thought; loud when the field is empty
-  /// (the missing date must be chosen explicitly — the incomplete
-  /// record's own state) or after Save was refused.
+  /// Quiet while a person is mid-thought; loud when the field is empty (the
+  /// missing date must be chosen explicitly — the incomplete record's own
+  /// state) or after Save was refused.
   String? _dateError(BuildContext context) =>
       _dateText.text.isEmpty || (_showErrors && _typedDay == null)
       ? expenseStrings(context, 'dateRequired')
       : null;
 
-  /// A day typed (or picked on the calendar) composes with the time
-  /// that is already set, so changing the date never drops the clock.
-  /// Heard through the controller, so a day the shared calendar button
-  /// writes in counts as a change too.
+  /// A day typed (or picked on the calendar) composes with the time that is
+  /// already set, so changing the date never drops the clock. Heard through
+  /// the controller, so a day the shared calendar button writes in counts as
+  /// a change too.
   void _dateChanged() {
     if (!mounted) return;
     final day = _typedDay;
@@ -68,7 +63,7 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     }
 
     final result = _parsed;
-    if (result.error != null || result.minor == null) {
+    if (result.error != null || result.rials == null) {
       _paint(() => _showErrors = true); // says why Save was refused
       return;
     }
@@ -77,13 +72,16 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     final tx = ExpenseTx(
       id: _draft.recordId,
       type: _type,
-      amount: result.minor!,
-      currency: _currency.code,
+      amountRial: result.rials!,
       date: DateTime(day.year, day.month, day.day, _date.hour, _date.minute),
       categoryId: _categoryId,
       note: _note.text.trim().isEmpty ? null : _note.text.trim(),
       merchant: _merchant.text.trim().isEmpty ? null : _merchant.text.trim(),
       account: _account.text.trim().isEmpty ? null : _account.text.trim(),
+      // Correcting a payment that came from a recurring template keeps its
+      // link, so the month stays written down.
+      templateId: widget.existing?.templateId,
+      period: widget.existing?.period,
     );
     try {
       if (!await _draft.finish()) throw StateError('Draft flush failed');
@@ -93,12 +91,9 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
         draftId: _draft.draftId,
       );
       try {
-        await widget.controller.rememberEditorDefaults(
-          currencyCode: _currency.code,
-          irrUnit: _irrUnit.name,
-        );
+        await widget.controller.rememberUnit(_unit);
       } catch (_) {
-        /* A saved payment remains saved even if optional defaults fail. */
+        /* A saved payment remains saved even if the unit fails to stick. */
       }
       if (mounted) Navigator.pop(context);
     } catch (_) {
@@ -144,7 +139,7 @@ extension _ExpensesTxActions on _ExpensesTxEditorSheetState {
     final undoLabel = expenseStrings(context, 'undo');
     final undoFailure = expenseStrings(context, 'undoFailed');
     try {
-      if (!await _draft.finish()) throw StateError("Draft flush failed");
+      if (!await _draft.finish()) throw StateError('Draft flush failed');
       await widget.controller.deleteTx(existing.id);
       if (mounted) {
         Navigator.pop(context);

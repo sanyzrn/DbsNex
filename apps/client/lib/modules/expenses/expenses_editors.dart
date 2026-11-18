@@ -4,27 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'controller.dart';
+import 'editor_draft.dart';
 import 'expenses_fields.dart';
 import 'expenses_form.dart';
 import 'expenses_undo.dart';
+import 'local_values.dart';
 import 'models.dart';
 import 'money.dart';
 import 'strings.dart';
-import 'editor_draft.dart';
-import 'local_values.dart';
 
 part 'expenses_tx_actions.dart';
 
 /// The transaction editor: the one place a payment is written down.
 ///
-/// One sheet, a few taps: type, amount (with the currency's own rules
-/// and the rial/toman choice for IRR), date and time, category, and
-/// the optional note, merchant and account label. The date is typed
-/// civil text with the shared Jalali calendar button beside it, and
-/// the note is the shared multiline editor. Saving is guarded against
-/// double taps; leaving with unsaved work asks first, so the last edit
-/// is never lost to a stray swipe; deleting a record offers Undo,
-/// restoring exactly what was there.
+/// The brief's "seconds" are the first three questions — expense or income,
+/// the amount, the category — and today is already the answer to "when".
+/// Everything else (the day, the clock, a note, the merchant, the account
+/// label) sits behind one optional card, so the form a person meets is three
+/// fields tall. The date is typed civil text with the shared calendar button
+/// beside it; the note is the shared multiline editor. Saving is guarded
+/// against double taps; leaving with unsaved work asks first; deleting offers
+/// Undo that restores exactly what was there.
 Future<void> showExpensesTxEditor(
   BuildContext context, {
   required ExpensesController controller,
@@ -60,12 +60,11 @@ class ExpensesTxEditorSheet extends StatefulWidget {
 class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
   late String _type =
       widget.existing?.type ?? widget.template?.type ?? 'expense';
-  late ExpenseCurrency _currency = _initialCurrency();
-  late IrrUnit _irrUnit = _initialIrrUnit();
+  late ExpenseUnit _unit = widget.controller.unit;
 
-  /// The day+time the record will take. The day follows the typed text
-  /// (see `_dateChanged`); the time follows the time button. A new
-  /// payment starts at now, as the old date button did.
+  /// The day+time the record will take. A new payment starts now, so the day
+  /// is today unless the person says otherwise; the day follows the typed
+  /// text (see `_dateChanged`), the clock the time button.
   late DateTime _date = widget.existing?.date ?? DateTime.now();
   late final TextEditingController _dateText = TextEditingController(
     text: _initialDateText(),
@@ -85,6 +84,14 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
   late final TextEditingController _account = TextEditingController(
     text: widget.existing?.account ?? '',
   );
+
+  /// The optional half of the form: open when correcting something that is
+  /// already written, or when a template brought notes with it.
+  late bool _more = widget.existing != null || _hasDetails;
+
+  bool get _hasDetails =>
+      (widget.template?.note?.isNotEmpty ?? false) ||
+      (widget.template?.merchant?.isNotEmpty ?? false);
 
   late final ExpenseEditorDraft _draft;
   @override
@@ -109,23 +116,19 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
           : 'tx:template:${widget.template!.id}:new',
       extra: () => {
         'type': _type,
-        'currency': _currency.code,
-        'irrUnit': _irrUnit.name,
+        'unit': _unit.key,
         'date': _date.toIso8601String(),
         'dateConfirmed': _typedDay != null,
         'category': _categoryId,
+        'more': _more,
       },
       applyExtra: (b) {
         if (b['type'] == 'expense' || b['type'] == 'income') {
           _type = b['type'] as String;
         }
-        _currency =
-            expenseCurrencyOf(
-              b['currency'] is String ? b['currency'] as String : null,
-            ) ??
-            _currency;
-        _irrUnit = b['irrUnit'] == 'toman' ? IrrUnit.toman : IrrUnit.rial;
+        _unit = ExpenseUnit.fromKey(b['unit']);
         _categoryId = b['category'] is String ? b['category'] as String : null;
+        if (b['more'] is bool) _more = b['more'] as bool;
         _resumeDate(b);
         _dirty = true;
       },
@@ -141,33 +144,14 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
   bool _dirty = false;
   bool _showErrors = false;
 
-  ExpenseCurrency _initialCurrency() {
-    final code =
-        widget.existing?.currency ??
-        widget.template?.currency ??
-        widget.controller.preferredCurrencyCode;
-    return expenseCurrencyOf(code) ?? expenseCurrencyOf('IRR')!;
-  }
-
-  IrrUnit _initialIrrUnit() {
-    final stored = widget.existing == null && widget.template == null
-        ? widget.controller.preferredIrrUnit
-        : 'rial';
-    return stored == 'toman' ? IrrUnit.toman : IrrUnit.rial;
-  }
-
   String _initialAmountText() {
-    final minor = widget.existing?.amount ?? widget.template?.amount;
-    if (minor == null ||
-        minor <= 0 ||
-        (widget.existing != null && !widget.existing!.valid)) {
-      return '';
+    final existing = widget.existing;
+    if (existing == null || !existing.valid || existing.amountRial <= 0) {
+      return widget.template == null
+          ? ''
+          : expenseAmountInput(widget.template!.amountRial, _unit);
     }
-    if (_initialCurrency().code == 'IRR' &&
-        _initialIrrUnit() == IrrUnit.toman) {
-      return majorTextOfMinor(minor, 3);
-    }
-    return majorTextOfMinor(minor, _initialCurrency().exponent);
+    return expenseAmountInput(existing.amountRial, _unit);
   }
 
   @override
@@ -228,8 +212,7 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SegmentedButton<String>(
-                        key: const ValueKey('expenses-type'),
+                      NexAdaptiveSegments<String>(
                         segments: [
                           ButtonSegment(
                             value: 'expense',
@@ -251,50 +234,20 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
                       const SizedBox(height: NexSpacing.md),
                       ExpensesAmountField(
                         controller: _amount,
-                        currency: _currency,
+                        unit: _unit,
                         showAllErrors: _showErrors,
-                        unit: _irrUnit,
                         // Any keystroke is work worth guarding.
                         onValid: (_) => _markDirty(),
                         onUnitChanged: (unit) {
-                          // Re-express the typed amount in the new unit
-                          // so switching does not change the money.
-                          final minor = _parsed.minor;
-                          if (minor != null) {
-                            _amount.text = _irrUnit == IrrUnit.rial
-                                ? majorTextOfMinor(minor, 3)
-                                : majorTextOfMinor(minor, _currency.exponent);
+                          // Re-express the typed amount in the new unit so
+                          // switching does not change the money.
+                          final rials = _parsed.rials;
+                          if (rials != null) {
+                            _amount.text = expenseAmountInput(rials, unit);
                           }
-                          setState(() => _irrUnit = unit);
+                          setState(() => _unit = unit);
                           _markDirty();
                         },
-                      ),
-                      const SizedBox(height: NexSpacing.md),
-                      ExpensesCurrencyRow(
-                        currency: _currency,
-                        onChanged: (currency) {
-                          setState(() => _currency = currency);
-                          _markDirty();
-                        },
-                      ),
-                      const SizedBox(height: NexSpacing.md),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: ExpensesDateField(
-                              controller: _dateText,
-                              errorText: _dateError(context),
-                            ),
-                          ),
-                          const SizedBox(width: NexSpacing.sm),
-                          Expanded(
-                            child: ExpensesTimeButton(
-                              date: _date,
-                              onTap: _pickTime,
-                            ),
-                          ),
-                        ],
                       ),
                       const SizedBox(height: NexSpacing.md),
                       ExpensesCategoryRow(
@@ -307,34 +260,68 @@ class _ExpensesTxEditorSheetState extends State<ExpensesTxEditorSheet> {
                         },
                       ),
                       const SizedBox(height: NexSpacing.md),
-                      NexTextField(
-                        key: const ValueKey('expenses-note'),
-                        controller: _note,
-                        minLines: 2,
-                        maxLines: 4,
-                        onChanged: (_) => _markDirty(),
-                        decoration: InputDecoration(
-                          labelText: expenseStrings(context, 'noteLabel'),
-                          hintText: expenseStrings(context, 'noteHint'),
+                      NexMoreDetails(
+                        open: _more,
+                        toggleKey: const ValueKey('expenses-more'),
+                        title: expenseStrings(context, 'detailsTitle'),
+                        hint: expenseStrings(context, 'detailsHint'),
+                        onChanged: (open) {
+                          setState(() => _more = open);
+                          _markDirty();
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: ExpensesDateField(
+                                    controller: _dateText,
+                                    errorText: _dateError(context),
+                                  ),
+                                ),
+                                const SizedBox(width: NexSpacing.sm),
+                                Expanded(
+                                  child: ExpensesTimeButton(
+                                    date: _date,
+                                    onTap: _pickTime,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: NexSpacing.md),
+                            NexTextField(
+                              key: const ValueKey('expenses-note'),
+                              controller: _note,
+                              minLines: 2,
+                              maxLines: 4,
+                              onChanged: (_) => _markDirty(),
+                              decoration: InputDecoration(
+                                labelText: expenseStrings(context, 'noteLabel'),
+                                hintText: expenseStrings(context, 'noteHint'),
+                              ),
+                            ),
+                            const SizedBox(height: NexSpacing.md),
+                            ExpensesOptionalField(
+                              key: const ValueKey('expenses-merchant'),
+                              controller: _merchant,
+                              label: expenseStrings(context, 'merchantLabel'),
+                              hint: expenseStrings(context, 'merchantHint'),
+                              onChanged: _markDirty,
+                            ),
+                            const SizedBox(height: NexSpacing.md),
+                            ExpensesOptionalField(
+                              key: const ValueKey('expenses-account'),
+                              controller: _account,
+                              label: expenseStrings(context, 'accountLabel'),
+                              hint: expenseStrings(context, 'accountHint'),
+                              onChanged: _markDirty,
+                            ),
+                            const SizedBox(height: NexSpacing.md),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: NexSpacing.md),
-                      ExpensesOptionalField(
-                        key: const ValueKey('expenses-merchant'),
-                        controller: _merchant,
-                        label: expenseStrings(context, 'merchantLabel'),
-                        hint: expenseStrings(context, 'merchantHint'),
-                        onChanged: _markDirty,
-                      ),
-                      const SizedBox(height: NexSpacing.md),
-                      ExpensesOptionalField(
-                        key: const ValueKey('expenses-account'),
-                        controller: _account,
-                        label: expenseStrings(context, 'accountLabel'),
-                        hint: expenseStrings(context, 'accountHint'),
-                        onChanged: _markDirty,
-                      ),
-                      const SizedBox(height: NexSpacing.md),
                     ],
                   ),
                 ),

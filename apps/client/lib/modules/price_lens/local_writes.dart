@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:nex_client/modules/module_api.dart';
 
 typedef LocalChange = ({String kind, String id, Map<String, Object?>? body});
@@ -60,9 +61,7 @@ class LocalWrites {
         before = (op.body['before'] as List).map(_decoded).toList();
         if (before.any(
           (c) =>
-              c.kind == 'operation' ||
-              c.kind == '__recovery' ||
-              c.kind.isEmpty ||
+              !{'memory', 'comparison', 'shopping', 'draft'}.contains(c.kind) ||
               c.id.isEmpty,
         )) {
           throw const FormatException('Invalid recovery target');

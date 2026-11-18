@@ -9,6 +9,7 @@ import 'money.dart';
 import 'rational.dart';
 import 'units.dart';
 import 'local_values.dart';
+import 'storage_money.dart';
 part 'price_memory.dart';
 part 'saved_comparison.dart';
 
@@ -34,6 +35,8 @@ class PriceOption {
     this.date,
     this.valid = true,
     this.source,
+    this.productName,
+    this.person,
   });
 
   final String id;
@@ -76,12 +79,20 @@ class PriceOption {
   /// counted.
   final bool valid;
   final Map<String, Object?>? source;
+  final String? productName;
+  final Map<String, Object?>? person;
+  String get productLabel =>
+      productName?.trim().isNotEmpty == true ? productName! : label;
+  String get shop => person?['name'] is String ? person!['name'] as String : '';
 
   PriceUnit? get unit => priceUnitOf(unitKey);
 
   Map<String, Object?> toBody() => {
+    ...keepUnknown(source, optionFields),
     'label': label,
-    'price': priceMinor,
+    ...priceMoneyFields(priceMinor, currency, source),
+    if (productName != null) 'productName': productName,
+    if (person != null) 'person': person,
     'currency': currency,
     ...priceMetadata(currency),
     'quantity': quantity.numerator,
@@ -91,15 +102,27 @@ class PriceOption {
     if (paidCount != null) 'paidCount': paidCount,
     'discount': discount.name,
     if (discountPercent != null) 'discountPercent': discountPercent,
-    if (discountMinor != null) 'discountMinor': discountMinor,
-    if (shippingMinor != null) 'shippingMinor': shippingMinor,
+    ...priceMoneyFields(
+      discountMinor,
+      currency,
+      source,
+      legacy: 'discountMinor',
+      rial: 'discountRial',
+    ),
+    ...priceMoneyFields(
+      shippingMinor,
+      currency,
+      source,
+      legacy: 'shippingMinor',
+      rial: 'shippingRial',
+    ),
     if (date != null) 'date': date!.toIso8601String(),
-    'schema': 2,
+    'schema': 3,
   };
 
   static PriceOption fromBody(String id, Map<String, Object?> body) {
     final label = _stringOf(body, 'label')?.trim() ?? '';
-    final price = body['price'],
+    final price = storedPriceMinor(body),
         currency = body['currency_code'] ?? body['currency'];
     final unit = _stringOf(body, 'unit'),
         q = body['quantity'],
@@ -112,11 +135,21 @@ class PriceOption {
       _ => DiscountKind.none,
     };
     final percent = body['discountPercent'],
-        fixed = body['discountMinor'],
-        shipping = body['shippingMinor'];
+        fixed = storedPriceMinor(
+          body,
+          legacy: 'discountMinor',
+          rial: 'discountRial',
+        ),
+        shipping = storedPriceMinor(
+          body,
+          legacy: 'shippingMinor',
+          rial: 'shippingRial',
+        );
     final dateRaw = body['date'],
         date = dateRaw == null ? null : priceCalendar(dateRaw);
     final valid =
+        priceSchemaKnown(body) &&
+        productMetadataValid(body) &&
         label.isNotEmpty &&
         boundedMoney(price) &&
         priceMetadataValid(body) &&
@@ -135,9 +168,13 @@ class PriceOption {
         (paid == null || (paid is int && paid > 0 && paid <= count)) &&
         (dateRaw == null || date != null) &&
         ['none', 'percent', 'fixed'].contains(discountName) &&
-        (shipping == null || boundedMoney(shipping)) &&
+        ((body['shippingMinor'] == null && body['shippingRial'] == null) ||
+            boundedMoney(shipping)) &&
         switch (discount) {
-          DiscountKind.none => percent == null && fixed == null,
+          DiscountKind.none =>
+            percent == null &&
+                body['discountMinor'] == null &&
+                body['discountRial'] == null,
           DiscountKind.percent =>
             percent is int && percent >= 0 && percent <= 100 && fixed == null,
           DiscountKind.fixed =>
@@ -163,11 +200,15 @@ class PriceOption {
       paidCount: _intOrNull(body['paidCount']),
       discount: discount,
       discountPercent: _intOrNull(percent),
-      discountMinor: _intOrNull(body['discountMinor']),
-      shippingMinor: _intOrNull(body['shippingMinor']),
+      discountMinor: _intOrNull(fixed),
+      shippingMinor: _intOrNull(shipping),
       date: date,
       valid: valid,
       source: Map.of(body),
+      productName: body['productName'] is String
+          ? body['productName'] as String
+          : null,
+      person: storedPerson(body),
     );
   }
 }
@@ -196,4 +237,46 @@ bool optionSafe(PriceOption o) {
   } catch (_) {
     return false;
   }
+}
+
+const optionFields = {
+  'label',
+  'price',
+  'priceRial',
+  'amount',
+  'currency',
+  'currency_code',
+  'currency_exponent',
+  'quantity',
+  'quantityDen',
+  'unit',
+  'packageCount',
+  'paidCount',
+  'discount',
+  'discountPercent',
+  'discountMinor',
+  'discountRial',
+  'shippingMinor',
+  'shippingRial',
+  'date',
+  'schema',
+  'productName',
+  'person',
+};
+
+Map<String, Object?>? storedPerson(Map<String, Object?> body) {
+  final person = body['person'];
+  return person is Map && person.keys.every((k) => k is String)
+      ? Map<String, Object?>.from(person)
+      : null;
+}
+
+bool productMetadataValid(Map<String, Object?> body) {
+  final name = body['productName'], person = body['person'];
+  if (name != null && (name is! String || name.length > 150)) return false;
+  if (person == null) return true;
+  return person is Map &&
+      person.keys.every((k) => k is String) &&
+      (person['name'] == null ||
+          person['name'] is String && (person['name'] as String).length <= 100);
 }

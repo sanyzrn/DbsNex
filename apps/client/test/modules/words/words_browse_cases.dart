@@ -171,9 +171,8 @@ void _registerBrowseCases(
             ? const SizedBox()
             : Builder(
                 builder: (inner) => MediaQuery(
-                  data: MediaQuery.of(
-                    inner,
-                  ).copyWith(textScaler: TextScaler.linear(2.0)),
+                  data: MediaQuery.of(inner)
+                      .copyWith(textScaler: TextScaler.linear(2.0)),
                   child: child,
                 ),
               ),

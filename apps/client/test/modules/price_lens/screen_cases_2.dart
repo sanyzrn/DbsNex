@@ -20,7 +20,7 @@ void _screenCases2() {
       await openMenu(tester);
       await tester.tap(find.text('Price memory'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Rice · 100 IRR'), findsOneWidget);
+      expect(find.textContaining('Rice · 100 rials'), findsOneWidget);
       expect(
         find.text(
           'Only prices you entered yourself, with their date — never a market rate',
@@ -38,7 +38,7 @@ void _screenCases2() {
 
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Rice · 100 IRR'), findsOneWidget);
+      expect(find.textContaining('Rice · 100 rials'), findsOneWidget);
     });
 
     testWidgets('a matching offer shows the dated, mathematical difference', (
@@ -64,7 +64,7 @@ void _screenCases2() {
       await tester.pumpAndSettle();
       await addOption(tester, label: 'Oil', price: '80', quantity: '1');
       expect(
-        find.textContaining('Now 20 IRR more than you entered'),
+        find.textContaining('Now 20 rials more than you entered'),
         findsOneWidget,
       );
     });
@@ -135,6 +135,7 @@ void _screenCases2() {
       await tester.pump();
       await tester.enterText(find.byKey(const ValueKey('lens-quantity')), '1');
       await tester.pump();
+      await openDetails(tester);
     }
 
     testWidgets('a typed shopping date rides along into the price memory', (
@@ -156,7 +157,7 @@ void _screenCases2() {
       await openMenu(tester);
       await tester.tap(find.text('Price memory'));
       await tester.pumpAndSettle();
-      expect(find.text('Rice · 100 IRR on 2026/03/14'), findsOneWidget);
+      expect(find.text('Rice · 100 rials on 2026/03/14'), findsOneWidget);
     });
 
     testWidgets('the shared calendar button fills the date field', (
@@ -262,6 +263,7 @@ void _screenCases2() {
         '750',
       );
       await tester.pump();
+      await openDetails(tester);
       await tester.enterText(find.byKey(const ValueKey('lens-count')), '3');
       await tester.pump();
       await tester.ensureVisible(find.byKey(const ValueKey('lens-unit-g')));
@@ -307,9 +309,9 @@ void _screenCases2() {
       );
       await addOption(tester, label: 'برنج درشت', price: '115', quantity: '1');
       expect(find.text('ارزان‌ترین به ازای کیلوگرم'), findsOneWidget);
-      expect(find.text('برنج · ۱۲۰ IRR به ازای کیلوگرم'), findsOneWidget);
-      expect(find.text('برنج درشت · ۱۱۵ IRR به ازای کیلوگرم'), findsOneWidget);
-      expect(find.text('۵ IRR بیشتر از ارزان‌ترین'), findsOneWidget);
+      expect(find.text('برنج، ۱۲۰ ریال به ازای کیلوگرم'), findsOneWidget);
+      expect(find.text('برنج درشت، ۱۱۵ ریال به ازای کیلوگرم'), findsOneWidget);
+      expect(find.text('۵ ریال بیشتر از ارزان‌ترین'), findsOneWidget);
       expect(find.text('ارزان‌ترین'), findsOneWidget);
     });
 
@@ -324,7 +326,7 @@ void _screenCases2() {
       );
       await addOption(tester, label: 'Bag 1kg', price: '115', quantity: '1');
       expect(find.text('Cheapest per kg'), findsOneWidget);
-      expect(find.text('Bag 1kg · 115 IRR per kg'), findsOneWidget);
+      expect(find.text('Bag 1kg · 115 rials per kg'), findsOneWidget);
     });
 
     testWidgets('a small screen keeps the flow working', (tester) async {
@@ -340,10 +342,10 @@ void _screenCases2() {
       await tester.scrollUntilVisible(find.text('Cheapest per kg'), 200);
       expect(find.text('Cheapest per kg'), findsOneWidget);
       await tester.scrollUntilVisible(
-        find.text('5 IRR more than the cheapest'),
+        find.text('5 rials more than the cheapest'),
         200,
       );
-      expect(find.text('5 IRR more than the cheapest'), findsOneWidget);
+      expect(find.text('5 rials more than the cheapest'), findsOneWidget);
     });
   });
 }

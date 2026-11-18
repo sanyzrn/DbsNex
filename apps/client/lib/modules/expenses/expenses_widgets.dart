@@ -2,30 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'logic.dart';
-import 'models.dart' show monthStartOf;
 import 'money.dart';
 import 'strings.dart';
 
-/// The overview the Expenses screen is: month navigation, per-currency
-/// totals, the category breakdown with its calm bars, budget rows with
-/// the arithmetic on show, filter chips and the record rows. Purely
+/// The overview the Expenses screen is: month navigation, the month's total
+/// with what is left, the category breakdown with its calm bars and its
+/// change against last month, filters and the record rows. Purely
 /// presentational — every number arrives computed, from `logic.dart`.
 
-/// The month bar: back and forward a month, the month's name with its
-/// calendar-relative tag, and the all-time toggle.
+/// The month bar: back and forward a month, the month's name in the calendar
+/// the person reads (a Jalali month in Persian), and the all-time toggle.
 class ExpensesMonthNav extends StatelessWidget {
   const ExpensesMonthNav({
     super.key,
     required this.month,
-    required this.now,
+    required this.offset,
     required this.onPrevious,
     required this.onNext,
     required this.onAllTime,
     required this.onCurrent,
   });
 
-  final String month;
-  final DateTime now;
+  final NexModuleMonth month;
+
+  /// 0 for the month containing today, negative for earlier months.
+  final int offset;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final VoidCallback onAllTime;
@@ -34,18 +35,14 @@ class ExpensesMonthNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = expenseStrings;
-    final label = monthLabel(context, month, withYear: true);
-    final distance = monthDistance(month, now);
-    final isCurrent = distance.distance == ExpenseMonthDistance.current;
-    final relative = switch (distance.distance) {
-      ExpenseMonthDistance.current => s(context, 'thisMonth'),
-      ExpenseMonthDistance.previous => s(context, 'lastMonth'),
-      ExpenseMonthDistance.earlier => s(context, 'monthsAgo', {
-        'n': distance.months,
-      }),
-      ExpenseMonthDistance.later => s(context, 'monthsAhead', {
-        'n': distance.months,
-      }),
+    final theme = Theme.of(context);
+    final label = month.title(context);
+    final isCurrent = offset == 0;
+    final relative = switch (offset) {
+      0 => s(context, 'thisMonth'),
+      -1 => s(context, 'lastMonth'),
+      < 0 => s(context, 'monthsAgo', {'n': -offset}),
+      _ => s(context, 'monthsAhead', {'n': offset}),
     };
     return Column(
       children: [
@@ -69,7 +66,7 @@ class ExpensesMonthNav extends StatelessWidget {
                       children: [
                         Text(
                           label,
-                          style: Theme.of(context).textTheme.titleMedium,
+                          style: theme.textTheme.titleMedium,
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -78,40 +75,10 @@ class ExpensesMonthNav extends StatelessWidget {
                         // itself is the way back to now.
                         Text(
                           relative,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                        // The months here are Gregorian — budgets are kept
-                        // by them. A reader on the Jalali calendar sees which
-                        // days that month is, in their own.
-                        if (NexModuleCalendar.solarOf(context))
-                          Text(
-                            s(context, 'monthSpan', {
-                              'from': nexModuleDateLabel(
-                                context,
-                                monthStartOf(month),
-                              ),
-                              'to': nexModuleDateLabel(
-                                context,
-                                DateTime(
-                                  monthStartOf(month).year,
-                                  monthStartOf(month).month + 1,
-                                  0,
-                                ),
-                              ),
-                            }),
-                            key: const ValueKey('expenses-month-span'),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
+                        ),
                       ],
                     ),
                   ),
@@ -125,13 +92,19 @@ class ExpensesMonthNav extends StatelessWidget {
             ),
           ],
         ),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: _PillButton(
-            label: s(context, 'allTime'),
-            selected: false,
-            onPressed: onAllTime,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            // Flexible so a 2× text scale can never push the pill past the
+            // screen: it shortens rather than overflowing.
+            Flexible(
+              child: ExpensesPill(
+                label: s(context, 'allTime'),
+                selected: false,
+                onPressed: onAllTime,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -151,19 +124,10 @@ class DirectionalChevron {
       : Icons.chevron_right;
 }
 
-/// The label of a month key — name from the module's strings, digits
-/// in the locale's form, year included on request (all-time views).
-String monthLabel(BuildContext context, String month, {bool withYear = true}) {
-  final persian = NexModuleStrings.persian(context);
-  final number = monthNumberOf(month);
-  final name = expenseStrings(context, 'month${number.clamp(1, 12)}');
-  final year = persian ? persianDigits(yearOf(month)) : yearOf(month);
-  return withYear ? '$name $year' : name;
-}
-
 /// A calm pill that always meets the 48dp floor.
-class _PillButton extends StatelessWidget {
-  const _PillButton({
+class ExpensesPill extends StatelessWidget {
+  const ExpensesPill({
+    super.key,
     required this.label,
     required this.selected,
     required this.onPressed,
@@ -190,13 +154,17 @@ class _PillButton extends StatelessWidget {
             padding: const EdgeInsetsDirectional.symmetric(
               horizontal: NexSpacing.md,
             ),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: selected ? scheme.onPrimary : scheme.onSurface,
+            child: Center(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: selected ? scheme.onPrimary : scheme.onSurface,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
             ),
           ),
         ),
@@ -205,55 +173,67 @@ class _PillButton extends StatelessWidget {
   }
 }
 
-/// Expenses, income and net for one currency — the net stated plainly,
-/// a quiet line under it when it is negative, never an alarm.
+/// What the month cost — the one large number — with what came in, what is
+/// left, and how it compares with the month before. Nothing here is an
+/// alarm: a month spent past its income is arithmetic, said plainly.
 class ExpensesTotalsPanel extends StatelessWidget {
-  const ExpensesTotalsPanel({super.key, required this.totals, this.change});
+  const ExpensesTotalsPanel({
+    super.key,
+    required this.totals,
+    required this.unit,
+    this.change,
+    this.hidden = false,
+  });
 
-  final ExpenseCurrencyTotals totals;
+  final ExpenseTotals totals;
+  final ExpenseUnit unit;
 
-  /// How this month's spending compares with last month's in this currency;
-  /// null when there is nothing to compare with (or in the all-time view).
-  final ({BigInt previous, int? percent, int direction})? change;
+  /// How this month's spending compares with last month's; null in the
+  /// all-time view or when there is nothing to compare with.
+  final ExpenseMonthChange? change;
+
+  /// Privacy: amounts are replaced by dots, not removed.
+  final bool hidden;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final persian = NexModuleStrings.persian(context);
-    final currency = expenseCurrencyOf(totals.currency);
-    final exponent =
-        currency?.exponent ?? expenseExponentOf(totals.currency, null);
-    String money(BigInt minor) =>
-        formatExpenseNumber(minor, exponent, persian: persian);
-    final negative = totals.net.isNegative;
-    // The bottom line leads, large, on the module's own colour; what it is
-    // made of sits underneath.
+    final s = expenseStrings;
+    String money(int rials) => hidden
+        ? s(context, 'hiddenAmount')
+        : formatExpenseAmount(rials, unit, persian: persian);
+    final spent = totals.expense.toInt();
+    final negative = totals.left.isNegative;
     return NexModuleHero(
       key: const ValueKey('expenses-hero'),
       moduleId: 'expenses',
       icon: Icons.account_balance_wallet_outlined,
-      eyebrow: expenseStrings(context, 'netLabel'),
-      headline: '${money(totals.net)} ${totals.currency}',
-      semanticsLabel: expenseStrings(context, 'netSemantics', {
-        'amount': '${money(totals.net)} ${totals.currency}',
+      eyebrow: s(context, 'expensesLabel'),
+      headline: money(spent),
+      semanticsLabel: s(context, 'netSemantics', {
+        'amount': money(spent),
+        'left': money(totals.left.toInt()),
       }),
-      caption: negative ? expenseStrings(context, 'netNegative') : null,
+      caption: totals.hasIncome && negative ? s(context, 'netNegative') : null,
       child: Column(
         children: [
-          _TotalsRow(
-            label: expenseStrings(context, 'expensesLabel'),
-            value: '${money(totals.expense)} ${totals.currency}',
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          _TotalsRow(
-            label: expenseStrings(context, 'incomeLabel'),
-            value: '${money(totals.income)} ${totals.currency}',
-          ),
+          if (totals.hasIncome) ...[
+            _TotalsRow(
+              label: s(context, 'incomeLabel'),
+              value: money(totals.income.toInt()),
+            ),
+            const SizedBox(height: NexSpacing.sm),
+            _TotalsRow(
+              label: s(context, 'leftLabel'),
+              value: money(totals.left.toInt()),
+            ),
+          ],
           if (change != null) ...[
             const SizedBox(height: NexSpacing.sm),
             Text(
-              expenseStrings(
+              s(
                 context,
                 change!.direction == 0
                     ? 'changeSame'
@@ -261,7 +241,7 @@ class ExpensesTotalsPanel extends StatelessWidget {
                     ? 'changeMore'
                     : 'changeLess',
                 {
-                  'amount': '${money(change!.previous)} ${totals.currency}',
+                  'amount': money(change!.previous.toInt()),
                   'pct': change!.percent ?? 0,
                 },
               ),
@@ -273,7 +253,7 @@ class ExpensesTotalsPanel extends StatelessWidget {
           ],
           const SizedBox(height: NexSpacing.sm),
           Text(
-            expenseStrings(context, 'basedOnEntered'),
+            s(context, 'basedOnEntered'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -292,7 +272,7 @@ class _TotalsRow extends StatelessWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Expanded(
+        Flexible(
           child: Text(
             label,
             style: theme.textTheme.labelLarge?.copyWith(
@@ -300,38 +280,51 @@ class _TotalsRow extends StatelessWidget {
             ),
           ),
         ),
-        Text(
-          value,
-          textDirection: TextDirection.ltr,
-          style: theme.textTheme.titleMedium,
+        const SizedBox(width: NexSpacing.sm),
+        // Expanded, not Flexible: the amount keeps the reading end of the
+        // row even when it is short, and can wrap when it truly is long.
+        Expanded(
+          flex: 2,
+          child: Text(
+            value,
+            textDirection: TextDirection.ltr,
+            textAlign: TextAlign.end,
+            style: theme.textTheme.titleMedium,
+          ),
         ),
       ],
     );
   }
 }
 
-/// Spending by category: a row per category with its share as an
-/// integer percent and a bar relative to the largest category.
+/// Spending by category: a row per category with its share as an integer
+/// percent, its change against last month, and a calm bar relative to the
+/// largest category. A tap filters the list to it.
 class ExpensesBreakdownPanel extends StatelessWidget {
   const ExpensesBreakdownPanel({
     super.key,
     required this.slices,
-    required this.currency,
     required this.expenseTotal,
+    required this.unit,
     required this.categoryName,
     required this.onCategory,
+    this.hidden = false,
   });
   final List<ExpenseCategorySlice> slices;
-  final String currency;
   final BigInt expenseTotal;
+  final ExpenseUnit unit;
   final String Function(String) categoryName;
   final ValueChanged<String> onCategory;
+  final bool hidden;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context), s = expenseStrings;
     final persian = NexModuleStrings.persian(context);
-    final exponent = expenseExponentOf(currency, null);
     final largest = slices.isEmpty ? BigInt.zero : slices.first.total;
+    String money(BigInt rials) => hidden
+        ? s(context, 'hiddenAmount')
+        : formatExpenseAmount(rials.toInt(), unit, persian: persian);
     return NexPanel(
       title: s(context, 'spendingByCategory'),
       icon: Icons.donut_small_outlined,
@@ -341,8 +334,7 @@ class ExpensesBreakdownPanel extends StatelessWidget {
             Semantics(
               label: s(context, 'barSemantics', {
                 'category': categoryName(slice.categoryId),
-                'amount':
-                    '${formatExpenseNumber(slice.total, exponent, persian: persian)} $currency',
+                'amount': money(slice.total),
                 'percent': expensePercentOf(slice.total, expenseTotal),
               }),
               button: true,
@@ -363,9 +355,10 @@ class ExpensesBreakdownPanel extends StatelessWidget {
                       ),
                       Wrap(
                         spacing: NexSpacing.sm,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
-                            '${formatExpenseNumber(slice.total, exponent, persian: persian)} $currency',
+                            money(slice.total),
                             textDirection: TextDirection.ltr,
                           ),
                           Text(
@@ -374,6 +367,24 @@ class ExpensesBreakdownPanel extends StatelessWidget {
                             }),
                             style: theme.textTheme.bodySmall,
                           ),
+                          if (slice.percent != null)
+                            Text(
+                              s(
+                                context,
+                                slice.direction == 0
+                                    ? 'categorySame'
+                                    : slice.direction > 0
+                                    ? 'categoryMore'
+                                    : 'categoryLess',
+                                {'pct': slice.percent ?? 0},
+                              ),
+                              key: ValueKey(
+                                'expenses-change-${slice.categoryId}',
+                              ),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: NexSpacing.xs),

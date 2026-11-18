@@ -12,12 +12,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
+import 'words_deck_picker.dart';
 import 'words_fields.dart';
 import 'words_models.dart';
 import 'words_scheduler.dart';
 import 'words_store.dart';
 import 'words_strings.dart';
-import 'words_visuals.dart';
+import 'words_badges.dart';
 import 'words_dates.dart';
 import 'form_draft.dart';
 import 'draft_guard.dart';
@@ -122,6 +123,11 @@ class _WordsCardPageState extends State<WordsCardPage> with _WordsCardLogic {
                       controller: _tag,
                       label: strings(context, 'tagLabel'),
                       fieldKey: const ValueKey('words-field-tag'),
+                    ),
+                    WordsDeckField(
+                      repository: _repository,
+                      deckId: _deckId,
+                      onChanged: (id) => setState(() => _deckId = id),
                     ),
                     if (existing) ...[
                       const SizedBox(height: NexSpacing.md),

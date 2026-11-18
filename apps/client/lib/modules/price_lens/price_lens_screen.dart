@@ -7,7 +7,6 @@ import 'comparison.dart';
 import 'controller.dart';
 import 'lens_pages.dart';
 import 'lens_widgets.dart';
-import 'money.dart';
 import 'option_editor.dart';
 import 'options.dart';
 import 'price_lens_common.dart';
@@ -15,21 +14,38 @@ import 'strings.dart';
 import 'units.dart';
 import 'rational.dart';
 import 'history_status.dart';
+import 'privacy.dart';
+import 'draft_guard.dart';
+import 'choices.dart';
+import 'product_pages.dart';
+import 'money_render.dart';
 part 'screen_actions.dart';
+part 'price_lens_calculator.dart';
+part 'workspace_draft.dart';
 
 /// The Price Lens: a live calculator by default — nothing is saved
 /// until the person chooses to. Two to four offers, one common unit,
 /// and the exact answer to "which package is actually cheaper".
-class PriceLensScreen extends StatefulWidget {
+class PriceLensScreen extends StatelessWidget {
   const PriceLensScreen({super.key, required this.store});
-
   final NexModuleStore store;
-
   @override
-  State<PriceLensScreen> createState() => _PriceLensScreenState();
+  Widget build(BuildContext context) => LensPrivacy(
+    child: NexModuleCalendar(
+      solar: NexModuleStrings.persian(context),
+      child: _LensWorkspace(store: store),
+    ),
+  );
 }
 
-class _PriceLensScreenState extends State<PriceLensScreen> {
+class _LensWorkspace extends StatefulWidget {
+  const _LensWorkspace({required this.store});
+  final NexModuleStore store;
+  @override
+  State<_LensWorkspace> createState() => _PriceLensScreenState();
+}
+
+class _PriceLensScreenState extends State<_LensWorkspace> {
   late final PriceLensController controller = PriceLensController(widget.store);
 
   /// The calculator's scratch state — never written to the store
@@ -40,6 +56,24 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
   /// offer's family canonical unit.
   String? commonUnitKey;
   bool _writing = false;
+  int _tab = 0;
+  bool _scratchReady = false, _scratchFailed = false, _scratchReading = false;
+  late final _scratch = NexModuleFormDraft(
+    widget.store,
+    'workspace',
+    {'workspace': 1},
+    {},
+    () => {
+      'workspaceVersion': 1,
+      'tab': _tab,
+      'commonUnit': commonUnitKey,
+      'offers': [
+        for (final o in options)
+          {'id': o.id, 'body': o.valid ? o.toBody() : o.source ?? o.toBody()},
+      ],
+    },
+  );
+
   String? _pendingComparisonId;
   final _pendingMemoryIds = <String, String>{};
   void _paint(VoidCallback action) {
@@ -51,6 +85,7 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
     super.initState();
     unawaited(controller.load());
     controller.addListener(_onChanged);
+    unawaited(_restoreWorkspace());
   }
 
   void _onChanged() {
@@ -59,6 +94,7 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
 
   @override
   void dispose() {
+    _scratch.close();
     controller.removeListener(_onChanged);
     controller.dispose();
     super.dispose();
@@ -90,11 +126,16 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
       if (unit == null || unit.family != family) {
         commonUnitKey = canonicalUnitOf(family).key;
       }
+      _workspaceChanged();
     });
   }
 
-  Future<void> _editOption({PriceOption? existing}) =>
-      showOptionEditor(context, existing: existing, onSave: _upsertOption);
+  Future<void> _editOption({PriceOption? existing}) => showOptionEditor(
+    context,
+    existing: existing,
+    store: widget.store,
+    onSave: _upsertOption,
+  );
 
   Future<void> _removeOption(PriceOption option) async {
     final s = priceLensStrings;
@@ -118,161 +159,127 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
       ),
     );
     if (answer != 'remove' || !mounted) return;
+    final index = options.indexWhere((o) => o.id == option.id);
     setState(() => options = options.where((o) => o.id != option.id).toList());
+    _workspaceChanged();
+    nexShowBanner(
+      context,
+      message: s(context, 'offerRemoved'),
+      actionLabel: s(context, 'undo'),
+      onAction: () {
+        if (mounted &&
+            options.every((o) => o.id != option.id) &&
+            options.length < 4) {
+          setState(
+            () => options.insert(index.clamp(0, options.length), option),
+          );
+          _workspaceChanged();
+        }
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final s = priceLensStrings;
-    final persian = NexModuleStrings.persian(context);
-    final unit = _commonUnit;
-    final comparison = unit == null || options.length < 2
-        ? null
-        : compareOptions(options, unit);
-    final memoryLine = _memoryLine(context);
-    return Scaffold(
-      appBar: NexAppBar(
-        title: Text(s(context, 'title')),
-        actions: [
-          IconButton(
-            tooltip: s(context, 'resetTooltip'),
-            onPressed: _reset,
-            icon: const Icon(Icons.restart_alt),
-          ),
-          NexPopupMenuButton<String>(
-            tooltip: s(context, 'moreActions'),
-            onSelected: (action) => unawaited(_menu(action)),
-            itemBuilder: (menuContext) => [
-              nexMenuItem(
-                value: 'save',
-                icon: Icons.bookmark_add_outlined,
-                label: s(menuContext, 'saveComparison'),
-              ),
-              nexMenuItem(
-                value: 'memory',
-                icon: Icons.history,
-                label: s(menuContext, 'memoryTitle'),
-              ),
-              nexMenuItem(
-                value: 'saved',
-                icon: Icons.bookmarks_outlined,
-                label: s(menuContext, 'savedComparisons'),
-              ),
-            ],
-          ),
-        ],
-      ),
-      // With no offer yet the empty state carries the one primary action.
-      floatingActionButton: options.isNotEmpty && options.length < 4
-          ? FloatingActionButton.extended(
-              // No hero: a page's button never flies into another's (2.8.2).
-              heroTag: null,
-              key: const ValueKey('lens-add'),
-              onPressed: () => unawaited(_editOption()),
-              icon: const Icon(Icons.add),
-              label: Text(s(context, 'addOption')),
-            )
-          : null,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsetsDirectional.fromSTEB(
-            NexSpacing.md,
-            NexSpacing.sm,
-            NexSpacing.md,
-            NexSpacing.xl * 4,
-          ),
-          children: [
-            if (_writing)
-              Text(s(context, 'working'), style: theme.textTheme.bodySmall),
-            if (controller.readFailed) LensReadError(controller: controller),
-            Text(
-              s(context, 'noMarketRates'),
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+    return DraftGuard(
+      draft: _scratch,
+      busy: () => _writing || !_scratchReady && !_scratchFailed,
+      child: Scaffold(
+        appBar: NexAppBar(
+          title: Text(s(context, 'title')),
+          actions: [
+            const LensPrivacyButton(),
+            IconButton(
+              tooltip: s(context, 'resetTooltip'),
+              onPressed: _scratchReady && !_scratchFailed ? _reset : null,
+              icon: const Icon(Icons.restart_alt),
             ),
-            const SizedBox(height: NexSpacing.md),
-            if (options.isEmpty)
-              NexEmptyState(
-                icon: Icons.calculate_outlined,
-                message: s(context, 'tooFew'),
-                action: FilledButton.icon(
-                  key: const ValueKey('lens-add'),
-                  onPressed: () => unawaited(_editOption()),
-                  icon: const Icon(Icons.add),
-                  label: Text(s(context, 'addOption')),
-                  // Material caps buttons at 40dp tall — a label a 2× text
-                  // scale cannot fit into; let it grow with the words.
-                  style: const ButtonStyle(
-                    maximumSize: WidgetStatePropertyAll<Size?>(
-                      Size(double.infinity, double.infinity),
-                    ),
-                  ),
+            NexPopupMenuButton<String>(
+              tooltip: s(context, 'moreActions'),
+              onSelected: (action) => unawaited(_menu(action)),
+              itemBuilder: (c) => [
+                nexMenuItem(
+                  value: 'save',
+                  icon: Icons.bookmark_add_outlined,
+                  label: s(c, 'saveComparison'),
                 ),
-              )
-            else ...[
-              Text(
-                s(context, 'optionsTitle'),
-                style: theme.textTheme.titleSmall,
-              ),
-              const SizedBox(height: NexSpacing.xs),
-              for (final option in options)
-                LensOptionCard(
-                  commonUnitKey: unit?.key,
-                  key: ValueKey('lens-option-${option.id}'),
-                  option: option,
-                  result: comparison?.results.firstWhere(
-                    (r) => r.option.id == option.id,
-                    orElse: () => OptionResult(
-                      option: option,
-                      unitPriceMinor: null,
-                      quantityInCommon: null,
-                    ),
-                  ),
-                  persian: persian,
-                  onEdit: () => unawaited(_editOption(existing: option)),
-                  onRemember: () {
-                    if (!_writing) unawaited(_rememberPrice(option));
-                  },
-                  onRemove: () => unawaited(_removeOption(option)),
+                nexMenuItem(
+                  value: 'memory',
+                  icon: Icons.history,
+                  label: s(c, 'memoryTitle'),
                 ),
-              if (options.length >= 4)
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(
-                    bottom: NexSpacing.md,
-                  ),
-                  child: Text(
-                    s(context, 'optionLimit'),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: NexSpacing.md),
-              if (unit != null) ..._unitPicker(context, unit),
-              const SizedBox(height: NexSpacing.md),
-              if (comparison != null)
-                LensResultPanel(
-                  comparison: comparison,
-                  commonUnit: unit!,
-                  persian: persian,
-                  memoryLine: memoryLine,
-                ),
-              if (comparison != null) ...[
-                const SizedBox(height: NexSpacing.sm),
-                Text(
-                  s(context, 'discountNote'),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+                nexMenuItem(
+                  value: 'saved',
+                  icon: Icons.bookmarks_outlined,
+                  label: s(c, 'savedComparisons'),
                 ),
               ],
-            ],
+            ),
+          ],
+        ),
+        floatingActionButton:
+            _tab == 0 &&
+                _scratchReady &&
+                !_scratchFailed &&
+                options.isNotEmpty &&
+                options.length < 4
+            ? FloatingActionButton.extended(
+                heroTag: null,
+                key: const ValueKey('lens-add'),
+                onPressed: _writing ? null : () => unawaited(_editOption()),
+                icon: const Icon(Icons.add),
+                label: Text(s(context, 'addOption')),
+              )
+            : null,
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(NexSpacing.md),
+              child: NexAdaptiveSegments<int>(
+                segments: [
+                  for (final (index, key) in [
+                    'compareTab',
+                    'productsTab',
+                    'shoppingTab',
+                  ].indexed)
+                    ButtonSegment(value: index, label: Text(s(context, key))),
+                ],
+                selected: {_tab},
+                onSelectionChanged: (v) {
+                  setState(() => _tab = v.first);
+                  _workspaceChanged();
+                },
+              ),
+            ),
+            Expanded(
+              child: IndexedStack(
+                index: _tab,
+                children: [
+                  !_scratchReady && !_scratchFailed
+                      ? const Center(child: CircularProgressIndicator())
+                      : _scratchFailed
+                      ? NexEmptyState(
+                          icon: Icons.refresh,
+                          message: s(context, 'draftReadFailed'),
+                          action: TextButton(
+                            onPressed: _restoreWorkspace,
+                            child: Text(s(context, 'retry')),
+                          ),
+                        )
+                      : _calculator(context),
+                  LensProductsPage(
+                    controller: controller,
+                    onCompare: () => setState(() => _tab = 0),
+                  ),
+                  LensProductsPage(
+                    controller: controller,
+                    shopping: true,
+                    onCompare: () => setState(() => _tab = 0),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -285,19 +292,16 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
     return [
       Text(s(context, 'commonUnitLabel'), style: theme.textTheme.titleSmall),
       const SizedBox(height: NexSpacing.xs),
-      Wrap(
+      LensChoices<String>(
         key: const ValueKey('lens-common-units'),
-        spacing: NexSpacing.sm,
-        runSpacing: NexSpacing.xs,
-        children: [
-          for (final candidate in unitsOfFamily(unit.family))
-            LensPill(
-              key: ValueKey('lens-common-${candidate.key}'),
-              label: unitWordOf(context, candidate.key),
-              selected: candidate.key == unit.key,
-              onTap: () => setState(() => commonUnitKey = candidate.key),
-            ),
-        ],
+        values: unitsOfFamily(unit.family).map((u) => u.key).toList(),
+        value: unit.key,
+        label: (key) => unitWordOf(context, key),
+        keyFor: (key) => ValueKey('lens-common-$key'),
+        onChanged: (key) {
+          setState(() => commonUnitKey = key);
+          _workspaceChanged();
+        },
       ),
       const SizedBox(height: NexSpacing.xs),
       Text(
@@ -312,24 +316,21 @@ class _PriceLensScreenState extends State<PriceLensScreen> {
   /// The line that says what the person entered before, when an offer
   /// exactly matches a memory: a mathematical difference, dated.
   Widget? _memoryLine(BuildContext context) {
-    final s = priceLensStrings, fa = NexModuleStrings.persian(context);
+    final s = priceLensStrings;
     for (final option in options) {
       final match = memoryMatchFor(option, controller.memories);
       if (match == null) continue;
-      final exponent = priceExponentOf(match.currency),
-          difference = memoryDifference(option, match);
+      final difference = memoryDifference(option, match);
       final zero = difference == const Fraction(0),
           negative = difference < const Fraction(0);
       final magnitude = negative ? const Fraction(0) - difference : difference;
       final history = zero
           ? s(context, 'memorySame', {
-              'price':
-                  '${formatMinorFraction(match.exactPaid, exponent, persian: fa)} ${match.currency}',
+              'price': lensMoney(context, match.exactPaid, match.currency),
               'date': lensFullDate(context, match.date),
             })
           : s(context, negative ? 'memoryLower' : 'memoryHigher', {
-              'diff':
-                  '${formatMinorFraction(magnitude, exponent, persian: fa)} ${match.currency}',
+              'diff': lensMoney(context, magnitude, match.currency),
               'date': lensFullDate(context, match.date),
             });
       return Text(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/modules/habits/module.dart';
@@ -30,16 +31,23 @@ void main() {
     test('active means available and added, and nothing else does', () async {
       final prefs = harness.preferences;
       expect(nexModuleActive('habits', prefs), isFalse);
-      expect(nexModuleActive('expenses', prefs), isFalse, reason: 'still Soon');
       expect(nexModuleActive('no-such-module', prefs), isFalse);
       await prefs.setModuleOn('habits', true);
-      await prefs.setModuleOn('expenses', true);
+      await prefs.setModuleOn('no-such-module', true);
       expect(nexModuleActive('habits', prefs), isTrue);
-      expect(
-        nexModuleActive('expenses', prefs),
-        isFalse,
-        reason: 'a saved choice is not availability',
-      );
+      expect(nexModuleActive('no-such-module', prefs), isFalse);
+      // Every add-on is available on a phone since 2.8.4; a desktop has
+      // none, so there a saved choice is still not availability.
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      try {
+        expect(
+          nexModuleActive('habits', prefs),
+          isFalse,
+          reason: 'a saved choice is not availability',
+        );
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     });
   });
 

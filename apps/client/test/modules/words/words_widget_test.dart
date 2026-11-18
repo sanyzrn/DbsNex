@@ -135,8 +135,10 @@ void main() {
     await tester.tap(button);
     await tester.pumpAndSettle();
 
-    // The same page the floating button opens.
-    expect(find.byKey(const ValueKey('words-card-save')), findsOneWidget);
+    // The same page the floating button opens. (Its first field, not its
+    // save button: the page is a lazy list, and one more row can put the
+    // bottom of it out of the built range.)
+    expect(find.byKey(const ValueKey('words-field-headword')), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('words-field-headword')),
       'serendipity',

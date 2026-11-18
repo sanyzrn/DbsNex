@@ -22,6 +22,10 @@ mixin _WordsCardLogic on State<WordsCardPage> {
   bool _draftLoadFailed = false;
   late FormDraft _draft;
 
+  /// The deck this word is being put in, by id; empty is «no deck». It is
+  /// saved with the rest of the form, and carried in the draft.
+  String _deckId = '';
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +47,7 @@ mixin _WordsCardLogic on State<WordsCardPage> {
     _example.text = _card.example;
     _note.text = _card.note;
     _tag.text = _card.tag;
+    _deckId = _card.deckId;
     _draft = _makeDraft();
     unawaited(_restore(initial: true));
   }
@@ -74,9 +79,8 @@ mixin _WordsCardLogic on State<WordsCardPage> {
     if (_saving || _restoring || _draftLoadFailed) return;
     final headword = foldWhitespace(_headword.text);
     if (headword.isEmpty) {
-      NexBannerHost.of(
-        context,
-      )?.show(message: wordsStrings(context, 'wordRequired'));
+      NexBannerHost.of(context)
+          ?.show(message: wordsStrings(context, 'wordRequired'));
       if (_scroll.hasClients) {
         await _scroll.animateTo(
           0,
@@ -141,6 +145,7 @@ mixin _WordsCardLogic on State<WordsCardPage> {
           example: _example.text.trim(),
           note: _note.text.trim(),
           tag: foldWhitespace(_tag.text),
+          deckId: _deckId,
         ),
         preserveProgress: true,
         requireExisting: widget.card != null,
@@ -268,7 +273,11 @@ mixin _WordsCardLogic on State<WordsCardPage> {
             'tag': widget.card!.tag,
           },
     _controllers,
-    () => {'recordId': _card.id, 'createdAt': _card.createdAtIso},
+    () => {
+      'recordId': _card.id,
+      'createdAt': _card.createdAtIso,
+      'deckId': _deckId,
+    },
   );
   Future<void> _restore({bool initial = false}) async {
     if (_restoring && !initial) return;
@@ -284,6 +293,7 @@ mixin _WordsCardLogic on State<WordsCardPage> {
     }
     if (body != null) {
       _draft.apply(body);
+      if (body['deckId'] is String) _deckId = body['deckId'] as String;
       if (widget.card == null &&
           body['recordId'] is String &&
           (body['recordId'] as String).isNotEmpty) {

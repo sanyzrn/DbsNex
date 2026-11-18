@@ -396,10 +396,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(preferences.isModuleOn('habits'), isTrue);
     expect(tester.widget<FilterChip>(habits).selected, isTrue);
-    // A tool that is not available yet is not offered.
+    // Every add-on available on a phone is offered (2.8.4: all of them).
     expect(
       find.byKey(const ValueKey('onboarding-module-price_lens')),
-      findsNothing,
+      findsOneWidget,
     );
   });
 }

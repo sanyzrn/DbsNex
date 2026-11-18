@@ -33,6 +33,7 @@ class WordCard {
     this.log = const [],
     this.schema = 2,
     this.introducedOn = '',
+    this.deckId = '',
   });
 
   /// The record's id — a UUIDv7 from the store, kept across edits.
@@ -72,6 +73,11 @@ class WordCard {
 
   final int schema;
   final String introducedOn;
+
+  /// The deck this word was put in, by record id; empty means it sits in
+  /// the whole collection, outside every deck. Added in 2.8.4 — a record
+  /// written before it reads as «no deck» rather than as missing data.
+  final String deckId;
 
   /// How many log entries are kept; older ones are folded away when the
   /// card is saved. The counts that matter (reps, lapses) live in their
@@ -115,6 +121,7 @@ class WordCard {
     String? lastReviewIso,
     bool? paused,
     String? introducedOn,
+    String? deckId,
     List<({String at, WordsGrade grade})>? log,
   }) => WordCard(
     id: id,
@@ -132,6 +139,7 @@ class WordCard {
     lastReviewIso: lastReviewIso ?? this.lastReviewIso,
     paused: paused ?? this.paused,
     introducedOn: introducedOn ?? this.introducedOn,
+    deckId: deckId ?? this.deckId,
     schema: schema < 2 ? 2 : schema,
     log: log ?? this.log,
   );
@@ -182,6 +190,7 @@ class WordCard {
       paused: body['paused'] is bool ? body['paused'] as bool : false,
       log: readLog,
       schema: _int(body['schema']) ?? 1,
+      deckId: foldWhitespace('${body['deckId'] ?? ''}'),
     );
   }
 
@@ -201,6 +210,7 @@ class WordCard {
     'lastReview': lastReviewIso,
     'paused': paused,
     'introducedOn': introducedOn,
+    'deckId': deckId,
     'log': [
       for (final entry in log) {'at': entry.at, 'g': entry.grade.name},
     ],
@@ -209,14 +219,23 @@ class WordCard {
 
 /// The module's settings, one record of kind `settings` under a fixed id.
 class WordsSettings {
-  const WordsSettings({required this.newPerDay, this.sessionLimit = 20});
+  const WordsSettings({
+    required this.newPerDay,
+    this.sessionLimit = 20,
+    this.goalPerDay = defaultGoalPerDay,
+  });
   final int sessionLimit;
 
   /// How many never-reviewed cards a day's session may introduce.
   /// 0 means no cap. The default is 10.
   final int newPerDay;
 
+  /// The small daily goal, in answers: «10 reviews». 0 means none, and a
+  /// missed day costs nothing — no streak is kept anywhere.
+  final int goalPerDay;
+
   static const defaultPerDay = 10;
+  static const defaultGoalPerDay = 10;
   static const String recordId = 'settings';
 
   factory WordsSettings.fromRecord(Map<String, Object?> body) {
@@ -228,12 +247,16 @@ class WordsSettings {
     return WordsSettings(
       newPerDay: read('newPerDay', defaultPerDay),
       sessionLimit: read('sessionLimit', 20),
+      // A settings record written before the goal existed has no key: the
+      // goal then starts at its default instead of reading as «none».
+      goalPerDay: read('goalPerDay', defaultGoalPerDay),
     );
   }
   Map<String, Object?> toRecord() => {
     'schema': 2,
     'newPerDay': newPerDay,
     'sessionLimit': sessionLimit,
+    'goalPerDay': goalPerDay,
   };
 }
 

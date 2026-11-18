@@ -41,7 +41,7 @@ instalment plans in whole tomans, a month view, hidden amounts) and
 **Maintenance** (service log, car insurance and inspection reminders that
 follow their dates, fuel log against quotas) join `nexAvailableModuleIds`. All
 give their dates and lines in the shared shape and leave the pending lists.
-Price Lens and Expenses stay Soon.
+Word by Word (live) gained decks, typed and multiple-choice review and a daily goal; **Expenses** and **Price Lens** were reviewed in the same release and made available, so every add-on is now available.
 
 ### Back in 2.8.1: Gold, Quit Habits, Lent & Borrowed; new: Prompt Studio, Security toolbox
 
