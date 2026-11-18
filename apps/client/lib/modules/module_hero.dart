@@ -47,6 +47,8 @@ const _moduleHues = <String, double>{
   'cheques': 222,
   // 2.8.4: a money green between Habits and Price Lens.
   'assets': 112,
+  // 2.8.4: a warm magenta between Occasions and Medicine.
+  'family_fund': 324,
 };
 
 /// The top of a module's home page: one large, calm statement of where things

@@ -103,7 +103,7 @@ extension _FundActions on _FundDetailState {
   Future<void> runDraw() async {
     final pool = fund.drawPool(month);
     if (pool.eligible.isEmpty) return;
-    final preview = pool.eligible.map(nameOf).join(' · ');
+    final preview = pool.eligible.map(nameOf).join(fundSep(context));
     if (winner != null) {
       await openFundEditor(
         context,
@@ -150,7 +150,7 @@ extension _FundActions on _FundDetailState {
       widget.store,
       keyName: 'payout:${fund.id}:${draw['id']}',
       title:
-          '${s('issue')} · ${winnerName(draw)}\n${s('available', {'amount': cash(balance)})}',
+          '${fundLabeled(context, s('issue'), winnerName(draw))}\n${s('available', {'amount': cash(balance)})}',
       fields: ['principal', 'count'],
       initial: fundMonth(DateTime.now()).shift(1),
       unit: unit,

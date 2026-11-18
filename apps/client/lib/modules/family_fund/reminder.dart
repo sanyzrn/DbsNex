@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_client/modules/module_api.dart';
 
 import 'strings.dart';
+import 'fund_text.dart';
 
 /// Both alerts refer to the same real fund row. The kit control derives its
 /// key from the source, so using it twice would overwrite the first alert.
@@ -69,7 +70,7 @@ class _FundReminderState extends State<FundReminder> {
           sourceId: widget.fundId,
           at: at,
           title: widget.body,
-          body: '${widget.body} · $wording',
+          body: '${widget.body}${fundSep(context)}$wording',
         );
         if (!ok) throw StateError('Reminder unavailable');
       }
@@ -102,7 +103,7 @@ class _FundReminderState extends State<FundReminder> {
         children: [
           if (at != null)
             Text(
-              '${nexReadableDate(at, solar: true, persian: fa)} · ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(at))}',
+              '${nexReadableDate(at, solar: true, persian: fa)}${fundSep(context)}${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(at))}',
             ),
           Wrap(
             spacing: NexSpacing.sm,

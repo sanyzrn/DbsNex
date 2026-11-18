@@ -108,7 +108,7 @@ extension _FundViews on _FundDetailState {
           value: contributions[i].done,
           title: Text(nameOf(member)),
           subtitle: Text(
-            '${cash(contributions[i].amountRial!)} · ${s(contributions[i].done
+            '${cash(contributions[i].amountRial!)}${fundSep(context)}${s(contributions[i].done
                 ? 'paid'
                 : dayKey(contributions[i].at).compareTo(dayKey(now)) < 0
                 ? 'late'
@@ -179,7 +179,7 @@ extension _FundViews on _FundDetailState {
   List<Widget> membersView() => [
     NexPanel(
       title: s('members'),
-      child: Text('${s('shareAmount')} · ${cash(fund.shareRial)}'),
+      child: Text(fundLabeled(context, s('shareAmount'), cash(fund.shareRial))),
     ),
     const SizedBox(height: NexSpacing.sm),
     if (fund.members.isEmpty) Text(s('noMembers')),
@@ -198,7 +198,7 @@ extension _FundViews on _FundDetailState {
               s('left', {
                 'date': fundMonth(DateTime.parse(end)).title(context),
               }),
-          ].join(' · '),
+          ].join(fundSep(context)),
         ),
         trailing: m['until'] != null
             ? null
@@ -238,7 +238,7 @@ extension _FundViews on _FundDetailState {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '${cash(loan['amountRial'] as int)} · ${date(DateTime.parse(loan['at'] as String))}',
+                '${cash(loan['amountRial'] as int)}${fundSep(context)}${date(DateTime.parse(loan['at'] as String))}',
               ),
               Text(
                 s('outstanding', {
@@ -255,7 +255,7 @@ extension _FundViews on _FundDetailState {
                   value: part['paidAt'] != null,
                   title: Text(s('instalment', {'n': i + 1})),
                   subtitle: Text(
-                    '${date(DateTime.parse(part['due'] as String))} · ${cash(part['amountRial'] as int)}',
+                    '${date(DateTime.parse(part['due'] as String))}${fundSep(context)}${cash(part['amountRial'] as int)}',
                   ),
                   onChanged: (_) => unawaited(repay(loan, part)),
                 ),

@@ -24,7 +24,7 @@ void main() {
   );
   tearDown(() => harness.dispose());
 
-  test('all seventeen add-ons are available since 2.8.4; their code '
+  test('all eighteen add-ons are available since 2.8.4; their code '
       'stays', () {
     // Cycle; Pause, which is first-party; and the add-ons reviewed and turned
     // on since 2.4.0 — five more of them in 2.8.1.
@@ -47,6 +47,7 @@ void main() {
       'expenses',
       'price_lens',
       'assets',
+      'family_fund',
     };
     expect(nexAvailableModuleIds, {'cycle', 'pause', ...back});
     expect(reviewed, back);
@@ -56,7 +57,7 @@ void main() {
       moduleIds,
       containsAll(['prompt_studio', 'security_tools', 'cheques']),
     );
-    expect(moduleIds, hasLength(17));
+    expect(moduleIds, hasLength(18));
   });
 
   test(
@@ -72,8 +73,8 @@ void main() {
     },
   );
 
-  test('all modules default off, including the seventeen add-ons', () {
-    expect(moduleIds, hasLength(17));
+  test('all modules default off, including the eighteen add-ons', () {
+    expect(moduleIds, hasLength(18));
     expect(
       nexModules.whereType<NexStoredModule>().map((m) => m.id).toSet(),
       moduleIds,

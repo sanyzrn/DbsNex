@@ -24,6 +24,21 @@ It stays outside rollout pending platform integration and phone review.
 - **Report** previews the fund name, month, paid and pending names, balance
   and winner. The eye control masks amounts in the view and report.
 
+## Maintainer review (2.8.4)
+
+Registered (`nexModules`, hue 324), reviewed and made available. Checked:
+whole-rial amounts, one row per fund so each mutation is atomic, unknown and
+nested `person` fields kept, Jalali month boundaries with day clamping,
+`FundDues.duesBetween` and a private `summarize`. Changes:
+
+- **The manager's alerts come round every month** (`FundReminderUpkeep`,
+  the module's `keepUp`): an alert set once used to ring once and stop; now,
+  after its day has passed, it moves to the fund's next contribution or draw
+  day at the same time of day. A cleared alert has no record and stays off.
+- Persian lines join facts with «،» and label a value with «:» (`fund_text`):
+  a middle dot beside a number read as the Persian zero. The alert title no
+  longer doubles «صندوق» before a fund's own name.
+
 ## Records
 
 | Kind | Fields |

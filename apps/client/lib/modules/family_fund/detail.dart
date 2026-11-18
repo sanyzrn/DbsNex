@@ -13,6 +13,7 @@ import 'projection.dart';
 import 'reminder.dart';
 import 'screen.dart' show between;
 import 'strings.dart';
+import 'fund_text.dart';
 
 part 'detail_actions.dart';
 part 'detail_views.dart';

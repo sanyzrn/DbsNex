@@ -7,6 +7,7 @@ import 'irr_unit.dart';
 import 'model.dart';
 import 'money_format.dart';
 import 'strings.dart';
+import 'fund_text.dart';
 
 Future<void> openFundEditor(
   BuildContext context,
@@ -269,7 +270,7 @@ class _FundEditorState extends State<FundEditor> {
                                         ? 'join'
                                         : widget.fields.contains('count')
                                         ? 'repayStart'
-                                        : 'start')} · ${month!.title(context)}',
+                                        : 'start')}${fundSep(context)}${month!.title(context)}',
                                   ),
                                   onPressed: () async {
                                     final picked = await nexPickModuleDate(

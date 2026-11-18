@@ -15,9 +15,13 @@ extension _FundReport on _FundDetailState {
     final text = [
       fund.name,
       month.title(context),
-      '${s('paid')} · ${list(true)}',
-      '${s('waiting')} · ${list(false)}',
-      '${s('balance')} (${date(now)}) · ${cash(fund.balanceAt(now))}',
+      fundLabeled(context, s('paid'), list(true)),
+      fundLabeled(context, s('waiting'), list(false)),
+      fundLabeled(
+        context,
+        '${s('balance')} (${date(now)})',
+        cash(fund.balanceAt(now)),
+      ),
       current == null
           ? s('noDraw')
           : s('winner', {'name': winnerName(current)}),
@@ -83,9 +87,9 @@ extension _FundReport on _FundDetailState {
                         .title(context),
                     date(DateTime.parse(d['at'] as String)),
                     s('pool', {'n': d['round']}),
-                    rows(d['eligible']).map(nameOf).join(' · '),
+                    rows(d['eligible']).map(nameOf).join(fundSep(context)),
                     if ((d['reason'] as String).isNotEmpty)
-                      '${s('reason')} · ${d['reason']}',
+                      fundLabeled(context, s('reason'), '${d['reason']}'),
                   ].join('\n'),
                 ),
               ),
