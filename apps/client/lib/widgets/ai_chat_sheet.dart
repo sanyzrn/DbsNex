@@ -29,6 +29,7 @@ import '../platform/crash_reporter.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/theme_presets.dart';
+import '../platform/tools_for_assistant.dart';
 import 'card_strings.dart';
 import 'commitments_sheet.dart' show nexCadenceLabel;
 import 'due_label.dart' show nexRepeatLabel;
@@ -335,6 +336,11 @@ class _AiChatSheetState extends State<AiChatSheet> with RouteAware {
   /// The passages of Nex's own guide the latest question is about, or empty
   /// — see [NexAppGuide]. Replaced on every question, like [_retrieved].
   String _guide = '';
+
+  /// What the tools on this phone have coming up, when the person let the
+  /// assistant see them — see [nexToolsForAssistant]. Read again with every
+  /// question, so a cheque cleared in between is not still "due".
+  String _tools = '';
 
   /// Every note put in front of the model in this conversation, for the
   /// record of what left the device (W3.2).

@@ -302,4 +302,8 @@ const Map<String, String> goldStringsFa = {
   'parse_tooManyDecimals': 'ارقام اعشار زیاد است.',
   'parse_negative': 'مقدار منفی این‌جا معنایی ندارد.',
   'parse_tooBig': 'بیش از حد بزرگ است.',
+  'glanceEmpty': 'اولین تخمین را بزنید',
+  'glanceSaved': '{n} تخمین ذخیره‌شده',
+  'glanceLatest': 'آخرین: {when}',
+  'glanceUntitled': 'تخمین',
 };

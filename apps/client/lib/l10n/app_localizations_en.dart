@@ -2710,6 +2710,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantLengthFull => 'Full';
 
   @override
+  String get assistantUseTools => 'Let it see my tools';
+
+  @override
+  String get assistantUseToolsSubtitle =>
+      'What your tools have coming up in the next two weeks goes with each question, so it can answer \"what\'s due this week?\". Money and health tools only as a count.';
+
+  @override
   String get assistantScope => 'Stay in my notes';
 
   @override
@@ -6917,6 +6924,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tipToolDatesTitle => 'Your tools\' dates, on the home screen';
+
+  @override
+  String get tipToolPeekTitle => 'A quick look at a tool';
+
+  @override
+  String get tipToolPeekBody =>
+      'Tap a pinned module for its quick view: what it holds and what is coming up, right here. Open it only when you want to change something.';
 
   @override
   String get tipToolDatesBody =>

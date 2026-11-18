@@ -186,7 +186,13 @@ calendar"). So:
   `dueLabel(l10n, kind)`. «Dates from your tools» on the home screen lists
   what is late or falls due this week; a `private` item shows only its
   module's name, grouped, never its title or amount. Switched in Home
-  layout.
+  layout. A tap on a line opens the module's quick view (below).
+- **Many items, one line** (2.8.5): when a day's items are better said
+  together («3 habits left today», «12 words to review»), `dues` returns one
+  `ModuleDue` with an **empty title** and the count in its kind
+  (`habits-today:3`); `dueLabel` phrases the kind in the page's language and
+  the home card shows the label alone. `dues` never returns items before
+  today that nobody can act on any more (a medicine dose of last week).
 
 ### 2. Money
 
@@ -228,7 +234,39 @@ ModuleSummary? summarize(ModuleRecord record);
 with `ModuleSummary` = `title` (`String`), `detail` (`String?`) and
 `private` (`bool`: health or money, never shown without opting in), in the
 kit since 2.8.4. Today nothing reads it but the module's tests; module records are still never in
-general search, the timeline or assistant tools.
+general search or the timeline.
+
+### 4b. The module at a glance (2.8.5)
+
+Every module that keeps records overrides
+
+```dart
+Future<ModuleGlance?> glance(
+  NexModuleStore store, AppLocalizations l10n, DateTime now);
+```
+
+with `ModuleGlance` = `headline` (the one fact that matters now: «Next:
+Rent cheque · in 3 days», «Tirajeh mall · -2 · B14»), `detail` (a line
+under it), `progress` (0–1, drawn as a bar) and `facts`
+(`ModuleGlanceFact(label, value, strong:)`). Before there is anything to
+say it is the module's empty line («No cheques yet»), never null.
+
+- **Where it shows:** the pinned tile (headline, detail), the **quick view**
+  (`widgets/module_peek.dart`, `nexShowModulePeek`) that a tap on a pinned
+  module or a dates-card line opens — the glance plus its open dates of the
+  next month, with the module one button away — and, only after the person
+  turns on «Let it see my tools», the assistant (`platform/tools_for_assistant.dart`).
+- **Privacy:** a money module's headline and detail — what the tile on the
+  home screen shows — carry no amount; amounts appear only among the quick
+  view's facts, the way the module itself opens, and not at all where the
+  module keeps «hide amounts» as a setting (Expenses). The Asset book's
+  glance is always covered. The assistant gets nothing from the
+  modules in `nexToolsKeptOnPhone` (money, health, belongings) but a count
+  of what is due, and no `private` due of any module by title.
+- **Words:** `glance*` keys in the module's own strings, both languages;
+  money through `nexTomanText`, days through `nexDueWhen`.
+- **Tested** in `test/module_glance_test.dart` (every module has one) and
+  `test/tools_for_assistant_test.dart` (what leaves the phone).
 
 ### 5. Records keep what they do not know
 

@@ -102,7 +102,8 @@ const assetStrings = NexModuleStrings(
     'boughtOn': 'Bought {date}',
     'goldQuantity': '{n} g · fineness {fineness}',
     'coinQuantity': '{n} coins',
-  },
+    'glanceOpen': 'Tap to open',
+},
   fa: {
     'title': 'دفتر دارایی',
     'tagline': 'دارایی‌هایتان، با واحدی که برایتان معنا دارد',
@@ -206,5 +207,6 @@ const assetStrings = NexModuleStrings(
     'boughtOn': 'خرید در {date}',
     'goldQuantity': '{n} گرم · عیار {fineness}',
     'coinQuantity': '{n} سکه',
-  },
+    'glanceOpen': 'برای باز کردن بزنید',
+},
 );

@@ -71,35 +71,15 @@ class HabitsModule extends NexStoredModule {
   ) => habitsGlance(store, l10n, now);
 
   @override
-  String? dueLabel(AppLocalizations l10n, String kind) {
-    if (!kind.startsWith('habits-today:')) return null;
-    final n = int.tryParse(kind.substring('habits-today:'.length)) ?? 0;
-    return strings.text(l10n, 'briefLeft', {'n': n});
-  }
+  String? dueLabel(AppLocalizations l10n, String kind) =>
+      habitsDueLabel(l10n, kind);
 
-  /// On the home screen, today's habits are one line (2.8.5): «3 habits left
-  /// for today», not a line each.
   @override
   Future<List<ModuleDue>> dues(
     NexModuleStore store,
     DateTime from,
     DateTime to,
-  ) async {
-    final left = (await HabitsShared.load(store)).duesBetween(from, to);
-    if (left.isEmpty) return const [];
-    return [
-      ModuleDue(
-        id: 'habits:${left.first.at.toIso8601String().substring(0, 10)}',
-        recordKind: 'habit',
-        recordId: left.first.recordId,
-        at: left.first.at,
-        // One habit by its name; more as a count, said by [dueLabel] in the
-        // page's language.
-        title: left.length == 1 ? left.first.title : '',
-        kind: left.length == 1 ? 'habit' : 'habits-today:${left.length}',
-      ),
-    ];
-  }
+  ) => habitsHomeDues(store, from, to);
 }
 
 const habitsStrings = NexModuleStrings(

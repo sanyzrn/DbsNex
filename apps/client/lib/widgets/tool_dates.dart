@@ -11,6 +11,7 @@ import '../modules/nex_module_store.dart';
 import '../modules/nex_stored_module.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import 'module_peek.dart';
 
 /// One line of the home screen's dates from your tools.
 class NexToolDate {
@@ -181,6 +182,19 @@ class _NexToolDatesState extends State<NexToolDates> {
   }
 
   void _open(NexModule module) {
+    // The quick view first, like a pinned tile (2.8.5): what is due and
+    // the module's facts, with the module itself one button away.
+    if (module is NexStoredModule) {
+      unawaited(
+        nexShowModulePeek(
+          context,
+          module: module,
+          services: widget.services,
+          preferences: widget.preferences,
+        ),
+      );
+      return;
+    }
     unawaited(
       Navigator.of(context).push(
         NexPageRoute<void>(

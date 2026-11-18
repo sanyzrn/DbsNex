@@ -212,4 +212,9 @@ const _lensen = <String, String>{
   'noMarketRates': 'No retailer prices are known — only what you type',
   'priceComparisonNote':
       'A price comparison is not a claim that the products are equally good',
+  'glanceEmpty': 'Remember a price to begin',
+  'glanceNeeded': '{n} on your list',
+  'glanceAllBought': 'Everything on the list is bought',
+  'glanceProducts': '{n} products remembered',
+  'glanceToBuy': 'To buy',
 };

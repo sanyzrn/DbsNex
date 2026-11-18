@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'studio_home.dart';
 import 'studio_strings.dart';
+import 'studio_glance.dart';
 
 class PromptStudioModule extends NexStoredModule {
   const PromptStudioModule();
@@ -16,4 +17,11 @@ class PromptStudioModule extends NexStoredModule {
   NexModuleStrings get strings => studioStrings;
   @override
   Widget screen(NexModuleStore store) => StudioHome(store: store);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => studioGlance(store, l10n, now);
 }

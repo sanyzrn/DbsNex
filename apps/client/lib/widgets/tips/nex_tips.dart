@@ -86,6 +86,15 @@ final List<NexTip> nexTips = [
     fresh: true,
   ),
   NexTip(
+    id: 'tool-peek',
+    icon: Icons.visibility_outlined,
+    hue: NexHue.teal,
+    title: (l) => l.tipToolPeekTitle,
+    body: (l) => l.tipToolPeekBody,
+    when: (c) => c.modulesOn > 0 && c.preferences.pinnedTools.isNotEmpty,
+    fresh: true,
+  ),
+  NexTip(
     id: 'modules',
     icon: Icons.widgets_outlined,
     hue: NexHue.violet,

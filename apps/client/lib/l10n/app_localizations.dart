@@ -4334,6 +4334,18 @@ abstract class AppLocalizations {
   /// **'Full'**
   String get assistantLengthFull;
 
+  /// Assistant settings switch: the assistant reads a summary of the modules.
+  ///
+  /// In en, this message translates to:
+  /// **'Let it see my tools'**
+  String get assistantUseTools;
+
+  /// Under assistantUseTools.
+  ///
+  /// In en, this message translates to:
+  /// **'What your tools have coming up in the next two weeks goes with each question, so it can answer \"what\'s due this week?\". Money and health tools only as a count.'**
+  String get assistantUseToolsSubtitle;
+
   /// Switch limiting the assistant to the notes and the app
   ///
   /// In en, this message translates to:
@@ -10537,6 +10549,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your tools\' dates, on the home screen'**
   String get tipToolDatesTitle;
+
+  /// No description provided for @tipToolPeekTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A quick look at a tool'**
+  String get tipToolPeekTitle;
+
+  /// No description provided for @tipToolPeekBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a pinned module for its quick view: what it holds and what is coming up, right here. Open it only when you want to change something.'**
+  String get tipToolPeekBody;
 
   /// No description provided for @tipToolDatesBody.
   ///

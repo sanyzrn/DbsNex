@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'security_home.dart';
 import 'security_strings.dart';
+import 'security_glance.dart';
 
 class SecurityToolsModule extends NexStoredModule {
   const SecurityToolsModule();
@@ -16,4 +17,11 @@ class SecurityToolsModule extends NexStoredModule {
   NexModuleStrings get strings => securityStrings;
   @override
   Widget screen(NexModuleStore store) => SecurityHome(store: store);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => securityGlance(store, l10n, now);
 }

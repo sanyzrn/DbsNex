@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'price_lens_screen.dart';
 import 'strings.dart';
+import 'lens_glance.dart';
 
 /// **Price Lens** — which package is actually cheaper?
 ///
@@ -28,4 +29,11 @@ class PriceLensModule extends NexStoredModule {
 
   @override
   Widget screen(NexModuleStore store) => PriceLensScreen(store: store);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => lensGlance(store, l10n, now);
 }

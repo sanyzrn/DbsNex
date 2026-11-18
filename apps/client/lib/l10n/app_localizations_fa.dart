@@ -2688,6 +2688,13 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantLengthFull => 'کامل';
 
   @override
+  String get assistantUseTools => 'ابزارهایم را ببیند';
+
+  @override
+  String get assistantUseToolsSubtitle =>
+      'کارهای پیشِ روی ابزارهایتان در دو هفتهٔ آینده همراه هر سؤال فرستاده می‌شود تا بتواند بگوید «این هفته چه چیزهایی سررسید دارد؟». از ابزارهای مالی و سلامت فقط تعدادشان.';
+
+  @override
   String get assistantScope => 'فقط درباره یادداشت‌هایم';
 
   @override
@@ -6816,6 +6823,13 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get tipToolDatesTitle => 'تاریخ‌های ابزارها، روی صفحهٔ اصلی';
+
+  @override
+  String get tipToolPeekTitle => 'نگاهی سریع به ابزار';
+
+  @override
+  String get tipToolPeekBody =>
+      'ماژول سنجاق‌شده را بزنید تا نمای سریعش همین‌جا باز شود: چه در خود دارد و چه پیش رو دارد. فقط وقتی می‌خواهید چیزی را تغییر دهید، خودش را باز کنید.';
 
   @override
   String get tipToolDatesBody =>

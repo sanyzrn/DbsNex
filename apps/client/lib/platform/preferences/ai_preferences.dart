@@ -343,6 +343,17 @@ mixin _AiPreferences on _PreferencesStore {
     _notifyNow();
   }
 
+  /// Whether the assistant is told what the tools on this phone have
+  /// coming up (2.8.5) — each one's headline and its dates of the next two
+  /// weeks; money and health tools only as a count. Off until turned on:
+  /// it goes to the AI provider with every question.
+  bool get aiUseTools => _prefs.getBool('ai.useTools') ?? false;
+
+  Future<void> setAiUseTools(bool value) async {
+    await _prefs.setBool('ai.useTools', value);
+    _notifyNow();
+  }
+
   /// Whether what was said to the assistant is put in the box to check
   /// rather than sent. Off by default: speaking a request is how it is done
   /// by voice, and any change it leads to still waits on a card.

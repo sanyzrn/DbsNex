@@ -351,7 +351,7 @@ extension _ChatContext on _AiChatSheetState {
     // Acting needs ids to act on. With no notes in context every id the model
     // could produce would be invented, which is the one thing the prompt
     // tells it not to do.
-    canAct: _context.isNotEmpty,
+    canAct: _notesContext.isNotEmpty || _retrieved.isNotEmpty,
     currentSettings: _currentSettings,
     appGuide: _guide,
   );
@@ -439,6 +439,7 @@ extension _ChatContext on _AiChatSheetState {
     if (_notesContext.isNotEmpty) _notesContext,
     if (_retrieved.isNotEmpty)
       'Notes matching the latest question, best match first:\n$_retrieved',
+    if (_tools.isNotEmpty) _tools,
   ].join('\n\n');
 
   /// Looks up any note an answer cites that this sheet has not seen — a

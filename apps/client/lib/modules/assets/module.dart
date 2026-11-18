@@ -3,6 +3,7 @@ import 'package:nex_client/modules/module_api.dart';
 
 import 'screen.dart';
 import 'strings.dart';
+import 'glance.dart';
 export 'strings.dart';
 
 class AssetsModule extends NexStoredModule {
@@ -17,4 +18,11 @@ class AssetsModule extends NexStoredModule {
   NexModuleStrings get strings => assetStrings;
   @override
   Widget screen(NexModuleStore store) => AssetsScreen(store: store);
+
+  @override
+  Future<ModuleGlance?> glance(
+    NexModuleStore store,
+    AppLocalizations l10n,
+    DateTime now,
+  ) => assetsGlance(store, l10n, now);
 }

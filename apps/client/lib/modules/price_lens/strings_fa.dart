@@ -204,4 +204,9 @@ const _lensfa = <String, String>{
 
   'noMarketRates': 'هیچ قیمتی از فروشگاهی دانسته نیست — فقط ورودی خودتان',
   'priceComparisonNote': 'مقایسه‌ی قیمت ادعای برابری کیفیت محصولات نیست',
+  'glanceEmpty': 'برای شروع قیمتی را به خاطر بسپارید',
+  'glanceNeeded': '{n} کالا در فهرست خرید',
+  'glanceAllBought': 'همهٔ فهرست خریده شده',
+  'glanceProducts': '{n} کالا با قیمت ثبت‌شده',
+  'glanceToBuy': 'برای خرید',
 };

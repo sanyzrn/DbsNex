@@ -198,7 +198,7 @@ const lentStrings = NexModuleStrings(
     'glanceOwedToMe': 'Owed to you',
     'glanceIOwe': 'You owe',
     'glanceItems': 'Things lent or borrowed',
-},
+  },
   fa: {
     'amountHint': 'مثلاً {example}',
     'amountWordsHint': 'مبلغ به حروف اینجا نوشته می‌شود.',
@@ -350,5 +350,5 @@ const lentStrings = NexModuleStrings(
     'glanceOwedToMe': 'طلب شما',
     'glanceIOwe': 'بدهی شما',
     'glanceItems': 'وسیله‌های قرضی',
-},
+  },
 );

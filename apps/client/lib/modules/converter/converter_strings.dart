@@ -220,7 +220,10 @@ const converterStrings = NexModuleStrings(
     'deleted': 'Deleted',
     'undo': 'Undo',
     'close': 'Close',
-  },
+    'glanceEmpty': 'Dates, units and sizes, offline',
+    'glanceStarred': '{n} starred',
+    'glanceRecent': '{n} recent conversions',
+},
   fa: {
     'title': 'تبدیل‌گر',
     'tagline': 'تاریخ، واحد و سایز — بدون اینترنت',
@@ -427,5 +430,8 @@ const converterStrings = NexModuleStrings(
     'deleted': 'حذف شد',
     'undo': 'بازگردانی',
     'close': 'بستن',
-  },
+    'glanceEmpty': 'تاریخ، واحد و اندازه، بی‌اینترنت',
+    'glanceStarred': '{n} ستاره‌دار',
+    'glanceRecent': '{n} تبدیل اخیر',
+},
 );
