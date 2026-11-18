@@ -81,9 +81,16 @@ ORDER BY substr(replace(n.created_at, 'Z', '000'), 1, 26) ASC, n.rowid ASC
 ''',
       [threadId, now],
     );
+    // One query for every note's tags, not one per note: a thread is a
+    // story, and a long one is the notes it holds — at 5,000 notes the
+    // per-note ask was a thousand-fold the work of the batched ask beside
+    // it (the same `tagsForNotes` the timeline's own read uses).
+    final tags = _notes.tagsForNotes([
+      for (final row in rows) row['id']! as String,
+    ]);
     return [
       for (final row in rows)
-        Note.fromRow(row, tags: _notes.tagsForNote(row['id'] as String)),
+        Note.fromRow(row, tags: tags[row['id']! as String] ?? const []),
     ];
   }
 
@@ -194,13 +201,19 @@ LIMIT ?
     }
     final alreadyIn = memberships[noteId] ?? const <String>{};
 
+    // One tags query for all the compared notes — the loop below used to ask
+    // once per note, and `lookbackLimit` is four hundred of them.
+    final candidateTags = _notes.tagsForNotes([
+      for (final row in rows) row['id']! as String,
+    ]);
+
     final threadScores = <String, double>{};
     Note? bestLoose;
     var bestLooseScore = 0.0;
     for (final row in rows) {
       final other = Note.fromRow(
         row,
-        tags: _notes.tagsForNote(row['id'] as String),
+        tags: candidateTags[row['id']! as String] ?? const [],
       );
       final score = ThreadAffinity.score(note, other, wordsA: words);
       if (score <= 0) continue;

@@ -22,13 +22,17 @@ String nexDueWhen(AppLocalizations l10n, DateTime at, DateTime today) {
   return l10n.toolDatesIn(days);
 }
 
+/// Where a whole-toman figure's thousands separators go, compiled once —
+/// every money line a module shows pays this once, not one compile each.
+final RegExp _tomanGroups = RegExp(r'\B(?=(\d{3})+(?!\d))');
+
 /// Whole rials said in tomans, grouped, in the page's digits: «۱۲,۵۰۰ تومان».
 /// A tenth of a toman is kept, never rounded away.
 String nexTomanText(BigInt rial, AppLocalizations l10n) {
   final negative = rial.isNegative;
   final abs = rial.abs();
   final whole = (abs ~/ BigInt.from(10)).toString().replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    _tomanGroups,
     (_) => ',',
   );
   final tenth = abs % BigInt.from(10);

@@ -342,7 +342,7 @@ LinkPreview parseLinkPreview(String html, {Uri? base}) {
     for (final tag in _linkTag.allMatches(html)) {
       final whole = tag.group(0)!;
       final relValue = _attr(whole, 'rel')?.toLowerCase();
-      if (relValue == null || !relValue.split(RegExp(r'\s+')).contains(rel)) {
+      if (relValue == null || !relValue.split(_whitespace).contains(rel)) {
         continue;
       }
       final href = _attr(whole, 'href');
@@ -373,14 +373,21 @@ final _twitterImageSrc = _metaPattern('twitter:image:src');
 final _linkTag = RegExp(r'<link\b[^>]*>', caseSensitive: false);
 const _iconRels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon'];
 
+/// An attribute's value in a tag, quoted either way or bare. Compiled per
+/// name and kept — this runs for every `<link>` a page names, and a fresh
+/// pattern per tag was most of what parsing a link-heavy page cost.
+final _attrPatterns = <String, RegExp>{};
+
 String? _attr(String tag, String name) {
-  final match = RegExp(
+  final match = (_attrPatterns[name] ??= RegExp(
     '\\b$name\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))',
     caseSensitive: false,
-  ).firstMatch(tag);
+  )).firstMatch(tag);
   final value = match?.group(1) ?? match?.group(2) ?? match?.group(3);
   return value == null ? null : _decodeEntities(value).trim();
 }
+
+final RegExp _whitespace = RegExp(r'\s+');
 
 /// The handful of entities that actually show up in titles. Not a full HTML
 /// entity table: a title with `&hellip;` in it is still a usable title, and

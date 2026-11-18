@@ -104,6 +104,19 @@ abstract final class NexReminderActions {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      // The launch-and-return sweep re-arms every note's reminder, and each
+      // used to rewrite this triple — a disk write per note, for words that
+      // only change when the note does. `getStringList` reads the cache the
+      // plugin already holds in memory, so the comparison is free and the
+      // write only happens when something actually moved.
+      final current = prefs.getStringList(_textKey(noteId));
+      final unchanged =
+          current != null &&
+          current.length == 3 &&
+          current[0] == title &&
+          current[1] == (body ?? '') &&
+          current[2] == (secret ? '1' : '0');
+      if (unchanged) return;
       await prefs.setStringList(_textKey(noteId), [
         title,
         body ?? '',

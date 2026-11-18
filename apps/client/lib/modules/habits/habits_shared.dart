@@ -23,11 +23,20 @@ class HabitsShared {
   );
 
   ({List<Habit> left, List<Habit> done}) today(DateTime now) {
+    // One bucket per habit, built in a single pass: `fromChecks` reads only
+    // its own habit's check-ins, and the filter below used to walk every
+    // check for every habit — the whole history again for each one — which
+    // made today's list cost habits × check-ins on every load (the dates
+    // card, the pinned glance, this module's own screens).
+    final byHabit = <String, List<HabitCheck>>{};
+    for (final check in checks) {
+      byHabit.putIfAbsent(check.habitId, () => []).add(check);
+    }
     final left = <Habit>[], done = <Habit>[];
     for (final habit in habits.where((h) => !h.archived)) {
       final s = HabitMath.fromChecks(
         habit,
-        checks.where((c) => c.habitId == habit.id),
+        byHabit[habit.id] ?? const [],
         now,
         firstDay: firstDay,
       );

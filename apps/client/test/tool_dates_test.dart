@@ -192,4 +192,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Dates from your tools'), findsNothing);
   });
+
+  testWidgets('one module\'s write re-reads only that module\'s dues', (
+    tester,
+  ) async {
+    final h = await NexTestHarness.create(name: 'tool_dates_fanout_');
+    addTearDown(h.dispose);
+    await h.preferences.setModuleOn('maintenance', true);
+    await h.preferences.setModuleOn('occasions', true);
+    int readsOf(String module) => h.db.moduleRecordsCalls
+        .where((call) => call.startsWith('$module/'))
+        .length;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NexToolDates(services: h.services, preferences: h.preferences),
+        ),
+      ),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pumpAndSettle();
+    final maintenanceBefore = readsOf('maintenance');
+    final occasionsBefore = readsOf('occasions');
+    expect(maintenanceBefore, greaterThan(0), reason: 'both read when opened');
+    expect(occasionsBefore, greaterThan(0));
+
+    // A write to one module: its dues may have moved, the other modules'
+    // cannot have. The card used to re-read every enabled module's records
+    // for each of these.
+    await tester.runAsync(
+      () => NexModuleStore(h.services, 'occasions').put('occasion', 'o1', {
+        'name': 'A birthday',
+        'calendar': 'gregorian',
+        'day': '2026-11-20',
+        'schema': 2,
+      }),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      readsOf('maintenance'),
+      maintenanceBefore,
+      reason: 'a write to occasions cannot move maintenance\'s dues',
+    );
+    expect(
+      readsOf('occasions'),
+      greaterThan(occasionsBefore),
+      reason: 'the module that wrote is re-read',
+    );
+  });
 }

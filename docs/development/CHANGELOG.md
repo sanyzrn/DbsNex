@@ -52,6 +52,18 @@ Working convention:
   an ellipsis — whole up to 12 words, else up to its last comma, else none;
   the prompt asks for a comma after an opening vocative; a cached greeting
   ending in «…» is not shown.
+- Performance (two audits, applied together): `idx_notes_home` gains
+  `created_at` (threads list/forNote ~140× at 50k), `idx_notes_shelves`,
+  partial media indexes; thread notes/suggest tags batched; `nearestMiss`
+  `INDEXED BY idx_notes_created_at`; substring pass skips `lower()` for
+  uncased needles; backup snapshot off the worker chain; crash log appends;
+  capture journal async; voice recovery async; reminder sweep verifies once
+  (only alarms actually armed — `schedule` returns bool) and `remember`
+  skips unchanged writes; link-art sweep in one `existingNoteIds` read;
+  words reminder via sorted due days + binary search; habits `today()`
+  O(H+C); static regexes; settings backup count read once; dates card
+  re-reads only the changed module (250 ms debounce, parallel full load,
+  cached lines keyed on dues/day/locale/hidden).
 
 ### 2.8.5 — modules at a glance, the quick view, the assistant and tools
 

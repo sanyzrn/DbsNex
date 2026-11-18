@@ -98,6 +98,13 @@ extension NexLibraryServices on NexServices {
   /// Whether [id] is a note the library still shows — not deleted.
   Future<bool> noteExists(String id) async => await worker.getById(id) != null;
 
+  /// Which of [ids] the library still shows, in one read — the sweep's form
+  /// of [noteExists], asked once for every link that has a picture rather
+  /// than once per link.
+  Future<Set<String>> existingNoteIds(List<String> ids) async => {
+    ...await worker.existingNoteIds(ids),
+  };
+
   Future<void> purgeAllDeleted() => worker.purgeAllDeleted();
 
   /// Clears attachment files no note points at any more, at most once a day.

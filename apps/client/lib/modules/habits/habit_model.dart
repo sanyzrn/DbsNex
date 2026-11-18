@@ -184,6 +184,10 @@ class Habit {
   }
 }
 
+/// The civil-date prefix a check-in's date is read from, compiled once for
+/// the load that reads every record.
+final RegExp _dateKeyPrefix = RegExp(r'^(\d{4})-(\d{2})-(\d{2})');
+
 /// One check-in: the habit, and the **local civil date** it counts for.
 ///
 /// A check-in is keyed by `habitId:date` in the store (kind `check`), so
@@ -245,7 +249,7 @@ class HabitCheck {
   /// prefix of a real date. Anything else reads as unknown (`""`) — never
   /// today, never a crash — so a malformed record can only fail to exist.
   static String _normaliseDateKey(String raw) {
-    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(raw);
+    final match = _dateKeyPrefix.firstMatch(raw);
     if (match == null) return '';
     final key = raw.substring(0, 10);
     return tryParseDateKey(key) == null ? '' : key;
@@ -282,9 +286,13 @@ String dateKeyOf(DateTime moment) {
 ///
 /// `DateTime.tryParse` accepts `2026-02-30` and quietly rolls it into
 /// March, so the only honest test is whether the parsed date spells the
-/// same day it was given.
+/// same day it was given. The pattern is compiled once — this runs for
+/// every check-in of every habit on every load of the Today list, the
+/// dates card and the pinned glance.
+final RegExp _dateKeyPattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
 DateTime? tryParseDateKey(String key) {
-  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(key)) return null;
+  if (!_dateKeyPattern.hasMatch(key)) return null;
   final date = DateTime.tryParse(key);
   if (date == null || dateKeyOf(date) != key) return null;
   return DateTime.utc(date.year, date.month, date.day);

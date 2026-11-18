@@ -22,6 +22,21 @@ class NexCrashLog {
   static Future<void> _handledTail = Future<void>.value();
   static final _writes = <String, Future<void>>{};
 
+  /// This isolate's last known entries for each log file, as they sit on
+  /// disk after a write through [_append].
+  ///
+  /// The note path used to re-read the whole file, re-run the redaction
+  /// passes over every old entry, and rewrite the whole file for each new
+  /// line — the launch reminder sweep writes a diagnostic per re-armed
+  /// reminder, so a phone with a hundred of them read, regexed and rewrote
+  /// the capped file a hundred times in its first seconds. The entries are
+  /// kept in memory instead: a new distinct line appends to the file in one
+  /// small write, and only a line that collapses into an earlier one (the
+  /// counted repeat) or crosses a bound pays for the full rewrite. The
+  /// worker isolate keeps its own cache for its own log, exactly as it
+  /// keeps its own `_writes` chain today.
+  static final _entriesCache = <String, List<String>>{};
+
   /// Wait for this file's queued diagnostics before reading/exporting it.
   Future<void> flush() => _writes[file.absolute.path] ?? Future<void>.value();
 
@@ -155,17 +170,40 @@ class NexCrashLog {
     final previous = _writes[path] ?? Future<void>.value();
     final next = previous.then((_) async {
       try {
-        final existing = await file.exists() ? await file.readAsString() : '';
-        final entries =
-            existing
-                .split(_separator)
-                .where((value) => value.trim().isNotEmpty)
-                .toList()
-              ..add(entry);
-        _dedupeNote(entries);
-        final kept = _bounded(entries);
+        var entries = _entriesCache[path];
+        if (entries == null) {
+          final existing = await file.exists() ? await file.readAsString() : '';
+          _entriesCache[path] = entries = existing
+              .split(_separator)
+              .where((value) => value.trim().isNotEmpty)
+              .toList();
+        }
+        // Work on a copy: dedupe and bounds below rewrite the list, and the
+        // cache must keep the last state they left, not an in-progress one.
+        final before = entries.length;
+        final working = [...entries, entry];
+        _dedupeNote(working);
+        final kept = _bounded(working);
+        _entriesCache[path] = kept;
         await file.parent.create(recursive: true);
-        await file.writeAsString(kept.map(redact).join(_separator));
+        // The fast path: a new line unlike any old one, with room to spare.
+        // It appends the one redacted entry rather than re-reading,
+        // re-redacting and rewriting every entry the log already holds —
+        // each of those was redacted on the way in (see [redact], which is
+        // idempotent), so appending the newcomer produces byte-for-byte the
+        // same file the full rewrite would. `before > 0` keeps the first
+        // entry of a fresh log on the rewriting path, where a rewrite is a
+        // plain write anyway and no separator is needed.
+        final appendedCleanly =
+            kept.length == before + 1 && kept.last == entry && before > 0;
+        if (appendedCleanly) {
+          await file.writeAsString(
+            _separator + redact(entry),
+            mode: FileMode.append,
+          );
+        } else {
+          await file.writeAsString(kept.map(redact).join(_separator));
+        }
       } catch (_) {
         // A failed diagnostics write cannot poison the queue or recovery.
       }
@@ -274,16 +312,19 @@ class NexCrashLog {
   }
 
   static String redact(String text) => text
-      .replaceAll(RegExp(r'https?://[^\s<>]+', caseSensitive: false), '[url]')
-      .replaceAll(
-        RegExp(r'(?:Bearer\s+|\bsk-)[A-Za-z0-9_.\-]+', caseSensitive: false),
-        '[credential]',
-      )
-      .replaceAllMapped(
-        RegExp(
-          r'(api[_-]?key|token|authorization|password)\s*[:=]\s*[^\s,;]+',
-          caseSensitive: false,
-        ),
-        (m) => '${m[1]}=[redacted]',
-      );
+      .replaceAll(_urlPattern, '[url]')
+      .replaceAll(_credentialPattern, '[credential]')
+      .replaceAllMapped(_secretPattern, (m) => '${m[1]}=[redacted]');
+
+  /// Compiled once. These ran per entry per append — three fresh `RegExp`
+  /// objects for every old line of the log, every time a new line arrived.
+  static final _urlPattern = RegExp(r'https?://[^\s<>]+', caseSensitive: false);
+  static final _credentialPattern = RegExp(
+    r'(?:Bearer\s+|\bsk-)[A-Za-z0-9_.\-]+',
+    caseSensitive: false,
+  );
+  static final _secretPattern = RegExp(
+    r'(api[_-]?key|token|authorization|password)\s*[:=]\s*[^\s,;]+',
+    caseSensitive: false,
+  );
 }

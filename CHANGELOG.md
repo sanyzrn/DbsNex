@@ -8,6 +8,7 @@ User-facing release notes. Detailed technical history is preserved in [the devel
 
 - **Picking notes stays on the notes.** While several notes are picked, holding another card picks it too instead of opening its menu, and nothing else on the card or the home screen acts in the middle of the choice — a recording's play button, a link, a checklist, the filters, the pinned tools and the recap wait, dimmed, until you finish.
 - **A tidier dates card.** The dates from your tools now fold like the recap: the nearest two, with an arrow to open the rest, and it remembers how you left it. A birthday or an occasion no longer lingers as "17 days late" — it leaves once its day has gone — while a cheque still to settle stays, marked late. A money or health line now says how many items it stands for.
+- **Faster with a big library.** Opening a note's details in a library with threads, searching for something that isn't there, emptying Recently deleted and grouping the home screen by kind all do far less work; a backup no longer holds up writing a note while it runs; returning to the app re-arms reminders, the words' review reminder and link pictures with a fraction of the effort; and the dates card re-reads only the tool that changed.
 - **Greetings in one piece.** The greeting at the top is no longer cut off with "…" before your name, and a playful opening gets its comma.
 
 ## v2.8.5

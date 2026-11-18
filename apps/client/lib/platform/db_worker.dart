@@ -117,6 +117,7 @@ enum _DbCommand {
   moduleDelete,
   moduleDeleteMany,
   moduleDeleteAll,
+  notesExist,
   scheduleNote,
   scheduledNotes,
   releaseDueNotes,
@@ -720,6 +721,13 @@ class NexDbWorker
   /// Sync holds no transaction across HTTP awaits; each pulled page is one
   /// synchronous transaction. It has its own serial chain, allowing captures
   /// during network waits. Imports remain serialized as bulk local writes.
+  ///
+  /// The backup snapshot is read-only: it takes no transaction on this
+  /// connection at all (its `VACUUM INTO` runs on a separate connection in
+  /// a separate isolate — see `_snapshotAside`), so the chain has even less
+  /// to wait for than the commands above. It is here because a snapshot of a
+  /// large library takes seconds, and the whole point of this set is that
+  /// nothing seconds-long stands between a person and their next capture.
   static const _background = {
     _DbCommand.sync,
     _DbCommand.enrichNote,
@@ -737,8 +745,28 @@ class NexDbWorker
     _DbCommand.semanticSearch,
     _DbCommand.fusedSearch,
     _DbCommand.cancelSemanticSearch,
+    _DbCommand.backup,
   };
 
   /// How long a close waits for background work before disposing the handle.
   static const _closeGrace = Duration(seconds: 2);
+
+  /// The backup snapshot, off this isolate when the library is a real file.
+  ///
+  /// An in-memory library (tests) has no file a second connection could
+  /// open, so it falls back to the in-process snapshot on the handle this
+  /// worker already holds.
+  static Future<File> _snapshotAside(NexDatabase db, String backupDir) async {
+    if (db.path == ':memory:') {
+      final repo = SqliteNoteRepository(db);
+      return repo.backupSnapshot(backupDir);
+    }
+    final dbPath = db.path;
+    return await Isolate.run(
+      () => NexBackupArchive.snapshotDatabaseFromPath(
+        dbPath: dbPath,
+        backupDir: backupDir,
+      ),
+    );
+  }
 }

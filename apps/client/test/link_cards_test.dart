@@ -352,4 +352,49 @@ void main() {
       expect(img.decodePng(icon.readAsBytesSync())!.numFrames, 1);
     });
   });
+
+  group('the launch sweep asks its question once', () {
+    late Directory sweepDir;
+
+    setUp(() {
+      sweepDir = Directory.systemTemp.createTempSync('nex_link_sweep_');
+      NexLinkArt.instance.debugUse(sweepDir);
+    });
+    tearDown(() => sweepDir.deleteSync(recursive: true));
+
+    test(
+      'every known id, in one batch — and only the gone are let go',
+      () async {
+        File cover(String id) {
+          final im = img.Image(width: 300, height: 200);
+          img.fill(im, color: img.ColorRgb8(200, 60, 40));
+          return File('${sweepDir.path}/$id.cover.jpg')
+            ..writeAsBytesSync(img.encodeJpg(im));
+        }
+
+        cover('keep');
+        cover('gone');
+        File('${sweepDir.path}/empty.none').writeAsBytesSync(const []);
+        NexLinkArt.instance.debugUse(sweepDir);
+
+        var batches = 0;
+        final asked = <String>[];
+        await NexLinkArt.instance.sweep((ids) async {
+          batches++;
+          asked.addAll(ids);
+          return {'keep', 'empty'};
+        });
+
+        // One question for the whole folder, holding every id it named — the
+        // sweep used to cross once per id, queueing behind the worker's
+        // launch-time commands each time.
+        expect(batches, 1);
+        expect(asked, containsAll(['keep', 'gone', 'empty']));
+        expect(NexLinkArt.instance.of('keep')?.cover, isNotNull);
+        expect(NexLinkArt.instance.of('gone'), isNull);
+        expect(File('${sweepDir.path}/gone.cover.jpg').existsSync(), isFalse);
+        expect(File('${sweepDir.path}/keep.cover.jpg').existsSync(), isTrue);
+      },
+    );
+  });
 }

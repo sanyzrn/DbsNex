@@ -53,11 +53,16 @@ String wordsNormalize(String text) {
   }
   return buffer
       .toString()
-      .replaceAll(RegExp(r'[^\p{L}\p{N}\s]', unicode: true), ' ')
-      .replaceAll(RegExp(r'\s+'), ' ')
+      .replaceAll(_notLetterOrDigit, ' ')
+      .replaceAll(_anyWhitespace, ' ')
       .trim()
       .toLowerCase();
 }
+
+/// Both compiled once: `wordsNormalize` runs for every answer typed into a
+/// review, twice per sense compared.
+final RegExp _notLetterOrDigit = RegExp(r'[^\p{L}\p{N}\s]', unicode: true);
+final RegExp _anyWhitespace = RegExp(r'\s+');
 
 /// Whether [typed] is one of the answers [expected] holds. A meaning may
 /// carry several senses — on their own lines, or after «;», «؛», «,», «،»

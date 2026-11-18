@@ -119,6 +119,10 @@ class InProcessDb implements NexDb {
   Future<Note?> getById(String id) async => _repo.getById(id);
 
   @override
+  Future<List<String>> existingNoteIds(List<String> ids) async =>
+      _repo.existingNoteIds(ids);
+
+  @override
   Future<Note?> captureShared(Map<String, String> payload) async {
     if (captureDelay != null) await Future<void>.delayed(captureDelay!);
     if (failSharedReplies > 0) {

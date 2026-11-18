@@ -395,11 +395,19 @@ class LibraryMaintenance {
     if (needle.isEmpty) return null;
     Note? best;
     var score = 0.0;
+    // `INDEXED BY idx_notes_created_at` pins the walk to the newest-first
+    // index so the `LIMIT 500` is an early exit, not a sort: the planner on
+    // its own served the `deleted_at` prefix from `idx_notes_timeline` and
+    // sorted every live note to keep the newest 500 — which at 50,000 notes
+    // read the whole table (measured ~92 ms) for what a 500-row walk answers
+    // in ~1 ms. The index is this package's own, created at every open, so
+    // the pin cannot go stale.
     for (final row in repo.db.select(
-      '''SELECT * FROM notes WHERE deleted_at IS NULL
-            AND scheduled_until IS NULL
-            AND (content IS NOT NULL OR title IS NOT NULL OR caption IS NOT NULL
-                 OR transcript_text IS NOT NULL OR ocr_text IS NOT NULL)
+      '''SELECT * FROM notes INDEXED BY idx_notes_created_at
+            WHERE deleted_at IS NULL
+              AND scheduled_until IS NULL
+              AND (content IS NOT NULL OR title IS NOT NULL OR caption IS NOT NULL
+                   OR transcript_text IS NOT NULL OR ocr_text IS NOT NULL)
           ORDER BY created_at DESC LIMIT 500''',
     )) {
       final note = Note.fromRow(row, tags: const []);
@@ -426,11 +434,14 @@ class LibraryMaintenance {
   /// [text] as the words search compares: folded, lower-cased, split on
   /// everything that is not a letter or a digit.
   static List<String> _searchWords(String text) => [
-    for (final word in nexSearchFold(
-      text,
-    ).toLowerCase().split(RegExp(r'[^\p{L}\p{N}]+', unicode: true)))
+    for (final word in nexSearchFold(text).toLowerCase().split(_wordBreak))
       if (word.isNotEmpty) word,
   ];
+
+  /// Compiled once, not once per note compared — `nearestMiss` runs it over
+  /// five hundred notes for a keystroke that matched nothing, and a fresh
+  /// unicode `RegExp` each time was a measurable slice of that.
+  static final _wordBreak = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
 
   /// The best word of [haystack] for each word of [needle], blended half and
   /// half with their average: a note that shares most of the query's words

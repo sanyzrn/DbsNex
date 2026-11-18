@@ -200,7 +200,9 @@ class _CaptureSheetState extends State<CaptureSheet>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         try {
-          widget.services.captureJournal.write(_draftId, text);
+          // The journal write is serialized inside the journal; a failure
+          // is the backstop's to swallow, not this sheet's.
+          unawaited(widget.services.captureJournal.write(_draftId, text));
         } catch (_) {}
         changed(text);
         drafts.clear(key);
@@ -315,7 +317,9 @@ class _CaptureSheetState extends State<CaptureSheet>
           widget.services.captureJournal.complete(_draftId);
           _draftId = newUuidV7();
           if (_latestText.isNotEmpty) {
-            widget.services.captureJournal.write(_draftId, _latestText);
+            unawaited(
+              widget.services.captureJournal.write(_draftId, _latestText),
+            );
             // Let this serialized deletion finish before inserting the new
             // draft typed while its database request was in flight.
             unawaited(Future<void>(() => flush()));

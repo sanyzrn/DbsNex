@@ -300,18 +300,69 @@ CREATE TABLE IF NOT EXISTS note_tags (
     // Re-created (dropped first) rather than merely created-if-missing so the
     // waiting flag joins the flags it already carried: every home query now
     // asks `scheduled_until` too, and a covering index that stops one flag
-    // short puts the full-row read it exists to avoid right back. An existing
-    // library pays one index rebuild on upgrade; a new one builds it this
-    // shape from the start. Only when the index is the old shape: this runs
-    // at every open, and an unconditional drop rebuilt it on every launch.
+    // short puts the full-row read it exists to avoid right back. `created_at`
+    // joins them for the same reason: a per-membership probe that asks when
+    // the note was written (`threads.list()`'s last-activity arm, below) reads
+    // it from the entry instead of from the row. An existing library pays one
+    // index rebuild on upgrade; a new one builds it this shape from the start.
+    // Only when the index is the old shape: this runs at every open, and an
+    // unconditional drop rebuilt it on every launch.
     final homeIndex = db.select('PRAGMA index_info(idx_notes_home)');
     if (homeIndex.isNotEmpty &&
-        !homeIndex.any((c) => c['name'] == 'scheduled_until')) {
+        (!homeIndex.any((c) => c['name'] == 'scheduled_until') ||
+            !homeIndex.any((c) => c['name'] == 'created_at'))) {
       db.execute('DROP INDEX idx_notes_home;');
     }
     db.execute(
       'CREATE INDEX IF NOT EXISTS idx_notes_home ON notes('
-      'id, deleted_at, set_aside_at, set_aside_until, scheduled_until);',
+      'id, deleted_at, set_aside_at, set_aside_until, scheduled_until, '
+      'created_at);',
+    );
+
+    // The shelves of an arranged home are counted over the whole library,
+    // after every delivery (2.7.0) — and both of the counting arms walked
+    // every live row to read its `type`: the planner served the flags from
+    // `idx_notes_timeline`, but the kind itself lives only in the row, so a
+    // 50,000-note library spent ~50 ms of row reads on each capture, edit
+    // and delete for a home arranged by kind or tag. `created_at` above is
+    // what asks for this shape: `threads.list()`'s last-activity arm probes
+    // `notes` per membership, and an entry that stops at the flags forces
+    // the full-row read this index exists to avoid — see the `last_activity`
+    // subquery in `thread_repository.dart` for the measured cost.
+    //
+    // Here the leading pair is the pair every shelf count filters on, and
+    // `type` follows it so the GROUP BY walks the index in kind order rather
+    // than sorting; the rest are the flags the count asks, so the scan reads
+    // index entries only and no row is touched. Maintained on the same
+    // writes as the home index above, and left alone by an ordinary content
+    // edit.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_notes_shelves ON notes('
+      'deleted_at, type, pinned_at, set_aside_at, set_aside_until, '
+      'scheduled_until);',
+    );
+
+    // Media pointers: a note that carries a file names it twice, `media_hash`
+    // for its content and `media_uri` for where the bytes are. Both were
+    // unindexed, so every consumer of them walked the whole `notes` table:
+    // the sync cycle's proactive upload pass once every fifteen minutes, the
+    // per-hash local paths when the server asks for media, and — the worst
+    // of them — the purge's "is this file still referenced?" probe, once per
+    // purged file, which made emptying a trash of two hundred media notes
+    // two hundred whole-library scans on the worker's chain.
+    //
+    // Partial indexes, holding only the rows that have the pointer at all:
+    // a library without media pays nothing for them, and one with media
+    // keeps each of the three reads a seek into a few thousand entries
+    // instead of a scan over every note. Written with `IF NOT EXISTS`, so an
+    // existing library builds each once, on the first open after the upgrade.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_notes_media_uri ON notes(media_uri) '
+      'WHERE media_uri IS NOT NULL;',
+    );
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_notes_media_hash ON notes(media_hash) '
+      'WHERE media_hash IS NOT NULL;',
     );
 
     // Tags get the outbox notes have always had.

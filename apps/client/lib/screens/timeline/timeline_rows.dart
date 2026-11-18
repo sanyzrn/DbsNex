@@ -326,7 +326,7 @@ extension _TimelineRows on TimelineScreenState {
       await art.open();
       if (!mounted) return;
       art.fillIn(_model.all ?? const []);
-      await art.sweep(widget.services.noteExists);
+      await art.sweep(widget.services.existingNoteIds);
     }());
   }
 }

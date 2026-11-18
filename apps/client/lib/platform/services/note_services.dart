@@ -42,6 +42,12 @@ extension NexNoteServices on NexServices {
         // Retry next launch without blocking the already-saved library.
       }
     }
+    // The journal's file operations are serialized and off this isolate's
+    // frame budget (PERF-03's settle write, made asynchronous): recovery is
+    // their one caller that must see them finished — a draft it completed
+    // has to be gone from the journal before this returns, or the next
+    // launch would recover it again.
+    await captureJournal.flush();
   }
 
   Future<Note?> captureChecklist(List<ChecklistItem> items) =>
@@ -115,14 +121,18 @@ extension NexNoteServices on NexServices {
     if (!dir.existsSync()) return 0;
     final idle = (now ?? DateTime.now()).subtract(const Duration(minutes: 2));
     var kept = 0;
-    for (final entity in dir.listSync(followLinks: false)) {
+    // Walked with the async listing: this runs during bootstrap, awaited
+    // before the first frame, and the synchronous walk — a stat call per
+    // entry, on a folder whose size is the whole media library — was frame
+    // time spent before anything had been drawn.
+    await for (final entity in dir.list(followLinks: false)) {
       if (entity is! File ||
           !p.basename(entity.path).startsWith('voice-') ||
           !entity.path.endsWith(NexVoiceSpool.extension)) {
         continue;
       }
       try {
-        if (entity.lastModifiedSync().isAfter(idle)) continue;
+        if ((await entity.lastModified()).isAfter(idle)) continue;
         final durationMs = NexVoiceSpool.adtsDurationMs(
           await entity.readAsBytes(),
         );

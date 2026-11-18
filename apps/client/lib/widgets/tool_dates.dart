@@ -140,12 +140,19 @@ class _NexToolDatesState extends State<NexToolDates> {
   int _loads = 0;
   late bool _opened = widget.preferences.toolDatesOpen;
 
+  /// Modules a change announced, waiting for one debounce window to pass.
+  /// A burst of writes — ticking a habit a few times, a restore replaying a
+  /// module's records — lands as one read of the modules that changed,
+  /// rather than a read of every one of them per write.
+  final _pendingModules = <String>{};
+  Timer? _reload;
+
   DateTime get _now => widget.clock?.call() ?? DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _changes = widget.services.moduleChanges.listen((_) => _load());
+    _changes = widget.services.moduleChanges.listen(_onModuleChange);
     widget.preferences.addListener(_onPreferences);
     _modulesOn = _onIds();
     unawaited(_load());
@@ -153,6 +160,7 @@ class _NexToolDatesState extends State<NexToolDates> {
 
   @override
   void dispose() {
+    _reload?.cancel();
     unawaited(_changes?.cancel());
     widget.preferences.removeListener(_onPreferences);
     super.dispose();
@@ -170,30 +178,127 @@ class _NexToolDatesState extends State<NexToolDates> {
     unawaited(_load());
   }
 
-  Future<void> _load() async {
-    final load = ++_loads;
+  /// Only the module that wrote is re-read. Every module used to be: one
+  /// ticked habit re-read the words, the cheques, the car and the rest —
+  /// each a full-record walk on this isolate — for a line that says what
+  /// one module holds.
+  void _onModuleChange(String module) {
+    _pendingModules.add(module);
+    _reload?.cancel();
+    _reload = Timer(const Duration(milliseconds: 250), () {
+      final ids = List.of(_pendingModules);
+      _pendingModules.clear();
+      if (mounted) unawaited(_loadModules(ids));
+    });
+  }
+
+  ({DateTime from, DateTime to}) _range() {
     final now = _now;
     final today = DateTime(now.year, now.month, now.day);
-    final from = today.subtract(const Duration(days: 60));
-    final to = today.add(const Duration(days: 8));
-    final result = <NexModule, List<ModuleDue>>{};
-    if (widget.preferences.showToolDates) {
-      for (final module in nexModulesOn(widget.preferences)) {
-        if (module is! NexStoredModule) continue;
-        try {
-          final dues = await module.dues(
-            NexModuleStore(widget.services, module.id),
-            from,
-            to,
-          );
-          if (dues.isNotEmpty) result[module] = dues;
-        } catch (_) {
-          // One module's unreadable records never hide the others.
+    return (
+      from: today.subtract(const Duration(days: 60)),
+      to: today.add(const Duration(days: 8)),
+    );
+  }
+
+  /// The window of every module that is on — overdues live in the past
+  /// sixty days, the coming week in the next eight.
+  Future<Map<NexModule, List<ModuleDue>>> _readAll() async {
+    if (!widget.preferences.showToolDates) return const {};
+    final (:from, :to) = _range();
+    final modules = [
+      for (final module in nexModulesOn(widget.preferences))
+        if (module is NexStoredModule) module,
+    ];
+    // One flight per module, together: the reads go to the database worker
+    // as separate commands, and asking for them one after another made the
+    // card's first paint wait for a chain of them.
+    final dues = await Future.wait([
+      for (final module in modules) _readOne(module, from, to),
+    ]);
+    return {
+      for (var i = 0; i < modules.length; i++)
+        if (dues[i].isNotEmpty) modules[i]: dues[i],
+    };
+  }
+
+  Future<List<ModuleDue>> _readOne(
+    NexStoredModule module,
+    DateTime from,
+    DateTime to,
+  ) async {
+    try {
+      return await module.dues(
+        NexModuleStore(widget.services, module.id),
+        from,
+        to,
+      );
+    } catch (_) {
+      // One module's unreadable records never hide the others.
+      return const [];
+    }
+  }
+
+  Future<void> _load() async {
+    final load = ++_loads;
+    final result = await _readAll();
+    if (!mounted || load != _loads) return;
+    setState(() => _dues = result);
+  }
+
+  /// Re-reads only [ids]' dues and merges them into what is shown.
+  Future<void> _loadModules(List<String> ids) async {
+    final load = ++_loads;
+    final result = Map.of(_dues);
+    for (final id in ids) {
+      // Whatever this module holds now replaces what it held — including
+      // nothing, when it was emptied or switched off between the write and
+      // this read.
+      result.removeWhere((module, _) => module.id == id);
+      if (!widget.preferences.showToolDates) continue;
+      NexStoredModule? module;
+      for (final m in nexModulesOn(widget.preferences)) {
+        if (m is NexStoredModule && m.id == id) {
+          module = m;
+          break;
         }
       }
+      if (module == null) continue;
+      final (:from, :to) = _range();
+      final dues = await _readOne(module, from, to);
+      if (dues.isNotEmpty) result[module] = dues;
     }
     if (!mounted || load != _loads) return;
     setState(() => _dues = result);
+  }
+
+  // The card's lines, remembered between rebuilds: every full-screen
+  // rebuild below this card used to re-filter and re-sort every module's
+  // dues and re-string every line, for a list that only changes when the
+  // dues, the day, or the language do.
+  List<NexToolDate> _lines = const [];
+  Map<NexModule, List<ModuleDue>>? _linesFor;
+  int _linesDay = 0;
+  Locale? _linesLocale;
+  bool? _linesHidden;
+
+  List<NexToolDate> _linesOf(
+    AppLocalizations l10n,
+    Locale locale,
+    DateTime now,
+  ) {
+    final day = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    if (!identical(_linesFor, _dues) ||
+        _linesDay != day ||
+        _linesLocale != locale ||
+        _linesHidden != widget.hidden) {
+      _lines = widget.hidden ? const [] : nexToolDates(_dues, l10n, now);
+      _linesFor = _dues;
+      _linesDay = day;
+      _linesLocale = locale;
+      _linesHidden = widget.hidden;
+    }
+    return _lines;
   }
 
   void _open(NexModule module) {
@@ -236,9 +341,11 @@ class _NexToolDatesState extends State<NexToolDates> {
     final l10n = AppLocalizations.of(context);
     final now = _now;
     final today = DateTime(now.year, now.month, now.day);
-    final lines = widget.hidden
-        ? const <NexToolDate>[]
-        : nexToolDates(_dues, l10n, now);
+    final lines = _linesOf(
+      l10n,
+      Localizations.maybeLocaleOf(context) ?? const Locale('en'),
+      now,
+    );
     return AnimatedSize(
       duration: NexMotion.of(context, NexMotion.standard),
       curve: NexMotion.curve,

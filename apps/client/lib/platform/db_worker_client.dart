@@ -35,6 +35,10 @@ mixin _DbClient implements NexDb {
   Future<Note?> getById(String id) =>
       _send<Note?>(_DbCommand.getById, {'id': id});
 
+  @override
+  Future<List<String>> existingNoteIds(List<String> ids) =>
+      _send<List<String>>(_DbCommand.notesExist, {'ids': ids});
+
   /* ------------------------------------------------------------ capturing */
 
   @override

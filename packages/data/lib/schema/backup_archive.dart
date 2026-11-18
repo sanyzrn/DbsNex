@@ -153,6 +153,40 @@ class NexBackupArchive {
     return target;
   }
 
+  /// The same snapshot, taken through the database's own file rather than
+  /// its live handle.
+  ///
+  /// `VACUUM INTO` is a synchronous call: on the connection that runs it,
+  /// nothing else happens until it is done. On the worker that holds every
+  /// capture, read and search, a full-library snapshot was a blocking pause
+  /// that grows with the library — the one command in the app that could
+  /// queue a capture for seconds. Called from a separate isolate, this opens
+  /// its own connection to the same file (a reader under WAL, which never
+  /// contends with the worker's writes) and takes the snapshot there; the
+  /// worker's own event loop stays free and its command chain stays empty.
+  ///
+  /// Same guard as [snapshotDatabase]: an in-memory library has no file to
+  /// open from the side, and callers fall back to the in-process snapshot.
+  static File snapshotDatabaseFromPath({
+    required String dbPath,
+    required String backupDir,
+  }) {
+    if (dbPath == ':memory:') {
+      throw StateError('Cannot back up an in-memory database');
+    }
+    Directory(backupDir).createSync(recursive: true);
+    final target = File(
+      p.join(backupDir, '.snapshot-${DateTime.now().microsecondsSinceEpoch}'),
+    );
+    final side = sqlite3.open(dbPath)..execute('PRAGMA busy_timeout = 5000;');
+    try {
+      side.execute('VACUUM INTO ?', [target.path]);
+    } finally {
+      side.close();
+    }
+    return target;
+  }
+
   /// No live database handle: safe to run in a separate compression isolate.
   static File createFromSnapshot({
     required String snapshotPath,
