@@ -129,7 +129,7 @@ const medicineStrings = NexModuleStrings(
     'glanceTaken': 'Taken',
     'glanceWaiting': 'Waiting',
     'glanceBoxOf': 'A box of {name} expires',
-},
+  },
   fa: {
     ...medicineStringsUpgradeFa,
     'dateHint': 'سال/ماه/روز',
@@ -253,5 +253,5 @@ const medicineStrings = NexModuleStrings(
     'glanceTaken': 'خورده شد',
     'glanceWaiting': 'مانده',
     'glanceBoxOf': 'جعبهٔ {name} منقضی می‌شود',
-},
+  },
 );

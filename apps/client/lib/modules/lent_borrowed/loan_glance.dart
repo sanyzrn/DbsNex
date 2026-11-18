@@ -13,9 +13,9 @@ Future<ModuleGlance?> loanGlance(
   DateTime now,
 ) async {
   final loans = (await store.list('loan')).map(Loan.fromRecord).toList();
-  final returns = (await store.list(
-    'return',
-  )).map(LoanReturn.fromRecord).toList();
+  final returns = (await store.list('return'))
+      .map(LoanReturn.fromRecord)
+      .toList();
   String t(String key, [Map<String, Object?> args = const {}]) =>
       lentStrings.text(l10n, key, args);
   final standings = LoanMath.standingsOf(loans, returns, today: now);

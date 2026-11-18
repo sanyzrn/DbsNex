@@ -169,7 +169,7 @@ const parkingStrings = NexModuleStrings(
     'glanceParkedFor': 'Parked for',
     'glancePaid': 'Paid time',
     'glanceOthers': 'Other cars parked',
-},
+  },
   fa: {
     'dateHint': 'سال/ماه/روز',
     'keepDraft': 'نگهداری پیش‌نویس و بستن',
@@ -333,5 +333,5 @@ const parkingStrings = NexModuleStrings(
     'glanceParkedFor': 'مدت پارک',
     'glancePaid': 'زمان پولی',
     'glanceOthers': 'خودروهای پارک‌شدهٔ دیگر',
-},
+  },
 );

@@ -11,9 +11,11 @@ import '../l10n/app_localizations.dart';
 /// «today», «tomorrow», «in 3 days» or «2 days late», counted in civil days
 /// (2.8.5: in the kit, for the modules' glances and the home screen alike).
 String nexDueWhen(AppLocalizations l10n, DateTime at, DateTime today) {
-  final days = DateTime.utc(at.year, at.month, at.day)
-      .difference(DateTime.utc(today.year, today.month, today.day))
-      .inDays;
+  final days = DateTime.utc(
+    at.year,
+    at.month,
+    at.day,
+  ).difference(DateTime.utc(today.year, today.month, today.day)).inDays;
   if (days < 0) return l10n.toolDatesLate(-days);
   if (days == 0) return l10n.toolDatesToday;
   if (days == 1) return l10n.toolDatesTomorrow;

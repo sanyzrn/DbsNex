@@ -223,7 +223,7 @@ const converterStrings = NexModuleStrings(
     'glanceEmpty': 'Dates, units and sizes, offline',
     'glanceStarred': '{n} starred',
     'glanceRecent': '{n} recent conversions',
-},
+  },
   fa: {
     'title': 'تبدیل‌گر',
     'tagline': 'تاریخ، واحد و سایز — بدون اینترنت',
@@ -433,5 +433,5 @@ const converterStrings = NexModuleStrings(
     'glanceEmpty': 'تاریخ، واحد و اندازه، بی‌اینترنت',
     'glanceStarred': '{n} ستاره‌دار',
     'glanceRecent': '{n} تبدیل اخیر',
-},
+  },
 );

@@ -145,7 +145,7 @@ const securityStrings = NexModuleStrings(
     'glanceOpen': '{n} accounts have a step left',
     'glanceAccounts': '{n} accounts',
     'glanceChecks': '{done} of {total}',
-},
+  },
   fa: {
     "codecTitle": "تبدیل متن",
     "codecAbout": "Base64، اجزای URL و Hex با پشتیبانی فارسی.",
@@ -292,5 +292,5 @@ const securityStrings = NexModuleStrings(
     'glanceOpen': '{n} حساب یک قدم مانده دارند',
     'glanceAccounts': '{n} حساب',
     'glanceChecks': '{done} از {total}',
-},
+  },
 );

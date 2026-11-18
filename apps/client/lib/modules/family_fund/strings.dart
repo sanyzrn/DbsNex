@@ -103,7 +103,7 @@ const fundStrings = NexModuleStrings(
     'glanceDraw': 'This month\'s draw',
     'glanceDrawn': 'Drawn',
     'glanceNotDrawn': 'Not drawn yet',
-},
+  },
   fa: {
     'title': 'صندوق خانوادگی',
     'tagline': 'دفتر ماهانهٔ صندوق فامیلی و دوستانه',
@@ -206,5 +206,5 @@ const fundStrings = NexModuleStrings(
     'glanceDraw': 'قرعهٔ این ماه',
     'glanceDrawn': 'انجام شد',
     'glanceNotDrawn': 'هنوز انجام نشده',
-},
+  },
 );

@@ -77,7 +77,7 @@ const studioStrings = NexModuleStrings(
     'glanceEmpty': 'Keep your first prompt',
     'glancePrompts': '{n} prompts',
     'glanceFavorites': '{n} favourites',
-},
+  },
   fa: {
     "slotOne": "۱ جای خالی",
     "remainingOne": "۱ جای خالی مانده",
@@ -153,5 +153,5 @@ const studioStrings = NexModuleStrings(
     'glanceEmpty': 'اولین پرامپت را نگه دارید',
     'glancePrompts': '{n} پرامپت',
     'glanceFavorites': '{n} محبوب',
-},
+  },
 );

@@ -76,10 +76,7 @@ String nexToolsContext(
       continue;
     }
     final glance = report.glance;
-    final said = [
-      ?glance?.headline,
-      ?glance?.detail,
-    ].join(' — ');
+    final said = [?glance?.headline, ?glance?.detail].join(' — ');
     final private = open.where((d) => d.private).length;
     final dated = [
       for (final due in open.where((d) => !d.private).take(5))
